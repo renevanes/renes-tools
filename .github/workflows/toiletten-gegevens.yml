@@ -8,6 +8,12 @@
 name: Toiletten-gegevens
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/toiletten-gegevens.yml'
+      - 'tools/toiletten/**'
+      - 'web/toiletten-bronnen.json'
   schedule:
     - cron: '23 2 * * 2'   # dinsdag 02:23 UTC (Geofabrik heeft het extract van maandag dan klaar)
   workflow_dispatch:
@@ -44,11 +50,14 @@ jobs:
           echo "$(cut -d' ' -f1 nl.osm.pbf.md5)  nl.osm.pbf" | md5sum -c -
 
       - name: Testplekken kloppen nog met de regels
-        run: python3 tools/toiletten/ophalen.py --voorbeeld tools/toiletten/voorbeeld.json
+        run: |
+          python3 -m unittest discover -s tests/toiletten -v
+          python3 tools/toiletten/ophalen.py --voorbeeld tools/toiletten/voorbeeld.json
 
       - name: Momentopname maken
         run: |
           python3 tools/toiletten/ophalen.py --pbf nl.osm.pbf --uit uit
+          python3 tools/toiletten/controleren.py uit
           cat uit/meta.json >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -71,32 +80,17 @@ jobs:
       REPO: ${{ github.repository }}
       TAG: toiletten-gegevens
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: momentopname
           path: uit
 
       - name: Controleren (formaat, grootte, aantal en controlegetal)
-        run: |
-          python3 - <<'PY'
-          import hashlib, json, os, sys, zlib
-          gz = open("uit/toiletten-nl.json.gz", "rb").read()
-          meta = json.load(open("uit/meta.json", encoding="utf-8"))
-          fout = []
-          if len(gz) > 30 * 1024 * 1024: fout.append("bestand groter dan 30 MB")
-          if os.path.getsize("uit/meta.json") > 100_000: fout.append("meta.json te groot")
-          if meta.get("sha256") != hashlib.sha256(gz).hexdigest(): fout.append("sha256 klopt niet")
-          # zelfde grenzen als de app (ToilettenScan.MAX en MAX_UIT), anders weigert elke telefoon hem
-          d = zlib.decompressobj(16 + zlib.MAX_WBITS)
-          ruw = d.decompress(gz, 40 * 1024 * 1024 + 1)
-          if len(ruw) > 40 * 1024 * 1024 or d.unconsumed_tail: sys.exit("Niet vrijgegeven: uitgepakt groter dan 40 MB")
-          data = json.loads(ruw)
-          if data.get("formaat") != meta.get("formaat") or meta.get("formaat") != 1: fout.append("onbekend formaat")
-          n = len(data.get("plekken") or [])
-          if not 1000 <= n <= 100_000 or n != meta.get("aantal"): fout.append(f"onverwacht aantal plekken: {n}")
-          if fout: sys.exit("Niet vrijgegeven: " + "; ".join(fout))
-          print(f"In orde: {n} plekken, {len(gz)} bytes")
-          PY
+        run: python3 tools/toiletten/controleren.py uit
 
       - name: Release bijwerken (eerst het bestand, dan meta.json)
         run: |
@@ -107,3 +101,32 @@ jobs:
           fi
           gh release upload "$TAG" -R "$REPO" --clobber uit/toiletten-nl.json.gz
           gh release upload "$TAG" -R "$REPO" --clobber uit/meta.json
+
+  bronnen:
+    needs: vrijgeven
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Sjablonen controleren (adressen, formaat, velden en actualiteit)
+        run: |
+          controle_status=0
+          python3 tools/toiletten/bronnen_controleren.py --uit bronnen.json > bronnen.md || controle_status=$?
+          cat bronnen.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$controle_status"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: bronnencontrole
+          path: |
+            bronnen.json
+            bronnen.md
+          if-no-files-found: error
+          retention-days: 30

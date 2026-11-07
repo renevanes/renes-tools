@@ -33,6 +33,12 @@ if extra: sys.exit('Staat niet in web/src/volgorde.txt: ' + ', '.join(extra))
 use = [p for p in parts if not (no_mock and p == 'script/01-testbrug.js')]
 def part(p):
     t = open(os.path.join(src, p), encoding='utf-8', newline='').read()
+    if p == 'script/01-testbrug.js':
+        # De testbrug gebruikt dezelfde sjablonen als de APK; geen tweede, verouderende lijst.
+        import json as _j
+        with open(os.path.join(root, 'web', 'toiletten-bronnen.json'), encoding='utf-8') as f:
+            sjablonen = _j.load(f)['sjablonen']
+        t = t.replace('/* TOILETTEN_SJABLONEN */ []', _j.dumps(sjablonen, ensure_ascii=False).replace('<', '\\u003c'))
     if p.endswith('.json'):
         # Woordenboek (taal/en.json): als gegevens in de pagina, pas gelezen als die taal gekozen is (02-taal.js).
         # Een "<" (bijv. "</script>" of "<!--") mag het script-blok niet afsluiten: in JSON-tekst is "\u003c" hetzelfde.

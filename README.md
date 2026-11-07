@@ -18,6 +18,7 @@ Kies het onderwerp dat je nodig hebt. De volledige uitleg is per onderwerp bewaa
 - [De lokale assistent](docs/assistent.md)
 - [Muziek en podcasts](docs/muziek-en-podcasts.md)
 - [Netwerk en apparaten](docs/netwerk-en-apparaten.md)
+- [Toiletten en douches](docs/toiletten-en-douches.md)
 - [Startscherm en automatiseringen](docs/startscherm-en-automatiseringen.md)
 - [Backups en beveiliging](docs/backups-en-beveiliging.md)
 - [Ontwikkelen en updates](docs/ontwikkelen-en-updates.md)
