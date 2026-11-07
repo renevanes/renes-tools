@@ -196,10 +196,15 @@ json.dump(log, open('changelog.json', 'w'), ensure_ascii=False, indent=2)"
   ./build.sh > build/publish-build.log 2>&1 || { tail -30 build/publish-build.log; echo "Bouwen mislukt: niet gepubliceerd"; exit 1; }
   if [ "${SKIP_TESTS:-}" != "1" ]; then
     ./tests/run-jvm.sh > build/publish-jvm.log 2>&1 || { grep -v "^✓" build/publish-jvm.log | tail -20; echo "Java-tests mislukt: niet gepubliceerd"; exit 1; }
-    if [ -n "${UI_GETEST:-}" ] && [ "$UI_GETEST" = "$AFDRUK" ]; then
+    # De vingerafdruk gaat over HEAD^{tree}: verder mag de werkmap alleen de versie, het wijzigingslog, update/ (bouwen)
+    # en de weggehaalde wijzigingsregels anders hebben, anders hier opnieuw testen
+    ANDERS=""
+    [ -n "${UI_GETEST:-}" ] && ANDERS=$(git status --porcelain | grep -Ev '^.. (VERSION|changelog\.json|update/.*|wijzigingen/.*)$' || true)
+    if [ -n "${UI_GETEST:-}" ] && [ "$UI_GETEST" = "$AFDRUK" ] && [ -z "$ANDERS" ]; then
       echo "Interfacetests: al geslaagd op precies deze bron, versie en wijzigingslog ($UI_GETEST)"
     else
-      [ -n "${UI_GETEST:-}" ] && echo "Bron, versie of wijzigingslog anders dan bij de interfacetests ernaast: hier opnieuw"
+      if [ -n "$ANDERS" ]; then echo "Werkmap anders dan de geteste bron ($(echo "$ANDERS" | head -3 | tr '\n' ' ')): hier opnieuw"
+      elif [ -n "${UI_GETEST:-}" ]; then echo "Bron, versie of wijzigingslog anders dan bij de interfacetests ernaast ($UI_GETEST, hier $AFDRUK): hier opnieuw"; fi
       ./tests/run-ui.sh > build/publish-ui.log 2>&1 || { grep -Ev "^(✓|· |    eerste poging:)" build/publish-ui.log | tail -30; echo "Interfacetests mislukt: niet gepubliceerd"; exit 1; }
       grep -E '^(↻|    eerste poging:|Interfacetests:)' build/publish-ui.log || true # wankele tests (pas bij de tweede poging) zichtbaar in het logboek
     fi

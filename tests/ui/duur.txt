@@ -1,4 +1,4 @@
-# Duur per interfacetest in seconden (gemeten met 4 tegelijk). run-ui.sh start de langste eerst; bijwerken: UI_DUUR_BIJWERKEN=1 ./tests/run-ui.sh
+# Duur per interfacetest in seconden (4 tegelijk op 4 kernen). run-ui.sh start de langste eerst; bijwerken: UI_DUUR_BIJWERKEN=1 ./tests/run-ui.sh
 96 ai-opdrachten.test.js
 86 speler-sluiten.test.js
 73 ui-patronen.test.js

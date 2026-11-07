@@ -89,9 +89,11 @@ const { chromium } = require('playwright');
     // Dubbele tik op versturen: één vraag, één antwoord
     const before = await pg.evaluate(() => { Android._ai.asked = 0; Android._ai.refused = 0; return aiChat.msgs.length; });
     await pg.fill('#ai-in', 'Dubbel getikt'); await pg.evaluate(() => aiGrow());
-    await pg.dblclick('#ai-send'); await pg.waitForTimeout(80);
-    ok(await pg.isDisabled('#ai-send'), 'vlak na versturen: knop even uit');
-    await pg.evaluate(() => { aiSendOrStop(); $('#ai-send').click(); }); // nog meer tikken, ook langs de knop heen
+    await pg.dblclick('#ai-send');
+    // het slot duurt 350 ms: meteen in de pagina zelf kijken en nog meer tikken (ook langs de knop heen); onder belasting
+    // kan een extra rondgang met Playwright al te laat zijn, en dan stopt die tik het antwoord
+    const uit = await pg.evaluate(() => { const d = $('#ai-send').disabled; aiSendOrStop(); $('#ai-send').click(); return d; });
+    ok(uit, 'vlak na versturen: knop even uit');
     ok((await pg.getAttribute('#ai-send', 'aria-label')) === 'Stoppen' && await pg.evaluate(() => Android._ai.timer !== null), 'dubbele tik stopt het antwoord niet meteen weer');
     await pg.waitForTimeout(1100);
     ok(await pg.evaluate(b => Android._ai.asked === 1 && aiChat.msgs.length === b + 2 && aiChat.msgs.filter(m => m.c === 'Dubbel getikt').length === 1, before), 'dubbele tik: één vraag en één antwoord');
