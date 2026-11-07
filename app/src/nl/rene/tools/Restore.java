@@ -42,6 +42,13 @@ final class Restore {
         }
     }
 
+    /** Alles wat een overzicht klaarzette vergeten (er verandert niets); grote teksten niet in het geheugen laten staan. */
+    static synchronized void clear() {
+        pendingKind = null; pendingContacts = null; pendingNotes = null;
+        pendingLauncher = null; pendingSettings = null; pendingRoute = null; pendingTool = null;
+        SettingsBackup.pendingTx = null; SettingsBackup.pendingMusic = null;
+    }
+
     /** Overzicht van wat er toegevoegd zou worden. */
     static JSONObject preview(Context c, String kind, Uri u) throws Exception {
         return previewText(c, kind, read(c, u));

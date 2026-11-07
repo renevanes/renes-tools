@@ -73,7 +73,7 @@ final class BackupMap {
     static volatile boolean stop = false;
     static volatile String current = "";
 
-    static final long TEMP_AGE = 24L * 60 * 60 * 1000;
+    static final long TEMP_AGE = 2L * 24 * 60 * 60 * 1000; // zoals Versleutelen: pas na twee dagen
     static final long HASH_MAX = 32L * 1024 * 1024;
     static final int MAX_ITEMS = 300, MAX_DEPTH = 14;
 
@@ -116,42 +116,45 @@ final class BackupMap {
     static JSONObject run(Context c, boolean repair, boolean auto) throws Exception {
         Uri tree = WaBackup.destUri(c);
         if (tree == null) throw new Exception("Kies eerst een backup-map");
-        if (!RUNNING.compareAndSet(false, true)) throw new Exception("De backup-map wordt al gecontroleerd");
+        if (!RUNNING.compareAndSet(false, true)) throw new Exception(Taal.T("De backup-map wordt al gecontroleerd"));
         boolean began = false;
+        stop = false;
         try {
             if (repair) {
-                String b = busy();
-                if (b != null) throw new Exception(Taal.fill(Taal.T("{wat}; opruimen kan zo meteen"), "wat", b));
-                if (!AllBackup.tryBegin()) throw new Exception("Er loopt een backup; opruimen kan zo meteen");
+                if (busy() != null) throw new Exception(Taal.T("Er loopt nu iets anders in de backup-map; opruimen kan zo meteen"));
+                if (!AllBackup.tryBegin()) throw new Exception(Taal.T("Er loopt nu iets anders in de backup-map; opruimen kan zo meteen"));
                 began = true;
-                if (!auto) stop = false;
-            } else stop = false;
+            }
             Report r = new Report();
             r.repair = repair;
-            long deadline = System.currentTimeMillis() + (auto ? 20 : 60) * 60_000L;
+            long deadline = System.currentTimeMillis() + (auto ? 15 : 60) * 60_000L;
             WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
             WaBackup.DestDir root = dest.root();
-            if (repair) WaBackup.FOLDER_LOCK.lock();
-            try {
-                walk(dest, root, "", 0, r, repair, deadline);
-                for (Map.Entry<String, WaBackup.Child> e : root.kids.entrySet())
-                    if (e.getValue().dir && !known(e.getKey())) r.unknown.put(e.getKey());
-                if (repair && !r.stopped) {
-                    migrate(c, dest, root, r);
-                    writeMarker(dest, root, r);
-                }
-            } finally { if (repair) WaBackup.FOLDER_LOCK.unlock(); }
+            walk(dest, root, "", 0, r, repair, deadline);
+            for (Map.Entry<String, WaBackup.Child> e : root.kids.entrySet())
+                if (e.getValue().dir && !known(e.getKey())) r.unknown.put(e.getKey());
+            if (repair && !r.stopped) {
+                migrate(c, dest, root, r);
+                writeMarker(dest, root, r);
+            }
             JSONObject o = r.json();
             SharedPreferences.Editor e = prefs(c).edit().putString("last", o.toString());
             if (repair && !r.stopped && r.errors == 0) e.putInt("doneVersion", VERSION);
             e.apply();
             App.log(c, "BACKUP", "backup-map " + (repair ? "opgeruimd" : "gecontroleerd") + ": " + r.problems() + " punten, " + r.errors + " fouten");
+            if (auto && repair) notifyChanged(c, r);
             return o;
         } finally {
             current = "";
+            stop = false; // een Stop geldt alleen voor deze keer
             if (began) { AllBackup.running.set(false); AllBackup.busy = false; }
             RUNNING.set(false);
         }
+    }
+
+    static boolean halt(Report r, long deadline) {
+        if (stop || AllBackup.stop || System.currentTimeMillis() > deadline) { r.stopped = true; return true; }
+        return false;
     }
 
     static Uri doc(WaBackup.Dest dest, String id) { return DocumentsContract.buildDocumentUriUsingTree(dest.tree, id); }
@@ -166,94 +169,134 @@ final class BackupMap {
 
     static String join(String a, String b) { return a.isEmpty() ? b : a + "/" + b; }
 
+    /** Bovenin de backup-map alleen wat van de app is: eigen mappen en eigen bestanden. De rest wordt nooit aangeraakt. */
+    static boolean ours(String path, String name) { return !path.isEmpty() || known(name) || MARKER.equals(name); }
+
+    /** Een map loopt hij na (d is al ingelezen, door root() of sub()). */
     static void walk(WaBackup.Dest dest, WaBackup.DestDir d, String path, int depth, Report r, boolean repair, long deadline) throws Exception {
-        if (stop || AllBackup.stop || System.currentTimeMillis() > deadline) { r.stopped = true; return; }
-        if (depth > MAX_DEPTH) return;
+        if (halt(r, deadline) || depth > MAX_DEPTH) return;
         current = path;
-        dest.list(d);
         // 1. Dubbele namen
+        boolean changed = false;
         for (Map.Entry<String, List<WaBackup.Child>> e : new ArrayList<>(d.dups.entrySet())) {
             String name = e.getKey(), p = join(path, name);
+            if (!ours(path, name)) continue;
             WaBackup.Child keep = d.kids.get(name);
             for (WaBackup.Child x : e.getValue()) {
                 if (x.docId.equals(keep.docId)) continue;
+                if (halt(r, deadline)) return;
                 try {
                     if (keep.dir && x.dir) {
                         r.dupDirs++;
-                        if (repair) { mergeDir(dest, sub(dest, keep, p), x, p, r); r.merged++; }
-                        r.item(p, Taal.T("Dubbele map"), repair);
+                        if (repair) {
+                            WaBackup.FOLDER_LOCK.lock(); // niemand maakt intussen mappen in wat we samenvoegen
+                            try { if (mergeDir(dest, sub(dest, keep, p), x, p, r, deadline)) r.merged++; }
+                            finally { WaBackup.FOLDER_LOCK.unlock(); }
+                            changed = true;
+                        }
+                        r.item(p, Taal.T("Dubbele map"), repair && !r.stopped);
                     } else if (!keep.dir && !x.dir) {
                         r.dupFiles++;
                         if (repair) {
                             if (same(dest, keep, x)) { delete(dest, x); r.removed++; }
                             else { renameAside(dest, d, x, name); r.renamed++; }
+                            changed = true;
                         }
                         r.item(p, Taal.T("Dubbel bestand"), repair);
                     } else {
-                        // Een map en een bestand met dezelfde naam: wat niet telt, krijgt een eigen naam
+                        // Een map en een bestand met dezelfde naam: de map blijft (die telt), het bestand krijgt een eigen naam
                         r.dupFiles++;
-                        if (repair) { renameAside(dest, d, x, name); r.renamed++; }
+                        if (repair) { renameAside(dest, d, x.dir ? keep : x, name); r.renamed++; changed = true; }
                         r.item(p, Taal.T("Map en bestand met dezelfde naam"), repair);
                     }
                 } catch (Exception ex) { r.errors++; r.item(p, Taal.T("Opruimen mislukt"), false); }
             }
         }
-        if (repair && !d.dups.isEmpty()) dest.list(d);
-        // 2. Achtergebleven tijdelijke bestanden
+        if (changed) dest.list(d);
+        // 2. Achtergebleven tijdelijke bestanden (zoals Sms.open en WaBackup ze zelf zouden herstellen; nooit de laatste kopie weg)
         long old = System.currentTimeMillis() - TEMP_AGE;
+        boolean tmpChanged = false;
         for (Map.Entry<String, WaBackup.Child> e : new ArrayList<>(d.kids.entrySet())) {
             String name = e.getKey();
             WaBackup.Child ch = e.getValue();
-            if (ch.dir || ch.mod <= 0 || ch.mod > old) continue;
+            if (ch.dir || !ours(path, name)) continue;
+            String real = realName(name);
+            if (real == null || ch.mod <= 0 || ch.mod > old) continue;
             try {
-                if (temp(name)) {
-                    r.temps++;
-                    if (repair) { delete(dest, ch); r.cleaned++; }
-                    r.item(join(path, name), Taal.T("Tijdelijk bestand van een afgebroken backup"), repair);
-                } else if (name.endsWith(".rt-old")) {
-                    String real = name.substring(0, name.length() - ".rt-old".length());
-                    r.temps++;
-                    if (repair) {
-                        if (d.kids.containsKey(real)) delete(dest, ch);       // de nieuwe staat er: de oude kan weg
-                        else WaBackup.rename(dest, doc(dest, ch.docId), real); // de nieuwe kwam nooit: de oude terug
-                        r.cleaned++;
-                    }
-                    r.item(join(path, name), Taal.T("Oude versie van een afgebroken backup"), repair);
-                }
+                r.temps++;
+                if (repair) { fixTemp(dest, d, name, ch, real); r.cleaned++; tmpChanged = true; }
+                r.item(join(path, name), Taal.T(name.endsWith(".rt-old") ? "Oude versie van een afgebroken backup" : "Tijdelijk bestand van een afgebroken backup"), repair);
             } catch (Exception ex) { r.errors++; }
         }
-        // 3. Verder naar binnen
+        if (tmpChanged) dest.list(d);
+        // 3. Verder naar binnen (bovenin alleen de eigen mappen)
         for (Map.Entry<String, WaBackup.Child> e : new ArrayList<>(d.kids.entrySet())) {
             WaBackup.Child ch = e.getValue();
+            if (!ours(path, e.getKey())) continue;
             if (ch.dir) { r.dirs++; walk(dest, sub(dest, ch, join(path, e.getKey())), join(path, e.getKey()), depth + 1, r, repair, deadline); }
             else r.files++;
             if (r.stopped) return;
         }
     }
 
-    /** Alles uit de dubbele map 'from' naar 'into', daarna de lege map weg. */
-    static void mergeDir(WaBackup.Dest dest, WaBackup.DestDir into, WaBackup.Child from, String path, Report r) throws Exception {
-        if (stop || AllBackup.stop) { r.stopped = true; return; }
+    /** "x.json.rt-tmp" → "x.json"; null als het geen tijdelijke naam is. Archieven (.rtb.part) ruimt Versleutelen zelf op. */
+    static String realName(String name) {
+        for (String s : new String[]{".rt-tmp", ".rt-part", ".rt-old"}) if (name.endsWith(s) && name.length() > s.length()) return name.substring(0, name.length() - s.length());
+        return null;
+    }
+
+    /**
+     * Wat met een achtergebleven tijdelijk bestand gebeurt. Nooit iets weg dat de enige kopie kan zijn:
+     * - x.rt-old terwijl ook x.rt-tmp er staat: de backup stopte midden in het vervangen; dan niets doen (de app herstelt
+     *   dat zelf bij de volgende backup van dat onderdeel, Sms.open).
+     * - x.rt-old zonder x: de oude terug onder de echte naam. Met x: bewaard als x~datum.
+     * - x.rt-tmp / x.rt-part met x ernaast: x is de echte; het tijdelijke bestand weg. Zonder x: bewaard als x~datum
+     *   (kan compleet zijn; de backup maakt x vanzelf opnieuw).
+     */
+    static void fixTemp(WaBackup.Dest dest, WaBackup.DestDir d, String name, WaBackup.Child ch, String real) throws Exception {
+        boolean hasReal = d.kids.containsKey(real) && !d.kids.get(real).dir;
+        if (name.endsWith(".rt-old")) {
+            if (d.kids.containsKey(real + ".rt-tmp")) return;
+            if (!hasReal) { if (WaBackup.rename(dest, doc(dest, ch.docId), real) == null) throw new Exception("hernoemen"); }
+            else renameAside(dest, d, ch, real);
+            return;
+        }
+        if (hasReal) delete(dest, ch);
+        else renameAside(dest, d, ch, real);
+    }
+
+    /** Alles uit de dubbele map 'from' naar 'into'; daarna de lege map weg. Geeft true als alles over is. */
+    static boolean mergeDir(WaBackup.Dest dest, WaBackup.DestDir into, WaBackup.Child from, String path, Report r, long deadline) throws Exception {
+        if (halt(r, deadline)) return false;
         WaBackup.DestDir src = sub(dest, from, path);
         List<WaBackup.Child> all = new ArrayList<>();
         for (Map.Entry<String, WaBackup.Child> e : src.kids.entrySet()) {
             List<WaBackup.Child> d = src.dups.get(e.getKey());
             if (d != null) all.addAll(d); else all.add(e.getValue());
         }
+        int done = 0;
         for (WaBackup.Child x : all) {
+            if (halt(r, deadline)) return false;
             String name = name(dest, x);
             if (name == null) continue;
-            dest.list(into);
             WaBackup.Child there = into.kids.get(name);
             String p = join(path, name);
-            if (x.dir && there != null && there.dir) { mergeDir(dest, sub(dest, there, p), x, p, r); continue; }
-            if (!x.dir && there != null && !there.dir && same(dest, there, x)) { delete(dest, x); r.removed++; continue; }
+            if (x.dir && there != null && there.dir) { if (mergeDir(dest, sub(dest, there, p), x, p, r, deadline)) done++; continue; }
+            if (!x.dir && there != null && !there.dir && same(dest, there, x)) { delete(dest, x); r.removed++; done++; continue; }
             String to = there == null ? name : WaBackup.versionName(name, into); // botst: als oude versie erbij
-            move(dest, x, src, into, to, p, r);
+            Uri u = move(dest, x, src, into, to, p, r, deadline);
+            if (u != null) { into.kids.put(to, new WaBackup.Child(DocumentsContract.getDocumentId(u), x.size, x.mod, x.dir)); done++; }
         }
-        dest.list(src);
-        if (src.kids.isEmpty()) delete(dest, from);
-        else { r.errors++; r.item(path, Taal.T("Dubbele map niet helemaal leeg te krijgen"), false); }
+        // Pas weg als hij echt leeg is: twee keer opnieuw ingelezen (Google Drive kan nog bezig zijn of achterlopen),
+        // en alles wat erin stond is verwerkt. Anders blijft hij staan (de volgende keer verder).
+        if (done < all.size()) return false;
+        for (int i = 0; i < 2; i++) {
+            if (i > 0) try { Thread.sleep(1500); } catch (InterruptedException ignored) { }
+            dest.list(src);
+            if (!src.kids.isEmpty()) { r.errors++; r.item(path, Taal.T("Dubbele map niet helemaal leeg te krijgen"), false); return false; }
+        }
+        delete(dest, from);
+        return true;
     }
 
     static String name(WaBackup.Dest dest, WaBackup.Child x) {
@@ -262,26 +305,26 @@ final class BackupMap {
         } catch (Exception e) { return null; }
     }
 
-    /** Verplaatsen; kan de mappen-app dat niet, dan kopiëren en daarna pas het origineel weg. */
-    static void move(WaBackup.Dest dest, WaBackup.Child x, WaBackup.DestDir from, WaBackup.DestDir into, String to, String path, Report r) throws Exception {
+    /** Verplaatsen; kan de mappen-app dat niet, dan kopiëren en daarna pas het origineel weg. Geeft het nieuwe adres (null = nog niet klaar). */
+    static Uri move(WaBackup.Dest dest, WaBackup.Child x, WaBackup.DestDir from, WaBackup.DestDir into, String to, String path, Report r, long deadline) throws Exception {
         Uri moved = null;
         try { moved = DocumentsContract.moveDocument(dest.cr, doc(dest, x.docId), from.uri, into.uri); }
         catch (Exception ignored) { } // niet ondersteund
         if (moved != null) {
             moved = WaBackup.inTree(dest.tree, moved);
             String now = name(dest, new WaBackup.Child(DocumentsContract.getDocumentId(moved), 0, 0, x.dir));
-            if (now != null && !now.equals(to)) WaBackup.rename(dest, moved, to);
-            return;
+            if (now != null && !now.equals(to)) { Uri rn = WaBackup.rename(dest, moved, to); if (rn != null) moved = rn; }
+            return moved;
         }
         if (x.dir) {
             WaBackup.Child made = WaBackup.createDir(dest, into, to);
             if (made == null || !made.dir) throw new Exception("Map maken lukt niet: " + to);
-            mergeDir(dest, sub(dest, made, path), x, path, r);
-            return;
+            return mergeDir(dest, sub(dest, made, path), x, path, r, deadline) ? doc(dest, made.docId) : null;
         }
         Uri tmp = WaBackup.create(dest, into.uri, "application/octet-stream", to + ".rt-part");
         if (tmp == null) throw new Exception("Kopiëren lukt niet: " + to);
         long n = 0;
+        Uri done;
         try {
             try (InputStream in = dest.cr.openInputStream(doc(dest, x.docId)); OutputStream o = dest.cr.openOutputStream(tmp, "w")) {
                 if (in == null || o == null) throw new Exception("Kopiëren lukt niet: " + to);
@@ -290,12 +333,14 @@ final class BackupMap {
                 while ((k = in.read(b)) > 0) { o.write(b, 0, k); n += k; }
             }
             if (x.size >= 0 && n != x.size) throw new Exception("Kopie onvolledig: " + to);
-            if (WaBackup.rename(dest, tmp, to) == null) throw new Exception("Hernoemen lukt niet: " + to);
+            done = WaBackup.rename(dest, tmp, to);
+            if (done == null) throw new Exception("Hernoemen lukt niet: " + to);
         } catch (Exception e) {
             try { DocumentsContract.deleteDocument(dest.cr, tmp); } catch (Exception ignored) { }
             throw e;
         }
         delete(dest, x); // pas nu: de kopie staat er compleet
+        return done;
     }
 
     static void delete(WaBackup.Dest dest, WaBackup.Child x) throws Exception {
@@ -344,6 +389,23 @@ final class BackupMap {
     }
 
     // ---------- vanzelf ----------
+
+    /** Na een automatische opruimronde waarin echt iets veranderde: een melding (tikken = het overzicht). */
+    static void notifyChanged(Context c, Report r) {
+        int n = r.merged + r.removed + r.renamed + r.cleaned;
+        if (n == 0) return;
+        try {
+            WaBackupService.createChannel(c);
+            android.app.Notification.Builder b = android.os.Build.VERSION.SDK_INT >= 26
+                    ? new android.app.Notification.Builder(c, NotifCenter.ch(c, WaBackupService.CHANNEL)) : new android.app.Notification.Builder(c);
+            android.content.Intent open = new android.content.Intent(c, MainActivity.class).putExtra("open", "bkmap")
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            NotifCenter.post(c, 4205, Taal.n(c, b.setSmallIcon(R.drawable.ic_backup).setContentTitle(Taal.t(c, "Backup-map opgeruimd"))
+                    .setContentText(Taal.fill(Taal.t(c, "{n} dubbele of achtergebleven onderdelen opgeruimd"), "n", n)).setAutoCancel(true)
+                    .setContentIntent(android.app.PendingIntent.getActivity(c, 25, open,
+                            android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_UPDATE_CURRENT)).build()));
+        } catch (Throwable ignored) { }
+    }
 
     /** Na de nachtelijke backup: opruimen als dat aan staat. */
     static void nightly(Context c) {

@@ -30,7 +30,7 @@ window.onHerstelLosScan = function(r){
     if (p.needPerm) return bkLosRow(label, 'bad', t('Toestemming voor contacten nodig'));
     return bkLosRow(label, p.fresh ? '' : 'good', p.fresh ? t('{n} nieuw', { n: fmtNum(p.fresh) }) : t('✓ Staat er al'));
   }).join('');
-  h += info.map(i => bkLosRow(t(BK_LOS_INFO[i.kind] || i.kind), '', t('Niet terug te zetten'), t(i.msg))).join('');
+  h += info.map(i => bkLosRow(i.kind === 'launcher' ? bkLosLabel('launcher') : t(BK_LOS_INFO[i.kind] || i.kind), '', t(i.kind === 'launcher' ? 'Blijft zoals het is' : 'Niet terug te zetten'), t(i.msg))).join('');
   $('#bklos-res').innerHTML = h;
   const fresh = r.fresh || 0, go = $('#bklos-go');
   bkLosShow('#bklos-go', !!fresh); go.disabled = false;

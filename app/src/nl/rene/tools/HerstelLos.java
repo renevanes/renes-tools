@@ -112,7 +112,7 @@ final class HerstelLos {
 
     /** Netjes vergeten wat een overzicht klaarzette (er verandert niets). */
     static void forget(Context c) {
-        Restore.pendingKind = null;
+        Restore.clear();
         CheckinStore.cancel();
         try { AiSleepBackup.cancel(c); } catch (Throwable ignored) { }
     }
@@ -160,6 +160,8 @@ final class HerstelLos {
                 parts.put(r);
             }
             JSONArray info = new JSONArray();
+            if (WsStore.prefs(c).contains("ws") && dest.dir(LauncherBackup.DIR, false) != null)
+                info.put(new JSONObject().put("kind", "launcher").put("msg", Taal.T("Je startscherm heeft al een indeling; die wordt niet vervangen. Wil je de oude terug, kies dan hieronder Startscherm (skin)")));
             for (String[] i : INFO) {
                 WaBackup.DestDir d = dest.dir(i[1], false);
                 if (d != null && !d.kids.isEmpty()) info.put(new JSONObject().put("kind", i[0]).put("msg", i[2]));

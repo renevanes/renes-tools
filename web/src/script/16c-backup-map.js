@@ -45,7 +45,7 @@ function bmRender(){
   if (items.length) h += '<p class="note" style="margin-bottom:4px">' + esc(t(l.repair ? 'Bleef staan:' : 'Gevonden:')) + '</p>' +
     items.slice(0, 30).map(i => '<div class=bkres><b translate="no">' + esc(i.path) + '</b><span>' + esc(t(i.what)) + '</span></div>').join('') +
     (items.length > 30 ? '<p class="note">' + esc(t('… en nog {n}', { n: fmtNum(items.length - 30) })) + '</p>' : '');
-  if ((l.unknown || []).length) h += '<p class="note">' + esc(t('Mappen die de app niet zelf maakt (blijven staan): {namen}', { namen: l.unknown.join(', ') })) + '</p>';
+  if ((l.unknown || []).length) h += '<p class="note">' + esc(t('Mappen die de app niet zelf maakt (blijven staan): {namen}', { namen: '\u0001' })).replace('\u0001', '<span translate="no">' + esc(l.unknown.join(', ')) + '</span>') + '</p>';
   $('#bm-res').innerHTML = h;
   const todo = !l.repair && (l.problems || 0) > 0;
   bmShow('#bm-fix', todo);
@@ -57,7 +57,7 @@ function bmRun(repair){
   else go();
 }
 window.onBackupMap = function(r){
-  if (r && r.error) toast(r.error);
+  if (r && r.error) toast(t(r.error));
   else if (r) toast(r.repair ? (r.errors ? t('Opgeruimd, maar niet alles lukte') : t('✓ Backup-map opgeruimd')) : (r.problems ? tn(r.problems, 'Eén punt gevonden', '{n} punten gevonden') : t('✓ Backup-map is in orde')));
   bmRender();
 };

@@ -2582,7 +2582,7 @@ public class MainActivity extends Activity {
 
         /** Overzicht van terugzetten weggetikt: niets meer klaar laten staan (en ontsleuteld geluid uit de cache weg). */
         @JavascriptInterface public void restoreCancel() {
-            Restore.pendingKind = null;
+            Restore.clear();
             CheckinStore.cancel();
             new Thread(() -> { try { AiSleepBackup.cancel(ctx); } catch (Throwable ignored) { } }, "restore-cancel").start();
         }

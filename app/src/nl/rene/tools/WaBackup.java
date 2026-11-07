@@ -158,12 +158,12 @@ final class WaBackup {
     static final java.util.concurrent.locks.ReentrantLock FOLDER_LOCK = new java.util.concurrent.locks.ReentrantLock();
 
     /**
-     * Welke van twee items met dezelfde naam telt. Bestand boven map (een bestand heeft de echte naam als de map daar
-     * per ongeluk naast staat, dat lost het opruimen op); daarna bij bestanden de nieuwste, bij mappen de map met de
+     * Welke van twee items met dezelfde naam telt. Map boven bestand (daar staat de backup in; het bestand gaat bij het
+     * opruimen opzij als naam~datum); daarna bij bestanden de nieuwste, bij mappen de map met de
      * meeste inhoud (die telt het opruimen vooraf); gelijk: de laagste document-id (altijd dezelfde keuze).
      */
     static boolean better(Child a, Child b, Map<String, Integer> sizes) {
-        if (a.dir != b.dir) return !a.dir;
+        if (a.dir != b.dir) return a.dir; // een map telt (een bestand met dezelfde naam gaat bij het opruimen opzij)
         if (!a.dir) { if (a.mod != b.mod) return a.mod > b.mod; }
         else if (sizes != null) {
             int sa = sizes.containsKey(a.docId) ? sizes.get(a.docId) : -1, sb = sizes.containsKey(b.docId) ? sizes.get(b.docId) : -1;
@@ -196,9 +196,20 @@ final class WaBackup {
 
         void list(DestDir d) throws Exception {
             Uri q = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getDocumentId(d.uri));
-            try (Cursor c = cr.query(q, new String[]{Document.COLUMN_DOCUMENT_ID, Document.COLUMN_DISPLAY_NAME,
-                    Document.COLUMN_SIZE, Document.COLUMN_LAST_MODIFIED, Document.COLUMN_MIME_TYPE}, null, null, null)) {
+            Cursor c = null;
+            // Google Drive geeft soms eerst een deel ("nog aan het laden"): even wachten en opnieuw, anders zou een map
+            // leeg of onvolledig lijken (en zou er een dubbele bij komen)
+            for (int i = 0; ; i++) {
+                c = cr.query(q, new String[]{Document.COLUMN_DOCUMENT_ID, Document.COLUMN_DISPLAY_NAME,
+                        Document.COLUMN_SIZE, Document.COLUMN_LAST_MODIFIED, Document.COLUMN_MIME_TYPE}, null, null, null);
                 if (c == null) throw new Exception("Backup-map niet leesbaar");
+                android.os.Bundle ex = c.getExtras();
+                if (ex == null || !ex.getBoolean(DocumentsContract.EXTRA_LOADING, false)) break;
+                c.close();
+                if (i >= 20) throw new Exception("De backup-map is nog aan het laden; probeer het zo opnieuw");
+                try { Thread.sleep(500); } catch (InterruptedException e) { throw new Exception("Gestopt"); }
+            }
+            try {
                 d.kids.clear(); d.dups.clear();
                 while (c.moveToNext()) {
                     boolean isDir = Document.MIME_TYPE_DIR.equals(c.getString(4));
@@ -211,7 +222,7 @@ final class WaBackup {
                     if (all == null) { all = new ArrayList<>(); all.add(had); d.dups.put(name, all); }
                     all.add(ch);
                 }
-            }
+            } finally { c.close(); }
             // Dubbele namen: altijd dezelfde keuze (bij mappen de map met de meeste inhoud)
             for (Map.Entry<String, List<Child>> e : d.dups.entrySet()) {
                 Map<String, Integer> sizes = null;
@@ -278,24 +289,37 @@ final class WaBackup {
      * de gekozen map en gaat een lege die wij net maakten meteen weer weg.
      */
     static Child createDir(Dest dest, DestDir parent, String name) throws Exception {
-        FOLDER_LOCK.lock();
+        boolean locked = false;
+        try { locked = FOLDER_LOCK.tryLock(60, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException ignored) { }
         try {
-            dest.list(parent);
+            relist(dest, parent);
             Child ch = dest.dirChild(parent, name);
             if (ch != null && ch.dir) return ch;
             Uri u = create(dest, parent.uri, Document.MIME_TYPE_DIR, name);
             if (u == null) throw new Exception("Map maken lukt niet: " + name);
             String mine = DocumentsContract.getDocumentId(u);
-            dest.list(parent);
+            relist(dest, parent);
             ch = dest.dirChild(parent, name);
             if (ch == null || !ch.dir) { ch = new Child(mine, 0, 0, true); parent.kids.put(name, ch); }
             else if (!mine.equals(ch.docId)) {
                 // Een andere taak (of een eerdere, nog niet zichtbare map) was ons voor: onze lege map weer weg
-                try { DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, mine)); dest.list(parent); Child again = dest.dirChild(parent, name); if (again != null && again.dir) ch = again; }
+                try { DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, mine)); relist(dest, parent); Child again = dest.dirChild(parent, name); if (again != null && again.dir) ch = again; }
                 catch (Exception ignored) { }
             }
             return ch;
-        } finally { FOLDER_LOCK.unlock(); }
+        } finally { if (locked) FOLDER_LOCK.unlock(); }
+    }
+
+    /**
+     * De map opnieuw inlezen en samenvoegen met wat deze ronde zelf al schreef (een trage lijst van Google Drive kan
+     * net geschreven bestanden nog missen; die blijven dan bekend).
+     */
+    static void relist(Dest dest, DestDir parent) throws Exception {
+        DestDir fresh = new DestDir();
+        fresh.uri = parent.uri;
+        dest.list(fresh);
+        for (Map.Entry<String, Child> e : fresh.kids.entrySet()) parent.kids.put(e.getKey(), e.getValue());
+        parent.dups.putAll(fresh.dups);
     }
 
     /** Bestandsnaam die ook op USB-sticks en SD-kaarten (FAT) kan. */

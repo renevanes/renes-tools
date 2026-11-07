@@ -30,7 +30,7 @@ const { chromium } = require('playwright');
     await pg.click('#bm-auto'); await pg.waitForTimeout(100);
     ok(await pg.evaluate(() => Android._bm.auto) === false && (await pg.getAttribute('#bm-auto', 'aria-checked')) === 'false', 'elke nacht vanzelf uit');
     await pg.evaluate(() => { Android._bm.error = 'Kies eerst een backup-map'; }); await pg.click('#bm-check'); await pg.waitForTimeout(400);
-    ok(/Kies eerst/.test(await pg.textContent('#toast').catch(() => '')) || true, 'fout als melding');
+    ok(await pg.evaluate(() => Android._bm.runs.length) === 3 && !(await pg.isVisible('#bm-fix')), 'fout: niets veranderd');
     await pg.close();
     console.log(scheme, 'errors', errs);
   }

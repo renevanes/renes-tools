@@ -16,6 +16,10 @@ public class ToolDataTest {
         check(!ToolData.keepPrefsFile("lock") && !ToolData.keepPrefsFile("vpn") && !ToolData.keepPrefsFile("secure") && !ToolData.keepPrefsFile("statistiek"), "slot, VPN en sleutels gaan niet mee");
         check(ToolData.secretKey("music", "token") && ToolData.secretKey("spotify", "access_token") && ToolData.secretKey("x", "apiKey"), "tokens en sleutels herkend");
         check(!ToolData.keepPref("spotify", "refresh"), "Spotify-koppeling niet mee");
+        check(!ToolData.keepPref("wabackup", "waKey"), "WhatsApp-sleutel nooit mee");
+        check(!ToolData.keepPref("localai", "cfg_about") && !ToolData.keepPref("localai", "cfg_instr"), "persoonlijke tekst voor de assistent niet");
+        check(!ToolData.keepPref("ui", "notifAsked") && !ToolData.keepPref("gebruik", "watermark") && !ToolData.keepPref("contacts", "suspectFp"), "toestand van deze installatie niet");
+        check(!ToolData.keepPrefsFile("checkin") && !ToolData.keepPrefsFile("txmeta"), "privé en bellers niet");
         check(ToolData.keepPref("car", "park") && ToolData.keepPref("regio", "spots") && ToolData.keepPref("apparaten", "trackers"), "Mijn auto, regio en apparaten wel");
         check(!ToolData.keepPref("allbackup", "auto") && !ToolData.keepPref("radio", "favs"), "wat al in Instellingen staat, niet dubbel");
         check(!ToolData.keepPref("localai", "dl_x"), "lopende downloads niet mee");
@@ -25,6 +29,7 @@ public class ToolDataTest {
         check(!ToolData.keepFile("ai/geheugen.json") && !ToolData.keepFile("sleep/n/a.wav") && !ToolData.keepFile("checkin/x.json"), "privé alleen via hun eigen vinkje");
         check(!ToolData.keepFile("bank/a") && !ToolData.keepFile("masterdata/a") && !ToolData.keepFile("kluis/a") && !ToolData.keepFile("gebruik/foto/a.jpg"), "bank, stamgegevens, kluis en foto's nooit");
         check(!ToolData.keepFile("../x") && !ToolData.keepFile("/etc/x") && !ToolData.keepFile("facturen/a.json.tmp"), "vreemde en tijdelijke paden niet");
+        check(!ToolData.keepFile("call-recordings/a.m4a") && !ToolData.keepFile("facturen/pdf/kpn.pdf") && !ToolData.keepFile("contacts/v1.json"), "opnames, PDF's en contactversies niet (staan al elders)");
         // Plan: alleen wat ontbreekt
         JSONObject prefs = new JSONObject()
                 .put("car", new JSONObject().put("park", new JSONObject().put("t", "s").put("v", "{}")).put("name", new JSONObject().put("t", "s").put("v", "Golf")))

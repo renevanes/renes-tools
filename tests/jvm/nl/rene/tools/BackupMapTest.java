@@ -77,7 +77,10 @@ public class BackupMapTest {
         check(WaBackup.better(d2, d1, sizes), "map met de meeste inhoud telt");
         sizes.put("y", 2);
         check(WaBackup.better(d1, d2, sizes) && !WaBackup.better(d2, d1, sizes), "gelijk: altijd dezelfde (laagste id)");
-        check(WaBackup.better(f1, d1, sizes), "bestand boven map met dezelfde naam");
+        check(WaBackup.better(d1, f1, sizes) && !WaBackup.better(f1, d1, sizes), "map boven bestand met dezelfde naam (de backup staat in de map)");
+        check("notities.json".equals(BackupMap.realName("notities.json.rt-tmp")) && "a.jpg".equals(BackupMap.realName("a.jpg.rt-part")) && "x.json".equals(BackupMap.realName("x.json.rt-old")), "echte naam bij tijdelijke namen");
+        check(BackupMap.realName("backup-1.rtb.part") == null && BackupMap.realName("notities.json") == null, "archieven en gewone bestanden: geen tijdelijke naam");
+        check(BackupMap.ours("", "Notities") && BackupMap.ours("", BackupMap.MARKER) && !BackupMap.ours("", "Mijn foto's") && BackupMap.ours("Notities", "iets"), "bovenin alleen eigen mappen en bestanden");
 
         check(BackupMap.temp("notities.json.rt-tmp") && BackupMap.temp("foto.jpg.rt-part") && BackupMap.temp("backup-2026.rtb.part"), "tijdelijke namen herkend");
         check(!BackupMap.temp("notities.json") && !BackupMap.temp("Factuur~20261009.pdf"), "gewone en oude versies zijn niet tijdelijk");

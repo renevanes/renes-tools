@@ -231,18 +231,18 @@ window.onRestorePreview = function(d){
     const parts = [d.rules ? tn(d.rules, '{n} automatisering', '{n} automatiseringen') : '', d.favs ? tn(d.favs, '{n} zender', '{n} zenders') : '', d.alarm ? t('radiowekker') : '', d.plan ? t('geplande Auto redial') : '', d.reminders ? tn(d.reminders, '{n} herinnering', '{n} herinneringen') : ''].filter(Boolean);
     askConfirm('Instellingen terugzetten?', (parts.length ? t('Toegevoegd wordt wat hier nog ontbreekt: {wat}.', { wat: parts.join(', ') }) : t('Toegevoegd wordt wat hier nog ontbreekt.')) + ' ' + t('Bestaande instellingen blijven zoals ze zijn.'), 'Terugzetten', () => {
       restoreWhat = 'instellingen'; restoreKind = 'settings';
-      const e = Android.restoreApply(); if (e) toast(e); else toast('Bezig met terugzetten…');
-    });
+      const e = Android.restoreApply(); if (e) toast(t(e)); else toast('Bezig met terugzetten…');
+    }, () => Android.restoreCancel());
     return;
   }
-  if (!d.fresh) { toast(t('Alle {n} {wat} staan er al; er is niets toe te voegen', { n: d.total, wat: t(what) })); return; }
+  if (!d.fresh) { Android.restoreCancel(); toast(t('Alle {n} {wat} staan er al; er is niets toe te voegen', { n: d.total, wat: t(what) })); return; }
   askConfirm(t('{n} {wat} toevoegen?', { n: d.fresh, wat: t(what) }), t('In het bestand: {n}. Al aanwezig (worden overgeslagen): {dubbel}.', { n: d.total, dubbel: d.dup }) + '\n\n' +
-    (d.sample || []).join(', ') + (d.fresh > (d.sample || []).length ? ', …' : ''), 'Toevoegen', () => {
+    (d.sample || []).map(x => d.kind === 'tooldata' ? t(x) : x).join(', ') + (d.fresh > (d.sample || []).length ? ', …' : ''), 'Toevoegen', () => {
     if (d.kind === 'notes' && typeof notesSaveNow === 'function') notesSaveNow(); // eerst eventuele laatste wijziging bewaren
     restoreWhat = what; restoreKind = d.kind;
     const e = Android.restoreApply();
-    if (e) toast(e); else toast('Bezig met toevoegen…');
-  });
+    if (e) toast(t(e)); else toast('Bezig met toevoegen…');
+  }, () => Android.restoreCancel());
 };
 let restoreWhat = '', restoreKind = '';
 window.onRestoreDone = function(r){

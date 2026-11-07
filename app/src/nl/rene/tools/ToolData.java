@@ -46,14 +46,21 @@ final class ToolData {
             "vpn",        // tunnels zijn zonder hun (versleutelde) sleutels onbruikbaar
             "webstore", "allbackup", "radio", "alarm", "auto", "redialplan", "reminders", "notifcenter", "mockloc",
             "podcast", "player", "podcast_dl", // hebben al een eigen plek in Instellingen/instellingen.json
-            "pinned_shortcuts" // vastgezette snelkoppelingen moet je na een herinstallatie opnieuw plaatsen
+            "pinned_shortcuts", // vastgezette snelkoppelingen moet je na een herinstallatie opnieuw plaatsen
+            "checkin",          // privé: gaat alleen mee met het eigen vinkje Check-in
+            "txdur", "txmeta"   // hoort bij Uitgeschreven gesprekken (namen en nummers van bellers): eigen onderdeel
     ));
 
-    /** Losse sleutels die nooit leesbaar mee mogen. */
+    /**
+     * Losse sleutels die nooit leesbaar mee mogen: alles wat naar een sleutel, wachtwoord of token klinkt (ook de
+     * WhatsApp-sleutel waKey), plus persoonlijke tekst voor de assistent (die is privé, eigen vinkje).
+     */
     static boolean secretKey(String file, String key) {
         String k = key.toLowerCase(java.util.Locale.ROOT);
         if (k.contains("token") || k.contains("secret") || k.contains("passw") || k.contains("wachtw") || k.contains("hash")
-                || k.contains("salt") || k.contains("cred") || k.contains("refresh") || k.contains("apikey") || k.contains("api_key")) return true;
+                || k.contains("salt") || k.contains("cred") || k.contains("refresh") || k.contains("key") || k.contains("sleutel")
+                || k.contains("code")) return true;
+        if ("localai".equals(file) && (k.startsWith("cfg_about") || k.startsWith("cfg_instr") || "chat".equals(k))) return true;
         if ("music".equals(file) && "token".equals(key)) return true;        // AudD-sleutel
         if ("spotify".equals(file) && ("access_token".equals(key) || "refresh".equals(key))) return true;
         return false;
@@ -66,16 +73,29 @@ final class ToolData {
             "transcripts",                   // Uitgeschreven gesprekken
             "tracks",                        // Routes (GPX)
             "podcasts",                      // abonnementen en voortgang in Instellingen; de rest is opnieuw op te halen
-            "ai", "sleep", "checkin"         // privé: eigen onderdeel met eigen toestemming
+            "ai", "sleep", "checkin",        // privé: eigen onderdeel met eigen toestemming
+            "call-recordings",               // opnames van gesprekken (ook de stem van anderen): staan al in Gespreksopnames/
+            "contacts"                       // versies van contacten: Contacten backup/ heeft de lijst als vCard
     ));
 
-    static final long MAX_FILE = 4L * 1024 * 1024, MAX_TOTAL = 18L * 1024 * 1024;
+    /** Grenzen op wat er in het bestand komt (met base64 en tekens): ruim onder de 30 MB die terugzetten leest. */
+    static final long MAX_FILE = 2L * 1024 * 1024, MAX_TOTAL = 8L * 1024 * 1024;
 
     /** Gaat dit instellingenbestand mee? */
     static boolean keepPrefsFile(String f) { return AppData.keepPrefsFile(f) && !PREFS_NEVER.contains(f); }
 
+    /** Toestand van deze installatie (gevraagde toestemmingen, tellers, tijdstippen van de laatste keer): niet terugzetten. */
+    static final Set<String> INSTALL = new HashSet<>(Arrays.asList(
+            "contacts.suspectFp", "contacts.suspectSince", "contacts.lastCheck", "sms.lastExport", "sms.lastCount", "calls.lastExport", "calls.lastCount",
+            "gebruik.watermark", "gebruik.failRun", "gebruik.lastCollect", "gebruik.lastShot", "gebruik.pruneAt", "gebruik.photoFail",
+            "care.seen", "care.seenBattery", "care.last", "care.checkAt", "care.batteryAt", "care.optNotified",
+            "spotify.lastAt", "spotify.lastFailAt", "spotify.lastMsg", "spotify.folderErr", "launcher.weather", "launcher.last",
+            "music.used", "wabackup.lastOk", "wabackup.history"));
+
+    static boolean installKey(String f, String k) { return INSTALL.contains(f + "." + k) || k.endsWith("Asked") || k.endsWith("asked"); }
+
     /** Gaat deze instelling mee? */
-    static boolean keepPref(String f, String k) { return keepPrefsFile(f) && AppData.keepPref(f, k) && !secretKey(f, k); }
+    static boolean keepPref(String f, String k) { return keepPrefsFile(f) && AppData.keepPref(f, k) && !secretKey(f, k) && !installKey(f, k); }
 
     /** Gaat dit bestand (pad binnen getFilesDir()) mee? */
     static boolean keepFile(String rel) {
@@ -84,6 +104,7 @@ final class ToolData {
         int slash = r.indexOf('/');
         String top = slash < 0 ? r : r.substring(0, slash);
         if (FILES_OWN.contains(top)) return false;
+        if (r.startsWith("facturen/pdf/") || r.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) return false; // de PDF's staan al in Facturen/
         return !r.toLowerCase(java.util.Locale.ROOT).matches(".*(geheim|secret|token|wachtwoord|password).*");
     }
 
@@ -127,12 +148,15 @@ final class ToolData {
             for (String rel : files) {
                 File f = new File(root, rel);
                 long len = f.length();
-                if (len > MAX_FILE || total + len > MAX_TOTAL) { skipped.put(rel); continue; }
+                if (len > MAX_FILE) { skipped.put(rel); continue; }
                 byte[] b;
                 try { b = read(f, MAX_FILE); } catch (Exception e) { skipped.put(rel); continue; }
-                total += b.length;
+                boolean asText = text(rel) && utf8(b);
+                long cost = asText ? b.length + b.length / 8 : (b.length + 2) / 3 * 4; // ongeveer wat het in het bestand kost
+                if (cost > MAX_FILE * 2 || total + cost > MAX_TOTAL) { skipped.put(rel); continue; }
+                total += cost;
                 JSONObject o = new JSONObject().put("path", rel).put("t", f.lastModified());
-                if (text(rel) && utf8(b)) o.put("text", new String(b, StandardCharsets.UTF_8));
+                if (asText) o.put("text", new String(b, StandardCharsets.UTF_8));
                 else o.put("b64", AppData.b64(b));
                 w.write((first ? "" : ",") + o.toString());
                 first = false;
@@ -198,21 +222,21 @@ final class ToolData {
     /** Herkenbare naam voor het overzicht (welke tools krijgen iets terug). */
     static String toolName(String key) {
         switch (key) {
-            case "car": return "Mijn auto";
-            case "facturen": return "Facturen";
-            case "apparaten": return "Apparaten";
-            case "toiletten": return "Toiletten en douches";
-            case "contacts": return "Contacten (versies)";
-            case "spotify": return "Spotify";
-            case "gebruik": return "Gebruik";
-            case "call-recordings": case "call_recordings": return "Gespreksopnames";
-            case "regio": return "Regio en taal";
-            case "localai": case "models": return "Lokale AI";
-            case "sleeptalk": return "Slaappraat";
-            case "transcribe": case "txdur": case "txmeta": return "Gesprekken uitschrijven";
-            case "solo": return "Losse apps";
-            case "launcher": case "workspace": case "pinned_shortcuts": case "shortcut-icons": return "Startscherm";
-            default: return "Overige instellingen";
+            case "car": return Taal.T("Mijn auto");
+            case "facturen": return Taal.T("Facturen");
+            case "apparaten": return Taal.T("Apparaten");
+            case "toiletten": return Taal.T("Toiletten en douches");
+            case "contacts": return Taal.T("Contacten (versies)");
+            case "spotify": return Taal.T("Spotify");
+            case "gebruik": return Taal.T("Gebruik");
+            case "call-recordings": case "call_recordings": return Taal.T("Gespreksopnames");
+            case "regio": return Taal.T("Regio en taal");
+            case "localai": case "models": return Taal.T("Lokale AI");
+            case "sleeptalk": return Taal.T("Slaappraat");
+            case "transcribe": case "txdur": case "txmeta": return Taal.T("Gesprekken uitschrijven");
+            case "solo": return Taal.T("Losse apps");
+            case "launcher": case "workspace": case "pinned_shortcuts": case "shortcut-icons": return Taal.T("Startscherm");
+            default: return Taal.T("Overige instellingen");
         }
     }
 
