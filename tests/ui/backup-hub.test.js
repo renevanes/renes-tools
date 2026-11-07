@@ -48,7 +48,7 @@ const FOLD = 844;
     ok(await pg.evaluate(() => document.querySelectorAll('#s-backup .card.stlist .strow').length) === 4, tag + ': vier rijen');
     // De stand op de rijen; versleutelen staat er altijd bij, niet afgekapt
     const sumParts = await pg.textContent('#bk-sum-parts'), sumSet = await pg.textContent('#bk-sum-set');
-    ok(/^\d+ van 11 onderdelen · privé uit$/.test(sumParts), tag + ': Wat gaat er mee: stand "' + sumParts + '"');
+    ok(/^\d+ van 12 onderdelen · privé uit$/.test(sumParts), tag + ': Wat gaat er mee: stand "' + sumParts + '"');
     ok(/niet versleuteld/.test(sumSet) && /USB-stick/.test(sumSet), tag + ': Automatisch en versleutelen: stand "' + sumSet + '"');
     ok(await pg.evaluate(() => { const e = document.querySelector('#bk-sum-set'); return getComputedStyle(e).whiteSpace === 'normal' && e.scrollWidth <= e.clientWidth + 1; }), tag + ': stand van versleutelen niet afgekapt');
     // Wat ontbreekt voor herinstallatie: een tik brengt je naar de plek waar je het regelt
@@ -188,7 +188,7 @@ const FOLD = 844;
     await pg.evaluate(() => { Android._bk.parts.sleep = true; Android._sec.on = false; }); await naar(pg, 'backup');
     ok(await pg.isVisible('#bk-sum-plain') && /privé: 1 aan · onversleuteld/.test(await pg.textContent('#bk-sum-parts')) &&
       await pg.evaluate(() => getComputedStyle(document.querySelector('#bk-sum-plain')).color !== getComputedStyle(document.querySelector('#bk-sum-parts')).color), tag + ': privé zonder versleutelen: "onversleuteld" in waarschuwingskleur op de rij');
-    ok(/^\d+ van 11 onderdelen/.test(await pg.textContent('#bk-sum-parts')) && await pg.evaluate(() => { const n = parseInt(document.querySelector('#bk-sum-parts').textContent); return n === Object.keys(BK_PARTS).filter(k => k !== 'app' && bkPartOn(bkState(true), k)).length; }), tag + ': Alle appgegevens telt zonder versleutelen niet mee');
+    ok(/^\d+ van 12 onderdelen/.test(await pg.textContent('#bk-sum-parts')) && await pg.evaluate(() => { const n = parseInt(document.querySelector('#bk-sum-parts').textContent); return n === Object.keys(BK_PARTS).filter(k => k !== 'app' && bkPartOn(bkState(true), k)).length; }), tag + ': Alle appgegevens telt zonder versleutelen niet mee');
     await pg.evaluate(() => { Android._bk.parts.sleep = false; });
 
     // ---------- WhatsApp: rijen zichtbaar tijdens een backup; Terugzetten zegt uit welke map ----------
@@ -225,7 +225,7 @@ const FOLD = 844;
     await en.pg.evaluate(() => { Android._wa.info.dest = true; Android._wa.info.filesAccess = true; });
     await naar(en.pg, 'backup');
     const t1 = await en.pg.evaluate(() => [document.querySelector('#s-backup h1').textContent, document.querySelector('#bk-row-set b').textContent, document.querySelector('#bk-sum-parts').textContent, document.querySelector('#bk-sum-set').textContent]);
-    ok(t1[1] === 'Schedule and encryption' && /^\d+ of 11 parts · private off$/.test(t1[2]) && /not encrypted/.test(t1[3]), 'en ' + tag + ': Alles back-uppen in het Engels (' + t1.join(' | ') + ')');
+    ok(t1[1] === 'Schedule and encryption' && /^\d+ of 12 parts · private off$/.test(t1[2]) && /not encrypted/.test(t1[3]), 'en ' + tag + ': Alles back-uppen in het Engels (' + t1.join(' | ') + ')');
     ok((await hoog(en.pg)) <= 1.5 * FOLD, 'en ' + tag + ': ≤ 1,5 scherm');
     await naar(en.pg, 'wa');
     const t2 = await en.pg.evaluate(() => [document.querySelector('#wa-row-sel b').textContent, document.querySelector('#wa-sum-sel').textContent, document.querySelector('#wa-sum-rd').textContent, document.querySelector('#wa-sum-restore').textContent]);
