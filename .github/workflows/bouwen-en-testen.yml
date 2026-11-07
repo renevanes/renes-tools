@@ -54,7 +54,9 @@ jobs:
         run: python3 tools/toiletten/ophalen.py --voorbeeld tools/toiletten/voorbeeld.json --uit "$RUNNER_TEMP/toiletten"
 
       - name: Publicatie mag alleen geteste bron gebruiken
-        run: bash tests/publicatie-bron.sh
+        run: |
+          bash tests/publicatie-bron.sh
+          bash tests/publicatie-voorbereiden.sh
 
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:

@@ -44,14 +44,24 @@ jobs:
     with:
       source_sha: ${{ github.sha }}
 
+  # De interfacetests naast de telefoontest, op de bron zoals hij gepubliceerd wordt (zie interfacetests.yml).
+  interface:
+    uses: ./.github/workflows/interfacetests.yml
+    permissions:
+      contents: read
+    with:
+      source_sha: ${{ github.sha }}
+      major: ${{ inputs.major || false }}
+
   publiceren:
-    needs: [telefoontest, playcontrole]
+    needs: [telefoontest, playcontrole, interface]
     runs-on: ubuntu-24.04  # vast: een nieuwe Ubuntu mag de publicatie niet ineens stukmaken
     timeout-minutes: 60
     environment: publiceren
     env:
       TOOLS: ${{ github.workspace }}/../toolchain
       TESTED_SOURCE_SHA: ${{ github.sha }}
+      UI_GETEST: ${{ needs.interface.outputs.getest }}
     steps:
       - name: Is het geheim er?
         id: gate

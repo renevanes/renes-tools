@@ -7,6 +7,10 @@
 #   MAJOR=1 ./publish.sh            1.9 wordt 2.0
 #   AGENT=Codex ./publish.sh        wie publiceert (komt in de commit); Claude-sessies geven CLAUDE_SESSION_URL mee
 #   SKIP_TESTS=1 / ALLOW_GROW=1     tests overslaan / een flink grotere APK toestaan (alleen als je weet waarom)
+#   VOORBEREIDEN=bestand            alleen samenvoegen en versie en wijzigingslog klaarzetten zoals bij publiceren (zonder
+#                                   sleutel, slot of push); in het bestand komt de vingerafdruk (of "geen"). Zo draait
+#                                   Publiceren de interfacetests naast de telefoontest; UI_GETEST=<vingerafdruk> slaat
+#                                   ze daarna over, alleen als bron, versie en wijzigingslog precies gelijk zijn
 #
 # Wat het doet:
 #  1. je werk vastleggen in een gewone commit (alles behalve VERSION, changelog.json en update/)
@@ -32,6 +36,8 @@ else
 fi
 mkdir -p build wijzigingen
 
+VOORBEREIDEN=${VOORBEREIDEN:-}
+if [ -z "$VOORBEREIDEN" ]; then
 # De echte sleutel, en geen testsleutel
 [ -f keys/release.p12 ] && [ -f keys/keystore.pass ] || { echo "De ondertekeningssleutel ontbreekt. Pak hem uit met: PASSPHRASE=… ./keys/unlock.sh (de wachtwoordzin krijg je van Rene; nooit in de repository, op GitHub alleen als geheim SIGNING_PASSPHRASE). Zonder sleutel: push naar main, dan publiceert GitHub het"; exit 1; }
 FP=$(openssl pkcs12 -in keys/release.p12 -passin file:keys/keystore.pass -nokeys -clcerts 2>/dev/null | openssl x509 -noout -fingerprint -sha256 2>/dev/null | sed 's/.*=//' || true)
@@ -40,6 +46,7 @@ FP=$(openssl pkcs12 -in keys/release.p12 -passin file:keys/keystore.pass -nokeys
 BT_VERSION=$(sed -n 's/^BUILD_TOOLS=\([0-9.]*\)$/\1/p' setup-tools.sh)
 [ -n "$BT_VERSION" ] && [ -f "${TOOLS:-/home/claude/toolchain}/bt/build-tools/$BT_VERSION/lib/d8.jar" ] || { echo "Build-tools ${BT_VERSION:-?} (Google) ontbreken in ${TOOLS:-/home/claude/toolchain}: ./setup-tools.sh met toegang tot dl.google.com. Publiceren met andere build-tools gebeurt niet."; exit 1; }
 export BT_VERSION
+fi
 
 # update/ maakt ./build.sh bij elke bouw opnieuw: wat daar lokaal staat telt niet
 git checkout -q HEAD -- update 2>/dev/null || true
@@ -60,7 +67,10 @@ notes(){ cat wijzigingen/*.txt 2>/dev/null | sed 's/\r$//; s/^[-•*] *//' | gre
 check_nep(){ if notes | grep -qiE '(^|[^[:alpha:]])n[e]p'; then echo "Het woord n-e-p (fake) mag niet in de wijzigingsregels (wens van Rene). Pas wijzigingen/*.txt aan."; exit 1; fi; }
 check_nep
 
-# 1. Eigen werk vastleggen (los van de versiecommit)
+# 1. Eigen werk vastleggen (los van de versiecommit); bij voorbereiden moet alles al vastgelegd zijn
+if [ -n "$VOORBEREIDEN" ] && [ -n "$(git status --porcelain)" ]; then
+  echo "Voorbereiden kan alleen met een schone werkmap:"; git status --short; exit 1
+fi
 git add -A -- . ':!VERSION' ':!changelog.json' ':!update'
 if ! git diff --cached --quiet; then
   first=$(notes | head -1); git "${GIT_ID[@]}" commit -q -m "Werk: ${first:-wijzigingen} ($WHO)"
@@ -123,7 +133,10 @@ slot_refresh(){ # bij elke poging de tijd in het slot vernieuwen, zodat een lang
 }
 cleanup(){ local rc=$?; [ -n "$DIRTY" ] && restore; slot_free || true; exit "$rc"; }
 trap cleanup EXIT
-slot_take
+[ -n "$VOORBEREIDEN" ] || slot_take
+# Wat de interfacetests zien: de bron (HEAD, schone werkmap) plus de nieuwe VERSION en changelog.json
+vingerafdruk(){ { git rev-parse 'HEAD^{tree}'; sha256sum < VERSION; sha256sum < changelog.json; } | sha256sum | cut -c1-64; }
+voorbereid(){ echo "$1" > "$VOORBEREIDEN"; DIRTY=""; echo "Voorbereid: $1"; exit 0; }
 
 for try in 1 2 3 4 5; do
   slot_refresh
@@ -144,6 +157,7 @@ for try in 1 2 3 4 5; do
   LASTREL=$(git log -1 --format=%H "$BASE" -- update/update.json)
   if git diff --quiet "$LASTREL" HEAD -- app web tools build.sh; then
     # Alleen documentatie, tests of instellingen: zonder nieuwe versie naar main
+    [ -n "$VOORBEREIDEN" ] && voorbereid geen
     if ! git diff --quiet "$BASE" HEAD; then
       git push -q origin HEAD:main && { echo "Zonder nieuwe versie naar main gezet (geen wijziging aan de app)"; exit 0; }
       continue
@@ -174,13 +188,19 @@ log.insert(0, {'version': '$NAME', 'date': datetime.date.today().isoformat(), 'c
 json.dump(log, open('changelog.json', 'w'), ensure_ascii=False, indent=2)"
   git rm -q --cached --ignore-unmatch -- 'wijzigingen/*.txt' >/dev/null; rm -f wijzigingen/*.txt
   echo "Versie $NAME (code $CODE, native $NAT) door $WHO"
+  [ -n "$VOORBEREIDEN" ] && voorbereid "$(vingerafdruk)"
 
   # 5. Bouwen en testen (bij een fout zet de opruimfunctie VERSION, changelog en wijzigingen terug)
   ./build.sh > build/publish-build.log 2>&1 || { tail -30 build/publish-build.log; echo "Bouwen mislukt: niet gepubliceerd"; exit 1; }
   if [ "${SKIP_TESTS:-}" != "1" ]; then
     ./tests/run-jvm.sh > build/publish-jvm.log 2>&1 || { grep -v "^✓" build/publish-jvm.log | tail -20; echo "Java-tests mislukt: niet gepubliceerd"; exit 1; }
-    ./tests/run-ui.sh > build/publish-ui.log 2>&1 || { grep -Ev "^(✓|· )" build/publish-ui.log | tail -30; echo "Interfacetests mislukt: niet gepubliceerd"; exit 1; }
-    grep -E '^(↻|Interfacetests:)' build/publish-ui.log || true # wankele tests (pas bij de tweede poging) zichtbaar in het logboek
+    if [ -n "${UI_GETEST:-}" ] && [ "$UI_GETEST" = "$(vingerafdruk)" ]; then
+      echo "Interfacetests: al geslaagd op precies deze bron, versie en wijzigingslog ($UI_GETEST)"
+    else
+      [ -n "${UI_GETEST:-}" ] && echo "Bron, versie of wijzigingslog anders dan bij de interfacetests ernaast: hier opnieuw"
+      ./tests/run-ui.sh > build/publish-ui.log 2>&1 || { grep -Ev "^(✓|· )" build/publish-ui.log | tail -30; echo "Interfacetests mislukt: niet gepubliceerd"; exit 1; }
+      grep -E '^(↻|Interfacetests:)' build/publish-ui.log || true # wankele tests (pas bij de tweede poging) zichtbaar in het logboek
+    fi
   fi
   PREV_APK=$(git cat-file -s "$BASE:update/Renes-Tools.apk" 2>/dev/null || echo 0); NEW_APK=$(stat -c %s update/Renes-Tools.apk)
   if [ "$PREV_APK" -gt 0 ] && [ $((NEW_APK * 10)) -gt $((PREV_APK * 11)) ] && [ "${ALLOW_GROW:-}" != "1" ]; then
