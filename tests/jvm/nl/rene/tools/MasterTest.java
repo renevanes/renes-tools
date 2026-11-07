@@ -69,13 +69,20 @@ public class MasterTest {
         check("2027-08-28".equals(MasterFormProfile.plusMonths("2027-02-28",6))&&"2028-02-29".equals(MasterFormProfile.plusMonths("2027-08-31",6))&&"2028-01-15".equals(MasterFormProfile.plusMonths("2027-07-15",6)),"maanden optellen");
         java.util.List<String> read=new java.util.ArrayList<>();MasterFormProfile.Relation checked=(r,role)->read.add(role+":"+r.getString("label"));
         fields.put("alleen","nee");
-        JSONArray w=MasterFormProfile.expiry(profile,lookup,"2030-08-01",checked);
+        JSONArray w=MasterFormProfile.expiry(profile,lookup,"2030-07-01","2030-08-01",true,checked);
         check(w.length()==2&&"voor".equals(w.getJSONObject(0).getString("niveau"))&&"Paspoort Zoë".equals(w.getJSONObject(0).getString("label"))&&!w.getJSONObject(0).has("document")&&"kort".equals(w.getJSONObject(1).getString("niveau")),"verlopen vóór de reis en kort erna, zonder nummer");
         check(read.contains("kind:Paspoort Zoë")&&read.contains("begeleider1:ID vader"),"geldigheid gecontroleerd in het logboek");
-        w=MasterFormProfile.expiry(profile,lookup,"2029-08-01",checked);
+        w=MasterFormProfile.expiry(profile,lookup,"2029-07-01","2029-08-01",true,checked);
         check(w.length()==1&&"kort".equals(w.getJSONObject(0).getString("niveau")),"binnen zes maanden na de reis");
-        check(MasterFormProfile.expiry(profile,lookup,"2029-06-30",checked).length()==0,"ruim geldig: geen melding");
-        fields.put("alleen","ja");check(MasterFormProfile.expiry(profile,lookup,"2030-08-01",checked).length()==1,"alleen reizen: begeleider niet gecontroleerd");fields.put("alleen","nee");
+        check(MasterFormProfile.expiry(profile,lookup,"2029-06-01","2029-06-30",true,checked).length()==0,"ruim geldig: geen melding");
+        check(!MasterFormProfile.expiry(profile,lookup,"2030-07-01","2030-08-01",false,checked).getJSONObject(0).has("geldig"),"zonder toestemming geen datum");
+        // Toestemminggever reist niet mee: alleen als het document vóór de eerste reisdag al verlopen is.
+        fields.put("gever1Document",kidDoc);check(MasterFormProfile.expiry(profile,lookup,"2030-07-01","2030-08-01",true,checked).length()==2,"document van een ander telt niet");fields.remove("gever1Document");
+        JSONObject mumDoc=rec(uid(10),"identiteit","ID moeder",new JSONObject().put("persoon",mum).put("geldig","2029-12-01"));db.put(uid(10),mumDoc);fields.put("gever1Document",uid(10));
+        JSONArray gw=MasterFormProfile.expiry(profile,lookup,"2029-09-01","2029-10-01",true,checked);check(gw.length()==1&&"kind".equals(gw.getJSONObject(0).getString("role")),"toestemminggever geldig bij ondertekenen: geen melding");
+        gw=MasterFormProfile.expiry(profile,lookup,"2030-07-01","2030-08-01",true,checked);check(gw.toString().contains("\"verlopen\"")&&gw.toString().contains("gever1"),"toestemminggever met verlopen document");
+        fields.put("gever1Document",uid(11));check(MasterFormProfile.expiry(profile,lookup,"2030-07-01","2030-08-01",true,checked).length()==2,"verdwenen document wordt overgeslagen");fields.remove("gever1Document");
+        fields.put("alleen","ja");check(MasterFormProfile.expiry(profile,lookup,"2030-07-01","2030-08-01",true,checked).length()==1,"alleen reizen: begeleider niet gecontroleerd");fields.put("alleen","nee");
         // Geslacht zoals op het identiteitsbewijs
         JSONObject p2=new JSONObject().put("type","persoon").put("label","P").put("fields",new JSONObject().put("naam","P").put("geslacht","X"));
         check("X".equals(MasterSchema.clean(p2).getJSONObject("fields").getString("geslacht")),"geslacht X");

@@ -26,7 +26,7 @@ const CM_TABS={persoon:[['naam','Naam',['naam','voornamen','roepnaam','initialen
 const CM_LABEL_TAB={relatie:'meer'};
 // taal-vast: filternamen worden bij het tekenen met t() vertaald
 const CM_FILTERS=[['persoon','Personen',['persoon']],['relatie','Relaties',['relatie']],['identiteit','Documenten',['identiteit']],['overig','Overig',['organisatie','adres','reis','profiel','formulier']]];
-const CM_NEW={persoon:'Persoon toevoegen',organisatie:'Organisatie toevoegen',adres:'Adres toevoegen',identiteit:'Reisdocument toevoegen',reis:'Reis toevoegen',relatie:'Relatie toevoegen',profiel:'App-profiel toevoegen',formulier:'Vaste formuliergegevens toevoegen'};
+const CM_NEW={persoon:'Persoon toevoegen',organisatie:'Organisatie toevoegen',adres:'Adres toevoegen',identiteit:'Document toevoegen',reis:'Reis toevoegen',relatie:'Relatie toevoegen',profiel:'App-profiel toevoegen',formulier:'Vaste formuliergegevens toevoegen'};
 const CM_ICONS={persoon:'user',relatie:'share',identiteit:'document',organisatie:'shop',adres:'pin',reis:'route',profiel:'smile',formulier:'clipboard'};
 function cmState(){try{return JSON.parse(Android.masterState());}catch(_){return {open:false};}}
 function cmOpen(){return !!cm.token&&cmState().open&&cm.privateReady;}
@@ -120,7 +120,7 @@ function cmRenderList(){
     b.type='button';ic.innerHTML=uiIcon(CM_ICONS[r.type]||'document');chev.dataset.icon='chevron-right';chev.setAttribute('aria-hidden','true');
     const owner=r.type==='identiteit'&&cm.records.find(p=>p.id===r.person);
     const stand=r.type==='persoon'?cmiPersonStand(r):r.type==='identiteit'?cmiDocStand(r,owner):t(CM_TYPES[r.type]);
-    txt.append(cmEl('b',r.label),cmEl('small',stand));b.append(ic,txt,chev);
+    const small=cmEl('small',stand);if(r.type==='persoon'&&cmiPersonLate(r).length||r.type==='identiteit'&&cmiDocLate(r))small.classList.add('cmi-warn');txt.append(cmEl('b',r.label),small);b.append(ic,txt,chev);
     b.onclick=()=>owner?cmEdit(r.id,'',{id:owner.id,tab:'documenten'}):cmEdit(r.id);box.append(b);
   });
   if(!box.children.length){if(cm.records.length)box.append(cmEl('p',t('Nog geen passende stamgegevens.'),'note cm-leeg'));else box.innerHTML=uiEmpty('shield',t('Nog geen stamgegevens. Begin met jezelf: Toevoegen → Persoon.'));}

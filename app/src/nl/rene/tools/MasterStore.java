@@ -186,11 +186,11 @@ final class MasterStore {
         });
     }
     /** Verloopcontrole voor een nieuwe reis: welke gekozen reisdocumenten verlopen vóór of kort na de laatste reisdag. */
-    static JSONObject formExpiry(Context c,SecretKey key,MasterSession session,String token,String id,long revision,String tot)throws Exception{
-        if(tot==null||!MasterSchema.validDate(tot))throw new MasterError(Taal.T("Vul een geldige datum in"));
+    static JSONObject formExpiry(Context c,SecretKey key,MasterSession session,String token,String id,long revision,String van,String tot,boolean consent)throws Exception{
+        if(tot==null||van==null||!MasterSchema.validDate(tot)||!MasterSchema.validDate(van))throw new MasterError(Taal.T("Vul een geldige datum in"));
         return transaction(c,key,session,token,(db,k,h)->{
             JSONObject r=record(db,k,id);if(revision!=r.getLong("revision"))throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
-            JSONArray out=MasterFormProfile.expiry(r,ref->record(db,k,ref),tot,(rec,role)->append(db,k,h,"expiry_check","formulieren",role,rec,new JSONArray().put("geldig")));
+            JSONArray out=MasterFormProfile.expiry(r,ref->record(db,k,ref),van,tot,consent,(rec,role)->append(db,k,h,"expiry_check","formulieren",role,rec,new JSONArray().put("geldig")));
             return new JSONObject().put("warnings",out);
         });
     }

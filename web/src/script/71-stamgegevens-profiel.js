@@ -1,6 +1,6 @@
 /* Gedeelde identiteit is een expliciete, beperkte native momentopname. Geen opslag in webstore. */
 let appIdentity={};
-const cmi={photoRequest:'',photoEpoch:0,reopen:'',show:false,labelFor:null,autoLabel:''};
+const cmi={photoRequest:'',photoEpoch:0,reopen:'',show:false,labelFor:null,autoLabel:'',docLabel:''};
 // taal-vast: vaste keuzelabels worden met t() vertaald (ook de waarde voor het Nederlandse formulier, zie cmiFormRelationsLoad)
 const CMI_RELATIONS={kind:'Kind',zoon:'Zoon',dochter:'Dochter',ouder:'Ouder',vader:'Vader',moeder:'Moeder',partner:'Partner',expartner:'Ex-partner',broerzus:'Broer of zus',broer:'Broer',zus:'Zus',grootouder:'Grootouder',opa:'Opa',oma:'Oma',kleinkind:'Kleinkind',kleinzoon:'Kleinzoon',kleindochter:'Kleindochter',oomtante:'Oom of tante',neefnicht:'Neef of nicht',schoonouder:'Schoonouder',schoonkind:'Schoonkind',zwagerschoonzus:'Zwager of schoonzus',familie:'Familie',vriend:'Vriend of vriendin',collega:'Collega',buur:'Buurman of buurvrouw',huisgenoot:'Huisgenoot',noodcontact:'Noodcontact',voogd:'Voogd',pupil:'Pupil',pleegouder:'Pleegouder',pleegkind:'Pleegkind',stiefouder:'Stiefouder',stiefkind:'Stiefkind',anders:'Anders'};
 // taal-vast: groepsnamen worden met t() vertaald
@@ -103,11 +103,13 @@ function cmiDays(iso){if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||''))return null;const 
 function cmiDocSoort(r){const c=(cmiChoices('documentsoort')||[]).find(x=>x[0]===r.soort);return c&&r.soort?c[1]:t('Document');}
 function cmiDocStand(r,owner){
   const n=cmiDays(r.geldig),soort=cmiDocSoort(r);
-  const geldig=n===null?t('geen vervaldatum'):n<0?t('verlopen op {datum}',{datum:fmtDate(r.geldig)}):n<=CMI_DOC_SOON?tn(n,'verloopt morgen','verloopt over {n} dagen'):t('geldig tot {datum}',{datum:fmtDate(r.geldig)});
+  const geldig=n===null?t('geen vervaldatum'):n<0?t('verlopen op {datum}',{datum:fmtDate(r.geldig)}):n===0?t('verloopt vandaag'):n<=CMI_DOC_SOON?tn(n,'verloopt morgen','verloopt over {n} dagen'):t('geldig tot {datum}',{datum:fmtDate(r.geldig)});
   return owner?t('{soort} van {naam} · {geldig}',{soort,naam:owner.label,geldig}):t('{soort} · {geldig}',{soort,geldig});
 }
+function cmiDocLate(r){const n=cmiDays(r.geldig);return n!==null&&n<=CMI_DOC_SOON;}
+function cmiPersonLate(p){return cm.records.filter(r=>r.type==='identiteit'&&r.person===p.id&&cmiDocLate(r));}
 function cmiPersonStand(p){
-  const docs=cm.records.filter(r=>r.type==='identiteit'&&r.person===p.id),late=docs.filter(r=>{const n=cmiDays(r.geldig);return n!==null&&n<=CMI_DOC_SOON;});
+  const docs=cm.records.filter(r=>r.type==='identiteit'&&r.person===p.id),late=cmiPersonLate(p);
   if(late.some(r=>cmiDays(r.geldig)<0))return t('Persoon · een document is verlopen');
   if(late.length)return t('Persoon · een document verloopt binnenkort');
   return docs.length?tn(docs.length,'Persoon · één document','Persoon · {n} documenten'):t('Persoon');
@@ -116,7 +118,7 @@ function cmiPersonDocs(){
   const id=cm.edit.id,box=$('#cmi-person-doc-list');box.replaceChildren();
   const docs=cm.records.filter(r=>r.type==='identiteit'&&r.person===id).sort((a,b)=>(b.geldig||'').localeCompare(a.geldig||''));
   for(const r of docs){const b=cmData(cmEl('button',undefined,'strow')),ic=cmEl('span',undefined,'stic'),txt=cmEl('span',undefined,'sttxt'),chev=cmEl('span',undefined,'ui-icon stchev');b.type='button';ic.innerHTML=uiIcon('document');chev.dataset.icon='chevron-right';chev.setAttribute('aria-hidden','true');
-    const n=cmiDays(r.geldig),small=cmEl('small',cmiDocStand(r,null));if(n!==null&&n<=CMI_DOC_SOON)small.classList.add('cmi-warn');txt.append(cmEl('b',r.label),small);b.append(ic,txt,chev);b.onclick=()=>cmEdit(r.id,'',{id,tab:'documenten'});box.append(b);}
+    const small=cmEl('small',cmiDocStand(r,null));if(cmiDocLate(r))small.classList.add('cmi-warn');txt.append(cmEl('b',r.label),small);b.append(ic,txt,chev);b.onclick=()=>cmEdit(r.id,'',{id,tab:'documenten'});box.append(b);}
   if(!docs.length)box.append(cmEl('p',t('Nog geen paspoort of identiteitskaart.'),'note'));
 }
 function cmiDocNew(){
@@ -171,7 +173,7 @@ function cmiPhotoDelete(side){
   if(!cmiPhotoCanChange()||!cm.edit.images?.[side])return;const r=cm.edit;
   askConfirm('Kaartfoto verwijderen?','De versleutelde kopie van deze zijde wordt verwijderd.','Verwijderen',()=>{if(!cmOpen()||cm.edit!==r||cm.mutating)return;cmBusy(true);cmRequest('masterPhotoDelete',[r.id,r.revision,side],out=>{cmBusy(false);r.revision=out.revision;r.images[side]=false;cmiEditor();cmNote(t('Kaartfoto verwijderd.'));});});
 }
-function cmiRelationsClear(){$('#cmi-person-doc-list').replaceChildren();cmi.labelFor=null;cmi.autoLabel='';$('#cmi-person-relation-list').replaceChildren();$('#cmi-relation-zin').textContent='';$('#cmi-relation-zin').hidden=true;}
+function cmiRelationsClear(){$('#cmi-person-doc-list').replaceChildren();cmi.docLabel='';cmi.labelFor=null;cmi.autoLabel='';$('#cmi-person-relation-list').replaceChildren();$('#cmi-relation-zin').textContent='';$('#cmi-relation-zin').hidden=true;}
 const cmiClearCentral=cmClearCentral;cmClearCentral=function(){cmiPhotoClear();cmiRelationsClear();cmiClearCentral();};
 const cmiLock=cmLock;cmLock=function(){cmiPhotoCancel();cmiLock();};
 const cmiLeave=cmLeave;cmLeave=function(){cmiPhotoCancel();cmiLeave();};

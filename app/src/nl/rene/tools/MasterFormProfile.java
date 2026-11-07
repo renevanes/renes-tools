@@ -68,22 +68,26 @@ final class MasterFormProfile {
     }
     static final int EXPIRY_MONTHS=6;
     /**
-     * Per gekozen reisdocument: verloopt het vóór de laatste reisdag ("voor"), of binnen zes maanden daarna ("kort";
-     * veel landen buiten Schengen eisen drie tot zes maanden geldigheid na terugkomst). Geeft de documentnaam, de rol en
-     * de datum; nooit het nummer.
+     * Per gekozen document: reist de persoon mee (kind, begeleider), dan "voor" als het verloopt vóór de laatste reisdag
+     * en "kort" binnen zes maanden daarna (veel landen buiten Schengen eisen dat). Een toestemminggever reist niet mee:
+     * alleen "verlopen" als het document vóór de eerste reisdag al verlopen is (ondertekenen met een geldig bewijs).
+     * Geeft de documentnaam, de rol en het niveau; de datum alleen met toestemming voor identiteitsgegevens; nooit het nummer.
      */
-    static JSONArray expiry(JSONObject profile,Lookup lookup,String tot,Relation read)throws Exception{
+    static JSONArray expiry(JSONObject profile,Lookup lookup,String van,String tot,boolean consent,Relation read)throws Exception{
         if(!"formulier".equals(profile.getString("type")))throw new MasterError(Taal.T("Kies vaste formuliergegevens"));
         JSONObject f=profile.getJSONObject("fields");boolean alone="ja".equals(f.optString("alleen"));JSONArray out=new JSONArray();
         String limit=plusMonths(tot,EXPIRY_MONTHS);
         for(String role:ROLES){
             if(alone&&role.startsWith("begeleider"))continue;
-            String doc=f.optString(role+"Document");if(doc.isEmpty()||f.optString(role).isEmpty())continue;
-            JSONObject identity=lookup.get(doc);if(!"identiteit".equals(identity.getString("type")))continue;
+            String doc=f.optString(role+"Document"),owner=f.optString(role);if(doc.isEmpty()||owner.isEmpty())continue;
+            JSONObject identity;try{identity=lookup.get(doc);}catch(MasterError gone){continue;}
+            if(!"identiteit".equals(identity.getString("type"))||!owner.equals(identity.getJSONObject("fields").optString("persoon")))continue;
             String until=identity.getJSONObject("fields").optString("geldig");read.read(identity,role);
             if(until.isEmpty()||!MasterSchema.validDate(until))continue;
-            String level=until.compareTo(tot)<0?"voor":until.compareTo(limit)<0?"kort":"";
-            if(!level.isEmpty())out.put(new JSONObject().put("role",role).put("label",identity.getString("label")).put("geldig",until).put("niveau",level));
+            String level=role.startsWith("gever")?(until.compareTo(van)<0?"verlopen":""):until.compareTo(tot)<0?"voor":until.compareTo(limit)<0?"kort":"";
+            if(level.isEmpty())continue;
+            JSONObject w=new JSONObject().put("role",role).put("label",identity.getString("label")).put("niveau",level);
+            if(consent)w.put("geldig",until);out.put(w);
         }
         return out;
     }

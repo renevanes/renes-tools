@@ -58,7 +58,7 @@ function fmqGo(){
   const reis={};for(const key of FMQ_REIS)reis[key]=$('#fmq-'+key).value.trim();
   const consent=$('#fmq-id').checked,id=fm.id,epoch=fmq.epoch;fmq.busy=true;$('#fmq-ga').disabled=true;fmqNote(t('Formulier invullen…'));
   // Eerst de geldigheid van de reisdocumenten (na het sluiten van dit venster is de privésessie even niet bruikbaar).
-  if(typeof Android.masterFormExpiry==='function')cmRequest('masterFormExpiry',[record.id,record.revision,reis.tot],r=>{if(epoch===fmq.epoch)fmqFill(record,reis,consent,id,epoch,r.warnings||[]);},false,()=>{if(epoch===fmq.epoch)fmqFill(record,reis,consent,id,epoch,[]);});
+  if(typeof Android.masterFormExpiry==='function')cmRequest('masterFormExpiry',[record.id,record.revision,reis.van,reis.tot,consent],r=>{if(epoch===fmq.epoch)fmqFill(record,reis,consent,id,epoch,r.warnings||[]);},false,()=>{if(epoch===fmq.epoch)fmqFill(record,reis,consent,id,epoch,[]);});
   else fmqFill(record,reis,consent,id,epoch,[]);
 }
 function fmqFill(record,reis,consent,id,epoch,warnings){
@@ -86,9 +86,11 @@ function fmqFill(record,reis,consent,id,epoch,warnings){
 /* Verlopen reisdocumenten: vóór de laatste reisdag, of binnen zes maanden daarna (veel landen eisen dat). */
 function fmqVerloop(warnings){
   const box=$('#pff-verloop');
-  const lines=warnings.map(w=>w.niveau==='voor'
-    ?t('{document} is op {datum} niet meer geldig, vóór het einde van de reis. Vraag op tijd een nieuw document aan.',{document:w.label,datum:fmtDate(w.geldig)})
-    :t('{document} verloopt op {datum}, binnen zes maanden na de reis. Veel landen buiten Europa vragen langer geldigheid; kijk wat je bestemming eist.',{document:w.label,datum:fmtDate(w.geldig)}));
+  // De datum staat er alleen bij als je identiteitsgegevens hebt vrijgegeven (vinkje in het venster).
+  const lines=warnings.map(w=>{const datum=w.geldig?fmtDate(w.geldig):'';
+    if(w.niveau==='verlopen')return datum?t('{document} is op {datum} verlopen. Ondertekenen gaat met een geldig identiteitsbewijs.',{document:w.label,datum}):t('{document} is vóór de eerste reisdag verlopen. Ondertekenen gaat met een geldig identiteitsbewijs.',{document:w.label});
+    if(w.niveau==='voor')return datum?t('{document} is op {datum} niet meer geldig, vóór het einde van de reis. Vraag op tijd een nieuw document aan.',{document:w.label,datum}):t('{document} is vóór het einde van de reis niet meer geldig. Vraag op tijd een nieuw document aan.',{document:w.label});
+    return datum?t('{document} verloopt op {datum}, binnen zes maanden na de reis. Veel landen buiten Europa vragen langer geldigheid; kijk wat je bestemming eist.',{document:w.label,datum}):t('{document} verloopt binnen zes maanden na de reis. Veel landen buiten Europa vragen langer geldigheid; kijk wat je bestemming eist.',{document:w.label});});
   box.textContent=lines.join('\n');box.hidden=!lines.length;
 }
 function fmqSetup(){

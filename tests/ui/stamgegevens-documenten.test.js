@@ -36,7 +36,7 @@ for(const colorScheme of ['light','dark']){
   // 3. Nieuw document vanuit de persoon: persoon vooraf gekozen, naam vanzelf, datums als gewone datumvelden.
   await p.waitForFunction(()=>current==='masterdata'&&cm.recordsReady);await p.locator('#cm-list .strow',{hasText:'Zoë <b>'}).click();
   await p.waitForFunction(()=>cm.edit&&cm.edit.label==='Zoë <b>');await p.click('#cm-tab-documenten');
-  await p.getByRole('button',{name:'Reisdocument toevoegen',exact:true}).click();await p.waitForFunction(()=>cm.edit&&cm.edit.type==='identiteit'&&!cm.edit.id);
+  await p.getByRole('button',{name:'Document toevoegen',exact:true}).click();await p.waitForFunction(()=>cm.edit&&cm.edit.type==='identiteit'&&!cm.edit.id);
   assert.equal(await p.inputValue('#cm-field-persoon'),'00000000-0000-0000-0000-000000000001');
   assert.equal(await p.inputValue('#cm-label'),'Identiteitskaart Zoë <b>');
   await T.select('#cm-field-documentsoort','paspoort');assert.equal(await p.inputValue('#cm-label'),'Paspoort Zoë <b>','naam volgt de soort');
@@ -51,7 +51,7 @@ for(const colorScheme of ['light','dark']){
   const later=await p.evaluate(()=>new Date(Date.now()+60*864e5).toISOString().slice(0,10));
   await p.fill('#fmq-van',soon);await p.fill('#fmq-tot',later);await p.fill('#fmq-land','Spanje');await p.click('#fmq-ga');
   await p.waitForFunction(()=>!fmq.open&&!$('#pff-verloop').hidden);
-  assert.match(await p.textContent('#pff-verloop'),/Paspoort Zoë is op .* niet meer geldig, vóór het einde van de reis/);
+  assert.match(await p.textContent('#pff-verloop'),/^Paspoort Zoë is vóór het einde van de reis niet meer geldig/,'zonder vinkje geen datum');
   assert.doesNotMatch(await p.textContent('#pff-verloop'),/NX12345|IA999/,'geen documentnummers');
   assert.ok(await p.evaluate(()=>Android._cm.events.some(e=>e.action==='expiry_check'&&e.role==='kind')),'controle in het logboek');
   // Vergrendelen wist ook de waarschuwing.
