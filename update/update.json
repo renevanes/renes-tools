@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.158",
-  "versionCode": 159,
+  "versionName": "1.159",
+  "versionCode": 160,
   "nativeLevel": 141,
   "web": "index.html",
-  "webSha256": "d3715ad92125acac827c675e7cef9ebee53cd9aafa7973d2ede7397ce37eb06a",
+  "webSha256": "88f5ebea5816e10bd9e9e0d0b2baf77117835d73b9f44bcca605ee6863c64603",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "23ce963a9a52b98fc2e214a3483a1c0979329f42bb5a04e3677132b55459b3d4",
+  "apkSha256": "9cb1eeed0db4ac271c2e2ef7248e417e6b1c6b6dcf469925644a9e45314ceaa8",
   "changelog": [
+    {
+      "version": "1.159",
+      "date": "2026-11-07",
+      "changes": [
+        "Toiletten en douches: de ontbrekende gegevenslijst wordt aangemaakt en bij bronwijzigingen meteen vernieuwd; bronadressen en gegevens worden voortaan iedere week gecontroleerd."
+      ]
+    },
     {
       "version": "1.158",
       "date": "2026-11-07",
@@ -1407,5 +1414,5 @@
       ]
     }
   ],
-  "webSig2": "r6lSYWHOyibbCYss2lqXMI4u6qwmZVSTHMWGzJmJHdSq1Yl5UcCf9xsNMZmdmkd16cWTnfKpcr8uChttIYxLSrEDnGVqcN+S/uP1XFO67xtLBCqb/6+CAPQLKyq/ZwcXIg4CeBqA0oCHoXUX+hUp3wjv1eHORregMvDv9CkTshkk3jaFQPQ+dCOs4rv4/1VM/lS2tCIlki+wfpYU4oqBZBLME6RY3Y2Um+4+q9KJStKsaZnxQXSzlQ+FXEOF5rSGFDFrAJ1war8d2SZuhOlxmUbCZ/ehHc+T/tx16U6V8EtvLm9qcF5646V2bzXGTpvbhU05fF8wLnpVywURQnFv4an/RgCdcPS1xt8MGLFZV0+gWfO6z5D6Yr8dAdcceg/Fj1GHirZYH4TfH+f6EzxHtX3Ht1dqwGy7gfuMw8ltLOgDC8EvCBeiHk2X2M2J1lz7/EwFedTgLQeBGjb7MkVVV89kuxPSx/1zf42IsvIq7rdvJC+FcxW2d4rdld7M5fug"
+  "webSig2": "Aijd9BnbBuzN1Hm60NsPN+LCKLgOxqtlxPY/9TG0cZd+ZRZGcXDzPvLWQkiaEMltqGkQ7Nc1iSprPUXyuML0+AJ2VhZ270HqGtrjoDB/vAkwr+h8v8kYkVsDWZH54vur38F5U1MumqScMs0n6bp1UufoRJel2D1XeR+l/rqKBngxoDI9WX6DTlBmgTZa93GexZdytjgtjfgfFAnaQUBxkaBAs2ghbKpVerahzeujZE9MA1V+RruIheunALzlD67VHILFkCT4NAn+AxwFZe0Uam/jqS23Iu900UM0JFVe3kAuoLUUxok+RBoQ30gPmGahi15hUoFdRipNtL4dFzfni6dTZ0zBw5oKJfzlzDZaW4wYPu+XM0PKEpTDLgRK412KaWLpMZOsFJQGhMZy6L11Nwx51gI4Fse2GvdNZ/CHAik/0oRvifM1vMeiVYI0qjj4kXbZ6O9nMobl2szmk1Oxe+NlYwBf165ttQJrdZWAJxGfG7oK2TYh+AFqFlilgo1U"
 }
