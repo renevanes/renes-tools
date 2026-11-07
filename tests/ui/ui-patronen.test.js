@@ -9,7 +9,7 @@ const W = +process.env.UI_WACHT || 1;
 const FOLD = 844;
 const BACK_D = 'M15 18l-6-6 6-6'; // de SVG-chevron van de terugknop
 // Detailschermen (geopend vanuit een ander scherm): kleine kop
-const DETAIL = ['cversions', 'cversion', 'vpnedit', 'autoed', 'chats', 'ralarm', 'herstel', 'chat', 'smschat', 'track', 'txd', 'contact', 'note',
+const DETAIL = ['erbook', 'cversions', 'cversion', 'vpnedit', 'autoed', 'chats', 'ralarm', 'herstel', 'chat', 'smschat', 'track', 'txd', 'contact', 'note',
   'podcast', 'podlijst', 'podspotify', 'models', 'carset', 'gebruikset', 'gebruikontgr', 'apset', 'apdev', 'aiset', 'aisetvoice', 'aisetdata', 'aichats',
   'sleepset', 'sleepnight', 'checkined', 'checkinq', 'checkincmp', 'setnotif', 'setlook', 'setregio', 'setcrash', 'facstuk', 'facgoogle', 'idcopy', 'formulieren',
   'pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade', 'bkparts', 'bkset', 'bkrestore', 'bkmap', 'wasel', 'waauto', 'warestore',

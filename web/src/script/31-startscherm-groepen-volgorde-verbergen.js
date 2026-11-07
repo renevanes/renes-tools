@@ -7,7 +7,7 @@ const HOME_DEFAULT = { v: HOME_LAYOUT, grouped: true, compact: false, hidden: []
   { name: 'Bellen & contacten', tools: ['redial', 'calls', 'contacts', 'recorder', 'transcripts'] },
   { name: 'Berichten & backup', tools: ['backup', 'wa', 'sms', 'history'] },
   { name: 'Muziek & radio', tools: ['radio', 'podcasts', 'spotify', 'music'] },
-  { name: 'Documenten & geld', tools: ['pdf', 'kluis', 'facturen', 'bank', 'masterdata'] },
+  { name: 'Documenten & geld', tools: ['pdf', 'ereader', 'kluis', 'facturen', 'bank', 'masterdata'] },
   { name: 'Dag & gezondheid', tools: ['checkin', 'sleep', 'gebruik'] },
   { name: 'Onderweg', tools: ['tracks', 'car', 'wc', 'loc', 'vpn'] },
   { name: 'Slim', tools: ['ai', 'notes', 'auto', 'apparaten', 'skin'] } ] };

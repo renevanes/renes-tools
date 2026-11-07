@@ -127,7 +127,7 @@ final class AppData {
 
     /** Mappen en bestanden in getFilesDir() die meegaan. (De kluis gaat apart: ontsleuteld via geheim/kluis.) */
     static final List<String> FILE_ROOTS = Collections.unmodifiableList(Arrays.asList(
-            "notes.json", "notes.json.bak", "music.json", "ai", "apparaten", "call-recordings", "checkin", "contacts", "facturen", "gebruik", "podcasts",
+            "notes.json", "notes.json.bak", "music.json", "ai", "apparaten", "call-recordings", "checkin", "contacts", "ereader", "facturen", "gebruik", "podcasts",
             "shortcut-icons", "sleep", "spotify", "toiletten", "tracks", "transcripts"));
 
     /** Wat in getFilesDir() bewust niet meegaat, met de reden. */

@@ -898,6 +898,11 @@ public class MainActivity extends Activity {
             new Thread(() -> js("onPdf", FeatureBridge.pdfResult(app, req, us, saveName)), "pdf-pick").start();
             return;
         }
+        if (req == EreaderBridge.REQ_BOOK) {
+            if (res == RESULT_OK && data != null && data.getData() != null) EreaderBridge.picked(this, data.getData());
+            else js("onEreaderImport", "{\"cancelled\":true}");
+            return;
+        }
         if (req == BankBridge.REQ_BANK) {
             Bank.picking = false;
             java.util.List<Uri> us = new java.util.ArrayList<>();
@@ -994,7 +999,7 @@ public class MainActivity extends Activity {
     // ---------- brug naar JavaScript ----------
 
     /** Alle functies voor de interface. Nieuwere onderdelen staan in FeatureBridge (eigen bestand). */
-    static final class Bridge extends ToilettenBridge {
+    static final class Bridge extends EreaderBridge {
         private final MainActivity a;
         private final Context ctx;
         static volatile boolean smsBusy = false;

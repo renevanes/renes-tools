@@ -1,0 +1,6 @@
+.er-reader{max-width:52rem;margin:auto}
+.er-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+.er-controls .sel{width:auto;flex:1;min-width:100px}
+.er-text{height:55vh;min-height:260px;overflow-y:auto;overscroll-behavior:contain;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:20px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.75;font:22px/1.75 serif;user-select:text;-webkit-user-select:text}
+.er-text:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.er-nav{display:flex;gap:10px}.er-nav .big{flex:1;margin:0;min-width:0}

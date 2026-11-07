@@ -11,6 +11,12 @@ if (!window.Android) window.Android = (function(){
     st.nextAt = t0 + (a-1)*per + per; st.now = Date.now();
   };
   return {
+    _erBooks: [], _erTexts: {},
+    ereaderList(){ return JSON.stringify({ books: this._erBooks }); },
+    ereaderChapter(id, chapter){ const texts = this._erTexts[id]; return JSON.stringify(texts && texts[chapter] != null ? { text: texts[chapter] } : { error: "Boek openen lukt niet" }); },
+    ereaderPosition(id, chapter, offset){ const b = this._erBooks.find(x => x.id === id); if (b) Object.assign(b, { chapter, offset, last: Date.now() }); return ""; },
+    ereaderDelete(id){ this._erBooks = this._erBooks.filter(x => x.id !== id); delete this._erTexts[id]; return ""; },
+    ereaderPick(){ setTimeout(() => onEreaderImport(this._erPick || { cancelled: true }), 100); },
     version:()=>JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts','masterdata']}),
     lastManifest:()=>'null', checkUpdates:()=>setTimeout(()=>onUpdateStatus({state:'uptodate',kind:'web',manual:true,versionName:VERSION_NAME}),400),
     reloadUi(){ if (window.prepareUiReload && window.prepareUiReload()) { this._uiReloads = (this._uiReloads || 0) + 1; document.body.inert = false; } },
