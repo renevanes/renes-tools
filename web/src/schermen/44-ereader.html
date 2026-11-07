@@ -4,6 +4,8 @@
   <main>
     <p class="hint">Lees je boeken op de telefoon, ook zonder internet.</p>
     <button class="big" id="er-add" onclick="erPick()">Boek toevoegen</button>
+    <button class="big tonal" id="er-pdf" onclick="Android.pdfViewPick()">PDF openen</button>
+    <p class="hint">PDF's openen in de PDF-lezer van Tools.</p>
     <p class="note" id="er-status" role="status" hidden></p>
     <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>Voeg een EPUB zonder versleutelde onderdelen of een UTF-8-tekstbestand toe (maximaal 20 MB). Je leest de tekst per hoofdstuk; afbeeldingen en de oorspronkelijke opmaak worden niet getoond.</p><p>Tools bewaart een eigen kopie en je leespositie op de telefoon. Deze gaan mee in Alles back-uppen → Alle appgegevens. Het oorspronkelijke bestand blijft staan als je een boek uit de boekenlijst verwijdert.</p></div></details>
     <input class="search" id="er-search" type="search" placeholder="Zoek een boek of auteur" aria-label="Zoek een boek of auteur" oninput="erRender()">

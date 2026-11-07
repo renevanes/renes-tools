@@ -10,6 +10,9 @@ const path = require('path');
     await page.waitForTimeout(200);
     await page.click('#tile-ereader');
     ok(await page.locator('#er-list').innerText().then(s => s.includes('Nog geen boeken')), 'lege boekenlijst');
+    await page.evaluate(() => { Android.pdfViewPick = () => { window._erPdfOpened = true; }; });
+    await page.click('#er-pdf');
+    ok(await page.evaluate(() => window._erPdfOpened && current === 'ereader'), 'PDF openen vanuit de e-reader via de bestaande PDF-lezer');
     await page.click('#er-add'); await page.waitForTimeout(150);
     ok(await page.locator('#er-add').isEnabled() && await page.locator('#er-status').isHidden(), 'bestandskeuze annuleren');
     await page.evaluate(() => {

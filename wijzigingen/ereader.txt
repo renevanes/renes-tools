@@ -1,1 +1,1 @@
-E-reader: lees EPUB- en tekstbestanden op je telefoon, met hoofdstukken, instelbare letters en een bewaarde leespositie.
+E-reader: lees EPUB- en tekstbestanden op je telefoon, met hoofdstukken, instelbare letters en een bewaarde leespositie. Open ook PDF's vanuit de e-reader.
