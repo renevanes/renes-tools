@@ -30,7 +30,7 @@ trap 'rm -rf "$RES"' EXIT
 export RES PRELOAD="$PWD/tests/ui/_traag.js"
 
 een() {
-  local t=$1 n out code total empty poging w start
+  local t=$1 n out code total empty poging w start eerst=""
   n=$(basename "$t")
   start=$(date +%s)
   for poging in 1 2; do
@@ -41,10 +41,13 @@ een() {
     total=$(grep -o "errors \[" <<<"$out" | wc -l); empty=$(grep -o "errors \[\]" <<<"$out" | wc -l)
     if [ $code -eq 0 ] && [ "$empty" -gt 0 ] && [ "$total" -eq "$empty" ]; then
       echo $(( $(date +%s) - start )) > "$RES/$n.duur"
-      if [ "$poging" -eq 1 ]; then echo "✓ $n" > "$RES/$n"; else echo "↻ $n (slaagde pas bij de tweede poging, met langere wachttijden)" > "$RES/$n"; fi
+      if [ "$poging" -eq 1 ]; then echo "✓ $n" > "$RES/$n"
+      else { echo "↻ $n (slaagde pas bij de tweede poging, met langere wachttijden)"; [ -z "$eerst" ] || echo "$eerst"; } > "$RES/$n"; fi
       echo "· $(head -c 3 "$RES/$n") $n" >&2  # voortgang (met "·" ervoor: telt niet mee in de uitslag)
       return 0
     fi
+    # wat er bij de eerste poging misging, ingesprongen onder de ↻-regel: zo is een wankele test na te gaan
+    eerst=$({ [ $code -ne 0 ] && echo "exitcode $code"; grep -v "errors \[\]" <<<"$out" | grep -E "errors \[|mislukt|✗|Error|Timeout|^ +'" | head -6; } | cut -c1-200 | sed 's/^/    eerste poging: /')
   done
   { echo "✗ $n"; echo "$out" | tail -25; } > "$RES/$n"
   echo "· ✗ $n" >&2

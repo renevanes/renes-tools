@@ -201,7 +201,7 @@ json.dump(log, open('changelog.json', 'w'), ensure_ascii=False, indent=2)"
     else
       [ -n "${UI_GETEST:-}" ] && echo "Bron, versie of wijzigingslog anders dan bij de interfacetests ernaast: hier opnieuw"
       ./tests/run-ui.sh > build/publish-ui.log 2>&1 || { grep -Ev "^(✓|· )" build/publish-ui.log | tail -30; echo "Interfacetests mislukt: niet gepubliceerd"; exit 1; }
-      grep -E '^(↻|Interfacetests:)' build/publish-ui.log || true # wankele tests (pas bij de tweede poging) zichtbaar in het logboek
+      grep -E '^(↻|    eerste poging:|Interfacetests:)' build/publish-ui.log || true # wankele tests (pas bij de tweede poging) zichtbaar in het logboek
     fi
   fi
   PREV_APK=$(git cat-file -s "$BASE:update/Renes-Tools.apk" 2>/dev/null || echo 0); NEW_APK=$(stat -c %s update/Renes-Tools.apk)

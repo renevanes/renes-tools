@@ -149,8 +149,8 @@ het ergens anders wilt), Java 17+ (javac; CI gebruikt 25), Python 3, Node 22+ (C
 - `./tests/run-ui.sh` — alle interfacetests (Playwright, licht en donker), veel tegelijk (`UI_JOBS`, standaard 3 per
   processorkern, max 12: de tests wachten vooral; ±4 min op 4 kernen), de langste eerst (`tests/ui/duur.txt`; na een
   flinke verandering bijwerken met `UI_DUUR_BIJWERKEN=1 ./tests/run-ui.sh`). Een mislukte test krijgt één herkansing met twee keer zo lange wachttijden
-  (`UI_WACHT`, via `tests/ui/_traag.js`); slaagt hij dan wel, dan staat er `↻ naam` in de uitvoer (wankel: graag
-  repareren, de publicatie gaat wel door). `✗ naam` = echt mislukt.
+  (`UI_WACHT`, via `tests/ui/_traag.js`); slaagt hij dan wel, dan staat er `↻ naam` in de uitvoer, met daaronder wat
+  er bij de eerste poging misging (wankel: graag repareren, de publicatie gaat wel door). `✗ naam` = echt mislukt.
 - `./tests/ui-een.sh calls spotify2` — één of enkele interfacetests (naam zonder `.test.js`).
 - `python3 tools/check-bridge.py` — brug en testbrug kloppen met elkaar.
 - **Telefoontest** (`.github/workflows/telefoontest.yml`, alleen op GitHub: hier is geen emulator): installeert de APK in
