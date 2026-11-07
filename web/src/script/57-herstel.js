@@ -39,10 +39,11 @@ window.onHerstelScan = function(r){
   $('#hs-map').textContent = t('In {map} → Versleuteld: {wat}.', { map: r.destName || t('je backup-map'), wat: l.length ? tn(l.length, '{n} backup', '{n} backups') : t('geen versleutelde backups') });
   $('#hs-next').style.display = l.length ? '' : 'none';
   if (!l.length) {
-    const p = r.plain || {}, any = p.notes || p.settings || p.contacts;
+    const p = r.plain || {}, kinds = p.kinds || [], any = kinds.length || p.notes || p.settings || p.contacts;
+    const wat = kinds.length ? kinds.map(k => bkLosLabel(k).toLowerCase()) : [p.notes ? 'notities' : '', p.settings ? 'instellingen' : '', p.contacts ? 'contacten' : ''].filter(Boolean).map(x => t(x));
     $('#hs-list').innerHTML = '<p class="note" id="hs-none">Geen versleutelde backup gevonden in deze map. Alles terugzetten (met je wachtwoorden, VPN en sleutels) kan alleen uit een versleutelde backup.</p>' +
-      (any ? '<p class="note" id="hs-plain">' + esc(t('Er staan wel gewone onderdelen in deze map ({wat}). Die kun je los terugzetten; ze worden toegevoegd aan wat er staat. Wachtwoorden en sleutels staan daar nooit in.', { wat: [p.notes ? 'notities' : '', p.settings ? 'instellingen' : '', p.contacts ? 'contacten' : ''].filter(Boolean).map(x => t(x)).join(', ') })) + '</p>' +
-        '<button class="big ghost" id="hs-plain-btn" onclick="hsPlain()">Losse onderdelen terugzetten</button>' : '');
+      (any ? '<p class="note" id="hs-plain">' + esc(t('Er staan wel gewone onderdelen in deze map ({wat}). Die zet je in één keer terug; ze worden toegevoegd aan wat er staat. Wachtwoorden en sleutels staan daar nooit in.', { wat: wat.join(', ') })) + '</p>' +
+        '<button class="big" id="hs-plain-btn" onclick="hsPlain()">Alles uit de backup-map terugzetten</button>' : '');
     return;
   }
   const rec = r.recommended || l[0].name;
@@ -51,7 +52,7 @@ window.onHerstelScan = function(r){
     (a.app ? ' · ' + t('met alle appgegevens') : '') + (a.name === rec ? ' · ' + t('voorgesteld') : '') + '</small></label>').join('');
 };
 /* Losse onderdelen staan op één plek: Alles back-uppen → Terugzetten */
-function hsPlain(){ hsManual = false; jumpTo('bkrestore'); }
+function hsPlain(){ hsManual = false; jumpTo('bkrestore'); bkLosScan(); }
 function hsSelected(){ const r = document.querySelector('input[name=hs-arc]:checked'); return r ? r.value : ''; }
 function hsOpen(){ hsName = hsSelected(); if (!hsName) { toast('Kies een backup'); return; } hsBusyStep(); Android.herstelOpen(hsName, ''); }
 function hsBusyStep(){ hsStep('hs-bezig'); $('#hs-bezig-t').textContent = 'Bezig met controleren…'; $('#hs-bezig-s').textContent = 'De hele backup wordt gelezen en gecontroleerd. Er verandert nog niets.'; $('#hs-prog').value = 0; }

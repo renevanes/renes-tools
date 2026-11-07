@@ -83,6 +83,7 @@ script/50-notities-interface.js
 script/14-notities-herinneringen-en-delen.js
 script/15-oproepen-backup.js
 script/16-alles-back-uppen.js
+script/16b-terugzetten-alles.js
 script/17-versleutelen-opruimen-ruimtegebruik.js
 script/18-overal-zoeken.js
 script/19-auto-redial-op-een-tijdstip.js

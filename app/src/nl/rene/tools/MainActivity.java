@@ -2420,6 +2420,28 @@ public class MainActivity extends Activity {
             }, "herstel-scan").start();
         }
 
+        /** Alle gewone onderdelen in de backup-map opzoeken en tellen wat er nieuw is (er verandert niets); uitkomst via onHerstelLosScan. */
+        @JavascriptInterface public void herstelLosScan() {
+            new Thread(() -> {
+                String r;
+                try { r = HerstelLos.scan(ctx).toString(); }
+                catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(e instanceof Exception && WaBackup.destUri(ctx) != null ? WaBackup.folderMsg(ctx, (Exception) e) : AppData.safeMsg(e, "Map niet te lezen")) + "}"; }
+                a.js("onHerstelLosScan", r);
+            }, "herstel-los-scan").start();
+        }
+
+        /** Alles uit de gewone onderdelen terugzetten (alleen wat ontbreekt); voortgang via onHerstelLosStep, uitkomst via onHerstelLosDone. */
+        @JavascriptInterface public void herstelLosApply() {
+            new Thread(() -> {
+                String r;
+                try {
+                    r = HerstelLos.apply(ctx, (kind, done, total) -> a.js("onHerstelLosStep", JSONObject.quote(kind + "," + done + "," + total))).toString();
+                }
+                catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(AppData.safeMsg(e, "Terugzetten mislukt")) + "}"; }
+                a.js("onHerstelLosDone", r);
+            }, "herstel-los").start();
+        }
+
         /** Backup openen, helemaal controleren en klaarzetten (er verandert nog niets); voortgang via onHerstelProgress, uitkomst via onHerstelOpened. */
         @JavascriptInterface public void herstelOpen(String name, String pw) {
             new Thread(() -> {

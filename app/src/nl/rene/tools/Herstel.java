@@ -141,6 +141,7 @@ final class Herstel {
         if (s != null && s.kids.containsKey(SettingsBackup.FILE)) plain.put("settings", true);
         WaBackup.DestDir k = dest.dir(Contacts.DIR, false);
         if (k != null && !k.kids.isEmpty()) plain.put("contacts", true);
+        plain.put("kinds", HerstelLos.kinds(c, dest)); // alle gewone onderdelen die automatisch terug kunnen
         return o.put("archives", l).put("plain", plain);
     }
 

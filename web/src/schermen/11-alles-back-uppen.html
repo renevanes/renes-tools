@@ -118,6 +118,14 @@
     <h1 tabindex="-1">Terugzetten</h1>
   </div>
   <main>
+    <div class="card" id="bk-los">
+      <h2>Alles uit je backup-map</h2>
+      <p class="hint" style="margin-top:0">Zoekt in je backup-map alle gewone onderdelen (instellingen met zenders en podcasts, notities, contacten, routes …) en zet ze in één keer terug. Alleen wat ontbreekt wordt toegevoegd.</p>
+      <div id="bk-los-res"></div>
+      <button class="big tonal" id="bk-los-perm" onclick="bkLosAskPerm()" style="display:none">Toestemming voor contacten geven</button>
+      <button class="big" id="bk-los-go" onclick="bkLosApply()" style="display:none">Alles terugzetten</button>
+      <button class="big ghost" id="bk-los-scan" onclick="bkLosScan()">Backup-map doorzoeken</button>
+    </div>
     <div class="card">
       <h2>Alles na herinstallatie</h2>
       <p class="note warn" style="margin-top:0">Vervangt alles in Tools door wat in een versleutelde backup met Alle appgegevens staat (met je wachtwoorden, VPN en kluis). Daarna start de app opnieuw.</p>

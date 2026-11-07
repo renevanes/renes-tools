@@ -16,7 +16,8 @@ import java.util.Set;
 
 /**
  * Wat buiten de grote onderdelen valt, maar wel weg is na een nieuwe telefoon:
- * automatiseringen (met opgenomen tikstappen), radiofavorieten en de radiowekker, geplande Auto redial,
+ * automatiseringen (met opgenomen tikstappen), radiofavorieten, de laatste zender en de radiowekker, podcasts
+ * (abonnementen, beluisterd en waar je was, Verder luisteren, Hierna), geplande Auto redial,
  * notitieherinneringen, de keuzes voor meldingen en backups, tekstgrootte en de instellingen van de interface.
  * Plus: transcripties (volledig, terug te zetten), routes als GPX, en terugzetten van herkende muziek.
  *
@@ -68,7 +69,33 @@ final class SettingsBackup {
             if (o.length() > 0) prefs.put(k[0], o);
         }
         return new JSONObject().put("format", FORMAT).put("version", 1).put("exportedAt", System.currentTimeMillis()).put("prefs", prefs)
-                .put("podcasts", Podcasts.backupJson(c));
+                .put("podcasts", Podcasts.backupJson(c)).put("radio", radioJson(c));
+    }
+
+    /** Radio buiten de favorieten: de laatst gespeelde zender (de knop Afspelen, de widget) en wat de speler het laatst speelde. */
+    static JSONObject radioJson(Context c) throws Exception {
+        JSONObject o = new JSONObject().put("src", Player.src(c));
+        String last = Radio.prefs(c).getString("last", null);
+        if (last != null) try { o.put("last", Radio.slimFav(new JSONObject(last))); } catch (Exception ignored) { }
+        return o;
+    }
+
+    /** Laatste zender en speler terugzetten, alleen als die hier nog niet bekend zijn. Geeft het aantal. */
+    static int restoreRadio(Context c, JSONObject o) {
+        if (o == null) return 0;
+        int n = 0;
+        try {
+            JSONObject st = o.optJSONObject("last");
+            if (st != null && Podcasts.httpUrl(st.optString("url")) && !Radio.prefs(c).contains("last")) {
+                JSONObject slim = Radio.slimFav(st);
+                if (!slim.optString("logo").isEmpty() && !Podcasts.httpUrl(slim.optString("logo"))) slim.put("logo", "");
+                Radio.prefs(c).edit().putString("last", slim.toString()).apply();
+                n++;
+            }
+            String src = o.optString("src", "");
+            if ((Player.RADIO.equals(src) || Player.PODCAST.equals(src)) && Player.src(c).isEmpty()) Player.prefs(c).edit().putString("src", src).apply();
+        } catch (Exception e) { App.log(c, "BACKUP", "radio terugzetten: " + AppData.safeMsg(e, "fout")); }
+        return n;
     }
 
     static int export(Context c) throws Exception {
@@ -122,6 +149,7 @@ final class SettingsBackup {
         Set<String> replace = new HashSet<>(); // bestanden die als geheel worden teruggezet
         String webstore = null;
         JSONObject podcasts = null; // abonnementen en waar je was
+        JSONObject radio = null; // laatste zender
     }
 
     /** Wat er toegevoegd zou worden (alleen wat ontbreekt). */
@@ -156,14 +184,19 @@ final class SettingsBackup {
             if (!url.startsWith("https://") && !url.startsWith("http://")) continue;
             if (urls.contains(url)) continue;
             urls.add(url);
-            pl.newFavs.put(s); pl.favs++; pl.fresh++;
+            JSONObject slim = Radio.slimFav(s);
+            if (!slim.optString("logo").isEmpty() && !Podcasts.httpUrl(slim.optString("logo"))) slim.put("logo", "");
+            pl.newFavs.put(slim); pl.favs++; pl.fresh++;
             if (pl.sample.length() < 8) pl.sample.put("📻 " + s.optString("name"));
         }
         // Podcasts die je hier nog niet volgt (en waar je was in afleveringen)
         JSONObject pc = o.optJSONObject("podcasts");
         if (pc != null) {
             JSONArray subs = pc.optJSONArray("subs");
-            boolean any = pc.optJSONObject("progress") != null && pc.optJSONObject("progress").length() > 0;
+            boolean any = (pc.optJSONObject("progress") != null && pc.optJSONObject("progress").length() > 0)
+                    || (pc.optJSONArray("recent") != null && pc.optJSONArray("recent").length() > 0)
+                    || (pc.optJSONArray("queue") != null && pc.optJSONArray("queue").length() > 0)
+                    || !pc.optString("hidden", "").isEmpty() || pc.has("dl") || pc.has("last");
             if (subs != null) for (int i = 0; i < subs.length(); i++) {
                 JSONObject s = subs.optJSONObject(i);
                 if (s == null || !Podcasts.httpUrl(s.optString("feed"))) continue;
@@ -174,6 +207,7 @@ final class SettingsBackup {
             }
             if (any) pl.podcasts = pc;
         }
+        pl.radio = o.optJSONObject("radio");
         // Interface-instellingen: altijd aanbieden; de interface neemt alleen over wat daar ontbreekt
         JSONObject ws = prefs.optJSONObject("webstore");
         if (ws != null && ws.optJSONObject("all") != null) { pl.webstore = ws.getJSONObject("all").optString("v", ""); pl.total++; pl.fresh++; }
@@ -271,6 +305,7 @@ final class SettingsBackup {
         if (pl.webstore != null && !pl.webstore.isEmpty())
             c.getSharedPreferences("webstore", Context.MODE_PRIVATE).edit().putString("restoreAll", pl.webstore).putBoolean("pending", true).apply();
         if (pl.podcasts != null) try { Podcasts.restore(c, pl.podcasts); } catch (Exception e) { App.log(c, "PODCAST", "terugzetten: " + e.getMessage()); }
+        restoreRadio(c, pl.radio);
         // Alles opnieuw inplannen
         try { Auto.armPlaces(c, true); } catch (Exception ignored) { }
         try { RadioAlarm.schedule(c); } catch (Exception ignored) { }

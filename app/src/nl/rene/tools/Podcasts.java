@@ -717,9 +717,59 @@ final class Podcasts {
 
     // ---------- backup ----------
 
-    /** Voor Alles back-uppen (instellingen): abonnementen en voortgang. */
+    /**
+     * Voor Alles back-uppen (instellingen): abonnementen (met vanzelf downloaden), voortgang en wat je beluisterde,
+     * Verder luisteren, Hierna, weggehaalde nieuwe afleveringen, de laatst gespeelde aflevering, snelheid en de
+     * downloadinstellingen.
+     */
     static JSONObject backupJson(Context c) throws Exception {
-        return new JSONObject().put("subs", subs(c)).put("progress", progress(c)).put("speed", prefs(c).getFloat("speed", 1f));
+        JSONObject o = new JSONObject().put("subs", subs(c)).put("progress", progress(c)).put("speed", prefs(c).getFloat("speed", 1f))
+                .put("recent", recent(c)).put("queue", queue(c)).put("hidden", prefs(c).getString("latestHidden", ""))
+                .put("dl", new JSONObject().put("wifiOnly", PodcastDownloads.wifiOnly(c)).put("autoDelete", PodcastDownloads.autoDelete(c)));
+        String last = prefs(c).getString("last", null);
+        if (last != null) o.put("last", last);
+        return o;
+    }
+
+    /** Een aflevering uit een backup: alleen bekende velden van het juiste soort (dit gaat later het scherm in). */
+    static JSONObject cleanEp(JSONObject e) {
+        try {
+            if (e == null || !validKey(e.optString("key")) || !httpUrl(e.optString("url"))) return null;
+            JSONObject o = new JSONObject();
+            for (String k : new String[]{"key", "guid", "title", "url", "type", "image", "desc"}) if (e.has(k)) o.put(k, FeedText.clip(e.optString(k), "desc".equals(k) ? 20000 : 2000));
+            for (String k : new String[]{"date", "dur", "n", "s"}) if (e.opt(k) instanceof Number) o.put(k, ((Number) e.opt(k)).longValue());
+            if (!o.optString("image").isEmpty() && !httpUrl(o.optString("image"))) o.put("image", "");
+            return o;
+        } catch (Exception ex) { return null; }
+    }
+
+    static JSONObject cleanPod(JSONObject p) {
+        try {
+            JSONObject o = new JSONObject();
+            if (p == null) return o;
+            for (String k : new String[]{"id", "feed", "title", "author", "image", "link"}) if (p.has(k)) o.put(k, FeedText.clip(p.optString(k), 2000));
+            for (String k : new String[]{"feed", "image", "link"}) if (!o.optString(k).isEmpty() && !httpUrl(o.optString(k))) o.remove(k);
+            if (o.has("id") && !o.optString("id").matches("p[0-9a-f]{16}")) o.remove("id");
+            return o;
+        } catch (Exception ex) { return new JSONObject(); }
+    }
+
+    /** Lijst [{ep, pod, t?}] uit een backup, opgeschoond; hooguit max. */
+    static JSONArray cleanList(JSONArray in, int max) {
+        JSONArray out = new JSONArray();
+        if (in == null) return out;
+        java.util.Set<String> keys = new java.util.HashSet<>();
+        for (int i = 0; i < in.length() && out.length() < max; i++) {
+            JSONObject r = in.optJSONObject(i);
+            JSONObject ep = cleanEp(r == null ? null : r.optJSONObject("ep"));
+            if (ep == null || !keys.add(ep.optString("key"))) continue;
+            try {
+                JSONObject x = new JSONObject().put("ep", ep).put("pod", cleanPod(r.optJSONObject("pod")));
+                if (r.opt("t") instanceof Number) x.put("t", ((Number) r.opt("t")).longValue());
+                out.put(x);
+            } catch (Exception ignored) { }
+        }
+        return out;
     }
 
     /** Terugzetten: abonnementen samenvoegen (bestaande blijven), voortgang alleen waar die nog niet bekend is. */
@@ -733,8 +783,45 @@ final class Podcasts {
             if (!isSub(c, podId(s.optString("feed")))) {
                 subscribe(c, new JSONObject().put("feed", s.optString("feed")).put("title", s.optString("title")).put("author", s.optString("author"))
                         .put("image", httpUrl(s.optString("image")) ? s.optString("image") : ""));
+                if (s.optBoolean("dl")) try { PodcastDownloads.setAuto(c, podId(s.optString("feed")), true); } catch (Exception ignored) { } // vanzelf downloaden
                 n++;
             }
+        }
+        // Verder luisteren en Hierna: alleen als die hier nog leeg zijn (niets wat je al deed overschrijven)
+        JSONArray rec = cleanList(o.optJSONArray("recent"), 30);
+        if (rec.length() > 0 && recent(c).length() == 0) { Contacts.writeText(recentFile(c), rec.toString(), false); n += rec.length(); }
+        JSONArray q = cleanList(o.optJSONArray("queue"), 200);
+        if (q.length() > 0 && queue(c).length() == 0) { saveQueue(c, q); n += q.length(); }
+        // Weggehaalde nieuwe afleveringen samenvoegen
+        String hid = o.optString("hidden", "");
+        if (!hid.isEmpty()) {
+            List<String> l = new ArrayList<>();
+            for (String k : prefs(c).getString("latestHidden", "").split(",")) if (validKey(k) && !l.contains(k)) l.add(k);
+            for (String k : hid.split(",")) if (validKey(k) && !l.contains(k)) l.add(0, k); // de oude achteraan het "oudst"-eind
+            while (l.size() > 400) l.remove(0);
+            prefs(c).edit().putString("latestHidden", android.text.TextUtils.join(",", l)).apply();
+        }
+        SharedPreferences.Editor pe = prefs(c).edit();
+        boolean pch = false;
+        if (o.has("speed") && !prefs(c).contains("speed")) {
+            double sp = o.optDouble("speed", 1);
+            if (sp >= 0.5 && sp <= 3) { pe.putFloat("speed", (float) sp); pch = true; }
+        }
+        String last = o.optString("last", "");
+        if (!last.isEmpty() && !prefs(c).contains("last")) {
+            try {
+                JSONObject l = new JSONObject(last), ep = cleanEp(l.optJSONObject("ep"));
+                if (ep != null) { JSONObject x = new JSONObject(l.toString()).put("ep", ep).put("pod", cleanPod(l.optJSONObject("pod"))); pe.putString("last", x.toString()); pch = true; }
+            } catch (Exception ignored) { }
+        }
+        if (pch) pe.apply();
+        JSONObject dl = o.optJSONObject("dl");
+        if (dl != null) {
+            SharedPreferences dp = PodcastDownloads.prefs(c);
+            SharedPreferences.Editor de = dp.edit();
+            if (dl.has("wifiOnly") && !dp.contains("wifiOnly")) de.putBoolean("wifiOnly", dl.optBoolean("wifiOnly", true));
+            if (dl.has("autoDelete") && !dp.contains("autoDelete")) de.putBoolean("autoDelete", dl.optBoolean("autoDelete", true));
+            de.apply();
         }
         JSONObject pr = o.optJSONObject("progress");
         if (pr != null) {
