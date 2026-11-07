@@ -57,6 +57,12 @@ function fmqGo(){
   if(typeof Android.masterFormProfile!=='function'){fmqNote(t('Installeer de nieuwste APK om formulieren in te vullen.'));return;}
   const reis={};for(const key of FMQ_REIS)reis[key]=$('#fmq-'+key).value.trim();
   const consent=$('#fmq-id').checked,id=fm.id,epoch=fmq.epoch;fmq.busy=true;$('#fmq-ga').disabled=true;fmqNote(t('Formulier invullen…'));
+  // Eerst de geldigheid van de reisdocumenten (na het sluiten van dit venster is de privésessie even niet bruikbaar).
+  if(typeof Android.masterFormExpiry==='function')cmRequest('masterFormExpiry',[record.id,record.revision,reis.tot],r=>{if(epoch===fmq.epoch)fmqFill(record,reis,consent,id,epoch,r.warnings||[]);},false,()=>{if(epoch===fmq.epoch)fmqFill(record,reis,consent,id,epoch,[]);});
+  else fmqFill(record,reis,consent,id,epoch,[]);
+}
+function fmqFill(record,reis,consent,id,epoch,warnings){
+  if(!fmq.open||!cmOpen()){fmq.busy=false;return;}
   cmRequest('masterFormProfile',[record.id,record.revision,consent],r=>{
     if(epoch!==fmq.epoch)return;fmq.busy=false;$('#fmq-ga').disabled=false;if(!fmq.open||fm.id!==id||fm.busy){fmqNote('');return;}
     // Eerst het oude concept wissen (dat geeft ook de vorige binding vrij), daarna deze vrijgave binden.
@@ -74,13 +80,23 @@ function fmqGo(){
       $('#pff-titel').focus();
       $('#pff-melding').textContent=r.omitted?t('Ingevuld. Documentnummers en BSN zijn weggelaten; vul ze zelf in of kies Nieuwe reis invullen opnieuw met het vinkje aan.'):t('Ingevuld met je vaste gegevens. Controleer beide pagina’s en maak de PDF.');
     }else $('#pff-melding').textContent=t('Ingevuld met je vaste gegevens, maar er ontbreekt nog iets: {melding}',{melding:$('#pff-melding').textContent});
+    fmqVerloop(warnings);
   },false,e=>{if(epoch!==fmq.epoch)return;fmq.busy=false;$('#fmq-ga').disabled=!fmq.records.length;fmqNote(e&&e.error?t(e.error):'');});
+}
+/* Verlopen reisdocumenten: vóór de laatste reisdag, of binnen zes maanden daarna (veel landen eisen dat). */
+function fmqVerloop(warnings){
+  const box=$('#pff-verloop');
+  const lines=warnings.map(w=>w.niveau==='voor'
+    ?t('{document} is op {datum} niet meer geldig, vóór het einde van de reis. Vraag op tijd een nieuw document aan.',{document:w.label,datum:fmtDate(w.geldig)})
+    :t('{document} verloopt op {datum}, binnen zes maanden na de reis. Veel landen buiten Europa vragen langer geldigheid; kijk wat je bestemming eist.',{document:w.label,datum:fmtDate(w.geldig)}));
+  box.textContent=lines.join('\n');box.hidden=!lines.length;
 }
 function fmqSetup(){
   if(fm.busy)return;fmqClose();cmi.newType='formulier';jumpTo('masterdata');
 }
 function fmqZelf(){fmqClose();fmStart();}
 // Koppelingen met de bestaande stamgegevens- en formulierlogica.
+const fmqBaseInit=fmInit;fmInit=function(id){const box=$('#pff-verloop');if(box){box.hidden=true;box.textContent='';}fmqBaseInit(id);};
 const fmqBaseRender=fmRender;fmRender=function(){fmqBaseRender();fmqKaart();};
 const fmqBaseLocked=cmLockedUI;cmLockedUI=function(){fmqBaseLocked();if(fmq.open){fmq.busy=false;fmqClearInput();fmqRenderState();}};
 const fmqBasePrivacy=window.onMasterPrivacy;window.onMasterPrivacy=function(r){fmqBasePrivacy(r);if(fmq.open&&r&&r.view===cm.view){fmqRenderState();if(cmOpen())fmqLoad();else if(fmq.ask&&cmState().secure)cmUnlock();fmq.ask=false;}};

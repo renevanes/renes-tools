@@ -3,16 +3,19 @@ const cm={tab:'',back:null,filter:'',keepNote:false,token:'',seq:0,pending:new M
 // taal-vast: veldnamen worden bij het tekenen met t() vertaald
 const CM_TYPES={persoon:'Persoon',organisatie:'Organisatie',adres:'Adres',identiteit:'Identiteitsdocument',reis:'Reis',relatie:'Relatie',profiel:'App-profiel',formulier:'Vaste formuliergegevens'};
 // taal-vast: veldnamen worden bij het tekenen met t() vertaald
-const CM_FIELDS={roepnaam:'Roepnaam',context:'Context voor app en AI',vanPersoon:'Eerste persoon',naarPersoon:'Tweede persoon',relatie:'Relatie van de tweede persoon',status:'Status van de relatie',toelichting:'Toelichting bij de relatie',delen:'Delen met app en lokale AI?',uitgifteland:'Land van afgifte',afgegevenDoor:'Afgegeven door',front:'Voorzijde',back:'Achterzijde',naam:'Achternaam of naam',voornamen:'Voornamen',initialen:'Initialen',geboortedatum:'Geboortedatum',geboorteplaats:'Geboorteplaats',nationaliteit:'Nationaliteit',bsn:'BSN',adres:'Straat en huisnummer',postcode:'Postcode',plaats:'Plaats',land:'Land',telefoon:'Telefoonnummer',email:'E-mailadres',registratienummer:'Registratienummer',persoon:'Gekoppelde persoon',documentsoort:'Documentsoort',document:'Documentnummer',geldig:'Geldig tot',afgifte:'Afgiftedatum',afgifteplaats:'Plaats van afgifte',ontvanger:'Ontvanger',instelling:'Instelling',accommodatie:'Naam familie of accommodatie',label:'Naam in het overzicht',van:'Eerste reisdag',tot:'Laatste reisdag',alleen:'Reist het kind alleen?',tweedeBegeleider:'Een tweede begeleider invullen?',tweedeGever:'Een tweede toestemminggever invullen?',reisgegevens:'Reisgegevens (bijvoorbeeld vluchtnummer)',formulier:'Formulier',kind:'Kind dat reist',kindDocument:'Reisdocument van het kind',begeleider1:'Begeleider 1 (reist mee)',begeleider1Document:'Reisdocument van begeleider 1',begeleider1Relatie:'Relatie van begeleider 1 tot het kind',begeleider2:'Begeleider 2 (optioneel)',begeleider2Document:'Reisdocument van begeleider 2',begeleider2Relatie:'Relatie van begeleider 2 tot het kind',gever1:'Toestemminggever 1 (reist niet mee)',gever1Document:'Identiteitsbewijs van toestemminggever 1',gever1Instelling:'Instelling van toestemminggever 1 (optioneel)',gever2:'Toestemminggever 2 (optioneel)',gever2Document:'Identiteitsbewijs van toestemminggever 2',gever2Instelling:'Instelling van toestemminggever 2 (optioneel)',bsnInvullen:'BSN op het formulier zetten?'};
-const CM_SCHEMA={persoon:['naam','voornamen','roepnaam','initialen','geboortedatum','geboorteplaats','nationaliteit','bsn','adres','postcode','plaats','land','telefoon','email','context'],organisatie:['naam','registratienummer','adres','postcode','plaats','land','telefoon','email'],adres:['naam','adres','postcode','plaats','land','telefoon'],identiteit:['persoon','documentsoort','document','geldig','afgifte','afgifteplaats','uitgifteland','afgegevenDoor'],profiel:['persoon','delen','context'],relatie:['vanPersoon','naarPersoon','relatie','status','toelichting','delen'],reis:['van','tot','alleen','tweedeBegeleider','tweedeGever','accommodatie','postcode','plaats','land','telefoon','reisgegevens'],formulier:['formulier','kind','kindDocument','alleen','begeleider1','begeleider1Document','begeleider1Relatie','begeleider2','begeleider2Document','begeleider2Relatie','gever1','gever1Document','gever1Instelling','gever2','gever2Document','gever2Instelling','bsnInvullen']};
+const CM_FIELDS={geslacht:'Geslacht (zoals op het identiteitsbewijs)',roepnaam:'Roepnaam',context:'Context voor app en AI',vanPersoon:'Eerste persoon',naarPersoon:'Tweede persoon',relatie:'Relatie van de tweede persoon',status:'Status van de relatie',toelichting:'Toelichting bij de relatie',delen:'Delen met app en lokale AI?',uitgifteland:'Land van afgifte',afgegevenDoor:'Afgegeven door',front:'Voorzijde',back:'Achterzijde',naam:'Achternaam of naam',voornamen:'Voornamen',initialen:'Initialen',geboortedatum:'Geboortedatum',geboorteplaats:'Geboorteplaats',nationaliteit:'Nationaliteit',bsn:'BSN',adres:'Straat en huisnummer',postcode:'Postcode',plaats:'Plaats',land:'Land',telefoon:'Telefoonnummer',email:'E-mailadres',registratienummer:'Registratienummer',persoon:'Gekoppelde persoon',documentsoort:'Documentsoort',document:'Documentnummer',geldig:'Geldig tot',afgifte:'Afgiftedatum',afgifteplaats:'Plaats van afgifte',ontvanger:'Ontvanger',instelling:'Instelling',accommodatie:'Naam familie of accommodatie',label:'Naam in het overzicht',van:'Eerste reisdag',tot:'Laatste reisdag',alleen:'Reist het kind alleen?',tweedeBegeleider:'Een tweede begeleider invullen?',tweedeGever:'Een tweede toestemminggever invullen?',reisgegevens:'Reisgegevens (bijvoorbeeld vluchtnummer)',formulier:'Formulier',kind:'Kind dat reist',kindDocument:'Reisdocument van het kind',begeleider1:'Begeleider 1 (reist mee)',begeleider1Document:'Reisdocument van begeleider 1',begeleider1Relatie:'Relatie van begeleider 1 tot het kind',begeleider2:'Begeleider 2 (optioneel)',begeleider2Document:'Reisdocument van begeleider 2',begeleider2Relatie:'Relatie van begeleider 2 tot het kind',gever1:'Toestemminggever 1 (reist niet mee)',gever1Document:'Identiteitsbewijs van toestemminggever 1',gever1Instelling:'Instelling van toestemminggever 1 (optioneel)',gever2:'Toestemminggever 2 (optioneel)',gever2Document:'Identiteitsbewijs van toestemminggever 2',gever2Instelling:'Instelling van toestemminggever 2 (optioneel)',bsnInvullen:'BSN op het formulier zetten?'};
+const CM_SCHEMA={persoon:['naam','voornamen','roepnaam','initialen','geboortedatum','geboorteplaats','geslacht','nationaliteit','bsn','adres','postcode','plaats','land','telefoon','email','context'],organisatie:['naam','registratienummer','adres','postcode','plaats','land','telefoon','email'],adres:['naam','adres','postcode','plaats','land','telefoon'],identiteit:['persoon','documentsoort','document','geldig','afgifte','afgifteplaats','uitgifteland','afgegevenDoor'],profiel:['persoon','delen','context'],relatie:['vanPersoon','naarPersoon','relatie','status','toelichting','delen'],reis:['van','tot','alleen','tweedeBegeleider','tweedeGever','accommodatie','postcode','plaats','land','telefoon','reisgegevens'],formulier:['formulier','kind','kindDocument','alleen','begeleider1','begeleider1Document','begeleider1Relatie','begeleider2','begeleider2Document','begeleider2Relatie','gever1','gever1Document','gever1Instelling','gever2','gever2Document','gever2Instelling','bsnInvullen']};
 // Verwijzingen in vaste formuliergegevens: veld → soort stamgegeven (zelfde regels als MasterFormProfile.reference).
 function cmRefType(type,key){if(['persoon','vanPersoon','naarPersoon'].includes(key))return 'persoon';if(type!=='formulier')return '';if(['kind','begeleider1','begeleider2','gever1','gever2'].includes(key))return 'persoon';if(/^(kind|begeleider[12]|gever[12])Document$/.test(key))return 'identiteit';if(/^gever[12]Instelling$/.test(key))return 'organisatie';return '';}
+// Extra toestemming nodig bij overnemen naar een onderdeel (zelfde lijst als MasterSchema.sensitive).
 const CM_SECRET=new Set(['bsn','document','geldig','afgifte']);
+// Afgeschermd op het scherm (wachtwoordveld, tonen met het vinkje): alleen de nummers. Datums zijn gewone datumvelden.
+const CM_MASK=new Set(['bsn','document']);
 /* Stamgegevens is één zone van schermen: binnen de zone blijft de kluis open, wie de zone verlaat vergrendelt. */
 const CM_SCR=['masterdata','cmedit','cmlog','cmwis'];
 function cmZone(name){return CM_SCR.includes(name);}
 // taal-vast: tabnamen worden bij het tekenen met tc('tab', …) vertaald
-const CM_TABS={persoon:[['naam','Naam',['naam','voornamen','roepnaam','initialen']],['geboorte','Geboorte',['geboortedatum','geboorteplaats','nationaliteit','bsn']],['contact','Contact',['adres','postcode','plaats','land','telefoon','email']],['relaties','Relaties',[]],['meer','Meer',['context']]],
+const CM_TABS={persoon:[['naam','Naam',['naam','voornamen','roepnaam','initialen']],['geboorte','Geboorte',['geboortedatum','geboorteplaats','geslacht','nationaliteit','bsn']],['contact','Contact',['adres','postcode','plaats','land','telefoon','email']],['documenten','ID',[]],['relaties','Relaties',[]],['meer','Meer',['context']]],
   relatie:[['relatie','Relatie',['vanPersoon','naarPersoon','relatie','status','delen']],['meer','Naam en toelichting',['toelichting']]],
   adres:[['adres','Adres',['naam','adres','postcode','plaats']],['meer','Land en telefoon',['land','telefoon']]],
   organisatie:[['gegevens','Gegevens',['naam','registratienummer']],['contact','Contact',['adres','postcode','plaats','land','telefoon','email']]],
@@ -23,7 +26,7 @@ const CM_TABS={persoon:[['naam','Naam',['naam','voornamen','roepnaam','initialen
 const CM_LABEL_TAB={relatie:'meer'};
 // taal-vast: filternamen worden bij het tekenen met t() vertaald
 const CM_FILTERS=[['persoon','Personen',['persoon']],['relatie','Relaties',['relatie']],['identiteit','Documenten',['identiteit']],['overig','Overig',['organisatie','adres','reis','profiel','formulier']]];
-const CM_NEW={persoon:'Persoon toevoegen',organisatie:'Organisatie toevoegen',adres:'Adres toevoegen',identiteit:'Identiteitsdocument toevoegen',reis:'Reis toevoegen',relatie:'Relatie toevoegen',profiel:'App-profiel toevoegen',formulier:'Vaste formuliergegevens toevoegen'};
+const CM_NEW={persoon:'Persoon toevoegen',organisatie:'Organisatie toevoegen',adres:'Adres toevoegen',identiteit:'Reisdocument toevoegen',reis:'Reis toevoegen',relatie:'Relatie toevoegen',profiel:'App-profiel toevoegen',formulier:'Vaste formuliergegevens toevoegen'};
 const CM_ICONS={persoon:'user',relatie:'share',identiteit:'document',organisatie:'shop',adres:'pin',reis:'route',profiel:'smile',formulier:'clipboard'};
 function cmState(){try{return JSON.parse(Android.masterState());}catch(_){return {open:false};}}
 function cmOpen(){return !!cm.token&&cmState().open&&cm.privateReady;}
@@ -111,10 +114,14 @@ function cmRenderList(){
   chips.hidden=present.length<2;
   if(present.length>1)for(const [id,name] of [['','Alles'],...present]){const b=cmEl('button',t(name));b.type='button';b.classList.toggle('on',id===cm.filter);b.setAttribute('aria-pressed',String(id===cm.filter));b.onclick=()=>{cm.filter=id;cmRenderList();cmTouch();};chips.append(b);}
   const types=(CM_FILTERS.find(f=>f[0]===cm.filter)||[0,0,null])[2];
-  cm.records.filter(r=>(!types||types.includes(r.type))&&r.label.toLowerCase().includes(q)).sort((a,b)=>a.label.localeCompare(b.label)).forEach(r=>{
+  // Documenten horen bij een persoon (tabblad Documenten); in Alles zonder zoekwoord staan ze niet los in de lijst.
+  cm.records.filter(r=>(!types||types.includes(r.type))&&(types||q||r.type!=='identiteit'||!cm.records.some(p=>p.id===r.person))&&r.label.toLowerCase().includes(q)).sort((a,b)=>a.label.localeCompare(b.label)).forEach(r=>{
     const b=cmData(cmEl('button',undefined,'strow')),ic=cmEl('span',undefined,'stic'),txt=cmEl('span',undefined,'sttxt'),chev=cmEl('span',undefined,'ui-icon stchev');
     b.type='button';ic.innerHTML=uiIcon(CM_ICONS[r.type]||'document');chev.dataset.icon='chevron-right';chev.setAttribute('aria-hidden','true');
-    txt.append(cmEl('b',r.label),cmEl('small',t(CM_TYPES[r.type])));b.append(ic,txt,chev);b.onclick=()=>cmEdit(r.id);box.append(b);
+    const owner=r.type==='identiteit'&&cm.records.find(p=>p.id===r.person);
+    const stand=r.type==='persoon'?cmiPersonStand(r):r.type==='identiteit'?cmiDocStand(r,owner):t(CM_TYPES[r.type]);
+    txt.append(cmEl('b',r.label),cmEl('small',stand));b.append(ic,txt,chev);
+    b.onclick=()=>owner?cmEdit(r.id,'',{id:owner.id,tab:'documenten'}):cmEdit(r.id);box.append(b);
   });
   if(!box.children.length){if(cm.records.length)box.append(cmEl('p',t('Nog geen passende stamgegevens.'),'note cm-leeg'));else box.innerHTML=uiEmpty('shield',t('Nog geen stamgegevens. Begin met jezelf: Toevoegen → Persoon.'));}
 }
@@ -127,7 +134,7 @@ function cmEditor(tab){
   const focus=()=>{if(!r.id&&cm.edit===r)$('#cm-label').focus();};
   if(current!=='cmedit'){show('cmedit');setTimeout(focus,0);}else focus();
 }
-function cmTabs(r){return (CM_TABS[r.type]||[]).filter(([id])=>id!=='relaties'||!!r.id);}
+function cmTabs(r){return (CM_TABS[r.type]||[]).filter(([id])=>!['relaties','documenten'].includes(id)||!!r.id);}
 function cmTabsBuild(){
   const bar=$('#cm-tabs'),tabs=cmTabs(cm.edit);bar.replaceChildren();bar.hidden=tabs.length<2;
   if(!tabs.some(x=>x[0]===cm.tab))cm.tab=tabs[0]?tabs[0][0]:'';
@@ -139,7 +146,7 @@ function cmTabRender(){
   document.querySelectorAll('#cm-tabs [role=tab]').forEach(b=>{const on=b.dataset.tab===cm.tab;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;});
   const card=$('#cm-editor-card');if(many){card.setAttribute('role','tabpanel');card.setAttribute('aria-labelledby','cm-tab-'+cm.tab);}else{card.removeAttribute('role');card.removeAttribute('aria-labelledby');}
   document.querySelectorAll('#cm-editor [data-cm-tab]').forEach(e=>e.classList.toggle('cm-off',many&&e.dataset.cmTab!==cm.tab));
-  $('#cm-secret-row').classList.toggle('cm-off',![...CM_SECRET].some(k=>{const i=$('#cm-field-'+k);return i&&!i.closest('.cm-off');}));
+  $('#cm-secret-row').classList.toggle('cm-off',![...CM_MASK].some(k=>{const i=$('#cm-field-'+k);return i&&!i.closest('.cm-off');}));
 }
 $('#cm-tabs').addEventListener('keydown',e=>{
   if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
@@ -162,15 +169,15 @@ function cmEditorFields(){
       let group=null;
       for(const [value,text,name] of choices){const o=cmEl('option',text);o.value=value;if(name&&group?.label!==name){group=cmEl('optgroup');group.label=name;input.append(group);}(name?group:input).append(o);}
       const old=cm.edit.fields[key];if(old&&!choices.some(c=>c[0]===old)){const o=cmData(cmEl('option',old));o.value=old;input.append(o);}
-    }else{input.autocomplete='off';input.maxLength=key==='bsn'?9:240;if(!area)input.type=CM_SECRET.has(key)?'password':['geboortedatum','van','tot'].includes(key)?'date':key==='email'?'email':key==='telefoon'?'tel':'text';else input.rows=3;if(key==='bsn')input.inputMode='numeric';}
+    }else{input.autocomplete='off';input.maxLength=key==='bsn'?9:240;if(!area)input.type=CM_MASK.has(key)?'password':['geboortedatum','van','tot','geldig','afgifte'].includes(key)?'date':key==='email'?'email':key==='telefoon'?'tel':'text';else input.rows=3;if(key==='bsn')input.inputMode='numeric';}
     input.value=cm.edit.fields[key]||'';input.addEventListener(person||choices?'change':'input',()=>{cm.edit.fields[key]=input.value;cmDirty();if(cm.edit.type==='formulier'&&ref==='persoon')cmiFormPerson(key);if(cm.edit.type==='relatie')cmiRelationChange(key);});
     const tab=(tabs.find(x=>x[2].includes(key))||tabs[0]||[''])[0];let group=groups[tab];
     if(!group){group=groups[tab]=cmEl('div',undefined,'cm-group');group.dataset.cmTab=tab;box.append(group);}
-    group.append(label,input);if(['geldig','afgifte'].includes(key))group.append(cmEl('small',t('Notatie: JJJJ-MM-DD')));
+    group.append(label,input);
   }cmiEditor();cmTabRender();
 }
-function cmShowSecret(show){CM_SECRET.forEach(key=>{const input=$('#cm-field-'+key);if(input)input.type=show?'text':'password';});cmTouch();}
-function cmBusy(busy){cm.mutating=busy;$('#cm-save').disabled=busy;$('#cm-edit-menu').disabled=busy;document.querySelectorAll('#cm-fields input,#cm-fields select,#cm-fields textarea,#cmi-photos button,#cmi-person-actions button,#cmi-person-relations button').forEach(e=>e.disabled=busy);$('#cm-label').disabled=busy;}
+function cmShowSecret(show){CM_MASK.forEach(key=>{const input=$('#cm-field-'+key);if(input)input.type=show?'text':'password';});cmTouch();}
+function cmBusy(busy){cm.mutating=busy;$('#cm-save').disabled=busy;$('#cm-edit-menu').disabled=busy;document.querySelectorAll('#cm-fields input,#cm-fields select,#cm-fields textarea,#cmi-photos button,#cmi-person-actions button,#cmi-person-relations button,#cmi-person-docs button').forEach(e=>e.disabled=busy);$('#cm-label').disabled=busy;}
 const CM_ERR_FIELD={'Vul een naam voor het overzicht in':'cm-label','Kies een gekoppelde persoon':'cm-field-persoon','Kies een geldige relatie':'cm-field-relatie','Een relatie hoort bij twee verschillende personen':'cm-field-naarPersoon','Kies een status die bij deze relatie past':'cm-field-status','Vul een geldig BSN in':'cm-field-bsn',
   'Kies in de vaste gegevens het kind dat reist':'cm-field-kind','Kies in de vaste gegevens wie toestemming geeft':'cm-field-gever1','Kies in de vaste gegevens wie meereist, of kies dat het kind alleen reist':'cm-field-begeleider1',
   'Kies twee verschillende begeleiders':'cm-field-begeleider2','Kies twee verschillende toestemmingsgevers':'cm-field-gever2','Kies voor welk formulier deze vaste gegevens zijn':'cm-field-formulier'};
@@ -204,7 +211,7 @@ function cmAddMenu(){
 function cmAuditOpen(){if(!cmOpen()||cm.mutating)return;cm.editorEpoch++;cm.events=[];cm.before=0;$('#cm-audit').replaceChildren();$('#cm-log-search').value='';$('#cm-more').hidden=true;if(current!=='cmlog')show('cmlog');cmAuditMore();}
 function cmAuditMore(){if(!cmOpen())return;cmRequest('masterAudit',[cm.before],r=>{cm.events.unshift(...r.events);cm.before=r.before;$('#cm-more').hidden=!r.more;cmRenderAudit();});}
 function cmRenderAudit(){
-  const names={unlock:t('Ontgrendeld'),list:t('Overzicht bekeken'),view:t('Gegevens bekeken'),create:t('Toegevoegd'),update:t('Gewijzigd'),delete:t('Verwijderd'),use:t('Velden overgenomen'),audit:t('Logboek bekeken'),export_release:t('Bestand vrijgegeven'),export_attempt:t('Bestand maken gestart'),export:t('Bestand gemaakt'),app_context:t('App-context vernieuwd'),photo_view:t('Kaartfoto bekeken'),photo_add:t('Kaartfoto toegevoegd'),photo_delete:t('Kaartfoto verwijderd'),relation_use:t('Relatie voor formulier bekeken')};
+  const names={unlock:t('Ontgrendeld'),list:t('Overzicht bekeken'),view:t('Gegevens bekeken'),create:t('Toegevoegd'),update:t('Gewijzigd'),delete:t('Verwijderd'),use:t('Velden overgenomen'),audit:t('Logboek bekeken'),export_release:t('Bestand vrijgegeven'),export_attempt:t('Bestand maken gestart'),export:t('Bestand gemaakt'),app_context:t('App-context vernieuwd'),photo_view:t('Kaartfoto bekeken'),photo_add:t('Kaartfoto toegevoegd'),photo_delete:t('Kaartfoto verwijderd'),relation_use:t('Relatie voor formulier bekeken'),expiry_check:t('Geldigheid gecontroleerd')};
   const roles={reis:t('Reis'),kind:tc('formulier','Kind'),begeleider1:t('Begeleider 1'),begeleider2:t('Begeleider 2'),gever1:t('Toestemminggever 1'),gever2:t('Toestemminggever 2'),bestemming:t('Bestemming'),ontvanger:t('Ontvanger'),vast:t('Vaste formuliergegevens')};
   const source={masterdata:t('Stamgegevens'),formulieren:t('Formulieren invullen'),idcopy:t('ID-kopie afschermen')};
   const box=$('#cm-audit');box.replaceChildren();if(!cmOpen())return;const q=$('#cm-log-search').value.toLowerCase();

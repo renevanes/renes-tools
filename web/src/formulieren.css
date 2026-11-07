@@ -25,3 +25,4 @@
 .pff-meer>summary::before,.pff-alles>summary::before{order:2;margin-left:auto;transition:transform .15s}
 .pff-meer[open]>summary::before,.pff-alles[open]>summary::before{transform:rotate(180deg)}
 .pff-alles{border-top:1px solid var(--line);margin-top:16px}
+#pff-verloop{white-space:pre-line}

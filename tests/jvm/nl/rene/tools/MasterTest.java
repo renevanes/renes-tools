@@ -65,6 +65,22 @@ public class MasterTest {
         fields.remove("gever1");rejects(()->MasterFormProfile.resolve(profile,lookup,all,true,use,rel2));
         db.get(kid).getJSONObject("fields").put("naam","Nieuw");fields.put("gever1",mum);
         check("Nieuw".equals(MasterFormProfile.resolve(profile,lookup,all,false,use,rel2).getJSONObject("values").getString("kind-naam")),"altijd de actuele stamgegevens");
+        // Verloopcontrole: vóór de laatste reisdag, binnen zes maanden daarna, of ruim geldig.
+        check("2027-08-28".equals(MasterFormProfile.plusMonths("2027-02-28",6))&&"2028-02-29".equals(MasterFormProfile.plusMonths("2027-08-31",6))&&"2028-01-15".equals(MasterFormProfile.plusMonths("2027-07-15",6)),"maanden optellen");
+        java.util.List<String> read=new java.util.ArrayList<>();MasterFormProfile.Relation checked=(r,role)->read.add(role+":"+r.getString("label"));
+        fields.put("alleen","nee");
+        JSONArray w=MasterFormProfile.expiry(profile,lookup,"2030-08-01",checked);
+        check(w.length()==2&&"voor".equals(w.getJSONObject(0).getString("niveau"))&&"Paspoort Zoë".equals(w.getJSONObject(0).getString("label"))&&!w.getJSONObject(0).has("document")&&"kort".equals(w.getJSONObject(1).getString("niveau")),"verlopen vóór de reis en kort erna, zonder nummer");
+        check(read.contains("kind:Paspoort Zoë")&&read.contains("begeleider1:ID vader"),"geldigheid gecontroleerd in het logboek");
+        w=MasterFormProfile.expiry(profile,lookup,"2029-08-01",checked);
+        check(w.length()==1&&"kort".equals(w.getJSONObject(0).getString("niveau")),"binnen zes maanden na de reis");
+        check(MasterFormProfile.expiry(profile,lookup,"2029-06-30",checked).length()==0,"ruim geldig: geen melding");
+        fields.put("alleen","ja");check(MasterFormProfile.expiry(profile,lookup,"2030-08-01",checked).length()==1,"alleen reizen: begeleider niet gecontroleerd");fields.put("alleen","nee");
+        // Geslacht zoals op het identiteitsbewijs
+        JSONObject p2=new JSONObject().put("type","persoon").put("label","P").put("fields",new JSONObject().put("naam","P").put("geslacht","X"));
+        check("X".equals(MasterSchema.clean(p2).getJSONObject("fields").getString("geslacht")),"geslacht X");
+        p2.getJSONObject("fields").put("geslacht","man");rejects(()->MasterSchema.clean(p2));
+        check(!MasterSchema.permitted("formulieren","kind","persoon").contains("geslacht")&&!MasterSchema.permitted("idcopy","ontvanger","persoon").contains("geslacht"),"geslacht gaat niet mee naar formulieren die er niet om vragen");
     }
     public static void main(String[] args)throws Exception {
         KeyGenerator g=KeyGenerator.getInstance("AES");g.init(256);SecretKey key=g.generateKey();byte[] plain="Uitsluitend testgegevens 123456782".getBytes("UTF-8");

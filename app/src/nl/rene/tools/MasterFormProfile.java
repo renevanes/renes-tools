@@ -60,6 +60,33 @@ final class MasterFormProfile {
         }
     }
 
+    /** "jjjj-mm-dd" plus een aantal maanden; de dag schuift terug naar het einde van een kortere maand. */
+    static String plusMonths(String iso,int months){
+        int y=Integer.parseInt(iso.substring(0,4)),m=Integer.parseInt(iso.substring(5,7))-1+months,d=Integer.parseInt(iso.substring(8,10));
+        y+=m/12;m=m%12+1;int[] days={31,28,31,30,31,30,31,31,30,31,30,31};if(y%4==0&&(y%100!=0||y%400==0))days[1]=29;if(d>days[m-1])d=days[m-1];
+        return String.format(java.util.Locale.US,"%04d-%02d-%02d",y,m,d);
+    }
+    static final int EXPIRY_MONTHS=6;
+    /**
+     * Per gekozen reisdocument: verloopt het vóór de laatste reisdag ("voor"), of binnen zes maanden daarna ("kort";
+     * veel landen buiten Schengen eisen drie tot zes maanden geldigheid na terugkomst). Geeft de documentnaam, de rol en
+     * de datum; nooit het nummer.
+     */
+    static JSONArray expiry(JSONObject profile,Lookup lookup,String tot,Relation read)throws Exception{
+        if(!"formulier".equals(profile.getString("type")))throw new MasterError(Taal.T("Kies vaste formuliergegevens"));
+        JSONObject f=profile.getJSONObject("fields");boolean alone="ja".equals(f.optString("alleen"));JSONArray out=new JSONArray();
+        String limit=plusMonths(tot,EXPIRY_MONTHS);
+        for(String role:ROLES){
+            if(alone&&role.startsWith("begeleider"))continue;
+            String doc=f.optString(role+"Document");if(doc.isEmpty()||f.optString(role).isEmpty())continue;
+            JSONObject identity=lookup.get(doc);if(!"identiteit".equals(identity.getString("type")))continue;
+            String until=identity.getJSONObject("fields").optString("geldig");read.read(identity,role);
+            if(until.isEmpty()||!MasterSchema.validDate(until))continue;
+            String level=until.compareTo(tot)<0?"voor":until.compareTo(limit)<0?"kort":"";
+            if(!level.isEmpty())out.put(new JSONObject().put("role",role).put("label",identity.getString("label")).put("geldig",until).put("niveau",level));
+        }
+        return out;
+    }
     /** Zonder kind, toestemminggever en (als het kind niet alleen reist) begeleider kan het formulier niet worden ingevuld. */
     static void required(JSONObject f)throws Exception{
         if(f.optString("kind").isEmpty())throw new MasterError(Taal.T("Kies in de vaste gegevens het kind dat reist"));

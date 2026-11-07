@@ -1176,6 +1176,7 @@ body.talk-on #s-ai main{padding-bottom:200px}
 /* Stamgegevens: kaartfoto's blijven binnen het beveiligde scherm. */
 .cmi-actions{flex-wrap:wrap;gap:8px}.cmi-actions .big{flex:1;min-width:130px}
 .cmi-sides{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.cmi-warn{color:var(--warn);font-weight:600}
 .cmi-zin{margin:12px 0;padding:10px 14px;border-radius:12px;background:var(--tonal);color:var(--on-tonal)}.cmi-zin[hidden]{display:none}
 /* Stamgegevens op de telefoon: korte schermen. Overzicht met filter en Toevoegen-knop, bewerken met tabbladen en een vaste opslaanbalk. */
 #s-masterdata .cm-status:empty,#s-cmedit .cm-status:empty,#s-cmlog .cm-status:empty,#s-cmwis .cm-status:empty{display:none}
@@ -1192,9 +1193,9 @@ details.cm-fold[open]>summary{margin-bottom:8px}
 #cm-list .note,#cm-list .empty{margin:0;padding:16px}
 #s-masterdata main{padding-bottom:96px}
 .fab.cm-add{width:auto;min-width:150px;padding:0 20px;font-size:17px;font-weight:700}
-.cm-tabs{position:sticky;top:64px;z-index:12;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;background:var(--bg);padding:6px 0 10px}
+.cm-tabs{position:sticky;top:64px;z-index:12;display:flex;gap:3px;overflow-x:auto;scrollbar-width:none;background:var(--bg);padding:6px 0 10px}
 .cm-tabs::-webkit-scrollbar{display:none}
-.cm-tabs button{flex:1 0 auto;min-height:44px;padding:8px 4px;border-radius:16px;background:var(--hi);color:var(--muted);font-size:14px;font-weight:600;white-space:nowrap}
+.cm-tabs button{flex:1 0 auto;min-height:44px;padding:8px 2px;border-radius:16px;background:var(--hi);color:var(--muted);font-size:14px;font-weight:600;white-space:nowrap}
 .cm-tabs button[aria-selected=true]{background:var(--primary);color:var(--on-primary)}
 .cm-off{display:none!important}
 #cm-editor-card>:first-child .f:first-child{margin-top:0}

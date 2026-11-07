@@ -47,7 +47,8 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  await p.click('#cm-filter button:nth-child(2)');assert.deepEqual(await p.$$eval('#cm-list .strow b',b=>b.map(x=>x.textContent)),['Anna','Rene'],'filter op personen');
  assert.equal(await p.getAttribute('#cm-filter button:nth-child(2)','aria-pressed'),'true');
  await p.fill('#cm-search','ren');assert.deepEqual(await p.$$eval('#cm-list .strow b',b=>b.map(x=>x.textContent)),['Rene'],'zoeken binnen het filter');
- await p.fill('#cm-search','');await p.click('#cm-filter button:nth-child(1)');assert.equal(await p.locator('#cm-list .strow').count(),7);
+ await p.fill('#cm-search','');await p.click('#cm-filter button:nth-child(1)');assert.equal(await p.locator('#cm-list .strow').count(),6,'documenten staan bij hun persoon, niet los in Alles');
+ await p.click('#cm-filter button:nth-child(4)');assert.equal(await p.locator('#cm-list .strow').count(),1,'filter Documenten toont ze wel');await p.click('#cm-filter button:nth-child(1)');
  const minTik=await p.$$eval('#cm-filter button,#cm-list .strow,#cm-add,#cm-menu,#cm-lock-btn',b=>Math.min(...b.map(x=>Math.min(x.getBoundingClientRect().height,x.getBoundingClientRect().width))));assert.ok(minTik>=44,tag+': tikvlakken minstens 44 px ('+minTik+')');
  await p.click('#cm-add');await p.waitForSelector('#sheet.on');
  assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),en?['Person','Relationship','Identity document','Organisation','Address','Trip','Saved travel consent details']:['Persoon','Relatie','Identiteitsdocument','Organisatie','Adres','Reis','Vaste gegevens reistoestemming']);
@@ -73,9 +74,9 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
   }
   await p.evaluate(()=>cmCancelEdit());await p.waitForFunction(()=>current==='masterdata'&&cm.recordsReady);
  }
- // Persoon: vijf tabbladen passen naast elkaar; identiteitsgegevens tonen alleen waar ze staan
+ // Persoon: zes tabbladen passen naast elkaar; identiteitsgegevens tonen alleen waar ze staan
  await p.evaluate(id=>cmEdit(id),rene);await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.id);
- assert.deepEqual(await p.$$eval('#cm-tabs [role=tab]',b=>b.map(x=>x.textContent)),en?['Name','Birth','Contact','Relations','More']:['Naam','Geboorte','Contact','Relaties','Meer']);
+ assert.deepEqual(await p.$$eval('#cm-tabs [role=tab]',b=>b.map(x=>x.textContent)),en?['Name','Birth','Contact','ID','Relations','More']:['Naam','Geboorte','Contact','ID','Relaties','Meer']);
  assert.equal(await p.evaluate(()=>$('#cm-tabs').scrollWidth<=$('#cm-tabs').clientWidth+1),true,tag+': tabbladen naast elkaar zonder schuiven');
  assert.equal(await p.isVisible('#cm-secret-row'),false,'niet op Naam');await p.click('#cm-tab-geboorte');assert.equal(await p.isVisible('#cm-secret-row'),true,'wel bij het BSN');
  assert.equal(await p.getAttribute('#cm-field-bsn','type'),'password');

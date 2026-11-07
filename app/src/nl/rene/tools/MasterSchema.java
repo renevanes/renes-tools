@@ -9,7 +9,7 @@ import java.util.Set;
 /** Centrale velddefinities en expliciete contracten: consumenten krijgen alleen passende, gekozen velden. */
 final class MasterSchema {
     private MasterSchema(){ }
-    static final String[] PERSON={"naam","voornamen","roepnaam","initialen","geboortedatum","geboorteplaats","nationaliteit","bsn","adres","postcode","plaats","land","telefoon","email","context"};
+    static final String[] PERSON={"naam","voornamen","roepnaam","initialen","geboortedatum","geboorteplaats","geslacht","nationaliteit","bsn","adres","postcode","plaats","land","telefoon","email","context"};
     static final String[] ORGANISATION={"naam","registratienummer","adres","postcode","plaats","land","telefoon","email"};
     static final String[] ADDRESS={"naam","adres","postcode","plaats","land","telefoon"};
     static final String[] IDENTITY={"persoon","documentsoort","document","geldig","afgifte","afgifteplaats","uitgifteland","afgegevenDoor"};
@@ -36,6 +36,8 @@ final class MasterSchema {
             s=s.replace('\n',' ').replace('\r',' ');
             if(("geboortedatum".equals(k)||"geldig".equals(k)||"afgifte".equals(k)||"van".equals(k)||"tot".equals(k))&&!s.isEmpty()&&!validDate(s))throw new MasterError(Taal.T("Vul een geldige datum in"));
             if(Arrays.asList("alleen","tweedeBegeleider","tweedeGever","delen").contains(k)&&!s.isEmpty()&&!s.equals("ja")&&!s.equals("nee"))throw new MasterError(Taal.T("Kies Ja of Nee"));
+            // Geslacht zoals op het Nederlandse identiteitsbewijs (M, V of X). Gaat alleen mee naar een formulier dat erom vraagt.
+            if("geslacht".equals(k)&&!s.isEmpty()&&!s.equals("M")&&!s.equals("V")&&!s.equals("X"))throw new MasterError(Taal.T("Kies Man, Vrouw of X"));
             if("bsn".equals(k)&&!s.isEmpty()&&!s.matches("[0-9]{8,9}"))throw new MasterError(Taal.T("Vul een geldig BSN in"));
             if(Arrays.asList("persoon","vanPersoon","naarPersoon").contains(k)&&!s.isEmpty()&&!s.matches("[a-f0-9-]{36}"))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
             if("formulier".equals(type)&&MasterFormProfile.reference(k)!=null&&!s.isEmpty()&&!s.matches("[a-f0-9-]{36}"))throw new MasterError(Taal.T("Ongeldige gegevensverwijzing"));

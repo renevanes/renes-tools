@@ -25,6 +25,7 @@ function cmiChoices(key){
   if(['alleen','tweedeBegeleider','tweedeGever','delen'].includes(key))return [['',t('Niet ingevuld')],['ja',t('Ja')],['nee',t('Nee')]];
   if(key==='relatie')return [['',t('Kies een relatie')],...cmiRelationOptions()];
   if(key==='status'&&cm.edit?.type==='relatie')return cmiStatusChoices(cm.edit.fields.relatie);
+  if(key==='geslacht')return [['',t('Niet ingevuld')],['V',t('Vrouw')],['M',t('Man')],['X',t('X (onbepaald)')]];
   if(key==='documentsoort')return [['',t('Niet ingevuld')],['identiteitskaart',t('Identiteitskaart')],['paspoort',t('Paspoort')],['rijbewijs',t('Rijbewijs')],['verblijfsdocument',t('Verblijfsdocument')],['anders',t('Anders')]];
   return null;
 }
@@ -96,6 +97,39 @@ function cmiPersonRelations(){
   for(const r of rels){const b=cmData(cmEl('button',undefined,'strow')),ic=cmEl('span',undefined,'stic'),chev=cmEl('span',undefined,'ui-icon stchev');b.type='button';ic.innerHTML=uiIcon('share');chev.dataset.icon='chevron-right';chev.setAttribute('aria-hidden','true');b.append(ic,cmEl('span',r.zin,'sttxt'),chev);b.onclick=()=>cmEdit(r.id,'',{id,tab:'relaties'});box.append(b);}
   if(!rels.length)box.append(cmEl('p',t('Nog geen relaties.'),'note'));
 }
+/* Documenten bij een persoon: verloopt een document binnenkort, dan staat dat bij de persoon en in de lijst. */
+const CMI_DOC_SOON=183; // dagen: veel landen vragen tot zes maanden geldigheid na terugkomst
+function cmiDays(iso){if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||''))return null;const [y,m,d]=iso.split('-').map(Number),[ty,tm,td]=rgDayKey(Date.now()).split('-').map(Number);return Math.round((Date.UTC(y,m-1,d)-Date.UTC(ty,tm-1,td))/864e5);}
+function cmiDocSoort(r){const c=(cmiChoices('documentsoort')||[]).find(x=>x[0]===r.soort);return c&&r.soort?c[1]:t('Document');}
+function cmiDocStand(r,owner){
+  const n=cmiDays(r.geldig),soort=cmiDocSoort(r);
+  const geldig=n===null?t('geen vervaldatum'):n<0?t('verlopen op {datum}',{datum:fmtDate(r.geldig)}):n<=CMI_DOC_SOON?tn(n,'verloopt morgen','verloopt over {n} dagen'):t('geldig tot {datum}',{datum:fmtDate(r.geldig)});
+  return owner?t('{soort} van {naam} · {geldig}',{soort,naam:owner.label,geldig}):t('{soort} · {geldig}',{soort,geldig});
+}
+function cmiPersonStand(p){
+  const docs=cm.records.filter(r=>r.type==='identiteit'&&r.person===p.id),late=docs.filter(r=>{const n=cmiDays(r.geldig);return n!==null&&n<=CMI_DOC_SOON;});
+  if(late.some(r=>cmiDays(r.geldig)<0))return t('Persoon · een document is verlopen');
+  if(late.length)return t('Persoon · een document verloopt binnenkort');
+  return docs.length?tn(docs.length,'Persoon · één document','Persoon · {n} documenten'):t('Persoon');
+}
+function cmiPersonDocs(){
+  const id=cm.edit.id,box=$('#cmi-person-doc-list');box.replaceChildren();
+  const docs=cm.records.filter(r=>r.type==='identiteit'&&r.person===id).sort((a,b)=>(b.geldig||'').localeCompare(a.geldig||''));
+  for(const r of docs){const b=cmData(cmEl('button',undefined,'strow')),ic=cmEl('span',undefined,'stic'),txt=cmEl('span',undefined,'sttxt'),chev=cmEl('span',undefined,'ui-icon stchev');b.type='button';ic.innerHTML=uiIcon('document');chev.dataset.icon='chevron-right';chev.setAttribute('aria-hidden','true');
+    const n=cmiDays(r.geldig),small=cmEl('small',cmiDocStand(r,null));if(n!==null&&n<=CMI_DOC_SOON)small.classList.add('cmi-warn');txt.append(cmEl('b',r.label),small);b.append(ic,txt,chev);b.onclick=()=>cmEdit(r.id,'',{id,tab:'documenten'});box.append(b);}
+  if(!docs.length)box.append(cmEl('p',t('Nog geen paspoort of identiteitskaart.'),'note'));
+}
+function cmiDocNew(){
+  if(!cmOpen()||!cm.edit?.id||cm.dirty||cm.mutating){cmNote(t('Sla je wijzigingen eerst op.'));return;}
+  const me=cm.edit.id;cmiNew('identiteit');if(!cm.edit||cm.edit.id)return;cm.edit.fields.persoon=me;cm.back={id:me,tab:'documenten'};cmEditor();cmiDocLabel();
+}
+/* Nieuw document: naam in het overzicht vanzelf, bijv. "Paspoort Zoë", zolang je hem niet zelf aanpast. */
+function cmiDocLabel(){
+  const r=cm.edit;if(!r||r.type!=='identiteit'||r.id)return;const owner=cm.records.find(p=>p.id===r.fields.persoon),label=$('#cm-label');
+  const auto=owner?t('{soort} {naam}',{soort:cmiDocSoort({soort:r.fields.documentsoort}),naam:owner.label}):'';
+  if(auto&&(!label.value.trim()||label.value===cmi.docLabel)){label.value=auto;r.label=auto;}cmi.docLabel=auto;
+}
+document.addEventListener('change',e=>{if(e.target&&['cm-field-persoon','cm-field-documentsoort'].includes(e.target.id))cmiDocLabel();});
 /* Vanuit een opgeslagen persoon: "Kind toevoegen" = de gekozen persoon is kind van deze persoon, enzovoort. */
 function cmiRelationNew(relatie){
   if(!cmOpen()||!cm.edit?.id||cm.dirty||cm.mutating){cmNote(t('Sla je wijzigingen eerst op.'));return;}
@@ -105,6 +139,8 @@ function cmiRelationNew(relatie){
 function cmiEditor(){
   const r=cm.edit;$('#cmi-profile-note').hidden=r.type!=='profiel';$('#cmi-form-note').hidden=r.type!=='formulier';$('#cmi-relation-note').hidden=r.type!=='relatie';$('#cmi-person-actions').hidden=r.type!=='persoon'||!r.id;
   $('#cmi-person-relations').hidden=r.type!=='persoon'||!r.id;if(r.type==='persoon'&&r.id)cmiPersonRelations();
+  $('#cmi-person-docs').hidden=r.type!=='persoon'||!r.id;if(r.type==='persoon'&&r.id)cmiPersonDocs();
+  if(r.type==='identiteit'&&!r.id)cmiDocLabel();
   if(cmi.labelFor!==r){cmi.labelFor=r;cmi.autoLabel=r.type==='relatie'?cmiRelationText(r.fields,'label'):'';}
   cmiRelationSentence();
   cmiPhotoClear();$('#cmi-photos').hidden=r.type!=='identiteit';
@@ -135,7 +171,7 @@ function cmiPhotoDelete(side){
   if(!cmiPhotoCanChange()||!cm.edit.images?.[side])return;const r=cm.edit;
   askConfirm('Kaartfoto verwijderen?','De versleutelde kopie van deze zijde wordt verwijderd.','Verwijderen',()=>{if(!cmOpen()||cm.edit!==r||cm.mutating)return;cmBusy(true);cmRequest('masterPhotoDelete',[r.id,r.revision,side],out=>{cmBusy(false);r.revision=out.revision;r.images[side]=false;cmiEditor();cmNote(t('Kaartfoto verwijderd.'));});});
 }
-function cmiRelationsClear(){cmi.labelFor=null;cmi.autoLabel='';$('#cmi-person-relation-list').replaceChildren();$('#cmi-relation-zin').textContent='';$('#cmi-relation-zin').hidden=true;}
+function cmiRelationsClear(){$('#cmi-person-doc-list').replaceChildren();cmi.labelFor=null;cmi.autoLabel='';$('#cmi-person-relation-list').replaceChildren();$('#cmi-relation-zin').textContent='';$('#cmi-relation-zin').hidden=true;}
 const cmiClearCentral=cmClearCentral;cmClearCentral=function(){cmiPhotoClear();cmiRelationsClear();cmiClearCentral();};
 const cmiLock=cmLock;cmLock=function(){cmiPhotoCancel();cmiLock();};
 const cmiLeave=cmLeave;cmLeave=function(){cmiPhotoCancel();cmiLeave();};

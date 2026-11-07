@@ -124,6 +124,7 @@ public class MasterBridge extends BankBridge {
             return r.put("grant",grant);
         });
     }
+    @JavascriptInterface public void masterFormExpiry(String token,String id,long revision,String tot,String request){work(token,request,key->MasterStore.formExpiry(ctx,key,a.masterSession,token,id,revision,tot));}
     @JavascriptInterface public boolean masterApplied(String token,String grant){
         synchronized(a.masterSession){
             if(!a.masterForeground||!a.masterSession.accepts(token))return false;

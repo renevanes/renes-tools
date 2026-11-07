@@ -103,6 +103,8 @@ final class MasterStore {
     static JSONObject listed(JSONObject r,String source)throws Exception{
         JSONObject out=summary(r),f=r.getJSONObject("fields");
         if("masterdata".equals(source)&&"relatie".equals(r.getString("type")))out.put("van",f.optString("vanPersoon")).put("naar",f.optString("naarPersoon")).put("relatie",f.optString("relatie"));
+        // Bij een document in Stamgegevens zelf: soort en geldig tot, voor het tabblad Documenten en verloopmeldingen (nooit het nummer).
+        if("masterdata".equals(source)&&"identiteit".equals(r.getString("type")))out.put("soort",f.optString("documentsoort")).put("geldig",f.optString("geldig"));
         return out;
     }
     static JSONArray records(SQLiteDatabase db,SecretKey key)throws Exception{JSONArray out=new JSONArray();try(Cursor c=db.rawQuery("SELECT id FROM records ORDER BY id",null)){while(c.moveToNext()){JSONObject r=record(db,key,c.getString(0));r.remove("images");out.put(r);}}return out;}
@@ -181,6 +183,15 @@ final class MasterStore {
                     (rec,role,fields)->append(db,k,h,"use","formulieren",role,rec,fields),
                     (rec,role)->append(db,k,h,"relation_use","formulieren",role,rec,new JSONArray().put("relatie")));
             return out.put("record",summary(r));
+        });
+    }
+    /** Verloopcontrole voor een nieuwe reis: welke gekozen reisdocumenten verlopen vóór of kort na de laatste reisdag. */
+    static JSONObject formExpiry(Context c,SecretKey key,MasterSession session,String token,String id,long revision,String tot)throws Exception{
+        if(tot==null||!MasterSchema.validDate(tot))throw new MasterError(Taal.T("Vul een geldige datum in"));
+        return transaction(c,key,session,token,(db,k,h)->{
+            JSONObject r=record(db,k,id);if(revision!=r.getLong("revision"))throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
+            JSONArray out=MasterFormProfile.expiry(r,ref->record(db,k,ref),tot,(rec,role)->append(db,k,h,"expiry_check","formulieren",role,rec,new JSONArray().put("geldig")));
+            return new JSONObject().put("warnings",out);
         });
     }
     static void consumerEvent(Context c,SecretKey key,MasterSession session,String token,String source,String action,Commit commit)throws Exception{
