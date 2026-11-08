@@ -771,12 +771,13 @@ final class AppBackup {
         JSONObject secrets = secretBytes == null ? new JSONObject() : new JSONObject(new String(secretBytes, StandardCharsets.UTF_8));
         JSONObject out = new JSONObject();
         if (in == null) return out;
-        for (Iterator<String> it = in.keys(); it.hasNext(); ) {
+        int files = 0;
+        for (Iterator<String> it = in.keys(); it.hasNext() && files < AppData.MAX_PREFS_FILES; ) {
             String f = it.next();
             if (!AppData.keepPrefsFile(f)) continue;
             JSONObject src = in.optJSONObject(f);
             if (src == null) continue;
-            JSONObject dst = new JSONObject();
+            JSONObject dst = new JSONObject(); files++;
             for (Iterator<String> ks = src.keys(); ks.hasNext(); ) {
                 String key = ks.next();
                 if (!AppData.keepPref(f, key)) continue;

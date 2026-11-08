@@ -149,6 +149,18 @@ final class AppData {
     // Mappen en bestanden in getFilesDir() gaan standaard allemaal mee (ook van nieuwe tools). De kluis gaat apart:
     // ontsleuteld via geheim/kluis. Uitzonderingen alleen hieronder, met de reden.
 
+    /**
+     * Mappen en bestanden in getFilesDir() met gegevens die bekeken zijn: ze gaan mee, ook leesbaar in Toolgegevens
+     * (zonder de inhoudscontrole op geheimen voor onbekende mappen). AppDataTest eist dat elke naam in de code hier of in
+     * FILE_SKIP staat, zodat er bij een nieuwe tool een bewuste keuze is; zonder die keuze gaat hij in Alle appgegevens toch mee.
+     */
+    static final List<String> FILE_KNOWN = Collections.unmodifiableList(Arrays.asList(
+            "notes.json", "notes.json.bak", "music.json", "ai", "apparaten", "call-recordings", "checkin", "contacts", "ereader", "facturen", "gebruik", "podcasts",
+            "shortcut-icons", "sleep", "spotify", "toiletten", "tracks", "transcripts"));
+
+    /** Hooguit zoveel instellingenbestanden uit een backup (bescherming tegen een gemaakt bestand met duizenden namen). */
+    static final int MAX_PREFS_FILES = 300;
+
     /** Wat in getFilesDir() bewust niet meegaat, met de reden. */
     static final Map<String, String> FILE_SKIP;
     static {
@@ -176,7 +188,8 @@ final class AppData {
         PATH_SKIP = Collections.unmodifiableMap(m);
     }
 
-    static final String[] TEMP_SUFFIX = {".part", ".tmp", ".writing", ".download", ".rt-part", ".rt-tmp", ".keep", "-journal"};
+    /** Tijdelijk, of hoort bij een SQLite-database die open is (-wal, -shm): los kopiëren geeft een kapotte database. */
+    static final String[] TEMP_SUFFIX = {".part", ".tmp", ".writing", ".download", ".rt-part", ".rt-tmp", ".keep", "-journal", "-wal", "-shm"};
 
     /**
      * Gaat dit bestand (pad binnen getFilesDir(), met /) mee? null = ja, anders de reden. Standaard gaat alles mee, ook

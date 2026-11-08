@@ -105,7 +105,21 @@ final class ToolData {
         String top = slash < 0 ? r : r.substring(0, slash);
         if (FILES_OWN.contains(top)) return false;
         if (r.startsWith("facturen/pdf/") || r.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) return false; // de PDF's staan al in Facturen/
-        return !r.toLowerCase(java.util.Locale.ROOT).matches(".*(geheim|secret|token|wachtwoord|password).*");
+        return !r.toLowerCase(java.util.Locale.ROOT).matches(".*(geheim|secret|token|wachtwoord|password|passwd|sleutel|credential|apikey|api_key|private).*|.*(^|[/_.-])(key|keys|pin|cred)([/_.-].*|$)");
+    }
+
+    /** Een naam in JSON die naar een geheim klinkt ("refresh_token": …, "password": …). */
+    static final java.util.regex.Pattern SECRET_JSON = java.util.regex.Pattern.compile(
+            "\"[^\"]{0,60}(token|secret|geheim|password|passwd|wachtwoord|sleutel|apikey|api_key|private_?key|credential)[^\"]{0,60}\"\\s*:", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Een bestand van een map die nog niet bekeken is (niet in AppData.FILE_KNOWN, dus van een nieuwe tool) gaat alleen
+     * leesbaar mee als er niets in staat wat naar een geheim klinkt. In Alle appgegevens (versleuteld) gaat hij altijd mee.
+     */
+    static boolean readableOk(String rel, String text) {
+        int slash = rel.indexOf('/');
+        String top = slash < 0 ? rel : rel.substring(0, slash);
+        return AppData.FILE_KNOWN.contains(top) || text == null || !SECRET_JSON.matcher(text).find();
     }
 
     /** Lager = eerder mee: eigen invoer (eigen plekken, dossier, apparaten, auto) voor logboeken en versies. */
@@ -165,6 +179,7 @@ final class ToolData {
                 byte[] b;
                 try { b = read(f, MAX_FILE); } catch (Exception e) { skipped.put(rel); continue; }
                 boolean asText = text(rel) && utf8(b);
+                if (!readableOk(rel, asText ? new String(b, StandardCharsets.UTF_8) : null)) { skipped.put(rel); continue; }
                 long cost = asText ? b.length + b.length / 8 : (b.length + 2) / 3 * 4; // ongeveer wat het in het bestand kost
                 if (total + cost > MAX_TOTAL) { skipped.put(rel); continue; }
                 total += cost;
@@ -178,7 +193,7 @@ final class ToolData {
             w.write("],\"skipped\":" + skipped.toString() + "}");
             w.done();
         }
-        if (skipped.length() > 0) App.log(c, "BACKUP", "toolgegevens: " + skipped.length() + " te grote bestanden niet mee");
+        if (skipped.length() > 0) App.log(c, "BACKUP", "toolgegevens: " + skipped.length() + " bestanden niet mee (te groot, of mogelijk een geheim)");
         return n == 0 ? -1 : n;
     }
 
@@ -260,10 +275,12 @@ final class ToolData {
     static Plan plan(JSONObject o, PrefsHas has, FileHas exists) throws Exception {
         Plan pl = new Plan();
         JSONObject prefs = o.optJSONObject("prefs");
-        if (prefs != null) for (Iterator<String> fi = prefs.keys(); fi.hasNext(); ) {
+        int prefsFiles = 0;
+        if (prefs != null) for (Iterator<String> fi = prefs.keys(); fi.hasNext() && prefsFiles < AppData.MAX_PREFS_FILES; ) {
             String f = fi.next();
             JSONObject in = prefs.optJSONObject(f);
             if (in == null || !keepPrefsFile(f)) continue;
+            prefsFiles++;
             JSONObject add = new JSONObject();
             for (Iterator<String> ki = in.keys(); ki.hasNext(); ) {
                 String k = ki.next();
@@ -329,6 +346,7 @@ final class ToolData {
             for (Iterator<String> ki = add.keys(); ki.hasNext(); ) {
                 String k = ki.next();
                 JSONObject v = add.getJSONObject(k);
+                if (!PlayPolicy.keepPreference(c.getPackageName(), f, k)) continue; // zoals bij Alle appgegevens
                 switch (v.optString("t")) {
                     case "b": e.putBoolean(k, v.optBoolean("v")); break;
                     case "i": e.putInt(k, v.optInt("v")); break;

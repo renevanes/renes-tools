@@ -58,13 +58,20 @@ public class AppDataTest {
             Matcher m = pp.matcher(t); while (m.find()) prefs.add(m.group(1));
             m = pc.matcher(t); while (m.find()) prefs.add(m.group(1));
             m = pf.matcher(t); while (m.find()) roots.add(m.group(1).split("/")[0]);
+            // Ook een map via een constante: new File(c.getFilesDir(), DIR) met static final String DIR = "…"
+            Matcher dm = Pattern.compile("getFilesDir\\(\\),\\s*([A-Z_]+)\\)").matcher(t);
+            while (dm.find()) { Matcher cm = Pattern.compile("static final String " + dm.group(1) + "\\s*=\\s*\"([^\"]+)\"").matcher(t); if (cm.find()) roots.add(cm.group(1).split("/")[0]); }
         }
         List<String> loose = new ArrayList<>();
-        for (String p : prefs) if (!AppData.keepPrefsFile(p) && !AppData.PREFS_SKIP.containsKey(p)) loose.add(p);
-        check(loose.isEmpty(), "alle instellingenbestanden gaan mee of staan bij de uitzonderingen " + loose);
+        // Bewuste keuze per naam: bekend (gaat mee) of uitzondering met reden. Zonder keuze gaat hij in Alle appgegevens
+        // toch mee (standaard), maar dan faalt deze test, zodat iemand nakijkt of er geheimen in staan.
+        for (String p : prefs) if (!(AppData.PREFS_KNOWN.contains(p) && AppData.keepPrefsFile(p)) && !AppData.PREFS_SKIP.containsKey(p)) loose.add(p);
+        check(loose.isEmpty(), "elk instellingenbestand in PREFS_KNOWN of PREFS_SKIP " + loose);
         loose.clear();
-        for (String r : roots) if (AppData.fileRule(r) != null && !AppData.FILE_SKIP.containsKey(r)) loose.add(r);
-        check(loose.isEmpty(), "alle mappen in getFilesDir gaan mee of staan bij de uitzonderingen " + loose);
+        for (String r : roots) if (!(AppData.FILE_KNOWN.contains(r) && AppData.fileRule(r) == null) && !AppData.FILE_SKIP.containsKey(r)) loose.add(r);
+        check(loose.isEmpty(), "elke map in getFilesDir in FILE_KNOWN of FILE_SKIP " + loose);
+        check(roots.contains("gebruik") && roots.contains("masterdata"), "ook mappen via een constante gevonden (gebruik, masterdata)");
+        for (String r : AppData.FILE_KNOWN) check(AppData.fileRule(r) == null && !AppData.FILE_SKIP.containsKey(r), "bekend en mee: " + r);
         for (String p : AppData.PREFS_KNOWN) check(AppData.keepPrefsFile(p), "bekend en mee: " + p);
         check(prefs.contains("vpn") && prefs.contains("lock") && roots.contains("call-recordings"), "inventaris vindt vpn, lock en opnames");
         for (String p : AppData.PREFS_SKIP.keySet()) check(!AppData.PREFS_KNOWN.contains(p) && !AppData.keepPrefsFile(p), "niet tegelijk mee en niet mee: " + p);
@@ -87,6 +94,7 @@ public class AppDataTest {
         check(AppData.fileRule("transcripts/x.json.tmp") != null && AppData.fileRule("ai/chats.json.writing") != null && AppData.fileRule("sleep/a.wav.rt-part") != null, "tijdelijke bestanden niet");
         check(AppData.fileRule("iets-nieuws/a.txt") == null && AppData.fileRule("iets-nieuws") == null && AppData.fileRule("nieuwetool.json") == null, "map of bestand van een nieuwe tool: standaard mee");
         check(AppData.fileRule(".cache/llama") != null && AppData.fileRule("iets-nieuws/a.json.tmp") != null, "verborgen mappen van bibliotheken en tijdelijke bestanden niet");
+        check(AppData.fileRule("iets-nieuws/db.sqlite-wal") != null && AppData.fileRule("iets-nieuws/db.sqlite-shm") != null, "open SQLite-bestanden (-wal, -shm) niet los");
         check("f:iets-nieuws/a.txt".equals(AppData.target("Appgegevens/bestanden/iets-nieuws/a.txt")), "nieuwe tool ook terugzetten");
         check(AppData.restoreRoots(Arrays.asList("notes.json", "web", "kluis", "bank", "nieuwetool", ".cache"), Arrays.asList("ereader", "masterdata", "x/y"))
                 .equals(Arrays.asList("ereader", "nieuwetool", "notes.json")), "terugzetten vervangt alleen wat meegaat: " + AppData.restoreRoots(Arrays.asList("notes.json", "web", "kluis", "bank", "nieuwetool", ".cache"), Arrays.asList("ereader", "masterdata", "x/y")));
