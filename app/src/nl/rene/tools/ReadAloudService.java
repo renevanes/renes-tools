@@ -29,9 +29,14 @@ public class ReadAloudService extends Service {
     /** Alleen bijwerken terwijl deze dienst voor dit verzoek op de voorgrond staat: nooit een losse melding achterlaten. */
     static void changed(Context c,String request){synchronized(ReadAloud.LOCK){ReadAloud.Job j=ReadAloud.current;ReadAloudService s=live.get();
         if(j!=null&&!j.cancelled&&j.background&&j.request.equals(request)&&s!=null&&s.request.equals(request))try{mediaState(j);((NotificationManager)c.getSystemService(NOTIFICATION_SERVICE)).notify(NOTIFICATION,safe(c,j));}catch(Throwable ignored){ }}}
-    static void finished(Context c,String request){synchronized(ReadAloud.LOCK){ReadAloud.Job j=ReadAloud.current;if(j==null||!j.background){ReadAloudService s=live.get();if(s!=null)s.end();else try{c.stopService(new Intent(c,ReadAloudService.class));}catch(Throwable ignored){ }}}}
-    /** Sessie voorbij (klaar, fout, gestopt): mediasessie uit, melding weg, dienst stoppen. */
-    void end(){synchronized(ReadAloud.LOCK){request="";started="";try{if(session!=null)session.setActive(false);}catch(Throwable ignored){ }try{stopForeground(STOP_FOREGROUND_REMOVE);}catch(Throwable ignored){ }try{((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIFICATION);}catch(Throwable ignored){ }stopSelf();}}
+    static void finished(Context c,String request){synchronized(ReadAloud.LOCK){if(otherBook(request))return;ReadAloudService s=live.get();if(s!=null)s.end(0);else try{c.stopService(new Intent(c,ReadAloudService.class));}catch(Throwable ignored){ }}}
+    /** Een ander boek (dan `request`) loopt of start nog: die heeft de dienst nodig, dus niet stoppen. */
+    static boolean otherBook(String request){ReadAloud.Job j=ReadAloud.current;return j!=null&&j.background&&!j.cancelled&&!j.request.equals(request);}
+    /**
+     * Sessie voorbij (klaar, fout, gestopt): mediasessie uit, melding weg, dienst stoppen. Met een startId alleen als er
+     * daarna geen nieuwe start is binnengekomen (stopSelfResult), zodat een tweede boek dat net start niet sneuvelt.
+     */
+    void end(int startId){synchronized(ReadAloud.LOCK){request="";started="";try{if(session!=null)session.setActive(false);}catch(Throwable ignored){ }try{stopForeground(STOP_FOREGROUND_REMOVE);}catch(Throwable ignored){ }try{((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIFICATION);}catch(Throwable ignored){ }if(startId>0)stopSelfResult(startId);else stopSelf();}}
     static PendingIntent action(Context c,String name,String request){return PendingIntent.getService(c,name.equals("stop")?3:2,new Intent(c,ReadAloudService.class).setAction(name).setData(android.net.Uri.parse("renes-tools:voorlezen/"+request+"/"+name)).putExtra("request",request),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);}
     static void channel(Context c){if(Build.VERSION.SDK_INT>=26){NotificationChannel channel=new NotificationChannel(CHANNEL,Taal.t(c,"Boek voorlezen"),NotificationManager.IMPORTANCE_LOW);((NotificationManager)c.getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(channel);}}
     static Notification.Builder builder(Context c){channel(c);return Build.VERSION.SDK_INT>=26?new Notification.Builder(c,CHANNEL):new Notification.Builder(c);}
@@ -39,9 +44,9 @@ public class ReadAloudService extends Service {
     static Notification notification(Context c,ReadAloud.Job j){
         Notification.Builder b=builder(c);
         Intent open=new Intent(c,MainActivity.class).putExtra("open","ereader").addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        b.setSmallIcon(android.R.drawable.ic_media_play).setContentTitle(Taal.t(c,"Boek voorlezen")).setContentText(Taal.t(c,j.paused?"Voorlezen gepauzeerd":"Lokale stem · geen internet nodig")).setOngoing(!j.paused).setVisibility(Notification.VISIBILITY_PUBLIC)
+        b.setSmallIcon(android.R.drawable.ic_media_play).setContentTitle(Taal.t(c,"Boek voorlezen")).setContentText(Taal.t(c,j.paused?Taal.T("Voorlezen gepauzeerd"):Taal.T("Lokale stem · geen internet nodig"))).setOngoing(!j.paused).setVisibility(Notification.VISIBILITY_PUBLIC)
             .setContentIntent(PendingIntent.getActivity(c,71,open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE))
-            .addAction(j.paused?android.R.drawable.ic_media_play:android.R.drawable.ic_media_pause,Taal.t(c,j.paused?"Verder voorlezen":"Pauzeren"),action(c,j.paused?"resume":"pause",j.request))
+            .addAction(j.paused?android.R.drawable.ic_media_play:android.R.drawable.ic_media_pause,Taal.t(c,j.paused?Taal.T("Verder voorlezen"):Taal.T("Pauzeren")),action(c,j.paused?"resume":"pause",j.request))
             .addAction(android.R.drawable.ic_menu_close_clear_cancel,Taal.t(c,"Stoppen"),action(c,"stop",j.request));ReadAloudService service=live.get();if(service!=null&&service.session!=null)b.setStyle(new Notification.MediaStyle().setMediaSession(service.session.getSessionToken()).setShowActionsInCompactView(0,1));return b.build();
     }
     /** Lukt de gewone melding niet, dan een eenvoudige: startForeground moet altijd binnen enkele seconden gebeuren. */
@@ -53,11 +58,11 @@ public class ReadAloudService extends Service {
             // Gestart met startForegroundService: altijd eerst op de voorgrond, ook als de sessie intussen al voorbij is.
             ReadAloud.Job shown=ours?j:j!=null&&!request.isEmpty()&&j.request.equals(request)?j:null;
             boolean fg=Fg.start(this,NOTIFICATION,safe(this,shown),ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,29);
-            if(!ours||!fg){if(ours)ReadAloud.stop(null,id);if(request.isEmpty()||!fg)end();return START_NOT_STICKY;}
+            if(!ours||!fg){if(ours)ReadAloud.stop(null,id);if(!fg||request.isEmpty()&&!otherBook(id))end(start);return START_NOT_STICKY;}
             request=id;mediaState(j);try{((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(NOTIFICATION,safe(this,j));}catch(Throwable ignored){ }
             if(!id.equals(started)){started=id;ReadAloud.startService(id);}return START_NOT_STICKY;
         }
-        if(!ours){if(request.isEmpty())end();return START_NOT_STICKY;}
+        if(!ours){if(request.isEmpty()&&!otherBook(id))end(start);return START_NOT_STICKY;}
         if("stop".equals(action))ReadAloud.stop(null,id);
         else if("pause".equals(action)||"resume".equals(action))ReadAloud.pauseNotification(id,"pause".equals(action));
         return START_NOT_STICKY;

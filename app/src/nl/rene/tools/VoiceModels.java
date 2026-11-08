@@ -14,8 +14,14 @@ final class VoiceModels {
     static final Object FILES=new Object();
     static final class Voice {
         final String id,label,language,folder,model,sha;final long size;
+        /** Tweede downloadadres (bijv. een eigen kopie van Rene), alleen https; zelfde bestand en SHA-256. Null = geen. */
+        String mirror;
         Voice(String id,String label,String language,String folder,String model,long size,String sha){this.id=id;this.label=label;this.language=language;this.folder=folder;this.model=model;this.size=size;this.sha=sha;}
+        Voice withMirror(String url){if(url!=null&&url.startsWith("https://"))mirror=url;return this;}
+        /** Bron (upstream release; dat label kan daar veranderen, de SHA-256 vangt dat af). */
         String url(){return "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/"+folder+".tar.bz2";}
+        /** Adressen in volgorde: eerst de bron, bij een fout de kopie. */
+        String[] urls(){return mirror==null?new String[]{url()}:new String[]{url(),mirror};}
     }
     static final Voice[] VOICES={
         new Voice("tts-nl-ronnie",Taal.T("Ronnie · Nederlands"),"nl","vits-piper-nl_NL-ronnie-medium-int8","nl_NL-ronnie-medium.onnx",21158108L,"eb16022c9c8ee48b75dc833e8a8b04e08730929ea68cde9b67e2dc712f988978"),

@@ -589,12 +589,17 @@ if (!window.Android) window.Android = (function(){
     speechStart(text,request,source,markdown){const s=this._speech;this.speechStop(s.active?.request);s.said.push({text,request,source,markdown});s.active={request,source,state:'loading'};this._speechEvent('loading');const duration=s.ms;s.timer=setTimeout(()=>{if(s.active?.request!==request)return;this._speechEvent('playing');s.timer=setTimeout(()=>{if(s.active?.request===request)this._speechEvent('done');},duration);},20);},
     speechBook(book,chapter,offset,request){const r=JSON.parse(this.ereaderChapter(book,chapter));this.speechStart((r.text||'').slice(offset),request,'reader',false);Object.assign(this._speech.active,{book,chapter,offset,end:offset});},
     speechPause(request,paused){const s=this._speech;if(s.active?.request!==request)return;clearTimeout(s.timer);this._speechEvent(paused?'paused':'playing');if(!paused)s.timer=setTimeout(()=>{if(s.active?.request===request)this._speechEvent('done');},s.ms);},
+    speechNotifAsk(){this._speech.notifAsked=(this._speech.notifAsked||0)+1;return false;},
     speechStop(request){const s=this._speech;if(!s.active||request!==s.active.request)return;clearTimeout(s.timer);this._speechEvent('stopped');},
     speechState(){return JSON.stringify(this._speech.active?{active:true,...this._speech.active}:{active:false});},
     // Voorlezen zoals AiSpeech: start, klaar (na _tts.ms), stoppen; of een fout (_tts.err)
     _tts: { said: [], stops: 0, ms: 400, cur: '' },
-    aiSpeak(text,id){if(text.length>30000){setTimeout(()=>onAiSpeak({state:'error',id,error:'Deze tekst is te lang om in één keer voor te lezen'}),0);return;}const t=this._tts;t.said.push(text);if(t.err){setTimeout(()=>onAiSpeak({state:'error',id,error:t.err}),20);return;}t.cur=id;const before=this._speech.ms;this._speech.ms=t.ms;this.speechStart(text,id,'ai',true);this._speech.ms=before;},
-    aiSpeakStop(){this._tts.stops++;if(this._speech.active?.source==='ai')this.speechStop(this._speech.active.request);},
+    aiSpeak(text,id){if(text.length>30000){setTimeout(()=>onAiSpeak({state:'error',id,error:'Deze tekst is te lang om in één keer voor te lezen'}),0);return;}const t=this._tts;t.said.push(text);if(t.err){setTimeout(()=>onAiSpeak({state:'error',id,error:t.err}),20);return;}t.cur=id;const sp=this._speech;
+      // Zoals SystemSpeech: zonder lokale stem de stem van Android die zonder internet werkt (of geen: voice_missing)
+      if(!(sp.voice&&sp.voices.some(v=>v.id===sp.voice&&v.state==='ready'))){t.system=(t.system||0)+1;if(t.noSystem){t.cur='';setTimeout(()=>onAiSpeak({state:'error',id,system:true,code:'voice_missing',error:'Je telefoon heeft geen voorleesstem die zonder internet werkt. Download een lokale stem bij Lokaal voorlezen.'}),20);return;}
+        t.sysTimer=setTimeout(()=>{if(t.cur!==id)return;onAiSpeak({state:'start',id,system:true});t.sysTimer=setTimeout(()=>{if(t.cur===id){t.cur='';onAiSpeak({state:'done',id,system:true});}},t.ms);},20);return;}
+      const before=sp.ms;sp.ms=t.ms;this.speechStart(text,id,'ai',true);sp.ms=before;},
+    aiSpeakStop(){const t=this._tts;t.stops++;clearTimeout(t.sysTimer);if(t.cur&&this._speech.active?.request!==t.cur){const id=t.cur;t.cur='';onAiSpeak({state:'stop',id,system:true});}if(this._speech.active?.source==='ai')this.speechStop(this._speech.active.request);},
     aiCalendarAdd(j){ if (this._calErr) return this._calErr; this._cal = JSON.parse(j); return ''; },
     aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },
     aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },

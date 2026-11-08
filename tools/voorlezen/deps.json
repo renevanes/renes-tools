@@ -1,6 +1,9 @@
 {
  "engine": "sherpa-onnx 1.13.8",
  "onnxruntime": "1.28.2",
+ "_ingebouwd": "Zit in libsherpa-onnx-jni.so (uit sherpa-onnx/cmake/*.cmake van deze versie); Onderhoud controleert dat het klopt.",
+ "espeak-ng": "csukuangfj/espeak-ng@ed530aa113046142eb5115cf2fc9157854d0ffe1",
+ "piper-phonemize": "csukuangfj/piper-phonemize@f3ff95afc03640bc1399e113e83361192a2fafb4",
  "files": {
   "android.tar.bz2": [
    "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-v1.13.8-android.tar.bz2",

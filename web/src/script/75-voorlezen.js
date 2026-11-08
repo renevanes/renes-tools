@@ -13,7 +13,11 @@ function spSelection(){const selection=erSelection;if(!selection||!erText)return
 function spNote(){const n=noteById(noteCur);if(n)spText([n.title,n.text,...(n.items||[]).map(i=>i.text)].filter(Boolean).join('\n'),'note',true);}
 // taal-vast: het voorbeeld is in de taal van de gekozen stem, onafhankelijk van de interface
 function spPreview(){const voice=(sp.models.voices||[]).find(v=>v.id===sp.models.voice);spText(voice&&voice.language==='en'?'This voice reads your books and notes on your phone.':'Deze stem leest je boeken en notities voor op je telefoon.','preview');}
-function spStop(abandon=false){const active=sp.active;if(!active)return;if(active.source==='reader'&&!abandon)active.stopping=true;else sp.active=null;Android.speechStop(active.request);spSpeechRender();}
+function spStop(abandon=false){const active=sp.active;if(!active)return;
+  // Heeft de app geen sessie (meer) voor deze aanvraag, dan komt er geen 'stopped': meteen loslaten.
+  let native=true;if(typeof Android.speechState==='function'){try{const st=JSON.parse(Android.speechState());native=!!st.active&&st.request===active.request;}catch(_){native=false;}}
+  if(active.source==='reader'&&!abandon&&native){active.stopping=true;setTimeout(()=>{if(sp.active===active&&active.stopping){sp.active=null;spSpeechRender();}},3000);}else sp.active=null;
+  Android.speechStop(active.request);spSpeechRender();}
 function spPause(){const active=sp.active;if(!active)return;Android.speechPause(active.request,active.state!=='paused');}
 function spAiPause(){if(aiSpk)Android.speechPause(aiSpk.id,!(sp.active&&sp.active.request===aiSpk.id&&sp.active.state==='paused'));}
 function spSpeechRender(){
@@ -61,7 +65,7 @@ function spModelsRender(){
 function spSave(voice,speed,background){const error=Android.speechConfigure(voice,speed,background);if(error)toast(error);spModelsRender();}
 function spChoose(voice){spStop();spSave(voice,sp.models.speed||1,sp.models.background!==false);}
 function spSpeed(value){const voice=sp.models.voice||'';spSave(voice,Number(value),sp.models.background!==false);}
-function spBackground(){const voice=sp.models.voice||'';spSave(voice,sp.models.speed||1,sp.models.background===false);}
+function spBackground(){const voice=sp.models.voice||'',on=sp.models.background===false;spSave(voice,sp.models.speed||1,on);if(on&&typeof Android.speechNotifAsk==='function')Android.speechNotifAsk();} // Android 13+: zonder meldingen geen pauzeknop in de melding
 function spDelete(voice){spSettingsClose();askConfirm(t('Voorleesstem verwijderen?'),t('Het voorlezen stopt en de stem wordt van je telefoon verwijderd. Je kunt hem later opnieuw downloaden.'),t('Verwijderen'),()=>{Android.speechDelete(voice.id);spSettings();});}
 const spOldPause=window.onPauseApp;window.onPauseApp=function(){if(spOldPause)spOldPause();if(sp.active&&sp.active.source!=='reader'){sp.active=null;spSpeechRender();}};
 const spOldResume=window.onResumeApp;window.onResumeApp=function(){if(spOldResume)spOldResume();spSync();if(sp.settings)spModelsRender();};

@@ -10,6 +10,7 @@ Dependabot kent deze niet (geen package.json of Gradle), dus dit script doet het
   - AI-modellen in LocalAi.java (Hugging Face)     → nieuwere modellen van dezelfde maker in dezelfde grootte
   - toiletten-momentopname (GitHub-release)         → ouder dan 10 dagen = de wekelijkse workflow loopt niet
   - lokaal voorlezen: sherpa-onnx, ONNX Runtime en Ant-codecs (tools/voorlezen/deps.json) → nieuwste 1.x + OSV;
+    espeak-ng en piper-phonemize (in sherpa-onnx) → commit gelijk aan sherpa's cmake + OSV (espeak-ng);
     voorleesstemmen (VoiceModels.java) → het releasebestand bestaat nog met dezelfde grootte
 
 Schrijft een Markdown-rapport naar stdout. Afsluitcode 0 = alles bij, 10 = er is iets te doen, 1 = fout.
@@ -104,10 +105,14 @@ ALLE = {"Tesseract4Android": OCR, "OCR-model": OCR_MODEL, "Leaflet": LEAFLET, "j
 SHERPA = ("tools/voorlezen/deps.json", r'"engine": "sherpa-onnx (\d+\.\d+\.\d+)"')
 SHERPA_ORT = ("tools/voorlezen/deps.json", r'"onnxruntime": "(\d+\.\d+\.\d+)"')
 ANT = ("tools/voorlezen/deps.json", r'ant/(\d+\.\d+\.\d+)/')
+# In sherpa-onnx ingebouwd (eSpeak-fonemizer voor Piper): vork + commit, zoals sherpa-onnx/cmake/<naam>.cmake ze noemt
+ESPEAK = ("tools/voorlezen/deps.json", r'"espeak-ng": "([\w.-]+/espeak-ng@[0-9a-f]{40})"')
+PIPER = ("tools/voorlezen/deps.json", r'"piper-phonemize": "([\w.-]+/piper-phonemize@[0-9a-f]{40})"')
 # new Voice("id", Taal.T("label"), "taal", "map", "model.onnx", grootte, "sha256")
 STEMMEN = ("app/src/nl/rene/tools/VoiceModels.java",
            r'new Voice\("([\w-]+)",\s*Taal\.T\("[^"]*"\),\s*"\w+",\s*"([^"]+)",\s*"[^"]+",\s*(\d+)L,\s*"([0-9a-f]{64})"\)')
-ALLE.update({"sherpa-onnx": SHERPA, "ONNX Runtime (voorlezen)": SHERPA_ORT, "Apache Ant-codecs": ANT})
+ALLE.update({"sherpa-onnx": SHERPA, "ONNX Runtime (voorlezen)": SHERPA_ORT, "Apache Ant-codecs": ANT,
+             "espeak-ng (in sherpa-onnx)": ESPEAK, "piper-phonemize (in sherpa-onnx)": PIPER})
 
 
 def stemmen():
@@ -262,6 +267,23 @@ def main():
     item("ONNX Runtime (in sherpa-onnx)", SHERPA_ORT[0], huidig, None,
          osv({"package": {"name": "onnxruntime", "ecosystem": "PyPI"}, "version": huidig}),
          "Komt mee met het Android-archief van sherpa-onnx; bijwerken = nieuwe sherpa-onnx.")
+    # espeak-ng en piper-phonemize zitten in libsherpa-onnx-jni.so. Klopt de vastgelegde commit nog met wat deze
+    # sherpa-onnx-versie gebruikt (cmake), en zijn er bekende kwetsbaarheden in espeak-ng (de vork is 1.52-dev)?
+    sherpa = lees(*SHERPA)
+    for naam, pat, cmake in (("espeak-ng", ESPEAK, "espeak-ng-for-piper"), ("piper-phonemize", PIPER, "piper-phonemize")):
+        vast = lees(*pat)
+        try:
+            tekst = http_text(f"https://raw.githubusercontent.com/k2-fsa/sherpa-onnx/v{sherpa}/cmake/{cmake}.cmake")
+            m = re.search(r"github\.com/([\w.-]+/[\w.-]+)/archive/([0-9a-f]{40})\.zip", tekst)
+            echt = f"{m.group(1)}@{m.group(2)}" if m else None
+            opm = "" if echt == vast else (f"sherpa-onnx {sherpa} gebruikt {echt}; zet dat in tools/voorlezen/deps.json" if echt else "niet gevonden in de cmake van sherpa-onnx; controleer met de hand")
+        except Exception as e:
+            echt, opm = None, f"cmake van sherpa-onnx niet op te halen ({e}); controleer met de hand"
+        kw = osv({"package": {"name": "espeak-ng", "ecosystem": "OSS-Fuzz"}}) if naam == "espeak-ng" else ()
+        if kw:
+            opm = (opm + " " if opm else "") + ("Bekende meldingen voor espeak-ng (alle versies): nagaan of de vork van sherpa-onnx "
+                                                "ze bevat (tekst gaat alleen van Rene zelf naar de fonemizer, niet van buitenaf).")
+        item(naam + " (in sherpa-onnx)", pat[0], vast.split("@")[0] + "@" + vast.split("@")[1][:12], None, kw, opm, verouderd=bool(opm))
     # Voorleesstemmen: vaste grootte en SHA-256; het bestand in de release mag niet veranderen of verdwijnen.
     for sid, map_, grootte, sha in stemmen():
         url = f"https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/{map_}.tar.bz2"

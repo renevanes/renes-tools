@@ -220,16 +220,30 @@ public class ModelDownloadService extends Service {
 
     static void failed(Context c,String id,String message){if(VoiceModels.model(id)!=null)VoiceModels.failed(c,id,message);else LocalAi.ownFailed(c,id,message);}
     private void oneVoice(VoiceModels.Voice voice){
-        String id=voice.id;try{
-            String blocked=netBlocked(this);if(blocked!=null)blocked=waitForNet(id);if(STOP.contains(id))return;if(blocked!=null){VoiceModels.failed(this,id,blocked);return;}
-            final long[] netAt={0};final String[] reason={null};
-            java.util.function.BooleanSupplier stopped=()->{if(STOP.contains(id)||!VoiceModels.wanted(this,id))return true;long now=android.os.SystemClock.elapsedRealtime();if(now-netAt[0]>2000){netAt[0]=now;if(netBlocked(this)!=null)reason[0]=waitForNet(id);}return STOP.contains(id)||reason[0]!=null;};
+        String id=voice.id;final String[] reason={null};
+        try{
+            String blocked=netBlocked(this);
+            if(blocked!=null){voiceNotify(Taal.t(this,"Voorleesstem downloaden"),Taal.t(this,blocked),-1);blocked=waitForNet(id);}
+            if(STOP.contains(id))return;if(blocked!=null){voiceFailed(id,blocked,"geen netwerk");return;}
+            final long[] netAt={0};
+            java.util.function.BooleanSupplier stopped=()->{if(STOP.contains(id)||!VoiceModels.wanted(this,id))return true;long now=android.os.SystemClock.elapsedRealtime();if(now-netAt[0]>2000){netAt[0]=now;String why=netBlocked(this);if(why!=null){voiceNotify(Taal.t(this,"Voorleesstem downloaden"),Taal.t(this,why),-1);reason[0]=waitForNet(id);netAt[0]=android.os.SystemClock.elapsedRealtime();}}return STOP.contains(id)||reason[0]!=null;};
             RUN.put(id,new long[]{VoiceModels.part(this,voice).length(),voice.size});
-            ModelFetch.fetch(voice.url(),VoiceModels.part(this,voice),voice.size,(done,total)->{RUN.put(id,new long[]{done,total});long now=android.os.SystemClock.elapsedRealtime();if(now-lastNotif>1000){lastNotif=now;((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID,notif(Taal.t(this,"Voorleesstem downloaden"),Taal.t(this,"{a} van {b}","a",Regio.size(this,done,1,2),"b",Regio.size(this,total,1,2)),(int)(done*100/total)));}},stopped);
+            String[] urls=voice.urls();
+            for(int k=0;k<urls.length;k++){
+                try{ModelFetch.fetch(urls[k],VoiceModels.part(this,voice),voice.size,(done,total)->{RUN.put(id,new long[]{done,total});long now=android.os.SystemClock.elapsedRealtime();if(now-lastNotif>1000){lastNotif=now;voiceNotify(Taal.t(this,"Voorleesstem downloaden"),Taal.t(this,"{a} van {b}","a",Regio.size(this,done,1,2),"b",Regio.size(this,total,1,2)),(int)(done*100/total));}},stopped);break;}
+                catch(ModelFetch.Stopped e){throw e;}
+                catch(Exception e){if(k+1>=urls.length)throw e;App.log(this,"AI","voorleesstem: eerste adres mislukt ("+e.getClass().getSimpleName()+"), kopie proberen");}
+            }
             if(STOP.contains(id)||!VoiceModels.wanted(this,id))throw new ModelFetch.Stopped();
-            ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID,notif(Taal.t(this,"Voorleesstem controleren"),Taal.t(this,"Controleren en uitpakken…"),-1));VoiceModels.install(this,voice,()->STOP.contains(id)||!VoiceModels.wanted(this,id));
-        }catch(ModelFetch.Stopped ignored){ }catch(Throwable e){VoiceModels.failed(this,id,why(e));}finally{RUN.remove(id);STOP.remove(id);MainActivity.jsAll("onAiModels","");}
+            voiceNotify(Taal.t(this,"Voorleesstem controleren"),Taal.t(this,"Controleren en uitpakken…"),-1);VoiceModels.install(this,voice,()->STOP.contains(id)||!VoiceModels.wanted(this,id));
+            App.log(this,"AI","voorleesstem geïnstalleerd: "+id);
+        }catch(ModelFetch.Stopped stoppedNow){if(reason[0]!=null)voiceFailed(id,reason[0],"netwerk weg");}
+        catch(Throwable e){voiceFailed(id,why(e),e.getClass().getSimpleName());}
+        finally{RUN.remove(id);STOP.remove(id);MainActivity.jsAll("onAiModels","");}
     }
+    /** Reden zichtbaar bij de stem (Lokaal voorlezen); in het logboek alleen de soort, nooit een adres of pad. */
+    private void voiceFailed(String id,String why,String kind){VoiceModels.failed(this,id,why);App.log(this,"AI","voorleesstem downloaden gestopt: "+id+" ("+kind+")");}
+    private void voiceNotify(String title,String text,int pct){try{((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID,Taal.n(this,notif(title,text,pct)));}catch(Throwable ignored){ }}
 
     /** Een foutmelding in gewone taal (de echte staat in het logboek). Zuiver (getest). */
     static String why(Throwable e) {
