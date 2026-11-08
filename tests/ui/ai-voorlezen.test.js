@@ -16,7 +16,7 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => Android._tts.said.slice(-1)[0] === Android._ai.reply), 'het antwoord gaat naar de spraakmotor (opmaak haalt Java eraf)');
     ok(await pg.isVisible('#ai-spkbar') && (await pg.textContent('#ai-spktxt')) === 'Voorlezen…' && (await pg.getAttribute('#ai-msgs .aispk', 'aria-label')) === 'Stoppen met voorlezen', 'tijdens het voorlezen: balk met Stoppen, knop wordt Stoppen');
     await pg.screenshot({ path: __dirname + '/shots/ai-voorlezen-' + scheme + '.png' });
-    await pg.click('#ai-spkbar .mini'); await pg.waitForTimeout(100);
+    await pg.click('#ai-spkbar button[onclick="aiSpeakStop()"]'); await pg.waitForTimeout(100);
     ok(await pg.evaluate(() => Android._tts.stops >= 1) && !(await pg.isVisible('#ai-spkbar')) && (await pg.textContent('#ai-msgs .aispk')).includes('Voorlezen'), 'Stoppen: stil, knoppen terug');
     // Vanzelf klaar
     await pg.evaluate(() => { Android._tts.ms = 200; }); await pg.click('#ai-msgs .aispk'); await pg.waitForTimeout(450);
@@ -69,6 +69,7 @@ const { chromium } = require('playwright');
     await pg.click('#ai-mic'); await pg.waitForTimeout(200); await pg.click('#ai-mic'); await pg.waitForTimeout(300);
     await pg.click('#ai-send'); await pg.waitForTimeout(1200);
     ok(await pg.evaluate(() => Android._tts.said.length === 2), 'ingesproken en nagekeken: ook voorgelezen');
+    await pg.evaluate(()=>{aiSpeakStop();Android._tts.ms=5000;aiSpeakStart({c:'Dit antwoord klinkt nog.'},aiChat);aiSpeakStart({c:'a'.repeat(30001)},aiChat);});await pg.waitForTimeout(80);ok(await pg.evaluate(()=>!aiSpk&&!Android._speech.active)&&!(await pg.isVisible('#ai-spkbar')),'te lang antwoord geeft fout en blijft niet hangen');
     await pg.close();
   }
   await b.close();

@@ -156,6 +156,7 @@ public class MainActivity extends Activity {
     /** Een losse bank-app kan niet meeliften op de ontgrendeling van een ander venster. */
     boolean bankOk() { return (!isSolo() || "bank".equals(solo)) && Bank.session(bankGen); }
 
+    final String speechOwner=java.util.UUID.randomUUID().toString();
     boolean isSolo() { return this instanceof SoloActivity; }
 
     /** Losse app die intussen is uitgezet: naar de gewone app (met app-slot) en dit venster sluiten. */
@@ -603,7 +604,7 @@ public class MainActivity extends Activity {
             if (!Bank.kiest() && !Bank.linking && !Lock.authBusy && Bank.isOpen()) Bank.close();
         }
         if ("recording".equals(VoiceNote.state)) VoiceNote.cancel(); // inspreken alleen met de app open
-        AiSpeech.release(); // voorlezen alleen met de app open; de spraakmotor weer vrijgeven
+        ReadAloud.leaving(speechOwner); // een bewust gestart boek mag in de voorgronddienst verdergaan
         AiTalk.bargeStop(); // gesprek met de assistent: niet doorluisteren
         try { getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); } catch (Throwable ignored) { }
         js("onPauseApp", "");
@@ -1103,7 +1104,7 @@ public class MainActivity extends Activity {
     // ---------- brug naar JavaScript ----------
 
     /** Alle functies voor de interface. Nieuwere onderdelen staan in FeatureBridge (eigen bestand). */
-    static final class Bridge extends EreaderBridge {
+    static final class Bridge extends ReadAloudBridge {
         private final MainActivity a;
         private final Context ctx;
         static volatile boolean smsBusy = false;

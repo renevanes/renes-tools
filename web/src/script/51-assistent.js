@@ -1040,7 +1040,8 @@ function aiSpeakMsg(i){ const m = aiChat && aiChat.msgs[i]; if (m && m.c) aiSpea
 function aiSpeakStart(m, chat){
   if (aiSpk && aiSpk.m === m) { aiSpeakStop(); return; } // nog eens tikken = stoppen
   if (aiRec) { toast('Eerst stoppen met inspreken'); return; }
-  const id = 's' + (++aiSpkSeq);
+  aiSpeakStop();
+  const id = 'ai-' + Date.now() + '-' + (++aiSpkSeq);
   aiSpk = { id, m, chat, on: false };
   Android.aiSpeak(m.c, id);
   aiSpkUi();
@@ -1051,7 +1052,7 @@ window.onAiSpeak = function(o){
   if (!aiSpk || o.id !== aiSpk.id) return;
   if (o.state === 'start') { aiSpk.on = true; aiSpkUi(); return; }
   aiSpk = null; aiSpkUi();
-  if (o.state === 'error') { if (/stem|voorleesfunctie/.test(o.error || '')) askConfirm('Voorlezen lukt niet', o.error, 'OK', () => {}); else toast(o.error || 'Voorlezen lukte niet'); }
+  if (o.state === 'error') { if(o.code==='voice_missing'){spSettings();return;} if (/stem|voorleesfunctie/.test(o.error || '')) askConfirm('Voorlezen lukt niet', o.error, 'OK', () => {}); else toast(o.error || 'Voorlezen lukte niet'); }
 };
 function aiSpkUi(){
   document.querySelectorAll('#ai-msgs .aispk').forEach(b => { const m = aiChat && aiChat.msgs[+b.dataset.i]; if (m) aiSwap(b, aiSpkBtn(m, +b.dataset.i)); });

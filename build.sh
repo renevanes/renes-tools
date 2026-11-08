@@ -6,6 +6,10 @@ cd "$(dirname "$0")"
 T=${TOOLS:-/home/claude/toolchain}
 # Build-tools: BT_VERSION (zet ./publish.sh op de vastgezette versie), anders wat ./setup-tools.sh in bt/VERSION
 # schreef, anders de nieuwste die er staat
+# Dezelfde gecontroleerde lokale spraakmotor in de gewone app en Play.
+python3 tools/voorlezen/deps.py "$T/voorlezen"
+VOICE_JARS=("$T/voorlezen/sherpa.jar" "$T/voorlezen/ant-codecs.jar")
+VOICE_CP="$T/voorlezen/sherpa.jar:$T/voorlezen/ant-codecs.jar"
 BTV=${BT_VERSION:-$(cat $T/bt/VERSION 2>/dev/null || true)}
 [ -n "$BTV" ] && [ -d "$T/bt/build-tools/$BTV" ] || BTV=$(ls $T/bt/build-tools 2>/dev/null | sort -V | tail -1)
 [ -n "${BT_VERSION:-}" ] && [ "$BTV" != "$BT_VERSION" ] && { echo "Build-tools $BT_VERSION ontbreken in $T (./setup-tools.sh)"; exit 1; }
@@ -49,6 +53,8 @@ cp web/src/taal/en.json $B/assets/taal/
 # Licenties: van de app zelf (GPL-3.0) en van de meegeleverde onderdelen van anderen
 mkdir -p $B/assets/licenties
 cp LICENSE $B/assets/licenties/GPL-3.0.txt
+mkdir -p $B/assets/licenties/voorlezen
+cp app/voorlezen/*.txt $B/assets/licenties/voorlezen/
 cp web/vendor/LEAFLET-LICENSE $B/assets/licenties/leaflet.txt
 cp web/vendor/JSQR-LICENSE $B/assets/licenties/jsqr.txt
 cp app/lib/arm64-v8a/LICENSE-whisper.cpp.txt $B/assets/licenties/whisper.cpp.txt
@@ -81,12 +87,21 @@ $AAPT2 link -I $ANDROID_JAR --manifest app/AndroidManifest.xml -A $B/assets \
 # Fouten stoppen de bouw meteen (de uitvoer wordt alleen gefilterd op de JAVA_TOOL_OPTIONS-melding)
 run() { local log=$B/step.log; "$@" > $log 2>&1; local c=$?; grep -v JAVA_TOOL_OPTIONS $log || true; return $c; }
 run javac -nowarn -Xlint:-options -source 8 -target 8 -encoding UTF-8 -bootclasspath $ANDROID_JAR:$BT/core-lambda-stubs.jar \
-  -classpath app/ocr/tesseract4android.jar -d $B/classes $(find app/src $B/gen -name '*.java') || { echo "javac mislukt"; exit 1; }
+  -classpath "$VOICE_CP:app/ocr/tesseract4android.jar" -d $B/classes $(find app/src $B/gen -name '*.java') || { echo "javac mislukt"; exit 1; }
 run java -cp $BT/lib/d8.jar com.android.tools.r8.D8 --release --min-api 24 --lib $ANDROID_JAR \
-  --output $B/dex app/ocr/tesseract4android.jar $(find $B/classes -name '*.class') || { echo "d8 mislukt"; exit 1; }
-(cd $B/dex && zip -q -j ../base.apk classes.dex)
+  --output $B/dex app/ocr/tesseract4android.jar "${VOICE_JARS[@]}" $(find $B/classes -name '*.class') || { echo "d8 mislukt"; exit 1; }
+(cd $B/dex && zip -q -j ../base.apk classes*.dex)
 # 4b. Uitschrijfprogramma (whisper.cpp) als native lib; Android pakt het uit in nativeLibraryDir
 (cd app && zip -q ../$B/base.apk lib/*/*.so)
+APK_TARGET="$PWD/$B/base.apk"
+# Lokale stem: telefoons zijn arm64 (±10 MB). x86_64 (±11 MB extra) alleen voor de emulatortests: VOORLEZEN_ABIS
+# in play-controle.yml. De Play-bundel (build-play.sh) heeft beide; Play levert per toestel alleen het eigen ABI.
+VOICE_LIBS=()
+for abi in ${VOORLEZEN_ABIS:-arm64-v8a}; do
+  case $abi in arm64-v8a|x86_64) ;; *) echo "VOORLEZEN_ABIS: onbekend ABI $abi"; exit 1;; esac
+  VOICE_LIBS+=("lib/$abi/libonnxruntime.so" "lib/$abi/libsherpa-onnx-jni.so")
+done
+(cd "$T/voorlezen" && zip -q "$APK_TARGET" "${VOICE_LIBS[@]}")
 
 # 5. Uitlijnen en ondertekenen
 $BT/zipalign -f -p 4 $B/base.apk $B/aligned.apk

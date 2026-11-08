@@ -13,7 +13,7 @@ Versieprofiel: `play/basis.json`; controle 4 november 2026. Dit is de onderbouwi
 | Cast | Door gebruiker gekozen apparaat op lokaal netwerk | Afhankelijk van ontvanger | Media-URL/titel naar eigen ontvanger |
 | Diagnostiek | Lokaal foutlog; geen rapport naar ontwikkelaar | Android-appgegevens wissen | PlayPolicy blokkeert Statistiek.send in basis |
 
-Geen eigen gebruikersaccount, advertentie-ID, advertentie-SDK, betaling, ontwikkelaarstelemetrie, microfoon-, contacten-, sms-, oproep- of locatiegegevens in de Play-basis. Geen AI-modeldownloads of generatieve inhoud. Privacybeleid is in de app onder Instellingen en Info bereikbaar.
+Geen eigen gebruikersaccount, advertentie-ID, advertentie-SDK, betaling, ontwikkelaarstelemetrie, microfoon-, contacten-, sms-, oproep- of locatiegegevens in de Play-basis. Geen generatieve taalmodeldownloads of generatieve inhoud. Een voorleesstem kan na een bewuste keuze via GitHub worden gedownload; notitietekst en geproduceerde spraak blijven uitsluitend in het geheugen van het toestel. Privacybeleid is in de app onder Instellingen en Info bereikbaar.
 
 HTTPS wordt gebruikt waar bronnen het aanbieden; externe radio/feeds kunnen HTTP aanbieden. Verklaar daarom niet algemeen dat alle gegevens tijdens transport versleuteld zijn zonder de actuele bronkeuze en Console-definitie te toetsen. De app beheert geen serveraccount dat op afstand kan worden verwijderd. Een openbare GitHub-issue is geen geschikt kanaal om persoonlijke inhoud te plaatsen.
 

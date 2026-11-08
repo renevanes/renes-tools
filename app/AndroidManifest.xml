@@ -100,6 +100,7 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+        <service android:name=".ReadAloudService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <service android:name=".CallRecorderService" android:exported="false" android:foregroundServiceType="microphone" />
         <!-- Slaappraat: luistert 's nachts (microfoon) en schrijft daarna in dezelfde dienst uit op de telefoon -->
         <service android:name=".SleepService" android:exported="false" android:foregroundServiceType="microphone" />

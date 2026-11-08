@@ -9,6 +9,8 @@ Dependabot kent deze niet (geen package.json of Gradle), dus dit script doet het
   - Android build-tools, android.jar/targetSdk, aapt2, zig, Node en Java → nieuwste versies (Google, npm, PyPI, Node-schema, Adoptium)
   - AI-modellen in LocalAi.java (Hugging Face)     → nieuwere modellen van dezelfde maker in dezelfde grootte
   - toiletten-momentopname (GitHub-release)         → ouder dan 10 dagen = de wekelijkse workflow loopt niet
+  - lokaal voorlezen: sherpa-onnx, ONNX Runtime en Ant-codecs (tools/voorlezen/deps.json) → nieuwste 1.x + OSV;
+    voorleesstemmen (VoiceModels.java) → het releasebestand bestaat nog met dezelfde grootte
 
 Schrijft een Markdown-rapport naar stdout. Afsluitcode 0 = alles bij, 10 = er is iets te doen, 1 = fout.
 Alleen standaardbibliotheek; GITHUB_TOKEN (optioneel) voorkomt limieten op de GitHub-API.
@@ -97,6 +99,29 @@ OCR_MODEL = ("app/ocr/metadata.json", r'"modelCommit": "([0-9a-f]{40})"')
 ALLE = {"Tesseract4Android": OCR, "OCR-model": OCR_MODEL, "Leaflet": LEAFLET, "jsQR": JSQR, "Playwright": PLAYWRIGHT, "whisper.cpp": WHISPER,
         "llama.cpp": LLAMA, "build-tools": BUILDTOOLS, "aapt2": AAPT2, "android-platform": PLATFORM,
         "targetSdk": TARGET, "zig": ZIG, "zig (llm)": ("tools/llm-build.sh", ZIG[1]), "toiletten-momentopname": TOILETTEN}
+
+# Lokaal voorlezen: sherpa-onnx (met ONNX Runtime) en Ants TAR/BZip2-codecs uit deps.json, stemmen uit VoiceModels.java.
+SHERPA = ("tools/voorlezen/deps.json", r'"engine": "sherpa-onnx (\d+\.\d+\.\d+)"')
+SHERPA_ORT = ("tools/voorlezen/deps.json", r'"onnxruntime": "(\d+\.\d+\.\d+)"')
+ANT = ("tools/voorlezen/deps.json", r'ant/(\d+\.\d+\.\d+)/')
+# new Voice("id", Taal.T("label"), "taal", "map", "model.onnx", grootte, "sha256")
+STEMMEN = ("app/src/nl/rene/tools/VoiceModels.java",
+           r'new Voice\("([\w-]+)",\s*Taal\.T\("[^"]*"\),\s*"\w+",\s*"([^"]+)",\s*"[^"]+",\s*(\d+)L,\s*"([0-9a-f]{64})"\)')
+ALLE.update({"sherpa-onnx": SHERPA, "ONNX Runtime (voorlezen)": SHERPA_ORT, "Apache Ant-codecs": ANT})
+
+
+def stemmen():
+    gevonden = re.findall(STEMMEN[1], (ROOT / STEMMEN[0]).read_text(errors="replace"))
+    if not gevonden:
+        raise RuntimeError(f"geen voorleesstemmen gevonden in {STEMMEN[0]}")
+    return gevonden  # [(id, map, grootte, sha256)]
+
+
+def http_grootte(url):
+    """Grootte van een download (HEAD, volgt de doorverwijzing naar GitHub's opslag)."""
+    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "renes-tools-onderhoud"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return int(r.headers.get("Content-Length") or -1)
 
 
 def modellen():
@@ -205,6 +230,49 @@ def main():
     # Playwright (alleen tests; alle workflows gebruiken dezelfde package-lock.json)
     huidig = lees(*PLAYWRIGHT)
     item("Playwright (tests)", "package.json", huidig, npm_nieuwste("playwright"))
+
+    # Lokaal voorlezen. Alleen Ants TAR/BZip2-codecs; geen bouwtaken of ZIP-schrijver in de app.
+    huidig = lees(*ANT)
+    try:
+        ant = http_json("https://search.maven.org/solrsearch/select?q=g:org.apache.ant+AND+a:ant&rows=1&wt=json")
+        ant_nieuwst = ant["response"]["docs"][0]["latestVersion"]
+    except Exception:
+        ant_nieuwst = None
+    item("Apache Ant-codecs (voorlezen)", ANT[0], huidig, ant_nieuwst,
+         osv({"package": {"name": "org.apache.ant:ant", "ecosystem": "Maven"}, "version": huidig}),
+         "Alleen TAR/BZip2 en encodings; bijwerken = URL en SHA-256 in deps.json, daarna de Android-voorleestest (API 24/36).")
+    # sherpa-onnx: versie 2 heeft de eSpeak-fonemizer voor Piper niet meer ingebouwd, dus de nieuwste 1.x telt.
+    huidig = lees(*SHERPA)
+    try:
+        tags = [r["tag_name"].lstrip("v") for r in
+                http_json("https://api.github.com/repos/k2-fsa/sherpa-onnx/releases?per_page=100", github=True)
+                if not r.get("prerelease") and re.fullmatch(r"v?\d+\.\d+\.\d+", r["tag_name"])]
+        een = [t for t in tags if t.startswith("1.")]
+        nieuwst = max(een, key=versie_tuple) if een else None
+        alles = max(tags, key=versie_tuple) if tags else None
+        opm = ("Bijwerken: URL's en SHA-256 in tools/voorlezen/deps.json, licenties in app/voorlezen/, "
+               "VoiceEngine.ENGINE; daarna de Android-voorleestest (Play-controle, API 24 en 36)."
+               + (f" Nieuwste overall: {alles} (versie 2+ eerst nagaan: eSpeak/Piper-ondersteuning)." if alles and alles != nieuwst else ""))
+    except Exception as e:
+        nieuwst, opm = None, f"GitHub niet bereikbaar ({e}); controleer met de hand"
+    item("sherpa-onnx (voorlezen)", SHERPA[0], huidig, nieuwst,
+         osv({"package": {"name": "sherpa-onnx", "ecosystem": "PyPI"}, "version": huidig}), opm,
+         verouderd=None if nieuwst else True)
+    huidig = lees(*SHERPA_ORT)
+    item("ONNX Runtime (in sherpa-onnx)", SHERPA_ORT[0], huidig, None,
+         osv({"package": {"name": "onnxruntime", "ecosystem": "PyPI"}, "version": huidig}),
+         "Komt mee met het Android-archief van sherpa-onnx; bijwerken = nieuwe sherpa-onnx.")
+    # Voorleesstemmen: vaste grootte en SHA-256; het bestand in de release mag niet veranderen of verdwijnen.
+    for sid, map_, grootte, sha in stemmen():
+        url = f"https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/{map_}.tar.bz2"
+        try:
+            nu = http_grootte(url)
+            opm = "" if nu == int(grootte) else (f"grootte in de release is nu {nu} (vast: {grootte}): bestand veranderd of weg; "
+                                                  "de app weigert het (SHA-256). Nieuw bestand = nieuwe stem met een eigen id")
+        except Exception as e:
+            nu, opm = None, f"niet bereikbaar ({e}); downloaden lukt dan ook in de app niet"
+        item("Voorleesstem " + sid, STEMMEN[0], f"{map_} ({grootte} bytes, sha256 {sha[:12]}…)", None, (), opm,
+             verouderd=bool(opm))
 
     # whisper.cpp (zelf gebouwde libwhisper*.so)
     commit = lees(*WHISPER)
@@ -374,6 +442,8 @@ if __name__ == "__main__":
                 print(f"{naam}: {lees(pad, patroon)}")
             for mid, repo, commit, bestand in modellen():
                 print(f"AI-model {mid}: {repo}@{commit[:12]} {bestand} {model_soort(bestand)} {familie(bestand)}")
+            for sid, map_, grootte, sha in stemmen():
+                print(f"Voorleesstem {sid}: {map_} {grootte} bytes sha256 {sha[:12]}")
         except Exception as e:
             print(f"Versie niet te lezen: {e}. Pas de schrijfwijze of het patroon in dit script aan.", file=sys.stderr)
             sys.exit(1)

@@ -23,7 +23,7 @@ final class Models {
         o.put("free", free).put("online", ModelDownloadService.online(c)).put("metered", ModelDownloadService.metered(c))
                 .put("wifiOnly", LocalAi.wifiOnly(c)).put("supported", LocalAi.supported()).put("txBusy", TranscribeService.busy);
         JSONArray ms = new JSONArray();
-        long used = 0;
+        long used = VoiceModels.bytes(VoiceModels.root(c));
         String chat = LocalAi.chatModel(c).id;
         for (LocalAi.Model m : LocalAi.MODELS) {
             JSONObject s = LocalAi.state(c, m);
@@ -52,7 +52,7 @@ final class Models {
         }
         long left = 0;
         try { left = LocalAi.orphanBytes(c) + whisperParts(c, false); } catch (Throwable ignored) { }
-        o.put("models", ms).put("used", used).put("leftovers", left).put("ram", LocalAi.ramBytes(c)).put("tts", TtsCheck.json())
+        o.put("models", ms).put("used", used).put("leftovers", left).put("ram", LocalAi.ramBytes(c)).put("tts", TtsCheck.json()).put("speech",VoiceModels.json(c))
                 .put("engines", new JSONObject().put("ai", LocalAi.ENGINE).put("zoek", LocalAi.ENGINE).put("spraak", Transcribe.ENGINE));
         return o;
     }

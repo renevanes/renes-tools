@@ -28,6 +28,8 @@ jobs:
         api: [24, 36]
     env:
       TOOLS: ${{ github.workspace }}/../toolchain
+      # De emulator is x86_64: de lokale stem daarvoor ook meebouwen (de gepubliceerde APK heeft alleen arm64-v8a).
+      VOORLEZEN_ABIS: arm64-v8a x86_64
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -83,5 +85,7 @@ jobs:
             build-play/telefoon/
             build-play/idcopy-test/**/result.txt
             build-play/masterdata-test/**/result.txt
+            build-play/voorlezen-test/**/result.txt
+            build-play/voorlezen-test/**/logcat.txt
           retention-days: 14
           if-no-files-found: ignore

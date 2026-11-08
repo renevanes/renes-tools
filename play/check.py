@@ -31,6 +31,8 @@ def check(xml, package, names):
         ocr = {'libjpeg.so', 'libleptonica.so', 'libpngx.so', 'libtesseract.so'}
         abis = {'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'}
         allowed = {'base/lib/' + abi + '/' + name for abi in abis for name in ocr}
+        allowed |= {'base/lib/' + abi + '/' + name for abi in ('arm64-v8a', 'x86_64')
+                    for name in ('libonnxruntime.so', 'libsherpa-onnx-jni.so')}
         require(all(n in allowed for n in names if n.endswith('.so')), 'Onverwachte native programma\'s in de basisversie')
 
 

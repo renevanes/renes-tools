@@ -4,7 +4,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 T=${TOOLS:-/home/claude/toolchain}
-CP="build/test:build/classes:$T/ap/android-36/android.jar"
+CP="build/test:build/classes:$T/ap/android-36/android.jar:$T/voorlezen/sherpa.jar:$T/voorlezen/ant-codecs.jar"
 [ -d build/classes/nl ] || { echo "Eerst ./build.sh"; exit 1; }
 rm -rf build/test && mkdir -p build/test
 compile_log=$(mktemp) || exit 1

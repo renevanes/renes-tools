@@ -25,7 +25,7 @@
 <section class="screen notes-modern" id="s-note">
   <div class="hdr sm">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 tabindex="-1">Notitie</h1>
+    <h1 tabindex="-1">Notitie</h1><button class="icon-btn" id="note-speak" onclick="spNote()" aria-label="Notitie voorlezen" data-icon="volume-high"></button>
     <button class="icon-btn" onclick="deleteNote()" aria-label="Verwijderen"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
   </div>
 <div class="card notes-save-state" role="status" hidden><p></p><button class="big" onclick="notesSaveNow()">Opnieuw opslaan</button></div>

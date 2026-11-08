@@ -5,7 +5,7 @@
   "toestemmingen": [
     "android.permission.INTERNET", "android.permission.ACCESS_NETWORK_STATE",
     "android.permission.POST_NOTIFICATIONS", "android.permission.FOREGROUND_SERVICE",
-    "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK", "android.permission.WAKE_LOCK",
+    "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK", "android.permission.FOREGROUND_SERVICE_DATA_SYNC", "android.permission.WAKE_LOCK",
     "android.permission.VIBRATE", "android.permission.USE_BIOMETRIC", "android.permission.SYSTEM_ALERT_WINDOW",
     "android.permission.RECEIVE_BOOT_COMPLETED", "android.permission.SCHEDULE_EXACT_ALARM"
   ],
@@ -14,6 +14,7 @@
     ".PdfShareActivity", ".PdfViewActivity", ".PdfProvider",
     ".NoteWidget", ".NoteWidgetService", ".NoteWidgetConfig", ".NoteAddActivity",
     ".RadioService", ".PodcastService", ".PodcastDownloadJob", ".RadioWidget",
-    ".PlayerReceiver", ".AlarmReceiver", ".PinShortcutActivity", ".CastService"
+    ".PlayerReceiver", ".AlarmReceiver", ".PinShortcutActivity", ".CastService",
+    ".ReadAloudService", ".ModelDownloadService"
   ]
 }

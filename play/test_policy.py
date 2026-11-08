@@ -70,6 +70,14 @@ class PlayBundleTest(unittest.TestCase):
             with self.subTest(path=unexpected), self.assertRaises(ValueError):
                 self.validate(names=names + [unexpected])
 
+    def test_local_read_aloud(self):
+        names = ['base/lib/' + abi + '/' + lib for abi in ('arm64-v8a', 'x86_64')
+                 for lib in ('libonnxruntime.so', 'libsherpa-onnx-jni.so')]
+        self.validate(names=names)
+        for unexpected in ('base/lib/armeabi-v7a/libsherpa-onnx-jni.so', 'base/lib/x86/libonnxruntime.so', 'assets/libsherpa-onnx-jni.so'):
+            with self.subTest(path=unexpected), self.assertRaises(ValueError):
+                self.validate(names=names + [unexpected])
+
     def test_old_target(self):
         self.root.find('uses-sdk').set(A + 'targetSdkVersion', '35')
         with self.assertRaises(ValueError):

@@ -69,7 +69,7 @@ final class AppData {
      */
     static final List<String> PREFS_KNOWN = Collections.unmodifiableList(Arrays.asList(
             "allbackup", "alarm", "apparaten", "backupmap", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "facturen", "gebruik", "launcher",
-            "localai", "lock", "mockloc", "models", "music", "notepins", "notification_history", "notifcenter", "pdf",
+            "voorlezen", "localai", "lock", "mockloc", "models", "music", "notepins", "notification_history", "notifcenter", "pdf",
             "pdfview", "pinned_shortcuts", "player", "podcast", "podcast_dl", "radio", "redial", "redialplan", "regio", "reminders",
             "sleeptalk", "sms", "solo", "spotify", "tracks", "transcribe", "txdur", "txmeta", "ui", "vpn", "wabackup",
             "webstore", "workspace"));
@@ -113,6 +113,7 @@ final class AppData {
         k.put("spotify", set("refresh")); // versleuteld met de sleutel van de telefoon: gaat via geheim/waarden.json
         KEY_SKIP = Collections.unmodifiableMap(k);
         Map<String, List<String>> p = new HashMap<>();
+        p.put("voorlezen", Arrays.asList("download_", "error_"));
         p.put("localai", Arrays.asList("dl_", "ok_", "own_", "err_", "retry_", "tried_")); // downloads van deze installatie
         KEY_SKIP_PREFIX = Collections.unmodifiableMap(p);
     }

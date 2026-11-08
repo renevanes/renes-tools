@@ -40,10 +40,11 @@ const { chromium } = require('playwright');
     const klein = cat('ai') + ' .md-linebox[data-line="ai:klein35"]';
     ok((await txt(klein)).includes('Je hebt versie: Qwen3 1.7B · oudere versie') && (await txt(klein)).includes('2 dagen geleden gebruikt'), 'je hebt de oudere versie (' + (await txt(klein)).slice(0, 140) + ')');
     ok((await txt(klein + ' .md-newer')).includes('Nieuwere versie: Qwen3.5 2B') && (await txt(klein + ' .md-newer')).includes('Nederlands'), 'nieuwere versie met waarom');
-    // Voorlezen: Android-stem gecontroleerd
-    ok(await until(() => /Nederlandse stem \(Spraakservices van Google\)/.test(document.querySelector('#md-cats .md-cat[data-kind="tts"]').textContent)), 'voorlezen: Nederlandse stem gevonden');
-    await pg.click(cat('tts') + ' button:has-text("Stem en snelheid")');
-    ok(await pg.evaluate(() => Android._md.calls.includes('ttsSettings')), 'instellingen van de stem');
+    // De lokale voorleesstem wordt door de app beheerd, voor alle onderdelen.
+    ok(await until(() => /Ronnie/.test(document.querySelector('#md-cats .md-cat[data-kind="tts"]').textContent)), 'lokale voorleesstem gevonden');
+    await pg.click(cat('tts') + ' button:has-text("Lokale stemmen beheren")');
+    ok(await pg.evaluate(() => sp.settings) && (await pg.textContent('#speech-voices')).includes('Ronnie'), 'gedeelde steminstellingen');
+    await pg.evaluate(()=>spSettingsClose());
     // Een oudere versie onderbroken: niet verder, wel stoppen; de nieuwste wordt aangeboden
     const groot = cat('ai') + ' .md-linebox[data-line="ai:groot35"]';
     ok((await txt(groot)).includes('Geen verbinding') && (await txt(groot)).includes('24%') && (await txt(groot)).includes('Qwen3 4B (oudere versie)'), 'onderbroken oudere versie met voortgang (' + (await txt(groot)).slice(0, 160) + ')');
@@ -83,14 +84,13 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._ai.st.zoek = { state: 'failed', reason: 'Download mislukt (HTTP 404)', via: 'app', bytes: 0, total: 639150592 }; mdRefresh(); });
     ok((await txt(cat('zoek') + ' .md-catst')).includes('Downloaden mislukt') && await pg.isVisible(cat('zoek') + ' button:has-text("Opnieuw")') && !(await txt(cat('zoek'))).includes('vanzelf'), 'mislukt: Opnieuw, geen belofte dat het vanzelf gaat');
     await pg.evaluate(() => { Android._ai.st.zoek = { state: 'none' }; mdRefresh(); });
-    // Voorlezen zonder Nederlandse stem
-    await pg.evaluate(() => { Android._md.ttsNext = { state: 'nodutch', engine: 'Samsung TTS' }; mdTtsCheck(); });
-    ok(await until(() => /Geen Nederlandse stem/.test(document.querySelector('#md-cats .md-cat[data-kind="tts"]').textContent)), 'geen Nederlandse stem');
-    await pg.click(cat('tts') + ' button:has-text("Nederlandse stem toevoegen")');
-    ok(await pg.evaluate(() => Android._md.calls.includes('ttsInstall')), 'stem toevoegen');
-    // Terug in de app: de app kijkt vanzelf opnieuw
-    await pg.evaluate(() => { Android._md.ttsNext = { state: 'ok', engine: 'Samsung TTS' }; onResumeApp(); });
-    ok(await until(() => /Nederlandse stem \(Samsung TTS\)/.test(document.querySelector('#md-cats .md-cat[data-kind="tts"]').textContent)), 'na terugkomen opnieuw gekeken');
+    // Zonder model blijft downloaden expliciet; terugkeer ververst de status.
+    await pg.evaluate(() => { Android._speech.voice='';Android._speech.voices.forEach(v=>v.state='none');mdRefresh(); });
+    ok((await txt(cat('tts'))).includes('Nog geen lokale voorleesstem'), 'geen voorleesmodel gedownload');
+    await pg.click(cat('tts') + ' button:has-text("Lokale stemmen beheren")');
+    await pg.locator('#speech-voices .speech-voice').first().getByRole('button',{name:'Stem downloaden',exact:true}).click();
+    await pg.waitForFunction(()=>Android._speech.voices[0].state==='ready');await pg.evaluate(()=>{spSettingsClose();onResumeApp();});
+    ok(await until(() => /Ronnie/.test(document.querySelector('#md-cats .md-cat[data-kind="tts"]').textContent)), 'nieuwe stem na terugkeer beschikbaar');
     // Opruimen
     await pg.click('#md-sum button:has-text("Opruimen")'); await pg.waitForTimeout(100);
     ok((await pg.textContent('#toast')).includes('300 MB vrijgemaakt'), 'opgeruimd');

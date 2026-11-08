@@ -1,0 +1,18 @@
+{
+ "engine": "sherpa-onnx 1.13.8",
+ "onnxruntime": "1.28.2",
+ "files": {
+  "android.tar.bz2": [
+   "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-v1.13.8-android.tar.bz2",
+   "2ff63469a71cb6009aa2e3ed5f4a670f8abdcbe4bb9ffd23776afc792a6b4f44"
+  ],
+  "sherpa.jar": [
+   "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-jvm-1.13.8.jar",
+   "77b7b047fade4eadada96b568eb92615049aaf1dc317c7244e46c1ea38b9a63b"
+  ],
+  "ant.jar": [
+   "https://repo.maven.apache.org/maven2/org/apache/ant/ant/1.10.18/ant-1.10.18.jar",
+   "a12d775f581ad87592b1b1c7ff6fa5bcf6bb784974b94c848b0695ae15765f46"
+  ]
+ }
+}

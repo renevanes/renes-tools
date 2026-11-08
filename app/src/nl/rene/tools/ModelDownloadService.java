@@ -45,6 +45,7 @@ public class ModelDownloadService extends Service {
     private volatile int lastStartId;
 
     static void start(Context c, String id) {
+        if(VoiceModels.model(id)==null&&!PlayPolicy.allows(c,"ai"))return;
         STOP.remove(id);
         QUEUED.add(id);
         Intent i = new Intent(c, ModelDownloadService.class).putExtra("id", id);
@@ -52,7 +53,7 @@ public class ModelDownloadService extends Service {
             if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
         } catch (Exception e) {
             QUEUED.remove(id);
-            LocalAi.ownFailed(c, id, "Android staat het downloaden nu niet toe; probeer het zo opnieuw");
+            failed(c,id,"Android staat het downloaden nu niet toe; probeer het zo opnieuw");
         }
     }
 
@@ -66,7 +67,7 @@ public class ModelDownloadService extends Service {
             boolean running; synchronized (queue) { running = worker != null; }
             if (!running) {
                 String id = intent == null ? null : intent.getStringExtra("id");
-                if (id != null) { QUEUED.remove(id); LocalAi.ownFailed(this, id, "Android staat het downloaden nu niet toe; probeer het zo opnieuw"); }
+                if (id != null) { QUEUED.remove(id); failed(this,id,"Android staat het downloaden nu niet toe; probeer het zo opnieuw"); }
                 stopSelfResult(startId);
                 return START_NOT_STICKY;
             }
@@ -74,7 +75,7 @@ public class ModelDownloadService extends Service {
         synchronized (queue) {
             lastStartId = startId;
             String id = intent == null ? null : intent.getStringExtra("id");
-            if (id != null && LocalAi.model(id) != null && !queue.contains(id) && !RUN.containsKey(id) && !id.equals(working)) queue.add(id);
+            if (id != null && (LocalAi.model(id) != null&&PlayPolicy.allows(this,"ai") || VoiceModels.model(id) != null) && !queue.contains(id) && !RUN.containsKey(id) && !id.equals(working)) queue.add(id);
             if (worker == null) { worker = new Thread(this::work, "model-download"); worker.start(); }
         }
         return START_NOT_STICKY;
@@ -84,7 +85,7 @@ public class ModelDownloadService extends Service {
     @Override
     public void onTimeout(int startId, int fgsType) {
         synchronized (queue) { for (String id : queue) stop(id); }
-        for (String id : RUN.keySet()) { LocalAi.ownFailed(this, id, "Android stopte het downloaden na 6 uur; het gaat later vanzelf verder"); stop(id); }
+        for (String id : RUN.keySet()) { failed(this,id,"Android stopte het downloaden na 6 uur; het gaat later vanzelf verder"); stop(id); }
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
     }
@@ -109,7 +110,7 @@ public class ModelDownloadService extends Service {
                 QUEUED.remove(id);
                 try {
                     if (STOP.remove(id)) continue;
-                    if (!LocalAi.wantsOwn(this, id)) continue; // intussen gestopt, verwijderd of al klaar
+                    if (VoiceModels.model(id)!=null ? !VoiceModels.wanted(this,id) : !LocalAi.wantsOwn(this, id)) continue; // intussen gestopt, verwijderd of al klaar
                     one(id);
                 } finally { working = null; }
             }
@@ -162,6 +163,7 @@ public class ModelDownloadService extends Service {
     private long lastNotif;
 
     private void one(String id) {
+        if(VoiceModels.model(id)!=null){oneVoice(VoiceModels.model(id));return;}
         LocalAi.Model m = LocalAi.model(id);
         if (m == null) return;
         String blocked = netBlocked(this);
@@ -195,7 +197,7 @@ public class ModelDownloadService extends Service {
                 long[] was = RUN.put(id, new long[]{done, total});
                 // Er komt echt iets binnen: een volgende onderbreking mag bij het openen van de app meteen weer verder
                 if (was != null && done > was[0] && was[0] == startAt[0]) LocalAi.prefs(this).edit().remove("tried_" + id).apply();
-                long now = System.currentTimeMillis();
+                long now = android.os.SystemClock.elapsedRealtime();
                 if (!STOP.contains(id) && (now - lastNotif > 1000 || done >= total)) {
                     lastNotif = now;
                     int pct = total > 0 ? (int) (done * 100 / total) : -1;
@@ -214,6 +216,19 @@ public class ModelDownloadService extends Service {
             App.log(this, "AI", "model downloaden: " + e + (e.getCause() != null ? " (" + e.getCause() + ")" : ""));
             LocalAi.ownFailed(this, id, why(e), !(e instanceof ModelFetch.Fatal) && !"Te weinig opslag".equals(why(e)));
         }
+    }
+
+    static void failed(Context c,String id,String message){if(VoiceModels.model(id)!=null)VoiceModels.failed(c,id,message);else LocalAi.ownFailed(c,id,message);}
+    private void oneVoice(VoiceModels.Voice voice){
+        String id=voice.id;try{
+            String blocked=netBlocked(this);if(blocked!=null)blocked=waitForNet(id);if(STOP.contains(id))return;if(blocked!=null){VoiceModels.failed(this,id,blocked);return;}
+            final long[] netAt={0};final String[] reason={null};
+            java.util.function.BooleanSupplier stopped=()->{if(STOP.contains(id)||!VoiceModels.wanted(this,id))return true;long now=android.os.SystemClock.elapsedRealtime();if(now-netAt[0]>2000){netAt[0]=now;if(netBlocked(this)!=null)reason[0]=waitForNet(id);}return STOP.contains(id)||reason[0]!=null;};
+            RUN.put(id,new long[]{VoiceModels.part(this,voice).length(),voice.size});
+            ModelFetch.fetch(voice.url(),VoiceModels.part(this,voice),voice.size,(done,total)->{RUN.put(id,new long[]{done,total});long now=android.os.SystemClock.elapsedRealtime();if(now-lastNotif>1000){lastNotif=now;((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID,notif(Taal.t(this,"Voorleesstem downloaden"),Taal.t(this,"{a} van {b}","a",Regio.size(this,done,1,2),"b",Regio.size(this,total,1,2)),(int)(done*100/total)));}},stopped);
+            if(STOP.contains(id)||!VoiceModels.wanted(this,id))throw new ModelFetch.Stopped();
+            ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID,notif(Taal.t(this,"Voorleesstem controleren"),Taal.t(this,"Controleren en uitpakken…"),-1));VoiceModels.install(this,voice,()->STOP.contains(id)||!VoiceModels.wanted(this,id));
+        }catch(ModelFetch.Stopped ignored){ }catch(Throwable e){VoiceModels.failed(this,id,why(e));}finally{RUN.remove(id);STOP.remove(id);MainActivity.jsAll("onAiModels","");}
     }
 
     /** Een foutmelding in gewone taal (de echte staat in het logboek). Zuiver (getest). */
