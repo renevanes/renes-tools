@@ -19,6 +19,9 @@ with tarfile.open(out/'android.tar.bz2','r:bz2') as archive:
             if not entry.isfile() or entry.size>80*1024*1024: raise SystemExit('Onverwachte native bibliotheek')
             target=out/'lib'/abi/lib; target.parent.mkdir(parents=True,exist_ok=True)
             content=archive.extractfile(entry).read()
+            # ONNX Runtime-versie in deps.json moet kloppen (onderhoud-controle.py zoekt er kwetsbaarheden bij).
+            if lib=='libonnxruntime.so' and b'VERS_'+manifest['onnxruntime'].encode()+b'\x00' not in content:
+                raise SystemExit('ONNX Runtime-versie klopt niet met deps.json')
             if not target.is_file() or hashlib.sha256(target.read_bytes()).digest()!=hashlib.sha256(content).digest():
                 target.write_bytes(content)
 

@@ -160,8 +160,8 @@ public class AiActionsTest {
         // Voorlezen: opmaak weg
         String sp = AiSpeech.plain("## Kop\n**Vet** en *schuin* met `code` [1].\n- Eén\n- Twee\n1. Drie");
         check(sp.equals("Kop.\nVet en schuin met code.\nEén.\nTwee.\nDrie."), "voorlezen zonder opmaak: " + sp.replace("\n", "⏎"));
-        java.util.List<String> parts = AiSpeech.chunks(new String(new char[9000]).replace('\0', 'a').replaceAll("(a{99})a", "$1. "), 3900);
-        boolean small = true; for (String s : parts) if (s.length() > 3900) small = false;
+        java.util.List<int[]> parts = ReadAloud.segments(new String(new char[9000]).replace('\0', 'a').replaceAll("(a{99})a", "$1. "), 0, 220);
+        boolean small = true; for (int[] s : parts) if (s[1] - s[0] > 220) small = false;
         check(parts.size() >= 3 && small, "lange tekst in stukken voor de spraakmotor");
 
         System.out.println(fails == 0 ? "Alles goed" : fails + " fout(en)");

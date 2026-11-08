@@ -36,7 +36,7 @@ public final class VoiceDeviceTest extends Instrumentation {
         call(models,null,"install",new Class<?>[]{Context.class,voiceType,BooleanSupplier.class},isolated,voice,(BooleanSupplier)()->false);
         check((Boolean)call(models,null,"ready",new Class<?>[]{Context.class,voiceType},isolated,voice),"verified model installed");
         File dir=(File)call(models,null,"dir",new Class<?>[]{Context.class,voiceType},isolated,voice);Constructor<?> ctor=engineType.getDeclaredConstructor(File.class,voiceType);ctor.setAccessible(true);engine=ctor.newInstance(dir,voice);
-        int rate=(Integer)call(engineType,engine,"rate",new Class<?>[]{});float[] samples=(float[])call(engineType,engine,"generate",new Class<?>[]{String.class,float.class},"Dit is een lokale voorleesproef.",1f);
+        int rate=field(engineType,"rate").getInt(engine);float[] samples=(float[])call(engineType,engine,"generate",new Class<?>[]{String.class,float.class},"Dit is een lokale voorleesproef.",1f);
         double energy=0;for(float x:samples){check(!Float.isNaN(x)&&!Float.isInfinite(x),"finite audio");energy+=(double)x*x;}
         check(rate==22050&&samples.length>rate/2&&energy/samples.length>.000001,"real non-silent Dutch speech");call(engineType,engine,"close",new Class<?>[]{});engine=null;
         ownership();
@@ -48,18 +48,26 @@ public final class VoiceDeviceTest extends Instrumentation {
     void playback()throws Exception{
         Activity a=startActivitySync(new Intent().setClassName(target.getPackageName(),"nl.rene.tools.MainActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         core=type("ReadAloud");jobType=type("ReadAloud$Job");sinkType=type("ReadAloud$Sink");Field current=field(core,"current");String owner=(String)field(a.getClass(),"speechOwner").get(a);
-        java.util.concurrent.atomic.AtomicReference<String> error=new java.util.concurrent.atomic.AtomicReference<>();
-        Object sink=Proxy.newProxyInstance(sinkType.getClassLoader(),new Class<?>[]{sinkType},(p,m,args)->{org.json.JSONObject e=(org.json.JSONObject)args[0];if(e.optString("state").equals("error"))error.set(e.optString("error"));return null;});
+        java.util.concurrent.atomic.AtomicReference<String> error=new java.util.concurrent.atomic.AtomicReference<>();java.util.concurrent.atomic.AtomicReference<org.json.JSONObject> heard=new java.util.concurrent.atomic.AtomicReference<>();
+        Object sink=Proxy.newProxyInstance(sinkType.getClassLoader(),new Class<?>[]{sinkType},(p,m,args)->{org.json.JSONObject e=(org.json.JSONObject)args[0];if(e.optString("state").equals("error"))error.set(e.optString("error"));if(e.optString("state").equals("playing")&&heard.get()==null)heard.set(e);return null;});
         try{
             call(core,null,"start",new Class<?>[]{a.getClass(),String.class,String.class,String.class,String.class,int.class,int.class,boolean.class,sinkType},a,"background-ci","reader","Dit is een langere lokale voorleesproef. De stem blijft voorlezen met het scherm uit. Daarna pauzeren we en gaan we weer verder.","",0,0,true,sink);
             await(()->{Object j=current.get(null);return error.get()!=null||j!=null&&field(jobType,"state").get(j).equals("playing");},"local playback starts");check(error.get()==null,"audio engine: "+error.get());Object j=current.get(null);
             Class<?> service=type("ReadAloudService");java.lang.ref.WeakReference<?> live=(java.lang.ref.WeakReference<?>)field(service,"live").get(null);Object instance=live.get();check(instance!=null,"foreground service active");
             android.media.session.MediaSession session=(android.media.session.MediaSession)field(service,"session").get(instance);android.media.session.MediaController controller=new android.media.session.MediaController(target,session.getSessionToken());
+            org.json.JSONObject first=heard.get();check(first!=null&&first.getInt("offset")==0&&first.getInt("end")==40,"first sentence [0,40) is reported as audible: "+first);
             controller.getTransportControls().pause();await(()->(Boolean)field(jobType,"paused").get(j),"media pause");
+            check(live.get()==instance&&field(service,"request").get(instance).equals("background-ci"),"service stays in the foreground while paused");
             call(core,null,"event",new Class<?>[]{jobType,String.class,String.class},j,"progress",null);check(field(jobType,"state").get(j).equals("paused"),"late progress preserves paused state");
             check(((AudioTrack)field(jobType,"track").get(j)).getPlayState()==AudioTrack.PLAYSTATE_PAUSED,"audio actually paused");android.os.PowerManager.WakeLock wake=(android.os.PowerManager.WakeLock)field(jobType,"wake").get(j);check(wake==null||!wake.isHeld(),"pause releases CPU lock");
             target.startService(new Intent().setClassName(target.getPackageName(),"nl.rene.tools.ReadAloudService").setAction("stop").putExtra("request","previous-request"));Thread.sleep(100);check(current.get(null)==j,"stale notification does not stop new session");
             runOnMainSync(()->a.moveTaskToBack(true));controller.getTransportControls().play();await(()->!(Boolean)field(jobType,"paused").get(j),"background resume");check(current.get(null)==j,"book survives background transition");
+            Class<?>[] focusSig={jobType,int.class};
+            call(core,null,"focusChanged",focusSig,j,AudioManager.AUDIOFOCUS_LOSS_TRANSIENT);check((Boolean)field(jobType,"paused").get(j)&&(Boolean)field(jobType,"focusPaused").get(j),"transient focus loss (call) pauses");
+            call(core,null,"focusChanged",focusSig,j,AudioManager.AUDIOFOCUS_GAIN);check(!(Boolean)field(jobType,"paused").get(j)&&current.get(null)==j,"focus regained resumes the same session");
+            call(core,null,"focusChanged",focusSig,j,AudioManager.AUDIOFOCUS_LOSS);check((Boolean)field(jobType,"paused").get(j)&&(Boolean)field(jobType,"focusLost").get(j),"permanent focus loss pauses");
+            call(core,null,"focusChanged",focusSig,j,AudioManager.AUDIOFOCUS_GAIN);check((Boolean)field(jobType,"paused").get(j),"after a permanent loss only Rene resumes");
+            controller.getTransportControls().play();await(()->!(Boolean)field(jobType,"paused").get(j),"resume requests focus again");
             controller.getTransportControls().stop();await(()->current.get(null)==null,"media stop");
         }finally{call(core,null,"stop",new Class<?>[]{String.class,String.class},owner,null);java.util.concurrent.ExecutorService worker=(java.util.concurrent.ExecutorService)field(core,"WORK").get(null);worker.submit(()->{}).get(15,TimeUnit.SECONDS);runOnMainSync(a::finish);}
     }

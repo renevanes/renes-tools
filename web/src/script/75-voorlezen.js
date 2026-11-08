@@ -1,4 +1,9 @@
-/* Gedeelde voorleesclient. Alleen native stemmen, één actieve aanvraag en geen opslag van tekst/audio. */
+/* Gedeelde voorleesclient. Alleen native stemmen, één actieve aanvraag en geen opslag van tekst/audio.
+   Gebruik: spText(tekst, bron, markdown) of spBook() (vanaf de leesplek, door de hoofdstukken heen); spPause/spStop; spSettings.
+   onSpeech(e): {request, source, state, book, chapter, offset, end}. 'playing' = [offset, end) van de tekst of het
+   hoofdstuk is nu hoorbaar (één zin: om te markeren en de pagina te volgen); 'progress' = tot offset uitgesproken
+   (boek: leesplek bewaard); 'chapter' = volgend hoofdstuk; 'paused' (met error als verder niet lukte), 'done',
+   'stopped', 'error'. Snelheid: speechConfigure (geldt vanaf de volgende zin of de zin daarna). Zie docs/voorlezen.md. */
 const sp={active:null,seq:0,settings:false,models:{voices:[]},focus:null,origin:'',timer:null,following:false,readerLocation:null};
 function spReadModels(){try{return JSON.parse(Android.speechModels());}catch(_){return {voices:[],supported:false};}}
 function spAvailable(){if(typeof Android.speechStart!=='function'){toast(t('Installeer de nieuwste APK voor lokaal voorlezen'));return false;}sp.models=spReadModels();if(!sp.models.voice){spSettings();return false;}return true;}
@@ -26,6 +31,7 @@ window.onSpeech=function(e){
     if(current==='erbook')spFollowReader(e);else sp.readerLocation={...e};
   }
   if(['done','stopped','error'].includes(e.state)){sp.active=null;spSpeechRender();if(e.state==='error'&&e.source!=='ai'){if(!spReadModels().voice)spSettings();toast(e.error||t('Lokaal voorlezen lukt niet; probeer een korter stuk tekst'));}return;}
+  if(e.state==='paused'&&e.error)toast(e.error); // verder lukte niet: een andere app (bijv. een gesprek) heeft het geluid
   spSpeechRender();
 };
 function spFollowReader(e){sp.readerLocation=null;sp.following=true;try{if(erIndex!==e.chapter)erChapter(e.chapter,e.offset);else erRestoreLocation({anchor:e.offset,offset:erText.length?e.offset/erText.length:0});erPendingLocation={chapter:e.chapter,anchor:e.offset,offset:erText.length?e.offset/erText.length:0};erCurrentAnchor=e.offset;erCurrentOffset=erPendingLocation.offset;erProgress();}finally{sp.following=false;}}

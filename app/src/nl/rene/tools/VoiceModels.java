@@ -2,7 +2,6 @@ package nl.rene.tools;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.Build;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.*;
@@ -23,7 +22,8 @@ final class VoiceModels {
         new Voice("tts-en-ljspeech",Taal.T("LJ Speech · Engels"),"en","vits-piper-en_US-ljspeech-medium-int8","en_US-ljspeech-medium.onnx",21090429L,"24dc3bd77dd48c291e52c297878d3437c9492f245d823d7f6a06c4bbb67f4b6b")
     };
     static Voice model(String id){for(Voice v:VOICES)if(v.id.equals(id))return v;return null;}
-    static boolean supported(){for(String abi:Build.SUPPORTED_ABIS)if(abi.equals("arm64-v8a")||abi.equals("x86_64"))return true;return false;}
+    /** De spraakmotor staat in deze installatie (APK: alleen arm64-v8a; de emulatortest en Play ook x86_64). */
+    static boolean supported(Context c){try{String d=c.getApplicationInfo().nativeLibraryDir;return d!=null&&new File(d,"libsherpa-onnx-jni.so").isFile()&&new File(d,"libonnxruntime.so").isFile();}catch(Throwable e){return false;}}
     static SharedPreferences prefs(Context c){return c.getSharedPreferences("voorlezen",Context.MODE_PRIVATE);}
     static File root(Context c){File f=new File(c.getNoBackupFilesDir(),"voorleesmodellen");f.mkdirs();return f;}
     static File dir(Context c,Voice v){return new File(root(c),v.id);}
@@ -34,7 +34,7 @@ final class VoiceModels {
     static void configure(Context c,String voice,double speed)throws Exception {if(!Double.isFinite(speed)||speed<.6||speed>1.8||!voice.isEmpty()&&model(voice)==null)throw new Exception(Taal.T("Kies een stem en een snelheid tussen 0,6 en 1,8"));SharedPreferences.Editor e=prefs(c).edit().putFloat("speed",(float)speed);if(!voice.isEmpty())e.putString("voice",voice);e.apply();}
     static boolean wanted(Context c,String id){return prefs(c).getBoolean("download_"+id,false);}
     static void failed(Context c,String id,String message){prefs(c).edit().putString("error_"+id,message).apply();MainActivity.jsAll("onAiModels", "");}
-    static void download(Context c,Voice v)throws Exception {if(!supported())throw new Exception(Taal.T("Lokale voorleesstemmen werken op een 64-bits toestel"));if(ready(c,v))return;prefs(c).edit().putBoolean("download_"+v.id,true).remove("error_"+v.id).apply();ModelDownloadService.start(c,v.id);}
+    static void download(Context c,Voice v)throws Exception {if(!supported(c))throw new Exception(Taal.T("Lokale voorleesstemmen werken op een 64-bits toestel"));if(ready(c,v))return;prefs(c).edit().putBoolean("download_"+v.id,true).remove("error_"+v.id).apply();ModelDownloadService.start(c,v.id);}
     static void stop(Context c,String id){ModelDownloadService.stop(id);prefs(c).edit().putBoolean("download_"+id,false).apply();}
     static void install(Context c,Voice v,BooleanSupplier stop)throws Exception {
         File archive=part(c,v),stage=new File(root(c),v.id+".new");
@@ -52,6 +52,6 @@ final class VoiceModels {
         JSONArray voices=new JSONArray();Voice active=active(c);
         for(Voice v:VOICES){long[] progress=ModelDownloadService.RUN.get(v.id);String state=ready(c,v)?"ready":ModelDownloadService.QUEUED.contains(v.id)?"queued":progress!=null?"running":part(c,v).isFile()?"paused":"none";
             voices.put(new JSONObject().put("id",v.id).put("label",Taal.t(c,v.label)).put("language",v.language).put("size",v.size).put("state",state).put("bytes",progress==null?part(c,v).length():progress[0]).put("error",Taal.tx(c,prefs(c).getString("error_"+v.id,""))).put("selected",active==v));}
-        return new JSONObject().put("voices",voices).put("voice",active==null?"":active.id).put("speed",speed(c)).put("supported",supported()).put("background",prefs(c).getBoolean("background",false)).put("engine",VoiceEngine.ENGINE).put("wifiOnly",LocalAi.wifiOnly(c));
+        return new JSONObject().put("voices",voices).put("voice",active==null?"":active.id).put("speed",speed(c)).put("supported",supported(c)).put("background",prefs(c).getBoolean("background",false)).put("engine",VoiceEngine.ENGINE).put("wifiOnly",LocalAi.wifiOnly(c));
     }
 }

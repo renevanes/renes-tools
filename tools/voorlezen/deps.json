@@ -1,5 +1,6 @@
 {
  "engine": "sherpa-onnx 1.13.8",
+ "onnxruntime": "1.28.2",
  "files": {
   "android.tar.bz2": [
    "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-v1.13.8-android.tar.bz2",

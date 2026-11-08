@@ -1,8 +1,5 @@
 package nl.rene.tools;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** Tekstvoorbereiding voor de gedeelde lokale voorleesfunctie (ReadAloud). */
@@ -31,28 +28,4 @@ final class AiSpeech {
         }
         return out.toString();
     }
-
-    private static final Pattern SENT = Pattern.compile("[^.!?…\\n]*[.!?…\\n]+|[^.!?…\\n]+$");
-
-    /** In stukken die de spraakmotor aankan (bij voorkeur op een zinsgrens). */
-    static List<String> chunks(String text, int max) {
-        List<String> out = new ArrayList<>();
-        StringBuilder cur = new StringBuilder();
-        Matcher m = SENT.matcher(text == null ? "" : text);
-        while (m.find()) {
-            String s = m.group();
-            if (s.isEmpty()) continue;
-            while (s.length() > max) { // één enorme zin: hard knippen
-                if (cur.length() > 0) { out.add(cur.toString().trim()); cur.setLength(0); }
-                int n = max; if (Character.isHighSurrogate(s.charAt(n - 1))) n--;
-                out.add(s.substring(0, n).trim()); s = s.substring(n);
-            }
-            if (cur.length() + s.length() > max) { out.add(cur.toString().trim()); cur.setLength(0); }
-            cur.append(s);
-        }
-        if (cur.toString().trim().length() > 0) out.add(cur.toString().trim());
-        out.removeIf(String::isEmpty);
-        return out;
-    }
-
 }

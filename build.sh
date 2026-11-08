@@ -94,7 +94,14 @@ run java -cp $BT/lib/d8.jar com.android.tools.r8.D8 --release --min-api 24 --lib
 # 4b. Uitschrijfprogramma (whisper.cpp) als native lib; Android pakt het uit in nativeLibraryDir
 (cd app && zip -q ../$B/base.apk lib/*/*.so)
 APK_TARGET="$PWD/$B/base.apk"
-(cd "$T/voorlezen" && zip -q "$APK_TARGET" lib/arm64-v8a/libonnxruntime.so lib/arm64-v8a/libsherpa-onnx-jni.so lib/x86_64/libonnxruntime.so lib/x86_64/libsherpa-onnx-jni.so)
+# Lokale stem: telefoons zijn arm64 (±10 MB). x86_64 (±11 MB extra) alleen voor de emulatortests: VOORLEZEN_ABIS
+# in play-controle.yml. De Play-bundel (build-play.sh) heeft beide; Play levert per toestel alleen het eigen ABI.
+VOICE_LIBS=()
+for abi in ${VOORLEZEN_ABIS:-arm64-v8a}; do
+  case $abi in arm64-v8a|x86_64) ;; *) echo "VOORLEZEN_ABIS: onbekend ABI $abi"; exit 1;; esac
+  VOICE_LIBS+=("lib/$abi/libonnxruntime.so" "lib/$abi/libsherpa-onnx-jni.so")
+done
+(cd "$T/voorlezen" && zip -q "$APK_TARGET" "${VOICE_LIBS[@]}")
 
 # 5. Uitlijnen en ondertekenen
 $BT/zipalign -f -p 4 $B/base.apk $B/aligned.apk
