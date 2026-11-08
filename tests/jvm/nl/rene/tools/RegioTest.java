@@ -197,7 +197,7 @@ public class RegioTest {
             check(cb >= 0 && dt > cb && dr.substring(cb, dt).contains(ex), "cloudbackup (12+): regio.xml uitgesloten");
             check(dt >= 0 && dr.substring(dt).contains(ex), "overzetten naar een nieuwe telefoon: regio.xml uitgesloten");
         } catch (Exception e) { check(false, "backupregels te lezen: " + e); }
-        check(AppData.PREFS_KEEP.contains("regio"), "Alle appgegevens (eigen, versleuteld): regio gaat mee");
+        check(AppData.PREFS_KNOWN.contains("regio") && AppData.keepPrefsFile("regio"), "Alle appgegevens (eigen, versleuteld): regio gaat mee");
         check(Regio.parse("{\"lang\":\"en\"}").lang.equals("en") && Regio.parse("{\"lang\":\"fr\"}").lang.equals("nl"), "alleen bekende talen (Nederlands en Engels)");
         check(Regio.DEFAULT.locale().getLanguage().equals("nl") && Regio.DEFAULT.locale().getCountry().equals("NL"), "taal: nl-NL");
 

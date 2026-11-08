@@ -26,6 +26,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   openen, het overzicht Losse apps en het native register volgen daaruit. Subschermen krijgen een `BACK`-verwijzing
   naar hun eigen tool. `solo-alle-tools.test.js` en `SoloTest` bewaken dit; behoud de eigen ontgrendeling en privacy.
   Alleen de telefoon-skin gebruikt zijn bestaande `HomeActivity`. Zie `docs/startscherm-en-automatiseringen.md`.
+- **Iedere tool doet standaard mee in de backup** (nu en later): zie "Backups: elke tool doet mee" hieronder.
 
 ## Regels voor de code
 - **Java 8-bron, minSdk 24, targetSdk 36.** API's die nieuwer zijn dan 24 altijd achter `Build.VERSION.SDK_INT >= …`
@@ -45,8 +46,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   VPN-sleutels en wachtwoorden blijven versleuteld (`Secure.deviceKey`, AES-GCM) en buiten Android-backups.
   Alleen "Alle appgegevens" (`AppBackup`/`AppData`, terugzetten na herinstallatie) neemt ze mee, en alleen binnen het
   versleutelde archief (.rtb, wachtwoord van de backup); bij terugzetten worden ze opnieuw versleuteld met de sleutel van
-  de nieuwe installatie. Nieuw instellingenbestand of nieuwe map in `getFilesDir()`? Deel die in bij `AppData`
-  (mee of bewust niet); `AppDataTest` controleert dat.
+  de nieuwe installatie. Alle gegevens van elke tool gaan **standaard mee** in de backup; zie "Backups: elke tool doet mee".
 - **Regio en taal**: datums, tijden, getallen, bedragen en eenheden die Rene ziet, altijd via de helpers in
   `web/src/script/02-regio.js` (`fmtDate`, `fmtTime`, `fmtDT`, `fmtHm`, `fmtNum`, `fmtMoney`, `fmtDist`, `fmtTemp`, `fmtSize`, …) of
   `Regio.java` (`Regio.df`, `Regio.fmt`, `Regio.num`, `Regio.dist`, `Regio.deg`, `Regio.size`), nooit zelf met
@@ -100,6 +100,52 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
 - **Interface**: gebruik de kleurrollen uit `stijl.css` (nooit vaste kleuren als `#fff` op `--primary`: in donker is
   `--primary` licht). Elk scherm heeft `<div class="hdr">` met terugknop en `<h1>`; detailschermen `class="hdr sm"`.
   Bouw met de gedeelde onderdelen uit "Interface-patronen" hieronder.
+
+## Backups: elke tool doet mee (eisen voor alle tools, nu en later)
+Alles wat Rene in een tool invoert of opbouwt, moet na een nieuwe telefoon of herinstallatie terug te zetten zijn. Daarom
+gaat alles **standaard** mee; een uitzondering is een bewuste keuze met een reden. Dit regelt `AppData` (Java), samen met
+`AppBackup` ("Alle appgegevens", versleuteld, alles) en `ToolData` ("Toolgegevens", leesbaar, zonder geheimen); de
+interface gaat mee via `store.set` (`webstore`, in Alle appgegevens en in het onderdeel Instellingen). Een tool voldoet als:
+1. **Gegevens staan op een plek die meegaat:** in een eigen map of eigen bestand in `getFilesDir()` (bijv.
+   `getFilesDir()/<tool>/…`), in eigen SharedPreferences met een naam van kleine letters, cijfers en `_` (bijv.
+   `"<tool>"`), of in de interface met `store.set('<tool>…', …)` (localStorage-sleutels `rt.…`; uitzonderingen in
+   `WS_SKIP` in `02-kern.js`). Die gaan vanzelf mee in Alle appgegevens en worden vanzelf teruggezet, ook als je niets
+   bijwerkt. **Niet** voor gegevens van Rene: `getCacheDir()`, `getNoBackupFilesDir()`, `getExternalFilesDir()`, `getDir()`,
+   `databases/` (SQLite via `SQLiteOpenHelper`) of localStorage zonder `store`: die vallen buiten de backup. Een SQLite-
+   database in `getFilesDir()` gaat niet goed los mee (`-wal`/`-shm` gaan niet mee): zet die map in `FILE_SKIP` en neem de
+   inhoud zelf mee. Zelf meenemen (zoals de meldingsgeschiedenis of de handtekening) = in `AppBackup` maken én terugzetten, met een test.
+2. **Een bewuste keuze per naam** (de test eist dat): zet de naam van de map in `AppData.FILE_KNOWN` en van het
+   instellingenbestand in `AppData.PREFS_KNOWN` als hij gewoon mee mag (na nakijken dat er geen geheimen leesbaar in
+   staan), of bij de uitzonderingen hieronder. Voor de leesbare "Toolgegevens" daarnaast: privé of al een eigen onderdeel →
+   `ToolData.FILES_OWN` (map) of `ToolData.PREFS_NEVER` (instellingenbestand). Een map die (nog) niet in `FILE_KNOWN`
+   staat, gaat in Toolgegevens alleen mee als tekstbestand zonder namen die naar een geheim klinken (`ToolData.readableOk`;
+   een grove controle, geen garantie: zet de map na nakijken in `FILE_KNOWN`).
+3. **Uitzonderingen alleen met een reden** in `AppData`: `PREFS_SKIP` (heel instellingenbestand), `KEY_SKIP`/`KEY_SKIP_PREFIX`
+   (losse sleutels), `FILE_SKIP` (map of bestand in `getFilesDir()`) of `PATH_SKIP` (één bestand in een map die wel meegaat).
+   Toegestaan: geheimen die aan deze installatie vastzitten en die je opnieuw instelt, wat opnieuw te downloaden of af te
+   leiden is (modellen, caches, zoekindex, de interface in `web/`), toestand van dit moment (lopende opname, wachttijden,
+   downloads) en wat Rene uitdrukkelijk op de telefoon wil houden (Bankzaken, stamgegevens). Gegevens die Rene zelf invoert
+   uitsluiten = eerst Rene vragen. Wat in `FILE_SKIP` staat, wordt ook nooit uit een backup teruggezet (zo blijft bijv.
+   `web/` veilig): een map met code of iets wat de app vertrouwt, hoort daar.
+4. **Geheimen gaan versleuteld mee:** wachtwoorden, tokens en sleutels die op de telefoon met `Secure.deviceKey()` of een
+   andere sleutel uit de sleutelopslag versleuteld zijn, zijn op een nieuwe telefoon onleesbaar. Neem ze dan ontsleuteld
+   op in `geheim/` van "Alle appgegevens" en versleutel ze bij terugzetten opnieuw (zoals VPN, Spotify en de kluis), of
+   zet ze bewust in `KEY_SKIP` met "opnieuw invullen" als reden. In "Toolgegevens" (leesbaar) gaan instellingen met een
+   naam met token, key, sleutel, wachtwoord, code e.d. niet mee (`ToolData.secretKey`), net als bestanden met zo'n naam in
+   het pad (`ToolData.keepFile`); de inhoud van een bestand in een bekende map wordt niet nagekeken. Kies zulke namen voor
+   geheimen en zet geheimen nooit leesbaar in een bestand in een map uit `FILE_KNOWN`.
+5. **Toestand van dit moment apart houden:** tijdelijke bestanden eindigen op `.tmp`, `.part`, `.writing` of een andere
+   `AppData.TEMP_SUFFIX`; tellers, "laatst gedaan" en lopende acties in `KEY_SKIP` (sleutels die op `Asked` eindigen, slaat
+   "Toolgegevens" al vanzelf over).
+6. **Terugzetten moet kunnen:** bestanden met een `format`/`version`-veld, tegen ontbrekende of oudere velden bestand;
+   wat de tool bij het starten opnieuw moet plannen (wekkers, taken), plant hij na terugzetten opnieuw (`Herstel`).
+7. **Privé met eigen vinkje** (assistent, Slaappraat, Check-in): als eigen onderdeel van Alles back-uppen alleen als Rene
+   het aanvinkt, en dan versleuteld; in Alle appgegevens (altijd versleuteld) wel, in Toolgegevens nooit (`FILES_OWN`,
+   `PREFS_NEVER`). Een nieuwe privé-categorie volgt dat model (`AllBackup.PRIVATE`) en Rene beslist.
+8. **Getest:** `AppDataTest` zoekt in de code elke `getSharedPreferences("…")`, elke `PREFS`-constante en elke map in
+   `getFilesDir()` (ook via een constante uit hetzelfde bestand, zoals `getFilesDir(), DIR`) en faalt als die niet in `PREFS_KNOWN`/`FILE_KNOWN` of bij de
+   uitzonderingen staat, of als de naam niet mee kan (een instellingenbestand met hoofdletters of een punt). Een naam die je anders opbouwt, ziet de test
+   niet: houd het bij een vaste naam. Bij een tool met een eigen bestandsformaat: ook een test die maakt, terugzet en vergelijkt.
 
 ## Interface-patronen
 Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/script/02-patronen.js`), bewaakt door

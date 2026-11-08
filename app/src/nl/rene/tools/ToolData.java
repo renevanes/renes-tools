@@ -28,7 +28,7 @@ import java.util.Set;
  * dossier, aanleveren), Apparaten, Toiletten (eigen laag), versies van contacten, Spotify, Gebruik, gespreksopnames en
  * de instellingen van alle tools (regio en taal, lokale AI, Slaappraat, uitschrijven, losse apps …).
  *
- * Volgt de lijsten van {@link AppData}: een nieuwe tool die daar is ingedeeld, gaat vanzelf mee. Nooit mee: geheimen
+ * Volgt {@link AppData}: alles gaat standaard mee, ook van een nieuwe tool (instellingen en zijn map in getFilesDir()). Nooit mee: geheimen
  * (wachtwoorden, sleutels, tokens, de app-code, VPN), wat alleen versleuteld mag (kluis, foto's van Gebruik), de privé-
  * onderdelen met een eigen vinkje (assistent, Slaappraat-nachten, Check-in), Bankzaken en stamgegevens.
  * Terugzetten voegt alleen toe wat er nog niet is: bestaande instellingen en bestanden worden nooit overschreven.
@@ -105,7 +105,27 @@ final class ToolData {
         String top = slash < 0 ? r : r.substring(0, slash);
         if (FILES_OWN.contains(top)) return false;
         if (r.startsWith("facturen/pdf/") || r.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) return false; // de PDF's staan al in Facturen/
-        return !r.toLowerCase(java.util.Locale.ROOT).matches(".*(geheim|secret|token|wachtwoord|password).*");
+        String low = r.toLowerCase(java.util.Locale.ROOT);
+        if (low.matches(".*(geheim|secret|token|wachtwoord|password).*")) return false;
+        // Mappen die nog niet bekeken zijn (een nieuwe tool): ook paden met sleutel, key, pin of cred niet leesbaar.
+        return AppData.FILE_KNOWN.contains(top) || !low.matches(".*(passwd|sleutel|credential|apikey|api_key|private).*|.*(^|[/_.-])(key|keys|pin|cred)([/_.-].*|$)");
+    }
+
+    /** Een naam in JSON die naar een geheim klinkt ("refresh_token": …, "password": …). */
+    /** Een naam die naar een geheim klinkt, gevolgd door : of = ("refresh_token": …, password=…, apiKey: …). */
+    static final java.util.regex.Pattern SECRET_JSON = java.util.regex.Pattern.compile(
+            "(token|secret|geheim|password|passwd|wachtwoord|sleutel|api_?key|private_?key|credential|refresh|(^|[^a-z])(key|pin|cred))[a-z0-9_.-]{0,40}[\"']?\\s*[:=]",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Een bestand van een map die nog niet bekeken is (niet in AppData.FILE_KNOWN, dus van een nieuwe tool) gaat alleen
+     * leesbaar mee als het tekst is (text == null: iets anders) zonder iets wat naar een geheim klinkt. In Alle appgegevens
+     * (versleuteld) gaat hij altijd mee.
+     */
+    static boolean readableOk(String rel, String text) {
+        int slash = rel.indexOf('/');
+        String top = slash < 0 ? rel : rel.substring(0, slash);
+        return AppData.FILE_KNOWN.contains(top) || (text != null && !SECRET_JSON.matcher(text).find());
     }
 
     /** Lager = eerder mee: eigen invoer (eigen plekken, dossier, apparaten, auto) voor logboeken en versies. */
@@ -129,7 +149,7 @@ final class ToolData {
         if (tree == null) throw new Exception("Kies eerst een backup-map");
         JSONObject prefs = new JSONObject();
         int n = 0;
-        for (String f : AppData.PREFS_KEEP) {
+        for (String f : AppBackup.prefsOnDevice(c)) {
             if (!keepPrefsFile(f)) continue;
             SharedPreferences p = c.getSharedPreferences(f, Context.MODE_PRIVATE);
             JSONObject o = new JSONObject();
@@ -165,6 +185,7 @@ final class ToolData {
                 byte[] b;
                 try { b = read(f, MAX_FILE); } catch (Exception e) { skipped.put(rel); continue; }
                 boolean asText = text(rel) && utf8(b);
+                if (!readableOk(rel, asText ? new String(b, StandardCharsets.UTF_8) : null)) { skipped.put(rel); continue; }
                 long cost = asText ? b.length + b.length / 8 : (b.length + 2) / 3 * 4; // ongeveer wat het in het bestand kost
                 if (total + cost > MAX_TOTAL) { skipped.put(rel); continue; }
                 total += cost;
@@ -178,7 +199,7 @@ final class ToolData {
             w.write("],\"skipped\":" + skipped.toString() + "}");
             w.done();
         }
-        if (skipped.length() > 0) App.log(c, "BACKUP", "toolgegevens: " + skipped.length() + " te grote bestanden niet mee");
+        if (skipped.length() > 0) App.log(c, "BACKUP", "toolgegevens: " + skipped.length() + " bestanden niet mee (te groot, of mogelijk een geheim)");
         return n == 0 ? -1 : n;
     }
 
@@ -260,10 +281,12 @@ final class ToolData {
     static Plan plan(JSONObject o, PrefsHas has, FileHas exists) throws Exception {
         Plan pl = new Plan();
         JSONObject prefs = o.optJSONObject("prefs");
-        if (prefs != null) for (Iterator<String> fi = prefs.keys(); fi.hasNext(); ) {
+        int prefsFiles = 0;
+        if (prefs != null) for (Iterator<String> fi = prefs.keys(); fi.hasNext() && prefsFiles < AppData.MAX_PREFS_FILES; ) {
             String f = fi.next();
             JSONObject in = prefs.optJSONObject(f);
             if (in == null || !keepPrefsFile(f)) continue;
+            prefsFiles++;
             JSONObject add = new JSONObject();
             for (Iterator<String> ki = in.keys(); ki.hasNext(); ) {
                 String k = ki.next();
@@ -329,6 +352,7 @@ final class ToolData {
             for (Iterator<String> ki = add.keys(); ki.hasNext(); ) {
                 String k = ki.next();
                 JSONObject v = add.getJSONObject(k);
+                if (!PlayPolicy.keepPreference(c.getPackageName(), f, k)) continue; // zoals bij Alle appgegevens
                 switch (v.optString("t")) {
                     case "b": e.putBoolean(k, v.optBoolean("v")); break;
                     case "i": e.putInt(k, v.optInt("v")); break;
@@ -373,7 +397,7 @@ final class ToolData {
     /** Welke mappen en instellingen er mee gaan (voor de uitleg en de test). */
     static List<String> prefsFiles() {
         List<String> l = new ArrayList<>();
-        for (String f : AppData.PREFS_KEEP) if (keepPrefsFile(f)) l.add(f);
+        for (String f : AppData.PREFS_KNOWN) if (keepPrefsFile(f)) l.add(f);
         Collections.sort(l);
         return l;
     }

@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.169",
-  "versionCode": 170,
-  "nativeLevel": 150,
+  "versionName": "1.170",
+  "versionCode": 171,
+  "nativeLevel": 151,
   "web": "index.html",
-  "webSha256": "9e01c6594696accdc4cc83e151f9ef3cf642b8b52ab36a31e9950d7fd4655b1d",
+  "webSha256": "8d2b42532bb23eb7fc402f9ac39ba6ef3019229b3c99dcb1df35afb600666ea8",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "a826c4b1416984c3e37e5f2c43e889676ddb9e638d9e921590c63db72cb5cde5",
+  "apkSha256": "0df238f50c356efdfbc0d7be9f30b5000bcb141811bd22a7764a558b61820824",
   "changelog": [
+    {
+      "version": "1.170",
+      "date": "2026-11-08",
+      "changes": [
+        "Alles back-uppen: de gegevens van alle tools gaan nu standaard mee (ook van tools die er later bij komen); alleen bewuste uitzonderingen blijven op de telefoon, zoals Bankzaken en stamgegevens."
+      ]
+    },
     {
       "version": "1.169",
       "date": "2026-11-08",
@@ -1495,5 +1502,5 @@
       ]
     }
   ],
-  "webSig2": "T8/WJGOYIrTDzG53CB4OmAljvEz1gIuFJoe54T+MjbJ5IXhnzJXzjUTWgrlxX/WcbXmrHhrwluHUwjmCyVYzFoKwpVUXdMbdutr3lSa8demeZY5HfXPr5/LsbA1mjXfFeUmhkyzxdM7ZhByBiHotURRB/VHpfNaX+0zoqNgV540wmG0VWKWO07snqTplFwUmqofGMrS4rTRvahSaNeo4kJ9aVIje2IIjIOwXBuppRdIvpEXGQD11pF4MqiQtl9At1yqllbGM/1DdP2SH6LtuCgCcDrHo2/5zh3tTxIG3Uz8tH3ALzlVGumhXllZmFXvjJcRn2LsWMgiC/I9DNH3DegOgcXtduro+1k2lCSN5xYmuYkAMf4Bq5k0S+jRi9cNke/ZdT/SwEZDjw/+xG8QfHpsvYIRr7T4ECJXmm4YN+sDTrkqw9plSUIWWPdKQYTGUCgSyR+CYVhBViSmA1mPB7hw7G7NNDbd7SxzVRJWGEs5/dRJxtCLhV3hYKyW/vAhg"
+  "webSig2": "dyBxe1sgj1eA9F+p54VJBDpuiQSA1VGSIBk6TzxVLkiB88t7wvIgVhjb5dQdq8ky6ZjLHzOY7/sgrzNoqMKyB1xv1RBEBIvRlh95DQkzAxIIKeiAQiJz68mFmPzTJTzPZDpXS0xa91VfOsJsNspM4PTdmM9IythFvLGi2YhoAeXRpYsjDaPBMm8KEzbfoV3OhuvRVmH7fDnQZ30pVPy+jF2UyoQf/LR6TW3fwtBdsprqhrcYyMtBQrzBlcqsnJrV30xaxS/hUcmnxg1ePqxTOmY6El0D/6XwSaimuZ/SlFvoI7idASTx6Ce2ywM7yYHO9itl6Iy3WAh+fNh0DXo93OIxKHdj26gAZ4jO3TDu/R9yZiAiV4CWeaMlJHb75vnEJSLGl8BPXaMFEgvoEzTYH+sEiQlo7fa5u1XiH8fZCtNuPrG2f/yoVGC1UqSuNbeoWd2RthRhCJKTZabeiSo7r8vms3GkeUxBrkPtUkM7QbvWfptOcEj5XYzHN+yLSJsW"
 }
