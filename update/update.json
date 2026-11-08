@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.163",
-  "versionCode": 164,
-  "nativeLevel": 145,
+  "versionName": "1.164",
+  "versionCode": 165,
+  "nativeLevel": 146,
   "web": "index.html",
-  "webSha256": "984d0e7b40c9c23a5bc33bed555b6723e8b14910e0eff64f73349f26a5cd8c77",
+  "webSha256": "8b5e5064d44a7ed067a8e9d238010ae48063d2afef3cf0efd7059ae5d99f60a6",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "6b76f837162d28c087bd3c3304f245ab00a33e3bb5fad3bdab11a04e1e899d88",
+  "apkSha256": "261d61528160a577f588ee9331860abaefb0e651f68e148bf43a8c32785e8ab7",
   "changelog": [
+    {
+      "version": "1.164",
+      "date": "2026-11-08",
+      "changes": [
+        "Stamgegevens: ID-gegevens herkennen uit een foto. Bij een persoon → ID → Herkennen uit foto leest de app de strook met <<< (achterkant ID-kaart, fotopagina paspoort) op je telefoon en stelt documentnummer, geldig tot, naam, geboortedatum, geslacht en nationaliteit voor; jij vinkt aan wat je overneemt. De foto gaat nergens heen.",
+        "Stamgegevens: kies je een kaartfoto met die strook, dan stelt de app de gegevens ook voor."
+      ]
+    },
     {
       "version": "1.163",
       "date": "2026-11-08",
@@ -1448,5 +1456,5 @@
       ]
     }
   ],
-  "webSig2": "IEQbZms5moqROFhbWjIUwFV8O7x4qKk0rzyz5dykUCPm/YQIBMxPHVolx3yTg6HHzsH6zx0+MdZ3ANCsayXk1KYpM7jmTp5QRKJb5w3EmVQ4aH2O4kpV4BU91huQ+3NQnUgIqPaM6RD56kGz5bqSh4Yem9NfkeVD7t+c52lVcgblsJytz4t0THMyn8g8sfoGijb0STVZ4Fj0gEP9yC8ihbmhciFbJqZOH51FXwNyeyJr2Iag/FiGiDQoOOCnyn/iElJ+sjrkXj0fTqWq02R91z3H2fgqUjFbfXJXuXfETTFCFdjLavsW04sV1PkZVkcIcH2cgaHmhU9k5Kb/jisezTfGlieUNPwfdUVho5QkVuhDhLtzs+iKWz8X6UrPo14rO9oi1XbxyOnqhb/2jbja+LLcnDu6biJURFmheXnTfTtuwM6lUlt0QwiWW2v93qB5aJy1iPCYtHr0q36dSzFXuWtKnn44WlMJF7sFLyA+1feFwxlGsSG0MAVPSk1Z9dVa"
+  "webSig2": "eOwYZ6EKGEez4Vzq9iGzKYPCLUNJMAuLmqr+CTkD3LMTWVlaPSj5MBo+EeCP7HzQ8j/BfwCJl7rAb95a6VpxzBGbwYirInfMC+ipzuF8FEB0y8W3Y0GqMcwcSnCdD1kVYn8T4aW1oDF5YKRc1MyyxhsJmbrqcRiipiyMZqGQmqkeOIx8G6Ge1tqWGWM4+A3FcD3/m5jeLZVyWqf9ijihJIFx4VWslKfCx/b79pDLJxCe/EbMdBGrQC9B13p6dSqDVbyqua9KpJlkRVPxbXPBTfvglSCDJpe9POWIcfzyQ1Dud9H2hFNsLQZ/jGNBlBWC1tLPWcGfzAjVM1TWRK9sZKfrkgMMWTdz8p/RN6xmFaz6sr5qc5LqSTiEpGneS9/tecI9WzLILxZD4fwew+H5DjmR0x5scN9NhCHCsp1Nyfu1jQdtbNS1B4mPxpb5U+TdE6IUa6zM5P14Pws2iGeyMfsLJdpSaLF+u8hEePXcsm5LPJag6PpP+B1NQ/dBEA3Z"
 }

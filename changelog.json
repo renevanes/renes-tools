@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.164",
+    "date": "2026-11-08",
+    "changes": [
+      "Stamgegevens: ID-gegevens herkennen uit een foto. Bij een persoon → ID → Herkennen uit foto leest de app de strook met <<< (achterkant ID-kaart, fotopagina paspoort) op je telefoon en stelt documentnummer, geldig tot, naam, geboortedatum, geslacht en nationaliteit voor; jij vinkt aan wat je overneemt. De foto gaat nergens heen.",
+      "Stamgegevens: kies je een kaartfoto met die strook, dan stelt de app de gegevens ook voor."
+    ]
+  },
+  {
     "version": "1.163",
     "date": "2026-11-08",
     "changes": [
