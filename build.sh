@@ -6,6 +6,9 @@ cd "$(dirname "$0")"
 T=${TOOLS:-/home/claude/toolchain}
 # Build-tools: BT_VERSION (zet ./publish.sh op de vastgezette versie), anders wat ./setup-tools.sh in bt/VERSION
 # schreef, anders de nieuwste die er staat
+# Dezelfde gecontroleerde lokale spraakmotor in de gewone app en Play.
+python3 tools/voorlezen/deps.py "$T/voorlezen"
+VOICE_JARS=("$T/voorlezen/"*.jar)
 BTV=${BT_VERSION:-$(cat $T/bt/VERSION 2>/dev/null || true)}
 [ -n "$BTV" ] && [ -d "$T/bt/build-tools/$BTV" ] || BTV=$(ls $T/bt/build-tools 2>/dev/null | sort -V | tail -1)
 [ -n "${BT_VERSION:-}" ] && [ "$BTV" != "$BT_VERSION" ] && { echo "Build-tools $BT_VERSION ontbreken in $T (./setup-tools.sh)"; exit 1; }
@@ -77,12 +80,14 @@ $AAPT2 link -I $ANDROID_JAR --manifest app/AndroidManifest.xml -A $B/assets \
 # Fouten stoppen de bouw meteen (de uitvoer wordt alleen gefilterd op de JAVA_TOOL_OPTIONS-melding)
 run() { local log=$B/step.log; "$@" > $log 2>&1; local c=$?; grep -v JAVA_TOOL_OPTIONS $log || true; return $c; }
 run javac -nowarn -Xlint:-options -source 8 -target 8 -encoding UTF-8 -bootclasspath $ANDROID_JAR:$BT/core-lambda-stubs.jar \
-  -d $B/classes $(find app/src $B/gen -name '*.java') || { echo "javac mislukt"; exit 1; }
+  -classpath "$T/voorlezen/*" -d $B/classes $(find app/src $B/gen -name '*.java') || { echo "javac mislukt"; exit 1; }
 run java -cp $BT/lib/d8.jar com.android.tools.r8.D8 --release --min-api 24 --lib $ANDROID_JAR \
-  --output $B/dex $(find $B/classes -name '*.class') || { echo "d8 mislukt"; exit 1; }
-(cd $B/dex && zip -q -j ../base.apk classes.dex)
+  --output $B/dex "${VOICE_JARS[@]}" $(find $B/classes -name '*.class') || { echo "d8 mislukt"; exit 1; }
+(cd $B/dex && zip -q -j ../base.apk classes*.dex)
 # 4b. Uitschrijfprogramma (whisper.cpp) als native lib; Android pakt het uit in nativeLibraryDir
 (cd app && zip -q ../$B/base.apk lib/*/*.so)
+APK_TARGET="$PWD/$B/base.apk"
+(cd "$T/voorlezen" && zip -q "$APK_TARGET" lib/*/*.so)
 
 # 5. Uitlijnen en ondertekenen
 $BT/zipalign -f -p 4 $B/base.apk $B/aligned.apk

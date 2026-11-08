@@ -1,0 +1,19 @@
+<!-- Gedeelde bediening en instellingen: ook bereikbaar binnen een losse tool. -->
+<div id="speech-player" class="speech-player" hidden role="region" aria-label="Voorleesbediening">
+  <div><b id="speech-title">Voorlezen</b><small id="speech-state" role="status"></small></div>
+  <button class="icon-btn" id="speech-pause" onclick="spPause()" aria-label="Pauzeren" data-icon="pause"></button>
+  <button class="icon-btn" onclick="spSettings()" aria-label="Stem en snelheid" data-icon="settings"></button>
+  <button class="icon-btn" onclick="spStop()" aria-label="Stoppen met voorlezen" data-icon="stop"></button>
+</div>
+<div id="speech-settings" class="cm-picker" hidden role="dialog" aria-modal="true" aria-labelledby="speech-heading">
+  <div class="box speech-box">
+    <div class="row"><h2 id="speech-heading" tabindex="-1">Lokaal voorlezen</h2><button class="icon-btn" onclick="spSettingsClose()" aria-label="Sluiten" data-icon="close"></button></div>
+    <p class="hint">Download één keer een stem. Boeken, notities en antwoorden worden daarna op je telefoon voorgelezen; tekst gaat niet naar een server.</p>
+    <div id="speech-voices" translate="no"></div>
+    <label class="f" for="speech-speed">Snelheid</label><div class="row"><input id="speech-speed" type="range" min="0.6" max="1.8" step="0.1" value="1" oninput="spSpeed(this.value)"><output id="speech-speed-value" for="speech-speed"></output></div><p class="hint">De snelheid verandert vanaf het volgende tekstfragment.</p>
+    <div class="sw"><span>Boeken blijven voorlezen<small>Ook met het scherm uit of buiten Tools. De melding heeft pauzeren en stoppen. De assistent en notities stoppen wanneer je Tools verlaat.</small></span><button class="tg" id="speech-background" role="switch" aria-checked="true" onclick="spBackground()" aria-label="Boeken blijven voorlezen"></button></div>
+    <p class="hint" id="speech-model-status" role="status"></p>
+    <div class="row"><button class="big tonal" id="speech-preview" onclick="spPreview()">Stem proberen</button><button class="big ghost" onclick="spSettingsClose()">Klaar</button></div>
+    <details class="help in"><summary data-icon="info">Over de stemmen</summary><div class="help-body"><p>Ronnie spreekt Nederlands; Lessac spreekt Engels. Elke stem downloadt ongeveer 21 MB. Modellen staan buiten back-ups en kunnen opnieuw worden gedownload. Er wordt geen geluidsbestand met je tekst opgeslagen.</p><p>Lokale stemmen werken op 64-bits Android. Downloaden volgt Alleen via wifi bij Modellen beheren en gebruikt geen roaming.</p><p id="speech-engine" translate="no"></p></div></details>
+  </div>
+</div>

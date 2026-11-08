@@ -511,7 +511,7 @@ if (!window.Android) window.Android = (function(){
         const ready = !!T.models[id], run = !ready && T.st.running && T.st.phase === 'download' && T.dl === id;
         return { id, key: 'spraak:' + id, kind: 'spraak', label, desc: 'Spraak naar tekst · whisper ' + id, version: 'Whisper ' + id + ', OpenAI 2022', size, last: D.last['spraak:' + id] || 0, state: ready ? 'ready' : run ? 'running' : 'none', inUse: ready && T.model === id, bytes: run ? size * (T.st.pct || 0) / 100 : 0, total: size }; });
       const all = ai.concat(sp), used = all.filter(m => m.state === 'ready').reduce((a, m) => a + m.size, 0);
-      return JSON.stringify({ free: D.free, online: D.online, metered: D.metered, wifiOnly: A.wifiOnly, supported: true, txBusy: D.txBusy, models: all, used, leftovers: (A.orphans || 0) + (D.leftovers || 0), ram: A.ram, tts: D.tts, engines: { ai: 'llama.cpp b11500', zoek: 'llama.cpp b11500', spraak: 'whisper.cpp 1.9.5' } }); },
+      return JSON.stringify({ free: D.free, online: D.online, metered: D.metered, wifiOnly: A.wifiOnly, supported: true, txBusy: D.txBusy, models: all, used, leftovers: (A.orphans || 0) + (D.leftovers || 0), ram: A.ram, tts: D.tts, speech:JSON.parse(this.speechModels()), engines: { ai: 'llama.cpp b11500', zoek: 'llama.cpp b11500', spraak: 'whisper.cpp 1.9.5' } }); },
     modelsClean(){ const n = (this._ai.orphans || 0) + (this._md.leftovers || 0); this._ai.orphans = 0; this._md.leftovers = 0; return String(n); },
     aiDownloadApp(id){ const A = this._ai, D = this._md, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dlApp', id]);
       Object.assign(m, { state: 'running', via: 'app', bytes: m.bytes || 0, total: m.total || 1e9, reason: undefined });
@@ -566,6 +566,18 @@ if (!window.Android) window.Android = (function(){
       if (ok) { out.action.at = at; out.action.day = day; } else if (day && !at) { out.action.day = day; if (type === 'agenda') out.action.allDay = true; }
       return out;
     },
+    _speech:{voice:'tts-nl-ronnie',speed:1,background:true,supported:true,active:null,said:[],ms:500,voices:[{id:'tts-nl-ronnie',label:'Ronnie · Nederlands',language:'nl',state:'ready',size:21158108,bytes:0},{id:'tts-en-lessac',label:'Lessac · Engels',language:'en',state:'none',size:20969179,bytes:0}]},
+    speechModels(){const s=this._speech;return JSON.stringify({...s,active:undefined,said:undefined,voices:s.voices.map(v=>({...v,selected:v.state==='ready'&&v.id===s.voice})),engine:'sherpa-onnx 1.13.8 · Piper VITS'});},
+    speechConfigure(voice,speed,background){if(!Number.isFinite(speed)||speed<.6||speed>1.8||voice&&!this._speech.voices.some(v=>v.id===voice))return 'Kies een stem en een snelheid tussen 0,6 en 1,8';if(voice)this._speech.voice=voice;this._speech.speed=speed;this._speech.background=background;return '';},
+    speechDownload(id){const v=this._speech.voices.find(v=>v.id===id);if(!v)return 'Onbekende stem';v.state='running';v.bytes=0;v.timer=setTimeout(()=>{v.state='ready';v.bytes=v.size;if(!this._speech.voice)this._speech.voice=id;onAiModels('');},this._speech.downloadMs||150);return '';},
+    speechDownloadStop(id){const v=this._speech.voices.find(v=>v.id===id);if(v){clearTimeout(v.timer);v.state='paused';}},
+    speechDelete(id){const v=this._speech.voices.find(v=>v.id===id);if(v){clearTimeout(v.timer);v.state='none';v.bytes=0;}if(this._speech.voice===id)this._speech.voice='';this.speechStop(this._speech.active?.request);},
+    _speechEvent(state){const s=this._speech,a=s.active;if(!a)return;onSpeech({...a,state});if(['done','stopped','error'].includes(state))s.active=null;else a.state=state;},
+    speechStart(text,request,source,markdown){const s=this._speech;this.speechStop(s.active?.request);s.said.push({text,request,source,markdown});s.active={request,source,state:'loading'};this._speechEvent('loading');s.timer=setTimeout(()=>{if(s.active?.request!==request)return;this._speechEvent('playing');s.timer=setTimeout(()=>{if(s.active?.request===request)this._speechEvent('done');},s.ms);},20);},
+    speechBook(book,chapter,offset,request){const r=JSON.parse(this.ereaderChapter(book,chapter));this.speechStart((r.text||'').slice(offset),request,'reader',false);Object.assign(this._speech.active,{book,chapter,offset});},
+    speechPause(request,paused){const s=this._speech;if(s.active?.request!==request)return;clearTimeout(s.timer);this._speechEvent(paused?'paused':'playing');if(!paused)s.timer=setTimeout(()=>{if(s.active?.request===request)this._speechEvent('done');},s.ms);},
+    speechStop(request){const s=this._speech;if(!s.active||request!==s.active.request)return;clearTimeout(s.timer);this._speechEvent('stopped');},
+    speechState(){return JSON.stringify(this._speech.active?{active:true,...this._speech.active}:{active:false});},
     // Voorlezen zoals AiSpeech: start, klaar (na _tts.ms), stoppen; of een fout (_tts.err)
     _tts: { said: [], stops: 0, ms: 400, cur: '' },
     aiSpeak(text, id){ const T = this._tts; T.said.push(text); clearTimeout(T.t1); clearTimeout(T.t2); T.cur = id;

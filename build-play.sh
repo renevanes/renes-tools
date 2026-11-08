@@ -9,6 +9,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 T=${TOOLS:-/home/claude/toolchain}
+# Dezelfde gecontroleerde lokale spraakmotor in de gewone app en Play.
+python3 tools/voorlezen/deps.py "$T/voorlezen"
+VOICE_JARS=("$T/voorlezen/"*.jar)
 BTV=${BT_VERSION:-$(cat "$T/bt/VERSION" 2>/dev/null || true)}
 [ -n "$BTV" ] && [ -d "$T/bt/build-tools/$BTV" ] || BTV=$(ls "$T/bt/build-tools" 2>/dev/null | sort -V | tail -1)
 [ -n "$BTV" ] || { echo "Build-tools ontbreken: ./setup-tools.sh"; exit 1; }
@@ -91,15 +94,16 @@ $AAPT2 link --proto-format -I "$ANDROID_JAR" --manifest $B/AndroidManifest.xml -
 
 # 5. Java -> dex
 run javac -nowarn -Xlint:-options -source 8 -target 8 -encoding UTF-8 -bootclasspath "$ANDROID_JAR:$BT/core-lambda-stubs.jar" \
-  -d $B/classes $(find $B/src $B/gen -name '*.java') || { echo "javac mislukt"; exit 1; }
+  -classpath "$T/voorlezen/*" -d $B/classes $(find $B/src $B/gen -name '*.java') || { echo "javac mislukt"; exit 1; }
 run java -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 --release --min-api 24 --lib "$ANDROID_JAR" \
-  --output $B/dex $(find $B/classes -name '*.class') || { echo "d8 mislukt"; exit 1; }
+  --output $B/dex "${VOICE_JARS[@]}" $(find $B/classes -name '*.class') || { echo "d8 mislukt"; exit 1; }
 
 # 6. Module samenstellen: manifest/, dex/, res/, assets/, lib/, resources.pb
-(cd $B/module && unzip -q ../base-proto.apk && mkdir -p manifest dex && mv AndroidManifest.xml manifest/ && cp ../dex/classes.dex dex/)
+(cd $B/module && unzip -q ../base-proto.apk && mkdir -p manifest dex && mv AndroidManifest.xml manifest/ && cp ../dex/classes*.dex dex/)
 if python3 -c 'import sys; sys.path.insert(0,"play"); from config import profile; sys.exit(0 if profile()["native"] else 1)'; then
   mkdir -p $B/module/lib
   cp -r app/lib/arm64-v8a $B/module/lib/
+  cp -r "$T/voorlezen/lib/"* "$B/module/lib/"
   find $B/module/lib -type f ! -name '*.so' -delete
 fi
 (cd $B/module && zip -q -r ../base.zip .)

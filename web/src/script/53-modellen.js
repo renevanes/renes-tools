@@ -9,8 +9,8 @@ const MD_CATS = [
     need: 'Nodig voor die functies: één spraakmodel. Snel is genoeg; Nauwkeurig maakt minder fouten maar is trager.' },
   { kind: 'zoek', title: 'Slim zoeken', icon: 'search', what: 'Zoeken op betekenis in je notities, gesprekken en berichten, ook voor de assistent ("Met mijn gegevens").',
     need: 'Niet nodig om de assistent te gebruiken; alleen als je slim zoeken wilt.' },
-  { kind: 'tts', title: 'Voorlezen (tekst naar spraak)', icon: 'volume', what: 'De assistent leest antwoorden voor met de stem van je telefoon.',
-    need: 'Hiervoor downloadt de app niets: Android levert de stem.' }
+  { kind: 'tts', title: 'Voorlezen (tekst naar spraak)', icon: 'volume', what: 'De e-reader, notities en assistent lezen tekst voor met een lokaal spraakmodel.',
+    need: 'Download één Nederlandse of Engelse stem. Daarna werkt het zonder internet.' }
 ];
 function mdLoad(){ mdSt = rdJson(Android.modelsState(), {}); aiModelsTaal(mdSt.models); return mdSt; }
 function mdGB(b){ b = Math.max(0, +b || 0); return b >= 1e9 ? fmtNum(b / 1e9, 1) + ' GB' : fmtNum(Math.max(1, Math.round(b / 1e6))) + ' MB'; } // zoals Hugging Face (1000 per stap)
@@ -85,7 +85,7 @@ function enterModels(){
 function mdResumed(){
   mdLoad();
   const tt = mdSt.tts || {};
-  if (tt.state !== 'ok' && tt.state !== 'checking' && typeof Android.ttsCheck === 'function') Android.ttsCheck();
+  if (!mdSt.speech && tt.state !== 'ok' && tt.state !== 'checking' && typeof Android.ttsCheck === 'function') Android.ttsCheck();
   mdRefresh();
   setTimeout(() => { if (current === 'models') mdRefresh(); }, 800);
 }
@@ -93,7 +93,7 @@ function mdRefresh(){
   mdLoad();
   if (current === 'models') mdRender();
   clearTimeout(mdPollT);
-  if (current === 'models' && (mdModels().some(m => ['running', 'queued', 'verifying'].includes(m.state) || m.waiting) || (mdSt.tts || {}).state === 'checking')) mdPollT = setTimeout(mdRefresh, 1500);
+  if (current === 'models' && (mdModels().some(m => ['running', 'queued', 'verifying'].includes(m.state) || m.waiting) || (mdSt.speech?.voices||[]).some(v=>v.state==='running'||v.state==='queued') || !mdSt.speech&&(mdSt.tts || {}).state === 'checking')) mdPollT = setTimeout(mdRefresh, 1500);
 }
 const _mdOnAiModels = window.onAiModels;
 window.onAiModels = function(){ if (_mdOnAiModels) _mdOnAiModels(); if (current === 'models') mdRefresh(); };
@@ -112,6 +112,7 @@ function mdRender(){
 }
 /** Kort: is deze soort klaar voor gebruik? Zuiver. [tekst, ok] */
 function mdCatStatus(kind, all, tts){
+  if (kind === 'tts' && mdSt.speech) { const voice=(mdSt.speech.voices||[]).find(v=>v.selected);return voice?[t('✓ In gebruik: {model}',{model:voice.label}),true]:[t('Nog geen lokale voorleesstem'),false]; }
   if (kind === 'tts') return !tts || !tts.state || tts.state === 'checking' ? ['Controleren…', false] : tts.state === 'ok' ? [t('✓ Nederlandse stem') + (tts.engine ? ' (' + tts.engine + ')' : ''), true] : tts.state === 'nodutch' ? ['Geen Nederlandse stem', false] : tts.state === 'slow' ? ['De voorleesfunctie reageert niet', false] : ['Geen voorleesfunctie op je telefoon', false];
   const ms = all.filter(m => m.kind === kind), use = ms.find(m => m.inUse) || ms.find(m => m.state === 'ready');
   if (use) return [t('✓ In gebruik: {model}', { model: mdLineName(use) + ' · ' + use.version }), true];
@@ -131,6 +132,7 @@ function mdCatCard(cat){
   return '<section class="card md-cat" data-kind="' + cat.kind + '" aria-label="' + esc(cat.title) + '">' + head + '<div role="list">' + lines.map(l => mdLineHtml(l)).join('') + '</div>' + help(eng) + '</section>';
 }
 function mdTtsBody(tt){
+  if(mdSt.speech)return '<p class="hint">'+esc(t('Eén stem voor je boeken, notities en de assistent. Tekst blijft op je telefoon.'))+'</p><div class="md-acts">'+mdBtn(t('Lokale stemmen beheren'),'spSettings()',false,t('Lokale voorleesstemmen beheren'))+'</div>';
   if (tt.state === 'ok') return '<div class="md-acts">' + mdBtn('Stem en snelheid', 'Android.ttsSettings()', false, 'Stem en snelheid van het voorlezen instellen') + '</div>';
   if (tt.state === 'nodutch') return '<p class="note">' + esc(t('Er is wel een voorleesfunctie{motor}, maar zonder Nederlandse stem. Voeg er een toe; daarna kijkt de app vanzelf opnieuw.', { motor: tt.engine ? ' (' + tt.engine + ')' : '' })) + '</p><div class="md-acts">' + mdBtn('Nederlandse stem toevoegen', 'Android.ttsInstall()', true) + mdBtn('Instellingen', 'Android.ttsSettings()', false, 'Instellingen van het voorlezen') + mdBtn('Opnieuw kijken', 'mdTtsCheck()', false, 'Opnieuw kijken of er een Nederlandse stem is') + '</div>';
   if (tt.state === 'noengine' || tt.state === 'slow') return '<p class="note">' + (tt.state === 'slow' ? 'De voorleesfunctie van je telefoon antwoordde niet op tijd. Probeer het zo opnieuw.' : 'Installeer bijvoorbeeld Spraakservices van Google uit de Play Store en kies daar een Nederlandse stem.') + '</p><div class="md-acts">' + mdBtn('Instellingen', 'Android.ttsSettings()', false, 'Instellingen van het voorlezen') + mdBtn('Opnieuw kijken', 'mdTtsCheck()', false, 'Opnieuw kijken of er een voorleesfunctie is') + '</div>';

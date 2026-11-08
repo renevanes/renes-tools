@@ -210,7 +210,7 @@ function erFinish(){if(erBook&&erUpdate(erBook.id,{finished:!erBook.finished})){
 function erMenu(){
   if(!erBook)return;const id=erBook.id;
   openSheet(erBook.title,t('{n}% gelezen',{n:fmtNum(erPercent(erBook))}),[
-    [t('Inhoud en leeswijzers'),()=>erBrowse('marks'),'bookmark'],[t('Leesweergave'),()=>show('erset'),'settings'],
+    [t('Inhoud en leeswijzers'),()=>erBrowse('marks'),'bookmark'],[t('Leesweergave'),()=>show('erset'),'settings'],[t('Stem en snelheid'),()=>spSettings(),'volume-high'],
     [t(erBook.favorite?'Uit favorieten halen':'Als favoriet markeren'),()=>erFavorite(id),'star'],
     [t(erBook.finished?'Terug naar nog te lezen':'Als uitgelezen markeren'),erFinish,'check'],
     [t('Titel wijzigen'),()=>askInput(t('Titel van het boek'),'',erBook.title,t('Bewaren'),title=>{if(erUpdate(id,{title}))$('#er-title').textContent=erBook.title;}),'edit'],

@@ -52,7 +52,7 @@ final class Models {
         }
         long left = 0;
         try { left = LocalAi.orphanBytes(c) + whisperParts(c, false); } catch (Throwable ignored) { }
-        o.put("models", ms).put("used", used).put("leftovers", left).put("ram", LocalAi.ramBytes(c)).put("tts", TtsCheck.json())
+        o.put("models", ms).put("used", used).put("leftovers", left).put("ram", LocalAi.ramBytes(c)).put("tts", TtsCheck.json()).put("speech",VoiceModels.json(c))
                 .put("engines", new JSONObject().put("ai", LocalAi.ENGINE).put("zoek", LocalAi.ENGINE).put("spraak", Transcribe.ENGINE));
         return o;
     }

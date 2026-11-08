@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Haalt het Android-bouwgereedschap op (geen Android Studio of Gradle nodig).
 set -euo pipefail
+TOOLS_REPO=$(cd "$(dirname "$0")" && pwd)
 T=${TOOLS:-/home/claude/toolchain}
 mkdir -p $T && cd $T
 
@@ -100,3 +101,5 @@ if [ ! -f ap/android-36/android.jar ]; then
   (cd ap && git sparse-checkout set android-36)
 fi
 echo "Gereedschap staat klaar in $T (build-tools $BT_USED)"
+
+python3 "$TOOLS_REPO/tools/voorlezen/deps.py" "$T/voorlezen"
