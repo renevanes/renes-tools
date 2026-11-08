@@ -118,6 +118,7 @@ script/69-centrale-gegevens.js
 script/70-formulieren-invulhulp.js
 script/71-stamgegevens-profiel.js
 script/71-stamgegevens-herkennen.js
+script/71-stamgegevens-ik.js
 script/72-formulier-vast.js
 script/49-documenten-ordenen.js
 script/38-podcasts.js

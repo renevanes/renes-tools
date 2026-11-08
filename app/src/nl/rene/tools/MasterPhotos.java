@@ -70,11 +70,12 @@ final class MasterPhotos {
         try{
             if(job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kies de kaartfoto opnieuw vanuit Stamgegevens"));
             session.require(token);byte[] bytes=read(activity.getContentResolver().openInputStream(job.uri));
-            JSONObject found=recognize(activity,bytes,Regio.dayKey(activity,System.currentTimeMillis()),()->session.accepts(token)&&activity.masterForeground&&activity.masterWanted&&job.dataset==MasterSession.datasetEpoch());session.require(token);
+            JSONObject diag=new JSONObject();
+            JSONObject found=recognize(activity,bytes,Regio.dayKey(activity,System.currentTimeMillis()),()->session.accepts(token)&&activity.masterForeground&&activity.masterWanted&&job.dataset==MasterSession.datasetEpoch(),false,diag);session.require(token);
             String image=normalize(bytes);session.require(token);
             // Herkennen uit foto (bij een persoon): een nieuw document met deze foto als bijlage, daarna voorstellen.
-            if("scan".equals(job.side))return scanDocument(key,session,token,job,image,found);
-            result=MasterStore.photo(activity,key,session,token,job.id,job.revision,job.side,image,false,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});result.put("saved",true);if(found!=null)result.put("herkend",found);
+            if("scan".equals(job.side))return scanDocument(key,session,token,job,image,found).put("diag",diag);
+            result=MasterStore.photo(activity,key,session,token,job.id,job.revision,job.side,image,false,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});result.put("saved",true).put("diag",diag);if(found!=null)result.put("herkend",found);
         }catch(Throwable e){try{result.put("error",e instanceof MasterError?e.getMessage():Taal.T("De kaartfoto kan niet worden opgeslagen. Kies een duidelijke afbeelding."));}catch(Exception ignored){ }}
         finally{clear(job);}
         return result;
@@ -99,13 +100,20 @@ final class MasterPhotos {
         try{return recognize(Base64.decode(data.substring(23),Base64.DEFAULT),today);}catch(Throwable e){return null;}
     }
     static JSONObject recognizeStored(android.content.Context context,String data,String today,java.util.function.BooleanSupplier active){
+        return recognizeStored(context,data,today,active,false,null);
+    }
+    static JSONObject recognizeStored(android.content.Context context,String data,String today,java.util.function.BooleanSupplier active,boolean thorough,JSONObject diag){
         if(data==null||!data.startsWith("data:image/jpeg;base64,"))return null;
-        try{return recognize(context,Base64.decode(data.substring(23),Base64.DEFAULT),today,active);}catch(Throwable e){return null;}
+        try{return recognize(context,Base64.decode(data.substring(23),Base64.DEFAULT),today,active,thorough,diag);}catch(Throwable e){return null;}
     }
     static JSONObject recognize(android.content.Context context,byte[] bytes,String today,java.util.function.BooleanSupplier active){
+        return recognize(context,bytes,today,active,false,null);
+    }
+    /** Eerst de strook (ID-kaart, paspoort), anders de voorkant van een rijbewijs. diag: hint bij mislukken (alleen ja/nee en aantallen). */
+    static JSONObject recognize(android.content.Context context,byte[] bytes,String today,java.util.function.BooleanSupplier active,boolean thorough,JSONObject diag){
         if(!active.getAsBoolean())return null;
         JSONObject mrz=recognize(bytes,today);if(mrz!=null||!active.getAsBoolean())return mrz;
-        return RijbewijsOcr.read(context,bytes,today,active);
+        return RijbewijsOcr.read(context,bytes,today,active,thorough,diag);
     }
     static byte[] read(InputStream input)throws Exception{
         if(input==null)throw new MasterError(Taal.T("Deze kaartfoto kan niet worden geopend"));

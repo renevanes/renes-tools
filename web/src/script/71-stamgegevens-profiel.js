@@ -75,6 +75,15 @@ function cmiPersonName(id){const p=cm.records.find(r=>r.id===id&&r.type==='perso
 function cmiRelationText(f,soort){
   const naam=cmiPersonName(f.naarPersoon),ander=cmiPersonName(f.vanPersoon);if(!naam||!ander||!f.relatie)return '';
   const relatie=cmiRelationName(f.relatie).toLowerCase(),status=(cmiStatusChoices(f.relatie)||[]).find(c=>c[0]&&c[0]===f.status);
+  // Vanuit jou (Stamgegevens met jou centraal): "Zoë is je dochter", "Je bent kind van Piet".
+  const me=typeof cmkMe==='function'?cmkMe():'';
+  if(me&&f.relatie!=='anders'&&(f.vanPersoon===me||f.naarPersoon===me)&&f.vanPersoon!==f.naarPersoon){
+    const mijn=f.vanPersoon===me;
+    if(soort==='label')return (mijn?t('{naam} (mijn {relatie})',{naam,relatie}):t('Ik ben {relatie} van {ander}',{ander,relatie})).slice(0,120);
+    const st=status?status[1].toLowerCase():'';
+    if(mijn)return st?t('{naam} is je {relatie} ({status}).',{naam,relatie,status:st}):t('{naam} is je {relatie}.',{naam,relatie});
+    return st?t('Je bent {relatie} van {ander} ({status}).',{relatie,ander,status:st}):t('Je bent {relatie} van {ander}.',{relatie,ander});
+  }
   if(soort==='label')return (f.relatie==='anders'?t('{naam} en {ander}',{naam,ander}):t('{naam} ({relatie} van {ander})',{naam,relatie,ander})).slice(0,120);
   if(f.relatie==='anders')return t('{naam} heeft een andere relatie met {ander}.',{naam,ander});
   return status?t('{naam} is {relatie} van {ander} ({status}).',{naam,relatie,ander,status:status[1].toLowerCase()}):t('{naam} is {relatie} van {ander}.',{naam,relatie,ander});
