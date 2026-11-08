@@ -76,9 +76,12 @@ final class ReadAloud {
                     while(p<pcm.length){if(!waitFor(job))return;int n=Math.min(samples.length,pcm.length-p);for(int k=0;k<n;k++)samples[k]=(short)(Math.max(-1,Math.min(1,pcm[p+k]))*32767);
                         int sent=job.track.write(samples,0,n,AudioTrack.WRITE_BLOCKING);if(sent<=0)throw new Exception();p+=sent;written+=sent;}
                     while((job.track.getPlaybackHeadPosition()&0xffffffffL)<written){if(!waitFor(job))return;Thread.sleep(20);}
+                    // Boekimport houdt Ereader.class vast: wacht daarop zonder de bedieningslock.
+                    synchronized(job.book.isEmpty()?LOCK:Ereader.class){synchronized(LOCK){if(!job.alive())return;
                     cursor=at+part.length();job.offset=cursor;
                     if(!job.book.isEmpty())Ereader.position(job.context,job.book,job.chapter,job.text.isEmpty()?0:(double)cursor/job.text.length(),cursor);
                     event(job,"progress",null);
+                    }}
                 }
                 if(job.book.isEmpty())break;
                 JSONObject book=Ereader.meta(job.context,job.book);JSONArray names=book.getJSONArray("chapters"),linear=book.optJSONArray("linear");int next=job.chapter+1;while(next<names.length()&&linear!=null&&!linear.optBoolean(next,true))next++;
