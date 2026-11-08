@@ -15,6 +15,8 @@ if (!window.Android) window.Android = (function(){
     ereaderList(){ return JSON.stringify({ books: this._erBooks }); },
     ereaderChapter(id, chapter){ const texts = this._erTexts[id]; return JSON.stringify(texts && texts[chapter] != null ? { text: texts[chapter] } : { error: "Boek openen lukt niet" }); },
     ereaderDetails(id){ const b=this._erBooks.find(x=>x.id===id); if(!b)return JSON.stringify({error:'Boek openen lukt niet'}); const texts=this._erTexts[id]||[]; b.lengths=texts.map(x=>x.length); b.words=texts.join(' ').split(/\s+/).length; b.annotations=b.annotations||[]; return JSON.stringify(b); },
+    ereaderImagesCancel(){ this._erImageGeneration=(this._erImageGeneration||0)+1; },
+    ereaderImage(id,asset,request){ const generation=this._erImageGeneration,r=(this._erImages||{})[id+'-'+asset]||{error:t('Deze afbeelding kan niet worden weergegeven')};setTimeout(()=>{if(generation===this._erImageGeneration)onEreaderImage(Object.assign({},r,{id,asset,request}));},this._erImageMs||50); },
     ereaderCover(id){ return (this._erCovers||{})[id]||''; },
     ereaderReadPosition(id,chapter,offset,anchor){ const b=this._erBooks.find(x=>x.id===id); if(b)Object.assign(b,{chapter,offset,anchor,last:Date.now()}); return ''; },
     ereaderUpdate(id,json){ const b=this._erBooks.find(x=>x.id===id); if(!b)return JSON.stringify({error:'Boek openen lukt niet'}); Object.assign(b,JSON.parse(json)); return this.ereaderDetails(id); },
