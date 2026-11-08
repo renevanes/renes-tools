@@ -25,7 +25,20 @@ if (!window.Android) window.Android = (function(){
     ereaderSearch(id,query,request){ const g=this._erSearchGeneration=(this._erSearchGeneration||0)+1,hits=[]; (this._erTexts[id]||[]).forEach((text,chapter)=>{for(let i=0;i<=text.length-query.length&&hits.length<101;i++){ if(text.slice(i,i+query.length).toLowerCase()===query.toLowerCase()){hits.push({chapter,start:i,end:i+query.length,excerpt:text.slice(Math.max(0,i-65),i+query.length+100)});i+=query.length-1;} }});setTimeout(()=>{if(g===this._erSearchGeneration)onEreaderSearch({id,request,hits});},this._erSearchMs||80); },
     ereaderPosition(id, chapter, offset){ const b = this._erBooks.find(x => x.id === id); if (b) Object.assign(b, { chapter, offset, last: Date.now() }); return ""; },
     ereaderDelete(id){ this._erBooks = this._erBooks.filter(x => x.id !== id); delete this._erTexts[id]; return ""; },
-    ereaderPick(){ setTimeout(() => onEreaderImport(this._erPick || { cancelled: true }), 100); },
+    ereaderPick(){
+      // Met _vgMs: de stappen van Voortgang.java (lezen 4 MB, verwerken, 12 delen opslaan), daarna het boek en "klaar".
+      const r = this._erPick || { cancelled: true };
+      if (r.cancelled || !this._vgMs) { setTimeout(() => onEreaderImport(r), 100); return; }
+      this._vgSpeel('ereader', 1, [['lezen', 0, 4194304], ['lezen', 2097152, 4194304], ['lezen', 4194304, 4194304], ['verwerken', 0, 0], ['opslaan', 3, 12], ['opslaan', 12, 12]], () => onEreaderImport(r));
+    },
+    _vgSpeel(soort, bestanden, stappen, eind){
+      let i = 0; const ms = this._vgMs || 20;
+      const volgende = () => {
+        if (i < stappen.length) { const [stap, gedaan, totaal, bestand] = stappen[i++]; onVoortgang({ soort, stap, gedaan, totaal, bestand: bestand || 1, bestanden }); setTimeout(volgende, ms); }
+        else { eind(); onVoortgang({ soort, klaar: true, bestand: 1, bestanden }); }
+      };
+      setTimeout(volgende, ms);
+    },
     /* Lezen: het venster (volle scherm, scherm aan, helderheid, volumeknoppen) en voorlezen met een nagebootste stem.
        Zinnen gaan pas verder met _spkTick() (de test bepaalt het tempo); _spkNoVoice = talen zonder stem. */
     _erWin: {}, _erWinLog: [], _talkback: false,

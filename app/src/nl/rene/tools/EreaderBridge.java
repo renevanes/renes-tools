@@ -134,7 +134,7 @@ public class EreaderBridge extends ToilettenBridge {
     }
     static void picked(MainActivity a, Uri uri) {
         new Thread(() -> {
-            try { a.js("onEreaderImport", new JSONObject().put("book", Ereader.add(a.getApplicationContext(), uri)).toString()); }
+            try (Voortgang v = Voortgang.van(a, "ereader", 1)) { a.js("onEreaderImport", new JSONObject().put("book", Ereader.add(a.getApplicationContext(), uri, v)).toString()); }
             catch (Throwable e) { a.js("onEreaderImport", "{\"error\":" + JSONObject.quote(Taal.t(a, "Dit boek kan niet worden ingelezen. Kies een geldig EPUB zonder versleutelde onderdelen of een UTF-8-tekstbestand van maximaal 20 MB.")) + "}"); }
         }, "ereader-import").start();
     }

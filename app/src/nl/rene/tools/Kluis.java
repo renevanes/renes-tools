@@ -193,14 +193,14 @@ final class Kluis {
     }
 
     /** Document toevoegen uit een gekozen bestand. */
-    static synchronized JSONObject add(Context c, Uri u) throws Exception {
+    static synchronized JSONObject add(Context c, Uri u, Voortgang v) throws Exception {
         String name = "document", mime = c.getContentResolver().getType(u);
         long size = -1;
         try (android.database.Cursor cur = c.getContentResolver().query(u, new String[]{OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE}, null, null, null)) {
             if (cur != null && cur.moveToFirst()) { if (!cur.isNull(0)) name = cur.getString(0); if (!cur.isNull(1)) size = cur.getLong(1); }
         }
         if (size > MAX) throw new Exception("Bestand is te groot (max 60 MB)");
-        try(InputStream in=c.getContentResolver().openInputStream(u)){return store(c,in,name,mime,"");}
+        try(InputStream in=v.lees(c.getContentResolver().openInputStream(u),Math.max(0,size))){return store(c,in,name,mime,"");}
     }
 
     static synchronized JSONObject addPdf(Context c,String name,String category) throws Exception {
