@@ -29,10 +29,12 @@
         <exclude domain="file" path="kluis/" />
         <exclude domain="file" path="bank/" />
         <exclude domain="file" path="masterdata/" />
+        <exclude domain="file" path="formulieren/" />
     <exclude domain="file" path="transcripts/" />
     <exclude domain="file" path="tracks/" />
     <exclude domain="file" path="toiletten/" />
     <exclude domain="file" path="toiletten-cache/" />
+    <exclude domain="file" path="nieuws/" />
     <exclude domain="file" path="whisper/" />
     <exclude domain="file" path="contacts/" />
     <exclude domain="file" path="crash.log" />

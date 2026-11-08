@@ -96,7 +96,9 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!fm.masterSensitive&&!cm.token);
   assert.equal(await p.evaluate(()=>JSON.stringify(fm.values).includes('Jansen')),false);
   // Na vergrendelen vraagt het venster vanzelf opnieuw om te ontgrendelen; Escape sluit het.
-  await p.click('#fmq-start');await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden);
+  // Eigen invoer (hier het land) bleef als concept: eerst de vraag of die vervangen mag worden.
+  await p.click('#fmq-start');if(await p.isVisible('#modal.on')){assert.equal(await p.textContent('#modal-title'),'Nieuwe reis invullen?');await p.click('#modal-ok');}
+  await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden);
   await p.keyboard.press('Escape');assert.equal(await p.evaluate(()=>fmq.open||$('#s-formulieren').inert),false);
   await p.close();
 }

@@ -155,7 +155,7 @@ final class AppData {
      * FILE_SKIP staat, zodat er bij een nieuwe tool een bewuste keuze is; zonder die keuze gaat hij in Alle appgegevens toch mee.
      */
     static final List<String> FILE_KNOWN = Collections.unmodifiableList(Arrays.asList(
-            "notes.json", "notes.json.bak", "music.json", "ai", "apparaten", "call-recordings", "checkin", "contacts", "ereader", "facturen", "gebruik", "podcasts",
+            "notes.json", "notes.json.bak", "music.json", "ai", "apparaten", "call-recordings", "checkin", "contacts", "ereader", "facturen", "gebruik", "nieuws", "podcasts",
             "shortcut-icons", "sleep", "spotify", "toiletten", "tracks", "transcripts"));
 
     /** Hooguit zoveel instellingenbestanden uit een backup (bescherming tegen een gemaakt bestand met duizenden namen). */
@@ -172,6 +172,7 @@ final class AppData {
         m.put("kluis", "gaat apart mee (ontsleuteld, versleuteld in het archief)");
         m.put("masterdata", "stamgegevens en lokaal activiteitenlog: alleen versleuteld op dit toestel; sleutel is toestelgebonden");
         m.put("toiletten-cache", "gedownloade bronnen van Toiletten en douches: worden opnieuw opgehaald");
+        m.put("formulieren", "concepten van Formulieren invullen: versleuteld met de sleutel van deze telefoon (onleesbaar op een andere telefoon) en tijdelijk; de gemaakte PDF's gaan wel mee");
         m.put("bank", "Bankzaken: blijft bewust alleen op deze telefoon (versleuteld met een sleutel die de telefoon niet uit kan)");
         m.put("crash.log", "foutlogboek van deze installatie");
         m.put("notes.json.tmp", "tijdelijk bestand");

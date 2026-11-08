@@ -127,7 +127,7 @@ function fmHelpApply(){
   if(fmh.snapshot!==fmHelpSnapshot()){fmHelpDiscard();fmHelpNote(t('De invoer is gewijzigd. Maak een nieuw voorstel.'));return;}
   const chosen=new Set([...document.querySelectorAll('#pff-hulp-voorstellen input:checked')].map(e=>e.dataset.field));
   if(!chosen.size)return;
-  for(const row of fmh.rows)if(chosen.has(row.id))fm.values[row.id]=row.value;
+  for(const row of fmh.rows)if(chosen.has(row.id)){fm.values[row.id]=row.value;fm.stam.add(row.id);}
   fm.meer={};fmWijzig();fmRender();fmHelpNote(t('Gekozen voorstellen overgenomen. Controleer het formulier voordat je een PDF maakt.'));cmTouch();
 }
 const fmHelpBaseInit=fmInit;fmInit=function(id){fmHelpClear();fmHelpBaseInit(id);};

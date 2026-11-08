@@ -1,6 +1,6 @@
 /* ---------- Snelkoppelingen ---------- */
 // Naam, kleur en symbool voor Android-snelkoppelingen. Binnen de app komt het icoon uit UI_TOOL_ICONS.
-const TILE_TOOL = { 'tile-ereader':'ereader', 'tile-masterdata':'masterdata', 'tile-car': 'car', 'tile-pdf': 'pdf', 'tile-kluis': 'kluis', 'tile-recorder': 'recorder', 'tile-history': 'history', 'tile-redial': 'redial', 'tile-wa': 'wa', 'tile-tracks': 'tracks', 'tile-sms': 'sms', 'tile-calls': 'calls',
+const TILE_TOOL = { 'tile-ereader':'ereader', 'tile-nieuws':'nieuws', 'tile-masterdata':'masterdata', 'tile-car': 'car', 'tile-pdf': 'pdf', 'tile-kluis': 'kluis', 'tile-recorder': 'recorder', 'tile-history': 'history', 'tile-redial': 'redial', 'tile-wa': 'wa', 'tile-tracks': 'tracks', 'tile-sms': 'sms', 'tile-calls': 'calls',
   'tile-notes': 'notes', 'tile-contacts': 'contacts', 'tile-tr': 'transcripts', 'tile-radio': 'radio', 'tile-podcasts': 'podcasts', 'tile-spotify': 'spotify', 'tile-vpn': 'vpn', 'tile-loc': 'loc', 'tile-music': 'music', 'tile-ai': 'ai', 'tile-backup': 'backup', 'tile-skin': 'skin', 'tile-auto': 'auto', 'tile-sleep': 'sleep', 'tile-checkin': 'checkin', 'tile-apparaten': 'apparaten', 'tile-gebruik': 'gebruik', 'tile-facturen': 'facturen', 'tile-bank': 'bank', 'tile-wc': 'wc' };
 function pinTool(tool){
   const tl = TOOLS[tool]; if (!tl) return;

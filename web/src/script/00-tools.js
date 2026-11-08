@@ -1,6 +1,7 @@
 /* Toolregister: naam, kleur en symbool. Nieuwe schermtools kunnen standaard als losse app draaien. */
 const TOOLS = {
   ereader: ['E-reader', '#2E6B3F', '📖'],
+  nieuws: ['Nieuws', '#9C3D2E', '📰'],
   masterdata: ['Stamgegevens', '#2E6B3F', '🔐'],
   car: ['Mijn auto', '#1F6F5C', '🚗'], kluis: ['Kluis', '#4B5563', '🔒'], pdf: ['PDF', '#B03A2E', '📄'],
   recorder: ['Gesprekken opnemen', '#A93226', '🎙'], sleep: ['Slaappraat', '#283593', '🌙'], checkin: ['Check-in', '#1E5AA8', '🙂'], apparaten: ['Apparaten', '#00796B', '📡'],

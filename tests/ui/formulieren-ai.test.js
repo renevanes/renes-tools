@@ -72,12 +72,14 @@ const path=require('path');
   await p.evaluate(()=>Android._pdf.formAiError='Download eerst een taalmodel (Instellingen → Taalmodel)');await p.click('#pff-hulp-ai');assert.match(await p.textContent('#pff-hulp-status'),/taalmodel/);
   await p.evaluate(()=>{Android._pdf.formAiError='';show('home');});assert.equal(await p.evaluate(()=>uiCanReload()),false,'gekozen bronnen en toelichting worden beschermd');
   await p.evaluate(()=>{show('formulieren');Android.masterLock();});await p.waitForFunction(()=>!cm.token&&!fmh.sources.length);
-  assert.equal(await p.inputValue('#pff-hulp-tekst'),'');assert.equal(await p.locator('#pff-hulp-voorstellen input').count(),0);assert.equal(await p.evaluate(()=>fm.values['kind-naam']),'');
+  assert.equal(await p.inputValue('#pff-hulp-tekst'),'');assert.equal(await p.locator('#pff-hulp-voorstellen input').count(),0);assert.equal(await p.evaluate(()=>fm.values['kind-naam']),'Handmatig','eigen invoer blijft als concept; gegevens uit Stamgegevens niet');
+  assert.equal(await p.evaluate(()=>fm.values['kind-geboortedatum']),'','overgenomen voorstel uit Stamgegevens is gewist');
   assert.equal(await p.evaluate(()=>fm.view+' '+fmh.shown),'start false','vergrendelen sluit de invulhulp en gaat terug naar de start');
   assert.equal(await p.evaluate(()=>Object.values(localStorage).join('').includes('123456782')),false,'geen brondata in webopslag');
   // De reis bestaat na vergrendelen nog in de native dataset en kan opnieuw gekozen worden.
   // Op de stap Reis kiest "Overnemen uit stamgegevens" een reis (geen adres).
-  await p.click('#pff-zelf');await p.click('#cm-form-pick');if(await p.isVisible('#cm-pick-unlock'))await p.click('#cm-pick-unlock');
+  // Het concept onthield de stap waar je was: eerst terug naar de stap Reis.
+  await p.click('#pff-zelf');await p.evaluate(()=>{fm.step=0;fmRender();});await p.click('#cm-form-pick');if(await p.isVisible('#cm-pick-unlock'))await p.click('#cm-pick-unlock');
   await p.getByRole('button',{name:'Zomerreis België',exact:true}).click();await p.waitForSelector('#cm-pick-fields input[data-field]');
   await p.click('#cm-apply');await p.waitForFunction(()=>!cm.picker);
   assert.equal(await p.inputValue('#pff-v-land'),'België');assert.equal(await p.inputValue('#pff-v-accommodatie'),'Familie');assert.equal(await p.evaluate(()=>$('#pff-meer').open),true);

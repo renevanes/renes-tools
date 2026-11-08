@@ -20,7 +20,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   `kop.html`, `stijl.css` (Material 3-kleurrollen: `--bg --card --hi --ink --muted --line --outline --primary --on-primary --tonal --chip --on-chip …`),
   `schermen/NN-*.html` (één `<section class="screen" id="s-naam">` per scherm), `script/NN-*.js`, `vensters.html` (dialogen, tabbalk).
 - `web/src/script/01-testbrug.js` — de nagebootste Android-brug voor de tests (in de app zelf weggelaten).
-- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends FeatureBridge`.
+- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends NieuwsBridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends FeatureBridge`.
 - `web/start.html` — de Telefoon-skin (eigen startscherm); `tests/` — Java- en interfacetests; `tools/` — hulpscripts.
 - **Iedere nieuwe schermtool ondersteunt standaard losse apps.** Registreer hem in `web/src/script/00-tools.js`: het
   openen, het overzicht Losse apps en het native register volgen daaruit. Subschermen krijgen een `BACK`-verwijzing
@@ -519,6 +519,26 @@ in de buurt, ook plekken waar er meestal een is (tankstations, verzorgingsplaats
   namen of adressen.
 - Tests: `tests/ui/toiletten.test.js`, `toiletten-bronnen.test.js`, `toiletten-eigen.test.js`; Java: `ToilettenTest`,
   `ToilettenSamenTest`, `ToilettenOsmTest`.
+
+## Nieuws (feeds lezen)
+Nieuws (schermen `s-nieuws`, `s-nieuwsart`, `s-nieuwsset`; `web/src/script/75-nieuws.js`, `Nieuws*.java`) toont koppen en
+artikelen uit RSS-, Atom- en RDF-feeds.
+- **Ophalen alleen in Java** (de WebView heeft `connect-src 'none'`): `Nieuws.haal` volgt doorverwijzingen zelf en alleen
+  naar https op openbare adressen (`NieuwsFeed.httpsOpenbaar`, en na het opzoeken van de naam `Nieuws.intern`: niet het
+  toestel of het thuisnetwerk), met een vaste eindtijd per feed (een wachter verbreekt de verbinding) en een groottegrens;
+  geen account, geen tussendienst en geen leesmodus die de webpagina van een
+  artikel ophaalt (cookiemuren). De tekst komt uit de feed; "Lees op de website" opent de link in de browser.
+- **Lezen** (`NieuwsFeed`, zuiver, getest in `NieuwsFeedTest`): SAX zonder externe entiteiten; een DOCTYPE met eigen
+  declaraties weigert `PodcastFeed.EntityGuard` al vóór de parser (de parser van Android geeft declaraties niet door).
+  Opschoonpatronen moeten lineair blijven (Android kan een zoekopdracht niet afbreken; `NieuwsFeedTest` meet het). HTML uit
+  de feed wordt alinea's en tussenkoppen (platte tekst), de interface zet het altijd met `textContent`/`esc` neer, nooit als HTML.
+  Afbeeldingen alleen via https, zonder referrer, uit te zetten (Instellingen van Nieuws).
+- **Bronnen**: vaste lijst in `Nieuws.STANDAARD` (id, naam, feed, standaard aan, sites); een eigen bron (id `e…`) is een
+  https-feed of een pagina met `<link rel="alternate">`. Een bekende site (bijv. nos.nl) zet de bekende bron aan.
+  Nieuwe vaste bron = een regel in `STANDAARD` én in de testbrug (`_nwInit`); controleer dat de feed echt leest.
+- **Opslag**: `nieuws/` (bronnen, gelezen, bewaard) gaat mee in "Alle appgegevens", niet in de Android-backup; de opgehaalde
+  artikelen staan in de cache. Logsoort `NIEUWS` alleen met aantallen.
+- Tests: `tests/ui/nieuws.test.js`; Java: `NieuwsFeedTest`, `NieuwsTest`.
 
 ## Berichten aan Rene
 Kort en in het Nederlands: wat er nu anders is, waar hij het vindt en of hij iets moet doen (bijv. een nieuwe APK
