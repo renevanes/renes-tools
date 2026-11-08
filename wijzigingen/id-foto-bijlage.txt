@@ -1,1 +1,0 @@
-Stamgegevens: Herkennen uit foto bewaart de foto nu als bijlage bij het nieuwe document (versleuteld, achterkant van de ID-kaart of fotopagina van het paspoort). Daar kun je hem bekijken, opnieuw laten herkennen met Gegevens herkennen, of verwijderen.

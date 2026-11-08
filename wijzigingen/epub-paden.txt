@@ -1,1 +1,0 @@
-E-reader: afbeeldingen en hoofdstukverwijzingen werken ook bij EPUB-bestandsnamen met spaties, hekjes en procenttekens.

@@ -1,15 +1,26 @@
 {
   "app": "Tools",
-  "versionName": "1.164",
-  "versionCode": 165,
-  "nativeLevel": 146,
+  "versionName": "1.165",
+  "versionCode": 166,
+  "nativeLevel": 147,
   "web": "index.html",
-  "webSha256": "8b5e5064d44a7ed067a8e9d238010ae48063d2afef3cf0efd7059ae5d99f60a6",
+  "webSha256": "a106c231718fe5a4a8f6a180ac1c9684d6616fe2220c825061e069562392027d",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "261d61528160a577f588ee9331860abaefb0e651f68e148bf43a8c32785e8ab7",
+  "apkSha256": "95a8182909ea5eaee6c8e3fb31aeabceccb916cdac72258eb44b83c617023ce1",
   "changelog": [
+    {
+      "version": "1.165",
+      "date": "2026-11-08",
+      "changes": [
+        "E-reader: afbeeldingen in EPUB-boeken worden nu getoond, ook SVG-tekeningen en pagina's met alleen beeld. Tik om te vergroten, zoomen en verschuiven.",
+        "E-reader: koppen, vet en cursief, lijsten, tabellen, code, voetnoten en de echte geneste inhoudsopgave blijven behouden. Vanuit een voetnoot ga je terug naar je tekst.",
+        "Eerder ingelezen EPUB-boeken kun je met hetzelfde bronbestand herstellen, met behoud van leespositie, favorieten en alle leeswijzers.",
+        "E-reader: afbeeldingen en hoofdstukverwijzingen werken ook bij EPUB-bestandsnamen met spaties, hekjes en procenttekens.",
+        "Stamgegevens: Herkennen uit foto bewaart de foto nu als bijlage bij het nieuwe document (versleuteld, achterkant van de ID-kaart of fotopagina van het paspoort). Daar kun je hem bekijken, opnieuw laten herkennen met Gegevens herkennen, of verwijderen."
+      ]
+    },
     {
       "version": "1.164",
       "date": "2026-11-08",
@@ -1456,5 +1467,5 @@
       ]
     }
   ],
-  "webSig2": "eOwYZ6EKGEez4Vzq9iGzKYPCLUNJMAuLmqr+CTkD3LMTWVlaPSj5MBo+EeCP7HzQ8j/BfwCJl7rAb95a6VpxzBGbwYirInfMC+ipzuF8FEB0y8W3Y0GqMcwcSnCdD1kVYn8T4aW1oDF5YKRc1MyyxhsJmbrqcRiipiyMZqGQmqkeOIx8G6Ge1tqWGWM4+A3FcD3/m5jeLZVyWqf9ijihJIFx4VWslKfCx/b79pDLJxCe/EbMdBGrQC9B13p6dSqDVbyqua9KpJlkRVPxbXPBTfvglSCDJpe9POWIcfzyQ1Dud9H2hFNsLQZ/jGNBlBWC1tLPWcGfzAjVM1TWRK9sZKfrkgMMWTdz8p/RN6xmFaz6sr5qc5LqSTiEpGneS9/tecI9WzLILxZD4fwew+H5DjmR0x5scN9NhCHCsp1Nyfu1jQdtbNS1B4mPxpb5U+TdE6IUa6zM5P14Pws2iGeyMfsLJdpSaLF+u8hEePXcsm5LPJag6PpP+B1NQ/dBEA3Z"
+  "webSig2": "ahoHyPVkFoTyKVxuXP3+AJklnV1sICqfMBoUQCnZuCTEDxuGTM0u/x+x5m6HWV9+71As8eESxPymtKtWDZ5HhlgqG4udq017xRlsbr9PvjnMGvaTAYktNHfC5izj0oZzDS9vGPSQBU6M7DjkvwRrqtDonJZyqc2Axt5YxlZGQ3f/emp+IeBXVj7NvLhKX9TgT6m0l608UDrvne0+A/yp6ogadvTW9eEdci1EBcdosJ8UKQA/I9YBuIuDueRUSX3Eb8Tgxi+axG3Iml6A4dzfHp286zu3RaE9Yoww4r9i7FOSxksSdq8cLcZyWsEDNd6uOKxWplQHHeLpuWbcmwzzBIj/fBpd8ILFW34vErNsGQZfAbc65/GNbVqMFqt2G9fw2SYJWvHb3B4jWcaSdBEtSu2d3JSNfA/qKQGesybwAwZxd31PZdWeOGRtRI2/TSLqMvayna4cCc6sPBCzzHJlsyMzSsCmQrrgnWZe/zNNODlsaA4rH8tKdnJLnkkKMPfi"
 }
