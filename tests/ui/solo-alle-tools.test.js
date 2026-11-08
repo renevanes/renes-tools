@@ -35,6 +35,13 @@ const W = +process.env.UI_WACHT || 1;
         await pg.click('#s-wcset .strow:has-text("Bronnen")');
         assert.equal(await pg.evaluate(() => current),'wcbronnen');
       }
+      if (id === 'ai') {
+        await pg.evaluate(() => { Android._ai.st.klein = {state:'ready'}; Android._tx.models.base = true; Android._tkEndMs = 60000; aiTalkStart(); });
+        assert(await pg.isVisible('#ai-talk'), 'gesprek opent');
+        assert.equal(await pg.evaluate(() => goBack()), true, 'Terug stopt eerst het gesprek');
+        assert.equal(await pg.isVisible('#ai-talk'), false);
+        assert.equal(await pg.evaluate(() => current), 'ai');
+      }
       if (id === 'gebruik') {
         await pg.evaluate(() => gbShowPhoto('testfoto'));
         assert(await pg.locator('#gb-light').count(), 'foto opent');
