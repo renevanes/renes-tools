@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.170",
+    "date": "2026-11-08",
+    "changes": [
+      "Alles back-uppen: de gegevens van alle tools gaan nu standaard mee (ook van tools die er later bij komen); alleen bewuste uitzonderingen blijven op de telefoon, zoals Bankzaken en stamgegevens."
+    ]
+  },
+  {
     "version": "1.169",
     "date": "2026-11-08",
     "changes": [
