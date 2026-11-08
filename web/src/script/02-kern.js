@@ -215,6 +215,8 @@ window.goBack = function(){
   if ($('#sleepdlg').classList.contains('on')) { sleepClose(); return true; }
   if ($('#vp-scan') && $('#vp-scan').classList.contains('on')) { vpScanClose(); return true; }
   if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
+  if ($('#er-image').classList.contains('on')) { erImageClose(); return true; }
+  if (current === 'erbook' && erLinks.length && erLinkBack()) return true;
   if (current === 'erbook' && document.body.classList.contains('er-focus')) { erFocus(false); return true; }
   if (typeof plIsOpen !== 'undefined' && plIsOpen) { plClose(); return true; }
   if (current === 'autoed' && typeof aeDirty === 'function' && aeDirty()) {

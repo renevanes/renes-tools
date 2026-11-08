@@ -136,6 +136,7 @@ script/43-uiterlijk.js
 script/43-regio-en-taal.js
 script/66-play-versie.js
 script/74-ereader.js
+script/74b-ereader-inhoud.js
 script/30-snelkoppelingen.js
 script/31-startscherm-groepen-volgorde-verbergen.js
 script/32-automatiseringen.js

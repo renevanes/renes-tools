@@ -1,0 +1,3 @@
+E-reader: afbeeldingen in EPUB-boeken worden nu getoond, ook SVG-tekeningen en pagina's met alleen beeld. Tik om te vergroten, zoomen en verschuiven.
+E-reader: koppen, vet en cursief, lijsten, tabellen, code, voetnoten en de echte geneste inhoudsopgave blijven behouden. Vanuit een voetnoot ga je terug naar je tekst.
+Eerder ingelezen EPUB-boeken kun je met hetzelfde bronbestand herstellen, met behoud van leespositie, favorieten en alle leeswijzers.

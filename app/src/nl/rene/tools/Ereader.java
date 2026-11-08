@@ -11,7 +11,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.ByteArrayOutputStream;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
@@ -26,11 +26,15 @@ final class Ereader {
     static String read(File file, int max) throws Exception {
         try (InputStream in = new AtomicFile(file).openRead()) { return new String(EreaderBook.read(in, max), StandardCharsets.UTF_8); }
     }
-    static void write(File f, String value) throws Exception {
+    static void write(File f, String value) throws Exception { writeBytes(f, value.getBytes(StandardCharsets.UTF_8)); }
+    static void writeBytes(File f, byte[] value) throws Exception {
         if (!f.getParentFile().isDirectory() && !f.getParentFile().mkdirs()) throw new Exception(Taal.T("Boek opslaan lukt niet"));
         AtomicFile a = new AtomicFile(f); FileOutputStream out = null;
-        try { out = a.startWrite(); out.write(value.getBytes(StandardCharsets.UTF_8)); a.finishWrite(out); }
+        try { out = a.startWrite(); out.write(value); a.finishWrite(out); }
         catch (Throwable e) { if (out != null) a.failWrite(out); throw new Exception(Taal.T("Boek opslaan lukt niet")); }
+    }
+    private static File dataDir(Context c, String id, JSONObject meta) throws Exception {
+        return meta.optInt("edition") >= 3 ? new File(dir(c, id), "content-v3") : dir(c, id);
     }
     static synchronized JSONObject meta(Context c, String id) throws Exception { return new JSONObject(read(new File(dir(c, id), "boek.json"), 4 * 1024 * 1024)); }
     static synchronized JSONArray list(Context c) throws Exception {
@@ -52,21 +56,38 @@ final class Ereader {
         for (byte v : MessageDigest.getInstance("SHA-256").digest(bytes)) hash.append(String.format(java.util.Locale.ROOT, "%02x", v & 255));
         String id = hash.toString(); File d = dir(c, id);
         JSONObject previous = new File(d, "boek.json").isFile() ? meta(c, id) : null;
-        if (previous != null && previous.optInt("edition") >= 2) return details(c, id);
+        if (previous != null && previous.optInt("edition") >= 3) return details(c, id);
         EreaderBook b = EreaderBook.parse(bytes, name);
-        JSONArray chapters = new JSONArray(), lengths = new JSONArray(); int words = 0;
+        File stage = new File(d, "content-v3");
+        JSONObject m;
+        JSONArray marks;
+        if (previous != null) {
+            File old = dataDir(c, id, previous);
+            EreaderUpgrade upgrade = new EreaderUpgrade(b, index -> read(new File(old, index + ".txt"), EreaderBook.MAX_FILE));
+            m = upgrade.metadata(previous);
+            File annotations = new File(old, "leeswijzers.json");
+            marks = upgrade.marks(annotations.isFile() ? new JSONArray(read(annotations, 4 * 1024 * 1024)) : new JSONArray());
+        } else { m = new JSONObject().put("chapter", 0).put("offset", 0); marks = new JSONArray(); }
+        JSONArray chapters = new JSONArray(), lengths = new JSONArray(), order = new JSONArray(), assets = new JSONArray(); int words = 0;
         for (int i = 0; i < b.chapters.size(); i++) {
-            String text = b.chapters.get(i);
-            write(new File(d, i + ".txt"), text); chapters.put(b.names.get(i)); lengths.put(text.length());
-            words += wordCount(text);
+            String text = b.chapters.get(i); write(new File(stage, i + ".txt"), text); chapters.put(b.names.get(i)); lengths.put(text.length()); order.put(b.linear.get(i));
+            if (i < b.content.size()) write(new File(stage, i + ".json"), b.content.get(i).toString());
+            if (b.linear.get(i)) words += wordCount(text);
         }
-        JSONObject m = previous == null ? new JSONObject().put("chapter", 0).put("offset", 0) : previous;
-        m.put("id", id).put("title", cut(b.title)).put("author", cut(b.author)).put("chapters", chapters).put("lengths", lengths).put("words", words)
-                .put("format", name.toLowerCase(java.util.Locale.ROOT).endsWith(".epub") ? "EPUB" : "TXT").put("edition", 2).put("last", System.currentTimeMillis());
+        for (int i = 0; i < b.assets.size(); i++) {
+            EreaderBook.Asset asset = b.assets.get(i); writeBytes(new File(stage, "images/" + i + ".bin"), asset.bytes);
+            assets.put(new JSONObject().put("mime", asset.mime).put("base", asset.base));
+        }
+        if (b.format.equals("EPUB")) writeBytes(new File(stage, "bron.epub"), bytes);
+        write(new File(stage, "leeswijzers.json"), marks.toString());
+        m.put("id", id).put("title", previous == null ? cut(b.title) : previous.optString("title", cut(b.title))).put("author", cut(b.author))
+                .put("chapters", chapters).put("lengths", lengths).put("words", words).put("linear", order).put("assets", assets).put("toc", b.toc).put("language", b.language)
+                .put("format", b.format).put("edition", 3).put("last", System.currentTimeMillis());
         if (b.cover != null) saveCover(d, b.cover);
         m.put("cover", new File(d, "omslag.jpg").isFile());
-        write(new File(d, "boek.json"), m.toString()); // pas een compleet boek in de lijst zetten
-        return m;
+        // Alleen dit laatste, atomaire bestand maakt de complete nieuwe inhoud actief. De oude bestanden blijven intact.
+        write(new File(d, "boek.json"), m.toString());
+        return details(c, id);
     }
     private static String cut(String value) { return value.length() > 300 ? value.substring(0, 300) : value; }
     static int wordCount(String text) {
@@ -102,7 +123,7 @@ final class Ereader {
             }
             m.put("lengths", lengths).put("words", words); write(new File(dir(c, id), "boek.json"), m.toString());
         }
-        File f = new File(dir(c, id), "leeswijzers.json");
+        File f = new File(dataDir(c, id, m), "leeswijzers.json");
         return m.put("annotations", f.isFile() ? new JSONArray(read(f, 4 * 1024 * 1024)) : new JSONArray());
     }
     static synchronized JSONObject update(Context c, String id, String json) throws Exception {
@@ -116,12 +137,13 @@ final class Ereader {
         String text = p.optBoolean("remove") ? "" : chapter(c, id, p.optInt("chapter", -1)).getString("text");
         JSONArray out = EreaderMarks.change(m.getJSONArray("annotations"), p, m.getJSONArray("chapters").length(), text, System.currentTimeMillis());
         String value = out.toString(); if (value.getBytes(StandardCharsets.UTF_8).length > 4 * 1024 * 1024) throw new Exception(Taal.T("Er zijn te veel notities in dit boek"));
-        write(new File(dir(c, id), "leeswijzers.json"), value); return m.put("annotations", out);
+        write(new File(dataDir(c, id, m), "leeswijzers.json"), value); return m.put("annotations", out);
     }
     static synchronized JSONObject chapter(Context c, String id, int index) throws Exception {
         JSONObject m = meta(c, id);
         if (index < 0 || index >= m.getJSONArray("chapters").length()) throw new Exception(Taal.T("Dit hoofdstuk bestaat niet"));
-        return new JSONObject().put("text", read(new File(dir(c, id), index + ".txt"), EreaderBook.MAX_FILE));
+        File directory = dataDir(c, id, m), rich = new File(directory, index + ".json");
+        return rich.isFile() ? new JSONObject(read(rich, 24 * 1024 * 1024)) : new JSONObject().put("text", read(new File(directory, index + ".txt"), EreaderBook.MAX_FILE));
     }
     static synchronized void position(Context c, String id, int chapter, double offset) throws Exception {
         position(c, id, chapter, offset, -1);
@@ -131,11 +153,22 @@ final class Ereader {
         if (chapter < 0 || chapter >= m.getJSONArray("chapters").length() || Double.isNaN(offset) || Double.isInfinite(offset)) return;
         m.put("chapter", chapter).put("offset", Math.max(0, Math.min(1, offset))).put("last", System.currentTimeMillis());
         if (anchor >= 0) m.put("anchor", anchor); else m.remove("anchor");
+        JSONArray linear = m.optJSONArray("linear");
+        if (linear == null || linear.optBoolean(chapter, true)) m.put("reading", new JSONObject().put("chapter", chapter).put("offset", offset).put("anchor", anchor));
         write(new File(dir(c, id), "boek.json"), m.toString());
     }
+    static JSONObject image(Context c, String id, int index) throws Exception {
+        JSONObject m = meta(c, id); JSONArray assets = m.optJSONArray("assets");
+        if (index < 0 || assets == null || index >= assets.length() || index >= 2000) throw new Exception(Taal.T("Deze afbeelding staat niet in het boek"));
+        JSONObject asset = assets.getJSONObject(index); File directory = dataDir(c, id, m);
+        byte[] bytes; try (InputStream in = new FileInputStream(new File(directory, "images/" + index + ".bin"))) { bytes = EreaderBook.read(in, EreaderBook.MAX_ENTRY); }
+        return EreaderMedia.image(new File(directory, "bron.epub"), bytes, asset.getString("mime"), asset.getString("base"));
+    }
+    private static void remove(File f) throws Exception {
+        if (f.isDirectory()) { File[] children = f.listFiles(); if (children == null) throw new Exception(Taal.T("Boek verwijderen lukt niet")); for (File child : children) remove(child); }
+        if (f.exists() && !f.delete()) throw new Exception(Taal.T("Boek verwijderen lukt niet"));
+    }
     static synchronized void delete(Context c, String id) throws Exception {
-        File d = dir(c, id); File[] files = d.listFiles();
-        if (files != null) for (File f : files) if (!f.delete()) throw new Exception(Taal.T("Boek verwijderen lukt niet"));
-        if (d.exists() && !d.delete()) throw new Exception(Taal.T("Boek verwijderen lukt niet"));
+        remove(dir(c, id));
     }
 }

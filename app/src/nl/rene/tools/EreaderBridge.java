@@ -7,6 +7,8 @@ import org.json.JSONObject;
 
 public class EreaderBridge extends ToilettenBridge {
     private final java.util.concurrent.atomic.AtomicInteger searchGeneration = new java.util.concurrent.atomic.AtomicInteger();
+    private final java.util.concurrent.atomic.AtomicInteger imageGeneration = new java.util.concurrent.atomic.AtomicInteger();
+    private static final java.util.concurrent.ExecutorService IMAGE_THREADS = java.util.concurrent.Executors.newFixedThreadPool(2);
     static final int REQ_BOOK = 66;
     EreaderBridge(MainActivity a) { super(a); }
     private String error(Throwable e) {
@@ -23,6 +25,20 @@ public class EreaderBridge extends ToilettenBridge {
     }
     @JavascriptInterface public String ereaderCover(String id) {
         try { return Ereader.cover(ctx, id); } catch (Throwable e) { return ""; }
+    }
+    @JavascriptInterface public void ereaderImagesCancel() { imageGeneration.incrementAndGet(); }
+    @JavascriptInterface public void ereaderImage(String id, int asset, String request) {
+        final int generation = imageGeneration.get();
+        if (request == null || request.length() > 80 || asset < 0 || asset >= 2000) return;
+        IMAGE_THREADS.execute(() -> {
+            try {
+                if (generation != imageGeneration.get()) return;
+                JSONObject image;
+                try { image = Ereader.image(ctx, id, asset); }
+                catch (Throwable e) { image = new JSONObject().put("error", Taal.t(ctx, "Deze afbeelding kan niet worden weergegeven")); }
+                if (generation == imageGeneration.get()) a.js("onEreaderImage", image.put("id", id).put("asset", asset).put("request", request).toString());
+            } catch (Throwable ignored) { }
+        });
     }
     @JavascriptInterface public String ereaderUpdate(String id, String json) {
         try { return Ereader.update(ctx, id, json).toString(); } catch (Throwable e) { return error(e); }

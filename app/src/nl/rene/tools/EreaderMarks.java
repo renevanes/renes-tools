@@ -22,8 +22,14 @@ final class EreaderMarks {
         String note = p.optString("note"); if (note.length() > 2000) throw new Exception(Taal.T("Een notitie mag maximaal 2000 tekens bevatten"));
         int last = Math.min(text.length(), kind.equals("highlight") ? Math.min(end, start + 500) : start + 150);
         if (last > start && last < text.length() && Character.isHighSurrogate(text.charAt(last - 1))) last--;
-        out.put(new JSONObject().put("id", found ? key : java.util.UUID.randomUUID().toString()).put("kind", kind).put("chapter", ch)
-                .put("start", start).put("end", end).put("note", note).put("at", now).put("text", text.substring(start, last)));
+        JSONObject mark = new JSONObject().put("id", found ? key : java.util.UUID.randomUUID().toString()).put("kind", kind).put("chapter", ch)
+                .put("start", start).put("end", end).put("note", note).put("at", now).put("text", text.substring(start, last));
+        if (kind.equals("bookmark") && p.has("offset")) {
+            double offset = p.optDouble("offset", 0);
+            if (!Double.isNaN(offset) && !Double.isInfinite(offset)) mark.put("offset", Math.max(0, Math.min(1, offset)));
+            if (p.optBoolean("visual")) mark.put("visual", true);
+        }
+        out.put(mark);
         return out;
     }
 }
