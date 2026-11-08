@@ -94,6 +94,8 @@ final class MasterPhotos {
         }catch(Throwable e){return null;}
         finally{if(image!=null)image.recycle();}
     }
+    /** Kaartfoto uit een stroom: lezen en verkleinen (ook gebruikt door de telefoontest). */
+    static String normalize(InputStream input)throws Exception{return normalize(read(input));}
     static String normalize(byte[] bytes)throws Exception {
         BitmapFactory.Options o=new BitmapFactory.Options();o.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(bytes,0,bytes.length,o);
         if(o.outWidth<1||o.outHeight<1||o.outWidth>16000||o.outHeight>16000||(long)o.outWidth*o.outHeight>80_000_000)throw new MasterError(Taal.T("Deze kaartfoto kan niet worden geopend"));
