@@ -34,6 +34,12 @@ git restore -- update
 
 `bump.sh` schrijft een wijzigingsbestand; het versienummer wordt alleen door `publish.sh` bepaald. Commit en push je werk volgens [AGENTS.md](../AGENTS.md). Op main test Publiceren eerst precies die broncommit in emulatoren op API 24, 35 en 36. Die jobs hebben geen ondertekeningssleutel. Daarna controleert de publicatiestap onder het publicatieslot opnieuw of de bron nog gelijk is. Nieuwere appcode of testcode vereist een nieuwe emulatorcontrole; alleen gegenereerde publicatiebestanden mogen intussen verschillen.
 
+Het publicatieslot laat één uitgever tegelijk toe. Een onleesbaar of verloren slot, of een mislukte vernieuwing, stopt de publicatie. Direct vóór het vastleggen wordt het slot opnieuw vernieuwd. Een uitgever die na een verlopen slot verder werkt, kan daardoor niet alsnog publiceren.
+
+Elke publicatie legt `main`, `versie-<nummer>`, `versiecode-<code>` en een nieuwe slotcommit met één atomaire Git-push vast. De leasecontrole op het slot weigert ook een uitgever die pas ná de laatste slotcontrole zijn slot verliest. De twee tags wijzen naar dezelfde versiecommit en worden nooit overschreven of verwijderd. Bij een gelijktijdige publicatie kan er precies één winnen; een botsing wijzigt geen van de vier verwijzingen. De volgende poging haalt main en de registraties opnieuw op en bepaalt een nieuw nummer. De nummering houdt ook rekening met de bestaande versiegeschiedenis en het wijzigingslog, zodat een teruggezet `VERSION` geen oud nummer opnieuw uitgeeft. Het voorbereiden van tests neemt geen slot en maakt geen registratie; twee testvoorbereidingen mogen hetzelfde toekomstige nummer tonen.
+
+`tests/publicatie-gelijktijdig.sh` controleert dit met twee echte concurrerende Git-processen, afzonderlijke botsingen op naam en code, verloren sloten en teruggezette versiebestanden. Deze controle draait ook in Publiceren voordat de ondertekeningssleutel wordt uitgepakt.
+
 Alle workflows gebruiken `npm ci` en dezelfde `package-lock.json`. Een afhankelijkheid bijwerken betekent `package.json` én het lockbestand aanpassen en de tests opnieuw draaien. Lokaal publiceren met de echte sleutel volgt dezelfde repositoryafspraken; `TESTED_SOURCE_SHA` legt vast welke bron de telefoontest heeft doorstaan. De GitHub-publicatie vereist deze waarde.
 
 Opslag en updates zijn opgesplitst in kleine onderdelen: zie [Brug en opslag](brug-en-opslag.md).

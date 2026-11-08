@@ -187,6 +187,11 @@ Actions, of `gh api repos/renevanes/renes-tools/actions/runs`) en meld Rene de n
    het), voegt de nieuwste main samen (merge), bepaalt het versienummer vanaf main (`NATIVE_LEVEL` gaat vanzelf omhoog
    als `app/` veranderde), schrijft het wijzigingslog, bouwt, draait alle tests en pusht "Versie X.Y" naar main.
    Botst je werk met main, dan stopt het: los de merge op, test en publiceer opnieuw.
+   Versienummer en versiecode worden bij de publicatie samen met main atomair geregistreerd als tags
+   `versie-<nummer>` en `versiecode-<code>`, met leasecontrole op het slot in dezelfde push. Verwijder of overschrijf
+   die tags nooit. Bij een botsing haalt het script
+   de nieuwste main en registraties op en bepaalt het een nieuw nummer; een verloren of onleesbaar slot stopt de
+   publicatie. Testvoorbereiding (`VOORBEREIDEN`) reserveert niets en mag hetzelfde toekomstige nummer tonen.
    Op GitHub draaien de interfacetests naast de telefoontest (`interfacetests.yml`, met `VOORBEREIDEN=…
    ./publish.sh`: dezelfde merge, versie en wijzigingslog, zonder sleutel of push; daarna bouwen met een testsleutel,
    Java-tests en interfacetests, in dezelfde volgorde als `publish.sh`). De taak publiceren slaat de interfacetests alleen

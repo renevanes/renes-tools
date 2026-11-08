@@ -19,7 +19,7 @@
 #  3. de nieuwste main ophalen en samenvoegen (merge; nooit geschiedenis herschrijven)
 #  4. versienummer bepalen vanaf main (NATIVE_LEVEL gaat vanzelf omhoog als iets in de APK veranderde)
 #  5. wijzigingslog schrijven, bouwen, alle tests, "Versie X.Y" committen en naar main pushen
-#  6. lukt de push niet (iemand publiceerde buiten het slot om), dan opnieuw vanaf stap 3
+#  6. versie, main en unieke versietags atomair vastleggen; bij een botsing opnieuw vanaf stap 3
 set -euo pipefail
 cd "$(dirname "$0")"
 LOCK=refs/heads/publiceren-slot
@@ -81,57 +81,10 @@ fi
 
 # 2. Publicatieslot: een branch die alleen vooruit gaat. Nemen en vrijgeven zijn gewone pushes met
 #    --force-with-lease als controle (compare-and-swap); de branch wordt nooit verwijderd.
-SLOT_TIP=""; SLOT_ERR=""; DIRTY=""
+DIRTY=""
 restore(){ git checkout -q HEAD -- VERSION changelog.json update 2>/dev/null || true; git checkout -q HEAD -- wijzigingen 2>/dev/null || true; }
-slot_read(){ git fetch -q origin "+$LOCK:refs/remotes/origin/publiceren-slot" 2>/dev/null && git rev-parse -q --verify refs/remotes/origin/publiceren-slot || true; }
-slot_push(){ # $1 = verwachte tip ("" = bestaat nog niet), $2 = boodschap; zet SLOT_TIP bij succes
-  local parent=() c
-  [ -n "$1" ] && parent=(-p "$1")
-  c=$(git "${GIT_ID[@]}" commit-tree "$EMPTY_TREE" "${parent[@]}" -m "$2")
-  SLOT_ERR=$(git push -q origin "$c:$LOCK" --force-with-lease="$LOCK:$1" 2>&1) && SLOT_TIP=$c
-}
-slot_take(){
-  local start=$(date +%s) tip msg="" since fails=0
-  while true; do
-    [ $(( $(date +%s) - start )) -gt 7200 ] && { echo "Na 2 uur wachten is het slot nog bezet ($msg). Later opnieuw proberen."; exit 1; }
-    tip=$(slot_read); msg=$([ -n "$tip" ] && git log -1 --format=%s "$tip" || echo vrij)
-    if [[ "$msg" == *"[$TOKEN]"* ]]; then SLOT_TIP=$tip; echo "Publicatieslot genomen"; return 0; fi # eigen push kwam toch aan
-    since=$(sed -n 's/^bezet \([0-9]*\) .*/\1/p' <<<"$msg"); since=${since:-0}
-    # Eén poging (samenvoegen, bouwen, testen, publiceren) duurt 10-25 minuten; bij elke poging wordt de tijd in het
-    # slot vernieuwd (slot_refresh). Een slot dat al 45 minuten niet vernieuwd is, is achtergebleven (bijv. vrijgeven
-    # mislukt of de workflow gestopt) en wordt overgenomen.
-    if [[ "$msg" == vrij* ]] || [ $(( $(date +%s) - since )) -gt 2700 ]; then
-      [[ "$msg" == vrij* ]] || echo "Het slot staat al meer dan 45 minuten bezet ($msg): overnemen"
-      if slot_push "$tip" "bezet $(date -u +%s) door $WHO [$TOKEN]"; then echo "Publicatieslot genomen"; return 0; fi
-      fails=$((fails+1))
-      [ $fails -ge 10 ] && { echo "Kan het publicatieslot niet zetten (pushrechten of netwerk?)"; exit 1; }
-      sleep $((5 + RANDOM % 10))
-    else
-      fails=0; echo "Wacht op een andere publicatie: $msg"; sleep 30
-    fi
-  done
-}
-slot_free(){ # een paar keer proberen; alleen vrijgeven zolang het slot nog van ons is
-  [ -n "$SLOT_TIP" ] || return 0
-  local i tip
-  for i in 1 2 3 4 5; do
-    if slot_push "$SLOT_TIP" "vrij $(date -u +%s)"; then echo "Publicatieslot vrijgegeven"; SLOT_TIP=""; return 0; fi
-    tip=$(slot_read)
-    if [ -n "$tip" ] && [ "$tip" != "$SLOT_TIP" ]; then
-      # de push kwam toch aan (vrij, met ons slot als ouder), of iemand anders nam het slot over
-      if [[ "$(git log -1 --format=%s "$tip")" == vrij* ]] && [ "$(git log -1 --format=%P "$tip")" = "$SLOT_TIP" ]; then echo "Publicatieslot vrijgegeven"
-      else echo "Publicatieslot is intussen van een ander; niet vrijgegeven"; fi
-      SLOT_TIP=""; return 0
-    fi
-    [ "$i" -lt 5 ] && sleep $((i * 5))
-  done
-  echo "::warning::Publicatieslot vrijgeven mislukt (${SLOT_ERR//$'\n'/ }); een volgende publicatie neemt het na 45 minuten over"
-  SLOT_TIP=""
-}
-slot_refresh(){ # bij elke poging de tijd in het slot vernieuwen, zodat een lange publicatie niet wordt overgenomen
-  [ -n "$SLOT_TIP" ] || return 0
-  slot_push "$SLOT_TIP" "bezet $(date -u +%s) door $WHO [$TOKEN]" || echo "Publicatieslot niet vernieuwd (${SLOT_ERR//$'\n'/ }); ga door (de push naar main controleert zelf)"
-}
+# shellcheck source=tools/publicatie-slot.sh
+source tools/publicatie-slot.sh
 cleanup(){ local rc=$?; [ -n "$DIRTY" ] && restore; slot_free || true; exit "$rc"; }
 trap cleanup EXIT
 [ -n "$VOORBEREIDEN" ] || slot_take
@@ -143,6 +96,7 @@ for try in 1 2 3 4 5; do
   slot_refresh
   # 3. Nieuwste main samenvoegen
   git fetch -q origin main
+  if [ "$(git rev-parse --is-shallow-repository)" = true ]; then git fetch -q --unshallow origin main; fi
   BASE=$(git rev-parse FETCH_HEAD)
   if ! git merge-base --is-ancestor "$BASE" HEAD; then
     git "${GIT_ID[@]}" merge -q --no-edit -m "Samenvoegen met main" "$BASE" || {
@@ -173,12 +127,12 @@ for try in 1 2 3 4 5; do
   fi
   [ -n "$(notes)" ] || { echo "Schrijf eerst in wijzigingen/<onderwerp>.txt wat er voor Rene verandert (één regel per wijziging, in het Nederlands)."; exit 1; }
 
-  # 4. Versienummer vanaf main
-  source <(git show "$BASE:VERSION")
-  MAJ=${VERSION_NAME%%.*}; MIN=${VERSION_NAME#*.}
-  if [ "${MAJOR:-0}" = 1 ]; then MAJ=$((MAJ+1)); MIN=0; else MIN=$((MIN+1)); fi
-  NAME="$MAJ.$MIN"; CODE=$((VERSION_CODE+1)); NAT=$NATIVE_LEVEL
-  git diff --quiet "$LASTREL" HEAD -- "${APK_PATHS[@]}" || NAT=$((NATIVE_LEVEL+1))
+  # 4. Gepubliceerde nummers blijven verbruikt, ook als iemand VERSION terugzet.
+  git fetch -q --no-tags --no-write-fetch-head origin \
+    'refs/tags/versie-*:refs/tags/versie-*' 'refs/tags/versiecode-*:refs/tags/versiecode-*'
+  NEXT=$(python3 tools/publicatie-versie.py volgende "$BASE" "${MAJOR:-0}")
+  read -r NAME CODE NAT <<< "$NEXT"
+  git diff --quiet "$LASTREL" HEAD -- "${APK_PATHS[@]}" || NAT=$((NAT+1))
   DIRTY=1
   sed -i "s/^VERSION_NAME=.*/VERSION_NAME=$NAME/; s/^VERSION_CODE=.*/VERSION_CODE=$CODE/; s/^NATIVE_LEVEL=.*/NATIVE_LEVEL=$NAT/" VERSION
   notes | python3 -c "
@@ -217,7 +171,8 @@ json.dump(log, open('changelog.json', 'w'), ensure_ascii=False, indent=2)"
     echo "De APK is meer dan 10% groter dan de vorige ($PREV_APK → $NEW_APK bytes). Klopt dat? Dan ALLOW_GROW=1"; exit 1
   fi
 
-  # 6. Versiecommit en push
+  # 6. Alleen een nog geldige slothouder mag de versie vastleggen.
+  slot_refresh
   TRAILER=""
   if [ -n "${CLAUDE_SESSION_URL:-}" ]; then TRAILER="Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: $CLAUDE_SESSION_URL"
@@ -229,7 +184,7 @@ $(python3 -c "import json;print('\n'.join('- '+c for c in json.load(open('change
 ${TRAILER:+
 $TRAILER}"
   DIRTY=""
-  if git push -q origin HEAD:main; then echo "Gepubliceerd: versie $NAME"; exit 0; fi
+  if tools/publicatie-push.sh "$BASE" "$(git rev-parse HEAD)" "$NAME" "$CODE" "$SLOT_TIP" "$TOKEN"; then echo "Gepubliceerd: versie $NAME"; exit 0; fi
   echo "Iemand publiceerde net buiten het slot om; opnieuw samenvoegen en bouwen (poging $((try+1)))"
   git reset -q --hard HEAD~1 # alleen de eigen, niet-gepubliceerde versiecommit; de werkmap was schoon
 done

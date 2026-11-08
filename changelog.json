@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.166",
+    "date": "2026-11-08",
+    "changes": [
+      "Publiceren: versienummers en versiecodes kunnen niet opnieuw worden uitgegeven. Gelijktijdige publicaties worden atomair gecontroleerd en stoppen bij verlies van het publicatieslot."
+    ]
+  },
+  {
     "version": "1.165",
     "date": "2026-11-08",
     "changes": [
