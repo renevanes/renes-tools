@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.161",
-  "versionCode": 162,
-  "nativeLevel": 143,
+  "versionName": "1.162",
+  "versionCode": 163,
+  "nativeLevel": 144,
   "web": "index.html",
-  "webSha256": "62122e46f8d49047436af055b7a976311d761619f92eaefea2cc0d6398afb7bf",
+  "webSha256": "f83dd4b2de8ef9e1574293eb2ba6f09c178bfea612bd762e0b043f49313fb7be",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "e33630a9605c24ba90fba9b556dc7817ec0022205cc4c0425b020709545202e4",
+  "apkSha256": "4672296799332139c4db514585181ea1b45eed849f24bfcaf5d3fe4c1bb8bcf3",
   "changelog": [
+    {
+      "version": "1.162",
+      "date": "2026-11-08",
+      "changes": [
+        "E-reader vernieuwd: een boekenkast met omslagen, favorieten, filters en Verder lezen.",
+        "Rustig lezen met paginaknoppen, vegen, leesthema’s en meer instellingen voor letters en ruimte, met behoud van je leesplek.",
+        "Zoeken in het hele boek en bladwijzers, tekstmarkeringen en eigen notities bewaren."
+      ]
+    },
     {
       "version": "1.161",
       "date": "2026-11-07",
@@ -1431,5 +1440,5 @@
       ]
     }
   ],
-  "webSig2": "ekUnZWzGE3hPoNa666FeI+o6O2ADgBN2TReFRZT9eXh2p4IKOb0MxPegLhNXAyUigWWzW/65QXBurzINfzxOJfywoLFfDAelvuIjvF8EjqNAwD10weerU34a67zqKk2r3JnlnhvngdYEAkpua4yor/54ZyfCG8ogkf339iPCzVjCYTUdtqsYb/cTuSlUdv3B5aYfkimnbS86eXehLFSW3dDQG+68o4kbVlG1lP625QsGSKm+0lKCK0HoidwtV7AZbvdYiNrlN3UpNGqBNrXuaBMUkhkydqRqUH671KTw3I7e/RrYpulW3UzMj3Z31KOnne7MIO+ktOjbARL3OuRaG0L3NpRPwRcGCtRsjzrlo9RHwv8Ll0S9t03OkL/IvED16rt6XbcdAm8+BTSquWYCasUb2asCJUBHP7EPqc+uujp9buHqvbY0m1ih3IHCNsF6dPLb25sCx+hq7PoQD9bmb419vfrjCxPTd3REXp5HTsxSRnWwn1QbnLGvVnqLoyL8"
+  "webSig2": "BxaWsPl2uzbk+Cit9XYdhpdkRwSJZp6djTHVOOgKpXjem9nE58qOiJLEG56ezKxgna6AniMIfn9zFQ01/J11u8zolY9HTSZ/lBeDfuWQSeUW+XOgbaUNc2J/uiA2ByKO3hUFgJpzvlZNyD5QBiJS/64VD3SSbZ4uZB5DfFXSDpGYnIdX532ft3OAIEFuXZtsz+ADcB8Tmuv3uoJ2VZq0EeKHWdJYB3gScP30UfhSmv1ioyV5SswaEPCF6iLJbstXaRkYe35aknMIiBnrMCLyuKrM4Tondr7IbYXLmpo5tmh+RcQMzrrsxBYBfiMI7Ma5b3nGi+xUKONiIGDhCIgiJsjsQ3BEo0UuFCflZTpPcyBepcvXvdvIoTQeDV04vW0pbv5xhOUeC1oucZ9SDSI/lEj/YEHcH/qe4fwodufUOyW8W5uxvFuDwCZ+s1+XgoVV1LoO23sC7fycNQMdcrnjalHBoym0fJLoxPs9sUO+9O9ilVh3QxXax/cOWgdifjnv"
 }
