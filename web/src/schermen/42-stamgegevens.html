@@ -58,11 +58,21 @@
           <p class="hint cmi-warn" id="cmh-source"></p>
           <div class="row cmi-actions"><button class="mini" id="cmh-numbers" onclick="cmhToggleNumbers()" aria-pressed="false">Nummers tonen</button><button class="mini" onclick="cmTab('fotos')">Foto bekijken</button></div>
           <div id="cmh-list" translate="no"></div>
+          <p class="hint" id="cmh-mist" hidden></p>
+          <div class="row cmi-actions" id="cmh-mist-acts" hidden><button class="mini" onclick="cmhPhotoScan(true)">Grondiger proberen</button><button class="mini" onclick="cmhOtherPhoto()">Andere foto kiezen</button></div>
           <button class="mini" onclick="cmhDismiss()">Zelf invullen</button>
         </div>
         <div id="cmi-photos" data-cm-tab="fotos" hidden>
           <p class="hint">Versleuteld bewaard, zonder fotometadata. Gebruik de voorkant van je rijbewijs of de strook &lt;&lt;&lt; van je ID-kaart of paspoort.</p>
           <div class="row cmi-actions"><button class="mini" id="cmi-photo-show" onclick="cmiPhotoShow()">Kaartfoto’s tonen</button><button class="mini" id="cmh-photo-scan" onclick="cmhPhotoScan()">Gegevens herkennen</button></div>
+          <div class="card cmh-hulp" id="cmh-hulp" hidden>
+            <h3 id="cmh-hulp-kop">Herkennen lukte niet</h3>
+            <p id="cmh-hulp-tekst" role="status"></p>
+            <ul class="cmh-tips" id="cmh-hulp-tips"></ul>
+            <div class="row cmi-actions"><button class="mini" id="cmh-hulp-opnieuw" onclick="cmhPhotoScan()">Opnieuw proberen</button><button class="mini" id="cmh-hulp-grondig" onclick="cmhPhotoScan(true)">Grondiger proberen</button><button class="mini" id="cmh-hulp-foto" onclick="cmhOtherPhoto()">Andere foto kiezen</button><button class="mini" onclick="cmhSelf()">Zelf invullen</button></div>
+            <p class="hint">Grondiger proberen bewerkt de foto op meer manieren en duurt tot een minuut. Alles gebeurt op je telefoon.</p>
+            <details class="help in"><summary data-icon="info">Tips voor een goede foto</summary><div class="help-body"><p>Leg de kaart plat op een donkere, effen ondergrond en fotografeer recht van boven, zonder flits. Laat de kaart het beeld zo veel mogelijk vullen, met alle randen erop, en tik op de kaart zodat de camera scherp stelt.</p><p>Rijbewijs: kies de voorkant. Onderaan staat een regel die begint met D1NLD; daarin staat het rijbewijsnummer met een controlecijfer. Zorg dat die regel helemaal leesbaar is.</p><p>ID-kaart: de achterkant met de strook &lt;&lt;&lt;. Paspoort: de fotopagina met de twee regels onderaan.</p></div></details>
+          </div>
           <div class="cmi-sides">
             <div><div class="cmi-side-h"><h4>Voorzijde</h4><small class="cmi-photo-stand" id="cmi-front-status"></small></div><div class="cmi-photo-paper" id="cmi-front-paper" hidden><img id="cmi-front-image" alt="Voorzijde van het identiteitsdocument"></div><div class="row cmi-actions"><button class="mini" onclick="cmiPhotoPick('front')">Voorzijde kiezen</button><button class="mini" id="cmi-front-delete" onclick="cmiPhotoDelete('front')">Voorzijde verwijderen</button><button class="mini" id="cmi-front-zoom" onclick="cmiPhotoZoom('front')" hidden>Voorzijde vergroten</button></div></div>
             <div><div class="cmi-side-h"><h4>Achterzijde</h4><small class="cmi-photo-stand" id="cmi-back-status"></small></div><div class="cmi-photo-paper" id="cmi-back-paper" hidden><img id="cmi-back-image" alt="Achterzijde van het identiteitsdocument"></div><div class="row cmi-actions"><button class="mini" onclick="cmiPhotoPick('back')">Achterzijde kiezen</button><button class="mini" id="cmi-back-delete" onclick="cmiPhotoDelete('back')">Achterzijde verwijderen</button><button class="mini" id="cmi-back-zoom" onclick="cmiPhotoZoom('back')" hidden>Achterzijde vergroten</button></div></div>

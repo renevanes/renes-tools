@@ -116,11 +116,15 @@ public class MasterBridge extends BankBridge {
         }catch(Throwable e){try{result.put("error",why(e)).put("locked",!a.masterSession.accepts(token));}catch(Exception ignored){ }}reply(request,token,result);},"master-scan-pick").start();
     }
     /** Gegevens herkennen vanaf de bewaarde kaartfoto van een document (op de telefoon, niets gaat weg). */
-    @JavascriptInterface public void masterPhotoScan(String token,String id,long revision,String side,String request){
+    @JavascriptInterface public void masterPhotoScan(String token,String id,long revision,String side,String request){ photoScan(token,id,revision,side,false,request); }
+    /** Opnieuw herkennen vanaf de bewaarde foto; grondig = langzamer, met meer bewerkingen van de foto (bij een rijbewijs). */
+    @JavascriptInterface public void masterPhotoRescan(String token,String id,long revision,String side,boolean grondig,String request){ photoScan(token,id,revision,side,grondig,request); }
+    private void photoScan(String token,String id,long revision,String side,boolean grondig,String request){
         work(token,request,key->{
             JSONObject photo=MasterStore.photoScan(ctx,key,a.masterSession,token,id,revision,side);
-            JSONObject found=MasterPhotos.recognizeStored(ctx,photo.optString("image"),Regio.dayKey(ctx,System.currentTimeMillis()),()->a.masterSession.accepts(token)&&a.masterForeground&&a.masterWanted);
-            JSONObject out=new JSONObject().put("id",id).put("side",side);if(found!=null)out.put("herkend",found);return out;
+            JSONObject diag=new JSONObject();
+            JSONObject found=MasterPhotos.recognizeStored(ctx,photo.optString("image"),Regio.dayKey(ctx,System.currentTimeMillis()),()->a.masterSession.accepts(token)&&a.masterForeground&&a.masterWanted,grondig,diag);
+            JSONObject out=new JSONObject().put("id",id).put("side",side).put("diag",diag);if(found!=null)out.put("herkend",found);return out;
         });
     }
     @JavascriptInterface public void masterPhotoRead(String token,String id,long revision,String side,String request){work(token,request,key->MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,true));}
