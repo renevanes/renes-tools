@@ -14,7 +14,7 @@ git init -q --bare -b main "$tmp/origin.git"
 git clone -q "$tmp/origin.git" "$tmp/werk" 2>/dev/null
 cd "$tmp/werk"
 mkdir -p app tools update wijzigingen
-cp "$root/publish.sh" . && cp "$root/tools/check-publish-source.sh" tools/
+cp "$root/publish.sh" . && cp "$root/tools/"publicatie-* "$root/tools/check-publish-source.sh" tools/
 printf 'VERSION_NAME=1.10\nVERSION_CODE=11\nNATIVE_LEVEL=5\n' > VERSION
 echo '[]' > changelog.json
 echo '{}' > update/update.json
@@ -72,4 +72,16 @@ if (cd "$tmp/d" && echo vuil >> app/bron.txt && VOORBEREIDEN=build/v2.txt TESTED
   fout "voorbereiden met een vuile werkmap ten onrechte gelukt"
 fi
 grep -q "schone werkmap" "$tmp/vuil.log" || { cat "$tmp/vuil.log"; fout "vuile werkmap: verkeerde melding"; }
+
+# Een ondiepe checkout mag oudere versies niet vergeten wanneer VERSION is teruggezet.
+printf 'VERSION_NAME=1.0\nVERSION_CODE=1\nNATIVE_LEVEL=1\n' > VERSION
+echo '[]' > changelog.json
+echo vier >> app/bron.txt
+echo 'Een volgende verbetering' > wijzigingen/ondiep.txt
+git add -A && git commit -qm 'Versiebestand teruggezet met nieuw werk' && git push -q origin HEAD:main
+bron=$(git rev-parse HEAD)
+git clone -q --depth 1 "file://$tmp/origin.git" "$tmp/ondiep"
+(cd "$tmp/ondiep" && GITHUB_ACTIONS=true TESTED_SOURCE_SHA="$bron" VOORBEREIDEN=build/voorbereid.txt ./publish.sh > "$tmp/ondiep.log" 2>&1) || { cat "$tmp/ondiep.log"; fout 'ondiepe checkout'; }
+grep -q '^VERSION_NAME=1.11$' "$tmp/ondiep/VERSION" && grep -q '^VERSION_CODE=12$' "$tmp/ondiep/VERSION" && grep -q '^NATIVE_LEVEL=6$' "$tmp/ondiep/VERSION" || fout 'historische versies vergeten in ondiepe checkout'
+[ "$(git -C "$tmp/origin.git" rev-parse main)" = "$bron" ] || fout 'ondiep voorbereiden pushte naar main'
 echo 'Voorbereiden geslaagd: zelfde vingerafdruk bij dezelfde bron, andere bij een andere regel, nooit een push'
