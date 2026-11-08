@@ -24,6 +24,11 @@ import javax.crypto.spec.GCMParameterSpec;
  * inhoudsopgave met controlegetallen, en het controleren van namen uit een gekozen (dus niet te vertrouwen) archief.
  * Puur Java (geen Android), zodat het op een gewone JVM getest kan worden (tests/jvm/…/AppDataTest.java).
  *
+ * STANDAARD MEE: elk instellingenbestand (SharedPreferences) en elke map of elk bestand in getFilesDir() gaat mee,
+ * ook van tools die er later bij komen. Alleen wat hieronder met een reden in PREFS_SKIP, KEY_SKIP(_PREFIX),
+ * FILE_SKIP of PATH_SKIP staat, gaat niet mee (geheimen van deze installatie, wat opnieuw te downloaden of af te leiden
+ * is, tijdelijke toestand, en Bankzaken en stamgegevens op uitdrukkelijke wens). Zie AGENTS.md, "Backups: elke tool doet mee".
+ *
  * Indeling in het archief (.rtb, versleuteld met het backup-wachtwoord):
  *   Appgegevens/instellingen.json   alle instellingen (SharedPreferences) die meegaan, met hun soort
  *   Appgegevens/geheim/…            wat op de telefoon met een sleutel uit de sleutelopslag versleuteld is
@@ -58,8 +63,11 @@ final class AppData {
 
     // ---------- instellingen (SharedPreferences) ----------
 
-    /** Instellingen die meegaan (en teruggezet mogen worden). Elke naam in de code staat hier of in PREFS_SKIP. */
-    static final List<String> PREFS_KEEP = Collections.unmodifiableList(Arrays.asList(
+    /**
+     * Instellingenbestanden die de app kent. Ze worden altijd nagelopen (ook als het bestand nog niet bestaat, zodat
+     * terugzetten oude waarden opruimt). Andere bestanden gaan ook mee: die vindt de app in shared_prefs/.
+     */
+    static final List<String> PREFS_KNOWN = Collections.unmodifiableList(Arrays.asList(
             "allbackup", "alarm", "apparaten", "backupmap", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "facturen", "gebruik", "launcher",
             "voorlezen", "localai", "lock", "mockloc", "models", "music", "notepins", "notification_history", "notifcenter", "pdf",
             "pdfview", "pinned_shortcuts", "player", "podcast", "podcast_dl", "radio", "redial", "redialplan", "regio", "reminders",
@@ -112,7 +120,20 @@ final class AppData {
 
     static Set<String> set(String... s) { return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(s))); }
 
-    static boolean keepPrefsFile(String file) { return file != null && PREFS_KEEP.contains(file); }
+    /** Naam van een eigen instellingenbestand: kleine letters, cijfers en _ (bibliotheken en Android gebruiken andere namen). */
+    static final java.util.regex.Pattern PREFS_NAME = java.util.regex.Pattern.compile("[a-z][a-z0-9_]{0,63}");
+
+    /** Gaat dit instellingenbestand mee? Standaard ja, behalve wat bewust in PREFS_SKIP staat. */
+    static boolean keepPrefsFile(String file) { return file != null && PREFS_NAME.matcher(file).matches() && !PREFS_SKIP.containsKey(file); }
+
+    /** De bestanden die meegaan: de bekende plus wat er op de telefoon staat (namen zonder .xml), gesorteerd. */
+    static List<String> prefsFiles(java.util.Collection<String> present) {
+        java.util.TreeSet<String> s = new java.util.TreeSet<>(PREFS_KNOWN);
+        if (present != null) s.addAll(present);
+        List<String> out = new ArrayList<>();
+        for (String f : s) if (keepPrefsFile(f)) out.add(f);
+        return out;
+    }
 
     /** Gaat deze instelling mee (en mag hij teruggezet worden)? */
     static boolean keepPref(String file, String key) {
@@ -126,10 +147,20 @@ final class AppData {
 
     // ---------- bestanden (getFilesDir) ----------
 
-    /** Mappen en bestanden in getFilesDir() die meegaan. (De kluis gaat apart: ontsleuteld via geheim/kluis.) */
-    static final List<String> FILE_ROOTS = Collections.unmodifiableList(Arrays.asList(
+    // Mappen en bestanden in getFilesDir() gaan standaard allemaal mee (ook van nieuwe tools). De kluis gaat apart:
+    // ontsleuteld via geheim/kluis. Uitzonderingen alleen hieronder, met de reden.
+
+    /**
+     * Mappen en bestanden in getFilesDir() met gegevens die bekeken zijn: ze gaan mee, ook leesbaar in Toolgegevens
+     * (zonder de inhoudscontrole op geheimen voor onbekende mappen). AppDataTest eist dat elke naam in de code hier of in
+     * FILE_SKIP staat, zodat er bij een nieuwe tool een bewuste keuze is; zonder die keuze gaat hij in Alle appgegevens toch mee.
+     */
+    static final List<String> FILE_KNOWN = Collections.unmodifiableList(Arrays.asList(
             "notes.json", "notes.json.bak", "music.json", "ai", "apparaten", "call-recordings", "checkin", "contacts", "ereader", "facturen", "gebruik", "podcasts",
             "shortcut-icons", "sleep", "spotify", "toiletten", "tracks", "transcripts"));
+
+    /** Hooguit zoveel instellingenbestanden uit een backup (bescherming tegen een gemaakt bestand met duizenden namen). */
+    static final int MAX_PREFS_FILES = 300;
 
     /** Wat in getFilesDir() bewust niet meegaat, met de reden. */
     static final Map<String, String> FILE_SKIP;
@@ -158,11 +189,13 @@ final class AppData {
         PATH_SKIP = Collections.unmodifiableMap(m);
     }
 
-    static final String[] TEMP_SUFFIX = {".part", ".tmp", ".writing", ".download", ".rt-part", ".rt-tmp", ".keep", "-journal"};
+    /** Tijdelijk, of hoort bij een SQLite-database die open is (-wal, -shm): los kopiëren geeft een kapotte database. */
+    static final String[] TEMP_SUFFIX = {".part", ".tmp", ".writing", ".download", ".rt-part", ".rt-tmp", ".keep", "-journal", "-wal", "-shm"};
 
     /**
-     * Gaat dit bestand (pad binnen getFilesDir(), met /) mee? null = ja, anders de reden. Onbekende mappen gaan niet mee:
-     * alleen wat de app zelf kent, kan ook weer veilig teruggezet worden.
+     * Gaat dit bestand (pad binnen getFilesDir(), met /) mee? null = ja, anders de reden. Standaard gaat alles mee, ook
+     * mappen van nieuwe tools; niet mee: wat in FILE_SKIP of PATH_SKIP staat, verborgen mappen van bibliotheken (.cache)
+     * en tijdelijke bestanden. Wat in FILE_SKIP staat (zoals de interface in web/) wordt ook nooit teruggezet.
      */
     static String fileRule(String rel) {
         String r = safeRel(rel);
@@ -173,12 +206,25 @@ final class AppData {
         // Foto's van Gebruik gaan niet via de gewone bestanden mee (ze zijn met de kluissleutel versleuteld): apart,
         // ontsleuteld in het archief en bij terugzetten opnieuw versleuteld (zoals de kluis).
         if (r.equals("gebruik/foto") || r.startsWith("gebruik/foto/")) return "gaat apart mee (versleuteld met de kluissleutel)";
-        if (!FILE_ROOTS.contains(top)) return "onbekend";
+        if (top.startsWith(".")) return "verborgen map van een bibliotheek";
         if (slash < 0 && !top.contains(".")) return null; // lege map zelf
         if (PATH_SKIP.containsKey(r)) return PATH_SKIP.get(r);
         String low = r.toLowerCase(Locale.ROOT);
         for (String s : TEMP_SUFFIX) if (low.endsWith(s)) return "tijdelijk bestand";
         return null;
+    }
+
+    /**
+     * Welke mappen en bestanden in getFilesDir() bij terugzetten worden vervangen: wat er nu staat en wat in de backup zit,
+     * voor zover het meegaat (dus nooit de interface, modellen, Bankzaken of stamgegevens). De kluis gaat apart.
+     */
+    static List<String> restoreRoots(java.util.Collection<String> local, java.util.Collection<String> staged) {
+        java.util.TreeSet<String> s = new java.util.TreeSet<>();
+        if (local != null) s.addAll(local);
+        if (staged != null) s.addAll(staged);
+        List<String> out = new ArrayList<>();
+        for (String r : s) if (safeRel(r) != null && r.indexOf('/') < 0 && fileRule(r) == null) out.add(r);
+        return out;
     }
 
     /** Geluid (Slaappraat): gaat alleen mee als "Slaappraat met geluid" aan staat. */

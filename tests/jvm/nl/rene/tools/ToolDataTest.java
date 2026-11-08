@@ -16,6 +16,17 @@ public class ToolDataTest {
         check(!ToolData.keepPrefsFile("lock") && !ToolData.keepPrefsFile("vpn") && !ToolData.keepPrefsFile("secure") && !ToolData.keepPrefsFile("statistiek"), "slot, VPN en sleutels gaan niet mee");
         check(ToolData.secretKey("music", "token") && ToolData.secretKey("spotify", "access_token") && ToolData.secretKey("x", "apiKey"), "tokens en sleutels herkend");
         check(!ToolData.keepPref("spotify", "refresh"), "Spotify-koppeling niet mee");
+        check(ToolData.keepPref("nieuwetool", "lijst") && !ToolData.keepPref("nieuwetool", "apiToken") && ToolData.keepFile("nieuwetool/data.json"), "nieuwe tool: standaard mee, geheimen niet");
+        check(!ToolData.keepFile("nieuwetool/keys/a.json") && !ToolData.keepFile("nieuwetool/sleutels.json") && !ToolData.keepFile("nieuwetool/pin.txt") && ToolData.keepFile("nieuwetool/monkey.json"), "paden die naar een geheim klinken niet leesbaar (nieuwe map)");
+        check(ToolData.keepFile("ereader/my-key-guide/boek.json") || AppData.fileRule("ereader/my-key-guide/boek.json") != null, "bekende map: alleen de oude, smalle regel (geen boeken stilletjes weg)");
+        check(!ToolData.readableOk("mail/account.conf", "password=geheim") && !ToolData.readableOk("mail/a.json", "{\"refresh\":\"x\"}") && !ToolData.readableOk("mail/a.bin", null)
+                && ToolData.readableOk("mail/a.json", "{\"monkey\":1,\"passage\":\"x\"}"), "nieuwe map: password=, refresh en niet-tekst niet leesbaar; gewone tekst wel");
+        check(ToolData.readableOk("nieuwetool/a.json", "{\"lijst\":[1]}") && !ToolData.readableOk("mail/accounts.json", "{\"refresh_token\": \"x\"}")
+                && !ToolData.readableOk("nieuwetool/a.json", "{\"Password\" :1}") && ToolData.readableOk("facturen/toestand.json", "{\"nextPageToken\":\"x\"}"), "nieuwe map met een geheim erin: niet leesbaar; bekende mappen wel");
+        JSONObject veel = new JSONObject().put("format", ToolData.FORMAT).put("version", 1), pr = new JSONObject();
+        for (int i = 0; i < 1000; i++) pr.put("t" + i, new JSONObject().put("k", new JSONObject().put("t", "s").put("v", "x")));
+        veel.put("prefs", pr).put("files", new org.json.JSONArray());
+        check(ToolData.plan(veel, (f, k) -> false, rel -> false).prefs.length() <= AppData.MAX_PREFS_FILES, "hooguit " + AppData.MAX_PREFS_FILES + " instellingenbestanden uit een backup");
         check(!ToolData.keepPref("wabackup", "waKey"), "WhatsApp-sleutel nooit mee");
         check(!ToolData.keepPref("localai", "cfg_about") && !ToolData.keepPref("localai", "cfg_instr"), "persoonlijke tekst voor de assistent niet");
         check(!ToolData.keepPref("ui", "notifAsked") && !ToolData.keepPref("gebruik", "watermark") && !ToolData.keepPref("contacts", "suspectFp"), "toestand van deze installatie niet");
