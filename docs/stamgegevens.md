@@ -57,3 +57,19 @@ Bewerkingen en hun auditregel vormen één SQLite-transactie. Ciphertext is gebo
 ## Controle
 
 JVM-tests controleren encryptie, gewijzigde inhoud/context, monotone sessietermijnen, intrekking en veldcontracten. Interfacetests controleren CRUD, dat elk tabblad op een telefoonscherm (390×844) past zonder scrollen, afgeschermde velden, expliciete selectie, logboek, DOM-opruiming en late callbacks. Losse CI-instrumentatie controleert echte Android SQLite, encryptie van veldwaarden en kaartfoto’s, fotonormalisatie, profielcache-intrekking, relaties, transacties, sleutelweigering zonder telefoonvergrendeling, corruptiebehoud en publicatie na intrekking op API 24 en 36 voor beide appvarianten. De positieve toestel-/biometrische bevestiging blijft ook een handmatige toestelcontrole.
+
+## Jij centraal (`71-stamgegevens-ik.js`)
+- **Overzicht** (Alles, zonder zoekwoord): bovenaan *Ik* (de persoon uit het app-profiel, *Dit ben ik*) met je eigen
+  documenten; daaronder *Mijn mensen*, gegroepeerd naar wat ze voor jou zijn (de groepen van de relatiekeuze: Gezin, Familie
+  en schoonfamilie, Stief/pleeg/voogdij, Anderen) en *Nog geen relatie met jou*; dan *Overig* (organisaties, adressen,
+  reizen, vaste formuliergegevens, app-profiel). Relaties en documenten van anderen staan bij hun persoon. Zoeken en de
+  filters tonen de gewone lijst. Nog geen *ik*: een kaart *Begin met jezelf* (*Mijzelf toevoegen* of *Ik sta er al tussen*).
+- **Wat iemand voor jou is**: een relatie van jou naar de ander (`vanPersoon` = jij) geeft "mijn kind"; is hij andersom
+  vastgelegd (jij bent kind van Piet), dan rekent `CMK_ANDERSOM` om (Piet = mijn ouder). Zinnen en namen van relaties met
+  jou: "Zoë is je kind", "Zoë (mijn kind)".
+- **Persoon toevoegen** (ook via Toevoegen): eerst *Wie is het voor jou?* (vaak gebruikte relaties, *Andere relatie…*, of
+  *Iemand anders*); na opslaan van de persoon wordt meteen de relatie van jou naar de persoon bewaard (lukt dat niet, dan
+  zegt de app dat en kun je hem bij de persoon vastleggen).
+- **Bij een persoon** (tabblad Relaties): bovenaan wat die voor jou is, met *Relatie met mij vastleggen* of *wijzigen*;
+  *Relatie tussen anderen…* (kind, ouder, partner of andere relatie van deze persoon) blijft als extra keuze.
+- Test: `tests/ui/stamgegevens-ik.test.js`.

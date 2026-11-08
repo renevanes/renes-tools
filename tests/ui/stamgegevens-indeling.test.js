@@ -47,12 +47,12 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  await p.click('#cm-filter button:nth-child(2)');assert.deepEqual(await p.$$eval('#cm-list .strow b',b=>b.map(x=>x.textContent)),['Anna','Rene'],'filter op personen');
  assert.equal(await p.getAttribute('#cm-filter button:nth-child(2)','aria-pressed'),'true');
  await p.fill('#cm-search','ren');assert.deepEqual(await p.$$eval('#cm-list .strow b',b=>b.map(x=>x.textContent)),['Rene'],'zoeken binnen het filter');
- await p.fill('#cm-search','');await p.click('#cm-filter button:nth-child(1)');assert.equal(await p.locator('#cm-list .strow').count(),6,'documenten staan bij hun persoon, niet los in Alles');
+ await p.fill('#cm-search','');await p.click('#cm-filter button:nth-child(1)');assert.equal(await p.locator('#cm-list .strow').count(),5,'documenten en relaties staan bij hun persoon, niet los in Alles');assert.equal(await p.isVisible('#cm-list .cmk-start'),true,'zonder jou: Begin met jezelf');
  await p.click('#cm-filter button:nth-child(4)');assert.equal(await p.locator('#cm-list .strow').count(),1,'filter Documenten toont ze wel');await p.click('#cm-filter button:nth-child(1)');
  const minTik=await p.$$eval('#cm-filter button,#cm-list .strow,#cm-add,#cm-menu,#cm-lock-btn',b=>Math.min(...b.map(x=>Math.min(x.getBoundingClientRect().height,x.getBoundingClientRect().width))));assert.ok(minTik>=44,tag+': tikvlakken minstens 44 px ('+minTik+')');
  await p.click('#cm-add');await p.waitForSelector('#sheet.on');
- assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),en?['Person','Relationship','Identity document','Organisation','Address','Trip','Saved travel consent details']:['Persoon','Relatie','Identiteitsdocument','Organisatie','Adres','Reis','Vaste gegevens reistoestemming']);
- await p.click('#sheet-acts button:nth-child(2)');await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='relatie'&&!cm.edit.id);
+ assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),en?['Myself','Person','Relationship','Identity document','Organisation','Address','Trip','Saved travel consent details']:['Mijzelf','Persoon','Relatie','Identiteitsdocument','Organisatie','Adres','Reis','Vaste gegevens reistoestemming']);
+ await p.click('#sheet-acts button:nth-child(3)');await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='relatie'&&!cm.edit.id);
  assert.equal(await p.textContent('#cm-editor-title'),en?'Add relationship':'Relatie toevoegen');
  // Opslaan zonder personen: blijft op het tabblad Relatie, bij de lege keuze
  await p.click('#cm-tab-meer');await p.click('#cm-save');assert.equal(await p.evaluate(()=>cm.tab+' '+document.activeElement.id),'relatie cm-field-vanPersoon');
@@ -92,7 +92,7 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  await p.evaluate(()=>{Android._cm.replyDelay=10;goBack();});await p.waitForFunction(()=>current==='masterdata'&&cm.recordsReady);
  await p.evaluate(id=>cmEdit(id),rene);await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.id&&!cm.pending.size);
  // Partner toevoegen vanaf de persoon: na opslaan terug bij de persoon, op Relaties
- await p.evaluate(()=>{cm.dirty=false;});await p.click('#cm-tab-relaties');await p.click(`button[onclick="cmiRelationNew('partner')"]`);await p.waitForFunction(()=>cm.edit?.type==='relatie'&&!cm.edit.id);
+ await p.evaluate(()=>{cm.dirty=false;});await p.click('#cm-tab-relaties');await p.click('#cmk-anderen');await p.waitForSelector('#sheet.on');await p.click('#sheet-acts button:nth-child(3)');await p.waitForFunction(()=>cm.edit?.type==='relatie'&&!cm.edit.id);
  await p.selectOption('#cm-field-naarPersoon',anna);await p.click('#cm-save');await p.waitForFunction(id=>current==='cmedit'&&cm.edit?.id===id&&cm.recordsReady,rene);
  assert.equal(await p.evaluate(()=>cm.tab),'relaties','terug op Relaties');assert.equal(await p.locator('#cmi-person-relation-list .strow').count(),2);
  await past('persoon met twee relaties');
