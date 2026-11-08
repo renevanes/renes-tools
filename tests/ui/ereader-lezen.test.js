@@ -83,6 +83,13 @@ const SHOTS=process.env.ER_SHOTS||path.join(__dirname,'shots');
   await page.click('#er-awake');await page.click('#er-keys');
   ok(await page.evaluate(()=>!erLezen().awake&&erLezen().keys&&document.getElementById('er-awake').getAttribute('aria-checked')==='false'),'scherm aan en volumeknoppen instellen');
   await page.evaluate(()=>goBack());ok(await page.evaluate(()=>current==='erbook'&&Android._erWin.awake===false&&Android._erWin.keys===true),'instellingen gelden meteen in het boek');
+  ok(await page.evaluate(()=>{erPanel('quick');return true;})&&await page.waitForFunction(()=>Android._erWin.keys===false).then(()=>true),'paneel open: volumeknoppen weer voor het volume');
+  await page.evaluate(()=>erPanel(''));await page.waitForFunction(()=>Android._erWin.keys===true);
+  await page.evaluate(()=>{askConfirm('Test','', 'OK',()=>{});});await page.waitForFunction(()=>Android._erWin.keys===false);await page.evaluate(()=>closeModal(null));await page.waitForFunction(()=>Android._erWin.keys===true);
+  await page.evaluate(()=>document.getElementById('lockscr').classList.add('on'));await page.waitForFunction(()=>Android._erWin.keys===false);
+  ok(await page.evaluate(()=>{const a=erAnchor();onEreaderKey(1);return erAnchor()===a;}),'achter het app-slot bladert er niets');
+  await page.evaluate(()=>document.getElementById('lockscr').classList.remove('on'));await page.waitForFunction(()=>Android._erWin.keys===true);
+  ok(true,'dialoog en app-slot: volumeknoppen terug zodra ze weg zijn');
   await page.evaluate(()=>{erLezenSet('awake',true);erLezenSet('keys',false);});ok(await page.evaluate(()=>Android._erWin.awake===true),'scherm weer aan tijdens het lezen');
   await page.evaluate(()=>show('erset'));await page.click('#er-full');await page.evaluate(()=>goBack());
   ok(await page.evaluate(()=>!document.body.classList.contains('er-immersive')&&Android._erWin.full===false)&&await page.locator('.er-toolbar').isVisible(),'volle scherm uit: gewone weergave met knoppen');
@@ -103,7 +110,7 @@ const SHOTS=process.env.ER_SHOTS||path.join(__dirname,'shots');
   ok(await page.evaluate(()=>erIndex===1&&Android._spk.chapter===1&&erText.startsWith('De haven')),'gaat door naar het volgende hoofdstuk');
   h=await spoken(page);ok(h&&h.text==='De haven lag stil.','eerste zin van het nieuwe hoofdstuk licht op');
   await tick(page);await page.click('#er-tts-play');await page.waitForTimeout(40);
-  ok(await page.evaluate(()=>Android._spk.state==='paused'&&Android._erBooks[0].chapter===1&&Android._erBooks[0].anchor===Android._spk.start)&&await page.locator('#er-tts-play').getAttribute('aria-label')==='Verder voorlezen','pauzeren bewaart de leesplek');
+  await page.waitForTimeout(250);ok(await page.evaluate(()=>{const b=Android._erBooks[0],s=Android._spk;return s.state==='paused'&&b.chapter===1&&b.anchor<=s.start&&erSpeakPausedHere();})&&await page.locator('#er-tts-play').getAttribute('aria-label')==='Verder voorlezen','pauzeren bewaart de leesplek (de pagina met de zin)');
   await page.click('#er-tts-play');await page.click('#er-tts-prev');await page.waitForTimeout(40);ok(await page.evaluate(()=>Android._spk.start===0&&Android._spk.state==='playing'),'vorige zin');
   await page.click('#er-tts-next');await page.waitForTimeout(40);ok(await page.evaluate(()=>Android._spk.start>0),'volgende zin');
   await page.click('#er-tts-rate');await page.waitForTimeout(40);
@@ -127,11 +134,30 @@ const SHOTS=process.env.ER_SHOTS||path.join(__dirname,'shots');
   await page.selectOption('#er-tts-lang','');await page.evaluate(()=>{erPanel('');Android._spkNoVoice=[];erSpeakStart();});await page.waitForTimeout(60);
   await page.evaluate(()=>goBack());await page.waitForTimeout(60);
   ok(await page.evaluate(()=>current==='ereader'&&Android._spk.state==='playing')&&await page.locator('#er-speaking').isVisible(),'weg uit het boek: voorlezen gaat door, zichtbaar in de boekenkast');
-  await page.locator('#er-speaking .big').click();await page.waitForTimeout(60);ok(await page.evaluate(()=>current==='erbook'&&erBook.id==='z'&&erIndex===Android._spk.chapter),'terug naar het boek dat wordt voorgelezen');
+  await page.locator('#er-speaking [data-icon=chevron-right]').click();await page.waitForTimeout(60);ok(await page.evaluate(()=>current==='erbook'&&erBook.id==='z'&&erIndex===Android._spk.chapter),'terug naar het boek dat wordt voorgelezen');
   await page.evaluate(()=>openTool('ereader-lezen'));ok(await page.evaluate(()=>current==='erbook'),'melding openen houdt het boek open');
   await page.click('#er-tts-stop');ok(await page.evaluate(()=>Android._spk.state==='stopped'&&!CSS.highlights.get('er-speak'))&&!(await page.locator('#er-tts').isVisible()),'stoppen');
 
+  // ---------- gepauzeerd voorlezen en de leesplek ----------
+  await page.evaluate(()=>{erChapter(0,0);erControls(true);});await page.click('#er-speak');await tick(page,2);await page.click('#er-tts-play');await page.waitForTimeout(40);
+  ok(await page.evaluate(()=>Android._spk.state==='paused'&&erSpeakPausedHere()),'gepauzeerd, de zin staat nog op de pagina');
+  await page.click('#er-speak');await page.waitForTimeout(40);ok(await page.evaluate(()=>Android._spkLog[Android._spkLog.length-1][0]==='resume'&&Android._spk.state==='playing'),'Voorlezen gaat verder bij dezelfde zin');
+  await page.click('#er-tts-play');await page.waitForTimeout(40);await page.evaluate(()=>{erTurn(1);erTurn(1);erTurn(1);});await page.waitForTimeout(300);
+  ok(await page.evaluate(()=>Android._erBooks[0].anchor===erAnchor()&&erAnchor()>Android._spk.end),'gepauzeerd en verder gebladerd: de gewone leesplek wordt bewaard');
+  const seen=await page.evaluate(()=>erAnchor());await page.click('#er-speak');await page.waitForTimeout(40);
+  ok(await page.evaluate(a=>{const l=Android._spkLog[Android._spkLog.length-1];return l[0]==='speak'&&l[1].anchor===a&&Android._spk.start<=a&&Android._spk.end>a;},seen),'Voorlezen begint dan bij de zichtbare zin');
+  await page.click('#er-tts-stop');
+
+  // ---------- buiten een boek blijft het venster ongemoeid ----------
+  await page.evaluate(()=>{goBack();show('ai');Android.aiTalkScreen(true);});const nWin=await page.evaluate(()=>Android._erWinLog.length);
+  await page.evaluate(()=>{erLezenSet('bright',.4);erLezenSet('awake',false);erLezenSet('awake',true);setEntry('ereader.helderheid').set('telefoon');setEntry('ereader.volscherm').set('aan');});
+  ok(await page.evaluate(n=>Android._erWinLog.length===n&&Android._tkScreen===true,nWin),'instellingen aanpassen buiten een boek (bijv. tijdens een gesprek met de assistent) raakt scherm aan, balken en helderheid niet');
+  await page.evaluate(()=>{Android.aiTalkScreen(false);show('ereader');erOpen('z');});
+
   // ---------- assistent en zoeken ----------
+  ok(await page.evaluate(()=>{const id=q=>{const r=setHandle(q);return r&&r.text||'';};return /Helderheid in de e-reader[\s\S]*50/.test(id('zet de helderheid op 50%'))&&/Helderheid in de e-reader[\s\S]*50/.test(id('zet de helderheid in de e-reader op 50%'))&&/Tekstgrootte in de e-reader[\s\S]*11\d/.test(id('zet de tekstgrootte in de e-reader op 120%'));}),'assistent: helderheid op 50% (ook "in de e-reader") en tekstgrootte in de e-reader op 120%');
+  ok(await page.evaluate(()=>{const r=setHandle('zet het volume uit');return !(r&&/volumeknoppen/i.test(r.text||''))&&((setFind('scherm donkerder')[0]||{}).e||{}).id==='weergave.amoled'&&((setFind('tekstgrootte')[0]||{}).e||{}).id==='weergave.tekstgrootte';}),'niet: volume uit, scherm donkerder of de gewone tekstgrootte');
+  ok(await page.evaluate(()=>setPath('erset')==='E-reader → Leesweergave'),'pad zonder dubbele stap of boektitel');
   ok(await page.evaluate(()=>[['nachtfilter','ereader.ogen'],['blauw licht','ereader.ogen'],['helderheid','ereader.helderheid'],['voorleessnelheid','ereader.voorleessnelheid'],['scherm aan laten tijdens het lezen','ereader.schermaan']].every(([q,id])=>((setFind(q)[0]||{}).e||{}).id===id)&&((setFind('tekstgrootte')[0]||{}).e||{}).id==='weergave.tekstgrootte'),'assistent vindt helderheid, nachtfilter, voorleessnelheid en scherm aan (tekstgrootte blijft die van de app)');
   ok(await page.evaluate(()=>{const e=setEntry('ereader.helderheid');e.set('25');const r=Android._erWin.bright===.25&&erLezen().bright===.25;e.set('telefoon');return r&&erLezen().bright===-1;}),'helderheid via het register, meteen in het boek');
   ok(await page.evaluate(()=>GS_SYN['e-reader'].includes('voorlezen')&&GS_SYN['e-reader'].includes('nachtfilter')),'zoekwoorden voorlezen en nachtfilter bij de e-reader');

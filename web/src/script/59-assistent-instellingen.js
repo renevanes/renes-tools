@@ -25,7 +25,12 @@ function setCanChange(e){ const tt = setType(e); return (tt === 'aan' || tt === 
 /* Waar het staat: de koppen van de schermen, van boven naar beneden */
 function setPath(scr){
   const out = []; let n = scr, g = 0;
-  while (n && n !== 'home' && g++ < 6) { const h = document.querySelector('#s-' + n + ' .hdr h1'); out.unshift(h ? h.textContent.trim() : n); n = BACK[n]; }
+  while (n && n !== 'home' && g++ < 6) {
+    const h = document.querySelector('#s-' + n + ' .hdr h1'), name = h ? h.textContent.trim() : n;
+    // Een kop met gegevens (een boektitel, een naam) is geen stap in de weg; dezelfde naam twee keer achter elkaar ook niet
+    if (!(h && h.getAttribute('translate') === 'no') && name !== out[0]) out.unshift(name);
+    n = BACK[n];
+  }
   return out.join(' → ');
 }
 

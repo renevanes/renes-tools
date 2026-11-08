@@ -103,7 +103,7 @@ body.er-immersive .er-chapterbar{padding-top:10px}
 .er-seg button{flex:1;min-height:44px;padding:6px 8px;font-size:13px;color:var(--ink)}.er-seg button[aria-checked="true"]{background:var(--tonal);color:var(--on-tonal);font-weight:600}
 .er-seg-wrap{flex-wrap:wrap;border:0;gap:6px;overflow:visible}.er-seg-wrap button{flex:0 0 auto;border:1px solid var(--outline);border-radius:22px;padding:6px 14px}
 .er-q-actions{display:flex;gap:10px;padding-top:12px;border-top:1px solid var(--line)}.er-q-actions .big{flex:1;margin:0;display:flex;align-items:center;justify-content:center;gap:7px;font-size:14px;padding:12px 8px}
-.er-panel .er-setting .sel{width:60%}.er-panel .big.ghost#er-tts-add{margin:6px 0 0}
+.er-panel .er-setting{flex-direction:column;align-items:stretch;gap:6px}.er-panel .er-setting .sel{width:100%}.er-panel .big.ghost#er-tts-add{margin:6px 0 0}
 #er-quick [hidden],#er-tts-panel [hidden]{display:none!important}
 /* Boekenkast: wat er wordt voorgelezen */
 .er-speaking{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:0 0 16px;border-radius:16px;background:var(--card);border:1px solid var(--line)}

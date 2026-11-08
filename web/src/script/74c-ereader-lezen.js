@@ -17,7 +17,8 @@ function erLezenSet(key,value){
   if(!(key in ER_LEZEN))return'';const s=erLezen();s[key]=value;if(key==='bright'&&value>=.02)s.brightLast=value;
   store.set('erLezen',Object.assign({},ER_LEZEN,s));
   if(key==='full'&&current==='erbook')erControls(false);
-  erWindowApply();erWarmApply();erQuickRender();erSetRender();return'';
+  if(erReading())erWindowApply(); // buiten een boek nooit het venster aanraken (scherm aan van de assistent, balken, helderheid)
+  erWarmApply();erQuickRender();erSetRender();return'';
 }
 function erBrightInput(value){erLezenSet('bright',Math.max(.02,Math.min(1,value/100)));}
 function erSizeStep(direction){const size=erStyle().size,i=ER_VALUES.size.indexOf(size),next=ER_VALUES.size[Math.max(0,Math.min(ER_VALUES.size.length-1,(i<0?3:i)+direction))];if(next!==size)erPreference('size',next);erQuickRender();}
@@ -26,10 +27,15 @@ function erSizePct(size){return erPct(Math.round(size/22*100));}
 
 /* ---------- venster: volle scherm, scherm aan, helderheid, volumeknoppen ---------- */
 function erReading(){return current==='erbook'&&!!erBook;}
-function erWindowApply(){
+/* Ligt er iets over het boek (paneel, dialoog, menu, afbeelding, app-slot), dan zijn de volumeknoppen weer gewoon voor het volume. */
+function erOnTop(){return !!erPanelOn||!!document.querySelector('#modal.on,#sheet.on,#er-image.on,#lockscr.on');}
+let erWinLast='{}';
+function erWindowApply(force){
   const s=erLezen(),on=erReading();
   if(typeof Android.ereaderWindow==='function'){
-    let r={};try{r=JSON.parse(Android.ereaderWindow(JSON.stringify(on?{full:s.full,awake:s.awake,bright:s.bright,keys:s.keys}:{}))||'{}');}catch(e){}
+    const cfg=JSON.stringify(on?{full:s.full,awake:s.awake,bright:s.bright,keys:s.keys&&!erOnTop()}:{});
+    if(cfg===erWinLast&&!force&&on)return;erWinLast=cfg;
+    let r={};try{r=JSON.parse(Android.ereaderWindow(cfg)||'{}');}catch(e){}
     erWin.talkback=!!r.talkback;
     try{if(on)sessionStorage.setItem('rt.erWin','1');else sessionStorage.removeItem('rt.erWin');}catch(e){}
   }
@@ -44,10 +50,10 @@ function erControls(show){
   $('#er-text').setAttribute('aria-description',document.body.classList.contains('er-immersive')&&!on?t('Tik in het midden voor de knoppen'):'');
 }
 /* Bij binnenkomen: erResume zet daarna de leesplek terug, dus hier nog niets meten of herstellen. */
-function erLezenEnter(){erEntering=true;try{erWindowApply();erControls(false);erWarmApply();erSpeakSync();erSpeakRender();}finally{erEntering=false;}}
+function erLezenEnter(){erEntering=true;try{erWindowApply(true);erControls(false);erWarmApply();erSpeakSync();erSpeakRender();}finally{erEntering=false;}}
 function erLezenLeave(){
   erPanel('');document.body.classList.remove('er-controls','er-immersive','er-speaking');erSpeakHighlight(null);$('#er-warm').hidden=true;
-  if(typeof Android.ereaderWindow==='function'){try{Android.ereaderWindow('{}');sessionStorage.removeItem('rt.erWin');}catch(e){}}
+  if(typeof Android.ereaderWindow==='function'&&erWinLast!=='{}'){erWinLast='{}';try{Android.ereaderWindow('{}');sessionStorage.removeItem('rt.erWin');}catch(e){}}
 }
 
 /* Tik in de tekst: links/rechts bladeren (pagina's), midden de knoppen. Met zichtbare knoppen verbergt een tik ze. */
@@ -69,7 +75,7 @@ document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){e.preventDefault();erControls(!document.body.classList.contains('er-controls'));}else erControls(true);
   }
 });
-window.onEreaderKey=function(direction){if(!erReading()||erPanelOn||document.querySelector('#modal.on,#sheet.on,#er-image.on'))return;erUserAt=Date.now();erTurn(+direction>0?1:-1);};
+window.onEreaderKey=function(direction){if(!erReading()||erOnTop())return;erUserAt=Date.now();erTurn(+direction>0?1:-1);};
 
 /* ---------- prettig voor je ogen: een warme laag over het leesvlak ---------- */
 function erEvening(now){try{const c=Object.assign({},thCfg(),{mode:'sun',off:0});return thDecide(c,now||Date.now(),false,thLoc(c)).dark;}catch(e){return false;}}
@@ -102,7 +108,7 @@ function erRadios(box,value){box.querySelectorAll('[role=radio]').forEach(b=>{co
 function erQuickRender(){
   if(erPanelOn!=='quick')return;const s=erLezen(),st=erStyle(),bright=$('#er-bright'),level=Math.round((s.bright<0?s.brightLast:s.bright)*100);
   bright.value=String(level);bright.disabled=s.bright<0;bright.setAttribute('aria-valuetext',s.bright<0?t('Zoals de telefoon'):erPct(level));
-  $('#er-bright-val').textContent=s.bright<0?t('Zoals de telefoon'):erPct(level);erTg($('#er-bright-auto'),s.bright<0);
+  $('#er-bright-val').textContent=s.bright<0?'':erPct(level);erTg($('#er-bright-auto'),s.bright<0);
   erRadios($('#er-q-theme'),st.theme);erRadios($('#er-q-mode'),st.mode);
   erTg($('#er-warm-on'),s.warm);$('#er-warm-level').value=String(s.warmLevel);$('#er-warm-level').setAttribute('aria-valuetext',erPct(s.warmLevel));$('#er-warm-val').textContent=erPct(s.warmLevel);
   erTg($('#er-warm-auto'),s.warmAuto);
@@ -129,13 +135,19 @@ function erSpeakLang(){return erSpeakPrefs().lang||erBookLang()||rgCfg().lang||'
 function erLangBase(tag){return String(tag||'').split('-')[0].toLowerCase();}
 function erLangName(tag){try{const n=new Intl.DisplayNames([regioLocale()],{type:'language'}).of(erLangBase(tag));if(n&&n!==erLangBase(tag))return n;}catch(e){}return tag;}
 function erSpeakActive(r){r=r||erSpk;return['playing','starting','paused'].includes(r.state);}
-function erSpeakOwns(){return !!erBook&&erSpk.id===erBook.id&&erSpeakActive();}
+/* Alleen terwijl er echt wordt voorgelezen bewaart de voorleesfunctie de leesplek; gepauzeerd weer de gewone leesplek. */
+function erSpeakOwns(){return !!erBook&&erSpk.id===erBook.id&&(erSpk.state==='playing'||erSpk.state==='starting');}
+/* Staat de gepauzeerde zin nog op deze pagina? Anders begint Voorlezen bij wat je nu ziet. */
+function erSpeakPausedHere(){
+  if(!erBook||erSpk.id!==erBook.id||erSpk.state!=='paused'||erSpk.chapter!==erIndex)return false;if(!erText.length)return true;
+  const box=$('#er-text'),view=box.getBoundingClientRect(),r=erRect(erSpk.start);return !!r&&r.bottom>view.top&&r.top<view.bottom;
+}
 function erSpeakSync(){if(typeof Android.ereaderSpeakState!=='function')return;try{const r=JSON.parse(Android.ereaderSpeakState());if(r&&r.state)erSpk=r;}catch(e){}}
 function erSpeakOptions(id,chapter,anchor){const p=erSpeakPrefs(),lang=erSpeakLang();return JSON.stringify({id,chapter,anchor,rate:p.rate,lang,voice:p.voices[erLangBase(lang)]||''});}
 function erSpeakStart(){
   if(!erBook)return;
   if(typeof Android.ereaderSpeak!=='function'){toast(t('Installeer de nieuwste APK om te laten voorlezen'));return;}
-  if(erSpk.id===erBook.id&&erSpeakActive()){if(erSpk.state==='paused')erSpeakCmd('resume');erSpeakRender();return;}
+  if(erSpk.id===erBook.id&&erSpeakActive()&&(erSpk.state!=='paused'||erSpeakPausedHere())){if(erSpk.state==='paused')erSpeakCmd('resume');erSpeakRender();return;}
   const at=erText.length?erAnchor():-1,anchor=at>=0?at:Math.max(0,erCurrentAnchor||0);
   const error=Android.ereaderSpeak(erSpeakOptions(erBook.id,erIndex,erText.length?anchor:0));
   if(error){toast(error);return;}
@@ -145,7 +157,7 @@ function erSpeakStart(){
 /* Andere taal of stem tijdens het voorlezen: opnieuw beginnen bij dezelfde zin. */
 function erSpeakRestart(){if(!erSpeakActive()||typeof Android.ereaderSpeak!=='function')return;const error=Android.ereaderSpeak(erSpeakOptions(erSpk.id,erSpk.chapter,erSpk.start));if(error)toast(error);}
 function erSpeakCmd(cmd,arg){if(typeof Android.ereaderSpeakCmd!=='function')return;Android.ereaderSpeakCmd(cmd,arg==null?'':String(arg));if(cmd==='stop'){erSpk=Object.assign({},erSpk,{state:'stopped'});erSpeakHighlight(null);erSpeakRender();}}
-function erSpeakToggle(){erSpeakCmd(erSpk.state==='paused'?'resume':'pause');}
+function erSpeakToggle(){if(erSpk.state!=='paused')erSpeakCmd('pause');else if(erReading()&&erBook.id===erSpk.id)erSpeakStart();else erSpeakCmd('resume');}
 function erSpeakRateNext(){const p=erSpeakPrefs();erSpeakPref('rate',ER_RATES[(ER_RATES.indexOf(p.rate)+1)%ER_RATES.length]);}
 function erSpeakPref(key,value){
   const p=erSpeakPrefs();
@@ -174,7 +186,7 @@ window.onEreaderSpeak=function(r){
   if(erReading()&&r.id===erBook.id&&(r.state==='playing'||r.state==='paused')&&Number.isInteger(r.chapter)){
     if(r.chapter!==erIndex){erUserAt=0;if(!erChapter(r.chapter,r.start)){erSpeakRender();return;}}
     erSpeakHighlight(r);
-    if(r.start!==before.start||r.chapter!==before.chapter||before.state!==r.state)erSpeakFollow(r);
+    if(r.start!==before.start||r.chapter!==before.chapter||!erSpeakActive(before))erSpeakFollow(r); // niet bij alleen pauzeren: dan blijft de pagina staan
   }
   erSpeakRender();
 };
@@ -215,7 +227,7 @@ function erSpeakRender(){
     lib.replaceChildren();const icon=document.createElement('span');icon.className='ui-icon';icon.dataset.icon='volume-high';icon.setAttribute('aria-hidden','true');
     const text=document.createElement('span');text.className='er-speaking-text';const title=document.createElement('b');title.translate=false;title.textContent=book.title;const sub=document.createElement('small');sub.textContent=erSpeakStatus(r);text.append(title,sub);
     const toggle=document.createElement('button');toggle.className='icon-btn';toggle.dataset.icon=r.state==='paused'?'play':'pause';toggle.setAttribute('aria-label',t(r.state==='paused'?'Verder voorlezen':'Pauzeren'));toggle.addEventListener('click',erSpeakToggle);
-    const open=document.createElement('button');open.className='big tonal';open.textContent=t('Naar het boek');open.addEventListener('click',erSpeakOpen);
+    const open=document.createElement('button');open.className='icon-btn';open.dataset.icon='chevron-right';open.setAttribute('aria-label',t('Naar het boek'));open.addEventListener('click',erSpeakOpen);
     lib.append(icon,text,toggle,open);
   }
   erSpeakPanelRender();
@@ -246,7 +258,9 @@ function erSpeakOpen(){
 }
 
 (function(){
-  const resumed=window.onResumeApp;window.onResumeApp=function(){if(resumed)resumed();if(erReading()){erWindowApply();erWarmApply();}erSpeakSync();erSpeakRender();};
+  const resumed=window.onResumeApp;window.onResumeApp=function(){if(resumed)resumed();if(erReading()){erWindowApply(true);erWarmApply();}erSpeakSync();erSpeakRender();};
+  // Iets over het boek open of dicht: de volumeknoppen volgen
+  new MutationObserver(()=>{if(erReading())erWindowApply();}).observe(document.body,{attributes:true,attributeFilter:['class'],subtree:true,attributeOldValue:false});
   // Na herladen van de pagina tijdens het lezen: het venster weer gewoon maken
   try{if(sessionStorage.getItem('rt.erWin')&&current!=='erbook'&&typeof Android.ereaderWindow==='function'){Android.ereaderWindow('{}');sessionStorage.removeItem('rt.erWin');}}catch(e){}
 })();

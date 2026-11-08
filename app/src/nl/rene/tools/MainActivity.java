@@ -719,6 +719,40 @@ public class MainActivity extends Activity {
             int f = d.getSystemUiVisibility();
             d.setSystemUiVisibility(full ? f | imm : f & ~imm);
         }
+        ereaderCutout(full);
+    }
+
+    /** Volle scherm boven een inkeping: Android 9–14 laat anders een zwarte strook; nu tekent het papier tot de rand
+     *  en houden de balkjes (in de kleur van het papier) de tekst buiten de inkeping. Vanaf 15 doet de insets-listener dit al. */
+    private boolean ereaderFull;
+    private int barTop;
+    void ereaderCutout(boolean full) {
+        if (Build.VERSION.SDK_INT < 28 || Build.VERSION.SDK_INT >= 35 || topBar == null || full == ereaderFull) return;
+        ereaderFull = full;
+        Window w = getWindow();
+        android.view.WindowManager.LayoutParams lp = w.getAttributes();
+        lp.layoutInDisplayCutoutMode = full ? android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                : android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT;
+        w.setAttributes(lp);
+        View root = (View) topBar.getParent();
+        if (full) {
+            root.setBackgroundColor(barTop);
+            root.setOnApplyWindowInsetsListener((v, ins) -> {
+                android.view.DisplayCutout c = ins.getDisplayCutout();
+                topBar.getLayoutParams().height = c == null ? 0 : c.getSafeInsetTop();
+                bottomBar.getLayoutParams().height = c == null ? 0 : c.getSafeInsetBottom();
+                v.setPadding(c == null ? 0 : c.getSafeInsetLeft(), 0, c == null ? 0 : c.getSafeInsetRight(), 0);
+                topBar.requestLayout(); bottomBar.requestLayout();
+                return ins;
+            });
+        } else {
+            root.setOnApplyWindowInsetsListener(null);
+            root.setBackground(null);
+            topBar.getLayoutParams().height = 0; bottomBar.getLayoutParams().height = 0;
+            root.setPadding(0, 0, 0, 0);
+            topBar.requestLayout(); bottomBar.requestLayout();
+        }
+        root.requestApplyInsets();
     }
 
     /** Thema gewisseld (in de interface): achtergrond van venster, WebView en afdeklaag mee (op de hoofdthread). */
@@ -731,6 +765,8 @@ public class MainActivity extends Activity {
 
     void setBars(String top, String bottom, boolean lightBottom) {
         int t = Color.parseColor(top), b = Color.parseColor(bottom);
+        barTop = t;
+        if (ereaderFull && topBar.getParent() instanceof View) ((View) topBar.getParent()).setBackgroundColor(t); // zijkanten bij de inkeping
         topBar.setBackgroundColor(t);
         bottomBar.setBackgroundColor(b);
         Window w = getWindow();
