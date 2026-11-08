@@ -112,6 +112,8 @@ public class MainActivity extends Activity {
     volatile long masterPickUntil;volatile boolean masterPickReturned;
     static final long MASTER_PICK_MS=120_000L;
     boolean masterPicking(){return masterPickUntil!=0&&android.os.SystemClock.elapsedRealtime()<=masterPickUntil&&masterSession.isOpen();}
+    /** De 2 minuten zijn om terwijl de app nog uit beeld is (kiezer open gelaten, andere app, scherm uit): nu op slot. */
+    void masterPickExpired(){if(masterPickUntil!=0&&!masterForeground&&!masterPicking()){masterPickUntil=0;masterPickReturned=false;suspendMaster(false);}}
     private Runnable masterAfterAuth;
     void afterMasterAuth(Runnable task){long due=android.os.SystemClock.elapsedRealtime()+5000;masterAfterAuth=()->{if(android.os.SystemClock.elapsedRealtime()>due)masterAuthSerial.incrementAndGet();task.run();};if(masterForeground)h.post(this::runMasterAfterAuth);}
     void runMasterAfterAuth(){Runnable task=masterAfterAuth;masterAfterAuth=null;if(task!=null)task.run();}
@@ -789,7 +791,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
-        if(req==MasterPhotos.REQUEST){masterPickReturned=masterPickUntil!=0;masterPhotos.result(res,data);return;}
+        if(req==MasterPhotos.REQUEST){masterPickReturned=masterPickUntil!=0&&res==RESULT_OK&&data!=null&&data.getData()!=null;masterPhotos.result(res,data);return;}
         if (req == REQ_FACT_PDF) {
             final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
             if (u == null) { js("onFacturenToegevoegd", "{\"error\":\"\"}"); return; }

@@ -34,7 +34,7 @@ final class MasterPhotos {
             synchronized(MasterPhotos.this){if(pending!=job)return;}
             if(!activity.masterForeground||!activity.masterSession.accepts(token)||!job.view.equals(activity.masterView)){clear(job);notify(job,false,Taal.T("Ontgrendel de stamgegevens opnieuw"));return;}
             // Zolang de kiezer open is (hooguit 2 minuten) niet op slot: zie MainActivity.masterPickUntil.
-            if(activity.masterSession.accepts(token)){activity.masterPickReturned=false;activity.masterPickUntil=android.os.SystemClock.elapsedRealtime()+MainActivity.MASTER_PICK_MS;}
+            if(activity.masterSession.accepts(token)){activity.masterPickReturned=false;activity.masterPickUntil=android.os.SystemClock.elapsedRealtime()+MainActivity.MASTER_PICK_MS;activity.h.postDelayed(activity::masterPickExpired,MainActivity.MASTER_PICK_MS+500);}
             Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             try{activity.startActivityForResult(intent,REQUEST);}catch(Throwable e){activity.masterPickUntil=0;clear(job);notify(job,false,Taal.T("Bestandskiezer niet beschikbaar"));}
         });
@@ -53,8 +53,9 @@ final class MasterPhotos {
     /** Terug uit de kiezer binnen de tijd, nog ontgrendeld: de foto meteen verwerken (zelfde stappen als na ontgrendelen). */
     void continueAfterPick(){
         final String token=activity.masterSession.consumerToken();if(token.isEmpty())return;
+        final String request;synchronized(this){if(pending==null||pending.uri==null)return;request=pending.request;}
         new Thread(()->{
-            JSONObject out=new JSONObject();
+            JSONObject out=new JSONObject();try{out.put("request",request);}catch(Exception ignored){ }
             try{
                 SecretKey key=MasterKeys.authenticated(activity);JSONObject photo=resume(key,activity.masterSession,token);
                 if(photo==null)return;out.put("photo",photo).put("token",token);

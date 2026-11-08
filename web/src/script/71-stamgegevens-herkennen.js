@@ -18,7 +18,9 @@ const cmhPicked=window.onMasterPhotoPicked;window.onMasterPhotoPicked=function(r
   cmhPendingText();cmhPicked(r);
 };
 window.onMasterPhotoDone=function(r){
-  if(!r||!r.photo||!cmi.photoRequest||r.token!==cm.token||!cmOpen())return;
+  if(!r||!r.photo||!cmi.photoRequest||r.request!==cmi.photoRequest)return;
+  // Intussen op slot of opnieuw ontgrendeld: de foto is weg; niet blijven wachten (anders reageren de fotoknoppen niet meer).
+  if(r.token!==cm.token||!cmOpen()){cmiPhotoCancel();if(cmOpen())cmNote(t('De foto is niet verwerkt. Kies hem opnieuw.'));return;}
   cmiPhotoAfterUnlock(r.photo);if(!r.photo.error)cmListLoad();
 };
 const cmhCancel=cmiPhotoCancel;cmiPhotoCancel=function(){cmh.scanning=false;cmhCancel();};
