@@ -36,7 +36,7 @@ for(const colorScheme of ['light','dark']){
   // 3. Nieuw document vanuit de persoon: persoon vooraf gekozen, naam vanzelf, datums als gewone datumvelden.
   await p.waitForFunction(()=>current==='masterdata'&&cm.recordsReady);await p.locator('#cm-list .strow',{hasText:'Zoë <b>'}).click();
   await p.waitForFunction(()=>cm.edit&&cm.edit.label==='Zoë <b>');await p.click('#cm-tab-documenten');
-  await p.getByRole('button',{name:'Document toevoegen',exact:true}).click();await p.waitForFunction(()=>cm.edit&&cm.edit.type==='identiteit'&&!cm.edit.id);
+  await p.locator('button[onclick="cmiDocNew()"]').click();await p.waitForFunction(()=>cm.edit&&cm.edit.type==='identiteit'&&!cm.edit.id);
   assert.equal(await p.inputValue('#cm-field-persoon'),'00000000-0000-0000-0000-000000000001');
   assert.equal(await p.inputValue('#cm-label'),'Identiteitskaart Zoë <b>');
   await T.select('#cm-field-documentsoort','paspoort');assert.equal(await p.inputValue('#cm-label'),'Paspoort Zoë <b>','naam volgt de soort');

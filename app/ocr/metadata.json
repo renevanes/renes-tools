@@ -1,0 +1,35 @@
+{
+  "version": "4.9.0",
+  "sourceCommit": "15c534717b1cb58261b58d4e4c1200c7f81f668c",
+  "aarUrl": "https://jitpack.io/cz/adaptech/tesseract4android/tesseract4android/4.9.0/tesseract4android-4.9.0.aar",
+  "aarSha256": "bce5d6413a1a5ae3d7240033fbbc851ba3217d0a08d9769400e17a077f42cb2a",
+  "modelRepository": "tesseract-ocr/tessdata_fast",
+  "modelCommit": "87416418657359cb625c412a48b6e1d6d41c29bd",
+  "modelFile": "eng.traineddata",
+  "components": {
+    "tesseract": "5.5.1",
+    "leptonica": "1.85.0",
+    "libjpeg": "9f",
+    "libpng": "1.6.48"
+  },
+  "files": {
+    "app/ocr/tesseract4android.jar": "5466930812c64924a3bbe02dcc7dbfa4c4ba19eed86dd2ae5ec2a666301ad1a1",
+    "app/lib/arm64-v8a/libjpeg.so": "0e751fcd26f2a60e8b87c2da274473c6c2a26352e5a9071033f1f88a93b39308",
+    "app/lib/arm64-v8a/libleptonica.so": "00436d8562bc833a22111a1451cf46147f05aecf8a257751e127689a1ee6e3c4",
+    "app/lib/arm64-v8a/libpngx.so": "e70d48e405b56f1df06921c4ebbee0612140a8f2c7b0a2641fbbf6fea53eda4c",
+    "app/lib/arm64-v8a/libtesseract.so": "bce8dcca1544d9f8708ac126c1e920bfa92481509672d8472470e8c2eebcd43c",
+    "app/lib/armeabi-v7a/libjpeg.so": "2b2c8a048f8a10bbaab41e90cbd2db3eececde70899e3f3a2a3d36208ccd5f76",
+    "app/lib/armeabi-v7a/libleptonica.so": "309d92453c04479def3f54e4a319271766ad11cc5a0995b34e80764bd505680e",
+    "app/lib/armeabi-v7a/libpngx.so": "f92d0ba22b90600b3efce1568e1ce7d7e960927cec4afe500fb5514e1bf323c3",
+    "app/lib/armeabi-v7a/libtesseract.so": "b1c543bcbc128cb89bdbe2eaca4d89d34c448195aad464c92fc6103ff1e4e0ab",
+    "app/lib/x86/libjpeg.so": "2c8c5e1bc43f3a153e7ccafa368ee36ad6183ef381ff13584afe4bf002c7d637",
+    "app/lib/x86/libleptonica.so": "1f2042cb18f630a2d79870cf0f15bc9a986d64ec1e71c20d7912691a2baa5ad6",
+    "app/lib/x86/libpngx.so": "045251f5da11a984df7e0fec8e68eb1c507417ab9b1bf7d31b628d36adcc550c",
+    "app/lib/x86/libtesseract.so": "6a11dc8331d3eb0f91c6efd7fc36a6ea4c3d6c2d3eb1d3c6f934a3f3f5aca048",
+    "app/lib/x86_64/libjpeg.so": "2621f8760a4dda288c7efe14db8be19f8c86ec7bf1e1a3a768fd99ab82e0a296",
+    "app/lib/x86_64/libleptonica.so": "f53676b54a1206de049fdb9f2944b49e548468acafe015501867c5768b78aa92",
+    "app/lib/x86_64/libpngx.so": "efbba9d3d9b6fbf688d6027b976406822dacca8d81f67972a3378a5fd30769f0",
+    "app/lib/x86_64/libtesseract.so": "29a5f2fb99af2ed00c93537191b4ff7af50993b7c578ab32e9f49435ee857b2e",
+    "app/ocr/eng.traineddata": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2"
+  }
+}

@@ -1224,3 +1224,6 @@ details.cm-fold[open]>summary{margin-bottom:8px}
 #wcg-body .icon-btn{min-width:44px;min-height:44px;flex:none}
 #wcn-menu[hidden],#wcp-menu[hidden],#wcb-zeker-r[hidden]{display:none}
 #s-wceigen .srow .mini,#s-wcgedeeld .srow .mini,#s-wcplek .srow .mini{float:none;flex:none;margin-left:6px}
+
+/* Tijdens het nakijken staan de voorstellen centraal; de handmatige velden volgen via Zelf invullen. */
+.cmh-review #cm-fields,.cmh-review #cm-label-box,.cmh-review #cm-secret-row{display:none}
