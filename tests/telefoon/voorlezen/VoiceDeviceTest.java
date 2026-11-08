@@ -41,6 +41,7 @@ public final class VoiceDeviceTest extends Instrumentation {
         check(rate==22050&&samples.length>rate/2&&energy/samples.length>.000001,"real non-silent Dutch speech");call(engineType,engine,"close",new Class<?>[]{});engine=null;
         ownership();
         playback();
+        foreground();
     }
     interface Until{boolean ok()throws Exception;}
     static void await(Until until,String message)throws Exception{for(int i=0;i<250;i++){if(until.ok())return;Thread.sleep(40);}throw new AssertionError(message);}
@@ -61,6 +62,18 @@ public final class VoiceDeviceTest extends Instrumentation {
             runOnMainSync(()->a.moveTaskToBack(true));controller.getTransportControls().play();await(()->!(Boolean)field(jobType,"paused").get(j),"background resume");check(current.get(null)==j,"book survives background transition");
             controller.getTransportControls().stop();await(()->current.get(null)==null,"media stop");
         }finally{call(core,null,"stop",new Class<?>[]{String.class,String.class},owner,null);java.util.concurrent.ExecutorService worker=(java.util.concurrent.ExecutorService)field(core,"WORK").get(null);worker.submit(()->{}).get(15,TimeUnit.SECONDS);runOnMainSync(a::finish);}
+    }
+    void foreground()throws Exception{
+        Activity a=startActivitySync(new Intent().setClassName(target.getPackageName(),"nl.rene.tools.MainActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        Field current=field(core,"current");String owner=(String)field(a.getClass(),"speechOwner").get(a);
+        java.util.concurrent.atomic.AtomicReference<String> error=new java.util.concurrent.atomic.AtomicReference<>();
+        Object sink=Proxy.newProxyInstance(sinkType.getClassLoader(),new Class<?>[]{sinkType},(p,m,args)->{org.json.JSONObject e=(org.json.JSONObject)args[0];if(e.optString("state").equals("error"))error.set(e.optString("error"));return null;});
+        try{
+            org.json.JSONObject settings=(org.json.JSONObject)call(models,null,"json",new Class<?>[]{Context.class},target);check(!settings.getBoolean("background"),"books default to foreground only");
+            call(core,null,"start",new Class<?>[]{a.getClass(),String.class,String.class,String.class,String.class,int.class,int.class,boolean.class,sinkType},a,"foreground-ci","reader","Dit boek blijft alleen voorlezen zolang Tools open is. Als je de app verlaat stopt de stem direct en blijft je laatste leesplek bewaard.","",0,0,false,sink);
+            await(()->{Object j=current.get(null);return error.get()!=null||j!=null&&field(jobType,"state").get(j).equals("playing");},"foreground playback starts");check(error.get()==null,"foreground engine: "+error.get());
+            runOnMainSync(()->a.moveTaskToBack(true));await(()->current.get(null)==null,"leaving Tools stops the book by default");
+        }finally{call(core,null,"stop",new Class<?>[]{String.class,String.class},owner,null);((java.util.concurrent.ExecutorService)field(core,"WORK").get(null)).submit(()->{}).get(15,TimeUnit.SECONDS);runOnMainSync(a::finish);}
     }
     void ownership()throws Exception{
         Activity a=startActivitySync(new Intent().setClassName(target.getPackageName(),"nl.rene.tools.MainActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));

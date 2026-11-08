@@ -579,7 +579,7 @@ if (!window.Android) window.Android = (function(){
       if (ok) { out.action.at = at; out.action.day = day; } else if (day && !at) { out.action.day = day; if (type === 'agenda') out.action.allDay = true; }
       return out;
     },
-    _speech:{voice:'tts-nl-ronnie',speed:1,background:true,supported:true,active:null,said:[],ms:500,voices:[{id:'tts-nl-ronnie',label:'Ronnie · Nederlands',language:'nl',state:'ready',size:21158108,bytes:0},{id:'tts-en-ljspeech',label:'LJ Speech · Engels',language:'en',state:'none',size:21090429,bytes:0}]},
+    _speech:{voice:'tts-nl-ronnie',speed:1,background:false,supported:true,active:null,said:[],ms:500,voices:[{id:'tts-nl-ronnie',label:'Ronnie · Nederlands',language:'nl',state:'ready',size:21158108,bytes:0},{id:'tts-en-ljspeech',label:'LJ Speech · Engels',language:'en',state:'none',size:21090429,bytes:0}]},
     speechModels(){const s=this._speech;return JSON.stringify({...s,active:undefined,said:undefined,voices:s.voices.map(v=>({...v,label:t(v.label),selected:v.state==='ready'&&v.id===s.voice})),engine:'sherpa-onnx 1.13.8 · Piper VITS'});},
     speechConfigure(voice,speed,background){if(!Number.isFinite(speed)||speed<.6||speed>1.8||voice&&!this._speech.voices.some(v=>v.id===voice))return 'Kies een stem en een snelheid tussen 0,6 en 1,8';if(voice)this._speech.voice=voice;this._speech.speed=speed;this._speech.background=background;return '';},
     speechDownload(id){const v=this._speech.voices.find(v=>v.id===id);if(!v)return 'Onbekende stem';v.state='running';v.bytes=0;v.timer=setTimeout(()=>{v.state='ready';v.bytes=v.size;if(!this._speech.voice)this._speech.voice=id;onAiModels('');},this._speech.downloadMs||150);return '';},

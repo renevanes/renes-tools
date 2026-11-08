@@ -6,7 +6,7 @@
 - **Notities**: luidsprekerknop leest titel, tekst en lijstitems.
 - **Assistent**: Voorlezen onder een antwoord, automatisch antwoord na een ingesproken vraag en gespreksmodus gebruiken dezelfde stem.
 
-Er is één actieve voorleessessie. Een nieuwe aanvraag stopt de vorige. Pauze, hervatten en stoppen staan in de gedeelde balk; de assistent behoudt zijn eigen balk. Een nieuwe snelheid geldt vanaf het volgende tekststuk. Boeken gaan standaard door met het scherm uit; dit kun je uitzetten. De mediamelding en headsetbediening kunnen pauzeren, hervatten en stoppen. Tijdens pauze is er geen CPU-slot. Andere bronnen stoppen zodra de app naar de achtergrond gaat. Bij verlies van audiofocus stopt de sessie.
+Er is één actieve voorleessessie. Een nieuwe aanvraag stopt de vorige. Pauze, hervatten en stoppen staan in de gedeelde balk; de assistent behoudt zijn eigen balk. Een nieuwe snelheid geldt vanaf het volgende tekststuk. Boeken stoppen standaard bij het verlaten van Tools of het uitzetten van het scherm. Doorgaan op de achtergrond is uitsluitend beschikbaar na bewust inschakelen. De mediamelding en headsetbediening kunnen pauzeren, hervatten en stoppen. Tijdens pauze is er geen CPU-slot. Andere bronnen stoppen zodra de app naar de achtergrond gaat. Bij verlies van audiofocus stopt de sessie.
 
 ## Gedeelde interface
 
@@ -26,6 +26,6 @@ Instellingen staan in `voorlezen.xml` en gaan mee in Alle appgegevens; vluchtige
 
 ## Bouw en verificatie
 
-`tools/voorlezen/deps.py` haalt uitsluitend de met SHA-256 vastgezette archieven uit `deps.json`. Java-afhankelijkheden en twee native bibliotheken per ABI gaan in APK en Play-variant. sherpa-onnx 1.13.8 bevat de eSpeak-fonemizer die Piper nodig heeft; versie 2 heeft deze niet meer ingebouwd. Licenties, herkomst en modelkaarten staan in `app/voorlezen/` en worden als assets meegeleverd.
+`tools/voorlezen/deps.py` haalt uitsluitend de met SHA-256 vastgezette archieven uit `deps.json`. De Java-brug en alleen Ants TAR/BZip2-codecs (zonder java.nio.file) en twee native bibliotheken per ABI gaan in APK en Play-variant. sherpa-onnx 1.13.8 bevat de eSpeak-fonemizer die Piper nodig heeft; versie 2 heeft deze niet meer ingebouwd. Licenties, herkomst en modelkaarten staan in `app/voorlezen/` en worden als assets meegeleverd.
 
 JVM: `VoiceArchiveTest` (pad-/type-/hashcontrole en annuleren). Interface: `voorlezen.test.js`, bestaande e-reader-, modellen- en assistenttests. Android: `tests/telefoon/voorlezen-test.sh` controleert installatie, werkelijke niet-stille JNI-synthese, AudioTrack, oude bediening, MediaSession, pauze zonder CPU-slot en achtergrondweergave op API 24/36, ook voor de Play-variant. Het testmodel is alleen onderdeel van de instrumentatietest, nooit van de gewone APK.

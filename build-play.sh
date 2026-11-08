@@ -11,8 +11,8 @@ cd "$(dirname "$0")"
 T=${TOOLS:-/home/claude/toolchain}
 # Dezelfde gecontroleerde lokale spraakmotor in de gewone app en Play.
 python3 tools/voorlezen/deps.py "$T/voorlezen"
-VOICE_JARS=("$T/voorlezen/sherpa.jar" "$T/voorlezen/compress.jar" "$T/voorlezen/io.jar" "$T/voorlezen/lang.jar")
-VOICE_CP="$T/voorlezen/sherpa.jar:$T/voorlezen/compress.jar:$T/voorlezen/io.jar:$T/voorlezen/lang.jar"
+VOICE_JARS=("$T/voorlezen/sherpa.jar" "$T/voorlezen/ant-codecs.jar")
+VOICE_CP="$T/voorlezen/sherpa.jar:$T/voorlezen/ant-codecs.jar"
 python3 tools/ocr-verify.py
 BTV=${BT_VERSION:-$(cat "$T/bt/VERSION" 2>/dev/null || true)}
 [ -n "$BTV" ] && [ -d "$T/bt/build-tools/$BTV" ] || BTV=$(ls "$T/bt/build-tools" 2>/dev/null | sort -V | tail -1)

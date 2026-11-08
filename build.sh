@@ -8,8 +8,8 @@ T=${TOOLS:-/home/claude/toolchain}
 # schreef, anders de nieuwste die er staat
 # Dezelfde gecontroleerde lokale spraakmotor in de gewone app en Play.
 python3 tools/voorlezen/deps.py "$T/voorlezen"
-VOICE_JARS=("$T/voorlezen/sherpa.jar" "$T/voorlezen/compress.jar" "$T/voorlezen/io.jar" "$T/voorlezen/lang.jar")
-VOICE_CP="$T/voorlezen/sherpa.jar:$T/voorlezen/compress.jar:$T/voorlezen/io.jar:$T/voorlezen/lang.jar"
+VOICE_JARS=("$T/voorlezen/sherpa.jar" "$T/voorlezen/ant-codecs.jar")
+VOICE_CP="$T/voorlezen/sherpa.jar:$T/voorlezen/ant-codecs.jar"
 BTV=${BT_VERSION:-$(cat $T/bt/VERSION 2>/dev/null || true)}
 [ -n "$BTV" ] && [ -d "$T/bt/build-tools/$BTV" ] || BTV=$(ls $T/bt/build-tools 2>/dev/null | sort -V | tail -1)
 [ -n "${BT_VERSION:-}" ] && [ "$BTV" != "$BT_VERSION" ] && { echo "Build-tools $BT_VERSION ontbreken in $T (./setup-tools.sh)"; exit 1; }

@@ -9,17 +9,9 @@
    "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-jvm-1.13.8.jar",
    "77b7b047fade4eadada96b568eb92615049aaf1dc317c7244e46c1ea38b9a63b"
   ],
-  "compress.jar": [
-   "https://repo.maven.apache.org/maven2/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0.jar",
-   "e1522945218456f3649a39bc4afd70ce4bd466221519dba7d378f2141a4642ca"
-  ],
-  "io.jar": [
-   "https://repo.maven.apache.org/maven2/commons-io/commons-io/2.22.0/commons-io-2.22.0.jar",
-   "2b9a7b1f726fb86216dbd2c8321eabe0221dbd5b1be81c18e1cb53811b104758"
-  ],
-  "lang.jar": [
-   "https://repo.maven.apache.org/maven2/org/apache/commons/commons-lang3/3.21.0/commons-lang3-3.21.0.jar",
-   "a2af247ec4db6eb8947e18e23e0433e4871a7c5d0a40e1f92e46ede54ae1defe"
+  "ant.jar": [
+   "https://repo.maven.apache.org/maven2/org/apache/ant/ant/1.10.18/ant-1.10.18.jar",
+   "a12d775f581ad87592b1b1c7ff6fa5bcf6bb784974b94c848b0695ae15765f46"
   ]
  }
 }

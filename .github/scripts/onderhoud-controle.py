@@ -101,9 +101,7 @@ ALLE = {"Tesseract4Android": OCR, "OCR-model": OCR_MODEL, "Leaflet": LEAFLET, "j
 # Gedistribueerde voorleespakketten: de vaste manifestversies ook offline leesbaar houden.
 ALLE.update({
     "sherpa-onnx": ("tools/voorlezen/deps.json", r'"engine": "sherpa-onnx (\d+\.\d+\.\d+)"'),
-    "Commons Compress": ("tools/voorlezen/deps.json", r'commons-compress/(\d+\.\d+\.\d+)/'),
-    "Commons IO": ("tools/voorlezen/deps.json", r'commons-io/(\d+\.\d+\.\d+)/'),
-    "Commons Lang": ("tools/voorlezen/deps.json", r'commons-lang3/(\d+\.\d+\.\d+)/'),
+    "Apache Ant-codecs": ("tools/voorlezen/deps.json", r'ant/(\d+\.\d+\.\d+)/'),
 })
 
 
@@ -214,16 +212,11 @@ def main():
     huidig = lees(*PLAYWRIGHT)
     item("Playwright (tests)", "package.json", huidig, npm_nieuwste("playwright"))
 
-    # Voorleesarchieven: Commons op bekende Maven-kwetsbaarheden controleren. Een nieuwe
-    # sherpa-hoofdversie is niet zonder meer bruikbaar (v2 mist de eSpeak-fonemizer).
-    for naam, package in [("Commons Compress", "org.apache.commons:commons-compress"),
-                          ("Commons IO", "commons-io:commons-io"),
-                          ("Commons Lang", "org.apache.commons:commons-lang3")]:
-        pad, patroon = ALLE[naam]
-        huidig = lees(pad, patroon)
-        item(naam, pad, huidig, None,
-             osv({"package": {"name": package, "ecosystem": "Maven"}, "version": huidig}),
-             "Vastgezette voorleesbibliotheek; alleen bekende kwetsbaarheden automatisch, versies bewust bijwerken.")
+    # Alleen Ants TAR/BZip2-codecs; geen bouwtaken of ZIP-schrijver in de app.
+    huidig = lees(*ALLE["Apache Ant-codecs"])
+    item("Apache Ant-codecs", "tools/voorlezen/deps.json", huidig, None,
+         osv({"package": {"name": "org.apache.ant:ant", "ecosystem": "Maven"}, "version": huidig}),
+         "Alleen TAR/BZip2 en encodings; nieuwe versies op Android 24 testen.")
 
     # whisper.cpp (zelf gebouwde libwhisper*.so)
     commit = lees(*WHISPER)

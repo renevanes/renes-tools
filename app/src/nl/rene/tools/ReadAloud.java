@@ -59,6 +59,7 @@ final class ReadAloud {
             if(granted!=AudioManager.AUDIOFOCUS_REQUEST_GRANTED)throw new Exception(Taal.T("Voorlezen kan nu niet: er is iets anders bezig met geluid (bijvoorbeeld een gesprek)."));
             int rate=engine.rate();if(rate<8000||rate>48000)throw new Exception();
             int buffer=Math.max(rate/2,AudioTrack.getMinBufferSize(rate,AudioFormat.CHANNEL_OUT_MONO,AudioFormat.ENCODING_PCM_16BIT));
+            buffer=(buffer+1)/2*2; // AudioTrack vereist hele mono-16bitframes (2 bytes).
             job.track=new AudioTrack(attrs,new AudioFormat.Builder().setSampleRate(rate).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build(),buffer,AudioTrack.MODE_STREAM,AudioManager.AUDIO_SESSION_ID_GENERATE);
             if(job.track.getState()!=AudioTrack.STATE_INITIALIZED)throw new Exception();job.track.play();
             if(job.background){wake=((PowerManager)job.context.getSystemService(Context.POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"renestools:voorlezen");wake.setReferenceCounted(false);job.wake=wake;wake.acquire(600000);}

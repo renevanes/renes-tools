@@ -52,6 +52,6 @@ final class VoiceModels {
         JSONArray voices=new JSONArray();Voice active=active(c);
         for(Voice v:VOICES){long[] progress=ModelDownloadService.RUN.get(v.id);String state=ready(c,v)?"ready":ModelDownloadService.QUEUED.contains(v.id)?"queued":progress!=null?"running":part(c,v).isFile()?"paused":"none";
             voices.put(new JSONObject().put("id",v.id).put("label",Taal.t(c,v.label)).put("language",v.language).put("size",v.size).put("state",state).put("bytes",progress==null?part(c,v).length():progress[0]).put("error",Taal.tx(c,prefs(c).getString("error_"+v.id,""))).put("selected",active==v));}
-        return new JSONObject().put("voices",voices).put("voice",active==null?"":active.id).put("speed",speed(c)).put("supported",supported()).put("background",prefs(c).getBoolean("background",true)).put("engine",VoiceEngine.ENGINE).put("wifiOnly",LocalAi.wifiOnly(c));
+        return new JSONObject().put("voices",voices).put("voice",active==null?"":active.id).put("speed",speed(c)).put("supported",supported()).put("background",prefs(c).getBoolean("background",false)).put("engine",VoiceEngine.ENGINE).put("wifiOnly",LocalAi.wifiOnly(c));
     }
 }
