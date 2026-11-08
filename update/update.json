@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.166",
-  "versionCode": 167,
-  "nativeLevel": 147,
+  "versionName": "1.167",
+  "versionCode": 168,
+  "nativeLevel": 148,
   "web": "index.html",
-  "webSha256": "e2404e0bf312a1eaa9bca6fccb30c49b1ecc9ee01b1670ee416585a43d46d5d7",
+  "webSha256": "b3657bf2971edbdf61dc0b897a9f2eb881442ec312360e8f444c7754829a7d32",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3135c1bbb1592fcb41b45c688e39ad1c1a236f121dbf08d7f6889a57632bb0d7",
+  "apkSha256": "65efd00c3ced736314051f7480c0164a3933d4af52c3ea1c9b09803c4b7466e3",
   "changelog": [
+    {
+      "version": "1.167",
+      "date": "2026-11-08",
+      "changes": [
+        "Stamgegevens: na het kiezen van een kaartfoto hoef je niet meer opnieuw te ontgrendelen (als je binnen 2 minuten een foto kiest)."
+      ]
+    },
     {
       "version": "1.166",
       "date": "2026-11-08",
@@ -1474,5 +1481,5 @@
       ]
     }
   ],
-  "webSig2": "MfuoU91fyIlXc+D7KZI9FCQYToFRdX/MzWq2+2ATVjMiaqtsk+0HJ/LHTcajtm76OIleASfqGjwrgFNpmj7vr8fhIKI/WDpRecg/hQqIEjMyxcpz1UgPIqOQ0JpNkaUOFXPmrBIgSDG+U+Pm5jfrXjGq3JNM/VR9BDySOvCnX0+3KCDw3mu+KZMl8sST4kc7IhAA0lwoqO9eBOE9hNf1xfWRIhlXgC6Nfdrudzm9icKAejerMLLzSOJ8eZ0V8RJnF56g+ZOyJxPRpLIMQJA9mi32M4cIzZOWPqmEt7vLdVyyjjqW0aSVmk7g8JQDwBJa2s1k7Ffrw80+jEZl+twQ/lDGmSSdyv51mlTfOLBna8zA8ECzJrsNx5aJS3878BoPSSEWnm5wbWL/hRCgh+AKM5od2hC8n70CgOzGq+RdsiujTygqM88V7AXyWWRy6nFMe142rcVbtDW/3Gmau9b5XB+SwZCEu+0ZH3nvXd7v8cnrHhl0aS2sW9TCNknW7Au1"
+  "webSig2": "E6wc4URkNllYiUaZtvikT/sYP1qPOUDHA8y78qsgjViYW95JyrA4vd2vgnKLGnUbHK7rB8g0qgvqyku2g7qaQ/ixN/bB2HP4aGD9nTihUj+hoS9bsloMc1+Mv06tuz8hasJOXUdubIT2eqe0+/hPoqsQxJ7NHrJ0ah+VmqVvyoy0UnJzdwMvXFHF0hedsT8foSTaYGq4GvH7Q3ITgK8YmGfK7CRpmQy7UtbXuTEJ9ZTwAy3Qhp8vanvrxNp98wiGRhOVBa/FOzyDP+B3IuguNfvslitM0hDCFNsaJw2uGVyN8C6grpg7diCj8FKJhVYB5RzasQ70xjTm/jmtL0GKb9htlZYIKXglagJP7mxOlpCmpYE8XyjeG4kNQRiWpTZSCeAeocwH6Ffursq80OMzdSLBNBK8nlRRGWX+MG8dOWCMreEhPCzsxJ4k92zzDVWve7kxQI072hD1SkAsPOLYR3X8GHTFVagK0ygt0yiNobmkegRRDPQNFk+Q+45e+e2e"
 }
