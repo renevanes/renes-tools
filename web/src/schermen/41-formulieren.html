@@ -13,7 +13,7 @@
         </div>
         <h2 id="pff-form-titel"></h2>
         <p class="hint" id="pff-uitleg"></p>
-        <p class="hint">Je invoer blijft alleen in het geheugen op je telefoon.</p>
+        <p class="hint">Tussentijds opslaan kan altijd; het concept staat versleuteld op je telefoon.</p>
         <button class="big" id="fmq-start" onclick="fmqOpen()" hidden>Nieuwe reis invullen</button>
         <button class="big" id="pff-start-knop" onclick="fmStart()">Formulier invullen</button>
         <details class="help in"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
@@ -23,7 +23,8 @@
             <p>De vaste gegevens staan als stamgegeven in je versleutelde Stamgegevens. Ze verwijzen naar de personen, reisdocumenten en relaties die je daar al hebt. Namen, geboortegegevens, adressen en documentnummers worden bij elke nieuwe reis opnieuw uit de actuele stamgegevens gehaald. Wijzig je bijvoorbeeld een paspoort, dan staat het nieuwe nummer de volgende keer vanzelf op het formulier.</p>
             <p>Heb je meer kinderen, maak dan per kind vaste gegevens. De datum en plaats van ondertekening blijven leeg: die vult ieder zelf in bij het tekenen.</p>
           </div>
-          <p>Je invoer blijft alleen in het geheugen tot je de app sluit of het formulier leegmaakt. Een gemaakte PDF staat tijdelijk onder PDF → Gemaakt. Bewaar hem zelf via Opslaan als…</p>
+          <p>Met Tussentijds opslaan bewaar je wat je tot nu toe invulde, ook als nog niet alle verplichte velden ingevuld zijn. Bij een andere stap en als je weggaat, slaat de app ook vanzelf op. Het concept staat versleuteld op deze telefoon (niet in je backup) en blijft tot je het formulier leegmaakt. Gegevens die je uit Stamgegevens overnam, bewaart het concept niet: die haal je bij verder gaan opnieuw op.</p>
+          <p>Een gemaakte PDF staat tijdelijk onder PDF → Gemaakt. Bewaar hem zelf via Opslaan als…</p>
         </div></details>
       </div>
       <div class="card stlist" id="pff-start-rijen" hidden>
@@ -74,8 +75,13 @@
           <label class="f" for="pff-naam">Naam van de nieuwe PDF</label>
           <input class="search" id="pff-naam" maxlength="60" translate="no" autocomplete="off">
         </div>
+        <div id="pff-ontbreekt" class="pff-ontbreekt" hidden></div>
         <p class="note" id="pff-melding" role="status" aria-live="polite"></p>
         <p class="note cmi-warn" id="pff-verloop" role="status" aria-live="polite" translate="no" hidden></p>
+        <div class="row pff-navigatie">
+          <button class="big ghost" id="pff-opslaan" onclick="fmConceptOpslaan(false)">Tussentijds opslaan</button>
+          <span class="note" id="pff-concept" role="status" aria-live="polite"></span>
+        </div>
         <div class="row pff-navigatie">
           <button class="big ghost" id="pff-vorige" onclick="fmTerug()">Vorige stap</button>
           <button class="big" id="pff-volgende" onclick="fmVerder()">Volgende stap</button>

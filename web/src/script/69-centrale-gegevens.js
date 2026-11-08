@@ -84,7 +84,7 @@ function cmClearFormDOM(){
 function cmLockedUI(){
   cm.token='';cmClearCentral();for(const [id,p] of cm.pending)if(!p.publicRequest)cm.pending.delete(id);
   if(cm.picker){cm.picker.record=null;cm.picker.fields={};}
-  if(fm.masterSensitive){cmClearFormDOM();fm.busy=false;fm.exportToken='';fm.masterSensitive=false;fmInit(fm.id);if(current==='formulieren')fmRender();}
+  if(fm.masterSensitive){fm.busy=false;if(typeof fmConceptVanzelf==='function')fmConceptVanzelf();cmClearFormDOM();fm.exportToken='';fm.masterSensitive=false;fmInit(fm.id);if(typeof fmConceptLaad==='function')fmConceptLaad();if(current==='formulieren')fmRender();} // eigen invoer blijft als concept; gegevens uit Stamgegevens niet
   if(idc.masterSensitive){idc.masterSensitive=false;idc.busy=false;idc.loading=false;idCopyReset(current==='idcopy');idCopyControls();}
   if(cmZone(current)&&$('#modal').classList.contains('on'))closeModal(null);
   cmRenderState();cmNote(t('Stamgegevens zijn vergrendeld. Niet-bewaarde gegevens zijn gewist.'));
@@ -270,7 +270,7 @@ function cmFormPick(){
   if(fm.busy)return;const s=fmSecties()[fm.step];if(!s)return;const first=s.fields.find(f=>/^(kind|begeleider[12]|gever[12])-/.test(f.id));
   const role=first?first.id.split('-')[0]:s.fields.some(f=>f.id==='van')?'reis':s.fields.some(f=>f.id==='accommodatie')?'bestemming':'';if(!role)return;
   const mapping={};for(const f of s.fields){let key=f.id.startsWith(role+'-')?f.id.slice(role.length+1):f.id;if((role==='bestemming'||role==='reis')&&key.startsWith('bestemming-'))key=key.slice(11);mapping[key]={id:f.id,current:()=>fm.values[f.id]};}
-  cmPick('formulieren',role,mapping,fields=>{for(const [key,value] of Object.entries(fields))if(mapping[key])fm.values[mapping[key].id]=value;fm.masterSensitive=true;fm.meer={};fmWijzig();fmRender();});
+  cmPick('formulieren',role,mapping,fields=>{for(const [key,value] of Object.entries(fields))if(mapping[key]){fm.values[mapping[key].id]=value;fm.stam.add(mapping[key].id);}fm.masterSensitive=true;fm.meer={};fmWijzig();fmRender();});
 }
 function cmIdPick(){if(idc.busy||idc.loading)return;cmPick('idcopy','ontvanger',{ontvanger:{current:()=>$('#id-recipient').value}},fields=>{idc.masterSensitive=true;$('#id-recipient').value=fields.ontvanger;idCopyWatermarkChanged();});}
 function cmNavigation(name){if(cm.picker)cmClosePicker();if(cmZone(current)&&!cmZone(name))cmLeave();else if(name!==current&&!(cmZone(current)&&cmZone(name)))cmPrivacy(name==='formulieren'&&!!fm.masterSensitive||name==='idcopy'&&!!idc.masterSensitive);}
