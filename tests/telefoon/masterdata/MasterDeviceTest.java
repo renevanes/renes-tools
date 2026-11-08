@@ -119,6 +119,42 @@ public final class MasterDeviceTest extends Instrumentation {
         context.getSharedPreferences("notes_geheim",Context.MODE_PRIVATE).edit().remove("transferTest").commit();
     }
     Object manifest()throws Exception{java.lang.reflect.Constructor<?> ctor=type("AppData$Manifest").getDeclaredConstructor();ctor.setAccessible(true);return ctor.newInstance();}
+    JSONObject full(String id)throws Exception{return operation("read",new Class<?>[]{String.class,String.class,String.class},id,"masterdata","").getJSONObject("record");}
+    void scanSaveChecks()throws Exception {
+        String owner=save(new JSONObject().put("type","persoon").put("label","OCR testpersoon").put("fields",new JSONObject().put("naam","Bestaande naam").put("voornamen","Anna"))).getJSONObject("record").getString("id");
+        String doc=save(new JSONObject().put("type","identiteit").put("label","Rijbewijs testpersoon").put("fields",new JSONObject().put("persoon",owner).put("documentsoort","rijbewijs").put("afgegevenDoor","Bewaren"))).getJSONObject("record").getString("id");
+        JSONObject input=new JSONObject().put("documentId",doc).put("documentRevision",1).put("personId",owner).put("personRevision",1).put("document",new JSONObject().put("document","1234567890").put("categorieen","AM, B")).put("persoon",new JSONObject().put("geboortedatum","1980-02-01"));
+        operation("scanSave",new Class<?>[]{JSONObject.class},input);
+        check(full(doc).getLong("revision")==2&&full(owner).getLong("revision")==2,"document and owner saved together");
+        check(full(doc).getJSONObject("fields").getString("afgegevenDoor").equals("Bewaren")&&full(owner).getJSONObject("fields").getString("naam").equals("Bestaande naam"),"unselected values preserved");
+        rejected(()->operation("scanSave",new Class<?>[]{JSONObject.class},input));
+        input.put("documentRevision",2).put("personRevision",2);input.getJSONObject("document").put("document","SHOULDROLLBACK");input.getJSONObject("persoon").put("geboortedatum","1980-02-31");
+        rejected(()->operation("scanSave",new Class<?>[]{JSONObject.class},input));
+        check(full(doc).getLong("revision")==2&&full(doc).getJSONObject("fields").getString("document").equals("1234567890"),"invalid owner field rolls back the document too");
+        input.getJSONObject("persoon").put("geboortedatum","1980-02-01");input.getJSONObject("document").put("persoon",owner);
+        rejected(()->operation("scanSave",new Class<?>[]{JSONObject.class},input));
+        check(full(doc).getLong("revision")==2,"association cannot be changed via scan patch");
+    }
+    void drivingLicenceOcr()throws Exception {
+        android.graphics.Bitmap image=android.graphics.Bitmap.createBitmap(1500,950,android.graphics.Bitmap.Config.ARGB_8888);
+        image.eraseColor(android.graphics.Color.WHITE);android.graphics.Canvas canvas=new android.graphics.Canvas(image);android.graphics.Paint paint=new android.graphics.Paint(3);
+        paint.setColor(android.graphics.Color.BLACK);paint.setTypeface(android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.NORMAL));paint.setTextSize(44);
+        String[] lines={"NEDERLAND RIJBEWIJS","1. DE VRIES","2. ANNA JOSEFINA","3. 01.02.1980 ROTTERDAM","4a. 03.04.2020   4b. 03.04.2030","4c. RDW","5. 0123456789","9. AM/B/BE"};
+        for(int i=0;i<lines.length;i++)canvas.drawText(lines[i],220,90+i*100,paint);
+        for(int turn:new int[]{0,90}){
+            android.graphics.Matrix rotation=new android.graphics.Matrix();rotation.setRotate(turn);android.graphics.Bitmap page=turn==0?image:android.graphics.Bitmap.createBitmap(image,0,0,image.getWidth(),image.getHeight(),rotation,true);
+            java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream();page.compress(android.graphics.Bitmap.CompressFormat.JPEG,95,out);
+            JSONObject found=(JSONObject)call(type("RijbewijsOcr"),null,"read",new Class<?>[]{Context.class,byte[].class,String.class},context,out.toByteArray(),"2026-11-08");
+            check(found!=null,"bundled OCR reads synthetic licence, rotation "+turn);
+            JSONObject fields=found.getJSONObject("document"),person=found.getJSONObject("persoon");
+            check(fields.getString("documentsoort").equals("rijbewijs")&&fields.getString("document").equals("0123456789"),"actual OCR document number");
+            check(person.getString("naam").equals("DE VRIES")&&person.getString("geboortedatum").equals("1980-02-01"),"actual OCR name and birth date");
+            check(fields.getString("geldig").equals("2030-04-03")&&!person.has("bsn"),"actual OCR expiry, no inferred BSN");
+            if(page!=image)page.recycle();
+        }
+        image.recycle();File model=new File(context.getNoBackupFilesDir(),"document-ocr/tessdata/eng.traineddata");check(model.isFile(),"public OCR model available offline");
+        File[] cached=model.getParentFile().listFiles();check(cached!=null&&cached.length==1,"no photo or recognized text cached with model");
+    }
     void runChecks()throws Exception {
         store=type("MasterStore");sessionType=type("MasterSession");keys=type("MasterKeys");
         // Stop op een installatie met echte centrale gegevens; uitsluitend geisoleerde testopslag.
@@ -174,6 +210,7 @@ public final class MasterDeviceTest extends Instrumentation {
         Object expires=java.lang.reflect.Proxy.newProxyInstance(commit.getClassLoader(),new Class<?>[]{commit},(proxy,m,args)->{java.lang.reflect.Field limit=sessionType.getDeclaredField("limit");limit.setAccessible(true);limit.setLong(session,android.os.SystemClock.elapsedRealtime()-1);return null;});
         call(store,null,"transaction",new Class<?>[]{Context.class,SecretKey.class,sessionType,String.class,work,commit},context,key,session,token,noWork,expires);
         check(!(Boolean)call(sessionType,session,"isOpen",new Class<?>[]{}),"deadline passed during completed commit");token=(String)call(sessionType,session,"open",new Class<?>[]{});
+        scanSaveChecks();drivingLicenceOcr();
         byte[] good=read(dbFile);
         for(String sql:new String[]{"UPDATE records SET body=X'00010203'", "DELETE FROM events WHERE seq=1", "CREATE TABLE surprise(secret TEXT)","DELETE FROM records"}){
             SQLiteDatabase db=SQLiteDatabase.openDatabase(dbFile.getPath(),null,0);try{db.execSQL(sql);}finally{db.close();}

@@ -114,7 +114,7 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>current==='masterdata'&&!cm.token);
  assert.equal(await p.evaluate(()=>$('#modal').classList.contains('on')),false,'vraag gesloten bij vergrendelen');
  assert.equal(await p.textContent('#cm-status'),en?'Master data is locked. Unsaved data has been cleared.':'Stamgegevens zijn vergrendeld. Niet-bewaarde gegevens zijn gewist.');
- for(const s of ['#s-masterdata','#s-cmedit','#s-cmlog'])assert.equal(await p.evaluate(s=>/Rene|Anna|Paspoort|123456782|Gemeente/.test($(s).innerHTML),s),false,tag+': geen gegevens meer in '+s);
+ for(const s of ['#s-masterdata','#s-cmedit','#s-cmlog'])assert.equal(await p.evaluate(s=>/Rene|Anna|Paspoort Rene|123456782|Gemeente/.test($(s).innerHTML),s),false,tag+': geen gegevens meer in '+s);
  // Een subscherm openen zonder ontgrendelen kan niet
  await p.evaluate(()=>show('cmedit'));await p.waitForFunction(()=>current==='masterdata');
  // De zone verlaten vergrendelt; Overal zoeken neemt de schermen niet op

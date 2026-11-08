@@ -1,5 +1,26 @@
 [
   {
+    "version": "1.169",
+    "date": "2026-11-08",
+    "changes": [
+      "Bij het toevoegen van een boek, document, factuur, afschriften of foto's zie je nu onderin hoe ver het is (lezen in procenten, verwerken, opslaan)."
+    ]
+  },
+  {
+    "version": "1.168",
+    "date": "2026-11-08",
+    "changes": [
+      "Rijbewijsgegevens herkennen uit een foto, geheel op je telefoon. Identiteitsdocumenten hebben nu Gegevens en Foto’s, met extra velden ingeklapt. Controleer gevonden gegevens en bewaar je gekozen document- en persoonsgegevens in één keer."
+    ]
+  },
+  {
+    "version": "1.167",
+    "date": "2026-11-08",
+    "changes": [
+      "Stamgegevens: na het kiezen van een kaartfoto hoef je niet meer opnieuw te ontgrendelen (als je binnen 2 minuten een foto kiest)."
+    ]
+  },
+  {
     "version": "1.166",
     "date": "2026-11-08",
     "changes": [

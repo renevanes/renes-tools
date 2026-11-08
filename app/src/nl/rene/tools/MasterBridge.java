@@ -87,6 +87,9 @@ public class MasterBridge extends BankBridge {
     @JavascriptInterface public void masterSave(String token,String json,String request){
         work(token,request,key->{if(json==null||json.length()>20000)throw new MasterError(Taal.T("Ongeldige stamgegevens"));JSONObject saved=MasterStore.save(ctx,key,a.masterSession,token,new JSONObject(json));refreshIdentity(key,token,saved);return saved;});
     }
+    @JavascriptInterface public void masterScanSave(String token,String json,String request){
+        work(token,request,key->{if(json==null||json.length()>20000)throw new MasterError(Taal.T("Ongeldige stamgegevens"));JSONObject saved=MasterStore.scanSave(ctx,key,a.masterSession,token,new JSONObject(json));refreshIdentity(key,token,saved);return saved;});
+    }
     void refreshIdentity(SecretKey key,String token,JSONObject result)throws Exception{
         try{MasterStore.refreshContext(ctx,key,a.masterSession,token);}catch(Throwable e){result.put("contextError",Taal.T("Gegevens opgeslagen; de gedeelde app-context kon niet worden ververst"));}
         MainActivity.appIdentityChanged(MasterAppContext.read(ctx).toString());
@@ -118,7 +121,7 @@ public class MasterBridge extends BankBridge {
     @JavascriptInterface public void masterPhotoScan(String token,String id,long revision,String side,String request){
         work(token,request,key->{
             JSONObject photo=MasterStore.photoScan(ctx,key,a.masterSession,token,id,revision,side);
-            JSONObject found=MasterPhotos.recognizeStored(photo.optString("image"),Regio.dayKey(ctx,System.currentTimeMillis()));
+            JSONObject found=MasterPhotos.recognizeStored(ctx,photo.optString("image"),Regio.dayKey(ctx,System.currentTimeMillis()),()->a.masterSession.accepts(token)&&a.masterForeground&&a.masterWanted);
             JSONObject out=new JSONObject().put("id",id).put("side",side);if(found!=null)out.put("herkend",found);return out;
         });
     }

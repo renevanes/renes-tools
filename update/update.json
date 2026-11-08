@@ -1,15 +1,36 @@
 {
   "app": "Tools",
-  "versionName": "1.166",
-  "versionCode": 167,
-  "nativeLevel": 147,
+  "versionName": "1.169",
+  "versionCode": 170,
+  "nativeLevel": 150,
   "web": "index.html",
-  "webSha256": "e2404e0bf312a1eaa9bca6fccb30c49b1ecc9ee01b1670ee416585a43d46d5d7",
+  "webSha256": "9e01c6594696accdc4cc83e151f9ef3cf642b8b52ab36a31e9950d7fd4655b1d",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3135c1bbb1592fcb41b45c688e39ad1c1a236f121dbf08d7f6889a57632bb0d7",
+  "apkSha256": "a826c4b1416984c3e37e5f2c43e889676ddb9e638d9e921590c63db72cb5cde5",
   "changelog": [
+    {
+      "version": "1.169",
+      "date": "2026-11-08",
+      "changes": [
+        "Bij het toevoegen van een boek, document, factuur, afschriften of foto's zie je nu onderin hoe ver het is (lezen in procenten, verwerken, opslaan)."
+      ]
+    },
+    {
+      "version": "1.168",
+      "date": "2026-11-08",
+      "changes": [
+        "Rijbewijsgegevens herkennen uit een foto, geheel op je telefoon. Identiteitsdocumenten hebben nu Gegevens en Foto’s, met extra velden ingeklapt. Controleer gevonden gegevens en bewaar je gekozen document- en persoonsgegevens in één keer."
+      ]
+    },
+    {
+      "version": "1.167",
+      "date": "2026-11-08",
+      "changes": [
+        "Stamgegevens: na het kiezen van een kaartfoto hoef je niet meer opnieuw te ontgrendelen (als je binnen 2 minuten een foto kiest)."
+      ]
+    },
     {
       "version": "1.166",
       "date": "2026-11-08",
@@ -1474,5 +1495,5 @@
       ]
     }
   ],
-  "webSig2": "MfuoU91fyIlXc+D7KZI9FCQYToFRdX/MzWq2+2ATVjMiaqtsk+0HJ/LHTcajtm76OIleASfqGjwrgFNpmj7vr8fhIKI/WDpRecg/hQqIEjMyxcpz1UgPIqOQ0JpNkaUOFXPmrBIgSDG+U+Pm5jfrXjGq3JNM/VR9BDySOvCnX0+3KCDw3mu+KZMl8sST4kc7IhAA0lwoqO9eBOE9hNf1xfWRIhlXgC6Nfdrudzm9icKAejerMLLzSOJ8eZ0V8RJnF56g+ZOyJxPRpLIMQJA9mi32M4cIzZOWPqmEt7vLdVyyjjqW0aSVmk7g8JQDwBJa2s1k7Ffrw80+jEZl+twQ/lDGmSSdyv51mlTfOLBna8zA8ECzJrsNx5aJS3878BoPSSEWnm5wbWL/hRCgh+AKM5od2hC8n70CgOzGq+RdsiujTygqM88V7AXyWWRy6nFMe142rcVbtDW/3Gmau9b5XB+SwZCEu+0ZH3nvXd7v8cnrHhl0aS2sW9TCNknW7Au1"
+  "webSig2": "T8/WJGOYIrTDzG53CB4OmAljvEz1gIuFJoe54T+MjbJ5IXhnzJXzjUTWgrlxX/WcbXmrHhrwluHUwjmCyVYzFoKwpVUXdMbdutr3lSa8demeZY5HfXPr5/LsbA1mjXfFeUmhkyzxdM7ZhByBiHotURRB/VHpfNaX+0zoqNgV540wmG0VWKWO07snqTplFwUmqofGMrS4rTRvahSaNeo4kJ9aVIje2IIjIOwXBuppRdIvpEXGQD11pF4MqiQtl9At1yqllbGM/1DdP2SH6LtuCgCcDrHo2/5zh3tTxIG3Uz8tH3ALzlVGumhXllZmFXvjJcRn2LsWMgiC/I9DNH3DegOgcXtduro+1k2lCSN5xYmuYkAMf4Bq5k0S+jRi9cNke/ZdT/SwEZDjw/+xG8QfHpsvYIRr7T4ECJXmm4YN+sDTrkqw9plSUIWWPdKQYTGUCgSyR+CYVhBViSmA1mPB7hw7G7NNDbd7SxzVRJWGEs5/dRJxtCLhV3hYKyW/vAhg"
 }

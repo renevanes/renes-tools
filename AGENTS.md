@@ -131,6 +131,10 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   `<button class="icon-btn hset" id="…" data-to="carset" aria-label="Instellingen van Mijn auto"></button>`
   (pictogram en klik vult `uiPatterns()` in; geen eigen onclick of inhoud). Zo bij Gebruik, Apparaten en Mijn auto. Ontbreekt er iets waardoor de tool niet
   werkt (een toestemming), laat dan op de tool zelf een korte balk zien die naar de instellingen gaat.
+- **Voortgang bij bestanden toevoegen**: leest of verwerkt de app een gekozen bestand (boek, document, factuur,
+  afschriften, foto's), gebruik dan `Voortgang` in Java: `try (Voortgang v = Voortgang.van(a, "soort", aantal)) { … v.open(c, uri) … v.stap("verwerken", 0, 0) … }`.
+  De interface toont dan vanzelf de balk onderin (`uiVoortgang` in `02-patronen.js`; nieuwe soort = een kop in `uiVgWat`).
+  Alleen stappen en aantallen, nooit namen. Test: `tests/ui/voortgang.test.js`, `VoortgangTest`.
 - **Lege lijst**: `uiEmpty('mic', t('Nog geen opnames.'), t('Knoptekst'), 'actie()')`: pictogram, één regel en hooguit één (tonale) knop.
 - **Eenmalig instellen**: een kaart `class="card setup"` die weg gaat als het klaar is (`<div … hidden>`), of inklapt als er
   ook later nog iets in staat (`<details class="card setup"><summary><span class="setup-h" role="heading" aria-level="2">Eenmalig instellen</span><small id="…">stand</small></summary>…</details>`;
@@ -256,6 +260,8 @@ alles kunnen lezen, dat controleert Bouwen en testen):
 | Leaflet, jsQR (in de app) | `web/vendor/` (kopregel) | Onderhoud: npm + OSV | agent, bij elke nieuwe versie |
 | whisper.cpp (transcriberen) | `app/lib/arm64-v8a/README.txt` + `Transcribe.ENGINE` (EngineVersionTest) | Onderhoud: GitHub-release + OSV | agent: `tools/whisper-build.sh`, bij elke nieuwe release |
 | llama.cpp (lokale AI) | `tools/llm-build.sh` (TAG/COMMIT) + README + `LocalAi.ENGINE` (EngineVersionTest) | Onderhoud: GitHub-release + OSV | agent: bij kwetsbaarheid of >1500 commits achter (dagelijkse releases) |
+| Tesseract4Android en C-onderdelen (Tesseract, Leptonica, libpng, libjpeg) | `app/ocr/metadata.json`, binaries in `app/ocr/` en `app/lib/*/` | Onderhoud: GitHub-release + OSV; iedere bouw: `tools/ocr-verify.py` | agent: `app/ocr/README.md`; alle vier ABI's, hashes, licenties en Android-OCR-test |
+| OCR-model tessdata_fast (Latin/LSTM) | `app/ocr/metadata.json` (repositorycommit en SHA-256), `RijbewijsOcr.MODEL_HASH` | Onderhoud: wijzigingscommit van modelbestand op GitHub | agent: model en beide hashes samen; geen telefoondownload |
 | zig (bouwt whisper/llama) | `ZIG_VERSION` in beide bouwscripts | Onderhoud: PyPI | agent, samen met een nieuwe whisper/llama-bouw |
 | Android build-tools (d8, apksigner, zipalign) | `setup-tools.sh` (`BUILD_TOOLS`, URL, SHA-1 en grootte van Google, dl.google.com) | Onderhoud: Google (repository2-3.xml) | agent; wisselen van d8 vraagt een test op een telefoon. Is Google niet bereikbaar (afgeschermde cloudsessie), dan valt `setup-tools.sh` lokaal terug op androidide-tools 34.0.4, alleen om te testen; in CI (`CI` gezet) moet de download lukken en `./publish.sh` bouwt alleen met de vastgezette versie |
 | android.jar en targetSdk | `setup-tools.sh`, `build.sh` | Onderhoud: Google | agent; gedragswijzigingen van de nieuwe Android-versie nalopen en op een telefoon testen |
