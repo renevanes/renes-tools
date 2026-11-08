@@ -41,19 +41,27 @@ public class BankBridge extends FacturenBridge {
         if (a.isSolo() && !"bank".equals(a.solo)) { a.js("onBank", q("Bankzaken is op slot")); return; }
         a.h.post(() -> {
             if (Lock.busy()) { a.js("onBank", q("Er staat al een vraag om te ontgrendelen open")); return; }
+            if (!a.bankScreen || a.isDestroyed() || a.isFinishing()) return;
+            final long request = a.bankAuth.begin();
+            if (request < 0) return;
             Lock.prompt(a, "Bankzaken openen", (ok, msg) -> {
-                if (!ok) { a.js("onBank", q(msg == null ? "Niet ontgrendeld" : msg)); return; }
-                new Thread(() -> {
+                if (!ok) { a.bankAuth.cancel(); a.js("onBank", q(msg == null ? "Niet ontgrendeld" : msg)); return; }
+                if (!a.bankAuth.authenticated(request, android.os.SystemClock.elapsedRealtime())) return;
+                a.afterBankAuth(() -> new Thread(() -> {
                     try {
-                        a.bankGen = Bank.open();
+                        if (!a.bankAuth.ready(request, android.os.SystemClock.elapsedRealtime())) return;
                         // De sleutel meteen na de ontgrendeling maken (dan kan hij aan die ontgrendeling gekoppeld worden)
                         if (!Bank.hasData(ctx)) Bank.key(ctx);
+                        synchronized (a.bankAuth) {
+                            if (!a.bankAuth.claim(request, android.os.SystemClock.elapsedRealtime())) return;
+                            a.bankGen = Bank.open();
+                        }
                         a.js("onBank", "true");
                         // Automatisch opgehaald terwijl Bankzaken op slot ging: nu alsnog importeren
                         JSONObject w = Bank.wachtendeImporteren(ctx);
-                        if (w != null) a.js("onBankImport", w.toString());
+                        if (w != null) a.h.post(() -> { if (a.bankOk()) a.js("onBankImport", w.toString()); });
                     } catch (Throwable t) { a.js("onBank", q(Bank.why(t))); }
-                }, "bank-open").start();
+                }, "bank-open").start());
             });
         });
     }
@@ -86,7 +94,7 @@ public class BankBridge extends FacturenBridge {
     /** Nog bezig: het slot 5 minuten verder zetten (hooguit tot de sleutel verloopt). Geeft de tijd die over is. */
     @JavascriptInterface public String bankTouch() { if (!a.bankOk()) return "0"; Bank.touch(); return String.valueOf(Bank.remaining()); }
 
-    @JavascriptInterface public void bankLock() { Bank.close(); }
+    @JavascriptInterface public void bankLock() { synchronized (a.bankAuth) { a.bankAuth.cancel(); Bank.close(); } }
 
     /** Alles wissen, ook de sleutel. Alleen als Bankzaken open is (dus na vingerafdruk of pincode). */
     @JavascriptInterface public String bankWipe() {
@@ -97,6 +105,7 @@ public class BankBridge extends FacturenBridge {
     /** Op het scherm van Bankzaken: geen schermafdrukken, schermopnames of voorbeeld in "recente apps". */
     @JavascriptInterface public void bankSecure(boolean on) {
         a.bankScreen = on;
+        if (!on) a.bankAuth.cancel();
         a.h.post(() -> { a.applySecure(); a.bankPrive(a.bankScreen || a.idScreen || a.masterScreen); });
     }
 
@@ -193,7 +202,7 @@ public class BankBridge extends FacturenBridge {
     }
 
     /** Uitkomst van de laatste automatische import (eenmalig; daarna leeg). */
-    @JavascriptInterface public String bankKoppelUitkomst() { String s = Bank.laatsteKoppeling; Bank.laatsteKoppeling = ""; return s; }
+    @JavascriptInterface public String bankKoppelUitkomst() { if (!a.bankOk()) return ""; String s = Bank.laatsteKoppeling; Bank.laatsteKoppeling = ""; return s; }
 
     // ---------- lokale AI ----------
 

@@ -53,7 +53,7 @@ if (SOLO) {
   const _back = window.goBack;
   window.goBack = function(){
     // Op het eerste scherm en niets open (venster, menu, speler): de losse app sluiten
-    const open = document.querySelector('#modal.on, #voice.on, #sleepdlg.on, #vp-scan.on, #sheet.on, #ci-ans.on, #ci-rem.on') || (typeof plIsOpen !== 'undefined' && plIsOpen) ||
+    const open = document.querySelector('#modal.on, #voice.on, #sleepdlg.on, #vp-scan.on, #sheet.on, #ci-ans.on, #ci-rem.on, #gb-light') || (typeof plIsOpen !== 'undefined' && plIsOpen) ||
       (typeof cm !== 'undefined' && cm.picker) || (typeof fmq !== 'undefined' && fmq.open);
     if (soloRoot(current) && !open) return false;
     return _back();

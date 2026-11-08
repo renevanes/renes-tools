@@ -20,7 +20,7 @@ function enterHerstel(){
 }
 /* Vanuit Alles back-uppen → Terugzetten (kan ook op een telefoon met gegevens: dan eerst een duidelijke waarschuwing).
    Terug of Annuleren brengt je daar weer; bij een nieuwe installatie blijft terug eerst vragen. */
-function herstelStart(){ hsManual = true; if (hsState().pending) show('herstel'); else jumpTo('herstel'); }
+function herstelStart(){ hsManual = true; if (hsState().pending && SOLO !== 'backup') show('herstel'); else jumpTo('herstel'); }
 function hsPick(){ Android.herstelPickFolder(); }
 function hsScanNow(){ hsStep('hs-bezig'); $('#hs-bezig-t').textContent = 'Backups zoeken…'; $('#hs-bezig-s').textContent = 'In je backup-map, map Versleuteld.'; $('#hs-prog').removeAttribute('value'); Android.herstelScan(); }
 window.onHerstelFolder = function(){ if (current === 'herstel') hsScanNow(); };
@@ -29,7 +29,7 @@ function hsSkip(){
   if (s.pending) { Android.herstelSkip(); toast('Overgeslagen. Terugzetten kan later bij Alles back-uppen.'); }
   const terug = !s.pending && hsManual && jumpStack.length && jumpStack[jumpStack.length - 1].to === 'herstel';
   Android.herstelCancel(); hsManual = false;
-  if (terug) goBack(); else show('home');
+  if (terug) goBack(); else hsEnd();
 }
 window.onHerstelScan = function(r){
   hsScanRes = r || {};
@@ -109,26 +109,29 @@ window.onHerstelDone = function(err){
 };
 /* Na de herstart: wat Android niet terugzet */
 const HS_FIX_LABEL = { bio: 'Openen', password: 'Instellen', vpn: 'Openen', wa: 'Openen' };
+function hsNeedsApp(id){ return SOLO === 'backup' && ['bio', 'vpn', 'wa'].includes(id); }
+function hsEnd(){ if (SOLO === 'backup') jumpStack.length = 0; show(SOLO === 'backup' ? 'backup' : 'home'); }
 function hsList(){
   hsStep('hs-lijst');
   let r; try { r = JSON.parse(Android.herstelChecklist()); } catch(e){ r = {items: []}; }
   const it = r.items || [], todo = it.filter(i => !i.ok && !i.info).length;
   $('#hs-lijst-t').textContent = todo ? t('Android zet een paar dingen niet terug. Sta ze hieronder opnieuw toe ({n} te doen); wat al in orde is, staat er met een vinkje bij.', { n: todo }) : t('Alles staat weer goed. ✓');
   $('#hs-items').innerHTML = it.map(i => '<div class="row setrow" data-id="' + esc(i.id) + '"><span style="flex:1"><b>' + esc(i.name) + '</b><small class=note style="display:block;margin:0">' + esc(i.used) + '</small></span>' +
-    (i.info ? '' : i.ok ? '<span class=permok>✓ Aan</span>' : '<button class="mini" style="float:none" data-p="' + esc(i.id) + '" onclick="hsFix(this.dataset.p)">' + (HS_FIX_LABEL[i.id] || 'Toestaan') + '</button>') + '</div>').join('');
+    (i.info ? '' : i.ok ? '<span class=permok>✓ Aan</span>' : hsNeedsApp(i.id) ? '<small class=note>' + esc(t('Stel dit onderdeel opnieuw in via de gewone Tools-app.')) + '</small>' : '<button class="mini" style="float:none" data-p="' + esc(i.id) + '" onclick="hsFix(this.dataset.p)">' + (HS_FIX_LABEL[i.id] || 'Toestaan') + '</button>') + '</div>').join('');
   const m = r.models || {}, names = m.names || [];
   $('#hs-models').style.display = names.length ? '' : 'none';
   if (names.length) $('#hs-models-t').textContent = t('Deze modellen worden opnieuw gedownload ({grootte}): {namen}.', { grootte: fmtB(m.bytes || 0), namen: names.map(x => t(x)).join(', ') }) + ' ' +
     (m.err ? t(m.err) + '.' : m.wait ? t('{wat}; daarna gaat het vanzelf.', { wat: t(m.wait) }) : t('Dat gaat vanzelf, met de voortgang in de meldingenbalk.'));
 }
 function hsFix(id){
+  if (hsNeedsApp(id)) { toast(t('Stel dit onderdeel opnieuw in via de gewone Tools-app.')); return; }
   if (id === 'bio') { show('setlock'); return; }
   if (id === 'password') { jumpTo('bkset'); return; }
   if (id === 'vpn') { show('vpn'); return; }
   if (id === 'wa') { jumpTo('chats'); return; }
   Android.herstelFix(id);
 }
-function hsDone(){ Android.herstelChecklistDone(); hsManual = false; show('home'); toast('Welkom terug'); }
+function hsDone(){ Android.herstelChecklistDone(); hsManual = false; hsEnd(); toast('Welkom terug'); }
 /* Terug op het welkomscherm van een nieuwe installatie: vragen of je wilt overslaan (dan stoppen de backups niet meer) */
 function hsBack(){
   if ($('#hs-welkom').style.display === 'none' || !hsState().pending) return false;

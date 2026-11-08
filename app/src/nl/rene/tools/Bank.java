@@ -79,6 +79,19 @@ final class Bank {
         }
     }
 
+    /** Ontgrendelantwoord hoort bij één venster; een vertraagd antwoord mag niet verborgen openen. */
+    static final class Unlock {
+        private long serial, until;
+        private boolean foreground, pending;
+        synchronized long begin() { if (!foreground) return -1; pending = true; until = 0; return ++serial; }
+        synchronized boolean authenticated(long request, long now) { if (request != serial || !pending) return false; pending = false; until = now + 5000; return true; }
+        synchronized boolean ready(long request, long now) { return foreground && request == serial && until > 0 && now <= until; }
+        synchronized boolean claim(long request, long now) { if (!ready(request, now)) return false; until = 0; return true; }
+        synchronized void resume() { foreground = true; }
+        synchronized void pause(boolean systemAuth) { foreground = false; if (!pending || !systemAuth) cancel(); }
+        synchronized void cancel() { serial++; pending = false; until = 0; }
+    }
+
     static File dir(Context c) { File d = new File(c.getFilesDir(), "bank"); d.mkdirs(); return d; }
     static File data(Context c) { return new File(dir(c), "gegevens.bin"); }
     /** Alleen technische gegevens (geen bedragen, namen of rekeningen): hoe de sleutel beveiligd is. */
