@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.162",
-  "versionCode": 163,
-  "nativeLevel": 144,
+  "versionName": "1.163",
+  "versionCode": 164,
+  "nativeLevel": 145,
   "web": "index.html",
-  "webSha256": "f83dd4b2de8ef9e1574293eb2ba6f09c178bfea612bd762e0b043f49313fb7be",
+  "webSha256": "984d0e7b40c9c23a5bc33bed555b6723e8b14910e0eff64f73349f26a5cd8c77",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "4672296799332139c4db514585181ea1b45eed849f24bfcaf5d3fe4c1bb8bcf3",
+  "apkSha256": "6b76f837162d28c087bd3c3304f245ab00a33e3bb5fad3bdab11a04e1e899d88",
   "changelog": [
+    {
+      "version": "1.163",
+      "date": "2026-11-08",
+      "changes": [
+        "Alle tools kunnen nu als losse app op je startscherm, ook Toiletten en douches, E-reader, Slaappraat, Check-in, Apparaten, Gebruik, Facturen, Bankzaken, Stamgegevens, Alles back-uppen en Automatiseringen. Nieuwe tools ondersteunen dit voortaan automatisch.",
+        "Kluis, Bankzaken en Stamgegevens houden hun eigen ontgrendeling in een losse app."
+      ]
+    },
     {
       "version": "1.162",
       "date": "2026-11-08",
@@ -1440,5 +1448,5 @@
       ]
     }
   ],
-  "webSig2": "BxaWsPl2uzbk+Cit9XYdhpdkRwSJZp6djTHVOOgKpXjem9nE58qOiJLEG56ezKxgna6AniMIfn9zFQ01/J11u8zolY9HTSZ/lBeDfuWQSeUW+XOgbaUNc2J/uiA2ByKO3hUFgJpzvlZNyD5QBiJS/64VD3SSbZ4uZB5DfFXSDpGYnIdX532ft3OAIEFuXZtsz+ADcB8Tmuv3uoJ2VZq0EeKHWdJYB3gScP30UfhSmv1ioyV5SswaEPCF6iLJbstXaRkYe35aknMIiBnrMCLyuKrM4Tondr7IbYXLmpo5tmh+RcQMzrrsxBYBfiMI7Ma5b3nGi+xUKONiIGDhCIgiJsjsQ3BEo0UuFCflZTpPcyBepcvXvdvIoTQeDV04vW0pbv5xhOUeC1oucZ9SDSI/lEj/YEHcH/qe4fwodufUOyW8W5uxvFuDwCZ+s1+XgoVV1LoO23sC7fycNQMdcrnjalHBoym0fJLoxPs9sUO+9O9ilVh3QxXax/cOWgdifjnv"
+  "webSig2": "IEQbZms5moqROFhbWjIUwFV8O7x4qKk0rzyz5dykUCPm/YQIBMxPHVolx3yTg6HHzsH6zx0+MdZ3ANCsayXk1KYpM7jmTp5QRKJb5w3EmVQ4aH2O4kpV4BU91huQ+3NQnUgIqPaM6RD56kGz5bqSh4Yem9NfkeVD7t+c52lVcgblsJytz4t0THMyn8g8sfoGijb0STVZ4Fj0gEP9yC8ihbmhciFbJqZOH51FXwNyeyJr2Iag/FiGiDQoOOCnyn/iElJ+sjrkXj0fTqWq02R91z3H2fgqUjFbfXJXuXfETTFCFdjLavsW04sV1PkZVkcIcH2cgaHmhU9k5Kb/jisezTfGlieUNPwfdUVho5QkVuhDhLtzs+iKWz8X6UrPo14rO9oi1XbxyOnqhb/2jbja+LLcnDu6biJURFmheXnTfTtuwM6lUlt0QwiWW2v93qB5aJy1iPCYtHr0q36dSzFXuWtKnn44WlMJF7sFLyA+1feFwxlGsSG0MAVPSk1Z9dVa"
 }
