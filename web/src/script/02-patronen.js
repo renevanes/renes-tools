@@ -55,7 +55,7 @@ uiPatterns();
 function uiVgWat(soort){
   return ({ ereader: tc('voortgang', 'Boek toevoegen'), kluis: tc('voortgang', 'Document toevoegen'), factuur: tc('voortgang', 'Factuur toevoegen'), bank: t('Afschriften inlezen'), pdf: t('Bestanden toevoegen'), idkopie: t("Pagina's toevoegen") })[soort] || t('Bestand toevoegen');
 }
-const uiVg = { soort: '', toon: 0, wacht: 0 };
+const uiVg = { soort: '', toon: 0, wacht: 0, kop: '' };
 function uiVgStand(r){
   if (r.stap === 'lezen' && r.totaal > 0) return t('Lezen… {p}%', { p: fmtNum(Math.min(100, Math.floor(100 * r.gedaan / r.totaal))) });
   if (r.stap === 'lezen' && r.gedaan > 0) return t('Lezen… {grootte}', { grootte: fmtSize(r.gedaan) });
@@ -74,14 +74,14 @@ function uiVoortgang(r){
       uiVg.toon = 0; if (!uiVg.soort) return;
       $('#vg').hidden = false;
       // De kop opnieuw zetten nu hij zichtbaar is, zodat een schermlezer hem één keer voorleest.
-      const w = $('#vg-wat'), k = w.textContent; w.textContent = ''; requestAnimationFrame(() => { w.textContent = k; });
+      const w = $('#vg-wat'); w.textContent = ''; requestAnimationFrame(() => { w.textContent = uiVg.kop || ''; });
     }, 400);
   }
   // Komt het eind nooit (de app herstart de interface), dan na 5 minuten stilte weg.
   clearTimeout(uiVg.wacht); uiVg.wacht = setTimeout(uiVgVerberg, 300000);
   const wat = uiVgWat(r.soort);
   const kop = r.bestanden > 1 && r.bestand > 0 ? t('{wat}: bestand {n} van {m}', { wat, n: fmtNum(r.bestand), m: fmtNum(r.bestanden) }) : wat;
-  if ($('#vg-wat').textContent !== kop) $('#vg-wat').textContent = kop;
+  uiVg.kop = kop; if ($('#vg-wat').textContent !== kop) $('#vg-wat').textContent = kop;
   $('#vg-stand').textContent = uiVgStand(r);
   const p = $('#vg-prog'), num = r.totaal > 0 && r.stap !== 'verwerken';
   p.classList.toggle('busy', !num);
