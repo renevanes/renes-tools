@@ -67,7 +67,8 @@ final class IdCopy {
             synchronized (PENDING) { PENDING.add(f); }
     }
 
-    synchronized JSONObject add(Context c, List<Uri> uris) throws Exception {
+    JSONObject add(Context c, List<Uri> uris) throws Exception { return add(c, uris, Voortgang.GEEN); }
+    synchronized JSONObject add(Context c, List<Uri> uris, Voortgang v) throws Exception {
         if (closed) throw new Exception(Taal.T("Kies de ID-kopie opnieuw"));
         cleanStale(c); retryPending();
         if (uris == null || uris.isEmpty()) return new JSONObject().put("cancelled", true);
@@ -75,7 +76,8 @@ final class IdCopy {
         if (dir == null) { dir = new File(c.getCacheDir(), "id-copy-" + java.util.UUID.randomUUID()); if (!dir.mkdirs()) throw new Exception(Taal.T("Werkbestand maken lukt niet")); }
         List<Source> added = new ArrayList<>(); List<File> copied = new ArrayList<>();
         try {
-            for (Uri u : uris) {
+            for (int k = 0; k < uris.size(); k++) {
+                Uri u = uris.get(k); v.bestand(k); v.stap("lezen", 0, 0);
                 File f = new File(dir, java.util.UUID.randomUUID().toString()); copied.add(f);
                 PdfTools.copy(c, u, f, 24L * 1024 * 1024);
                 if (isPdf(f)) {

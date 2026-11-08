@@ -47,3 +47,36 @@ function uiPatterns(root){
   (root || document).querySelectorAll('details.help, details.setup').forEach(uiHelpSync);
 }
 uiPatterns();
+
+/* Voortgang van een bestand toevoegen (boek, document, factuur, afschriften, foto's): de balk onderin.
+   Java (Voortgang.java) stuurt onVoortgang({soort, stap: lezen|verwerken|opslaan, gedaan, totaal, bestand, bestanden})
+   en aan het eind {soort, klaar}. Pas na 400 ms zichtbaar, zodat een klein bestand niet flitst. Alleen stappen en
+   aantallen, nooit namen. */
+function uiVgWat(soort){
+  return ({ ereader: tc('voortgang', 'Boek toevoegen'), kluis: tc('voortgang', 'Document toevoegen'), factuur: tc('voortgang', 'Factuur toevoegen'), bank: t('Afschriften inlezen'), pdf: t('Bestanden toevoegen'), idkopie: t("Pagina's toevoegen") })[soort] || t('Bestand toevoegen');
+}
+const uiVg = { soort: '', toon: 0, wacht: 0 };
+function uiVgStand(r){
+  if (r.stap === 'lezen' && r.totaal > 0) return t('Lezen… {p}%', { p: fmtNum(Math.min(100, Math.floor(100 * r.gedaan / r.totaal))) });
+  if (r.stap === 'lezen' && r.gedaan > 0) return t('Lezen… {grootte}', { grootte: fmtSize(r.gedaan) });
+  if (r.stap === 'lezen') return t('Lezen…');
+  if (r.stap === 'opslaan' && r.totaal > 0) return t('Opslaan… {n} van {m}', { n: fmtNum(Math.min(r.gedaan, r.totaal)), m: fmtNum(r.totaal) });
+  return r.stap === 'opslaan' ? t('Opslaan…') : t('Verwerken…');
+}
+function uiVgVerberg(){ clearTimeout(uiVg.toon); clearTimeout(uiVg.wacht); uiVg.toon = uiVg.wacht = 0; uiVg.soort = ''; $('#vg').hidden = true; }
+function uiVoortgang(r){
+  if (!r || !r.soort) return;
+  if (r.klaar) { if (r.soort === uiVg.soort) uiVgVerberg(); return; }
+  if (r.soort !== uiVg.soort) { uiVgVerberg(); uiVg.soort = r.soort; uiVg.toon = setTimeout(() => { uiVg.toon = 0; if (uiVg.soort) $('#vg').hidden = false; }, 400); }
+  // Komt het eind nooit (de app herstart de interface), dan na 5 minuten stilte weg.
+  clearTimeout(uiVg.wacht); uiVg.wacht = setTimeout(uiVgVerberg, 300000);
+  const wat = uiVgWat(r.soort);
+  const kop = r.bestanden > 1 ? t('{wat}: bestand {n} van {m}', { wat, n: fmtNum(r.bestand), m: fmtNum(r.bestanden) }) : wat;
+  if ($('#vg-wat').textContent !== kop) $('#vg-wat').textContent = kop;
+  $('#vg-stand').textContent = uiVgStand(r);
+  const p = $('#vg-prog'), num = r.totaal > 0 && r.stap !== 'verwerken';
+  p.classList.toggle('busy', !num);
+  if (num) { const pct = Math.min(100, Math.floor(100 * r.gedaan / r.totaal)); p.querySelector('i').style.width = pct + '%'; p.setAttribute('aria-valuenow', pct); }
+  else { p.querySelector('i').style.width = ''; p.removeAttribute('aria-valuenow'); }
+}
+window.onVoortgang = uiVoortgang;

@@ -45,19 +45,23 @@ final class Ereader {
         }
         return out;
     }
-    static synchronized JSONObject add(Context c, Uri uri) throws Exception {
+    static JSONObject add(Context c, Uri uri) throws Exception { return add(c, uri, Voortgang.GEEN); }
+    /** Boek toevoegen; v meldt lezen (bytes), verwerken en opslaan (hoofdstukken en afbeeldingen) aan de balk onderin. */
+    static synchronized JSONObject add(Context c, Uri uri, Voortgang v) throws Exception {
         String name = PdfTools.displayName(c, uri);
         byte[] bytes;
-        try (InputStream in = c.getContentResolver().openInputStream(uri)) {
+        try (InputStream in = v.open(c, uri)) {
             if (in == null) throw new Exception(Taal.T("Boek openen lukt niet"));
             bytes = EreaderBook.read(in, EreaderBook.MAX_FILE);
         }
         StringBuilder hash = new StringBuilder();
-        for (byte v : MessageDigest.getInstance("SHA-256").digest(bytes)) hash.append(String.format(java.util.Locale.ROOT, "%02x", v & 255));
+        for (byte h : MessageDigest.getInstance("SHA-256").digest(bytes)) hash.append(String.format(java.util.Locale.ROOT, "%02x", h & 255));
         String id = hash.toString(); File d = dir(c, id);
         JSONObject previous = new File(d, "boek.json").isFile() ? meta(c, id) : null;
         if (previous != null && previous.optInt("edition") >= 3) return details(c, id);
+        v.stap("verwerken", 0, 0);
         EreaderBook b = EreaderBook.parse(bytes, name);
+        final int delen = b.chapters.size() + b.assets.size();
         File stage = new File(d, "content-v3");
         JSONObject m;
         JSONArray marks;
@@ -70,14 +74,15 @@ final class Ereader {
         } else { m = new JSONObject().put("chapter", 0).put("offset", 0); marks = new JSONArray(); }
         JSONArray chapters = new JSONArray(), lengths = new JSONArray(), order = new JSONArray(), assets = new JSONArray(); int words = 0;
         for (int i = 0; i < b.chapters.size(); i++) {
-            String text = b.chapters.get(i); write(new File(stage, i + ".txt"), text); chapters.put(b.names.get(i)); lengths.put(text.length()); order.put(b.linear.get(i));
+            v.stap("opslaan", i, delen); String text = b.chapters.get(i); write(new File(stage, i + ".txt"), text); chapters.put(b.names.get(i)); lengths.put(text.length()); order.put(b.linear.get(i));
             if (i < b.content.size()) write(new File(stage, i + ".json"), b.content.get(i).toString());
             if (b.linear.get(i)) words += wordCount(text);
         }
         for (int i = 0; i < b.assets.size(); i++) {
-            EreaderBook.Asset asset = b.assets.get(i); writeBytes(new File(stage, "images/" + i + ".bin"), asset.bytes);
+            v.stap("opslaan", b.chapters.size() + i, delen); EreaderBook.Asset asset = b.assets.get(i); writeBytes(new File(stage, "images/" + i + ".bin"), asset.bytes);
             assets.put(new JSONObject().put("mime", asset.mime).put("base", asset.base));
         }
+        v.stap("opslaan", delen, delen);
         if (b.format.equals("EPUB")) writeBytes(new File(stage, "bron.epub"), bytes);
         write(new File(stage, "leeswijzers.json"), marks.toString());
         m.put("id", id).put("title", previous == null ? cut(b.title) : previous.optString("title", cut(b.title))).put("author", cut(b.author))

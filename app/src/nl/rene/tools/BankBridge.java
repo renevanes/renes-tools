@@ -128,14 +128,16 @@ public class BankBridge extends FacturenBridge {
         final android.content.Context ctx = a.getApplicationContext();
         new Thread(() -> {
             JSONObject out = new JSONObject();
-            try {
+            try (Voortgang v = Voortgang.van(a, "bank", uris.size())) {
                 java.util.List<Bank.Bestand> lijst = new java.util.ArrayList<>();
                 java.util.List<String> fouten = new java.util.ArrayList<>();
-                for (Uri u : uris) {
+                for (int k = 0; k < uris.size(); k++) {
+                    Uri u = uris.get(k); v.bestand(k);
                     String n = name(a, u);
-                    try { lijst.add(new Bank.Bestand(n, read(a, u))); fouten.add(null); }
+                    try { lijst.add(new Bank.Bestand(n, read(a, u, v))); fouten.add(null); }
                     catch (Throwable t) { lijst.add(new Bank.Bestand(n, null)); fouten.add(t instanceof OutOfMemoryError ? "Bestand is te groot" : t.getMessage() == null ? "Lezen lukt niet" : t.getMessage()); }
                 }
+                v.stap("verwerken", 0, 0);
                 out = Bank.importeer(ctx, lijst, fouten);
                 // Pas na veilig opslaan de bronbestanden weghalen (als dat gevraagd is)
                 int weg = 0;
@@ -159,8 +161,8 @@ public class BankBridge extends FacturenBridge {
         return "afschrift";
     }
 
-    static byte[] read(MainActivity a, Uri u) throws Exception {
-        try (InputStream in = a.getContentResolver().openInputStream(u)) {
+    static byte[] read(MainActivity a, Uri u, Voortgang v) throws Exception {
+        try (InputStream in = v.open(a, u)) {
             if (in == null) throw new Exception("Bestand niet te openen");
             ByteArrayOutputStream b = new ByteArrayOutputStream();
             byte[] buf = new byte[1 << 16]; int r;
