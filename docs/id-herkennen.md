@@ -20,9 +20,14 @@ tekens), de fotopagina van het paspoort (2 × 44) of een ander reisdocument (2 �
    vaste hoogteverschuiving van `<` (`MrzOcr.LT_OFFSET`).
 3. Per teken 12 × 18 vakjes langs de regel bemonsteren en vergelijken met de sjablonen in `MrzGlyphs` (per teken drie
    varianten: gewoon, dikker, dunner).
-4. `Mrz.decode`: per positie alleen toegestane tekens (cijfer, letter, controlecijfer); klopt een controlecijfer niet, dan
-   tot twee tekens vervangen door hun tweede keus. Bruikbaar = gemiddelde afwijking onder `Mrz.Result.LIMIT` én documentnummer,
-   geboortedatum en vervaldatum kloppen. Vier draairichtingen; de beste lezing wint.
+4. `Mrz.decode`: per positie alleen toegestane tekens (cijfer, letter, controlecijfer, geslacht M/F/X/<). Klopt een
+   controlecijfer niet, dan hooguit twee tekens met echte twijfel (tweede keus scheelt minder dan `MAX_MARGIN`) vervangen,
+   zonder andere controles te breken. Een ontbrekend teken wordt nooit ingevuld: een controlecijfer is mod 10 en klopt anders
+   bij één op de tien gokken. Bruikbaar = gemiddelde afwijking onder `Mrz.Result.LIMIT` én documentnummer, geboortedatum en
+   vervaldatum kloppen; zeker = bovendien alles klopt zonder verbetering. Verbeterde velden staan in het voorstel niet
+   aangevinkt; het BSN alleen bij een zekere lezing. Vier draairichtingen (minder als de eerste overtuigend is).
+5. Groot beeld: inlezen met `inSampleSize` net boven de werkmaat, daarna precies naar 1800 px; meer dan 20.000 vlakken = stoppen.
+   `LIMIT` is afgesteld op de testbeelden; met echte foto's zo nodig bijstellen (foto's niet in de repository zetten).
 
 ## Sjablonen en testbeelden opnieuw maken
 Nodig na een wijziging in hoe `MrzOcr` tekens bemonstert. Het OCR-B-lettertype zit niet in de repository; gebruik

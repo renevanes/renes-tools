@@ -29,6 +29,8 @@ const cmhAfterList=cmiAfterList;cmiAfterList=function(){
 const cmhEditor=cmEditor;cmEditor=function(tab){
   cmhEditor(tab);
   const r=cm.edit;
+  // Eenmalig: opent er eerst een andere persoon of document, dan vervalt het voorstel.
+  if(cmh.patch&&r&&r.id&&r.id!==cmh.patch.person)cmh.patch=null;
   if(cmh.patch&&r&&r.id&&r.id===cmh.patch.person){
     const patch=cmh.patch;cmh.patch=null;Object.assign(r.fields,patch.fields);cmEditorFields();cmDirty();
     $('#cm-edit-status').textContent=t('Gegevens uit de foto ingevuld. Controleer ze en sla op.');
@@ -58,9 +60,12 @@ function cmhRender(){
     box.append(cmData(cmEl('h4',title)));
     for(const key of rows){
       const label=cmEl('label',undefined,'chk cmh-row'),input=cmEl('input');input.type='checkbox';input.dataset.key=key;input.dataset.group=keys===CMH_DOC?'doc':'person';
-      const old=now[key]||'',same=old===found[key];input.checked=key!=='bsn'&&(!old||same);if(same)input.disabled=true;
+      // Bij een nieuw document telt de standaardsoort als leeg; een met de tweede keus verbeterd veld staat uit.
+      const dflt=keys===CMH_DOC&&!cm.edit.id&&(cmiDefaults('identiteit')[key]||'')===now[key],old=dflt?'':now[key]||'',same=old===found[key];
+      const twijfel=(d.fields.twijfel||[]).includes(key);input.checked=key!=='bsn'&&!twijfel&&(!old||same);if(same)input.disabled=true;
       const text=cmEl('span');text.append(cmEl('b',t(CM_FIELDS[key]||key)),document.createTextNode(' '),cmData(cmEl('span',cmhValue(key,found[key]))));
       if(old&&!same)text.append(cmEl('small',t('nu: {waarde}',{waarde:cmhValue(key,old)})));else if(same)text.append(cmEl('small',t('staat er al')));
+      if(twijfel)text.append(cmEl('small',t('niet zeker gelezen: vergelijk met het document'),'cmi-warn'));
       cmData(text);label.append(input,text);box.append(label);
     }
   }
@@ -73,13 +78,21 @@ function cmhApply(){
   for(const i of document.querySelectorAll('#cmh-list input:checked:not(:disabled)')){const k=i.dataset.key;if(i.dataset.group==='doc')doc[k]=d.fields.document[k];else per[k]=d.fields.persoon[k];}
   Object.assign(cm.edit.fields,doc);
   const person=cmh.current;cmh.data=null;cmh.epoch++;$('#cmh-panel').hidden=true;$('#cmh-list').replaceChildren();
-  if(person&&Object.keys(per).length){cmh.patch={person:person.id,fields:per};if(cm.back?.id!==person.id)cm.back={id:person.id,tab:'naam'};}
-  if(!cm.edit.id&&!$('#cm-label').value.trim())cmiDocLabel();
+  // Alleen naar de persoon bij wie het document hoort (is die intussen gewijzigd, dan niets naar een persoon).
+  const linked=person&&cm.edit.fields.persoon===person.id;
+  if(linked&&Object.keys(per).length){
+    const tab=(CM_TABS.persoon.find(x=>x[2].some(k=>per[k]))||['naam'])[0];
+    cmh.patch={person:person.id,fields:per};cm.back={id:person.id,tab};
+  }
+  if(!cm.edit.id)cmiDocLabel();
   cmEditorFields();cmDirty();
+  if(!linked)for(const k in per)delete per[k];
   $('#cm-edit-status').textContent=Object.keys(per).length?t('Overgenomen. Sla het document op; daarna open je {naam} met de gekozen gegevens om te controleren.',{naam:person.label}):t('Overgenomen. Controleer en sla op.');
 }
 function cmhDismiss(){cmh.data=null;cmh.epoch++;$('#cmh-panel').hidden=true;$('#cmh-list').replaceChildren();}
 const cmhAfterEdit=cmAfterEdit;cmAfterEdit=function(saved){if(!saved)cmh.patch=null;cmh.data=null;cmh.epoch++;$('#cmh-panel').hidden=true;$('#cmh-list').replaceChildren();cmhAfterEdit(saved);};
 const cmhClear=cmClearCentral;cmClearCentral=function(){cmh.data=null;cmh.patch=null;cmh.current=null;cmh.scanFor='';cmh.epoch++;$('#cmh-list').replaceChildren();$('#cmh-panel').hidden=true;cmhClear();};
-// Alleen met de nieuwe APK (MrzOcr); anders de knop niet tonen.
-if(typeof Android.masterScanPick!=='function')$('#cmh-scan').hidden=true;
+// Herkennen kan even duren na het ontgrendelen: zeg dat.
+const cmhUnlock=cmUnlock;cmUnlock=function(){cmhUnlock();if(cmi.photoRequest&&cm.unlocking)cmNote(t('Bevestig op je telefoon. Daarna wordt de foto verwerkt; dat kan een paar seconden duren.'));};
+// Alleen met de nieuwe APK (MrzOcr); anders de knop en uitleg niet tonen.
+if(typeof Android.masterScanPick!=='function'){$('#cmh-scan').hidden=true;$('#cmh-scan-hint').hidden=true;}

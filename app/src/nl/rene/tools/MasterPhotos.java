@@ -54,7 +54,7 @@ final class MasterPhotos {
         try{
             if(job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kies de kaartfoto opnieuw vanuit Stamgegevens"));
             session.require(token);byte[] bytes=read(activity.getContentResolver().openInputStream(job.uri));
-            JSONObject found=recognize(bytes,Integer.parseInt(Regio.dayKey(activity,System.currentTimeMillis()).substring(0,4)));session.require(token);
+            JSONObject found=recognize(bytes,Regio.dayKey(activity,System.currentTimeMillis()));session.require(token);
             // Alleen herkennen (Document herkennen uit foto): de foto zelf wordt niet bewaard.
             if("scan".equals(job.side)){
                 synchronized(this){if(pending!=job)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}
@@ -77,17 +77,20 @@ final class MasterPhotos {
      * De strook (MRZ) lezen, op de telefoon zelf (MrzOcr, geen dienst op internet). Geeft null als er geen betrouwbare strook is;
      * een fout in het herkennen laat het bewaren van de foto nooit mislukken.
      */
-    static JSONObject recognize(byte[] bytes,int year){
+    static JSONObject recognize(byte[] bytes,String today){
         Bitmap image=null;
         try{
             BitmapFactory.Options o=new BitmapFactory.Options();o.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(bytes,0,bytes.length,o);
             if(o.outWidth<1||o.outHeight<1||o.outWidth>16000||o.outHeight>16000)return null;
-            int sample=1;while(o.outWidth/sample>3200||o.outHeight/sample>3200)sample*=2;o=new BitmapFactory.Options();o.inSampleSize=sample;
-            image=BitmapFactory.decodeByteArray(bytes,0,bytes.length,o);if(image==null)return null;
+            // Zo klein mogelijk inlezen maar niet onder de werkmaat, dan precies op de werkmaat brengen (geheugen en scherpte).
+            int max=MrzOcr.MAX_SIDE,sample=1;while(Math.max(o.outWidth,o.outHeight)/(sample*2)>=max)sample*=2;
+            o=new BitmapFactory.Options();o.inSampleSize=sample;image=BitmapFactory.decodeByteArray(bytes,0,bytes.length,o);if(image==null)return null;
+            int side=Math.max(image.getWidth(),image.getHeight());
+            if(side>max){Bitmap scaled=Bitmap.createScaledBitmap(image,Math.max(1,image.getWidth()*max/side),Math.max(1,image.getHeight()*max/side),true);if(scaled!=image){image.recycle();image=scaled;}}
             int w=image.getWidth(),h=image.getHeight();int[] px=new int[w*h];image.getPixels(px,0,w,0,0,w,h);image.recycle();image=null;
             for(int i=0;i<px.length;i++){int c=px[i];px[i]=((c>>16&255)*30+(c>>8&255)*59+(c&255)*11)/100;}
             Mrz.Result r=MrzOcr.read(px,w,h);if(r==null||!r.usable())return null;
-            return Mrz.fields(r,year);
+            return Mrz.fields(r,today);
         }catch(Throwable e){return null;}
         finally{if(image!=null)image.recycle();}
     }

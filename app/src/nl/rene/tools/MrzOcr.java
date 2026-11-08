@@ -27,10 +27,12 @@ final class MrzOcr {
                 o[ny*nw+nx]=v;}
             return new Gray(o,nw,nh);
         }
-        /** Verkleinen met gemiddelden tot de langste zijde hooguit max is. */
+        /** Verkleinen tot de langste zijde precies max is (gemiddelde over het bijbehorende vlak, ook bij een gebroken factor). */
         Gray shrink(int max){
-            int f=1;while(w/f>max||h/f>max)f++;if(f==1)return this;int nw=w/f,nh=h/f;int[] o=new int[nw*nh];
-            for(int y=0;y<nh;y++)for(int x=0;x<nw;x++){int s=0;for(int dy=0;dy<f;dy++)for(int dx=0;dx<f;dx++)s+=p[(y*f+dy)*w+x*f+dx];o[y*nw+x]=s/(f*f);}
+            if(w<=max&&h<=max)return this;double f=Math.max(w,h)/(double)max;int nw=Math.max(1,(int)(w/f)),nh=Math.max(1,(int)(h/f));int[] o=new int[nw*nh];
+            for(int y=0;y<nh;y++){int y0=(int)(y*f),y1=Math.max(y0+1,Math.min(h,(int)((y+1)*f)));
+                for(int x=0;x<nw;x++){int x0=(int)(x*f),x1=Math.max(x0+1,Math.min(w,(int)((x+1)*f)));long sum=0;
+                    for(int yy=y0;yy<y1;yy++)for(int xx=x0;xx<x1;xx++)sum+=p[yy*w+xx];o[y*nw+x]=(int)(sum/((long)(y1-y0)*(x1-x0)));}}
             return new Gray(o,nw,nh);
         }
     }
@@ -186,8 +188,11 @@ final class MrzOcr {
     }
 
     /** Zoekt in één draairichting de beste strook. */
+    /** Meer vlakken dan dit = ruis of een foto vol tekst: niet verder zoeken (tijd en geheugen op de telefoon). */
+    static final int MAX_BOXES=20000;
     static Mrz.Result find(Gray g){
         boolean[] dark=binarize(g);int[] label=new int[g.w*g.h];List<Box> boxes=components(dark,g.w,g.h,label);
+        if(boxes.size()>MAX_BOXES)return null;
         Page pg=new Page(g,dark,label);List<Line> ls=lines(boxes);
         ls.sort((a,b)->Double.compare(a.y(),b.y()));
         Mrz.Result best=null;
@@ -229,7 +234,8 @@ final class MrzOcr {
         Gray g=new Gray(gray,w,h).shrink(MAX_SIDE);Mrz.Result best=null;
         for(int q=0;q<4;q++){
             Mrz.Result r=find(g.rotate(q));if(r!=null&&better(r,best))best=r;
-            if(best!=null&&best.sure())break;
+            // Alleen eerder stoppen bij een overtuigende lezing (onzin uit een verkeerde draairichting zit rond 20).
+            if(best!=null&&best.sure()&&best.mean<Mrz.Result.LIMIT*0.6)break;
         }
         return best;
     }

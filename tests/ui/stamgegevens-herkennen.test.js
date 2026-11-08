@@ -20,7 +20,7 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.inputValue('#cm-field-persoon'),kid,'nieuw document bij de persoon');
   assert.equal(await p.evaluate(()=>cm.edit.fields.document||''),'','nog niets vanzelf ingevuld');
   const rows=await p.$$eval('#cmh-list input',x=>x.map(i=>i.dataset.key+':'+(i.checked?'v':'-')+(i.disabled?'x':'')));
-  assert.deepEqual(rows,['documentsoort:vx','document:v','geldig:v','uitgifteland:v','naam:vx','voornamen:-','geboortedatum:v','geslacht:v','nationaliteit:v'],'standaard: lege velden aangevinkt, gelijke vast');
+  assert.deepEqual(rows,['documentsoort:v','document:v','geldig:v','uitgifteland:v','naam:vx','voornamen:-','geboortedatum:v','geslacht:v','nationaliteit:v'],'standaard: lege velden aangevinkt, gelijke vast');
   assert.match(await p.textContent('#cmh-list'),/nu: Zoë/);assert.match(await p.textContent('#cmh-list'),/staat er al/);
   assert.doesNotMatch(await p.textContent('#cmh-list'),/NX7P41KD9/,'documentnummer afgeschermd');assert.equal(await p.locator('#cmh-list b b').count(),0,'namen blijven tekst');
   // 2. Overnemen vult het document; opslaan, daarna de persoon met de gekozen gegevens.
@@ -29,6 +29,7 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.inputValue('#cm-label'),'Identiteitskaart Zoë <b>');assert.equal(await p.isVisible('#cmh-panel'),false);
   await p.click('#cm-save');await p.waitForFunction(()=>cm.edit&&cm.edit.id==='00000000-0000-0000-0000-000000000001'&&cm.dirty);
   assert.equal(await p.evaluate(()=>[cm.edit.fields.geboortedatum,cm.edit.fields.geslacht,cm.edit.fields.voornamen].join('|')),'2015-02-03|V|Zoë','alleen de aangevinkte persoonsgegevens');
+  assert.equal(await p.evaluate(()=>cm.tab),'geboorte','persoon opent waar de gegevens staan');
   assert.match(await p.textContent('#cm-edit-status'),/uit de foto ingevuld/);
   await p.click('#cm-save');await p.waitForFunction(()=>Android._cm.records.find(r=>r.id==='00000000-0000-0000-0000-000000000001').fields.geboortedatum==='2015-02-03');
   assert.equal(await p.evaluate(()=>Android._cm.records.some(r=>r.type==='identiteit'&&r.fields.document==='NX7P41KD9'&&r.fields.persoon==='00000000-0000-0000-0000-000000000001')),true);
