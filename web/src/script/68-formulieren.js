@@ -12,8 +12,7 @@ function fmInit(id){
   fm.id=id;fm.values={};fm.step=0;fm.page=0;fm.view='start';fm.meer={};fm.previews={};fm.previewToken='';fm.bestand='';
   fm.stam=new Set();fm.opgeslagen=0;fm.conceptFout='';
   for (const s of fmDef().sections) for (const f of s.fields) fm.values[f.id]=f.value || '';
-  fm.initial=JSON.stringify(fm.values);fm.bewaard=fm.initial;
-  $('#pff-naam').value=fmDef().title;
+  fm.initial=JSON.stringify(fm.values);fm.naamStam=false;$('#pff-naam').value=fmDef().title;fm.bewaard=fmConceptSnap();
   document.querySelectorAll('#s-formulieren [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);
   $('#pff-resultaat').hidden=true;$('#pff-melding').textContent='';$('#pff-alles').open=false;$('#pff-samenvatting').replaceChildren();
 }
@@ -27,7 +26,8 @@ function fmKies(id){
   $('#pff-keuze').value=fm.id;
   if (fm.busy || id===fm.id || !PDF_FORMULIEREN[id]) return;
   const choose=()=>{fmInit(id);fmConceptLaad();enterFormulieren();};
-  if (fmDirty()) askConfirm('Ander formulier kiezen?','Je huidige invoer wordt gewist.','Formulier kiezen',choose); else choose();
+  fmConceptVanzelf();
+  if (fmDirty()&&fmNietBewaard()) askConfirm('Ander formulier kiezen?','Wijzigingen die niet zijn opgeslagen, gaan verloren.','Formulier kiezen',choose); else choose();
 }
 function fmWissen(){
   if(fm.busy)return;
@@ -50,12 +50,11 @@ function fmStartRender(def,sections){
   $('#pff-form-titel').textContent=def.title;
   $('#pff-uitleg').textContent=def.intro||def.description;
   $('#pff-omschrijving').textContent=def.description;
-  const concept=fm.opgeslagen&&!fmNietBewaard()?' · '+t('concept opgeslagen {wanneer}',{wanneer:fmtDT(fm.opgeslagen,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}):'';
   $('#pff-zelf-stand').textContent=fm.bestand?t('PDF gemaakt: {naam}',{naam:fm.bestand})
     :!dirty?t('Alle velden, stap voor stap')
     :fm.step>=sections.length?t('Klaar om de PDF te maken')
     :t('Verder bij stap {n} van {totaal}: {stap}',{n:fm.step+1,totaal:sections.length+1,stap:sections[fm.step].title});
-  if(!fm.bestand&&dirty)$('#pff-zelf-stand').textContent+=concept;
+  if(!fm.bestand&&dirty&&fm.opgeslagen&&!fmNietBewaard())$('#pff-zelf-stand').textContent=t('{stand} · concept opgeslagen {wanneer}',{stand:$('#pff-zelf-stand').textContent,wanneer:fmtDT(fm.opgeslagen,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})});
   $('#pff-start-knop').textContent=dirty?t('Verder met invullen'):t('Formulier invullen');
   $('#pff-keuze').disabled=fm.busy;
 }
@@ -127,7 +126,7 @@ function fmVeldFout(f,strict){
   const value=(fm.values[f.id]||'').trim();
   if(!value)return strict&&f.required?t('Dit veld is nodig voor de PDF.'):'';
   if(f.type==='bsn'&&!/^[0-9]{8,9}$/.test(value))return t('Een BSN heeft 8 of 9 cijfers.');
-  if(f.pattern&&!new RegExp('^(?:'+f.pattern+')$').test(value))return t('Deze invoer klopt niet. Controleer het veld: {veld}',{veld:f.label});
+  if(f.pattern&&!new RegExp('^(?:'+f.pattern+')$').test(value))return t('Deze invoer klopt niet.');
   return '';
 }
 /* Naar het veld met een fout: de stap openen, het veld tonen met de reden eronder, en de melding bovenaan. */
@@ -135,7 +134,7 @@ function fmToonFout(index,f,text){
   const sections=fmSecties();
   fm.step=index;if(f.more)fm.meer[fmMeerSleutel(sections[index])]=true;fm.fout={id:f.id,text};fm.view='stap';fmRender();
   const input=$('#pff-v-'+f.id);if(input){input.focus();input.scrollIntoView({block:'center'});}
-  $('#pff-melding').textContent=t('{veld}: {reden}',{veld:f.label,reden:text});
+  $('#pff-melding').textContent=t('{veld}: {reden}',{veld:t(f.label),reden:text});
 }
 /* Lege verplichte velden: [{index, f}] (alle stappen, of alleen tot en met de huidige). */
 function fmOntbreekt(totStap){
@@ -166,7 +165,7 @@ function fmOntbreektRender(review){
   const p=document.createElement('p');p.className='note warn';
   p.textContent=tn(missing.length,'Nog één veld leeg dat nodig is voor de PDF:','Nog {n} velden leeg die nodig zijn voor de PDF:');box.append(p);
   for(const {index,f} of missing.slice(0,12)){
-    const b=document.createElement('button');b.className='mini';b.type='button';b.textContent=f.label;b.setAttribute('translate','no');
+    const b=document.createElement('button');b.className='mini';b.type='button';b.textContent=t(f.label);b.setAttribute('translate','no');
     b.onclick=()=>{if(!fm.busy)fmToonFout(index,f,t('Dit veld is nodig voor de PDF.'));};box.append(b);
   }
 }
@@ -180,20 +179,23 @@ function fmVerder(){
 function fmTerug(){if(fm.busy||!fm.step)return;fm.fout=null;fm.step--;fmRender();$('#pff-titel').focus();fmConceptVanzelf();}
 
 /* ---------- tussentijds opslaan (concept) ---------- */
+/* Gaat dit veld nooit in een concept? BSN en documentnummers blijven, zoals altijd, alleen in het geheugen. */
+function fmConceptGeheim(f){return f.type==='bsn'||/(^|-)(bsn|document)$/.test(f.id);}
 function fmConceptData(){
-  const values={};
-  for(const [k,v] of Object.entries(fm.values))if(!fm.stam.has(k))values[k]=v;
-  return {values,step:fm.step,naam:$('#pff-naam').value.trim(),stam:fm.stam.size>0};
+  const values={},geheim=new Set(fmDef().sections.flatMap(s=>s.fields.filter(fmConceptGeheim).map(f=>f.id)));
+  for(const [k,v] of Object.entries(fm.values))if(!fm.stam.has(k)&&!geheim.has(k))values[k]=v;
+  return {values,step:fm.step,naam:fm.naamStam?'':$('#pff-naam').value.trim(),stam:fm.stam.size>0};
 }
-function fmConceptSnap(){return JSON.stringify([fm.values,fm.step]);}
+/* Wat telt voor "opgeslagen": invoer, stap en naam van de PDF. */
+function fmConceptSnap(){return JSON.stringify([fm.values,fm.step,fm.naamStam?'':$('#pff-naam').value.trim()]);}
 /* Iets veranderd sinds het laatste opslaan? */
-function fmNietBewaard(){return !!fm.id&&JSON.stringify(fm.values)!==fm.bewaard;}
+function fmNietBewaard(){return !!fm.id&&fmConceptSnap()!==fm.bewaard;}
 function fmConceptStand(){
   const el=$('#pff-concept');if(!el||!fm.id)return;
   if(fm.conceptFout){el.textContent=fm.conceptFout;el.classList.add('warn');return;}
   el.classList.remove('warn');
   const leeg=fmOntbreekt().length;
-  if(fm.opgeslagen&&!fmNietBewaard())el.textContent=t('Opgeslagen om {tijd}',{tijd:fmtTime(fm.opgeslagen)})+(leeg?' · '+tn(leeg,'nog één verplicht veld leeg','nog {n} verplichte velden leeg'):'');
+  if(fm.opgeslagen&&!fmNietBewaard())el.textContent=leeg?tn(leeg,'Opgeslagen om {tijd} · nog één verplicht veld leeg','Opgeslagen om {tijd} · nog {n} verplichte velden leeg',{tijd:fmtTime(fm.opgeslagen)}):t('Opgeslagen om {tijd}',{tijd:fmtTime(fm.opgeslagen)});
   else el.textContent=fmDirty()?t('Niet opgeslagen wijzigingen'):'';
 }
 function fmConceptOpslaan(stil){
@@ -201,8 +203,8 @@ function fmConceptOpslaan(stil){
   if(typeof Android.pdfFormConceptSave!=='function'){if(!stil){fm.conceptFout=t('Installeer de nieuwste APK om tussentijds op te slaan.');fmConceptStand();}return false;}
   const data=fmConceptData();
   let r;try{r=JSON.parse(Android.pdfFormConceptSave(fm.id,JSON.stringify(data))||'{}');}catch(e){r={error:t('Opslaan is niet gelukt. Probeer het nog eens.')};}
-  if(r.error||!r.t){fm.conceptFout=r.error?t(r.error):t('Opslaan is niet gelukt. Probeer het nog eens.');fmConceptStand();if(!stil)toast(fm.conceptFout);return false;}
-  fm.conceptFout='';fm.opgeslagen=r.t;fm.bewaard=JSON.stringify(fm.values);fmConceptStand();
+  if(r.error||!r.t){fm.conceptFout=r.error||t('Opslaan is niet gelukt. Probeer het nog eens.');fmConceptStand();if(!stil)toast(fm.conceptFout);return false;}
+  fm.conceptFout='';fm.opgeslagen=r.t;fm.bewaard=fmConceptSnap();fmConceptStand();
   if(!stil){
     const leeg=fmOntbreekt().length;
     toast(data.stam?t('Opgeslagen. Gegevens uit Stamgegevens bewaart het concept niet; die haal je bij verder gaan opnieuw op.')
@@ -211,18 +213,18 @@ function fmConceptOpslaan(stil){
   return true;
 }
 /* Vanzelf opslaan bij een andere stap en bij weggaan, als er iets ingevuld is en er iets veranderde. */
-function fmConceptVanzelf(){if(fm.id&&!fm.busy&&fmDirty()&&fmNietBewaard())fmConceptOpslaan(true);}
+function fmConceptVanzelf(){if(fm.id&&!fm.busy&&fmNietBewaard()&&(fmDirty()||fm.opgeslagen))return fmConceptOpslaan(true);return !fmNietBewaard()&&!!fm.opgeslagen;}
 function fmConceptWeg(){if(typeof Android.pdfFormConceptDelete==='function')Android.pdfFormConceptDelete(fm.id);fm.opgeslagen=0;fm.conceptFout='';}
 /* Het opgeslagen concept van dit formulier inlezen (na fmInit). Alleen bekende velden, als tekst. */
 function fmConceptLaad(){
   if(!fm.id||typeof Android.pdfFormConceptLoad!=='function')return;
   let r;try{r=JSON.parse(Android.pdfFormConceptLoad(fm.id)||'{}');}catch(e){r={};}
-  if(r.error){fm.conceptFout=t(r.error);return;}
+  if(r.error){fm.conceptFout=r.error;return;}
   if(!r.values||typeof r.values!=='object')return;
   const known=new Set(fmDef().sections.flatMap(s=>s.fields.map(f=>f.id)));
   for(const [k,v] of Object.entries(r.values))if(known.has(k)&&typeof v==='string')fm.values[k]=v;
-  fm.step=Math.max(0,Math.min(fmSecties().length,Number(r.step)||0));fm.opgeslagen=Number(r.t)||0;fm.bewaard=JSON.stringify(fm.values);
   if(typeof r.naam==='string'&&r.naam)$('#pff-naam').value=r.naam;
+  fm.step=Math.max(0,Math.min(fmSecties().length,Number(r.step)||0));fm.opgeslagen=Number(r.t)||0;fm.bewaard=fmConceptSnap();
 }
 function fmPagina(delta){if(fm.busy)return;fm.page=Math.max(0,Math.min(fmDef().pages.length-1,fm.page+delta));fmPreview();}
 function fmPreview(){
@@ -281,7 +283,12 @@ function fmTeken(canvas,page){
 function fmMaak(){
   if(fm.busy)return;
   const leeg=fmOntbreekt();
-  if(leeg.length){fmConceptVanzelf();fmToonFout(leeg[0].index,leeg[0].f,t('Dit veld is nodig voor de PDF.'));$('#pff-melding').textContent=tn(leeg.length,'Nog één verplicht veld leeg: {veld}. Je invoer is opgeslagen.','Nog {n} verplichte velden leeg, eerst: {veld}. Je invoer is opgeslagen.',{veld:leeg[0].f.label});return;}
+  if(leeg.length){
+    const ok=fmConceptVanzelf();fmToonFout(leeg[0].index,leeg[0].f,t('Dit veld is nodig voor de PDF.'));
+    $('#pff-melding').textContent=ok?tn(leeg.length,'Nog één verplicht veld leeg: {veld}. Je invoer is opgeslagen.','Nog {n} verplichte velden leeg, eerst: {veld}. Je invoer is opgeslagen.',{veld:t(leeg[0].f.label)})
+      :tn(leeg.length,'Nog één verplicht veld leeg: {veld}.','Nog {n} verplichte velden leeg, eerst: {veld}.',{veld:t(leeg[0].f.label)});
+    return;
+  }
   if(!fmGeldig(true))return;
   try{
     const layers=fmDef().pages.map((_,page)=>({page,png:fmTeken(document.createElement('canvas'),page).toDataURL('image/png')}));
@@ -301,3 +308,5 @@ window.onPdfFormMade=function(r){
 };
 // App uit beeld (Android kan hem daarna stoppen): wat je invulde vanzelf opslaan.
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&current==='formulieren')fmConceptVanzelf();});
+// De naam van de PDF telt mee voor "opgeslagen"; zelf aanpassen maakt hem jouw invoer (niet meer uit Stamgegevens).
+$('#pff-naam').addEventListener('input',()=>{fm.naamStam=false;fmConceptStand();});

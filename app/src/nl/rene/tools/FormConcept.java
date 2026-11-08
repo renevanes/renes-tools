@@ -10,8 +10,8 @@ import java.util.Iterator;
 /**
  * Concepten van Formulieren invullen: wat je tussentijds opslaat, ook als nog niet alle verplichte velden ingevuld zijn.
  * Eén concept per formulier, versleuteld met de sleutel van deze telefoon (AES-GCM, Android-sleutelopslag) in
- * formulieren/&lt;id&gt;.concept. Gegevens die uit Stamgegevens kwamen, laat de interface er bewust uit (die blijven alleen
- * in Stamgegevens en worden bij vergrendelen gewist); die haal je bij verder gaan opnieuw op.
+ * formulieren/&lt;id&gt;.concept. Gegevens die uit Stamgegevens kwamen en BSN en documentnummers laat de interface er
+ * bewust uit (die blijven alleen in het geheugen en worden bij vergrendelen gewist). Niet in backups (Android en eigen).
  */
 final class FormConcept {
 
@@ -55,8 +55,8 @@ final class FormConcept {
         if (dir != null && !dir.isDirectory() && !dir.mkdirs()) throw new Exception("Opslaan lukt niet");
         File tmp = new File(f.getPath() + ".tmp");
         Contacts.writeText(tmp, AppData.seal(Secure.deviceKey(), o.toString()), false);
-        if (f.exists() && !f.delete()) { tmp.delete(); throw new Exception("Opslaan lukt niet"); }
-        if (!tmp.renameTo(f)) { tmp.delete(); throw new Exception("Opslaan lukt niet"); }
+        // renameTo vervangt op Android in één keer; alleen als dat niet lukt eerst het oude weg
+        if (!tmp.renameTo(f) && !(f.delete() && tmp.renameTo(f))) { tmp.delete(); throw new Exception("Opslaan lukt niet"); }
         return o.optLong("t");
     }
 
@@ -65,14 +65,22 @@ final class FormConcept {
         if (!validId(id)) return null;
         File f = file(c, id);
         if (!f.isFile()) return null;
-        JSONObject o = new JSONObject(AppData.open(Secure.deviceKey(), Contacts.readText(f, false)));
-        if (!FORMAT.equals(o.optString("format")) || o.optInt("version", 0) > VERSION || !id.equals(o.optString("id"))) throw new Exception("Concept niet te lezen");
-        return o;
+        javax.crypto.SecretKey k = Secure.deviceKey(); // sleutelopslag even niet bereikbaar: niets weggooien
+        try {
+            JSONObject o = new JSONObject(AppData.open(k, Contacts.readText(f, false)));
+            if (!FORMAT.equals(o.optString("format")) || o.optInt("version", 0) > VERSION || !id.equals(o.optString("id"))) throw new Exception("Concept niet te lezen");
+            return o;
+        } catch (Exception e) {
+            // Onleesbaar (bijv. met een andere sleutel gemaakt): één keer melden en dan weg, anders blijft de melding altijd staan
+            f.delete();
+            throw e;
+        }
     }
 
     static synchronized void delete(Context c, String id) {
         if (!validId(id)) return;
         File f = file(c, id);
         if (f.exists()) f.delete();
+        new File(f.getPath() + ".tmp").delete();
     }
 }

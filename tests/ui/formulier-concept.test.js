@@ -49,11 +49,24 @@ const path=require('path');
     const c2=await p.evaluate(()=>Android._formConcept.reistoestemming.values);
     assert.equal(c2['kind-voornamen'],undefined,'stamgegevens niet in het concept');assert.equal(c2.van,'2027-07-01');
     assert.match(await p.textContent('#toast'),/Stamgegevens bewaart het concept niet/);
+    // BSN en documentnummers gaan nooit in het concept (alleen in het geheugen)
+    await p.evaluate(()=>{fm.values['kind-bsn']='123456782';fm.values['kind-document']='NX1234567';});await p.click('#pff-opslaan');
+    const c3=await p.evaluate(()=>Android._formConcept.reistoestemming.values);
+    assert.equal(c3['kind-bsn'],undefined,'BSN niet in het concept');assert.equal(c3['kind-document'],undefined,'documentnummer niet in het concept');
+    // Alleen een andere stap (zonder iets te wijzigen) wordt ook bewaard
+    await p.evaluate(()=>{fm.values.tot='2027-07-30';fm.step=1;fmRender();});await p.click('#pff-volgende');
+    assert.equal(await p.evaluate(()=>Android._formConcept.reistoestemming.step),2,'stap vanzelf bewaard');
+    // Naam van de PDF uit Stamgegevens niet in het concept; zelf aangepast wel
+    await p.evaluate(()=>{$('#pff-naam').value='Reistoestemming Zoë 2027-07-01';fm.naamStam=true;});await p.click('#pff-opslaan');
+    assert.equal(await p.evaluate(()=>Android._formConcept.reistoestemming.naam),'','naam met kind uit Stamgegevens niet bewaard');
     // Opslaan mislukt: duidelijke melding
     await p.evaluate(()=>{Android._pdf.conceptError='Opslaan is niet gelukt. Probeer het nog eens.';});
-    await p.fill('#pff-v-land','Spanje');await p.click('#pff-opslaan');
+    await p.evaluate(()=>{fm.values.land='Spanje';fm.step=0;fmRender();});await p.click('#pff-opslaan');
     assert.match(await p.textContent('#pff-concept'),/Opslaan is niet gelukt/);
     await p.evaluate(()=>{Android._pdf.conceptError='';});
+    // Alles weer leeggemaakt na een eerdere opslag: het oude concept komt niet terug
+    await p.evaluate(()=>{for(const k in fm.values)fm.values[k]=JSON.parse(fm.initial)[k];fmConceptVanzelf();});
+    assert.equal(await p.evaluate(()=>Android._formConcept.reistoestemming.values.land),'','lege velden ook bewaard');
     // Leegmaken haalt ook het concept weg
     await p.evaluate(()=>{fmWissen();});await p.click('#modal-ok');
     assert.equal(await p.evaluate(()=>Android._formConcept.reistoestemming),undefined,'concept weg na leegmaken');

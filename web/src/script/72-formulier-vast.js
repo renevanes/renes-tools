@@ -27,7 +27,7 @@ function fmqOpen(){
     fmq.open=true;fmq.ask=true;fmq.epoch++;fmq.focus=document.activeElement;fmqClearInput();
     $('#fmq').hidden=false;$('#s-'+current).inert=true;fmqRenderState();cmPrivacy(true);$('#fmq-titel').focus();
   };
-  if(fmDirty())askConfirm('Nieuwe reis invullen?','Je huidige invoer in dit formulier wordt vervangen. Een al gemaakte PDF blijft onder PDF → Gemaakt staan.','Doorgaan',open);else open();
+  if(fmDirty())askConfirm('Nieuwe reis invullen?','Je huidige invoer in dit formulier wordt vervangen, ook het opgeslagen concept. Een al gemaakte PDF blijft onder PDF → Gemaakt staan.','Doorgaan',open);else open();
 }
 function fmqClose(){
   if(!fmq.open)return;fmq.open=false;fmq.busy=false;fmq.ask=false;fmq.epoch++;fmqClearInput();$('#fmq').hidden=true;$('#s-formulieren').inert=false;
@@ -66,7 +66,7 @@ function fmqFill(record,reis,consent,id,epoch,warnings){
   cmRequest('masterFormProfile',[record.id,record.revision,consent],r=>{
     if(epoch!==fmq.epoch)return;fmq.busy=false;$('#fmq-ga').disabled=false;if(!fmq.open||fm.id!==id||fm.busy){fmqNote('');return;}
     // Eerst het oude concept wissen (dat geeft ook de vorige binding vrij), daarna deze vrijgave binden.
-    fmInit(id);
+    fmInit(id);fmConceptWeg(); // het oude concept hoort niet meer bij deze nieuwe reis
     if(!Android.masterApplied(cm.token,r.grant)){fmqNote(t('Ontgrendel de stamgegevens opnieuw'));return;}
     const known=new Set(fmDef().sections.flatMap(s=>s.fields.map(f=>f.id)));
     for(const [key,value] of Object.entries(r.values||{}))if(known.has(key)&&typeof value==='string'){fm.values[key]=value;fm.stam.add(key);}
@@ -75,6 +75,7 @@ function fmqFill(record,reis,consent,id,epoch,warnings){
     fm.masterSensitive=true;
     const kind=(fm.values['kind-voornamen']||'').split(/\s+/)[0];
     $('#pff-naam').value=kind?t('Reistoestemming {naam} {datum}',{naam:kind,datum:reis.van}):t('{titel} {datum}',{titel:fmDef().title,datum:reis.van});
+    fm.naamStam=!!kind; // de naam van het kind komt uit Stamgegevens: niet in het concept
     fmqClose();fm.step=fmSecties().length;fm.view='stap';fmWijzig();fmRender();
     if(fmGeldig(true)){
       $('#pff-titel').focus();
