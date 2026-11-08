@@ -1,7 +1,7 @@
 /* ID-gegevens herkennen uit een foto: MRZ en genummerde rijbewijsvelden worden op de telefoon gelezen, de foto gaat nergens
  * heen. De foto blijft als bijlage (voor- of achterzijde) bij het document, versleuteld, en is daar te verwijderen; vanaf
  * een bewaarde foto kan opnieuw herkend worden. Het resultaat is een voorstel: Rene vinkt aan wat hij overneemt. */
-const cmh={data:null,current:null,epoch:0,back:null,scanEpoch:0,scanBusy:false};
+const cmh={data:null,current:null,reveal:false,photoBusy:false,epoch:0,back:null,scanEpoch:0,scanBusy:false};
 const CMH_DOC=['documentsoort','document','geldig','afgifte','afgegevenDoor','categorieen','uitgifteland'],CMH_PERSON=['naam','voornamen','geboortedatum','geslacht','nationaliteit','bsn'];
 function cmhScanPick(){
   if(!cmOpen()||!cm.edit?.id||cm.edit.type!=='persoon'||cm.dirty||cm.mutating){cmNote(t('Sla je wijzigingen eerst op.'));return;}
@@ -14,16 +14,18 @@ function cmhPendingText(){
 }
 const cmhPicked=window.onMasterPhotoPicked;window.onMasterPhotoPicked=function(r){
   // Binnen 2 minuten terug uit de kiezer en nog ontgrendeld: geen kaart "Ontgrendel…", de foto wordt meteen verwerkt.
-  if(r&&r.request===cmi.photoRequest&&r.picked&&r.direct&&cmOpen()){cmNote(t('Foto verwerken…'));return;}
+  if(r&&r.request===cmi.photoRequest&&r.picked&&r.direct&&cmOpen()){cmh.photoBusy=true;cmBusy(true);cmNote(t('Foto verwerken…'));return;}
   cmhPendingText();cmhPicked(r);
 };
 window.onMasterPhotoDone=function(r){
   if(!r||!r.photo||!cmi.photoRequest||r.request!==cmi.photoRequest)return;
   // Intussen op slot of opnieuw ontgrendeld: de foto is weg; niet blijven wachten (anders reageren de fotoknoppen niet meer).
-  if(r.token!==cm.token||!cmOpen()){cmiPhotoCancel();if(cmOpen())cmNote(t('De foto is niet verwerkt. Kies hem opnieuw.'));return;}
-  cmiPhotoAfterUnlock(r.photo);if(!r.photo.error)cmListLoad();
+  if(r.token!==cm.token||!cmOpen()){cmhPhotoReady();cmiPhotoCancel();if(cmOpen())cmNote(t('De foto is niet verwerkt. Kies hem opnieuw.'));return;}
+  if(r.photo.error)cmhPhotoReady();
+  cmiPhotoAfterUnlock(r.photo);if(!r.photo.error)cmListLoad(undefined,cmhPhotoReady);
 };
-const cmhCancel=cmiPhotoCancel;cmiPhotoCancel=function(){cmh.scanning=false;cmhCancel();};
+function cmhPhotoReady(){cmh.photoBusy=false;cmBusy(false);}
+const cmhCancel=cmiPhotoCancel;cmiPhotoCancel=function(){cmh.scanning=false;if(!cmh.photoBusy)cmBusy(false);cmhCancel();};
 const cmhAfterUnlock=cmiPhotoAfterUnlock;cmiPhotoAfterUnlock=function(photo){
   cmh.data=null;cmh.back=null;
   if(photo&&!photo.error&&photo.saved){
@@ -35,10 +37,10 @@ const cmhAfterUnlock=cmiPhotoAfterUnlock;cmiPhotoAfterUnlock=function(photo){
 };
 const cmhAfterList=cmiAfterList;cmiAfterList=function(){
   const id=cmi.reopen,b=cmh.back;
-  if(id&&(cmh.data?.doc===id||b)){
+  if(id&&(cmh.data?.doc===id||b||cmh.photoBusy)){
     cmi.reopen='';cmh.back=null;
-    const note=b?(cmh.data?t('De foto is bewaard. Controleer de gevonden gegevens en kies wat je bewaart.'):t('De foto is bewaard, maar er zijn geen gegevens herkend. Vul zelf in of kies een scherpere foto.')):t('Controleer de gevonden gegevens en kies wat je bewaart.');
-    cmEdit(id,cmh.data?'document':'fotos',b&&b.id?{id:b.id,tab:b.tab}:null,note);return;
+    const note=b?(cmh.data?t('De foto is bewaard. Controleer de gevonden gegevens en kies wat je bewaart.'):t('De foto is bewaard, maar er zijn geen gegevens herkend. Vul zelf in of kies een scherpere foto.')):cmh.data?t('Controleer de gevonden gegevens en kies wat je bewaart.'):t('Kaartfoto opgeslagen.');
+    cmEdit(id,cmh.data?'document':'fotos',b&&b.id?{id:b.id,tab:b.tab}:null,note,cmh.photoBusy?cmhPhotoReady:null);return;
   }
   cmhAfterList();
 };
@@ -72,8 +74,8 @@ const cmhEditor=cmEditor;cmEditor=function(tab){
 };
 function cmhPersonId(){return cm.edit?.fields?.persoon||'';}
 function cmhShow(){
-  const epoch=++cmh.epoch,person=cmhPersonId();cmh.current=null;
-  const draw=()=>{if(epoch===cmh.epoch&&cm.edit?.type==='identiteit')cmhRender();};
+  const epoch=++cmh.epoch,person=cmhPersonId(),record=cm.edit;cmh.current=null;cmh.reveal=false;
+  const draw=()=>{if(epoch!==cmh.epoch||cm.edit!==record)return;if(cm.dirty){cmhDismiss();cmNote(t('Sla je wijzigingen eerst op.'));return;}cmhRender();};
   if(!person){draw();return;}
   cmRequest('masterRead',[person,'masterdata',''],r=>{if(epoch!==cmh.epoch)return;cmh.current=r.record;draw();},false,()=>draw());
 }
@@ -81,7 +83,7 @@ function cmhValue(key,value){
   if(!value)return '';
   if(['geboortedatum','geldig','afgifte'].includes(key))return fmtDate(value);
   if(key==='geslacht'||key==='documentsoort'){const c=(cmiChoices(key)||[]).find(x=>x[0]===value);return c?c[1]:value;}
-  if(key==='document'||key==='bsn')return '•••••'+value.slice(-3);
+  if((key==='document'||key==='bsn')&&!cmh.reveal)return '•••••'+value.slice(-3);
   return value;
 }
 function cmhRender(){
@@ -101,10 +103,14 @@ function cmhRender(){
       cmData(text);label.append(input,text);box.append(label);
     }
   }
-  if(d.fields.bron==='tekst')box.append(cmEl('p',t('Rijbewijs gelezen uit de gedrukte tekst. Er zijn geen controlecijfers: controleer elk gekozen veld.'),'note cmi-warn'));
-  else if(d.fields.zeker===false)box.append(cmEl('p',t('Niet alle controlecijfers kloppen: kijk de gegevens extra goed na.'),'note cmi-warn'));
-  else box.append(cmEl('p',t('Namen in de strook kunnen zonder accenten zijn geschreven.'),'hint'));
+  $('#cmh-source').textContent=d.fields.bron==='tekst'?t('Rijbewijs gelezen uit de gedrukte tekst. Er zijn geen controlecijfers: controleer elk gekozen veld.'):d.fields.zeker===false?t('Niet alle controlecijfers kloppen: kijk de gegevens extra goed na.'):t('Namen in de strook kunnen zonder accenten zijn geschreven.');
+  const numbers=$('#cmh-numbers');numbers.textContent=cmh.reveal?t('Nummers verbergen'):t('Nummers tonen');numbers.setAttribute('aria-pressed',String(cmh.reveal));
   $('#cmh-panel').hidden=!box.querySelector('input');cmhReviewState();
+}
+function cmhToggleNumbers(){
+  if(!cmOpen()||cm.mutating||!cmh.data)return;
+  const choices=new Map([...document.querySelectorAll('#cmh-list input')].map(i=>[i.dataset.key,i.checked]));
+  cmh.reveal=!cmh.reveal;cmhRender();for(const i of document.querySelectorAll('#cmh-list input'))if(choices.has(i.dataset.key))i.checked=choices.get(i.dataset.key);cmTouch();
 }
 function cmhReviewState(){
   const on=!!cmh.data&&!$('#cmh-panel').hidden;
@@ -128,7 +134,7 @@ function cmhApply(){
 const cmhSave=cmSave;cmSave=function(){if(cmh.data&&cm.edit?.id===cmh.data.doc&&!$('#cmh-panel').hidden)cmhApply();else cmhSave();};
 function cmhDismiss(){if(cm.mutating)return;cmh.data=null;cmh.epoch++;$('#cmh-panel').hidden=true;$('#cmh-list').replaceChildren();cmhReviewState();}
 const cmhAfterEdit=cmAfterEdit;cmAfterEdit=function(saved){cmh.data=null;cmh.epoch++;$('#cmh-panel').hidden=true;$('#cmh-list').replaceChildren();cmhReviewState();cmhAfterEdit(saved);};
-const cmhClear=cmClearCentral;cmClearCentral=function(){cmh.data=null;cmh.current=null;cmh.back=null;cmh.epoch++;cmh.scanEpoch++;cmh.scanBusy=false;$('#cmh-list').replaceChildren();$('#cmh-panel').hidden=true;cmhReviewState();cmhClear();};
+const cmhClear=cmClearCentral;cmClearCentral=function(){cmh.data=null;cmh.current=null;cmh.reveal=false;cmh.photoBusy=false;cmh.back=null;cmh.epoch++;cmh.scanEpoch++;cmh.scanBusy=false;$('#cmh-list').replaceChildren();$('#cmh-panel').hidden=true;cmhReviewState();cmhClear();};
 // Herkennen kan even duren na het ontgrendelen: zeg dat.
 const cmhUnlock=cmUnlock;cmUnlock=function(){cmhUnlock();if(cmi.photoRequest&&cm.unlocking)cmNote(t('Bevestig op je telefoon. Daarna wordt de foto verwerkt; dat kan een paar seconden duren.'));};
 // Alleen met de nieuwe APK (MrzOcr); anders de knop en uitleg niet tonen.

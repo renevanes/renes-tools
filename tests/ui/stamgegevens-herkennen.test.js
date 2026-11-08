@@ -57,7 +57,7 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>cmiPhotoPick('back'));await p.waitForFunction(()=>!cmOpen());
   await p.waitForFunction(()=>!cmi.photoRequest);await p.evaluate(()=>Android._cm.lateLock=false);
   await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);assert.equal(await p.isVisible('#cmi-photo-pending'),false,'geen hangende fotokeuze');
-  await openDoc2();await p.evaluate(()=>cmiPhotoPick('back'));await p.waitForFunction(()=>cm.edit&&/Kaartfoto opgeslagen/.test($('#cm-edit-status').textContent));
+  await openDoc2();await p.evaluate(()=>cmiPhotoPick('back'));await p.waitForFunction(()=>cm.edit?.images?.back&&!$('#cmh-panel').hidden);
   // 4. Vergrendelen wist voorstellen.
   await p.evaluate(()=>{Android._cm.herkend={document:{document:'X1'},persoon:{},zeker:true};});
   await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!cmOpen());

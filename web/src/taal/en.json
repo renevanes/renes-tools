@@ -225,26 +225,11 @@
  "{n} in de backup": "{n} in the backup",
  "{n} ingevuld, {gemist} gemist.": "{n} filled in, {gemist} missed.",
  "{n} items maken": "Create {n} items",
- "{n} keer geluid": [
-  "Sound once",
-  "Sound {n} times"
- ],
- "{n} keer gepraat": [
-  "Talked once",
-  "Talked {n} times"
- ],
- "{n} keer iets gehoord": [
-  "Heard something once",
-  "Heard something {n} times"
- ],
- "{n} keer ingevuld": [
-  "answered once",
-  "answered {n} times"
- ],
- "{n} keer opgepikt": [
-  "Picked up once",
-  "Picked up {n} times"
- ],
+ "{n} keer geluid": ["Sound once","Sound {n} times"],
+ "{n} keer gepraat": ["Talked once","Talked {n} times"],
+ "{n} keer iets gehoord": ["Heard something once","Heard something {n} times"],
+ "{n} keer ingevuld": ["answered once","answered {n} times"],
+ "{n} keer opgepikt": ["Picked up once","Picked up {n} times"],
  "{n} kluisdocument": "{n} vault document",
  "{n} kluisdocumenten": "{n} vault documents",
  "{n} knop": "{n} button",
@@ -338,10 +323,7 @@
  "{n} tools": "{n} tools",
  "{n} tools als losse app": "{n} tools as separate apps",
  "{n} uit Spotify verdwenen (bewaard)": "{n} gone from Spotify (kept)",
- "{n} uur": [
-  "{n} hour",
-  "{n} hours"
- ],
+ "{n} uur": ["{n} hour","{n} hours"],
  "{n} uur {soort} is hooguit ±{mb} MB per nacht.": "{n} hours of {soort} is at most ±{mb} MB per night.",
  "{n} van {totaal}": "{n} of {totaal}",
  "{n} van {totaal} berichten": "{n} of {totaal} messages",
@@ -4841,6 +4823,8 @@
  "Nummering en opsommingstekens worden weggehaald. Vinkjes worden overgenomen. Een bestaand item wordt op dezelfde plek vervangen; andere items blijven staan.": "Numbering and bullets are removed. Ticks are kept. An existing item is replaced in the same place; other items stay.",
  "Nummers bekijken": "View songs",
  "Nummers die je leuk vindt, albums, artiesten die je volgt, podcasts, je top en wat je laatst luisterde. Daarvoor vraagt Spotify één keer opnieuw toestemming.": "Liked songs, albums, artists you follow, podcasts, your top and what you played recently. Spotify asks for permission once more for this.",
+ "Nummers tonen": "Show numbers",
+ "Nummers verbergen": "Hide numbers",
  "Ochtend": "Morning",
  "of": "or",
  "Of 1 MB 1024 kB is (zoals de app altijd deed) of 1000 kB (zoals fabrikanten rekenen).": "Whether 1 MB is 1024 kB (as the app always did) or 1000 kB (as manufacturers count).",

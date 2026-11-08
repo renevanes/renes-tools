@@ -1227,3 +1227,6 @@ details.cm-fold[open]>summary{margin-bottom:8px}
 
 /* Tijdens het nakijken staan de voorstellen centraal; de handmatige velden volgen via Zelf invullen. */
 .cmh-review #cm-fields,.cmh-review #cm-label-box,.cmh-review #cm-secret-row{display:none}
+
+.cmh-review #cm-editor-card{padding:0;border:0;background:transparent}
+.cmh-review .cmh-panel{margin:0}

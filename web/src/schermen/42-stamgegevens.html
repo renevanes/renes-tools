@@ -55,8 +55,10 @@
         <div class="card cmh-panel" id="cmh-panel" data-cm-tab="document" hidden>
           <h3>Controleer de gevonden gegevens</h3>
           <p class="hint" id="cmh-review-hint">Vergelijk met je document en vink aan wat je wilt bewaren. Bestaande afwijkende gegevens blijven uitgevinkt.</p>
+          <p class="hint cmi-warn" id="cmh-source"></p>
+          <div class="row cmi-actions"><button class="mini" id="cmh-numbers" onclick="cmhToggleNumbers()" aria-pressed="false">Nummers tonen</button><button class="mini" onclick="cmTab('fotos')">Foto bekijken</button></div>
           <div id="cmh-list" translate="no"></div>
-          <div class="row cmi-actions"><button class="mini" onclick="cmTab('fotos')">Foto bekijken</button><button class="mini" onclick="cmhDismiss()">Zelf invullen</button></div>
+          <button class="mini" onclick="cmhDismiss()">Zelf invullen</button>
         </div>
         <div id="cmi-photos" data-cm-tab="fotos" hidden>
           <p class="hint">Versleuteld bewaard, zonder fotometadata. Gebruik de voorkant van je rijbewijs of de strook &lt;&lt;&lt; van je ID-kaart of paspoort.</p>
