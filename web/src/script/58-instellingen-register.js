@@ -377,9 +377,9 @@ const SET_GEN = [
   { cover: '#bk-private input[type=checkbox]', gen: () => Object.keys(BK_PRIV).map(k => ({ id: 'backup.prive.' + k, scr: 'bkparts', ctl: '#bk-private input[data-p="' + k + '"]', label: t('Privé mee in Alles back-uppen: {wat}', { wat: t(BK_PRIV[k]) }), desc: 'Privé-onderdelen staan standaard uit; zonder versleutelen komen ze leesbaar in je backup-map.', syn: 'backup privé ' + BK_PRIV[k] /* taal-vast: zoekwoorden */,
     weak: v => v === 'aan', safe: 'privacy', why: 'Privé-onderdelen in de backup zet je zelf aan, zodat je bewust kiest (bij voorkeur versleuteld).',
     get: () => setB((setBk().parts || {})[k] === true), set: v => { Android.backupSetPart(k, setOnV(v)); setIf(BK_SCR, enterBackup); return ''; } })) },
-  { cover: '#nws-bronnen .tg', gen: () => (nwKlaar() && nwLaad() ? nwBronnen() : []).map(b => ({ id: 'nieuws.bron.' + b.id, scr: 'nieuwsset', label: t('Nieuwsbron: {naam}', { naam: b.naam }), desc: 'Artikelen van deze bron ophalen en tonen in Nieuws.', syn: 'nieuws bron nieuwsbron feed krant ' + b.naam /* taal-vast: zoekwoorden */,
-    get: () => setB(nwKlaar() && nwLaad() && !!(nwBronnen().find(x => x.id === b.id) || {}).aan),
-    set: v => { const f = Android.nieuwsBron(b.id, setOnV(v)); if (f) return f; setIf('nieuwsset', enterNieuwsSet); setIf('nieuws', () => enterNieuws()); return ''; } })) }
+  { cover: '#nws-bronnen .tg', gen: () => (nwKlaar() && (nw.data || nwLaad()) ? nwBronnen() : []).map(b => ({ id: 'nieuws.bron.' + b.id, scr: 'nieuwsset', label: t('Nieuwsbron: {naam}', { naam: b.naam }), desc: 'Artikelen van deze bron ophalen en tonen in Nieuws.', syn: 'nieuws bron nieuwsbron feed krant ' + b.naam /* taal-vast: zoekwoorden */,
+    get: () => setB(!!(nwBronnen().find(x => x.id === b.id) || {}).aan),
+    set: v => { const f = Android.nieuwsBron(b.id, setOnV(v)); if (f) return f; const x = nwBronnen().find(y => y.id === b.id); if (x) x.aan = setOnV(v); setIf('nieuwsset', enterNieuwsSet); setIf('nieuws', () => enterNieuws()); return ''; } })) }
 ];
 
 /* Woorden die in de vraag moeten staan om een instelling van die tool te bedoelen (anders telt hij minder zwaar mee):

@@ -1,6 +1,6 @@
 /* Nieuws: artikelen uit de nieuwsfeeds die Java ophaalt (Nieuws.java). Alles uit een feed is gegevens: altijd als tekst
  * (esc of textContent), nooit als HTML van de site. */
-const nw = { data: null, filter: 'alles', open: null, toon: 60, scroll: 0, bezig: false, toevoegen: false, gelezen: new Set() };
+const nw = { data: null, filter: 'alles', open: null, toon: 60, scroll: 0, bezig: false, nogEens: false, toevoegen: false, gelezen: new Set() };
 function nwData(raw){ try { return JSON.parse(raw); } catch(e){ return { error: t('Nieuws lezen lukt niet') }; } }
 function nwKlaar(){ return typeof Android.nieuwsLijst === 'function'; }
 function nwBeeldenAan(){ return store.get('nwBeelden', true) !== false; }
@@ -109,7 +109,8 @@ function nwRender(){
 }
 function nwVerder(){ nw.toon += 60; nwRender(); }
 function nwVerversen(alles){
-  if (!nwKlaar() || nw.bezig) return;
+  if (!nwKlaar()) return;
+  if (nw.bezig) { nw.nogEens = true; return; } // bijv. een bron aangezet tijdens het bijwerken: daarna nog een ronde
   if (alles && !nwBronnen().some(b => b.aan)) { toast(t('Zet eerst een bron aan')); show('nieuwsset'); return; }
   nw.bezig = true;
   if (current === 'nieuws') nwRender();
@@ -123,6 +124,7 @@ window.onNieuws = function(r){
   if (!nwLaad()) return;
   if (current === 'nieuws') { nwRender(); if (r.nieuw > 0) toast(tn(r.nieuw, 'Eén nieuw artikel', '{n} nieuwe artikelen')); }
   if (current === 'nieuwsset') nwSetRender();
+  if (nw.nogEens && !nw.bezig) { nw.nogEens = false; nwVerversen(false); }
 };
 function nwMenu(){
   const lijst = nwZichtbaar().filter(a => !nw.gelezen.has(a.id));
@@ -157,7 +159,8 @@ function nwArtRender(){
   if (!a) { show('nieuws'); return; }
   $('#nwa-bron').textContent = nwNamen()[a.bron] || a.bronnaam || t('Nieuws');
   $('#nwa-titel').textContent = a.titel;
-  $('#nwa-meta').textContent = [a.datum ? fmtDate(a.datum, { weekday: 'long', day: 'numeric', month: 'long' }) + ' ' + fmtTime(a.datum) : '', a.auteur ? t('door {naam}', { naam: a.auteur }) : ''].filter(Boolean).join(' · ');
+  const jaar = a.datum && rgParts(a.datum).y !== rgParts(Date.now()).y ? { year: 'numeric' } : {};
+  $('#nwa-meta').textContent = [a.datum ? fmtDate(a.datum, Object.assign({ weekday: 'long', day: 'numeric', month: 'long' }, jaar)) + ' ' + fmtTime(a.datum) : '', a.auteur ? t('door {naam}', { naam: a.auteur }) : ''].filter(Boolean).join(' · ');
   const img = $('#nwa-beeld');
   img.hidden = true; img.onload = () => { img.hidden = false; }; img.onerror = () => { img.hidden = true; };
   if (nwBeeldenAan() && /^https:\/\//.test(a.beeld || '')) img.src = a.beeld; else img.removeAttribute('src');

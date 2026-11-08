@@ -115,6 +115,10 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     ok(await page.evaluate(() => !window.__xss && !document.querySelector('#s-nieuwsart script, #s-nieuwsart b, #nwa-tekst img') && document.getElementById('nwa-tekst').textContent.includes('<script>')
       && document.getElementById('nwa-beeld').hidden && !document.getElementById('nwa-beeld').getAttribute('src')), 'artikel als tekst, geen HTML of script van de site');
     await page.evaluate(() => goBack());
+    const vorigJaar = await page.evaluate(() => { const d = Date.now() - 400 * 864e5; Android._nw.artikelen.push({ id: 'n00000000000f0003', bron: 'nos', titel: 'Vorig jaar', link: 'https://nos.nl/l/3', datum: d, blokken: [{ t: 'Oud nieuws.' }] });
+      nwLaad(); nwOpen('n00000000000f0003'); return String(rgParts(d).y); });
+    ok((await page.locator('#nwa-meta').innerText()).includes(vorigJaar), 'artikel van vorig jaar: met het jaartal');
+    await page.evaluate(() => goBack());
 
     await page.screenshot({ path: path.join(__dirname, 'shots', 'nieuws-' + colorScheme + '.png'), fullPage: true });
     ok(await page.evaluate(() => [...document.querySelectorAll('#s-nieuws .nw-rij, #s-nieuws .icon-btn, #nw-filter button, #nw-bron, #nw-zoek')].every(e => { const r = e.getBoundingClientRect(); return r.height >= 44 && r.width >= 44; })), 'overzicht: tikvlakken minstens 44 px');
@@ -130,6 +134,10 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     await page.locator('#nws-bronnen .srow:has-text("NU.nl") .tg').click();
     ok(await page.evaluate(() => Android._nw.bronnen.find(b => b.id === 'nu').aan) && (await nwCalls()).includes('verversen:false'), 'bron aanzetten: meteen ophalen');
     await page.waitForTimeout(400);
+    await page.evaluate(() => { Android._nw.calls.length = 0; nwVerversen(true); });
+    await page.locator('#nws-bronnen .srow:has-text("NRC") .tg').click();
+    await page.waitForTimeout(900);
+    ok((await nwCalls()).join() === 'verversen:true,verversen:false' && await page.evaluate(() => !nw.bezig && !nw.nogEens), 'bron aangezet tijdens het bijwerken: daarna nog een ronde');
     // Bron toevoegen
     await page.click('#nws-add');
     ok((await page.locator('#nws-status').innerText()).startsWith('Vul het adres'), 'leeg adres: uitleg');
