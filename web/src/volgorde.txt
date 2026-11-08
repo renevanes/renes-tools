@@ -8,6 +8,7 @@ apparaten.css
 bankzaken.css
 formulieren.css
 ereader.css
+nieuws.css
 body-begin.html
 schermen/01-home.html
 schermen/02-auto-redial.html
@@ -56,6 +57,7 @@ schermen/42-stamgegevens.html
 schermen/43-toiletten.html
 schermen/44-ereader.html
 schermen/45-voorlezen.html
+schermen/45-nieuws.html
 speler.html
 vensters.html
 taal/en.json
@@ -139,6 +141,7 @@ script/66-play-versie.js
 script/74-ereader.js
 script/74b-ereader-inhoud.js
 script/74c-ereader-lezen.js
+script/75-nieuws.js
 script/30-snelkoppelingen.js
 script/31-startscherm-groepen-volgorde-verbergen.js
 script/32-automatiseringen.js

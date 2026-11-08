@@ -42,6 +42,95 @@ if (!window.Android) window.Android = (function(){
     /* E-reader: het venster tijdens het lezen (volle scherm, scherm aan, helderheid, volumeknoppen). */
     _erWin: {}, _erWinLog: [], _talkback: false,
     ereaderWindow(json){ this._erWin = JSON.parse(json || '{}'); this._erWinLog.push(this._erWin); return JSON.stringify({ talkback: !!this._talkback }); },
+    /* Nieuws: dezelfde bekende bronnen als Nieuws.java; mislukt = { bron: fout }, erbij = artikelen die bij bijwerken binnenkomen. */
+    _nw: null,
+    _nwInit(){
+      if (this._nw) return this._nw;
+      const nu = Date.now(), m = 60000, u = 60 * m, d = 24 * u;
+      const bronnen = [['nos', 'NOS Nieuws', 'https://feeds.nos.nl/nosnieuwsalgemeen', true], ['rijnmond', 'Rijnmond', 'https://www.rijnmond.nl/rss/index.xml', true],
+        ['nos-sport', 'NOS Sport', 'https://feeds.nos.nl/nossportalgemeen'], ['nu', 'NU.nl', 'https://www.nu.nl/rss/Algemeen'], ['rtl', 'RTL Nieuws', 'https://www.rtl.nl/rss.xml'],
+        ['nrc', 'NRC', 'https://www.nrc.nl/rss/'], ['volkskrant', 'de Volkskrant', 'https://www.volkskrant.nl/voorpagina/rss.xml'], ['ad', 'AD', 'https://www.ad.nl/home/rss.xml'],
+        ['tweakers', 'Tweakers', 'https://tweakers.net/feeds/mixed.xml'], ['bbc', 'BBC News', 'https://feeds.bbci.co.uk/news/rss.xml'], ['guardian', 'The Guardian', 'https://www.theguardian.com/world/rss']]
+        .map(([id, naam, url, aan]) => ({ id, naam, url, aan: !!aan, eigen: false }));
+      let n = 0;
+      const art = (bron, titel, wanneer, blokken, extra) => Object.assign({ id: 'n' + (0xa000 + ++n).toString(16).padStart(16, '0'), bron, titel,
+        link: (bron === 'nos' ? 'https://nos.nl/l/' : 'https://www.rijnmond.nl/nieuws/') + (2638600 + n), datum: nu - wanneer, blokken: blokken.map(b => typeof b === 'string' ? { t: b } : b) }, extra || {});
+      const lang = 'Het plan moet reizigers met een laag inkomen helpen. Volgens het ministerie gaan vooral mensen die elke dag met de trein of bus naar hun werk reizen erop vooruit. De korting gaat in op 1 maart en geldt voor alle vervoerders.';
+      const artikelen = [
+        art('nos', 'Kabinet presenteert plan voor goedkoper openbaar vervoer', 8 * m, [lang, { t: 'Wat verandert er?', k: 1 }, 'Reizigers krijgen 20 procent korting buiten de spits. Kinderen tot twaalf jaar reizen gratis met een volwassene.', 'Reizigersorganisaties zijn tevreden, maar vinden dat de korting ook in de spits moet gelden. "Juist dan reizen de meeste mensen," zegt een woordvoerder.', { t: 'Hoe gaat het verder?', k: 1 }, 'De Tweede Kamer bespreekt het plan volgende maand. Een meerderheid lijkt voor.', 'Het kabinet trekt er de komende vier jaar 300 miljoen euro voor uit. Een deel komt uit de vliegtaks, de rest uit de begroting van Infrastructuur en Waterstaat.'], { auteur: 'Redactie Binnenland' }),
+        art('rijnmond', 'Erasmusbrug vanavond afgesloten voor onderhoud', 22 * m, ['De Erasmusbrug is vanavond van 22.00 uur tot 05.00 uur dicht voor auto\'s, fietsers en voetgangers. Er wordt gewerkt aan de verlichting.']),
+        art('nos', 'Storm zorgt voor vertraging op Schiphol', 50 * m, ['Door harde wind zijn tientallen vluchten vertraagd. Reizigers wordt aangeraden de vluchtinformatie te controleren voordat ze naar het vliegveld gaan.'], { ingekort: true }),
+        art('rijnmond', 'Nieuwe tramlijn naar Rotterdam-Zuid in gebruik', 3 * u, ['Vanaf vandaag rijdt er een nieuwe tram tussen Rotterdam Centraal en Zuidplein. De lijn rijdt overdag elke acht minuten.']),
+        art('nos', 'Meer jongeren kiezen voor een technische opleiding', 5 * u, ['Het aantal aanmeldingen voor technische opleidingen is dit jaar met 12 procent gestegen, blijkt uit cijfers van de onderwijskoepels.']),
+        art('nos', 'Musea trekken recordaantal bezoekers', d + 2 * u, ['Nederlandse musea ontvingen dit jaar meer bezoekers dan ooit. Vooral kleine musea in de provincie deden het goed.']),
+        art('rijnmond', 'Markthal viert jubileum met een feest voor de buurt', d + 4 * u, ['Met muziek, proeverijen en rondleidingen viert de Markthal dit weekend haar jubileum.']),
+        art('nos', 'Waterschappen waarschuwen voor hoog water in de rivieren', 2 * d, ['Door de regen van de afgelopen dagen stijgt het water in de grote rivieren. Uiterwaarden kunnen onderlopen.']),
+        art('rijnmond', 'Fietspad langs de Maas wordt breder', 3 * d, ['Het fietspad langs de Maasboulevard wordt volgend jaar een meter breder. Fietsers krijgen zo meer ruimte.'])];
+      const stand = {}; bronnen.forEach(b => { if (b.aan) stand[b.id] = { t: nu - 5 * m, poging: nu - 5 * m }; });
+      this._nw = { bronnen, artikelen, stand, gelezen: new Set([artikelen[5].id]), bewaard: [], calls: [], mislukt: {}, erbij: [], wacht: 200 };
+      return this._nw;
+    },
+    _nwKort(a){ const o = Object.assign({}, a), p = (a.blokken || []).find(b => !b.k); o.sam = p && p.t !== a.titel ? p.t.slice(0, 240) : ''; o.lang = (a.blokken || []).reduce((n, b) => n + b.t.length, 0); delete o.blokken; return o; },
+    nieuwsLijst(){
+      const s = this._nwInit();
+      if (s.lijstFout) return JSON.stringify({ error: s.lijstFout });
+      const aan = new Set(s.bronnen.filter(b => b.aan).map(b => b.id));
+      const bronnen = s.bronnen.map(b => Object.assign({}, b, s.stand[b.id] || {}, { aantal: aan.has(b.id) ? s.artikelen.filter(a => a.bron === b.id).length : 0 }));
+      const artikelen = s.artikelen.filter(a => aan.has(a.bron)).sort((x, y) => y.datum - x.datum).map(a => this._nwKort(a));
+      return JSON.stringify({ bronnen, artikelen, bewaard: s.bewaard.map(a => this._nwKort(a)), gelezen: [...s.gelezen], bezig: !!s.bezig });
+    },
+    nieuwsArtikel(id){
+      const s = this._nwInit(), b = s.bewaard.find(a => a.id === id), a = b || s.artikelen.find(x => x.id === id);
+      if (!a) return JSON.stringify({ error: 'Dit artikel is niet meer beschikbaar' });
+      return JSON.stringify(Object.assign({ bronnaam: (s.bronnen.find(x => x.id === a.bron) || {}).naam }, a, { isBewaard: !!b, gelezen: s.gelezen.has(id) }));
+    },
+    nieuwsVerversen(alles){
+      const s = this._nwInit(); s.calls.push(['verversen', !!alles]); s.bezig = true;
+      setTimeout(() => {
+        const nu = Date.now(); let ok = 0, totaal = 0;
+        s.bronnen.filter(b => b.aan).forEach(b => {
+          totaal++;
+          if (s.mislukt[b.id]) { s.stand[b.id] = Object.assign({}, s.stand[b.id], { poging: nu, fout: s.mislukt[b.id] }); return; }
+          ok++; s.stand[b.id] = { t: nu, poging: nu };
+        });
+        const nieuw = s.erbij.splice(0).map(a => s.artikelen.push(a)).length;
+        s.bezig = false; onNieuws({ ok, totaal, nieuw });
+      }, s.wacht);
+    },
+    nieuwsToevoegen(adres){
+      const s = this._nwInit(); s.calls.push(['toevoegen', adres]);
+      setTimeout(() => {
+        const v = String(adres || '').trim().toLowerCase(), kaal = v.replace(/^[a-z]+:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+        if (!v.includes('.')) { onNieuwsBron({ error: 'Dit is geen geldig webadres' }); return; }
+        if (kaal.includes('geenfeed')) { onNieuwsBron({ error: 'Op deze pagina staat geen nieuwsfeed. Zoek op de site naar RSS en vul dat adres in.' }); return; }
+        const bekend = { 'nu.nl': 'nu', 'tweakers.net': 'tweakers', 'nos.nl': 'nos', 'rijnmond.nl': 'rijnmond' }[kaal];
+        if (bekend) { const b = s.bronnen.find(x => x.id === bekend); b.aan = true; onNieuwsBron({ bron: Object.assign({}, b, { al: true }) }); return; }
+        const url = 'https://' + kaal, host = kaal.split('/')[0];
+        if (s.bronnen.some(b => b.url === url)) { const b = s.bronnen.find(x => x.url === url); b.aan = true; onNieuwsBron({ bron: Object.assign({}, b, { al: true }) }); return; }
+        const id = 'e' + [...url].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7).toString(16), nu = Date.now();
+        const b = { id, naam: host, url, aan: true, eigen: true };
+        s.bronnen.push(b); s.stand[id] = { t: nu, poging: nu };
+        s.artikelen.push({ id: 'n' + id.slice(1).padStart(16, '0'), bron: id, titel: 'Eerste artikel van ' + host, link: url + '/artikel', datum: nu - 60000, blokken: [{ t: 'Een kort stukje tekst uit de feed.' }] });
+        onNieuwsBron({ bron: Object.assign({}, b) });
+      }, 150);
+    },
+    nieuwsBron(id, aan){ const b = this._nwInit().bronnen.find(x => x.id === id); if (!b) return 'Deze bron bestaat niet meer'; b.aan = !!aan; return ''; },
+    nieuwsVerwijder(id){
+      const s = this._nwInit(), b = s.bronnen.find(x => x.id === id && x.eigen);
+      if (!b) return 'Deze bron bestaat niet meer';
+      s.bronnen = s.bronnen.filter(x => x !== b); s.artikelen = s.artikelen.filter(a => a.bron !== id); delete s.stand[id]; return '';
+    },
+    nieuwsGelezen(ids, aan){ const s = this._nwInit(); JSON.parse(ids).forEach(id => { if (aan) s.gelezen.add(id); else s.gelezen.delete(id); }); return ''; },
+    nieuwsBewaar(id, aan){
+      const s = this._nwInit(), al = s.bewaard.some(a => a.id === id);
+      if (aan && !al) {
+        const a = s.artikelen.find(x => x.id === id); if (!a) return 'Dit artikel is niet meer beschikbaar';
+        s.bewaard.unshift(Object.assign({ bronnaam: (s.bronnen.find(x => x.id === a.bron) || {}).naam }, a, { bewaard: Date.now() }));
+      }
+      if (!aan) s.bewaard = s.bewaard.filter(a => a.id !== id);
+      return '';
+    },
+    nieuwsDeel(titel, link){ this._nwInit().gedeeld = [titel, link]; },
     version:()=>JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts','masterdata']}),
     lastManifest:()=>'null', checkUpdates:()=>setTimeout(()=>onUpdateStatus({state:'uptodate',kind:'web',manual:true,versionName:VERSION_NAME}),400),
     reloadUi(){ if (window.prepareUiReload && window.prepareUiReload()) { this._uiReloads = (this._uiReloads || 0) + 1; document.body.inert = false; } },

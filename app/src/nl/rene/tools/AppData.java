@@ -156,7 +156,7 @@ final class AppData {
      * FILE_SKIP staat, zodat er bij een nieuwe tool een bewuste keuze is; zonder die keuze gaat hij in Alle appgegevens toch mee.
      */
     static final List<String> FILE_KNOWN = Collections.unmodifiableList(Arrays.asList(
-            "notes.json", "notes.json.bak", "music.json", "ai", "apparaten", "call-recordings", "checkin", "contacts", "ereader", "facturen", "gebruik", "podcasts",
+            "notes.json", "notes.json.bak", "music.json", "ai", "apparaten", "call-recordings", "checkin", "contacts", "ereader", "facturen", "gebruik", "nieuws", "podcasts",
             "shortcut-icons", "sleep", "spotify", "toiletten", "tracks", "transcripts"));
 
     /** Hooguit zoveel instellingenbestanden uit een backup (bescherming tegen een gemaakt bestand met duizenden namen). */

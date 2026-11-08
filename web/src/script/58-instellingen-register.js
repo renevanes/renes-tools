@@ -355,6 +355,8 @@ const SET_REG = [
     get: () => String(gbSet().photoKeep || 30), set: v => { gbSaveOne('photoKeep', +v); setIf(['gebruikset', 'gebruikontgr'], enterGebruikSet); return ''; } },
   { id: 'toiletten.kaart', scr: 'wcset', ctl: '#wcs-kaart', label: 'Toiletten en douches: kaart tonen', desc: 'De kaart met toiletten en douches tonen; de kaartbeelden komen van OpenStreetMap. Uit: alleen de lijst.', syn: 'toiletten douches wc kaart tonen kaartbeelden openstreetmap', synEn: 'toilets toilet showers shower loo restroom map',
     get: () => setB(wcKaartAan()), set: v => { store.set('wcKaart', setOnV(v)); setIf('wcset', wcsRender); return ''; } },
+  { id: 'nieuws.afbeeldingen', scr: 'nieuwsset', ctl: '#nws-img', label: 'Nieuws: afbeeldingen tonen', desc: 'Afbeeldingen bij de artikelen tonen; ze komen van de nieuwssite, die dan ziet dat je ze bekijkt. Uit: alleen tekst.', syn: 'nieuws afbeeldingen plaatjes foto beelden tonen artikelen', synEn: 'news images pictures photos articles',
+    get: () => setB(nwBeeldenAan()), set: v => { nwBeelden(setOnV(v)); setIf('nieuwsset', enterNieuwsSet); setIf('nieuws', nwRender); return ''; } },
   /* ---------- E-reader: lezen en voorlezen (helderheid en filter gelden alleen in de e-reader) ---------- */
   { id: 'ereader.helderheid', scr: 'erset', type: 'keuze', vals: [['telefoon', 'Zoals de telefoon'], ['10', '10%'], ['25', '25%'], ['50', '50%'], ['75', '75%'], ['100', '100%']],
     label: 'Helderheid in de e-reader', desc: 'Een eigen helderheid van het scherm tijdens het lezen; buiten de e-reader volgt het scherm weer de telefoon. Ook te kiezen met Aa in een boek.',
@@ -412,7 +414,10 @@ const SET_GEN = [
     get: () => { const p = setBk().parts || {}; return setB(p[k] === true || (k !== 'notifications' && p[k] !== false)); }, set: v => { Android.backupSetPart(k, setOnV(v)); setIf(BK_SCR, enterBackup); return ''; } })) },
   { cover: '#bk-private input[type=checkbox]', gen: () => Object.keys(BK_PRIV).map(k => ({ id: 'backup.prive.' + k, scr: 'bkparts', ctl: '#bk-private input[data-p="' + k + '"]', label: t('Privé mee in Alles back-uppen: {wat}', { wat: t(BK_PRIV[k]) }), desc: 'Privé-onderdelen staan standaard uit; zonder versleutelen komen ze leesbaar in je backup-map.', syn: 'backup privé ' + BK_PRIV[k] /* taal-vast: zoekwoorden */,
     weak: v => v === 'aan', safe: 'privacy', why: 'Privé-onderdelen in de backup zet je zelf aan, zodat je bewust kiest (bij voorkeur versleuteld).',
-    get: () => setB((setBk().parts || {})[k] === true), set: v => { Android.backupSetPart(k, setOnV(v)); setIf(BK_SCR, enterBackup); return ''; } })) }
+    get: () => setB((setBk().parts || {})[k] === true), set: v => { Android.backupSetPart(k, setOnV(v)); setIf(BK_SCR, enterBackup); return ''; } })) },
+  { cover: '#nws-bronnen .tg', gen: () => (nwKlaar() && (nw.data || nwLaad()) ? nwBronnen() : []).map(b => ({ id: 'nieuws.bron.' + b.id, scr: 'nieuwsset', label: t('Nieuwsbron: {naam}', { naam: b.naam }), desc: 'Artikelen van deze bron ophalen en tonen in Nieuws.', syn: 'nieuws bron nieuwsbron feed krant ' + b.naam /* taal-vast: zoekwoorden */,
+    get: () => setB(!!(nwBronnen().find(x => x.id === b.id) || {}).aan),
+    set: v => { const f = Android.nieuwsBron(b.id, setOnV(v)); if (f) return f; const x = nwBronnen().find(y => y.id === b.id); if (x) x.aan = setOnV(v); setIf('nieuwsset', enterNieuwsSet); setIf('nieuws', () => enterNieuws()); return ''; } })) }
 ];
 
 /* Woorden die in de vraag moeten staan om een instelling van die tool te bedoelen (anders telt hij minder zwaar mee):
@@ -454,6 +459,7 @@ const SET_EXCLUDE = [
   ['#s-calls input[type=date]', 'Filter in de oproepenlijst'],
   ['#history-search, #gs-q', 'Zoekveld'],
   ['#wc-chips', 'Filters in Toiletten en douches, geen instelling'],
+  ['#nw-filter, #nw-bron', 'Filters in de lijst van Nieuws, geen instelling'],
   ['#s-wcbewerk select, #s-wcbewerk input', 'Hoort bij één plek van Toiletten en douches (aanpassen of toevoegen); bewaard met Bewaren'],
   ['#s-wcbron .tg, #s-wcbron select, #s-wcbron input', 'Hoort bij één bron van Toiletten en douches; je stelt het in en bewaart het op het scherm van die bron']
 ];

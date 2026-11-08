@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title type="text">Atom Test</title>
+  <link rel="self" href="https://atom.example.org/feed.xml"/>
+  <link rel="alternate" href="https://atom.example.org/"/>
+  <entry>
+    <title type="html">Kop &amp;lt;met&amp;gt; HTML</title>
+    <id>tag:atom.example.org,2026:1</id>
+    <link rel="enclosure" href="https://atom.example.org/1.mp3"/>
+    <link rel="alternate" type="text/html" href="https://atom.example.org/1"/>
+    <published>2026-11-08T16:50:43.123+01:00</published>
+    <updated>2026-11-08T18:00:00Z</updated>
+    <author><name>Piet</name><email>p@example.org</email></author>
+    <summary>Kort.</summary>
+    <content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml"><p>Alinea &amp; één</p><h3>Kop</h3><p>Twee <img src="https://atom.example.org/a.png"/></p></div></content>
+    <source><id>tag:andere</id><title>Andere</title></source>
+  </entry>
+  <entry>
+    <title>Tekst</title>
+    <id>urn:2</id>
+    <link href="https://atom.example.org/2"/>
+    <updated>2026-11-07T10:00:00Z</updated>
+    <content type="text">Tekst met &lt;b&gt; tags die tekst blijven</content>
+  </entry>
+</feed>

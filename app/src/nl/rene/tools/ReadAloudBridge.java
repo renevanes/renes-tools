@@ -4,7 +4,7 @@ import android.webkit.JavascriptInterface;
 import java.lang.ref.WeakReference;
 import org.json.JSONObject;
 
-public class ReadAloudBridge extends EreaderBridge {
+public class ReadAloudBridge extends NieuwsBridge {
     ReadAloudBridge(MainActivity a){super(a);}
     static ReadAloud.Sink sink(MainActivity owner,String callback){WeakReference<MainActivity> weak=new WeakReference<>(owner);return event->{MainActivity target=weak.get();if(target!=null&&!target.isDestroyed())target.js(callback,event.toString());};}
     static ReadAloud.Sink aiSink(MainActivity owner){WeakReference<MainActivity> weak=new WeakReference<>(owner);java.util.concurrent.atomic.AtomicBoolean begun=new java.util.concurrent.atomic.AtomicBoolean();return event->{

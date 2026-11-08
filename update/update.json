@@ -1,15 +1,30 @@
 {
   "app": "Tools",
-  "versionName": "1.170",
-  "versionCode": 171,
-  "nativeLevel": 151,
+  "versionName": "1.172",
+  "versionCode": 173,
+  "nativeLevel": 153,
   "web": "index.html",
-  "webSha256": "8d2b42532bb23eb7fc402f9ac39ba6ef3019229b3c99dcb1df35afb600666ea8",
+  "webSha256": "36083df9b5ad42f7899f1a8ad93fbe9b648a3761882be22dcd38645cc892885f",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "0df238f50c356efdfbc0d7be9f30b5000bcb141811bd22a7764a558b61820824",
+  "apkSha256": "dd418e5173028b2e188339502b55fe8e42a3d477a5b40e1d7403ea89d447662d",
   "changelog": [
+    {
+      "version": "1.172",
+      "date": "2026-11-08",
+      "changes": [
+        "Nieuws: lees de koppen en artikelen van NOS, Rijnmond en andere nieuwssites (of je eigen feeds) als rustige tekst, zonder reclame of account. Bewaar artikelen voor later, zoek en filter op ongelezen; je kiest de bronnen bij de instellingen van Nieuws."
+      ]
+    },
+    {
+      "version": "1.171",
+      "date": "2026-11-08",
+      "changes": [
+        "Formulieren invullen: nieuwe knop \"Tussentijds opslaan\". Je invoer wordt bewaard als concept, ook als nog niet alle verplichte velden ingevuld zijn; bij een andere stap en als je weggaat gebeurt dat ook vanzelf. Je ziet steeds of alles is opgeslagen en hoeveel verplichte velden nog leeg zijn. Het concept staat versleuteld op je telefoon en komt terug als je het formulier weer opent.",
+        "Formulieren invullen: lege verplichte velden houden je niet meer tegen bij Volgende stap (ze zijn pas nodig voor de PDF). Bij een fout of een ontbrekend veld springt de app naar dat veld en staat de reden er direct onder; bij Controleren zie je wat nog leeg is, met een knop per veld."
+      ]
+    },
     {
       "version": "1.170",
       "date": "2026-11-08",
@@ -1502,5 +1517,5 @@
       ]
     }
   ],
-  "webSig2": "dyBxe1sgj1eA9F+p54VJBDpuiQSA1VGSIBk6TzxVLkiB88t7wvIgVhjb5dQdq8ky6ZjLHzOY7/sgrzNoqMKyB1xv1RBEBIvRlh95DQkzAxIIKeiAQiJz68mFmPzTJTzPZDpXS0xa91VfOsJsNspM4PTdmM9IythFvLGi2YhoAeXRpYsjDaPBMm8KEzbfoV3OhuvRVmH7fDnQZ30pVPy+jF2UyoQf/LR6TW3fwtBdsprqhrcYyMtBQrzBlcqsnJrV30xaxS/hUcmnxg1ePqxTOmY6El0D/6XwSaimuZ/SlFvoI7idASTx6Ce2ywM7yYHO9itl6Iy3WAh+fNh0DXo93OIxKHdj26gAZ4jO3TDu/R9yZiAiV4CWeaMlJHb75vnEJSLGl8BPXaMFEgvoEzTYH+sEiQlo7fa5u1XiH8fZCtNuPrG2f/yoVGC1UqSuNbeoWd2RthRhCJKTZabeiSo7r8vms3GkeUxBrkPtUkM7QbvWfptOcEj5XYzHN+yLSJsW"
+  "webSig2": "R0INU60kEh59edamwQUc4URYSgYItAQHg15BW7Bb/KvX3pCJ39SzLy8OmBl2V5FK0qCWn3dfG6NVZpsEYu6ZD3WaivWnTRkqrD8RRQARN89tvi6cjvpfE+pMfShTdIeJahvDr1p/Dxb+hlg5o6/+pmOEfyiTOlCYFwX381kr+eQVjce/DYK13bvAOkn0emQ3Gl9bb+GgIRfpJqjdVXhl9I+tCIXOjdQz0VrdC0ngfRGFP5uJ88OeBg0isX+eUpf3TE83kWsasgha8lqta3Y3XnykTZzAdmPW3F2+Gu2SjHkZCNEGbXeJzTdCO6yaLryaq3lvg/GkBQXzVpxAAxGD/ssPOWMKAIlQaewrlvjX4HBNDpA1uZgWNQN4DG7FnKpY9zTZKlbf8oeKWLG1J8RPTn35JbgzOCHRtepTGmy1HtzmP0OVwH7AwnSY+pOeJLYXtQy9ztcsGfQs2ifIfhzREeGH153zKrIFbagjOvBV5nZOo7zJ726KDipGDjRFxtmW"
 }
