@@ -26,7 +26,7 @@ LOCK=refs/heads/publiceren-slot
 # Vingerafdruk van het echte ondertekeningscertificaat (openbaar; staat ook in elke APK)
 CERT_SHA256="F7:8F:8F:09:83:20:FB:85:37:2E:4A:35:A4:5E:44:84:29:B3:CF:F3:33:E2:AD:30:E3:A7:1F:2D:75:AC:CC:C7"
 # Wat in de APK zit (en niet in update/): verandert dat, dan moet NATIVE_LEVEL omhoog
-APK_PATHS=(app web/vendor web/neutraal.html web/ontsleutelen.html web/facturen-robot.js web/facturen-leveranciers.json web/bank-robot.js web/bank-banken.json build.sh)
+APK_PATHS=(app web/vendor web/neutraal.html web/ontsleutelen.html web/facturen-robot.js web/facturen-leveranciers.json web/bank-robot.js web/bank-banken.json web/src/script/00-tools.js tools/tool-register.js build.sh)
 EMPTY_TREE=$(git hash-object -t tree /dev/null)
 WHO=${AGENT:-$([ -n "${CLAUDE_SESSION_URL:-}" ] && echo Claude || echo "$(git config user.name 2>/dev/null || echo onbekend)")}
 TOKEN="$WHO $$@$(hostname 2>/dev/null || echo host)-$RANDOM"

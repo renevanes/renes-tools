@@ -42,6 +42,8 @@ final class Bank {
     private static final Object LOCK = new Object();
     /** Open tot dit moment (5 min na het laatste gebruik), en hooguit tot maxUntil (de sleutel verloopt dan). */
     static volatile long openUntil = 0, maxUntil = 0;
+    /** Elke ontgrendeling heeft een eigen generatie; een los venster moet zelf ontgrendeld zijn. */
+    static volatile long generation = 0;
     /** De AI is gebruikt met bankgegevens: bij op slot gaan het taalmodel stoppen (dan staat er niets meer in zijn geheugen). */
     static volatile boolean aiUsed = false;
     /** Bestanden kiezen loopt (de app gaat dan even uit beeld): niet op slot doen. */
@@ -62,10 +64,12 @@ final class Bank {
     static volatile boolean ongeldig = false;
     static long remaining() { long n = System.currentTimeMillis(); return Math.max(0, Math.min(openUntil, maxUntil) - n); }
 
-    static void open() { long n = System.currentTimeMillis(); maxUntil = n + MAX_MS; openUntil = n + IDLE_MS; }
+    static synchronized long open() { long n = System.currentTimeMillis(); generation++; maxUntil = n + MAX_MS; openUntil = n + IDLE_MS; return generation; }
+    static synchronized boolean session(long grant) { return grant == generation && isOpen(); }
     static void touch() { if (isOpen()) openUntil = System.currentTimeMillis() + IDLE_MS; }
 
-    static void close() {
+    static synchronized void close() {
+        generation++;
         openUntil = 0; maxUntil = 0;
         synchronized (WACHT) { if (System.currentTimeMillis() > wachtTot) WACHT.clear(); }
         if (aiUsed) {

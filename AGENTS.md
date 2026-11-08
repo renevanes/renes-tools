@@ -22,6 +22,10 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
 - `web/src/script/01-testbrug.js` — de nagebootste Android-brug voor de tests (in de app zelf weggelaten).
 - `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends FeatureBridge`.
 - `web/start.html` — de Telefoon-skin (eigen startscherm); `tests/` — Java- en interfacetests; `tools/` — hulpscripts.
+- **Iedere nieuwe schermtool ondersteunt standaard losse apps.** Registreer hem in `web/src/script/00-tools.js`: het
+  openen, het overzicht Losse apps en het native register volgen daaruit. Subschermen krijgen een `BACK`-verwijzing
+  naar hun eigen tool. `solo-alle-tools.test.js` en `SoloTest` bewaken dit; behoud de eigen ontgrendeling en privacy.
+  Alleen de telefoon-skin gebruikt zijn bestaande `HomeActivity`. Zie `docs/startscherm-en-automatiseringen.md`.
 
 ## Regels voor de code
 - **Java 8-bron, minSdk 24, targetSdk 36.** API's die nieuwer zijn dan 24 altijd achter `Build.VERSION.SDK_INT >= …`
@@ -394,7 +398,8 @@ Rene's inkomsten en uitgaven. **Niets mag de telefoon verlaten** (wens van Rene)
   Keystore, waar mogelijk gekoppeld aan de ontgrendeling (15 minuten). Map `bank/` gaat bewust nergens mee (Android-backup,
   Alles back-uppen, "Alle appgegevens"), niet in zoeken, de assistent of Statistieken. Logregels (`App.log` soort BANK)
   bevatten nooit bedragen, namen of rekeningnummers. Op slot na 5 minuten niets doen en zodra de app uit beeld gaat;
-  de interface vergeet dan alles. Op het scherm FLAG_SECURE (`bankSecure`). Niet als losse app.
+  de interface vergeet dan alles. Op het scherm FLAG_SECURE (`bankSecure`). Ook als losse app alleen na eigen
+  ontgrendeling; de vrijgave hoort bij dat venster en mag niet van een andere banksessie worden overgenomen.
 - **Inlezen:** `BankImport` (zuiver, getest in `BankTest`): CSV met kopregel (ING, Rabobank, Knab, bunq, algemeen), zonder
   kopregel (ABN AMRO TXT, ASN/SNS/RegioBank, Triodos), MT940 en CAMT.053/052/054 (XML zonder DOCTYPE: XXE). Dubbele
   boekingen: id = rekening|datum|bedrag|volgnummer op die dag. Nieuwe bank = herkenning erbij + een test met een voorbeeld.

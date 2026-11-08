@@ -16,6 +16,7 @@ ANDROID_JAR=$T/ap/android-36/android.jar
 source VERSION
 B=build
 rm -rf $B && mkdir -p $B/assets $B/gen $B/classes $B/dex
+node tools/tool-register.js "$B/gen/ToolRegister.java"
 
 [ -f keys/release.p12 ] || { echo "Sleutel ontbreekt: ./keys/unlock.sh"; exit 1; }
 

@@ -1,5 +1,7 @@
 // Losse apps: instellen in de gewone app, en een tool als losse app (geen slot, geen links naar andere tools).
 const { chromium } = require('playwright');
+const register = require('../../tools/tool-register');
+const toolIds = register.soloTools(register.readTools());
 (async () => {
   const b = await chromium.launch(); const errs = [];
   const ok = (c, m) => { console.log((c ? '✓ ' : '✗ ') + m); if (!c) errs.push(m); };
@@ -11,9 +13,9 @@ const { chromium } = require('playwright');
     await pg.goto(url); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => !SOLO && document.body.classList.contains('tabs-on')), 'gewone app: tabbalk, geen losse app');
     await pg.evaluate(() => show('setsolo')); await pg.waitForTimeout(150);
-    ok((await pg.$$('#st-solo-list .sw')).length === 20, 'instellingen: alle tools in de lijst');
+    ok((await pg.$$('#st-solo-list .sw')).length === toolIds.length, 'instellingen: alle tools in de lijst');
     await pg.click('#st-solo-list .tg[aria-label="Notities als losse app"]'); await pg.waitForTimeout(100);
-    ok((await pg.textContent('#modal-text')).includes('zonder vingerafdruk'), 'waarschuwing bij aanzetten');
+    ok((await pg.textContent('#modal-text')).includes('algemene app-slot') && (await pg.textContent('#modal-text')).includes('eigen ontgrendeling'), 'uitleg over het app-slot en de eigen ontgrendeling bij aanzetten');
     await pg.click('#modal-ok'); await pg.waitForTimeout(100);
     ok((await pg.evaluate(() => Android._solo)).join() === 'notes', 'notities mag als losse app');
     await pg.click('#st-solo-list button:has-text("Op startscherm zetten")');

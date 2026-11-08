@@ -25,11 +25,8 @@ final class Solo {
 
     private Solo() { }
 
-    /** Tools die als losse app kunnen (geen telefoon-skin of speler: die horen bij de hele app). */
-    static final Set<String> TOOLS = Collections.unmodifiableSet(new LinkedHashSet<>(java.util.Arrays.asList(
-            "redial", "wa", "tracks", "sms", "history", "calls", "notes", "contacts", "pdf", "kluis", "car", "recorder",
-            "transcripts", "radio", "podcasts", "spotify", "vpn", "loc", "music", "ai")));
-    // Niet: alles back-uppen en automatiseringen (die raken alle tools), skin en speler (horen bij de hele app).
+    /** Alle schermtools uit het centrale tooloverzicht. De telefoon-skin heeft zijn eigen HomeActivity. */
+    static final Set<String> TOOLS = ToolRegister.SOLO;
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("solo", Context.MODE_PRIVATE); }
 

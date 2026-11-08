@@ -59,6 +59,7 @@ speler.html
 vensters.html
 taal/en.json
 script/00-begin.js
+script/00-tools.js
 script/00-iconen.js
 script/01-testbrug.js
 script/02-kern.js
@@ -134,7 +135,6 @@ script/43-uiterlijk.js
 script/43-regio-en-taal.js
 script/66-play-versie.js
 script/74-ereader.js
-script/29-start.js
 script/30-snelkoppelingen.js
 script/31-startscherm-groepen-volgorde-verbergen.js
 script/32-automatiseringen.js
@@ -149,4 +149,5 @@ script/64-bankzaken.js
 script/65-bankzaken-ai.js
 script/60-apparaten.js
 script/73-toiletten.js
+script/29-start.js
 einde.html

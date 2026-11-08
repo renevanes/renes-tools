@@ -129,6 +129,7 @@ public class MainActivity extends Activity {
     String solo;
     /** Losse kluis: met welke ontgrendeling (Kluis.gen) dit venster de kluis zelf opende; -1 = nog niet. */
     volatile int kluisGen = -1;
+    volatile long bankGen = -1;
 
     /** Bankzaken staat in beeld (schermbeveiliging aan) / de gekozen afschriften na inlezen verwijderen. */
     volatile boolean bankScreen = false, bankWis = false;
@@ -137,6 +138,8 @@ public class MainActivity extends Activity {
     boolean kluisMine() { return !isSolo() || kluisGen == Kluis.gen; }
     /** De kluis is open én mag door dit venster gebruikt worden. */
     boolean kluisOk() { return Kluis.isOpen() && kluisMine(); }
+    /** Een losse bank-app kan niet meeliften op de ontgrendeling van een ander venster. */
+    boolean bankOk() { return Bank.isOpen() && (!isSolo() || ("bank".equals(solo) && Bank.session(bankGen))); }
 
     boolean isSolo() { return this instanceof SoloActivity; }
 
@@ -224,7 +227,7 @@ public class MainActivity extends Activity {
         } else live = this;
         synchronized (ALL) { ALL.add(this); }
         // Een terugzetten dat halverwege stopte (ook als de app vóór het ontgrendelen startte): eerst afmaken of terugdraaien
-        if (!isSolo()) AppBackup.recoverIfNeeded(getApplicationContext());
+        if (!isSolo() || "backup".equals(solo)) AppBackup.recoverIfNeeded(getApplicationContext());
         IdCopy.cleanStale(getApplicationContext());
         PlayPolicy.sanitizePreferences(getApplicationContext());
         if (!Updater.viaPlay(this)) {
@@ -1166,7 +1169,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void waRequestFilesAccess() { a.h.post(a::requestFilesAccess); }
-        @JavascriptInterface public void waPickFolder() { if (!a.isSolo()) a.h.post(a::pickBackupFolder); } // niet vanuit een losse app
+        @JavascriptInterface public void waPickFolder() { if (!a.isSolo() || "backup".equals(a.solo)) a.h.post(a::pickBackupFolder); } // de backup-tool beheert zijn eigen map
 
         @JavascriptInterface public void waScanSizes() {
             new Thread(() -> {
