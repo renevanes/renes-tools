@@ -118,7 +118,8 @@ interface gaat mee via `store.set` (`webstore`, in Alle appgegevens en in het on
    instellingenbestand in `AppData.PREFS_KNOWN` als hij gewoon mee mag (na nakijken dat er geen geheimen leesbaar in
    staan), of bij de uitzonderingen hieronder. Voor de leesbare "Toolgegevens" daarnaast: privé of al een eigen onderdeel →
    `ToolData.FILES_OWN` (map) of `ToolData.PREFS_NEVER` (instellingenbestand). Een map die (nog) niet in `FILE_KNOWN`
-   staat, gaat in Toolgegevens alleen mee als er niets in staat wat naar een geheim klinkt (`ToolData.readableOk`).
+   staat, gaat in Toolgegevens alleen mee als tekstbestand zonder namen die naar een geheim klinken (`ToolData.readableOk`;
+   een grove controle, geen garantie: zet de map na nakijken in `FILE_KNOWN`).
 3. **Uitzonderingen alleen met een reden** in `AppData`: `PREFS_SKIP` (heel instellingenbestand), `KEY_SKIP`/`KEY_SKIP_PREFIX`
    (losse sleutels), `FILE_SKIP` (map of bestand in `getFilesDir()`) of `PATH_SKIP` (één bestand in een map die wel meegaat).
    Toegestaan: geheimen die aan deze installatie vastzitten en die je opnieuw instelt, wat opnieuw te downloaden of af te
@@ -142,7 +143,7 @@ interface gaat mee via `store.set` (`webstore`, in Alle appgegevens en in het on
    het aanvinkt, en dan versleuteld; in Alle appgegevens (altijd versleuteld) wel, in Toolgegevens nooit (`FILES_OWN`,
    `PREFS_NEVER`). Een nieuwe privé-categorie volgt dat model (`AllBackup.PRIVATE`) en Rene beslist.
 8. **Getest:** `AppDataTest` zoekt in de code elke `getSharedPreferences("…")`, elke `PREFS`-constante en elke map in
-   `getFilesDir()` (ook via een constante zoals `DIR`) en faalt als die niet in `PREFS_KNOWN`/`FILE_KNOWN` of bij de
+   `getFilesDir()` (ook via een constante uit hetzelfde bestand, zoals `getFilesDir(), DIR`) en faalt als die niet in `PREFS_KNOWN`/`FILE_KNOWN` of bij de
    uitzonderingen staat, of als de naam niet mee kan (een instellingenbestand met hoofdletters of een punt). Een naam die je anders opbouwt, ziet de test
    niet: houd het bij een vaste naam. Bij een tool met een eigen bestandsformaat: ook een test die maakt, terugzet en vergelijkt.
 

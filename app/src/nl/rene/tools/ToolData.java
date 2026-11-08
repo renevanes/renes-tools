@@ -105,21 +105,27 @@ final class ToolData {
         String top = slash < 0 ? r : r.substring(0, slash);
         if (FILES_OWN.contains(top)) return false;
         if (r.startsWith("facturen/pdf/") || r.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) return false; // de PDF's staan al in Facturen/
-        return !r.toLowerCase(java.util.Locale.ROOT).matches(".*(geheim|secret|token|wachtwoord|password|passwd|sleutel|credential|apikey|api_key|private).*|.*(^|[/_.-])(key|keys|pin|cred)([/_.-].*|$)");
+        String low = r.toLowerCase(java.util.Locale.ROOT);
+        if (low.matches(".*(geheim|secret|token|wachtwoord|password).*")) return false;
+        // Mappen die nog niet bekeken zijn (een nieuwe tool): ook paden met sleutel, key, pin of cred niet leesbaar.
+        return AppData.FILE_KNOWN.contains(top) || !low.matches(".*(passwd|sleutel|credential|apikey|api_key|private).*|.*(^|[/_.-])(key|keys|pin|cred)([/_.-].*|$)");
     }
 
     /** Een naam in JSON die naar een geheim klinkt ("refresh_token": …, "password": …). */
+    /** Een naam die naar een geheim klinkt, gevolgd door : of = ("refresh_token": …, password=…, apiKey: …). */
     static final java.util.regex.Pattern SECRET_JSON = java.util.regex.Pattern.compile(
-            "\"[^\"]{0,60}(token|secret|geheim|password|passwd|wachtwoord|sleutel|apikey|api_key|private_?key|credential)[^\"]{0,60}\"\\s*:", java.util.regex.Pattern.CASE_INSENSITIVE);
+            "(token|secret|geheim|password|passwd|wachtwoord|sleutel|api_?key|private_?key|credential|refresh|(^|[^a-z])(key|pin|cred))[a-z0-9_.-]{0,40}[\"']?\\s*[:=]",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
 
     /**
      * Een bestand van een map die nog niet bekeken is (niet in AppData.FILE_KNOWN, dus van een nieuwe tool) gaat alleen
-     * leesbaar mee als er niets in staat wat naar een geheim klinkt. In Alle appgegevens (versleuteld) gaat hij altijd mee.
+     * leesbaar mee als het tekst is (text == null: iets anders) zonder iets wat naar een geheim klinkt. In Alle appgegevens
+     * (versleuteld) gaat hij altijd mee.
      */
     static boolean readableOk(String rel, String text) {
         int slash = rel.indexOf('/');
         String top = slash < 0 ? rel : rel.substring(0, slash);
-        return AppData.FILE_KNOWN.contains(top) || text == null || !SECRET_JSON.matcher(text).find();
+        return AppData.FILE_KNOWN.contains(top) || (text != null && !SECRET_JSON.matcher(text).find());
     }
 
     /** Lager = eerder mee: eigen invoer (eigen plekken, dossier, apparaten, auto) voor logboeken en versies. */
