@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+  <title>Testnieuws &amp; meer</title>
+  <link>https://nieuws.example.org/</link>
+  <image><title>Logo</title><url>https://nieuws.example.org/logo.png</url><link>https://nieuws.example.org/logo</link></image>
+  <item>
+    <title><![CDATA[Brug <b>dicht</b>: 3 < 5 & "omleiding"]]></title>
+    <link>https://nieuws.example.org/artikel/1?utm_source=rss&amp;id=7&amp;utm_medium=feed#top</link>
+    <guid isPermaLink="false">art-1</guid>
+    <pubDate>Sun, 08 Nov 2026 17:50:43 +0100</pubDate>
+    <dc:creator>Redactie Stad</dc:creator>
+    <description>Korte samenvatting.</description>
+    <content:encoded><![CDATA[<p>Eerste alinea met <b>vet</b> &amp; een <a href="https://x.example.org">link</a>.</p><script>alert('x')</script><h2>Tussenkop</h2><ul><li>punt een</li><li>punt twee</li></ul><p>Regel een<br>regel twee</p><figure><img src="https://beeld.example.org/fig.jpg"><figcaption>Bijschrift</figcaption></figure><p>Caf&eacute; &#233; &#x20AC; &hellip;</p><form><input value="weg"></form>]]></content:encoded>
+    <media:thumbnail url="https://beeld.example.org/klein.jpg" width="140"/>
+    <media:content url="https://beeld.example.org/groot.jpg" width="1024" medium="image"/>
+    <media:content url="https://beeld.example.org/onveilig.jpg?x" width="2000" medium="video"/>
+  </item>
+  <item>
+    <title>Tweede bericht</title>
+    <link>https://nieuws.example.org/artikel/2</link>
+    <author>redactie@example.org (Jan Jansen)</author>
+    <pubDate>Sat, 07 Nov 2026 09:00:00 GMT</pubDate>
+    <description>&lt;p&gt;Met HTML als tekst &lt;img src="https://beeld.example.org/2.jpg"&gt;&lt;/p&gt;</description>
+    <enclosure url="https://media.example.org/2.mp3" type="audio/mpeg" length="1"/>
+  </item>
+  <item>
+    <title>Zonder datum en guid</title>
+    <link>/relatief/3</link>
+    <description>Platte tekst.
+
+Tweede alinea.</description>
+    <media:content url="https://media.example.org/video.mp4"/>
+    <author>alleen@adres.example.org</author>
+  </item>
+  <item>
+    <title>Plaatje via http</title>
+    <link>https://nieuws.example.org/artikel/4</link>
+    <description>&lt;img src="http://beeld.example.org/4.jpg"&gt;Tekst</description>
+  </item>
+  <item><description></description></item>
+</channel>
+</rss>
