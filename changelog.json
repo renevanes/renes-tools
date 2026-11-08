@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.168",
+    "date": "2026-11-08",
+    "changes": [
+      "Rijbewijsgegevens herkennen uit een foto, geheel op je telefoon. Identiteitsdocumenten hebben nu Gegevens en Foto’s, met extra velden ingeklapt. Controleer gevonden gegevens en bewaar je gekozen document- en persoonsgegevens in één keer."
+    ]
+  },
+  {
     "version": "1.167",
     "date": "2026-11-08",
     "changes": [

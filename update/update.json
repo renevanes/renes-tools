@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.167",
-  "versionCode": 168,
-  "nativeLevel": 148,
+  "versionName": "1.168",
+  "versionCode": 169,
+  "nativeLevel": 149,
   "web": "index.html",
-  "webSha256": "b3657bf2971edbdf61dc0b897a9f2eb881442ec312360e8f444c7754829a7d32",
+  "webSha256": "3dde652951a36693727b832b5f11d4c0d9061c431d9304ec905440b840f93a85",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "65efd00c3ced736314051f7480c0164a3933d4af52c3ea1c9b09803c4b7466e3",
+  "apkSha256": "abbe6e8b55162c4cfa2afec7414addedd5232a82be720e03f7c5ec48acde8960",
   "changelog": [
+    {
+      "version": "1.168",
+      "date": "2026-11-08",
+      "changes": [
+        "Rijbewijsgegevens herkennen uit een foto, geheel op je telefoon. Identiteitsdocumenten hebben nu Gegevens en Foto’s, met extra velden ingeklapt. Controleer gevonden gegevens en bewaar je gekozen document- en persoonsgegevens in één keer."
+      ]
+    },
     {
       "version": "1.167",
       "date": "2026-11-08",
@@ -1481,5 +1488,5 @@
       ]
     }
   ],
-  "webSig2": "E6wc4URkNllYiUaZtvikT/sYP1qPOUDHA8y78qsgjViYW95JyrA4vd2vgnKLGnUbHK7rB8g0qgvqyku2g7qaQ/ixN/bB2HP4aGD9nTihUj+hoS9bsloMc1+Mv06tuz8hasJOXUdubIT2eqe0+/hPoqsQxJ7NHrJ0ah+VmqVvyoy0UnJzdwMvXFHF0hedsT8foSTaYGq4GvH7Q3ITgK8YmGfK7CRpmQy7UtbXuTEJ9ZTwAy3Qhp8vanvrxNp98wiGRhOVBa/FOzyDP+B3IuguNfvslitM0hDCFNsaJw2uGVyN8C6grpg7diCj8FKJhVYB5RzasQ70xjTm/jmtL0GKb9htlZYIKXglagJP7mxOlpCmpYE8XyjeG4kNQRiWpTZSCeAeocwH6Ffursq80OMzdSLBNBK8nlRRGWX+MG8dOWCMreEhPCzsxJ4k92zzDVWve7kxQI072hD1SkAsPOLYR3X8GHTFVagK0ygt0yiNobmkegRRDPQNFk+Q+45e+e2e"
+  "webSig2": "jeBMla1C9fjt0IHv+FVNMjh7sSsP3z/jYGT4uzFwdgbDWCOtQlIHKOLg3V2FFPrk8cQQDRNtEFmJfFSZq4AbsE9kfzKcK0GWVR7EWnBtiHDWtWN6cTcH9uQjMp6YdQzciO7jj80fMFfswSU37vJ9F8X2dYoZYcAI4wsvhH4zPST1DeJ7Dd4bs48xgryzB1oZ0FvxYrFtsenknpyrQsbeNNg7iJ96pg9FL0PE4cyt/vp8+/BN0hkowjlBblZwGAhg5BL/cMHgMZfma+7D42xxh/KtdaFDgtgsTrDWlLFCH9W5rRcDbo0p0mHJ2TglTtWqgIXtqBfXtYAjNPGxa8Pwcg1Ij/tEdTh27gbbBq+N1jnqgEMB607wotQ4L/+PUIePE4r/mUxZjujXbGQvO0e9exkS3C1TxQu50UptS/tWWEM971I/8XzNbXTKBpL1ndIkZKCHBW7Oo3VhLiK2QWHp6WFxwi3s4aVRKG0DIQmgrVFR1qyeTbaFWP6J1cvImmj9"
 }

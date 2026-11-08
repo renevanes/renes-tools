@@ -241,9 +241,15 @@ def main():
     for name, repo in (("tesseract", "tesseract-ocr/tesseract"),
                        ("leptonica", "DanBloomberg/leptonica"),
                        ("libpng", "pnggroup/libpng")):
-        rel = http_json(f"https://api.github.com/repos/{repo}/releases/latest", github=True)
+        if name == "libpng":
+            # Dit project publiceert tags; de GitHub-releases-API geeft 404. Beta/rc-tags tellen niet mee.
+            refs = http_json(f"https://api.github.com/repos/{repo}/git/matching-refs/tags/v", github=True)
+            stable = [m.group(1) for ref in refs if (m := re.fullmatch(r"refs/tags/v([0-9]+\.[0-9]+\.[0-9]+)", ref["ref"]))]
+            newest = max(stable, key=versie_tuple)
+        else:
+            newest = http_json(f"https://api.github.com/repos/{repo}/releases/latest", github=True)["tag_name"].lstrip("v")
         current = meta["components"][name]
-        item("OCR: " + name, OCR[0], current, rel["tag_name"].lstrip("v"),
+        item("OCR: " + name, OCR[0], current, newest,
              osv({"package": {"name": name, "ecosystem": "OSS-Fuzz"}, "version": current}),
              "Afbeeldingen worden door Android gedecodeerd; native PNG/JPEG-lezers worden niet gebruikt.")
     current = meta["components"]["libjpeg"]
