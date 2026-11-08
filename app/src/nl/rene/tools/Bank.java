@@ -26,8 +26,8 @@ import javax.crypto.SecretKey;
  *   hardware van de telefoon (Android Keystore) en kan daar niet uit.
  * - De sleutel werkt alleen tot 15 minuten na je vingerafdruk of pincode (door de hardware afgedwongen, niet alleen door
  *   de app). Daarnaast gaat Bankzaken na 5 minuten niets doen, of zodra de app uit beeld gaat, op slot.
- * - Gaat nergens mee: niet in de Android-backup, niet in Alles back-uppen of "Alle appgegevens", niet in zoeken of de
- *   assistent, niet in Statistieken. De app maakt geen verbinding naar buiten voor Bankzaken (de interface mag dat sowieso
+ * - Standaard buiten backups; alleen na eigen toestemming in een versleutelde appbackup. Nooit in de Android-backup,
+ *   zoeken, de assistent of Statistieken. De app maakt geen verbinding naar buiten voor Bankzaken (de interface mag dat sowieso
  *   niet: connect-src 'none'); de AI draait op de telefoon zelf.
  * - Alles wissen = ook de sleutel weg: wat er eventueel nog op de opslag zou staan, is dan voorgoed onleesbaar.
  */
