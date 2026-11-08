@@ -67,13 +67,17 @@ Dit schrijft `app/src/nl/rene/tools/MrzGlyphs.java` en de testbeelden in `tests/
 leest ze en controleert ook de voorbeelden uit ICAO 9303.
 
 ## Rijbewijs: lezen en als het niet lukt
-- **Regel onderaan de voorkant** (`Rijbewijs.bottomLine`): een Nederlands rijbewijs heeft onderaan een leesregel van 30 tekens,
-  `D1NLD` + een cijfer + het rijbewijsnummer (10 cijfers) + 13 tekens + een controlecijfer (7-3-1 over de eerste 29 tekens,
-  zoals bij de MRZ). Klopt het controlecijfer, dan is het nummer zeker en gaat het voor op een los gelezen veld 5. Letters die
-  op cijfers lijken (O, I, S, B …) worden op cijferplekken als cijfer gelezen; het controlecijfer beslist.
+- **Leesregel D1NLD** (`Rijbewijs.bottomLine`): een Nederlands rijbewijs heeft een leesregel van 30 tekens (volgens
+  datachecker.nl onderaan de voorkant; niet officieel bevestigd, de app zoekt hem op beide zijden): `D1NLD` + een cijfer + het
+  rijbewijsnummer (10 cijfers) + 13 tekens + een controlecijfer (7-3-1 over de eerste 29 tekens, zoals bij de MRZ; klopt
+  op de twee openbare voorbeeldregels). Het controlecijfer vangt niet alles (twee verwisselde cijfers die 5 verschillen), dus
+  het nummer is alleen zeker als veld 5 hetzelfde zegt of de regel zelf goed gelezen is (zekerheid ≥ 85); anders twijfel.
+  Klopt het controlecijfer, dan gaat dit nummer voor op een los gelezen veld 5. Letters die op cijfers lijken (O, I, S, B …)
+  worden op cijferplekken als cijfer gelezen; het controlecijfer beslist.
 - **Zonder veldnummers** (de kleine "4a.", "4b.", "5." worden op foto's vaak niet gelezen): de afgifte- en einddatum liggen 5,
   10 of 15 jaar uit elkaar (dezelfde dag of een dag eerder), de geboortedatum ligt minstens 16 jaar daarvoor; een los nummer
-  van 10 cijfers is het rijbewijsnummer. Alleen als het een rijbewijs is (titel of leesregel), en altijd als twijfel (uitgevinkt).
+  van 10 cijfers is het rijbewijsnummer. Alleen als het een rijbewijs is (titel of leesregel; datums alleen met de titel, want
+  op de achterkant staan datums per categorie), en altijd als twijfel (uitgevinkt).
 - **Lezen** (`RijbewijsOcr`): gewoon in vier draaiingen; ontbreekt nummer, einddatum of geboortedatum, dan nog eens op een
   zwart-wit-versie (drempel per buurt, tegen het achtergrondpatroon). *Grondiger proberen* (`masterPhotoRescan`, tot ±70 s):
   ook vergroot met opgerekt contrast en als één tekstblok. Lezingen worden samengevoegd (`Rijbewijs.merge`).

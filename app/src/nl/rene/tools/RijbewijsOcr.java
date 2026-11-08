@@ -73,14 +73,15 @@ final class RijbewijsOcr {
             File root=model(context);if(!running.getAsBoolean())return null;
             api=new TessBaseAPI(progress->{if(!running.getAsBoolean()&&current[0]!=null)current[0].stop();});current[0]=api;
             Map<String,String> config=new HashMap<>();config.put("debug_file","/dev/null");config.put("load_system_dawg","0");config.put("load_freq_dawg","0");config.put("load_number_dawg","0");
-            if(!api.init(root.getAbsolutePath(),"eng",TessBaseAPI.OEM_LSTM_ONLY,config))return null;
+            if(!api.init(root.getAbsolutePath(),"eng",TessBaseAPI.OEM_LSTM_ONLY,config)){if(diag!=null)diag.put("ocr",false);return null;}
+            if(diag!=null)diag.put("ocr",true);
             api.setDebug(false);api.setVariable("tessedit_write_images","0");api.setVariable("user_defined_dpi","300");
             JSONObject best=null;int bestTurn=-1,bestScore=-1;
             // 1. Gewoon, in vier draaiingen
             for(int turn=0;turn<4&&running.getAsBoolean()&&!complete(best);turn++) {
                 Bitmap page=turned(image,turn);
                 try {
-                    List<Rijbewijs.Line> found=ocr(api,page,TessBaseAPI.PageSegMode.PSM_SPARSE_TEXT);if(!running.getAsBoolean())return null;if(found==null)continue;
+                    List<Rijbewijs.Line> found=ocr(api,page,TessBaseAPI.PageSegMode.PSM_SPARSE_TEXT);if(!running.getAsBoolean())break;if(found==null)continue;
                     JSONObject r=Rijbewijs.read(found,today,stand);lines=Math.max(lines,stand.regels);licence|=stand.rijbewijs;bottom|=stand.onderregel;
                     int score=(r==null?0:100*r.optInt("gelezen"))+(stand.rijbewijs?50:0)+stand.regels;
                     if(score>bestScore){bestScore=score;bestTurn=turn;}
@@ -89,7 +90,8 @@ final class RijbewijsOcr {
             }
             // 2. Zwart-wit (drempel per buurt), in de beste draaiing; grondig: ook vergroot en als één tekstblok
             List<Bitmap> extra=new ArrayList<>();
-            if(!complete(best)&&running.getAsBoolean()) {
+            // Alleen als het (vermoedelijk) een rijbewijs is, of op verzoek grondig: een ID-kaart zonder strook hoeft dit niet.
+            if(!complete(best)&&running.getAsBoolean()&&(licence||best!=null||thorough)) {
                 int[] turns=thorough&&bestScore<50?new int[]{0,1,2,3}:new int[]{Math.max(0,bestTurn)};
                 for(int turn:turns) {
                     if(complete(best)||!running.getAsBoolean())break;
@@ -108,7 +110,7 @@ final class RijbewijsOcr {
                     }finally{if(page!=image)page.recycle();}
                 }
             }
-            if(diag!=null)diag.put("regels",lines).put("rijbewijs",licence).put("onderregel",bottom).put("grondig",thorough).put("tijd",android.os.SystemClock.elapsedRealtime()>=deadline);
+            if(diag!=null)diag.put("regels",lines).put("rijbewijs",licence).put("onderregel",bottom).put("grondig",thorough).put("tijd",active.getAsBoolean()&&android.os.SystemClock.elapsedRealtime()>=deadline);
             return active.getAsBoolean()?best:null;
         }catch(Throwable ignored){return null;}
         finally{current[0]=null;if(api!=null)api.recycle();if(image!=null)image.recycle();}
@@ -139,7 +141,8 @@ final class RijbewijsOcr {
     private static int[] gray(Bitmap src,int max,int[] size) {
         int side=Math.max(src.getWidth(),src.getHeight());Bitmap b=src;
         if(side>max)b=Bitmap.createScaledBitmap(src,Math.max(1,src.getWidth()*max/side),Math.max(1,src.getHeight()*max/side),true);
-        int w=b.getWidth(),h=b.getHeight();int[] px=new int[w*h];b.getPixels(px,0,w,0,0,w,h);if(b!=src)b.recycle();
+        int w=b.getWidth(),h=b.getHeight();int[] px;
+        try{px=new int[w*h];b.getPixels(px,0,w,0,0,w,h);}finally{if(b!=src)b.recycle();}
         for(int i=0;i<px.length;i++){int c=px[i];px[i]=((c>>16&255)*30+(c>>8&255)*59+(c&255)*11)/100;}
         size[0]=w;size[1]=h;return px;
     }
@@ -151,8 +154,9 @@ final class RijbewijsOcr {
         int r=Math.max(8,w/24);
         for(int y=0;y<h;y++)for(int x=0;x<w;x++){
             int x1=Math.max(0,x-r),x2=Math.min(w-1,x+r),y1=Math.max(0,y-r),y2=Math.min(h-1,y+r),n=(x2-x1+1)*(y2-y1+1);
-            long total=(long)sum[y2*w+x2]-(x1>0?sum[y2*w+x1-1]:0)-(y1>0?sum[(y1-1)*w+x2]:0)+(x1>0&&y1>0?sum[(y1-1)*w+x1-1]:0);
-            g[y*w+x]=(long)g[y*w+x]*n*100<total*85?0xFF000000:0xFFFFFFFF;
+            // In int rekenen: de som over het hele beeld kan overlopen, maar het verschil (de som van het venster) klopt dan nog.
+            int total=sum[y2*w+x2]-(x1>0?sum[y2*w+x1-1]:0)-(y1>0?sum[(y1-1)*w+x2]:0)+(x1>0&&y1>0?sum[(y1-1)*w+x1-1]:0);
+            g[y*w+x]=(long)g[y*w+x]*n*100<(long)total*85?0xFF000000:0xFFFFFFFF;
         }
         Bitmap out=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);out.setPixels(g,0,w,0,0,w,h);return out;
     }
@@ -160,7 +164,7 @@ final class RijbewijsOcr {
     static Bitmap stretched(Bitmap src,int max) {
         int side=Math.max(src.getWidth(),src.getHeight());Bitmap scaled=src;
         if(side<max*2/3){float f=Math.min(1.6f,(float)max/side);scaled=Bitmap.createScaledBitmap(src,Math.round(src.getWidth()*f),Math.round(src.getHeight()*f),true);}
-        int[] size=new int[2];int[] g=gray(scaled,max,size);if(scaled!=src)scaled.recycle();int w=size[0],h=size[1];
+        int[] size=new int[2];int[] g;try{g=gray(scaled,max,size);}finally{if(scaled!=src)scaled.recycle();}int w=size[0],h=size[1];
         int[] hist=new int[256];for(int v:g)hist[v]++;int lo=0,hi=255,acc=0;
         for(int i=0;i<256;i++){acc+=hist[i];if(acc>g.length/100){lo=i;break;}}acc=0;for(int i=255;i>=0;i--){acc+=hist[i];if(acc>g.length/100){hi=i;break;}}
         int span=Math.max(1,hi-lo);for(int i=0;i<g.length;i++){int v=Math.max(0,Math.min(255,(g[i]-lo)*255/span));g[i]=0xFF000000|v<<16|v<<8|v;}

@@ -54,7 +54,7 @@ function cmhPhotoScan(grondig){
   const r=cm.edit;if(!cmOpen()||!r?.id||r.type!=='identiteit'||cm.mutating||typeof Android.masterPhotoScan!=='function')return;
   if(cm.dirty){cmNote(t('Sla je wijzigingen eerst op.'));return;}
   const sides=(r.fields.documentsoort==='rijbewijs'||!r.fields.documentsoort?['front','back']:['back','front']).filter(x=>r.images?.[x]);if(!sides.length||cmh.scanBusy)return;
-  const epoch=++cmh.scanEpoch,revision=r.revision;cmh.scanBusy=true;cmNote(grondig?t('Grondig zoeken… dit kan tot een minuut duren.'):t('Gegevens herkennen…'));cmhScanButton();cmhHulpRender();
+  const epoch=++cmh.scanEpoch,revision=r.revision;cmh.scanBusy=true;cmNote(grondig?t('Grondig zoeken… dit kan een paar minuten duren.'):t('Gegevens herkennen…'));cmhScanButton();cmhHulpRender();
   const done=note=>{if(epoch!==cmh.scanEpoch)return;cmh.scanBusy=false;cmhScanButton();cmhHulpRender();if(note)cmNote(note);};
   let diag=null;
   const next=()=>{
@@ -76,7 +76,14 @@ function cmhPhotoScan(grondig){
   };
   next();
 }
-function cmhScanButton(){const r=cm.edit,b=$('#cmh-photo-scan');b.hidden=typeof Android.masterPhotoScan!=='function';b.disabled=cmh.scanBusy||!r||r.type!=='identiteit'||!r.images?.front&&!r.images?.back;}
+function cmhScanButton(){
+  const r=cm.edit,b=$('#cmh-photo-scan');b.hidden=typeof Android.masterPhotoScan!=='function';b.disabled=cmh.scanBusy||!r||r.type!=='identiteit'||!r.images?.front&&!r.images?.back;
+  // Tijdens herkennen geen andere foto kiezen (die zou op het lezen moeten wachten).
+  for(const x of document.querySelectorAll('#cmi-photos .cmi-sides button,#cmh-mist-acts button')){
+    if(cmh.scanBusy){if(!x.disabled){x.disabled=true;x.dataset.cmhBusy='1';}}
+    else if(x.dataset.cmhBusy){x.disabled=false;delete x.dataset.cmhBusy;}
+  }
+}
 /* Hulp als herkennen niet lukt: wat er gebeurde (geen tekst, wel tekst maar geen document, rijbewijs zonder leesbare velden),
  * tips die bij de foto passen, en opnieuw proberen, grondiger proberen, een andere foto of zelf invullen. */
 function cmhHulpRender(){
@@ -84,11 +91,11 @@ function cmhHulpRender(){
   if(!h||!r||r.id!==h.doc||r.type!=='identiteit'){box.hidden=true;return;}
   const d=h.diag||{},tips=[];
   $('#cmh-hulp-kop').textContent=t('Herkennen lukte niet');
-  $('#cmh-hulp-tekst').textContent=!d.regels?t('Er is geen leesbare tekst op de foto gevonden.'):d.rijbewijs?t('Het rijbewijs is herkend, maar het nummer en de datums konden niet gelezen worden.'):t('Er is wel tekst gelezen, maar geen rijbewijs, ID-kaart of paspoort herkend.');
+  $('#cmh-hulp-tekst').textContent=d.ocr===false?t('De tekstherkenning kon niet starten. Probeer het opnieuw; helpt dat niet, start de app dan opnieuw.'):!d.regels?t('Er is geen leesbare tekst op de foto gevonden.'):d.rijbewijs?t('Het rijbewijs is herkend, maar het nummer en de datums konden niet gelezen worden.'):t('Er is wel tekst gelezen, maar geen rijbewijs, ID-kaart of paspoort herkend.');
   if(d.onscherp)tips.push(t('De foto lijkt onscherp: houd de telefoon stil en tik op de kaart om scherp te stellen.'));
   if(d.donker)tips.push(t('De foto is donker: zorg voor meer licht, zonder flits.'));
   if(d.glans)tips.push(t('Er lijkt schittering op de kaart: fotografeer zonder flits en kantel de kaart een beetje.'));
-  if(d.rijbewijs&&!d.onderregel)tips.push(t('Zorg dat de onderste regel van het rijbewijs (begint met D1NLD) helemaal op de foto staat: daarin staat het nummer met een controlecijfer.'));
+  if(d.rijbewijs&&!d.onderregel)tips.push(t('Staat er op je rijbewijs een regel die begint met D1NLD? Zorg dat die helemaal op de foto staat: daarin staat het nummer met een controlecijfer.'));
   if(!d.regels||!d.rijbewijs&&r.fields.documentsoort==='rijbewijs')tips.push(t('Kies de voorkant van het rijbewijs, recht van boven gefotografeerd.'));
   if(d.tijd)tips.push(t('Het zoeken duurde te lang en is gestopt. Een kleinere, scherpe foto van alleen de kaart gaat sneller.'));
   if(!h.grondig&&typeof Android.masterPhotoRescan==='function')tips.push(t('Probeer Grondiger proberen: dat bewerkt de foto op meer manieren.'));
@@ -102,7 +109,8 @@ function cmhHulpRender(){
 const CMH_RIJBEWIJS=['document','geldig','afgifte','naam','voornamen','geboortedatum'];
 function cmhMist(){
   const d=cmh.data,el=$('#cmh-mist'),acts=$('#cmh-mist-acts');
-  const mist=d&&d.fields.bron==='tekst'?CMH_RIJBEWIJS.filter(k=>!(d.fields.document||{})[k]&&!(d.fields.persoon||{})[k]&&!(cm.edit?.fields||{})[k]):[];
+  const now={...(cmh.current?.fields||{}),...(cm.edit?.fields||{})};
+  const mist=d&&d.fields.bron==='tekst'?CMH_RIJBEWIJS.filter(k=>!(d.fields.document||{})[k]&&!(d.fields.persoon||{})[k]&&!now[k]):[];
   el.hidden=acts.hidden=!mist.length;
   el.textContent=mist.length?t('Niet gevonden: {velden}. Probeer het grondiger of met een andere foto, of vul ze zelf in.',{velden:mist.map(k=>t(CM_FIELDS[k]||k).toLowerCase()).join(', ')}):'';
   acts.querySelector('button').hidden=!!d?.grondig||typeof Android.masterPhotoRescan!=='function';

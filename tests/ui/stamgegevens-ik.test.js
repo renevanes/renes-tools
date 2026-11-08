@@ -50,6 +50,20 @@ for(const colorScheme of ['light','dark']){
   await p.fill('#cm-search','an');assert.equal(await p.locator('#cm-list h3').count(),0,'zoeken: gewone lijst');await p.fill('#cm-search','');
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'past in de breedte');
   const minTik=await p.$$eval('#cm-list .strow,#cm-list button',b=>Math.min(...b.map(x=>x.getBoundingClientRect().height)));assert.ok(minTik>=44,'tikvlakken '+minTik);
+  // Lukt het bewaren van de relatie niet, dan zegt de app dat de persoon er wel is (na de foutmelding).
+  await p.evaluate(()=>{Android._cm.saveFail='relatie';});await p.click('#cm-list >> text=Persoon toevoegen');await p.waitForSelector('#sheet.on');
+  await p.click('#sheet-acts >> text=Mijn partner');await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='persoon'&&!cm.edit.id);
+  await p.fill('#cm-label','Bram');await p.click('#cm-save');
+  await p.waitForFunction(()=>/Bram is toegevoegd, maar de relatie met jou niet/.test($('#cm-status').textContent+$('#cm-edit-status').textContent));
+  await p.evaluate(()=>{Android._cm.saveFail='';});await p.waitForFunction(()=>current==='masterdata'&&cm.recordsReady&&!cm.mutating);
+  assert.ok((await rows()).some(x=>/^· Bram \| Tik om vast te leggen/.test(x)),'Bram staat er, zonder relatie');
+  // "Andere relatie": geen "mijn anders" in de zinnen
+  await p.evaluate(me=>{Android._cm.records.push({id:'r-bram',type:'relatie',label:'Bram en Rene',revision:1,fields:{vanPersoon:me,naarPersoon:Android._cm.records.find(r=>r.label==='Bram').id,relatie:'anders',delen:'ja'}});cmListLoad();},me);await ready();
+  assert.ok((await rows()).some(x=>/^· Bram \| andere relatie met jou/.test(x)),'andere relatie in gewone woorden');
+  // Vergrendelen sluit een open keuzelijst met namen en wist de zin bij de persoon
+  await p.click('#cm-add');await p.waitForSelector('#sheet.on');await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!cmOpen());
+  assert.equal(await p.evaluate(()=>$('#sheet').classList.contains('on')),false,'keuzelijst dicht na vergrendelen');assert.equal(await p.evaluate(()=>$('#cmk-voor-mij').textContent),'');
+  await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
   // 6. Toevoegen-menu met jou: persoon met wat die voor jou is; relatie heet dan "tussen anderen"
   await p.click('#cm-add');await p.waitForSelector('#sheet.on');
   assert.deepEqual((await p.$$eval('#sheet-acts button',x=>x.map(b=>b.textContent))).slice(0,2),['Persoon, met wat die voor jou is','Relatie tussen anderen']);await p.evaluate(()=>closeSheet());

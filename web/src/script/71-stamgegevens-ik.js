@@ -5,7 +5,7 @@
 const cmk={rel:'',nieuw:false};
 /* Wat de ander voor jou is als de relatie andersom is vastgelegd ("Rene is kind van Piet" → Piet is je ouder). */
 const CMK_ANDERSOM={kind:'ouder',zoon:'ouder',dochter:'ouder',ouder:'kind',vader:'kind',moeder:'kind',grootouder:'kleinkind',opa:'kleinkind',oma:'kleinkind',
-  kleinkind:'grootouder',kleinzoon:'grootouder',kleindochter:'grootouder',broerzus:'broerzus',broer:'broerzus',zus:'broerzus',oomtante:'neefnicht',neefnicht:'oomtante',
+  kleinkind:'grootouder',kleinzoon:'grootouder',kleindochter:'grootouder',broerzus:'broerzus',broer:'broerzus',zus:'broerzus',oomtante:'neefnicht',
   schoonouder:'schoonkind',schoonkind:'schoonouder',stiefouder:'stiefkind',stiefkind:'stiefouder',pleegouder:'pleegkind',pleegkind:'pleegouder',voogd:'pupil',pupil:'voogd',
   partner:'partner',expartner:'expartner',zwagerschoonzus:'zwagerschoonzus',familie:'familie',vriend:'vriend',collega:'collega',buur:'buur',huisgenoot:'huisgenoot'};
 function cmkMe(){const p=cm.records.find(r=>r.type==='profiel');const id=p?.person||'';return id&&cm.records.some(r=>r.id===id&&r.type==='persoon')?id:'';}
@@ -19,7 +19,9 @@ function cmkToMe(id,me){
   }
   return out;
 }
-function cmkRelText(x,naam){return x.code?t('mijn {relatie}',{relatie:cmiRelationName(x.code).toLowerCase()}):t('jij bent {relatie} van {naam}',{relatie:cmiRelationName(x.orig).toLowerCase(),naam});}
+/* "anders" is geen woord voor in een zin: dan "andere relatie". Neef of nicht kan beide kanten op: dan "jij bent … van". */
+function cmkRelName(code){return code==='anders'?t('andere relatie'):cmiRelationName(code).toLowerCase();}
+function cmkRelText(x,naam){return x.code?(x.code==='anders'?t('andere relatie met jou'):t('mijn {relatie}',{relatie:cmkRelName(x.code)})):t('jij bent {relatie} van {naam}',{relatie:cmkRelName(x.orig),naam});}
 function cmkGroup(code){const g=CMI_RELATION_GROUPS.find(([,codes])=>codes.includes(code));return g?g[0]:'Anderen';}
 /* Documentstand zonder "Persoon": "één document", "een document is verlopen", … */
 function cmkDocStand(p){
@@ -89,17 +91,19 @@ function cmkSelfPick(){
   for(const b of document.querySelectorAll('#sheet-acts button'))b.setAttribute('translate','no');
 }
 /* Jouw persoon vastleggen in het app-profiel (bestaand profiel bijwerken, anders een nieuw; delen blijft zoals het was of uit). */
-function cmkSelfSet(id,after){
+function cmkSelfSet(id,after,failed){
+  if(!cmOpen())return;
   const profile=cm.records.find(r=>r.type==='profiel'),done=()=>{cmBusy(false);appIdentityRefresh();cmListLoad(after||(()=>{if(current!=='masterdata')show('masterdata');cmNote(t('Vastgelegd: dit ben jij.'));}));};
+  const fail=()=>{cmBusy(false);if(failed)failed();};
   cmBusy(true);
-  const save=rec=>cmRequest('masterSave',[JSON.stringify(rec)],done,false,()=>cmBusy(false));
-  if(profile)cmRequest('masterRead',[profile.id,'masterdata',''],r=>{const rec=r.record;rec.fields.persoon=id;save(rec);},false,()=>cmBusy(false));
+  const save=rec=>cmRequest('masterSave',[JSON.stringify(rec)],done,false,fail);
+  if(profile)cmRequest('masterRead',[profile.id,'masterdata',''],r=>{const rec=r.record;rec.fields.persoon=id;save(rec);},false,fail);
   else save({type:'profiel',label:t('Mijn app-profiel'),fields:{...cmiDefaults('profiel'),persoon:id},revision:0});
 }
 /* Persoon toevoegen vanuit jou: eerst wat het voor jou is, dan de gegevens; persoon en relatie worden samen bewaard. */
 const CMK_VAAK=['kind','partner','ouder','broerzus','grootouder','kleinkind','vriend','noodcontact'];
 function cmkPersonNew(){
-  if(!cmOpen()||cm.mutating||!cm.recordsReady)return;const me=cmkMe();
+  if(!cmOpen()||cm.mutating||!cm.recordsReady)return;if(cm.edit&&cm.dirty){cmNote(t('Sla je wijzigingen eerst op.'));return;}const me=cmkMe();
   if(!me){cmiNew('persoon');return;}
   const acts=CMK_VAAK.map(code=>[t('Mijn {relatie}',{relatie:cmiRelationName(code).toLowerCase()}),()=>cmkPersonFor(code),'user']);
   acts.push([t('Andere relatie…'),cmkPersonMore,'more'],[t('Iemand anders, geen relatie met mij'),()=>cmkPersonFor(''),'user']);
@@ -113,7 +117,7 @@ function cmkPersonMore(){
 }
 function cmkPersonFor(code){
   cmiNew('persoon');if(!cm.edit||cm.edit.id)return;cmk.rel=code;cmk.nieuw=false;
-  $('#cm-editor-title').textContent=code?t('Mijn {relatie} toevoegen',{relatie:cmiRelationName(code).toLowerCase()}):t('Persoon toevoegen');
+  $('#cm-editor-title').textContent=code&&code!=='anders'?t('Mijn {relatie} toevoegen',{relatie:cmkRelName(code)}):t('Persoon toevoegen');
 }
 const cmkSave=cmSave;cmSave=function(){
   const r=cm.edit,me=cmkMe();
@@ -121,15 +125,23 @@ const cmkSave=cmSave;cmSave=function(){
   r.label=$('#cm-label').value;const rel=cmk.rel,self=cmk.nieuw;
   cmBusy(true);cmRequest('masterSave',[JSON.stringify(r)],out=>{
     const id=out.record.id;cmk.rel='';cmk.nieuw=false;cm.edit=null;cm.dirty=false;cmClearEdited();
-    if(self){cmkSelfSet(id,()=>{cmAfterEdit(true);cmNote(t('Welkom! Dit ben jij. Voeg nu je documenten en je mensen toe.'));});return;}
+    // Een melding na een fout komt na de foutmelding zelf (die zet onMasterReply), zodat je ziet wat er wel bewaard is.
+    const later=text=>setTimeout(()=>cmNote(text),0);
+    if(self){cmkSelfSet(id,()=>{cmAfterEdit(true);cmNote(t('Welkom! Dit ben jij. Voeg nu je documenten en je mensen toe.'));},()=>{cmAfterEdit(true);later(t('Je bent toegevoegd, maar nog niet aangewezen als jezelf. Kies Ik sta er al tussen.'));});return;}
     const relatie={type:'relatie',label:cmiRelationText({vanPersoon:me,naarPersoon:id,relatie:rel},'label')||r.label,fields:{vanPersoon:me,naarPersoon:id,relatie:rel,delen:'ja'},revision:0};
     // De nieuwe persoon staat nog niet in cm.records: naam voor het label zelf invullen
-    relatie.label=t('{naam} (mijn {relatie})',{naam:r.label,relatie:cmiRelationName(rel).toLowerCase()}).slice(0,120);
-    cmRequest('masterSave',[JSON.stringify(relatie)],()=>{cmBusy(false);cmAfterEdit(true);cmNote(t('{naam} is toegevoegd als je {relatie}.',{naam:r.label,relatie:cmiRelationName(rel).toLowerCase()}));appIdentityRefresh();},false,()=>{cmBusy(false);cmAfterEdit(true);cmNote(t('{naam} is toegevoegd, maar de relatie met jou niet. Leg die vast bij de persoon onder Relaties.',{naam:r.label}));});
+    relatie.label=(rel==='anders'?t('{naam} en {ander}',{naam:r.label,ander:cmiPersonName(me)}):t('{naam} (mijn {relatie})',{naam:r.label,relatie:cmkRelName(rel)})).slice(0,120);
+    if(!cmOpen()){cmBusy(false);return;}
+    cmRequest('masterSave',[JSON.stringify(relatie)],()=>{cmBusy(false);cmAfterEdit(true);cmNote(rel==='anders'?t('{naam} is toegevoegd.',{naam:r.label}):t('{naam} is toegevoegd als je {relatie}.',{naam:r.label,relatie:cmkRelName(rel)}));appIdentityRefresh();},false,()=>{cmBusy(false);if(cmOpen())cmAfterEdit(true);later(t('{naam} is toegevoegd, maar de relatie met jou niet. Leg die vast bij de persoon onder Relaties.',{naam:r.label}));});
   },false,()=>cmBusy(false));
 };
 const cmkAfter=cmAfterEdit;cmAfterEdit=function(saved){cmk.rel='';cmk.nieuw=false;cmkAfter(saved);};
-const cmkClear=cmClearCentral;cmClearCentral=function(){cmk.rel='';cmk.nieuw=false;cmkClear();};
+const cmkClear=cmClearCentral;cmClearCentral=function(){
+  cmk.rel='';cmk.nieuw=false;cmk.mijRel='';$('#cmk-voor-mij').replaceChildren();
+  // Een open keuzelijst met namen (Wie ben jij?, Relatie tussen anderen) sluit mee bij vergrendelen.
+  if($('#sheet')?.classList.contains('on')&&['masterdata','cmedit'].includes(current))closeSheet();
+  cmkClear();
+};
 /* Toevoegen-menu: een persoon begint vanuit jou ("Wie is het voor jou?"); zonder jou eerst Mijzelf. */
 cmAddMenu=function(){
   if(!cmOpen()||cm.mutating||!cm.recordsReady)return;const me=cmkMe(),acts=[];
@@ -154,7 +166,7 @@ const cmkRelations=cmiPersonRelations;cmiPersonRelations=function(){
   cmk.mijRel='';$('#cmk-anderen').textContent=me?t('Relatie tussen anderen…'):t('Relatie toevoegen…');
   if(!me||id===me)return;
   const rels=cmkToMe(id,me);
-  box.append(cmData(cmEl('p',rels.length?rels.map(x=>x.code?t('{naam} is je {relatie}.',{naam:cm.edit.label,relatie:cmiRelationName(x.code).toLowerCase()}):t('Jij bent {relatie} van {naam}.',{naam:cm.edit.label,relatie:cmiRelationName(x.orig).toLowerCase()})).join(' '):t('Nog niet vastgelegd wat {naam} voor jou is.',{naam:cm.edit.label}),'cmi-zin')));
+  box.append(cmData(cmEl('p',rels.length?rels.map(x=>x.code==='anders'?t('{naam} heeft een andere relatie met jou.',{naam:cm.edit.label}):x.code?t('{naam} is je {relatie}.',{naam:cm.edit.label,relatie:cmkRelName(x.code)}):t('Jij bent {relatie} van {naam}.',{naam:cm.edit.label,relatie:cmkRelName(x.orig)})).join(' '):t('Nog niet vastgelegd wat {naam} voor jou is.',{naam:cm.edit.label}),'cmi-zin')));
   $('#cmk-mij-btn').textContent=rels.length?t('Relatie met mij wijzigen'):t('Relatie met mij vastleggen');
   cmk.mijRel=rels[0]?.rel||'';
 };

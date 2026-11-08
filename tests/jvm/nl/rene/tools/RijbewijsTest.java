@@ -47,6 +47,12 @@ public class RijbewijsTest {
         List<Rijbewijs.Line> laag=card("RIJBEWIJS","1. DE VRIES","3. 17.02.1981","4b. 01.11.2024","5. 5094962111");laag.set(3,new Rijbewijs.Line("4b. 01.11.2024",41,20,120,700,150));
         r=Rijbewijs.read(laag,"2026-11-08");check(r.getJSONObject("document").getString("geldig").equals("2024-11-01")&&r.getJSONArray("twijfel").toString().contains("geldig"),"lage zekerheid: wel voorgesteld, als twijfel");
         check(read("BESTELBON","17.02.1981","01.11.2014","01.11.2024","5094962111")==null,"zonder rijbewijs geen datums of nummers raden");
+        List<Rijbewijs.Line> vaag=card("RIJBEWIJS",line);vaag.set(1,new Rijbewijs.Line(line,60,20,40,700,70));r=Rijbewijs.read(vaag,"2026-11-08");
+        check(r!=null&&r.getJSONArray("twijfel").toString().contains("\"document\""),"regel met lage zekerheid: controlecijfer alleen is niet genoeg (verwisselde cijfers)");
+        String wissel="D1NLD105949621115M2Z6KC47X2W71";check(Mrz.digit(wissel.substring(0,29))==1,"verwisseld (0 en 5): controlecijfer klopt toch");
+        r=read("RIJBEWIJS","5. 5094962111",wissel);check(r.getJSONArray("twijfel").toString().contains("\"document\""),"veld 5 zegt iets anders dan de regel: twijfel");
+        r=read("AM 01.03.1997 01.03.2027","B 12.05.2001 12.05.2031",line);
+        check(r!=null&&!r.getJSONObject("persoon").has("geboortedatum")&&!r.getJSONObject("document").has("geldig"),"achterkant (geen titel): geen datums per categorie als geboorte of geldig");
         check(Rijbewijs.term("2014-11-01","2024-11-01")&&Rijbewijs.term("2014-11-01","2024-10-31")&&Rijbewijs.term("2020-02-29","2030-02-28")&&!Rijbewijs.term("2014-11-01","2021-11-01"),"looptijd 5/10/15 jaar, ook een dag eerder");
         Rijbewijs.Stand st=new Rijbewijs.Stand();Rijbewijs.read(card("WINKELBON","TOTAAL 12,50"),"2026-11-08",st);check(st.regels==2&&!st.rijbewijs&&!st.onderregel,"stand: tekst gelezen, geen rijbewijs");
         // Samenvoegen van twee lezingen: wat ontbreekt aanvullen, zeker gaat voor twijfel

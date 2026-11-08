@@ -77,11 +77,13 @@ final class Rijbewijs {
 
     static JSONObject read(List<Line> lines,String today)throws Exception { return read(lines,today,null); }
     static JSONObject read(List<Line> lines,String today,Stand stand)throws Exception {
+        if(stand!=null){stand.regels=0;stand.rijbewijs=false;stand.onderregel=false;}
         if(lines==null||lines.size()>200)return null;
+        List<Float> sureness=new ArrayList<>();
         Map<String,Field> fields=new LinkedHashMap<>();Set<String> labels=new LinkedHashSet<>();StringBuilder all=new StringBuilder();List<String> texts=new ArrayList<>();
         for(Line line:lines) {
             if(line.text==null||line.text.length()>500||line.confidence<MIN_LINE||Float.isNaN(line.confidence)||Float.isInfinite(line.confidence))continue;
-            String text=line.text.replace(' ',' ').trim();all.append(text).append(' ');texts.add(text);
+            String text=line.text.replace(' ',' ').trim();all.append(text).append(' ');texts.add(text);sureness.add(line.confidence);
             Matcher m=LABEL.matcher(text);List<Integer> starts=new ArrayList<>(),ends=new ArrayList<>();List<String> keys=new ArrayList<>();
             while(m.find()){if(inDate(text,m.start()))continue;starts.add(m.start());ends.add(m.end());keys.add(m.group(1).replaceAll("\\s","").toLowerCase(Locale.ROOT));}
             for(int i=0;i<keys.size();i++) {
@@ -96,7 +98,7 @@ final class Rijbewijs {
         String header=java.text.Normalizer.normalize(all.toString(),java.text.Normalizer.Form.NFD).replaceAll("\\p{M}","")
                 .toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]","");
         String[] bottom=bottomLine(texts);
-        boolean licence=bottom!=null||header.matches(".*(?:RIJBEW[IJ1L]{1,2}[JS]|DRIVINGLICEN[CS]E|FUHRERSCHEIN|PERMISDECONDUIRE).*");
+        boolean title=header.matches(".*(?:RIJBEW[IJ1L]{1,2}[JS]|DRIVINGLICEN[CS]E|FUHRERSCHEIN|PERMISDECONDUIRE).*"),licence=bottom!=null||title;
         if(stand!=null){stand.rijbewijs=licence;stand.onderregel=bottom!=null;}
         JSONObject doc=new JSONObject().put("documentsoort","rijbewijs"),person=new JSONObject(),confidence=new JSONObject();Set<String> doubtful=new LinkedHashSet<>();int count=0;
         for(Map.Entry<String,Field> entry:fields.entrySet()) {
@@ -121,7 +123,10 @@ final class Rijbewijs {
             if(bottom!=null) {
                 String old=doc.optString("document");boolean ok="ok".equals(bottom[1]);
                 if(old.isEmpty()){doc.put("document",bottom[0]);count++;}else if(ok)doc.put("document",bottom[0]);
-                boolean sure=ok&&(old.isEmpty()||old.equals(bottom[0]));
+                // Het controlecijfer vangt niet alles (twee verwisselde cijfers die 5 verschillen): alleen zeker als ook
+                // veld 5 hetzelfde zegt, of als de regel zelf goed gelezen is.
+                float lineSure=bottom.length>2?sureness.get(Integer.parseInt(bottom[2])):0;
+                boolean sure=ok&&(old.equals(bottom[0])||old.isEmpty()&&lineSure>=85);
                 confidence.put("document",sure?100:60);if(sure)doubtful.remove("document");else doubtful.add("document");
             } else if(!doc.has("document")&&!labels.contains("5")) {
                 // Zonder veldnummer: één los nummer van tien cijfers (het Nederlandse rijbewijsnummer), als voorstel.
@@ -129,7 +134,8 @@ final class Rijbewijs {
                 if(numbers.size()==1){doc.put("document",numbers.iterator().next());confidence.put("document",50);doubtful.add("document");count++;}
             }
             // Datums zonder (leesbaar) veldnummer: afgifte en geldig tot liggen 5 of 10 jaar uit elkaar; de geboortedatum ruim ervoor.
-            List<String> dates=new ArrayList<>();for(String text:texts){Matcher m=DATE.matcher(text);while(m.find()){String d=date(m.group());if(!d.isEmpty()&&!dates.contains(d))dates.add(d);}}
+            // Alleen met de titel (voorkant): op de achterkant staan datums per categorie, die zijn geen afgifte of geboorte.
+            List<String> dates=new ArrayList<>();if(title)for(String text:texts){Matcher m=DATE.matcher(text);while(m.find()){String d=date(m.group());if(!d.isEmpty()&&!dates.contains(d))dates.add(d);}}
             java.util.Collections.sort(dates);
             if(!doc.has("geldig")&&!labels.contains("4b")) {
                 String[] pair=null;
@@ -184,7 +190,8 @@ final class Rijbewijs {
      */
     static String[] bottomLine(List<String> texts) {
         String[] best=null;
-        for(String text:texts) {
+        for(int t=0;t<texts.size();t++) {
+            String text=texts.get(t);
             String s=text.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9<]","");
             for(int i=s.indexOf("NLD");i>=0;i=s.indexOf("NLD",i+1)) {
                 if(i<2||s.length()<i-2+30)continue;
@@ -195,8 +202,8 @@ final class Rijbewijs {
                 if(!digits)continue;
                 String line=new String(c),number=line.substring(6,16);
                 boolean ok=Character.isDigit(c[29])&&Mrz.digit(line.substring(0,29))==c[29]-'0';
-                if(ok)return new String[]{number,"ok"};
-                if(best==null)best=new String[]{number,"twijfel"};
+                if(ok)return new String[]{number,"ok",String.valueOf(t)};
+                if(best==null)best=new String[]{number,"twijfel",String.valueOf(t)};
             }
         }
         return best;

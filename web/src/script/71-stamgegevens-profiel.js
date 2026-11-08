@@ -79,7 +79,7 @@ function cmiRelationText(f,soort){
   const me=typeof cmkMe==='function'?cmkMe():'';
   if(me&&f.relatie!=='anders'&&(f.vanPersoon===me||f.naarPersoon===me)&&f.vanPersoon!==f.naarPersoon){
     const mijn=f.vanPersoon===me;
-    if(soort==='label')return (mijn?t('{naam} (mijn {relatie})',{naam,relatie}):t('{ander} (ik ben {relatie})',{ander,relatie})).slice(0,120);
+    if(soort==='label')return (mijn?t('{naam} (mijn {relatie})',{naam,relatie}):t('Ik ben {relatie} van {ander}',{ander,relatie})).slice(0,120);
     const st=status?status[1].toLowerCase():'';
     if(mijn)return st?t('{naam} is je {relatie} ({status}).',{naam,relatie,status:st}):t('{naam} is je {relatie}.',{naam,relatie});
     return st?t('Je bent {relatie} van {ander} ({status}).',{relatie,ander,status:st}):t('Je bent {relatie} van {ander}.',{relatie,ander});
