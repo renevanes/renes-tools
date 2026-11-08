@@ -101,6 +101,12 @@ function bars(){
     const key = top + bottom + 'pl'; if (key === bars.last) return; bars.last = key;
     Android.setBars(top, bottom, false); return;
   }
+  if (current === 'erbook' && typeof erStyle === 'function') {
+    const theme = erStyle().theme, paper = getComputedStyle($('#s-erbook')).getPropertyValue('--er-paper').trim();
+    const light = theme === 'auto' ? !dark() : theme !== 'night';
+    const key = paper + light + 'er'; if (key === bars.last) return; bars.last = key;
+    Android.setBars(paper, paper, light); return;
+  }
   const key = top + bottom + dark(); if (key === bars.last) return; bars.last = key;
   Android.setBars(top, bottom, !dark());
 }

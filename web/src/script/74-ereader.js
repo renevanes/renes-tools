@@ -139,6 +139,7 @@ function erFocus(on){const anchor=erBook&&current==='erbook'?erAnchor():erCurren
 function erApplyStyle(){
   const s=erStyle(),font=s.font==='serif'?'Georgia, "Noto Serif", serif':s.font==='sans-serif'?'system-ui, sans-serif':'monospace';
   for(const el of [$('#s-erbook'),$('#s-erset')]){el.dataset.erTheme=s.theme;el.dataset.erMode=s.mode;el.style.setProperty('--er-size',s.size+'px');el.style.setProperty('--er-font',font);el.style.setProperty('--er-line',s.line);el.style.setProperty('--er-margin',s.margin+'px');el.style.setProperty('--er-align',s.align);}
+  if(current==='erbook')bars();
 }
 function erSettings(){erApplyStyle();const s=erStyle();for(const k of Object.keys(ER_STYLE))$('#er-'+k).value=String(s[k]);$('#er-sample-text').textContent=(erText||t('Open een boek om hier je eigen tekst te bekijken.')).slice(0,350);}
 function erPreference(key,value){
