@@ -643,6 +643,11 @@ body.has-plbar .fab{bottom:92px}
 body.has-plbar .toast,body.has-plbar .undo{bottom:92px}
 body.pl-open{overflow:hidden}
 .toast{z-index:2600}.undo{z-index:2600}
+/* Voortgang van een bestand toevoegen (uiVoortgang): balk onderin, zoals een melding, met een voortgangsbalk. */
+.vgbar{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:min(360px,calc(100vw - 32px));box-sizing:border-box;background:var(--inv);color:var(--inv-ink);padding:12px 16px 14px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.16);z-index:2500;font-size:14px;pointer-events:none;transition:transform .2s}
+.vgbar[hidden]{display:none}
+.vg-r{display:flex;align-items:baseline;gap:12px}.vg-r b{flex:1;min-width:0;font-weight:600}.vg-r span{font-variant-numeric:tabular-nums;opacity:.85;white-space:nowrap}
+.vgbar .vg-prog{background:color-mix(in srgb,var(--inv-ink) 12%,transparent)}.vgbar .vg-prog i{background:color-mix(in srgb,var(--primary) 40%,var(--inv-ink))}
 .player{position:fixed;inset:0;z-index:1500;background:#121212;color:#fff;transform:translateY(100%);visibility:hidden;transition:transform .3s cubic-bezier(.2,.8,.2,1),visibility .3s}
 .player.on{transform:none;visibility:visible}
 .pl-scroll{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding:0 20px calc(32px + env(safe-area-inset-bottom));
@@ -736,6 +741,9 @@ body.tabs-on .plbar{bottom:88px}
 body.tabs-on.has-plbar main{padding-bottom:172px}
 body.tabs-on .toast,body.tabs-on .undo{bottom:96px}
 body.tabs-on.has-plbar .toast,body.tabs-on.has-plbar .undo{bottom:168px}
+body.has-plbar .vgbar{bottom:92px}body.tabs-on .vgbar{bottom:96px}body.tabs-on.has-plbar .vgbar{bottom:168px}
+/* Een melding of Ongedaan maken staat op dezelfde plek: de balk schuift er even boven. */
+body:has(.toast.on,.undo.on) .vgbar{transform:translate(-50%,-72px)}
 body.tabs-on .fab{bottom:100px}
 /* Schermwissel: kort infaden (Material "fade through") */
 .screen.on{animation:scrin .18s ease-out}
@@ -1229,3 +1237,10 @@ details.cm-fold[open]>summary{margin-bottom:8px}
 .speech-player{position:fixed;bottom:calc(var(--tabbar-h,64px) + env(safe-area-inset-bottom));left:12px;right:12px;z-index:130;display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--line);box-shadow:0 4px 20px #0003;border-radius:18px;padding:8px 10px}.speech-player[hidden]{display:none}.speech-player>div{flex:1;min-width:0}.speech-player small{display:block;color:var(--muted)}.speech-visible .screen main{padding-bottom:110px}.speech-box{max-height:90dvh;overflow:auto;width:min(520px,95vw)}.speech-voice{padding:12px 0;border-bottom:1px solid var(--line)}.speech-voice h3{margin:4px 0}.speech-voice .row{flex-wrap:wrap}#speech-settings .row{gap:8px}#speech-speed{flex:1;min-width:100px}.speech-box .hint{line-height:1.5}
 
 body.er-reading .speech-player,body.solo .speech-player{bottom:calc(12px + env(safe-area-inset-bottom))}body.er-reading.speech-visible .er-reader{margin-bottom:calc(88px + env(safe-area-inset-bottom))}
+/* Tijdens het nakijken staan de voorstellen centraal; de handmatige velden volgen via Zelf invullen. */
+.cmh-review #cm-fields,.cmh-review #cm-label-box,.cmh-review #cm-secret-row{display:none}
+
+.cmh-review #cm-editor-card{padding:0;border:0;background:transparent}
+.cmh-review .cmh-panel{margin:0}
+
+.cmh-review~.cm-savebar{width:calc(100% + 32px)}

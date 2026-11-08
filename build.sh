@@ -19,6 +19,7 @@ AAPT2=$T/aapt2
 ANDROID_JAR=$T/ap/android-36/android.jar
 source VERSION
 B=build
+python3 tools/ocr-verify.py
 rm -rf $B && mkdir -p $B/assets $B/gen $B/classes $B/dex
 node tools/tool-register.js "$B/gen/ToolRegister.java"
 
@@ -59,6 +60,9 @@ cp web/vendor/JSQR-LICENSE $B/assets/licenties/jsqr.txt
 cp app/lib/arm64-v8a/LICENSE-whisper.cpp.txt $B/assets/licenties/whisper.cpp.txt
 cp app/lib/arm64-v8a/LICENSE-llama.cpp.txt $B/assets/licenties/llama.cpp.txt
 cp app/lib/arm64-v8a/LICENSE-musl.txt $B/assets/licenties/musl.txt
+mkdir -p $B/assets/ocr $B/assets/licenties/ocr
+cp app/ocr/eng.traineddata $B/assets/ocr/
+cp app/ocr/licenses/*.txt $B/assets/licenties/ocr/
 
 # 2. Versie-informatie voor de Java-code
 cat > $B/gen/Version.java <<JAVA
@@ -83,9 +87,9 @@ $AAPT2 link -I $ANDROID_JAR --manifest app/AndroidManifest.xml -A $B/assets \
 # Fouten stoppen de bouw meteen (de uitvoer wordt alleen gefilterd op de JAVA_TOOL_OPTIONS-melding)
 run() { local log=$B/step.log; "$@" > $log 2>&1; local c=$?; grep -v JAVA_TOOL_OPTIONS $log || true; return $c; }
 run javac -nowarn -Xlint:-options -source 8 -target 8 -encoding UTF-8 -bootclasspath $ANDROID_JAR:$BT/core-lambda-stubs.jar \
-  -classpath "$VOICE_CP" -d $B/classes $(find app/src $B/gen -name '*.java') || { echo "javac mislukt"; exit 1; }
+  -classpath "$VOICE_CP:app/ocr/tesseract4android.jar" -d $B/classes $(find app/src $B/gen -name '*.java') || { echo "javac mislukt"; exit 1; }
 run java -cp $BT/lib/d8.jar com.android.tools.r8.D8 --release --min-api 24 --lib $ANDROID_JAR \
-  --output $B/dex "${VOICE_JARS[@]}" $(find $B/classes -name '*.class') || { echo "d8 mislukt"; exit 1; }
+  --output $B/dex app/ocr/tesseract4android.jar "${VOICE_JARS[@]}" $(find $B/classes -name '*.class') || { echo "d8 mislukt"; exit 1; }
 (cd $B/dex && zip -q -j ../base.apk classes*.dex)
 # 4b. Uitschrijfprogramma (whisper.cpp) als native lib; Android pakt het uit in nativeLibraryDir
 (cd app && zip -q ../$B/base.apk lib/*/*.so)

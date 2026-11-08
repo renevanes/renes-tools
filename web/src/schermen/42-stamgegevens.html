@@ -41,24 +41,27 @@
         <p class="cmi-zin" id="cmi-relation-zin" data-cm-tab="relatie" translate="no" role="status" aria-live="polite" hidden></p>
         <details class="help in" id="cmi-relation-note" data-cm-tab="relatie" hidden><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>De tweede persoon heeft de gekozen relatie met de eerste persoon. Bijvoorbeeld: van jezelf naar je kind kies je Kind. Een status zoals ouderlijk gezag vul je zelf in; de app leidt die nergens uit af en deelt hem niet met de app of lokale AI. Een relatie is geen bewijs van gezag of toestemming.</p></div></details>
         <div id="cmi-person-docs" data-cm-tab="documenten" hidden>
-          <p class="hint">Reisdocumenten en andere identiteitsbewijzen van deze persoon, met hoe lang ze geldig zijn.</p>
+          <p class="hint">Identiteitskaarten, paspoorten en rijbewijzen van deze persoon.</p>
           <div id="cmi-person-doc-list" translate="no"></div>
-          <div class="row cmi-actions"><button class="mini" onclick="cmiDocNew()">Document toevoegen</button><button class="mini" id="cmh-scan" onclick="cmhScanPick()">Herkennen uit foto</button></div>
-          <p class="hint" id="cmh-scan-hint">Herkennen leest de strook met &lt;&lt;&lt; (achterkant ID-kaart, fotopagina paspoort) op je telefoon. De foto gaat nergens heen; hij wordt versleuteld als bijlage bij het nieuwe document bewaard, waar je hem weer kunt verwijderen.</p>
+          <div class="row cmi-actions"><button class="mini" id="cmh-scan" onclick="cmhScanPick()">Foto herkennen</button><button class="mini" onclick="cmiDocNew()">Zelf invullen</button></div>
+          <p class="hint" id="cmh-scan-hint">Herkenning gebeurt op je telefoon. De foto blijft als versleutelde bijlage bij het document.</p>
+          <details class="help in" id="cmh-help"><summary data-icon="info">Welke foto kies ik?</summary><div class="help-body"><p>Rijbewijs: de voorkant met naam, geboortedatum en nummer. ID-kaart: de achterkant met de strook &lt;&lt;&lt;. Paspoort: de fotopagina. Kies een scherpe foto, recht van boven en zonder schittering.</p></div></details>
         </div>
         <div id="cmi-person-relations" data-cm-tab="relaties" hidden>
           <div id="cmi-person-relation-list" translate="no"></div>
           <div class="row cmi-actions"><button class="mini" onclick="cmiRelationNew('kind')">Kind toevoegen</button><button class="mini" onclick="cmiRelationNew('ouder')">Ouder toevoegen</button><button class="mini" onclick="cmiRelationNew('partner')">Partner toevoegen</button><button class="mini" onclick="cmiRelationNew('')">Andere relatie toevoegen</button><button class="mini" onclick="cmiRelation()">Relatie met mij toevoegen</button></div>
         </div>
         <div id="cmi-person-actions" data-cm-tab="meer" hidden><p class="hint">Is dit jouw eigen gegeven? Dan wijs je jezelf aan voor de app en lokale AI.</p><div class="row cmi-actions"><button class="mini" onclick="cmiSelf()">Dit ben ik</button></div></div>
-        <div class="card cmh-panel" id="cmh-panel" hidden>
-          <h3>Herkend uit de foto</h3>
-          <p class="hint">Gelezen uit de strook met &lt;&lt;&lt;, op je telefoon. Daarin staan namen zonder accenten (Zoë als Zoe): kijk alles na en vink aan wat je overneemt.</p>
+        <div class="card cmh-panel" id="cmh-panel" data-cm-tab="document" hidden>
+          <h3>Controleer de gevonden gegevens</h3>
+          <p class="hint" id="cmh-review-hint">Vergelijk met je document en vink aan wat je wilt bewaren. Bestaande afwijkende gegevens blijven uitgevinkt.</p>
+          <p class="hint cmi-warn" id="cmh-source"></p>
+          <div class="row cmi-actions"><button class="mini" id="cmh-numbers" onclick="cmhToggleNumbers()" aria-pressed="false">Nummers tonen</button><button class="mini" onclick="cmTab('fotos')">Foto bekijken</button></div>
           <div id="cmh-list" translate="no"></div>
-          <div class="row cmi-actions"><button class="big tonal" onclick="cmhApply()">Gekozen gegevens overnemen</button><button class="mini" onclick="cmhDismiss()">Niet overnemen</button></div>
+          <button class="mini" onclick="cmhDismiss()">Zelf invullen</button>
         </div>
         <div id="cmi-photos" data-cm-tab="fotos" hidden>
-          <p class="hint">Versleuteld bewaard, zonder fotometadata. Staat de strook met &lt;&lt;&lt; erop, dan kun je de gegevens laten herkennen.</p>
+          <p class="hint">Versleuteld bewaard, zonder fotometadata. Gebruik de voorkant van je rijbewijs of de strook &lt;&lt;&lt; van je ID-kaart of paspoort.</p>
           <div class="row cmi-actions"><button class="mini" id="cmi-photo-show" onclick="cmiPhotoShow()">Kaartfoto’s tonen</button><button class="mini" id="cmh-photo-scan" onclick="cmhPhotoScan()">Gegevens herkennen</button></div>
           <div class="cmi-sides">
             <div><div class="cmi-side-h"><h4>Voorzijde</h4><small class="cmi-photo-stand" id="cmi-front-status"></small></div><div class="cmi-photo-paper" id="cmi-front-paper" hidden><img id="cmi-front-image" alt="Voorzijde van het identiteitsdocument"></div><div class="row cmi-actions"><button class="mini" onclick="cmiPhotoPick('front')">Voorzijde kiezen</button><button class="mini" id="cmi-front-delete" onclick="cmiPhotoDelete('front')">Voorzijde verwijderen</button><button class="mini" id="cmi-front-zoom" onclick="cmiPhotoZoom('front')" hidden>Voorzijde vergroten</button></div></div>

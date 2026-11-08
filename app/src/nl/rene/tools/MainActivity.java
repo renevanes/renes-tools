@@ -806,8 +806,11 @@ public class MainActivity extends Activity {
                         if (naam == null) naam = "";
                     } catch (Exception ignored) { }
                     byte[] b;
-                    try (java.io.InputStream in = getContentResolver().openInputStream(u)) { b = Facturen.lees(in, Facturen.MAX_PDF); }
-                    r = new org.json.JSONObject().put("sha", FacturenDossier.voegToe(this, b, naam, levId, levNaam)).toString();
+                    try (Voortgang v = Voortgang.van(this, "factuur", 1)) {
+                        try (java.io.InputStream in = v.open(this, u)) { b = Facturen.lees(in, Facturen.MAX_PDF); }
+                        v.stap("verwerken", 0, 0);
+                        r = new org.json.JSONObject().put("sha", FacturenDossier.voegToe(this, b, naam, levId, levNaam)).toString();
+                    }
                 } catch (Throwable e) { r = "{\"error\":" + org.json.JSONObject.quote(Facturen.kort(e)) + "}"; }
                 js("onFacturenToegevoegd", r);
             }, "facturen-toevoegen").start();
@@ -905,7 +908,7 @@ public class MainActivity extends Activity {
             }
             new Thread(() -> {
                 String result;
-                try { result = store.add(getApplicationContext(), uris).put("session", session).toString(); }
+                try (Voortgang v = Voortgang.van(this, "idkopie", uris.size())) { result = store.add(getApplicationContext(), uris, v).put("session", session).toString(); }
                 catch (Throwable e) { result = PdfTools.err(e); }
                 try { result = new org.json.JSONObject(result).put("session", session).toString(); } catch (Exception ignored) { }
                 if (store == idCopy && idScreen) js("onIdCopyPicked", result);
@@ -920,7 +923,11 @@ public class MainActivity extends Activity {
             if (us.isEmpty()) return;
             final Context app = getApplicationContext();
             final String saveName = pdfSaveName != null ? pdfSaveName : getSharedPreferences("pdf", MODE_PRIVATE).getString("saveName", null);
-            new Thread(() -> js("onPdf", FeatureBridge.pdfResult(app, req, us, saveName)), "pdf-pick").start();
+            new Thread(() -> {
+                // Opslaan als schrijft alleen weg; bij toevoegen de balk onderin (bestand 2 van 5 …).
+                try (Voortgang v = req == REQ_PDF_SAVE ? Voortgang.GEEN : Voortgang.van(this, "pdf", us.size())) { js("onPdf", FeatureBridge.pdfResult(app, req, us, saveName, v)); }
+                catch (Throwable e) { js("onPdf", PdfTools.err(e)); }
+            }, "pdf-pick").start();
             return;
         }
         if (req == EreaderBridge.REQ_BOOK) {
@@ -944,7 +951,7 @@ public class MainActivity extends Activity {
             final Uri u = data.getData();
             new Thread(() -> {
                 String r;
-                try { if (!kluisOk()) throw new Exception("De kluis is weer op slot"); Kluis.add(getApplicationContext(), u); r = "ok"; }
+                try (Voortgang v = Voortgang.van(this, "kluis", 1)) { if (!kluisOk()) throw new Exception("De kluis is weer op slot"); Kluis.add(getApplicationContext(), u, v); r = "ok"; }
                 catch (Throwable e) { r = e instanceof OutOfMemoryError ? "Bestand is te groot" : e.getMessage() == null ? "Toevoegen lukt niet" : e.getMessage(); }
                 js("onKluisChanged", JSONObject.quote(r));
             }, "kluis-add").start();

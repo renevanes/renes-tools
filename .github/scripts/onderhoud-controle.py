@@ -92,7 +92,9 @@ MODELLEN = ("app/src/nl/rene/tools/LocalAi.java",
 # De wekelijkse momentopname van Toiletten en douches (workflow toiletten-gegevens): meta.json van de release
 TOILETTEN = ("web/toiletten-bronnen.json", r'"metaUrl"\s*:\s*"(https://github\.com/[^"]+/meta\.json)"')
 TOILETTEN_MAX_DAGEN = 10
-ALLE = {"Leaflet": LEAFLET, "jsQR": JSQR, "Playwright": PLAYWRIGHT, "whisper.cpp": WHISPER,
+OCR = ("app/ocr/metadata.json", r'"version": "([0-9.]+)"')
+OCR_MODEL = ("app/ocr/metadata.json", r'"modelCommit": "([0-9a-f]{40})"')
+ALLE = {"Tesseract4Android": OCR, "OCR-model": OCR_MODEL, "Leaflet": LEAFLET, "jsQR": JSQR, "Playwright": PLAYWRIGHT, "whisper.cpp": WHISPER,
         "llama.cpp": LLAMA, "build-tools": BUILDTOOLS, "aapt2": AAPT2, "android-platform": PLATFORM,
         "targetSdk": TARGET, "zig": ZIG, "zig (llm)": ("tools/llm-build.sh", ZIG[1]), "toiletten-momentopname": TOILETTEN}
 
@@ -249,6 +251,35 @@ def main():
         achter, opm = None, f"vergelijking met {tag} mislukt ({e}); controleer met de hand"
     item("llama.cpp (lokale AI)", "app/lib/*/libllm.so", commit[:12], tag, osv({"commit": commit}), opm,
          verouderd=achter is None or achter > 1500)
+
+    # Gebundelde offline rijbewijsherkenning en de C-bibliotheken in de officiële AAR.
+    meta = json.loads((ROOT / OCR[0]).read_text())
+    rel = http_json("https://api.github.com/repos/adaptech-cz/Tesseract4Android/releases/latest", github=True)
+    item("Tesseract4Android", OCR[0], meta["version"], rel["tag_name"], osv({"commit": meta["sourceCommit"]}),
+         "Bijwerken: app/ocr/README.md; controleer alle vier ABI's en 16 KB-uitlijning.")
+    for name, repo in (("tesseract", "tesseract-ocr/tesseract"),
+                       ("leptonica", "DanBloomberg/leptonica"),
+                       ("libpng", "pnggroup/libpng")):
+        if name == "libpng":
+            # Dit project publiceert tags; de GitHub-releases-API geeft 404. Beta/rc-tags tellen niet mee.
+            refs = http_json(f"https://api.github.com/repos/{repo}/git/matching-refs/tags/v", github=True)
+            stable = [m.group(1) for ref in refs if (m := re.fullmatch(r"refs/tags/v([0-9]+\.[0-9]+\.[0-9]+)", ref["ref"]))]
+            newest = max(stable, key=versie_tuple)
+        else:
+            newest = http_json(f"https://api.github.com/repos/{repo}/releases/latest", github=True)["tag_name"].lstrip("v")
+        current = meta["components"][name]
+        item("OCR: " + name, OCR[0], current, newest,
+             osv({"package": {"name": name, "ecosystem": "OSS-Fuzz"}, "version": current}),
+             "Afbeeldingen worden door Android gedecodeerd; native PNG/JPEG-lezers worden niet gebruikt.")
+    current = meta["components"]["libjpeg"]
+    item("OCR: libjpeg", OCR[0], current, None,
+         osv({"package": {"name": "libjpeg", "ecosystem": "OSS-Fuzz"}, "version": current}),
+         "IJG-versie in officiële Tesseract4Android-AAR; bij SDK-update controleren.")
+    latest = http_json(f'https://api.github.com/repos/{meta["modelRepository"]}/commits?path={meta["modelFile"]}&per_page=1', github=True)[0]["sha"]
+    # De vastgezette repositorycommit kan later zijn dan de laatste wijziging aan het modelbestand.
+    change = http_json(f'https://api.github.com/repos/{meta["modelRepository"]}/commits?sha={meta["modelCommit"]}&path={meta["modelFile"]}&per_page=1', github=True)[0]["sha"]
+    item("OCR-model", OCR_MODEL[0], meta["modelCommit"][:12], latest[:12], (),
+         "Gebundeld Latin/LSTM-model; nieuwe bytes en SHA-256 samen bijwerken.", verouderd=latest != change)
 
     # Android-bouwgereedschap (komt niet zelf in de app, maar bepaalt wel waarmee hij gebouwd wordt)
     huidig = lees(*BUILDTOOLS)

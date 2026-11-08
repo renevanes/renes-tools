@@ -140,6 +140,7 @@ function infoLicenses(){
     ['llama.cpp (lokale AI) — MIT', () => Android.openUrl(G + 'app/lib/arm64-v8a/LICENSE-llama.cpp.txt')],
     ['musl (in whisper.cpp en llama.cpp) — MIT', () => Android.openUrl(G + 'app/lib/arm64-v8a/LICENSE-musl.txt')],
     ['Lokaal voorlezen: stemmen en bibliotheken', () => Android.openUrl(G + 'app/voorlezen/NOTICE.txt')],
+    [t('Tesseract4Android (tekstherkenning) — Apache-2.0 en overige licenties'), () => Android.openUrl(G + 'app/ocr/README.md')],
     ['Toiletten en douches: OpenStreetMap-bijdragers — ODbL 1.0', () => Android.openUrl('https://www.openstreetmap.org/copyright')]
   ]);
 }

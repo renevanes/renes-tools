@@ -28,7 +28,12 @@ def check(xml, package, names):
     for c in app.findall('provider'):
         require(all(a.startswith(package + '.') for a in c.get(A + 'authorities', '').split(';')), 'Provider gebruikt de gewone pakketnaam')
     if not p['native']:
-        require(not any(n.endswith('.so') for n in names), 'Onverwachte native programma\'s in de basisversie')
+        ocr = {'libjpeg.so', 'libleptonica.so', 'libpngx.so', 'libtesseract.so'}
+        abis = {'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'}
+        allowed = {'base/lib/' + abi + '/' + name for abi in abis for name in ocr}
+        allowed |= {'base/lib/' + abi + '/' + name for abi in ('arm64-v8a', 'x86_64')
+                    for name in ('libonnxruntime.so', 'libsherpa-onnx-jni.so')}
+        require(all(n in allowed for n in names if n.endswith('.so')), 'Onverwachte native programma\'s in de basisversie')
 
 
 if __name__ == '__main__':

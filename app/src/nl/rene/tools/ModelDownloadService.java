@@ -45,6 +45,7 @@ public class ModelDownloadService extends Service {
     private volatile int lastStartId;
 
     static void start(Context c, String id) {
+        if(VoiceModels.model(id)==null&&!PlayPolicy.allows(c,"ai"))return;
         STOP.remove(id);
         QUEUED.add(id);
         Intent i = new Intent(c, ModelDownloadService.class).putExtra("id", id);
@@ -74,7 +75,7 @@ public class ModelDownloadService extends Service {
         synchronized (queue) {
             lastStartId = startId;
             String id = intent == null ? null : intent.getStringExtra("id");
-            if (id != null && (LocalAi.model(id) != null || VoiceModels.model(id) != null) && !queue.contains(id) && !RUN.containsKey(id) && !id.equals(working)) queue.add(id);
+            if (id != null && (LocalAi.model(id) != null&&PlayPolicy.allows(this,"ai") || VoiceModels.model(id) != null) && !queue.contains(id) && !RUN.containsKey(id) && !id.equals(working)) queue.add(id);
             if (worker == null) { worker = new Thread(this::work, "model-download"); worker.start(); }
         }
         return START_NOT_STICKY;
