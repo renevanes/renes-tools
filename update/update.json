@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.170",
-  "versionCode": 171,
-  "nativeLevel": 151,
+  "versionName": "1.171",
+  "versionCode": 172,
+  "nativeLevel": 152,
   "web": "index.html",
-  "webSha256": "8d2b42532bb23eb7fc402f9ac39ba6ef3019229b3c99dcb1df35afb600666ea8",
+  "webSha256": "681db7cb9aba8d059c562329a9d8f1094b14eaaf24b6d8b1fe2a809e9eef6928",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "0df238f50c356efdfbc0d7be9f30b5000bcb141811bd22a7764a558b61820824",
+  "apkSha256": "2f1a99f7589394c7ee83b52118c855aba3960a4a8f6a4194264112a53e626f50",
   "changelog": [
+    {
+      "version": "1.171",
+      "date": "2026-11-08",
+      "changes": [
+        "Formulieren invullen: nieuwe knop \"Tussentijds opslaan\". Je invoer wordt bewaard als concept, ook als nog niet alle verplichte velden ingevuld zijn; bij een andere stap en als je weggaat gebeurt dat ook vanzelf. Je ziet steeds of alles is opgeslagen en hoeveel verplichte velden nog leeg zijn. Het concept staat versleuteld op je telefoon en komt terug als je het formulier weer opent.",
+        "Formulieren invullen: lege verplichte velden houden je niet meer tegen bij Volgende stap (ze zijn pas nodig voor de PDF). Bij een fout of een ontbrekend veld springt de app naar dat veld en staat de reden er direct onder; bij Controleren zie je wat nog leeg is, met een knop per veld."
+      ]
+    },
     {
       "version": "1.170",
       "date": "2026-11-08",
@@ -1502,5 +1510,5 @@
       ]
     }
   ],
-  "webSig2": "dyBxe1sgj1eA9F+p54VJBDpuiQSA1VGSIBk6TzxVLkiB88t7wvIgVhjb5dQdq8ky6ZjLHzOY7/sgrzNoqMKyB1xv1RBEBIvRlh95DQkzAxIIKeiAQiJz68mFmPzTJTzPZDpXS0xa91VfOsJsNspM4PTdmM9IythFvLGi2YhoAeXRpYsjDaPBMm8KEzbfoV3OhuvRVmH7fDnQZ30pVPy+jF2UyoQf/LR6TW3fwtBdsprqhrcYyMtBQrzBlcqsnJrV30xaxS/hUcmnxg1ePqxTOmY6El0D/6XwSaimuZ/SlFvoI7idASTx6Ce2ywM7yYHO9itl6Iy3WAh+fNh0DXo93OIxKHdj26gAZ4jO3TDu/R9yZiAiV4CWeaMlJHb75vnEJSLGl8BPXaMFEgvoEzTYH+sEiQlo7fa5u1XiH8fZCtNuPrG2f/yoVGC1UqSuNbeoWd2RthRhCJKTZabeiSo7r8vms3GkeUxBrkPtUkM7QbvWfptOcEj5XYzHN+yLSJsW"
+  "webSig2": "Ozqv2YOEQUvCEdqX5rtiMhQFvAod20xQYjeBA4dPj2CGdqQqQSgHgchsDe7Wst4+JMmVjvunT2swTnAGSldhKJJjkqaLICMvODXhzTXTHUK4D5aA/cz+a2eHiROu8zHzStcMeoya816hpxXZjPDK8GO7k7OKW/QEs+cxYHmyAo509E2UDh70irY/8qpJ40PXqwhGARWD32XnFFqvTGRP8W7gIQtEufi+aYEglgfB+bwMDC3zuvBJ6460zKd3gEVL8zSaeiw2X9Pq8knyLcMnz1PFpF1jftUbvhTP8pBBFK8Tctx9O2upafqQk5XNszTM6+KV1fv6Pe7t9NjjLQi6fU/HJz1FQ+PSGdM6i/R6A1vsLao3CnIBRwf863QPeqK0fO/6XgznyQJvJ7vnq8gW8lwjOteUWlYaN6xHKR1gH9pJh/hiYj9INIFjXLNFYjd5Z4kvuG7i3tYqlOB+4RdEljnFLUr+bntygcrKzaqoiSiR2mwOE4uJMp4uqDJp8dJU"
 }
