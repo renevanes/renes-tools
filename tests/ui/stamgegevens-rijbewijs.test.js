@@ -11,7 +11,7 @@ for(const colorScheme of ['light','dark']){
  });
  await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
  await p.evaluate(()=>cmEdit('owner','documenten'));await p.waitForFunction(()=>cm.edit?.id==='owner');
- await p.click('#cmh-scan');await p.waitForFunction(()=>!$('#cmi-photo-pending').hidden);await p.click('#cmi-photo-pending-btn');
+ await p.click('#cmh-scan');
  await p.waitForFunction(()=>cm.edit?.type==='identiteit'&&!$('#cmh-panel').hidden);
  const doc=await p.evaluate(()=>cm.edit.id);
  assert.deepEqual(await p.$$eval('#cm-tabs button',bs=>bs.map(b=>b.textContent)),['Gegevens','Foto’s'],'twee duidelijke tabbladen');

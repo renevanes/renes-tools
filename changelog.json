@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.167",
+    "date": "2026-11-08",
+    "changes": [
+      "Stamgegevens: na het kiezen van een kaartfoto hoef je niet meer opnieuw te ontgrendelen (als je binnen 2 minuten een foto kiest)."
+    ]
+  },
+  {
     "version": "1.166",
     "date": "2026-11-08",
     "changes": [

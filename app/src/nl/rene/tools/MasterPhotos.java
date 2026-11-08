@@ -33,13 +33,15 @@ final class MasterPhotos {
         activity.h.post(()->{
             synchronized(MasterPhotos.this){if(pending!=job)return;}
             if(!activity.masterForeground||!activity.masterSession.accepts(token)||!job.view.equals(activity.masterView)){clear(job);notify(job,false,Taal.T("Ontgrendel de stamgegevens opnieuw"));return;}
+            // Zolang de kiezer open is (hooguit 2 minuten) niet op slot: zie MainActivity.masterPickUntil.
+            if(activity.masterSession.accepts(token)){activity.masterPickReturned=false;activity.masterPickUntil=android.os.SystemClock.elapsedRealtime()+MainActivity.MASTER_PICK_MS;activity.h.postDelayed(activity::masterPickExpired,MainActivity.MASTER_PICK_MS+500);}
             Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            try{activity.startActivityForResult(intent,REQUEST);}catch(Throwable e){clear(job);notify(job,false,Taal.T("Bestandskiezer niet beschikbaar"));}
+            try{activity.startActivityForResult(intent,REQUEST);}catch(Throwable e){activity.masterPickUntil=0;clear(job);notify(job,false,Taal.T("Bestandskiezer niet beschikbaar"));}
         });
     }
     synchronized void clear(Pending job){if(pending==job)pending=null;}
     synchronized void cancel(){pending=null;}
-    void notify(Pending job,boolean picked,String error){try{JSONObject out=new JSONObject().put("request",job.request).put("picked",picked);if(error!=null)out.put("error",error);activity.js("onMasterPhotoPicked",out.toString());}catch(Exception ignored){ }}
+    void notify(Pending job,boolean picked,String error){try{JSONObject out=new JSONObject().put("request",job.request).put("picked",picked).put("direct",picked&&activity.masterPicking());if(error!=null)out.put("error",error);activity.js("onMasterPhotoPicked",out.toString());}catch(Exception ignored){ }}
     void result(int result,Intent data){
         Pending job;synchronized(this){job=pending;}if(job==null)return;
         Uri uri=result==Activity.RESULT_OK&&data!=null?data.getData():null;
@@ -47,6 +49,20 @@ final class MasterPhotos {
         try{if(!PdfTools.grantedBySender(data,java.util.Collections.singletonList(uri)))throw new Exception();PdfTools.checkUri(activity,uri);
             synchronized(this){if(pending!=job)return;job.uri=uri;}notify(job,true,null);
         }catch(Throwable e){clear(job);notify(job,false,Taal.T("Deze kaartfoto kan niet worden geopend"));}
+    }
+    /** Terug uit de kiezer binnen de tijd, nog ontgrendeld: de foto meteen verwerken (zelfde stappen als na ontgrendelen). */
+    void continueAfterPick(){
+        final String token=activity.masterSession.consumerToken();if(token.isEmpty())return;
+        final String request;synchronized(this){if(pending==null||pending.uri==null)return;request=pending.request;}
+        new Thread(()->{
+            JSONObject out=new JSONObject();try{out.put("request",request);}catch(Exception ignored){ }
+            try{
+                SecretKey key=MasterKeys.authenticated(activity);JSONObject photo=resume(key,activity.masterSession,token);
+                if(photo==null)return;out.put("photo",photo).put("token",token);
+                activity.h.post(activity::scheduleMasterExpiry);
+            }catch(Throwable e){try{out.put("photo",new JSONObject().put("error",MasterBridge.why(e))).put("token",token);}catch(Exception ignored){ }}
+            activity.js("onMasterPhotoDone",out.toString());
+        },"master-photo-direct").start();
     }
     JSONObject resume(SecretKey key,MasterSession session,String token){
         Pending job;synchronized(this){job=pending;if(job==null||job.uri==null)return null;}
