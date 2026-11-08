@@ -224,6 +224,22 @@ public class FeatureBridge {
             a.js("onPdfFormPreview", result.toString());
         }, "pdf-form-preview").start();
     }
+    /** Concept van een formulier opslaan (ook met lege verplichte velden). Geeft {t} of {error}. */
+    @JavascriptInterface public String pdfFormConceptSave(String id, String json) {
+        try { return new JSONObject().put("t", FormConcept.save(ctx, id, json)).toString(); }
+        catch (Throwable e) {
+            App.log(ctx, "PDF", "concept opslaan mislukt");
+            try { return new JSONObject().put("error", Taal.t(ctx, "Opslaan is niet gelukt. Probeer het nog eens.")).toString(); } catch (Exception x) { return "{}"; }
+        }
+    }
+    /** Het opgeslagen concept ({…} of {} als er geen is, of {error}). */
+    @JavascriptInterface public String pdfFormConceptLoad(String id) {
+        try { JSONObject o = FormConcept.load(ctx, id); return o == null ? "{}" : o.toString(); }
+        catch (Throwable e) {
+            try { return new JSONObject().put("error", Taal.t(ctx, "Het opgeslagen concept kan niet worden gelezen.")).toString(); } catch (Exception x) { return "{}"; }
+        }
+    }
+    @JavascriptInterface public void pdfFormConceptDelete(String id) { FormConcept.delete(ctx, id); }
     @JavascriptInterface public void pdfFormMake(String id, String layers, String name, String request) {
         final boolean masterBound=a.masterFormBound;final String masterToken=a.masterSession.consumerToken();
         new Thread(() -> {
