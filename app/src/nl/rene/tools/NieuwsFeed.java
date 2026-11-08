@@ -315,7 +315,10 @@ final class NieuwsFeed {
             Integer last = laatste.get(naam);
             if (last == null) { last = l.lastIndexOf(sluit); laatste.put(naam, last); }
             int eind = last >= m.end() ? l.indexOf(sluit, m.end()) : -1, gt = eind < 0 ? -1 : l.indexOf('>', eind);
-            if (gt < 0) { b.append(s, pos, m.end()); pos = m.end(); continue; }
+            if (gt < 0) {
+                if (eind >= 0) laatste.put(naam, -1); // een sluittag zonder '>': ook latere van deze soort sluiten niet
+                b.append(s, pos, m.end()); pos = m.end(); continue;
+            }
             b.append(s, pos, m.start()).append(' ');
             pos = gt + 1;
         }

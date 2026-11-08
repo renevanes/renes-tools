@@ -22,7 +22,7 @@ function nwBronnen(){ return (nw.data && nw.data.bronnen) || []; }
 function nwNamen(){ const m = {}; nwBronnen().forEach(b => { m[b.id] = b.naam; }); return m; }
 function nwOud(){
   const nu = Date.now();
-  return nwBronnen().some(b => b.aan && (!b.t || nu - b.t > 15 * 60000) && !(b.fout && nu - (b.poging || 0) < 2 * 60000));
+  return nwBronnen().some(b => b.aan && (!b.t || b.t > nu || nu - b.t > 15 * 60000) && !(b.fout && b.poging <= nu && nu - b.poging < 2 * 60000));
 }
 function nwWanneer(ms){
   if (!ms) return '';

@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.IDN;
 import java.net.InetAddress;
 import java.net.URL;
 import java.util.ArrayList;
@@ -27,8 +28,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
@@ -486,18 +487,30 @@ final class Nieuws {
     private static Fout antwoord(int code) { return new Fout(Taal.fill(Taal.T("De nieuwssite antwoordt met {code}"), "code", code)); }
 
     /** Verbreekt een verbinding die over zijn tijd gaat (ook als hij nog op het antwoord van de server wacht). */
-    private static final ScheduledExecutorService WACHTER = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "nieuws-wachter");
-        t.setDaemon(true);
-        return t;
-    });
+    private static final ScheduledThreadPoolExecutor WACHTER = wachter();
+
+    private static ScheduledThreadPoolExecutor wachter() {
+        ScheduledThreadPoolExecutor w = new ScheduledThreadPoolExecutor(1, r -> {
+            Thread t = new Thread(r, "nieuws-wachter");
+            t.setDaemon(true);
+            return t;
+        });
+        w.setRemoveOnCancelPolicy(true);
+        return w;
+    }
 
     /** Het toestel zelf, het thuisnetwerk of een ander niet-openbaar adres (ook achter een naam als 127.0.0.1.nip.io). */
     static boolean intern(InetAddress a) {
         if (a.isLoopbackAddress() || a.isSiteLocalAddress() || a.isLinkLocalAddress() || a.isAnyLocalAddress() || a.isMulticastAddress()) return true;
         byte[] b = a.getAddress();
-        if (b.length == 4) return (b[0] & 0xff) == 0 || ((b[0] & 0xff) == 100 && (b[1] & 0xc0) == 64);
-        return b.length == 16 && (b[0] & 0xfe) == 0xfc;
+        if (b.length == 4) { int o = b[0] & 0xff; return o == 0 || o >= 240 || (o == 100 && (b[1] & 0xc0) == 64); }
+        if (b.length != 16) return true;
+        boolean v4 = b[10] == (byte) 0xff && b[11] == (byte) 0xff;
+        for (int i = 0; i < 10 && v4; i++) v4 = b[i] == 0;
+        if (v4) {
+            try { return intern(InetAddress.getByAddress(Arrays.copyOfRange(b, 12, 16))); } catch (Exception e) { return true; }
+        }
+        return (b[0] & 0xfe) == 0xfc;
     }
 
     /** Hoeveel tijd er nog is tot {@code tot}; voorbij = de site is te traag. */
@@ -512,9 +525,13 @@ final class Nieuws {
         String u = adres;
         for (int hop = 0; hop < MAX_HOPS; hop++) {
             if (!https(u)) throw new Fout(Taal.T("Alleen https-adressen"));
-            for (InetAddress ia : InetAddress.getAllByName(new URL(u).getHost())) if (intern(ia)) throw new Fout(Taal.T("Dit adres is niet van een site op internet"));
+            for (InetAddress ia : InetAddress.getAllByName(IDN.toASCII(new URL(u).getHost()))) if (intern(ia)) throw new Fout(Taal.T("Dit adres is niet van een site op internet"));
             HttpURLConnection h = (HttpURLConnection) new URL(u).openConnection();
-            ScheduledFuture<?> wacht = WACHTER.schedule(() -> { try { h.disconnect(); } catch (Throwable ignored) { } }, Math.max(1, tot - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
+            AtomicBoolean teLaat = new AtomicBoolean();
+            ScheduledFuture<?> wacht = WACHTER.schedule(() -> {
+                teLaat.set(true);
+                try { h.disconnect(); } catch (Throwable ignored) { }
+            }, Math.max(1, tot - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
             try {
                 h.setInstanceFollowRedirects(false);
                 h.setConnectTimeout(Math.min(15_000, rest(tot)));
@@ -546,7 +563,7 @@ final class Nieuws {
                 a.data = out.toByteArray();
                 return a;
             } catch (IOException e) {
-                if (System.currentTimeMillis() >= tot) throw new Fout(Taal.T("De nieuwssite reageert te traag"));
+                if (teLaat.get() || System.currentTimeMillis() >= tot) throw new Fout(Taal.T("De nieuwssite reageert te traag"));
                 throw e;
             } finally { wacht.cancel(false); h.disconnect(); }
         }
@@ -638,8 +655,9 @@ final class Nieuws {
                 JSONObject b = bs.getJSONObject(i);
                 if (!b.optBoolean("aan")) continue;
                 JSONObject c = leesObject(new File(cache, b.getString("id") + ".json"));
-                boolean vers = c != null && nu - c.optLong("t") < VERS;
-                boolean netMis = c != null && c.has("fout") && nu - c.optLong("poging") < OPNIEUW_NA_FOUT;
+                long t = c == null ? 0 : c.optLong("t"), p = c == null ? 0 : c.optLong("poging");
+                boolean vers = c != null && t <= nu && nu - t < VERS; // een tijd in de toekomst: klok teruggezet
+                boolean netMis = c != null && c.has("fout") && p <= nu && nu - p < OPNIEUW_NA_FOUT;
                 if (alles || (!vers && !netMis)) out.add(new String[]{b.getString("id"), b.getString("url")});
             }
             return out;

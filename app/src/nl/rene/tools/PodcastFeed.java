@@ -118,6 +118,12 @@ final class PodcastFeed {
             if (!done) for (int i = 0; i < n; i++) see(b[off + i]);
             return n;
         }
+
+        @Override public long skip(long n) throws IOException {
+            if (n <= 0) return 0;
+            int r = read(new char[(int) Math.min(n, 8192)], 0, (int) Math.min(n, 8192));
+            return Math.max(r, 0);
+        }
     }
 
     static final class Handler extends org.xml.sax.ext.DefaultHandler2 {

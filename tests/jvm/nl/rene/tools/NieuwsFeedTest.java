@@ -138,6 +138,13 @@ public class NieuwsFeedTest {
             long ms = (System.nanoTime() - t0) / 1_000_000;
             check(ms < 1500, "200.000 tekens '" + stuk + "…' snel gelezen (" + ms + " ms)");
         }
+        for (String[] g : new String[][]{{"<figure>a", "</figure"}, {"<svg>a", "</svg"}, {"<iframe>a</figure>", "</iframe"}}) {
+            String h = herhaal(g[0], 1_500_000 / g[0].length()) + g[1];
+            long t0 = System.nanoTime();
+            NieuwsFeed.wegBlok(h);
+            long ms = (System.nanoTime() - t0) / 1_000_000;
+            check(ms < 1500, "1,5 miljoen tekens '" + g[0] + "…" + g[1] + "' (sluittag zonder '>') snel opgeschoond (" + ms + " ms)");
+        }
 
         // Eén fout teken of een kapot artikel kost niet de hele feed
         String stuur = "<rss><channel><title>T</title><item><title>Met \u0001stuurteken</title><guid>a</guid></item><item><title>Twee</title><guid>b</guid></item></channel></rss>";
