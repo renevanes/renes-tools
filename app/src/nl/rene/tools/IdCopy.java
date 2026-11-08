@@ -67,6 +67,8 @@ final class IdCopy {
             synchronized (PENDING) { PENDING.add(f); }
     }
 
+    /** Zonder balk; ook gebruikt door tests/telefoon/idcopy/IdCopyDeviceTest (via reflectie). */
+    JSONObject add(Context c, List<Uri> uris) throws Exception { return add(c, uris, Voortgang.GEEN); }
     synchronized JSONObject add(Context c, List<Uri> uris, Voortgang v) throws Exception {
         if (closed) throw new Exception(Taal.T("Kies de ID-kopie opnieuw"));
         cleanStale(c); retryPending();
