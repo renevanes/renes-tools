@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.173",
+    "date": "2026-11-08",
+    "changes": [
+      "Stamgegevens: een rijbewijs wordt beter herkend (ook het nummer uit de regel onderaan en de datums), en als het niet lukt zie je wat er misging, met tips en de knoppen Opnieuw proberen, Grondiger proberen, Andere foto kiezen en Zelf invullen.",
+      "Stamgegevens: jij staat centraal. Bovenaan Ik met je eigen documenten, daaronder Mijn mensen met wat ze voor jou zijn (gezin, familie, anderen). Een persoon toevoegen begint met Wie is het voor jou?, en persoon en relatie worden samen bewaard; een relatie tussen anderen kan nog via de persoon."
+    ]
+  },
+  {
     "version": "1.172",
     "date": "2026-11-08",
     "changes": [

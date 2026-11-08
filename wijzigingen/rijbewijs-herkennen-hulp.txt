@@ -1,1 +1,0 @@
-Stamgegevens: een rijbewijs wordt beter herkend (ook het nummer uit de regel onderaan en de datums), en als het niet lukt zie je wat er misging, met tips en de knoppen Opnieuw proberen, Grondiger proberen, Andere foto kiezen en Zelf invullen.
