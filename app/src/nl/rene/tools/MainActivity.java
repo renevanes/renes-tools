@@ -594,6 +594,9 @@ public class MainActivity extends Activity {
         else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
     }
 
+    /** Weinig geheugen: een warme, ongebruikte voorleesmotor sluiten (±60 MB). */
+    @Override public void onTrimMemory(int level) { super.onTrimMemory(level); if (level >= TRIM_MEMORY_RUNNING_LOW) ReadAloud.dropEngine(); }
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -605,6 +608,7 @@ public class MainActivity extends Activity {
         }
         if ("recording".equals(VoiceNote.state)) VoiceNote.cancel(); // inspreken alleen met de app open
         ReadAloud.leaving(speechOwner); // een bewust gestart boek mag in de voorgronddienst verdergaan
+        SystemSpeech.release(); // terugvalstem van de assistent: alleen met de app open
         AiTalk.bargeStop(); // gesprek met de assistent: niet doorluisteren
         try { getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); } catch (Throwable ignored) { }
         js("onPauseApp", "");

@@ -8,7 +8,7 @@ for name,(url,digest) in manifest['files'].items():
     target=out/name
     if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest()!=digest:
         tmp=out/(name+'.part')
-        subprocess.run(['curl','--fail','--location','--silent','--show-error','--retry','2','--max-time','180','--output',str(tmp),url],check=True)
+        subprocess.run(['curl','--fail','--location','--proto','=https','--proto-redir','=https','--silent','--show-error','--retry','2','--max-time','180','--output',str(tmp),url],check=True)
         if hashlib.sha256(tmp.read_bytes()).hexdigest()!=digest:
             tmp.unlink(); raise SystemExit('Voorleesbibliotheek: controlegetal klopt niet')
         tmp.replace(target)

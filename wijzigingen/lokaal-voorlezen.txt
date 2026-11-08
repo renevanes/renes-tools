@@ -2,3 +2,5 @@ Lokaal voorlezen met downloadbare Nederlandse en Engelse stemmen, gedeeld door d
 Boeken voorlezen vanaf je leesplek, door de hoofdstukken heen, met pauze, snelheid en optioneel verder luisteren met het scherm uit.
 Kies je stem via Instellingen → Lokaal voorlezen; tekst en spraak blijven op je telefoon.
 Tijdens een telefoongesprek pauzeert het voorlezen en daarna gaat het vanzelf verder; zinnen volgen elkaar zonder stilte op.
+De assistent leest ook voor zolang je nog geen lokale stem hebt, met een stem van je telefoon die zonder internet werkt. De beste stem: Instellingen → Lokaal voorlezen → Ronnie downloaden (21 MB).
+Voorlezen pauzeert als je oortjes of bluetooth loskoppelt, en korte antwoorden zoals "Ja." worden nu ook echt uitgesproken.

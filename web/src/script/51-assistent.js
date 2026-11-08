@@ -222,7 +222,7 @@ function aiLocalAnswer(h, v){
   aiSaveChat(aiChat); aiRenderMsgs(); aiSendBtn();
   if (typeof aiTalkOn === 'function' && aiTalkOn()) { aiTalkLocal(m); return; } // gesprek: voorlezen (dan niet ook nog de schermlezer) en weer luisteren
   aiVSay(String(m.c).replace(/\*\*/g, '') + (aiCardOpen(m) ? ' ' + t('Bevestig met de knop onder het antwoord.') : ''));
-  if (v && aiSt.speakVoice && m.c) setTimeout(() => { if (current === 'ai' && !document.hidden) aiSpeakStart(m, aiChat); }, 0);
+  if (v && aiSt.speakVoice && m.c) setTimeout(() => { if (current === 'ai' && !document.hidden) aiSpeakStart(m, aiChat, true); }, 0);
 }
 const AI_OTHERS = ['sms', 'wa', 'calls', 'contacts', 'tx'];
 /* Staat er onder dit antwoord iets om te bevestigen (actie, instelling of opdracht)? */
@@ -299,7 +299,7 @@ window.onAiDone = function(info){
       if (m.set && typeof setFromModel === 'function' && !info.cancelled) setFromModel(m, info.settings);
       if (info.action && info.action.type && !info.cancelled) { m.act = Object.assign({}, info.action, { st: 'voorgesteld' }); if (typeof aiVSay === 'function') aiVSay(t('Voorstel: {wat}, {titel}. Bevestig met de knop onder het antwoord.', { wat: aiActLabel(m.act), titel: m.act.title })); }
       // Gesprek met je stem: het antwoord voorlezen (Lokale AI → Spraak); in een Gesprek doet aiTalkDone dat
-      if (!info.cancelled && m.c && aiSt.speakVoice && !(typeof aiTalkOn === 'function' && aiTalkOn())) { const q = chat.msgs.slice(0, chat.msgs.indexOf(m)).filter(x => x.r === 'user').slice(-1)[0]; if (q && q.v) setTimeout(() => { if (aiChat === chat && current === 'ai' && !document.hidden) aiSpeakStart(m, chat); }, 0); }
+      if (!info.cancelled && m.c && aiSt.speakVoice && !(typeof aiTalkOn === 'function' && aiTalkOn())) { const q = chat.msgs.slice(0, chat.msgs.indexOf(m)).filter(x => x.r === 'user').slice(-1)[0]; if (q && q.v) setTimeout(() => { if (aiChat === chat && current === 'ai' && !document.hidden) aiSpeakStart(m, chat, true); }, 0); }
       if (info.mem) m.memUsed = +info.mem || 0;
       // De assistent kijkt nog of er iets te onthouden is: dat komt bij dit antwoord (onAiMemory, zelfde turn)
       if (info.learning) { m.mem = Object.assign({}, m.mem, { thinking: true }); }
@@ -1030,19 +1030,19 @@ function aiActOpen(i){
   jumpTo('note', () => openNote(m.act.note));
 }
 
-/* ---------- Voorlezen (tekst-naar-spraak van de telefoon, Nederlandse stem) ---------- */
-let aiSpk = null, aiSpkSeq = 0; // { id, m, chat, on }: welk antwoord nu voorgelezen wordt
+/* ---------- Voorlezen: de lokale stem (ReadAloud, Lokaal voorlezen); zolang die er niet is een stem van Android die zonder internet werkt ---------- */
+let aiSpk = null, aiSpkSeq = 0; // { id, m, chat, on, auto, system }: welk antwoord nu voorgelezen wordt
 function aiSpkBtn(m, i){
   const on = aiSpk && aiSpk.m === m;
   return '<button class="linkish aispk" data-i="' + i + '" onclick="aiSpeakMsg(' + i + ')" aria-label="' + t(on ? 'Stoppen met voorlezen' : 'Dit antwoord voorlezen') + '">' + uiIcon(on ? 'stop' : 'volume-high') + ' ' + t(on ? 'Stoppen' : 'Voorlezen') + '</button>';
 }
 function aiSpeakMsg(i){ const m = aiChat && aiChat.msgs[i]; if (m && m.c) aiSpeakStart(m, aiChat); }
-function aiSpeakStart(m, chat){
+function aiSpeakStart(m, chat, auto){
   if (aiSpk && aiSpk.m === m) { aiSpeakStop(); return; } // nog eens tikken = stoppen
   if (aiRec) { toast('Eerst stoppen met inspreken'); return; }
   aiSpeakStop();
   const id = 'ai-' + Date.now() + '-' + (++aiSpkSeq);
-  aiSpk = { id, m, chat, on: false };
+  aiSpk = { id, m, chat, on: false, auto: !!auto };
   Android.aiSpeak(m.c, id);
   aiSpkUi();
 }
@@ -1050,16 +1050,21 @@ function aiSpeakStop(){ if (!aiSpk) return; aiSpk = null; Android.aiSpeakStop();
 window.onAiSpeak = function(o){
   o = o || {};
   if (!aiSpk || o.id !== aiSpk.id) return;
-  if (o.state === 'start') { aiSpk.on = true; aiSpkUi(); return; }
-  aiSpk = null; aiSpkUi();
-  if (o.state === 'error') { if(o.code==='voice_missing'){spSettings();return;} if (/stem|voorleesfunctie/.test(o.error || '')) askConfirm('Voorlezen lukt niet', o.error, 'OK', () => {}); else toast(o.error || 'Voorlezen lukte niet'); }
+  if (o.state === 'start') { aiSpk.on = true; aiSpk.system = !!o.system; if (o.system) aiSpkHint(); aiSpkUi(); return; }
+  const aiSpkWasAuto = !!aiSpk.auto; aiSpk = null; aiSpkUi();
+  // Geen stem: bij Voorlezen-tik de stemkiezer; bij vanzelf voorlezen nooit een venster, alleen de hint
+  if (o.state === 'error') { if (o.code === 'voice_missing') { if (aiSpkWasAuto) aiSpkHint(true); else spSettings(); return; } if (/stem|voorleesfunctie/.test(o.error || '')) askConfirm('Voorlezen lukt niet', o.error, 'OK', () => {}); else toast(o.error || 'Voorlezen lukte niet'); }
 };
+/* Eenmalig (of als er geen enkele stem is): tip om een lokale stem te downloaden; opent zelf nooit een venster. */
+function aiSpkHint(always){ const h = $('#ai-spkhint'); if (!h || (!always && store.get('aiStemTip'))) return; store.set('aiStemTip', 1); h.hidden = false; }
+function aiSpkHintGo(){ const h = $('#ai-spkhint'); if (h) h.hidden = true; spSettings(); }
 function aiSpkUi(){
   document.querySelectorAll('#ai-msgs .aispk').forEach(b => { const m = aiChat && aiChat.msgs[+b.dataset.i]; if (m) aiSwap(b, aiSpkBtn(m, +b.dataset.i)); });
   const bar = $('#ai-spkbar'); if (!bar) return;
   const show = !!aiSpk && aiSpk.chat === aiChat;
   bar.style.display = show ? '' : 'none';
   if (show) $('#ai-spktxt').textContent = aiSpk.on ? 'Voorlezen…' : 'Voorlezen starten…';
+  const pause = $('#ai-speech-pause'); if (pause) pause.style.display = aiSpk && aiSpk.system ? 'none' : ''; // de stem van Android kan niet pauzeren
 }
 
 /* ---------- Samenvatten met één tik (sms, WhatsApp, uitgeschreven gesprek) ----------

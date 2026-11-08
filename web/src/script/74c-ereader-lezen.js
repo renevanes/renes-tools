@@ -191,7 +191,7 @@ function erSpeakVoice(id){
   const a=erSpeakNow();if(a&&erSpeakHere()&&a.state!=='paused')erSpeakFrom(a.chapter,Number(a.offset)||0); // verder met dezelfde zin, met de nieuwe stem
   erSpeakRender();
 }
-function erSpeakBackground(){const m=erVoiceInfo();const e=Android.speechConfigure(m.voice||'',m.speed||1,m.background===false);if(e)toast(e);erSpeakRender();}
+function erSpeakBackground(){sp.models=spReadModels();spBackground();erSpeakRender();} // gedeeld: vraagt ook toestemming voor meldingen (pauzeknop)
 function erSpeakVoices(){erPanel('');spSettings();}
 /* Slaaptimer: een tijd, of het einde van het hoofdstuk; dan gewoon stoppen (de motor heeft de leesplek al bewaard). */
 function erSleepSet(choice,quiet){

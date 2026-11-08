@@ -269,6 +269,7 @@ final class ToolData {
             case "sleeptalk": return Taal.T("Slaappraat");
             case "transcribe": case "txdur": case "txmeta": return Taal.T("Gesprekken uitschrijven");
             case "solo": return Taal.T("Losse apps");
+            case "voorlezen": return Taal.T("Lokaal voorlezen");
             case "launcher": case "workspace": case "pinned_shortcuts": case "shortcut-icons": return Taal.T("Startscherm");
             default: return Taal.T("Overige instellingen");
         }

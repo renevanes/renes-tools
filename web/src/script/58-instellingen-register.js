@@ -318,7 +318,7 @@ const SET_REG = [
     get: () => setAiCfg('learn'), set: v => { aicSet('learn', v); return ''; } },
   { id: 'ai.voicesend', scr: 'aisetvoice', ctl: '#ais-vsend', label: 'Meteen versturen na inspreken', desc: 'Uit: de ingesproken tekst komt eerst in het invoerveld, zodat je hem kunt nakijken.', syn: 'inspreken spraak versturen microfoon meteen',
     get: () => setB(setAi().voiceSend === true), set: v => { if ((setAi().voiceSend === true) !== setOnV(v)) aisVoiceSend(); return ''; } },
-  { id: 'ai.speakvoice', scr: 'aisetvoice', ctl: '#ais-vspeak', label: 'Antwoord voorlezen als je de vraag insprak', desc: 'De assistent leest het antwoord voor met de Nederlandse stem van je telefoon.', syn: 'voorlezen spraak stem antwoord inspreken praten',
+  { id: 'ai.speakvoice', scr: 'aisetvoice', ctl: '#ais-vspeak', label: 'Antwoord voorlezen als je de vraag insprak', desc: 'De assistent leest het antwoord voor met de lokale stem, of zolang die er niet is met een stem van je telefoon die zonder internet werkt.', syn: 'voorlezen spraak stem antwoord inspreken praten',
     get: () => setB(!!setAi().speakVoice), set: v => { if (!!setAi().speakVoice !== setOnV(v)) aisVoiceSpeak(); return ''; } },
   { id: 'ai.talk.stilte', scr: 'aisetvoice', ctl: '#aic-talkSilence', type: 'keuze', vals: [['1000', '1 seconde'], ['1300', '1,3 seconde'], ['1600', '1,6 seconde'], ['2200', '2,2 seconden']], label: 'Gesprek: stilte voordat hij antwoordt', desc: 'Hoe lang je stil moet zijn voordat de assistent in een gesprek (handsfree) vindt dat je uitgesproken bent.', syn: 'gesprek handsfree stilte pauze wachten uitgesproken praten seconde',
     get: () => setAiCfg('talkSilence') || '1300', set: v => { aicSet('talkSilence', v); return ''; } },

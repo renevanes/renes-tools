@@ -34,6 +34,7 @@
         <p class="aivstate" id="ai-vstate" aria-hidden="true" style="display:none"></p>
         <span class="sr-only" id="ai-vsay" role="status" aria-live="polite"></span>
         <div class="aispkbar" id="ai-spkbar" style="display:none"><span class="ui-icon" data-icon="volume-high" aria-hidden="true"></span><span id="ai-spktxt">Voorlezen…</span><button class="mini" id="ai-speech-pause" onclick="spAiPause()">Pauzeren</button><button class="mini" onclick="aiSpeakStop()" aria-label="Stoppen met voorlezen"><span class="ui-icon" data-icon="stop" aria-hidden="true"></span> Stoppen</button></div>
+        <div class="aispkhint" id="ai-spkhint" hidden><span>Download Ronnie voor een betere stem</span><button class="mini" onclick="aiSpkHintGo()">Stem kiezen</button><button class="icon-btn" onclick="this.parentNode.hidden=true" aria-label="Tip sluiten" data-icon="close"></button></div>
         <div class="aivbar" id="ai-vbar" style="display:none">
           <button class="aivx" id="ai-vcancel" onclick="aiVoiceCancelBtn()" aria-label="Inspreken annuleren"><span class="ui-icon" data-icon="close" aria-hidden="true"></span></button>
           <div class="aiwave" id="ai-wave" aria-hidden="true"></div>
@@ -170,7 +171,7 @@
     </div>
       <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
       <p><b>Inspreken.</b> Tik in het gesprek op de microfoon en stel je vraag hardop. Je ziet dat hij luistert, en terwijl je praat verschijnt de tekst al. Tik op ✓ als je klaar bent: dan wordt alles nog één keer goed uitgeschreven en komt de tekst in het invoerveld, om na te kijken of te versturen. Met ✕ annuleer je. Alles gebeurt op de telefoon met het spraakmodel van Gesprekken uitschrijven (Whisper); de opname gaat daarna weg en er gaat niets naar internet. De taal is dezelfde als bij Gesprekken uitschrijven.</p>
-      <p><b>Voorlezen.</b> Zo praat je met de assistent: vraag het hardop en hij leest het antwoord voor, met de Nederlandse stem van je telefoon. Met de knop Voorlezen onder een antwoord kan het altijd.</p>
+      <p><b>Voorlezen.</b> Zo praat je met de assistent: vraag het hardop en hij leest het antwoord voor, met de lokale stem die je bij Lokaal voorlezen downloadt (Ronnie). Zolang je die nog niet hebt, gebruikt hij een stem van je telefoon die zonder internet werkt. Met de knop Voorlezen onder een antwoord kan het altijd.</p>
       <p><b>Gesprek (handsfree).</b> Tik in de assistent op de microfoon bovenin (of op "Start een gesprek"): hij luistert, merkt zelf dat je uitgesproken bent, leest het antwoord zin voor zin voor en luistert dan weer. Zeg "stop" of "klaar" om te stoppen. Het scherm blijft aan zolang het gesprek loopt; bij een telefoongesprek of als je weggaat uit de assistent stopt het. Een voorstel (timer, bericht, instelling) gebeurt ook hier pas na een tik.</p>
       <p><b>Onderbreken.</b> Via de luidspreker hoort de telefoon ook zijn eigen stem, daarom reageert hij alleen op duidelijk harder praten. De knop Onderbreken werkt altijd.</p>
     </div></details>
