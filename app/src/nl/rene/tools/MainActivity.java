@@ -129,6 +129,11 @@ public class MainActivity extends Activity {
     String solo;
     /** Losse kluis: met welke ontgrendeling (Kluis.gen) dit venster de kluis zelf opende; -1 = nog niet. */
     volatile int kluisGen = -1;
+    volatile long bankGen = -1;
+    final Bank.Unlock bankAuth = new Bank.Unlock();
+    private Runnable bankAfterAuth;
+    void afterBankAuth(Runnable task) { bankAfterAuth = task; h.post(this::runBankAfterAuth); }
+    void runBankAfterAuth() { if (!masterForeground || isDestroyed() || isFinishing()) return; Runnable task = bankAfterAuth; bankAfterAuth = null; if (task != null) task.run(); }
 
     /** Bankzaken staat in beeld (schermbeveiliging aan) / de gekozen afschriften na inlezen verwijderen. */
     volatile boolean bankScreen = false, bankWis = false;
@@ -137,6 +142,8 @@ public class MainActivity extends Activity {
     boolean kluisMine() { return !isSolo() || kluisGen == Kluis.gen; }
     /** De kluis is open én mag door dit venster gebruikt worden. */
     boolean kluisOk() { return Kluis.isOpen() && kluisMine(); }
+    /** Een losse bank-app kan niet meeliften op de ontgrendeling van een ander venster. */
+    boolean bankOk() { return (!isSolo() || "bank".equals(solo)) && Bank.session(bankGen); }
 
     boolean isSolo() { return this instanceof SoloActivity; }
 
@@ -224,7 +231,7 @@ public class MainActivity extends Activity {
         } else live = this;
         synchronized (ALL) { ALL.add(this); }
         // Een terugzetten dat halverwege stopte (ook als de app vóór het ontgrendelen startte): eerst afmaken of terugdraaien
-        if (!isSolo()) AppBackup.recoverIfNeeded(getApplicationContext());
+        if (!isSolo() || "backup".equals(solo)) AppBackup.recoverIfNeeded(getApplicationContext());
         IdCopy.cleanStale(getApplicationContext());
         PlayPolicy.sanitizePreferences(getApplicationContext());
         if (!Updater.viaPlay(this)) {
@@ -475,6 +482,7 @@ public class MainActivity extends Activity {
         if (live == this) live = null;
         synchronized (ALL) { ALL.remove(this); }
         if (isFinishing() && !isSolo()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
+        bankAuth.cancel();bankAfterAuth=null;
         masterSession.close();masterAfterAuth=null;masterAuthSerial.incrementAndGet();h.removeCallbacks(masterExpiry);
         final IdCopy closingId = idCopy;
         new Thread(() -> { try { closingId.clear(); } catch (Throwable ignored) { } }, "id-copy-close").start();
@@ -579,7 +587,10 @@ public class MainActivity extends Activity {
         super.onPause();
         visible = false; masterForeground=false; suspendMaster(false);
         // Bankzaken gaat op slot zodra de app uit beeld gaat (niet tijdens bestanden kiezen of de vraag om te ontgrendelen)
-        if (!Bank.kiest() && !Bank.linking && !Lock.authBusy && Bank.isOpen()) Bank.close();
+        synchronized (bankAuth) {
+            bankAuth.pause(Lock.authBusy);
+            if (!Bank.kiest() && !Bank.linking && !Lock.authBusy && Bank.isOpen()) Bank.close();
+        }
         if ("recording".equals(VoiceNote.state)) VoiceNote.cancel(); // inspreken alleen met de app open
         AiSpeech.release(); // voorlezen alleen met de app open; de spraakmotor weer vrijgeven
         AiTalk.bargeStop(); // gesprek met de assistent: niet doorluisteren
@@ -590,7 +601,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        visible = true; masterForeground=true;runMasterAfterAuth();
+        visible = true; masterForeground=true;runMasterAfterAuth();bankAuth.resume();runBankAfterAuth();
         js("onResumeApp", "");
         try { GebruikLive.start(getApplicationContext()); } catch (Throwable ignored) { }
         if (isSolo()) return; // updates regelt de gewone app
@@ -1166,7 +1177,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void waRequestFilesAccess() { a.h.post(a::requestFilesAccess); }
-        @JavascriptInterface public void waPickFolder() { if (!a.isSolo()) a.h.post(a::pickBackupFolder); } // niet vanuit een losse app
+        @JavascriptInterface public void waPickFolder() { if (!a.isSolo() || "backup".equals(a.solo)) a.h.post(a::pickBackupFolder); } // de backup-tool beheert zijn eigen map
 
         @JavascriptInterface public void waScanSizes() {
             new Thread(() -> {

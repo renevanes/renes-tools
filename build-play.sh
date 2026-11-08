@@ -33,6 +33,7 @@ echo "$BUNDLETOOL_SHA256  $BUNDLETOOL" | sha256sum -c --quiet - || { echo "bundl
 source VERSION
 B=build-play
 rm -rf $B && mkdir -p $B/assets $B/gen $B/classes $B/dex $B/src $B/module
+node tools/tool-register.js "$B/gen/ToolRegister.java"
 
 run() { local log=$B/step.log; "$@" > $log 2>&1; local c=$?; grep -v JAVA_TOOL_OPTIONS $log || true; return $c; }
 

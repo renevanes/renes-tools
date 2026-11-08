@@ -37,7 +37,7 @@ public class MasterBridge extends BankBridge {
     }
     @JavascriptInterface public void masterUnlock(String request){
         a.h.post(()->{
-            if(!a.masterWanted||a.isDestroyed()||a.isFinishing()||!a.masterForeground||a.isSolo()){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Open Stamgegevens in de hoofdapp om te ontgrendelen"));}catch(Exception ignored){ }reply(request,"",e);return;}
+            if(!a.masterWanted||a.isDestroyed()||a.isFinishing()||!a.masterForeground||(a.isSolo()&&!"masterdata".equals(a.solo)&&!"pdf".equals(a.solo))){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Ontgrendel de stamgegevens opnieuw"));}catch(Exception ignored){ }reply(request,"",e);return;}
             if(Lock.busy()){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Er staat al een vraag om te ontgrendelen open"));}catch(Exception ignored){ }reply(request,"",e);return;}
             final long auth=a.masterAuthSerial.incrementAndGet(),dataset=MasterSession.datasetEpoch();final String view=a.masterView;
             a.masterAuthPending=true;

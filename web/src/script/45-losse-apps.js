@@ -3,18 +3,19 @@
  * staan er geen knoppen of menu-keuzes naar andere tools, geen tabbalk, en sluit "terug" op het eerste scherm de app.
  * Welke tools een losse app mogen zijn, kies je in Instellingen (of via lang indrukken van een tegel). */
 const SOLO = (typeof Android.soloTool === 'function' && Android.soloTool()) || '';
-const SOLO_TOOLS = ['redial', 'wa', 'tracks', 'sms', 'history', 'calls', 'notes', 'contacts', 'pdf', 'kluis', 'car', 'recorder',
-  'transcripts', 'radio', 'podcasts', 'spotify', 'vpn', 'loc', 'music', 'ai']; // zelfde lijst als Solo.TOOLS (Java)
+const SOLO_ROOT = SOLO === 'player' ? 'radio' : SOLO;
+function soloRoot(name){ return name === SOLO_ROOT || (SOLO === 'player' && name === 'podcasts'); }
 
 /** Hoort dit scherm bij de tool van deze losse app? (via de terug-volgorde naar het eerste scherm) */
 function soloOk(name){
   if (!SOLO) return true;
-  for (let n = name, i = 0; n && i < 12; n = BACK[n], i++) if (n === SOLO) return true;
+  if (SOLO === 'backup' && name === 'herstel') return true;
+  for (let n = name, i = 0; n && i < 12; n = BACK[n], i++) if (soloRoot(n)) return true;
   return false;
 }
 // Functies die een scherm van een andere tool openen
 const SOLO_FN = { ctOpen: 'contact', openNote: 'note', openSms: 'smschat', openChat: 'chat', txOpen: 'txd', callsForPerson: 'calls',
-  gsMoreCalls: 'calls', gsMore: 'search', gsOpen: 'search', pinTool: 'home', toolMenu: 'home', homeOpen: 'home', tabGo: 'home', muOpen: 'music', waPickFolder: 'settings', fmqSetup: 'masterdata' };
+  gsMoreCalls: 'calls', gsMore: 'search', gsOpen: 'search', pinTool: 'home', toolMenu: 'home', homeOpen: 'home', tabGo: 'home', muOpen: 'music', waPickFolder: SOLO === 'backup' ? 'bkset' : 'settings', fmqSetup: 'masterdata' };
 /** Leidt deze code (een onclick of een menu-keuze) alleen naar schermen van deze tool? */
 function soloSrcOk(src){
   if (!SOLO) return true;
@@ -34,12 +35,12 @@ function soloHide(root){
 
 if (SOLO) {
   document.body.classList.add('solo');
-  if (SOLO === 'radio' || SOLO === 'podcasts') document.body.classList.add('solo-player');
+  if (SOLO === 'radio' || SOLO === 'podcasts' || SOLO === 'player') document.body.classList.add('solo-player');
   const _show = show;
   show = function(name){
     if (!soloOk(name)) return;
     _show(name);
-    document.body.classList.toggle('solo-root', current === SOLO);
+    document.body.classList.toggle('solo-root', soloRoot(current));
   };
   const _jump = jumpTo;
   jumpTo = function(name, open){ if (soloOk(name)) _jump(name, open); };
@@ -52,8 +53,9 @@ if (SOLO) {
   const _back = window.goBack;
   window.goBack = function(){
     // Op het eerste scherm en niets open (venster, menu, speler): de losse app sluiten
-    const open = document.querySelector('#modal.on, #voice.on, #sleepdlg.on, #vp-scan.on, #sheet.on') || (typeof plIsOpen !== 'undefined' && plIsOpen);
-    if (current === SOLO && !open) return false;
+    const open = document.querySelector('#modal.on, #voice.on, #sleepdlg.on, #vp-scan.on, #sheet.on, #ci-ans.on, #ci-rem.on, #gb-light, #ai-talk:not([hidden])') || (typeof plIsOpen !== 'undefined' && plIsOpen) ||
+      (typeof cm !== 'undefined' && cm.picker) || (typeof fmq !== 'undefined' && fmq.open);
+    if (soloRoot(current) && !open) return false;
     return _back();
   };
   // Knoppen en links naar andere tools weghalen, ook als ze later worden toegevoegd
@@ -68,7 +70,7 @@ function soloMake(tool, after){
   const tt = TOOLS[tool]; if (!tt) return;
   const pin = () => { const e = Android.soloPin(tool, t(tt[0]), tt[1], tt[2]); toast(e || t('Bevestig op je startscherm om {naam} als losse app toe te voegen', { naam: t(tt[0]) })); };
   if (soloAllowedList().includes(tool)) { pin(); return; }
-  askConfirm(t('Losse app: {naam}', { naam: t(tt[0]) }), t('{naam} komt als eigen app op je startscherm. Die opent zonder vingerafdruk of app-code: iedereen die je telefoon heeft, kan erin. Andere tools zijn vanuit die losse app niet te zien.', { naam: t(tt[0]) }) + '\n\n' + t('Uitzetten kan altijd bij Instellingen → Losse apps.'), 'Losse app maken', () => {
+  askConfirm(t('Losse app: {naam}', { naam: t(tt[0]) }), t('{naam} komt als eigen app op je startscherm. Het algemene app-slot wordt overgeslagen; een eigen ontgrendeling van de tool blijft gelden. Andere tools zijn vanuit die losse app niet te zien.', { naam: t(tt[0]) }) + '\n\n' + t('Uitzetten kan altijd bij Instellingen → Losse apps.'), 'Losse app maken', () => {
     Android.soloSet(tool, true); pin(); if (after) after();
   });
 }
@@ -84,7 +86,7 @@ function stSoloRender(){
 function stSoloToggle(tool, btn){
   const tt = TOOLS[tool]; if (!tt) return;
   if (btn.classList.contains('on')) { Android.soloSet(tool, false); toast(t('{naam}: losse app uit', { naam: t(tt[0]) })); stSoloRender(); return; }
-  askConfirm(t('Losse app: {naam}', { naam: t(tt[0]) }), t('{naam} mag dan als eigen app op je startscherm. Die opent zonder vingerafdruk of app-code: iedereen die je telefoon heeft, kan erin.', { naam: t(tt[0]) }), 'Aanzetten', () => {
+  askConfirm(t('Losse app: {naam}', { naam: t(tt[0]) }), t('{naam} mag dan als eigen app op je startscherm. Het algemene app-slot wordt overgeslagen; een eigen ontgrendeling van de tool blijft gelden.', { naam: t(tt[0]) }), 'Aanzetten', () => {
     Android.soloSet(tool, true); stSoloRender(); toast(t('{naam}: losse app aan', { naam: t(tt[0]) }));
   });
 }
