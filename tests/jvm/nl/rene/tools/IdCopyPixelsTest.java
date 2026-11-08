@@ -18,7 +18,7 @@ public class IdCopyPixelsTest {
         }
         check(rejected == 6, "ongeldige invoer weigeren");
         IdCopy closed = new IdCopy(); check(closed.clear(), "lege bron sluiten");
-        try { closed.add(null, java.util.Collections.emptyList(), Voortgang.GEEN); throw new AssertionError("late import na sluiten toegestaan"); }
+        try { closed.add(null, java.util.Collections.emptyList()); throw new AssertionError("late import na sluiten toegestaan"); }
         catch (Exception expected) { check(expected.getMessage().contains("opnieuw"), "late import vóór context/cachetoegang afgewezen"); }
         check(closed.clear(), "nogmaals wissen blijft geldig");
         System.out.println("ID-kopie pixel- en sluitcontroles geslaagd");
