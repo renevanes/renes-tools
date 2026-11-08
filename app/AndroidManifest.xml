@@ -228,10 +228,6 @@
             android:name=".PodcastService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
-        <service
-            android:name=".EreaderSpeakService"
-            android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
 
         <meta-data
             android:name="com.google.android.gms.car.application"

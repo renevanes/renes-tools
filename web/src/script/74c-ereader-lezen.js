@@ -1,8 +1,7 @@
 /* E-reader lezen: volle scherm met knoppen die je met een tik in het midden toont, snelle instellingen (helderheid,
- * thema, prettig voor je ogen, tekstgrootte, leesmodus) en voorlezen met de stem van de telefoon (EreaderSpeakService). */
+ * thema, prettig voor je ogen, tekstgrootte, leesmodus) en voorlezen met de gedeelde lokale stem (75-voorlezen.js). */
 const ER_LEZEN={full:true,awake:true,keys:false,bright:-1,brightLast:.5,warm:false,warmLevel:30,warmAuto:false};
-const ER_RATES=[.75,1,1.25,1.5,1.75,2];
-let erEntering=false,erWin={talkback:false},erPanelOn='',erSpk={state:'stopped'},erVoices=null,erUserAt=0,erSleepChoice='0';
+let erEntering=false,erWin={talkback:false},erPanelOn='',erUserAt=0;
 
 /* ---------- instellingen voor het lezen ---------- */
 function erLezen(){
@@ -33,7 +32,7 @@ let erWinLast='{}';
 function erWindowApply(force){
   const s=erLezen(),on=erReading();
   if(typeof Android.ereaderWindow==='function'){
-    const cfg=JSON.stringify(on?{full:s.full,awake:s.awake,bright:s.bright,keys:s.keys&&!erOnTop()}:{});
+    const cfg=JSON.stringify(on?{full:s.full,awake:s.awake,bright:s.bright,keys:s.keys&&!erOnTop()&&!erSpeakBusy()}:{});
     if(cfg===erWinLast&&!force&&on)return;erWinLast=cfg;
     let r={};try{r=JSON.parse(Android.ereaderWindow(cfg)||'{}');}catch(e){}
     erWin.talkback=!!r.talkback;
@@ -50,9 +49,12 @@ function erControls(show){
   $('#er-text').setAttribute('aria-description',document.body.classList.contains('er-immersive')&&!on?t('Tik in het midden voor de knoppen'):'');
 }
 /* Bij binnenkomen: erResume zet daarna de leesplek terug, dus hier nog niets meten of herstellen. */
-function erLezenEnter(){erEntering=true;try{erWindowApply(true);erControls(false);erWarmApply();erSpeakSync();erSpeakRender();}finally{erEntering=false;}}
+function erLezenEnter(){erEntering=true;try{erSpeakResumeLoc();erWindowApply(true);erControls(false);erWarmApply();erSpeakRender();if(typeof spSpeechRender==='function')spSpeechRender();}finally{erEntering=false;}}
+/* Terug in het boek terwijl de motor verder las: naar de plek van de laatste zin */
+function erSpeakResumeLoc(){const l=erSpeakLoc;erSpeakLoc=null;if(!l||!erBook||l.book!==erBook.id)return;if(l.chapter!==erIndex){erFollowing=true;try{erChapter(l.chapter,l.offset);}finally{erFollowing=false;}}erCurrentAnchor=l.offset;erCurrentOffset=erText.length?l.offset/erText.length:0;erPendingLocation={chapter:l.chapter,anchor:l.offset,offset:erCurrentOffset};}
 function erLezenLeave(){
-  erPanel('');document.body.classList.remove('er-controls','er-immersive','er-speaking');erSpeakHighlight(null);$('#er-warm').hidden=true;
+  erPanel('');document.body.classList.remove('er-controls','er-immersive','er-speaking');erSpeakHighlight(null);$('#er-warm').hidden=true;$('#er-tts').hidden=true;
+  setTimeout(()=>{if(typeof spSpeechRender==='function')spSpeechRender();},0); // buiten het boek: de gedeelde voorleesbalk
   if(typeof Android.ereaderWindow==='function'&&erWinLast!=='{}'){erWinLast='{}';try{Android.ereaderWindow('{}');sessionStorage.removeItem('rt.erWin');}catch(e){}}
 }
 
@@ -99,7 +101,7 @@ setInterval(()=>{if(erReading()&&erLezen().warmAuto)erWarmApply();},60000);
 function erPanel(which){
   if(which&&!erReading())which='';
   $('#er-quick').classList.toggle('on',which==='quick');$('#er-tts-panel').classList.toggle('on',which==='tts');erPanelOn=which||'';
-  if(which==='quick')erQuickRender();if(which==='tts'){erSpeakPanelRender();if(!erVoices)erSpeakVoices();}
+  if(which==='quick')erQuickRender();if(which==='tts')erSpeakPanelRender();
   dialogFocus.sync();
 }
 function erPanelBack(){if(!erPanelOn)return false;erPanel('');return true;}
@@ -124,141 +126,157 @@ function erSetRender(){
   if(current!=='erset')return;const s=erLezen();erTg($('#er-full'),s.full);erTg($('#er-awake'),s.awake);erTg($('#er-keys'),s.keys);
 }
 
-/* ---------- voorlezen ---------- */
-function erSpeakPrefs(){
-  const raw=store.get('erSpeak',{}),p=Object.assign({rate:1,lang:'',voices:{}},raw&&typeof raw==='object'?raw:{});
-  p.rate=ER_RATES.includes(+p.rate)?+p.rate:1;if(typeof p.lang!=='string'||!/^[A-Za-z0-9-]{0,35}$/.test(p.lang))p.lang='';
-  if(!p.voices||typeof p.voices!=='object'||Array.isArray(p.voices))p.voices={};return p;
-}
+/* ---------- voorlezen (gedeelde lokale stem: 75-voorlezen.js, ReadAloud) ----------
+ * De motor leest zin voor zin vanaf een tekstplek en gaat zelf door naar het volgende hoofdstuk; elk 'playing'-event
+ * geeft [offset, end) van de zin die klinkt. Hier: beginnen bij de eerste zichtbare zin, de zin markeren, meebladeren
+ * (niet vlak na zelf bladeren), vorige/volgende zin, slaaptimer en wie de leesplek bewaart. */
+const ER_RATES=[.8,1,1.2,1.4,1.6,1.8];
+let erSleep={at:0,chapter:false,choice:'0',timer:null},erFollowing=false,erSpeakLoc=null,erSpeakLast=null;
 function erBookLang(){const l=erBook&&erBook.language||'';return /^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$/.test(l)?l:'';}
-function erSpeakLang(){return erSpeakPrefs().lang||erBookLang()||rgCfg().lang||'nl';}
 function erLangBase(tag){return String(tag||'').split('-')[0].toLowerCase();}
-function erLangName(tag){try{const n=new Intl.DisplayNames([regioLocale()],{type:'language'}).of(erLangBase(tag));if(n&&n!==erLangBase(tag))return n;}catch(e){}return tag;}
-function erSpeakActive(r){r=r||erSpk;return['playing','starting','paused'].includes(r.state);}
-/* Alleen terwijl er echt wordt voorgelezen bewaart de voorleesfunctie de leesplek; gepauzeerd weer de gewone leesplek. */
-function erSpeakOwns(){return !!erBook&&erSpk.id===erBook.id&&(erSpk.state==='playing'||erSpk.state==='starting');}
-/* Staat de gepauzeerde zin nog op deze pagina? Anders begint Voorlezen bij wat je nu ziet. */
+/* De voorleessessie van de e-reader (of null) */
+function erSpeakNow(){const a=typeof sp!=='undefined'&&sp.active;return a&&a.source==='reader'&&!a.stopping?a:null;}
+function erSpeakActive(){return !!erSpeakNow();}
+function erSpeakBusy(){const a=erSpeakNow();return !!a&&a.state!=='paused';}
+function erSpeakHere(){const a=erSpeakNow();return !!a&&!!erBook&&a.book===erBook.id;}
+/* Alleen terwijl er echt wordt voorgelezen bewaart de motor de leesplek (na elke zin); gepauzeerd ook zolang de zin nog
+   op de pagina staat. Heb je verder gebladerd, dan geldt weer de gewone leesplek (S5). */
+function erSpeakOwns(){const a=erSpeakNow();if(!a||!erBook||a.book!==erBook.id)return false;return a.state!=='paused'||erSpeakPausedHere();}
 function erSpeakPausedHere(){
-  if(!erBook||erSpk.id!==erBook.id||erSpk.state!=='paused'||erSpk.chapter!==erIndex)return false;if(!erText.length)return true;
-  const box=$('#er-text'),view=box.getBoundingClientRect(),r=erRect(erSpk.start);return !!r&&r.bottom>view.top&&r.top<view.bottom;
+  const a=erSpeakNow();if(!a||!erBook||a.book!==erBook.id||a.state!=='paused'||a.chapter!==erIndex)return false;if(!erText.length)return true;
+  const box=$('#er-text'),view=box.getBoundingClientRect(),r=erRect(Number(a.offset)||0);return !!r&&r.bottom>view.top&&r.top<view.bottom;
 }
-function erSpeakSync(){if(typeof Android.ereaderSpeakState!=='function')return;try{const r=JSON.parse(Android.ereaderSpeakState());if(r&&r.state)erSpk=r;}catch(e){}}
-function erSpeakOptions(id,chapter,anchor){const p=erSpeakPrefs(),lang=erSpeakLang();return JSON.stringify({id,chapter,anchor,rate:p.rate,lang,voice:p.voices[erLangBase(lang)]||''});}
+/* Begin van de zin waarin pos valt (zelfde grenzen als ReadAloud.segments: regeleinde, of .!?… met witruimte erna). */
+function erSentenceStart(text,pos){
+  pos=Math.max(0,Math.min(text.length,pos|0));
+  for(let i=pos-1;i>=0&&i>pos-800;i--){const c=text[i];if(c==='\n'||(/\s/.test(c)&&i>0&&/[.!?…]/.test(text[i-1]))){let s=i+1;while(s<text.length&&/\s/.test(text[s]))s++;if(s<=pos)return s;}}
+  return pos<=800?0:pos;
+}
+function erSkipSpace(text,pos){while(pos<text.length&&/\s/.test(text[pos]))pos++;return pos;}
+function erVoiceInfo(){if(typeof spReadModels!=='function')return{voices:[],supported:false};const m=spReadModels();m.ready=(m.voices||[]).filter(v=>v.state==='ready');return m;}
+/* Een gedownloade stem in de taal van het boek, als de gekozen stem een andere taal spreekt (de motor kent één stem). */
+function erVoiceForBook(m){
+  const want=erLangBase(erBookLang());if(!want||!m.voice)return;const cur=(m.voices||[]).find(v=>v.id===m.voice);if(!cur||cur.language===want)return;
+  const other=m.ready.find(v=>v.language===want);if(other){const e=Android.speechConfigure(other.id,m.speed||1,m.background!==false);if(!e)toast(t('Stem {naam} voor dit boek',{naam:other.label}));}
+}
 function erSpeakStart(){
   if(!erBook)return;
-  if(typeof Android.ereaderSpeak!=='function'){toast(t('Installeer de nieuwste APK om te laten voorlezen'));return;}
-  if(erSpk.id===erBook.id&&erSpeakActive()&&(erSpk.state!=='paused'||erSpeakPausedHere())){if(erSpk.state==='paused')erSpeakCmd('resume');erSpeakRender();return;}
-  const at=erText.length?erAnchor():-1,anchor=at>=0?at:Math.max(0,erCurrentAnchor||0);
-  const error=Android.ereaderSpeak(erSpeakOptions(erBook.id,erIndex,erText.length?anchor:0));
-  if(error){toast(error);return;}
-  erSpk=Object.assign({},erSpk,{state:'starting',id:erBook.id,title:erBook.title,chapter:erIndex,start:anchor,end:anchor,code:'',error:''});
-  erUserAt=0;erSpeakRender();
+  if(typeof Android.speechBook!=='function'){toast(t('Installeer de nieuwste APK voor lokaal voorlezen'));return;}
+  const m=erVoiceInfo();if(!m.voice){erPanel('tts');return;} // nog geen stem: uitleg en een knop naar de stemkiezer
+  const a=erSpeakNow();
+  if(a&&erSpeakHere()&&(a.state!=='paused'||erSpeakPausedHere())){if(a.state==='paused')spPause();return;}
+  erVoiceForBook(m);
+  const at=erText.length?erAnchor():-1,from=erText.length?erSentenceStart(erText,at>=0?at:Math.max(0,erCurrentAnchor||0)):0;
+  erSpeakFrom(erIndex,from);
 }
-/* Andere taal of stem tijdens het voorlezen: opnieuw beginnen bij dezelfde zin. */
-function erSpeakRestart(){if(!erSpeakActive()||typeof Android.ereaderSpeak!=='function')return;const error=Android.ereaderSpeak(erSpeakOptions(erSpk.id,erSpk.chapter,erSpk.start));if(error)toast(error);}
-function erSpeakCmd(cmd,arg){if(typeof Android.ereaderSpeakCmd!=='function')return;Android.ereaderSpeakCmd(cmd,arg==null?'':String(arg));if(cmd==='stop'){erSpk=Object.assign({},erSpk,{state:'stopped'});erSpeakHighlight(null);erSpeakRender();}}
-function erSpeakToggle(){if(erSpk.state!=='paused')erSpeakCmd('pause');else if(erReading()&&erBook.id===erSpk.id)erSpeakStart();else erSpeakCmd('resume');}
-function erSpeakRateNext(){const p=erSpeakPrefs();erSpeakPref('rate',ER_RATES[(ER_RATES.indexOf(p.rate)+1)%ER_RATES.length]);}
-function erSpeakPref(key,value){
-  const p=erSpeakPrefs();
-  if(key==='rate'){if(!ER_RATES.includes(+value))return;p.rate=+value;}
-  else if(key==='lang'){if(!/^[A-Za-z0-9-]{0,35}$/.test(value))return;p.lang=value;erVoices=null;}
-  else if(key==='voice'){p.voices[erLangBase(erSpeakLang())]=String(value||'').slice(0,200);}else return;
-  store.set('erSpeak',p);
-  if(key==='rate'){erSpk=Object.assign({},erSpk,{rate:p.rate});if(erSpeakActive())erSpeakCmd('rate',p.rate);}
-  else if(erSpeakActive())erSpeakRestart();
-  if(key==='lang'&&erPanelOn==='tts')erSpeakVoices();
+function erSpeakFrom(chapter,offset){
+  const a=erSpeakNow();if(a){a.stopping=true;Android.speechStop(a.request);}
+  erUserAt=0;erSpeakLoc=null;erSpeakLast=null;spBook(offset,chapter);erSleepArm();
+}
+function erSpeakToggle(){const a=erSpeakNow();if(!a)return erSpeakStart();if(a.state==='paused'&&erReading()&&a.book===erBook.id)erSpeakStart();else spPause();}
+function erSpeakStop(){erSleepSet('0',true);spStop();}
+/* Vorige/volgende zin: opnieuw beginnen bij die zin (de motor heeft geen sprong binnen een sessie). */
+function erSpeakStep(direction){
+  const a=erSpeakNow();if(!a||!erBook||a.book!==erBook.id)return;const off=Number(a.offset)||0;
+  if(a.chapter!==erIndex){erSpeakFrom(a.chapter,off);return;}
+  if(direction<0){erSpeakFrom(erIndex,off>0?erSentenceStart(erText,Math.max(0,off-1)):0);return;}
+  const next=erSkipSpace(erText,Number(a.end)>off?Number(a.end):off+1);
+  if(next<erText.length){erSpeakFrom(erIndex,next);return;}
+  const ch=erNeighbor(1);if(ch>=0)erSpeakFrom(ch,0);
+}
+function erSpeakRateNext(){const m=erVoiceInfo(),i=ER_RATES.findIndex(r=>r>=(m.speed||1)-.001);erSpeakRate(ER_RATES[(i+1)%ER_RATES.length]);}
+function erSpeakRate(value){const m=erVoiceInfo();const e=Android.speechConfigure(m.voice||'',+value,m.background!==false);if(e)toast(e);erSpeakRender();}
+function erSpeakVoice(id){
+  const m=erVoiceInfo();if(!m.ready.some(v=>v.id===id))return;const e=Android.speechConfigure(id,m.speed||1,m.background!==false);if(e){toast(e);return;}
+  const a=erSpeakNow();if(a&&erSpeakHere()&&a.state!=='paused')erSpeakFrom(a.chapter,Number(a.offset)||0); // verder met dezelfde zin, met de nieuwe stem
   erSpeakRender();
 }
-function erSpeakSleep(choice){erSleepChoice=choice;if(erSpeakActive())erSpeakCmd('sleep',choice);else toast(t('Start eerst het voorlezen'));erSpeakPanelRender();}
-function erSpeakVoices(){if(typeof Android.ereaderVoices!=='function')return;erVoices=null;Android.ereaderVoices(erSpeakLang());erSpeakPanelRender();}
-window.onEreaderVoices=function(r){erVoices=r&&typeof r==='object'?r:{state:'noengine'};erSpeakPanelRender();};
-function erSpeakVoiceAdd(){if(typeof Android.ereaderTtsSettings==='function')Android.ereaderTtsSettings(true);}
-function erSpeakNoVoice(lang){
-  const taal=erLangName(lang||erSpeakLang());
-  askConfirm(t('Geen stem voor {taal}',{taal}),t('Je telefoon heeft geen stem voor {taal} om mee voor te lezen. Voeg er een toe bij tekst-naar-spraak in de instellingen van Android.',{taal}),t('Stem toevoegen'),erSpeakVoiceAdd);
+function erSpeakBackground(){const m=erVoiceInfo();const e=Android.speechConfigure(m.voice||'',m.speed||1,m.background===false);if(e)toast(e);erSpeakRender();}
+function erSpeakVoices(){erPanel('');spSettings();}
+/* Slaaptimer: een tijd, of het einde van het hoofdstuk; dan gewoon stoppen (de motor heeft de leesplek al bewaard). */
+function erSleepSet(choice,quiet){
+  clearTimeout(erSleep.timer);erSleep={at:['15','30','60'].includes(choice)?Date.now()+choice*60000:0,chapter:choice==='chapter',choice:choice||'0',timer:null};
+  if(!quiet&&!erSpeakActive()&&choice!=='0')toast(t('Start eerst het voorlezen'));erSleepArm();erSpeakRender();
 }
-window.onEreaderSpeak=function(r){
-  if(!r||typeof r!=='object')return;const before=erSpk;erSpk=r;
-  if(r.state==='error'){erSpeakHighlight(null);if(r.code==='nolang')erSpeakNoVoice(r.lang);else if(r.error)toast(r.error);}
-  if(r.state==='paused'&&r.code==='end'&&before.code!=='end')toast(t('Het boek is uit'));
-  if(!erSpeakActive(r))erSpeakHighlight(null);
-  if(erReading()&&r.id===erBook.id&&(r.state==='playing'||r.state==='paused')&&Number.isInteger(r.chapter)){
-    if(r.chapter!==erIndex){erUserAt=0;if(!erChapter(r.chapter,r.start)){erSpeakRender();return;}}
-    erSpeakHighlight(r);
-    if(r.start!==before.start||r.chapter!==before.chapter||!erSpeakActive(before))erSpeakFollow(r); // niet bij alleen pauzeren: dan blijft de pagina staan
-  }
-  erSpeakRender();
-};
+function erSleepArm(){clearTimeout(erSleep.timer);if(erSleep.at)erSleep.timer=setTimeout(erSleepCheck,Math.max(0,erSleep.at-Date.now())+50);}
+function erSleepCheck(){if(erSleep.at&&Date.now()>=erSleep.at&&erSpeakActive()){erSleepSet('0',true);spStop();toast(t('Slaaptimer: voorlezen gestopt'));}}
+/* Events van de motor voor de e-reader (vanuit onSpeech). */
+function erSpeakEvent(e){
+  if(!erBooks.some(b=>b.id===e.book)&&!(erBook&&erBook.id===e.book))return;
+  if(['playing','progress','paused'].includes(e.state))erSleepCheck(); // ook als de timers van de pagina even stilstonden
+  if(e.state==='chapter'&&erSleep.chapter){erSleepSet('0',true);spStop();toast(t('Slaaptimer: voorlezen gestopt'));}
+  const ended=['done','stopped','error'].includes(e.state);if(ended)erSleepSet('0',true);
+  if(!Number.isInteger(e.chapter)||!Number.isInteger(e.offset)){erSpeakHighlight(null);return;}
+  const reading=erReading()&&erBook.id===e.book;
+  if(!reading){erSpeakLoc={book:e.book,chapter:e.chapter,offset:e.offset};return;} // terug in het boek: daar verder (erLezenEnter)
+  if(e.chapter!==erIndex){erFollowing=true;try{erUserAt=0;if(!erChapter(e.chapter,e.offset))return;}finally{erFollowing=false;}}
+  // De exacte plek van de motor; wordt pas overschreven als je zelf bladert of scrolt
+  if(!ended||e.state==='done'||e.state==='stopped'){erPendingLocation={chapter:e.chapter,anchor:e.offset,offset:erText.length?e.offset/erText.length:0};erCurrentAnchor=e.offset;erCurrentOffset=erPendingLocation.offset;}
+  if(e.state==='playing'&&Number.isInteger(e.end)&&e.end>e.offset){const before=erSpeakLast;erSpeakLast={chapter:e.chapter,offset:e.offset,end:e.end};erSpeakHighlight(erSpeakLast);if(!before||before.offset!==e.offset||before.chapter!==e.chapter)erSpeakFollow(erSpeakLast);}
+  else if(ended)erSpeakHighlight(null);
+  else if(erSpeakLast)erSpeakHighlight(erSpeakLast);
+}
 /* De zin die nu klinkt oplichten (CSS Custom Highlight: de tekst zelf blijft onaangeroerd). */
 function erSpeakHighlight(r){
   if(!window.CSS||!CSS.highlights||typeof Highlight!=='function')return;CSS.highlights.delete('er-speak');
-  if(!r||!erBook||r.id!==erBook.id||r.chapter!==erIndex||!erText.length||!(r.end>r.start))return;
-  const a=erPoint(r.start),b=erPoint(r.end);if(!a||!b)return;const range=document.createRange();
+  if(!r||!erBook||r.chapter!==erIndex||!erText.length||!(r.end>r.offset)||!erSpeakHere())return;
+  const a=erPoint(r.offset),b=erPoint(Math.min(erText.length,r.end));if(!a||!b)return;const range=document.createRange();
   try{range.setStart(a.node,a.offset);range.setEnd(b.node,b.offset);}catch(e){return;}
   CSS.highlights.set('er-speak',new Highlight(range));
 }
 /* Meebladeren: staat de zin (deels) buiten beeld, dan de pagina met die zin; niet vlak nadat je zelf bladerde. */
 function erSpeakFollow(r){
   if(!erReading()||!erText.length||Date.now()-erUserAt<4000)return;
-  const box=$('#er-text'),view=box.getBoundingClientRect(),pad=parseFloat(getComputedStyle(box).paddingTop)||0,first=erRect(r.start),last=erRect(Math.max(r.start,(r.end||r.start)-1));if(!first)return;
+  const box=$('#er-text'),view=box.getBoundingClientRect(),pad=parseFloat(getComputedStyle(box).paddingTop)||0,first=erRect(r.offset),last=erRect(Math.max(r.offset,(r.end||r.offset)-1));if(!first)return;
   if(first.top>=view.top+pad-2&&(last||first).bottom<=view.bottom-4)return;
-  if(erStyle().mode==='pages')erRestoreAnchor(r.start);else box.scrollTop+=first.top-view.top-box.clientHeight*.3;
-  erPendingLocation=null;erPendingFragment='';erCurrentAnchor=erAnchor();erProgress();erScroll();
+  const keep=erPendingLocation;
+  if(erStyle().mode==='pages')erRestoreAnchor(r.offset);else box.scrollTop+=first.top-view.top-box.clientHeight*.3;
+  erPendingLocation=keep;erPendingFragment='';erProgress();erQueueImages();
 }
-function erSpeakStatus(r){
-  if(r.state==='starting')return t('Voorlezen begint…');
-  if(r.code==='end')return t('Het boek is uit');
-  if(r.sleepAt>0)return t('Stopt om {tijd}',{tijd:fmtTime(r.sleepAt)});
-  if(r.sleepChapter)return t('Stopt na dit hoofdstuk');
-  return r.state==='paused'?t('Gepauzeerd'):t('Leest voor');
+function erSpeakStatus(a){
+  if(a.state==='loading')return t('Stem starten…');
+  if(erSleep.at)return t('Stopt om {tijd}',{tijd:fmtTime(erSleep.at)});
+  if(erSleep.chapter)return t('Stopt na dit hoofdstuk');
+  return a.state==='paused'?t('Gepauzeerd'):t('Leest voor');
 }
 function erSpeakRender(){
-  const r=erSpk,active=erSpeakActive(r),here=active&&erReading()&&r.id===erBook.id,bar=$('#er-tts'),was=!bar.hidden;
+  const a=erSpeakNow(),here=!!a&&erReading()&&a.book===erBook.id,bar=$('#er-tts'),was=!bar.hidden;
   if(here!==was&&erReading()&&!erEntering){const pos=erLocation();bar.hidden=!here;erRestoreLocation(pos);erProgress();}else bar.hidden=!here;
   document.body.classList.toggle('er-speaking',here);
   $('#er-speak').setAttribute('aria-pressed',String(here));
   if(here){
-    const playing=r.state!=='paused',play=$('#er-tts-play');play.dataset.icon=playing?'pause':'play';play.setAttribute('aria-label',t(playing?'Pauzeren':'Verder voorlezen'));
-    $('#er-tts-status').textContent=erSpeakStatus(r);const rate=+r.rate||erSpeakPrefs().rate;$('#er-tts-rate').textContent=fmtNum(rate)+'×';$('#er-tts-rate').setAttribute('aria-label',t('Voorleessnelheid {n} keer, tik voor sneller',{n:fmtNum(rate)}));
-  }
-  const lib=$('#er-speaking'),book=active&&erBooks.find(b=>b.id===r.id);lib.hidden=!(book&&current==='ereader');
-  if(!lib.hidden){
-    lib.replaceChildren();const icon=document.createElement('span');icon.className='ui-icon';icon.dataset.icon='volume-high';icon.setAttribute('aria-hidden','true');
-    const text=document.createElement('span');text.className='er-speaking-text';const title=document.createElement('b');title.translate=false;title.textContent=book.title;const sub=document.createElement('small');sub.textContent=erSpeakStatus(r);text.append(title,sub);
-    const toggle=document.createElement('button');toggle.className='icon-btn';toggle.dataset.icon=r.state==='paused'?'play':'pause';toggle.setAttribute('aria-label',t(r.state==='paused'?'Verder voorlezen':'Pauzeren'));toggle.addEventListener('click',erSpeakToggle);
-    const open=document.createElement('button');open.className='icon-btn';open.dataset.icon='chevron-right';open.setAttribute('aria-label',t('Naar het boek'));open.addEventListener('click',erSpeakOpen);
-    lib.append(icon,text,toggle,open);
-  }
+    const playing=a.state!=='paused',play=$('#er-tts-play');play.dataset.icon=playing?'pause':'play';play.setAttribute('aria-label',t(playing?'Pauzeren':'Verder voorlezen'));
+    const rate=erVoiceInfo().speed||1;$('#er-tts-status').textContent=erSpeakStatus(a);$('#er-tts-rate').textContent=fmtNum(rate)+'×';$('#er-tts-rate').setAttribute('aria-label',t('Voorleessnelheid {n} keer, tik voor sneller',{n:fmtNum(rate)}));
+  } else if(!a)erSpeakHighlight(null);
+  if(erReading())erWindowApply(); // tijdens voorlezen zijn de volumeknoppen voor het volume
   erSpeakPanelRender();
 }
 function erSpeakPanelRender(){
-  if(erPanelOn!=='tts')return;const p=erSpeakPrefs(),lang=erSpeakLang(),r=erSpk;
-  const rates=$('#er-tts-rates');if(!rates.children.length)rates.innerHTML=ER_RATES.map(v=>'<button role="radio" data-v="'+v+'" onclick="erSpeakPref(\'rate\','+v+')" translate="no">'+esc(fmtNum(v))+'×</button>').join('');
+  if(erPanelOn!=='tts')return;const m=erVoiceInfo(),none=!m.voice||!m.ready.length;
+  $('#er-tts-novoice').hidden=!none;$('#er-tts-main').hidden=none;
+  $('#er-tts-novoice-t').textContent=m.supported===false?t('Lokale voorleesstemmen werken op een 64-bits toestel'):t('Er is nog geen stem gedownload. Download eenmalig een stem (ongeveer 21 MB) bij Lokaal voorlezen; daarna leest de e-reader voor zonder internet.');
+  $('#er-tts-novoice button').disabled=m.supported===false;
+  if(none)return;
+  const rates=$('#er-tts-rates');if(!rates.children.length)rates.innerHTML=ER_RATES.map(v=>'<button role="radio" data-v="'+v+'" onclick="erSpeakRate('+v+')" translate="no">'+esc(fmtNum(v))+'×</button>').join('');
   else rates.querySelectorAll('button').forEach(b=>{b.textContent=fmtNum(+b.dataset.v)+'×';});
-  erRadios(rates,p.rate);erRadios($('#er-tts-sleep'),r.sleepChapter?'chapter':r.sleepAt>0?erSleepChoice:'0');
-  const langs=$('#er-tts-lang'),book=erBookLang()||rgCfg().lang||'nl',list=(erVoices&&erVoices.langs)||[];
-  langs.replaceChildren(new Option(t('Taal van het boek: {taal}',{taal:erLangName(book)}),''));
-  const seen=new Set();for(const l of list.concat(p.lang&&!list.some(x=>x.tag===p.lang)?[{tag:p.lang,label:erLangName(p.lang)}]:[])){if(seen.has(l.tag))continue;seen.add(l.tag);const o=new Option(l.label||erLangName(l.tag),l.tag);o.translate=false;langs.append(o);}
-  langs.value=p.lang;
-  const voices=$('#er-tts-voice'),chosen=p.voices[erLangBase(lang)]||'',vl=erVoices&&erLangBase(erVoices.lang)===erLangBase(lang)?erVoices.voices||[]:[];
-  voices.replaceChildren(new Option(t('Standaardstem'),''));for(const v of vl){const o=new Option(v.label,v.name);o.translate=false;voices.append(o);}
-  voices.value=vl.some(v=>v.name===chosen)?chosen:'';voices.disabled=!vl.length;
-  const hint=$('#er-tts-voices-hint'),add=$('#er-tts-add');
-  if(!erVoices){hint.textContent=t('Stemmen op je telefoon zoeken…');add.hidden=true;}
-  else if(erVoices.state==='noengine'){hint.textContent=t('Je telefoon heeft geen voorleesfunctie (tekst-naar-spraak).');add.hidden=false;}
-  else if(!vl.length){hint.textContent=t('Geen stem voor {taal} op je telefoon.',{taal:erLangName(lang)});add.hidden=false;}
-  else{hint.textContent=tn(vl.length,'Eén stem op je telefoon','{n} stemmen op je telefoon',{n:fmtNum(vl.length)});add.hidden=true;}
+  erRadios(rates,ER_RATES.find(r=>Math.abs(r-(m.speed||1))<.001)||'');erRadios($('#er-tts-sleep'),erSleep.chapter?'chapter':erSleep.at?erSleep.choice:'0');
+  const voices=$('#er-tts-voice');voices.replaceChildren(...m.ready.map(v=>{const o=new Option(v.label,v.id);o.translate=false;return o;}));voices.value=m.voice;
+  const book=erLangBase(erBookLang()),cur=m.ready.find(v=>v.id===m.voice);
+  $('#er-tts-voice-hint').textContent=book&&cur&&cur.language!==book&&!m.ready.some(v=>v.language===book)?t('Dit boek is in het {taal}; download een stem in die taal bij Stemmen beheren.',{taal:erLangName(book)}):'';
+  erTg($('#er-tts-bg'),m.background!==false);
 }
-/* Vanuit de melding: naar het boek dat wordt voorgelezen (blijft staan als je het al leest). */
+function erLangName(tag){try{const n=new Intl.DisplayNames([regioLocale()],{type:'language'}).of(erLangBase(tag));if(n&&n!==erLangBase(tag))return n;}catch(e){}return tag;}
+/* Vanuit de melding of het startscherm: naar het boek dat wordt voorgelezen (blijft staan als je het al leest). */
 function erSpeakOpen(){
-  erSpeakSync();const id=erSpk.id,r=Object.assign({},erSpk);if(!id||!erSpeakActive(r)){if(!erReading())show('ereader');return;}
-  if(!erReading()||erBook.id!==id){if(current!=='ereader')show('ereader');if(!erBooks.some(b=>b.id===id))return;erOpen(id);}
-  erSpk={state:'stopped'};erUserAt=0;window.onEreaderSpeak(r);
+  if(typeof spSync==='function')spSync();const a=erSpeakNow();if(!a){if(!erReading())show('ereader');return;}
+  if(erReading()&&erBook.id===a.book)return;
+  if(current!=='ereader')show('ereader');if(erBooks.some(b=>b.id===a.book))erOpen(a.book);
 }
+/* Zelf naar een ander boek of hoofdstuk springen (inhoud, zoeken, schuif) stopt het voorlezen; bladeren niet. */
+function erSpeakJump(id){if(erFollowing)return;erSpeakLoc=null;const a=erSpeakNow();if(a&&(id===undefined||a.book!==id))spStop(true);}
 
 (function(){
-  const resumed=window.onResumeApp;window.onResumeApp=function(){if(resumed)resumed();if(erReading()){erWindowApply(true);erWarmApply();}erSpeakSync();erSpeakRender();};
+  const resumed=window.onResumeApp;window.onResumeApp=function(){if(resumed)resumed();if(erReading()){erWindowApply(true);erWarmApply();}erSpeakRender();};
   // Iets over het boek open of dicht: de volumeknoppen volgen
   new MutationObserver(()=>{if(erReading())erWindowApply();}).observe(document.body,{attributes:true,attributeFilter:['class'],subtree:true,attributeOldValue:false});
   // Na herladen van de pagina tijdens het lezen: het venster weer gewoon maken

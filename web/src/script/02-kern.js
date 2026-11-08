@@ -263,7 +263,8 @@ window.openTool = function(n){
   if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; }
   if (typeof n === 'string' && n.startsWith('checkin')) { ciOpenFrom(n); return; }
   if (n === 'pdf-share') { pdfShared(); return; }
-  if (n === 'ereader-lezen' && typeof erSpeakOpen === 'function') { erSpeakOpen(); return; } // melding van voorlezen
+  // E-reader (ook de voorleesmelding) terwijl er een boek wordt voorgelezen: naar dat boek
+  if ((n === 'ereader' || n === 'ereader-lezen') && typeof erSpeakNow === 'function' && erSpeakNow()) { erSpeakOpen(); return; }
   if (typeof n === 'string' && n.startsWith('facturen-meekijken:')) { show('facturen'); setTimeout(() => askConfirm('Inloggen nodig', 'De app kon niet vanzelf inloggen. Kijk mee om zelf in te loggen; daarna gaat de app verder.', 'Meekijken', () => faNu(n.slice(19), true)), 400); return; }
   if (n === 'bkmap') { show('backup'); jumpTo('bkmap'); return; }
   // Nieuwe tools openen vanzelf via het register; systeembestemmingen blijven expliciet.

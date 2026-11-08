@@ -10,7 +10,7 @@ function enterEreader(){
   const ready=typeof Android.ereaderList==='function';$('#er-add').disabled=erBusy||!ready;
   if(!ready){erStatus(t('Installeer de nieuwste APK om de e-reader te gebruiken'));return;}
   const r=erData(Android.ereaderList());if(r.error){erStatus(r.error);return;}
-  erBooks=r.books||[];$('#er-sort').value=store.get('erSort','recent');erRender();erSpeakSync();erSpeakRender();
+  erBooks=r.books||[];$('#er-sort').value=store.get('erSort','recent');erRender();
 }
 function erLength(b,i){return Math.max(1,Number((b.lengths||[])[i])||1);}
 function erFraction(b,offset){
@@ -60,7 +60,7 @@ function erAdopt(b){if(b.error){toast(b.error);return false;}const i=erBooks.fin
 function erUpdate(id,patch){if(typeof Android.ereaderUpdate!=='function'){toast(t('Installeer de nieuwste APK om alle leesfuncties te gebruiken'));return false;}return erAdopt(erData(Android.ereaderUpdate(id,JSON.stringify(patch))));}
 function erFavorite(id){const b=erBooks.find(x=>x.id===id);if(b&&erUpdate(id,{favorite:!b.favorite})){if(current==='ereader')erRender();}}
 function erOpen(id,skipSave){
-  if(!skipSave)erSave();let b=erBooks.find(x=>x.id===id);if(!b)return;
+  erSpeakJump(id);if(!skipSave)erSave();let b=erBooks.find(x=>x.id===id);if(!b)return;
   if(typeof Android.ereaderDetails==='function'){b=erData(Android.ereaderDetails(id));if(b.error){toast(b.error);return;}erAdopt(b);}
   const index=Math.max(0,Math.min(b.chapters.length-1,b.chapter||0)),r=erData(Android.ereaderChapter(id,index));if(r.error){toast(r.error);return;}
   erBook=b;erIndex=index;erHit=null;erText=r.text||'';erDoc=r;erLinks=[];erLinkButton();erUpgradeBanner();$('#er-title').textContent=b.title;$('#er-author').textContent=b.author||'';
@@ -97,7 +97,7 @@ function erRestoreAnchor(pos){
   erCurrentAnchor=pos;
 }
 function erChapter(index,anchor){
-  if(!erBook||index<0||index>=erBook.chapters.length)return false;
+  if(!erBook||index<0||index>=erBook.chapters.length)return false;erSpeakJump();
   const r=erData(Android.ereaderChapter(erBook.id,index));if(r.error){toast(r.error);return false;}
   erSave();erIndex=index;erText=r.text||'';erDoc=r;erSelection=null;if(!erHit||erHit.chapter!==index)erHit=null;
   if(current!=='erbook')show('erbook');erDisplay(0,anchor==null?0:anchor);return true;
@@ -124,7 +124,7 @@ function erProgress(){
 }
 function erScroll(){erQueueImages();if(!erBook||current!=='erbook'||erRestoring)return;clearTimeout(erTimer);erTimer=setTimeout(()=>{erCurrentAnchor=erAnchor();erProgress();erSave();},160);}
 function erSave(){
-  clearTimeout(erTimer);if(!erBook||current!=='erbook'||erRestoring||erUpgrading)return;
+  clearTimeout(erTimer);if(!erBook||current!=='erbook'||erRestoring||erUpgrading||erFollowing)return; // erFollowing: de voorleesfunctie zet het boek op haar plek
   const offset=erPendingLocation?erPendingLocation.offset:erOffset(),anchor=erPendingLocation?erPendingLocation.anchor:erText.length?erAnchor():-1;let error;
   if(erSpeakOwns())error='';// tijdens voorlezen bewaart de voorleesfunctie de plek van de zin die klinkt
   else if(typeof Android.ereaderReadPosition==='function')error=Android.ereaderReadPosition(erBook.id,erIndex,offset,anchor);else error=Android.ereaderPosition(erBook.id,erIndex,offset);
@@ -150,7 +150,7 @@ function erPreference(key,value){
   if(key==='size')value=Number(value);if(!ER_VALUES[key]||!ER_VALUES[key].includes(value))return;
   const position=current==='erbook'&&erBook?erLocation():null,anchor=position?position.anchor:erCurrentAnchor,s=erStyle();s[key]=value;store.set('erStyle',s);
   if(key==='size')store.set('erSize',value);if(key==='font')store.set('erFont',value);
-  erApplyStyle();erCurrentAnchor=anchor;if(position){erRestoreLocation(position);erProgress();erSave();erSpeakHighlight(erSpk);}if(current==='erset')erSettings();
+  erApplyStyle();erCurrentAnchor=anchor;if(position){erRestoreLocation(position);erProgress();erSave();erSpeakHighlight(erSpeakLast);}if(current==='erset')erSettings();
 }
 function erSize(value){erPreference('size',value);}
 function erFont(value){erPreference('font',value);}
@@ -214,7 +214,7 @@ function erFinish(){if(erBook&&erUpdate(erBook.id,{finished:!erBook.finished})){
 function erMenu(){
   if(!erBook)return;const id=erBook.id;
   openSheet(erBook.title,t('{n}% gelezen',{n:fmtNum(erPercent(erBook))}),[
-    [t('Inhoud en leeswijzers'),()=>erBrowse('marks'),'bookmark'],[t('Leesweergave'),()=>show('erset'),'settings'],[t('Stem en snelheid'),()=>spSettings(),'volume-high'],
+    [t('Inhoud en leeswijzers'),()=>erBrowse('marks'),'bookmark'],[t('Leesweergave'),()=>show('erset'),'settings'],[t('Voorlezen'),()=>erPanel('tts'),'volume-high'],
     [t(erBook.favorite?'Uit favorieten halen':'Als favoriet markeren'),()=>erFavorite(id),'star'],
     [t(erBook.finished?'Terug naar nog te lezen':'Als uitgelezen markeren'),erFinish,'check'],
     [t('Titel wijzigen'),()=>askInput(t('Titel van het boek'),'',erBook.title,t('Bewaren'),title=>{if(erUpdate(id,{title}))$('#er-title').textContent=erBook.title;}),'edit'],

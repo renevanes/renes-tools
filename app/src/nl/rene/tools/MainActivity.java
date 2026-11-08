@@ -685,13 +685,13 @@ public class MainActivity extends Activity {
     @SuppressWarnings("deprecation")
     public void onBackPressed() { handleBack(); }
 
-    /** E-reader: volumeknoppen bladeren (alleen terwijl een boek open is, en niet tijdens voorlezen: dan zijn ze voor het volume). */
+    /** E-reader: volumeknoppen bladeren (alleen terwijl een boek open is; tijdens voorlezen zet de interface dit uit: dan zijn ze voor het volume). */
     volatile boolean ereaderKeys;
 
     @Override
     public boolean dispatchKeyEvent(android.view.KeyEvent e) {
         int k = e == null ? 0 : e.getKeyCode();
-        if (ereaderKeys && visible && (k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN || k == android.view.KeyEvent.KEYCODE_VOLUME_UP) && !EreaderSpeakService.speaking()) {
+        if (ereaderKeys && visible && (k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN || k == android.view.KeyEvent.KEYCODE_VOLUME_UP)) {
             if (e.getAction() == android.view.KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) js("onEreaderKey", k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN ? "1" : "-1");
             return true;
         }

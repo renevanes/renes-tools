@@ -8,7 +8,8 @@ const sp={active:null,seq:0,settings:false,models:{voices:[]},focus:null,origin:
 function spReadModels(){try{return JSON.parse(Android.speechModels());}catch(_){return {voices:[],supported:false};}}
 function spAvailable(){if(typeof Android.speechStart!=='function'){toast(t('Installeer de nieuwste APK voor lokaal voorlezen'));return false;}sp.models=spReadModels();if(!sp.models.voice){spSettings();return false;}return true;}
 function spText(text,source='text',markdown=false){if(!spAvailable())return;if(typeof text!=='string'||!text.trim()){toast(t('Er is geen tekst om voor te lezen'));return;}if(text.length>120000){toast(t('Deze tekst is te lang om in één keer voor te lezen'));return;}const request='lees-'+Date.now()+'-'+(++sp.seq);sp.active={request,source,state:'loading'};spSpeechRender();Android.speechStart(text,request,source,markdown);}
-function spBook(){if(!erBook||!spAvailable())return;const request='boek-'+Date.now()+'-'+(++sp.seq);sp.active={request,source:'reader',state:'loading',book:erBook.id,chapter:erIndex};spSpeechRender();Android.speechBook(erBook.id,erIndex,erAnchor(),request);}
+/* Boek voorlezen vanaf een tekstplek (standaard: de leesplek); de e-reader kiest het begin van de zin (erSpeakStart). */
+function spBook(offset,chapter){if(!erBook||!spAvailable())return;const ch=Number.isInteger(chapter)?chapter:erIndex,at=Number.isInteger(offset)&&offset>=0?offset:Math.max(0,erAnchor()),request='boek-'+Date.now()+'-'+(++sp.seq);sp.active={request,source:'reader',state:'loading',book:erBook.id,chapter:ch,offset:at,end:at};spSpeechRender();Android.speechBook(erBook.id,ch,at,request);}
 function spSelection(){const selection=erSelection;if(!selection||!erText)return;spText(erText.slice(selection.start,selection.end),'selection');}
 function spNote(){const n=noteById(noteCur);if(n)spText([n.title,n.text,...(n.items||[]).map(i=>i.text)].filter(Boolean).join('\n'),'note',true);}
 // taal-vast: het voorbeeld is in de taal van de gekozen stem, onafhankelijk van de interface
@@ -17,9 +18,10 @@ function spStop(abandon=false){const active=sp.active;if(!active)return;if(activ
 function spPause(){const active=sp.active;if(!active)return;Android.speechPause(active.request,active.state!=='paused');}
 function spAiPause(){if(aiSpk)Android.speechPause(aiSpk.id,!(sp.active&&sp.active.request===aiSpk.id&&sp.active.state==='paused'));}
 function spSpeechRender(){
-  const active=sp.active,show=active&&!active.stopping&&active.source!=='ai';$('#speech-player').hidden=!show;document.body.classList.toggle('speech-visible',!!show);
+  const active=sp.active,show=active&&!active.stopping&&active.source!=='ai'&&!(active.source==='reader'&&typeof erReading==='function'&&erReading()); /* in het boek: de voorleesbalk van de e-reader */$('#speech-player').hidden=!show;document.body.classList.toggle('speech-visible',!!show);
   if(show){$('#speech-title').textContent=active.source==='reader'?t('Boek voorlezen'):active.source==='note'?t('Notitie voorlezen'):t('Voorlezen');$('#speech-state').textContent=active.state==='paused'?t('Gepauzeerd'):active.state==='loading'?t('Stem starten…'):t('Lokale stem');const pause=$('#speech-pause');pause.setAttribute('aria-label',active.state==='paused'?t('Verder voorlezen'):t('Pauzeren'));pause.textContent='';pause.dataset.icon=active.state==='paused'?'play':'pause';}
   if(typeof aiSpk!=='undefined'&&aiSpk){const pause=$('#ai-speech-pause');if(pause)pause.textContent=active&&active.request===aiSpk.id&&active.state==='paused'?t('Verder voorlezen'):t('Pauzeren');}
+  if(typeof erSpeakRender==='function')erSpeakRender(); // de voorleesbalk en het paneel van de e-reader
 }
 window.onSpeech=function(e){
   if(!e||!e.request)return;
@@ -28,13 +30,12 @@ window.onSpeech=function(e){
   if(!sp.active||e.request!==sp.active.request)return;
   sp.active={...sp.active,...e};
   if(e.source==='reader'&&erBook&&e.book===erBook.id&&Number.isInteger(e.chapter)&&Number.isInteger(e.offset)&&['playing','progress','chapter','paused','done','stopped'].includes(e.state)){
-    if(current==='erbook')spFollowReader(e);else sp.readerLocation={...e};
+    if(typeof erSpeakEvent==='function')erSpeakEvent(e); // markeren, meebladeren en leesplek: 74c-ereader-lezen.js
   }
   if(['done','stopped','error'].includes(e.state)){sp.active=null;spSpeechRender();if(e.state==='error'&&e.source!=='ai'){if(!spReadModels().voice)spSettings();toast(e.error||t('Lokaal voorlezen lukt niet; probeer een korter stuk tekst'));}return;}
   if(e.state==='paused'&&e.error)toast(e.error); // verder lukte niet: een andere app (bijv. een gesprek) heeft het geluid
   spSpeechRender();
 };
-function spFollowReader(e){sp.readerLocation=null;sp.following=true;try{if(erIndex!==e.chapter)erChapter(e.chapter,e.offset);else erRestoreLocation({anchor:e.offset,offset:erText.length?e.offset/erText.length:0});erPendingLocation={chapter:e.chapter,anchor:e.offset,offset:erText.length?e.offset/erText.length:0};erCurrentAnchor=e.offset;erCurrentOffset=erPendingLocation.offset;erProgress();}finally{sp.following=false;}}
 function spSync(){if(typeof Android.speechState!=='function')return;try{const e=JSON.parse(Android.speechState());if(e.active&&!['done','stopped','error'].includes(e.state)){sp.active=e;onSpeech(e);}else{sp.active=null;spSpeechRender();}}catch(_){ }}
 function spSettings(){
   if(typeof Android.speechModels!=='function'){toast(t('Installeer de nieuwste APK voor lokaal voorlezen'));return;}
@@ -65,15 +66,9 @@ function spBackground(){const voice=sp.models.voice||'';spSave(voice,sp.models.s
 function spDelete(voice){spSettingsClose();askConfirm(t('Voorleesstem verwijderen?'),t('Het voorlezen stopt en de stem wordt van je telefoon verwijderd. Je kunt hem later opnieuw downloaden.'),t('Verwijderen'),()=>{Android.speechDelete(voice.id);spSettings();});}
 const spOldPause=window.onPauseApp;window.onPauseApp=function(){if(spOldPause)spOldPause();if(sp.active&&sp.active.source!=='reader'){sp.active=null;spSpeechRender();}};
 const spOldResume=window.onResumeApp;window.onResumeApp=function(){if(spOldResume)spOldResume();spSync();if(sp.settings)spModelsRender();};
-const spOldErSave=erSave;erSave=function(){if(!sp.following&&!(sp.active?.source==='reader'&&erBook?.id===sp.active.book))spOldErSave();};
-const spOldErResume=erResume;erResume=function(){if(sp.readerLocation&&erBook?.id===sp.readerLocation.book)spFollowReader(sp.readerLocation);spOldErResume();};
-const spOldErOpen=erOpen;erOpen=function(id,skip){sp.readerLocation=null;if(sp.active&&sp.active.source==='reader'&&sp.active.book!==id)spStop(true);spOldErOpen(id,skip);};
 $('#speech-settings').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();spSettingsClose();}else if(e.key==='Tab'){const nodes=[...e.currentTarget.querySelectorAll('button,input,summary')].filter(n=>!n.disabled&&n.getClientRects().length),first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&(document.activeElement===first||document.activeElement===$('#speech-heading'))){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
 
 const spOldBack=goBack;goBack=function(){if(sp.settings){spSettingsClose();return true;}return spOldBack();};
 
 setTimeout(spSync,0);
 
-const spOldChapter=erChapter;erChapter=function(index,anchor){if(!sp.following){sp.readerLocation=null;if(sp.active?.source==='reader')spStop(true);}return spOldChapter(index,anchor);};
-const spOldTurn=erTurn;erTurn=function(direction){if(!sp.following){sp.readerLocation=null;if(sp.active?.source==='reader')spStop(true);}return spOldTurn(direction);};
-const spOldSeek=erSeek;erSeek=function(value){if(!sp.following){sp.readerLocation=null;if(sp.active?.source==='reader')spStop(true);}return spOldSeek(value);};

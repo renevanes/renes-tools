@@ -33,7 +33,6 @@ final class NotifCenter {
         {RadioService.CHANNEL, Taal.T("Radio"), Taal.T("Bediening van de radio (afspelen, pauzeren, stoppen)"), "2"},
         {CastService.CHANNEL, Taal.T("Casten"), Taal.T("Bediening als er iets op een Chromecast speelt"), "2"},
         {PodcastService.CHANNEL, Taal.T("Podcasts"), Taal.T("Bediening van de podcast die speelt (terug, pauze, vooruit, slaaptimer)"), "2"},
-        {EreaderSpeakService.CHANNEL, Taal.T("Voorlezen (e-reader)"), Taal.T("Bediening als de e-reader voorleest (vorige en volgende zin, pauze, stoppen)"), "2"},
         {TracksService.CHANNEL, Taal.T("Route opnemen"), Taal.T("Toont de voortgang tijdens het opnemen van een route"), "2"},
         {TranscribeService.CHANNEL, Taal.T("Gesprekken uitschrijven"), Taal.T("Voortgang van het uitschrijven"), "2"},
         {ModelDownloadService.CHANNEL, Taal.T("Modellen downloaden"), Taal.T("Voortgang als de app zelf een AI-model downloadt"), "2"},
