@@ -184,7 +184,7 @@ $(python3 -c "import json;print('\n'.join('- '+c for c in json.load(open('change
 ${TRAILER:+
 $TRAILER}"
   DIRTY=""
-  if tools/publicatie-push.sh "$BASE" "$(git rev-parse HEAD)" "$NAME" "$CODE"; then echo "Gepubliceerd: versie $NAME"; exit 0; fi
+  if tools/publicatie-push.sh "$BASE" "$(git rev-parse HEAD)" "$NAME" "$CODE" "$SLOT_TIP" "$TOKEN"; then echo "Gepubliceerd: versie $NAME"; exit 0; fi
   echo "Iemand publiceerde net buiten het slot om; opnieuw samenvoegen en bouwen (poging $((try+1)))"
   git reset -q --hard HEAD~1 # alleen de eigen, niet-gepubliceerde versiecommit; de werkmap was schoon
 done

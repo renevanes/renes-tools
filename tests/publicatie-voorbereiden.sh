@@ -44,6 +44,7 @@ python3 -c "import json,sys; e=json.load(open(sys.argv[1]))[0]; assert e['versio
 [ ! -e "$tmp/a/wijzigingen/iets.txt" ] || fout "wijzigingsregels niet weggehaald"
 [ "$(git -C "$tmp/origin.git" rev-parse main)" = "$bron" ] || fout "voorbereiden pushte naar main"
 ! git -C "$tmp/origin.git" rev-parse -q --verify refs/heads/publiceren-slot >/dev/null || fout "voorbereiden nam het publicatieslot"
+[ -z "$(git -C "$tmp/origin.git" for-each-ref --format='%(refname)' 'refs/tags/versie-*' 'refs/tags/versiecode-*')" ] || fout 'voorbereiden reserveerde een versienummer'
 
 b=$(voorbereiden "$tmp/b")
 [ "$a" = "$b" ] || fout "twee keer voorbereiden gaf een andere vingerafdruk ($a / $b)"

@@ -15,15 +15,19 @@ slot_read(){
 slot_push(){ # $1 = verwachte tip ("" = bestaat nog niet), $2 = boodschap; zet SLOT_TIP bij succes
   local parent=() c
   [ -n "$1" ] && parent=(-p "$1")
-  c=$(git "${GIT_ID[@]}" commit-tree "$EMPTY_TREE" "${parent[@]}" -m "$2")
+  if ! c=$(git "${GIT_ID[@]}" commit-tree "$EMPTY_TREE" "${parent[@]}" -m "$2"); then
+    SLOT_ERR='Slotcommit maken mislukt'; return 1
+  fi
+  [[ $c =~ ^[0-9a-f]{40}$ ]] || { SLOT_ERR='Ongeldige slotcommit'; return 1; }
   SLOT_ERR=$(git push -q origin "$c:$LOCK" --force-with-lease="$LOCK:$1" 2>&1) && SLOT_TIP=$c
 }
 slot_take(){
-  local start=$(date +%s) tip msg="" since fails=0
+  local start tip msg="" since fails=0
+  start=$(date +%s) || return 1
   while true; do
     [ $(( $(date +%s) - start )) -gt 7200 ] && { echo "Na 2 uur wachten is het slot nog bezet ($msg). Later opnieuw proberen."; exit 1; }
     tip=$(slot_read) || return 1
-    msg=$([ -n "$tip" ] && git log -1 --format=%s "$tip" || echo vrij)
+    if [ -n "$tip" ]; then msg=$(git log -1 --format=%s "$tip") || return 1; else msg=vrij; fi
     if [[ "$msg" == *"[$TOKEN]"* ]]; then SLOT_TIP=$tip; echo "Publicatieslot genomen"; return 0; fi # eigen push kwam toch aan
     since=$(sed -n 's/^bezet \([0-9]*\) .*/\1/p' <<<"$msg"); since=${since:-0}
     # Eén poging (samenvoegen, bouwen, testen, publiceren) duurt 10-25 minuten; bij elke poging wordt de tijd in het
@@ -59,7 +63,8 @@ slot_refresh(){ # bij elke poging de tijd in het slot vernieuwen, zodat een lang
   [ -z "${VOORBEREIDEN:-}" ] || return 0
   local tip
   tip=$(slot_read) || return 1
-  if [ -z "$SLOT_TIP" ] || [ "$tip" != "$SLOT_TIP" ] || [[ "$(git log -1 --format=%s "$tip")" != *"[$TOKEN]"* ]]; then
+  # Een eigen atomaire push kan zijn aangekomen terwijl het antwoord wegviel. Alleen eigen nakomelingen tellen dan.
+  if [ -z "$SLOT_TIP" ] || [ -z "$tip" ] || [[ "$(git log -1 --format=%s "$tip")" != *"[$TOKEN]"* ]] || ! git merge-base --is-ancestor "$SLOT_TIP" "$tip"; then
     echo 'Publicatieslot verloren; publicatie gestopt' >&2; return 1
   fi
   if ! slot_push "$tip" "bezet $(date -u +%s) door $WHO [$TOKEN]"; then
