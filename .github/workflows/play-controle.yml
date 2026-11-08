@@ -84,5 +84,6 @@ jobs:
             build-play/idcopy-test/**/result.txt
             build-play/masterdata-test/**/result.txt
             build-play/voorlezen-test/**/result.txt
+            build-play/voorlezen-test/**/logcat.txt
           retention-days: 14
           if-no-files-found: ignore

@@ -89,7 +89,7 @@ final class ReadAloud {
                 if(next>=names.length())break;job.chapter=next;job.offset=0;event(job,"chapter",null);
             }while(job.alive());
             if(job.alive())event(job,"done",null);
-        }catch(Throwable e){if(job.alive())event(job,"error",e instanceof Exception&&e.getMessage()!=null&&Arrays.asList("Download eerst een lokale voorleesstem","Deze tekst is te lang om in één keer voor te lezen","Voorlezen kan nu niet: er is iets anders bezig met geluid (bijvoorbeeld een gesprek).").contains(e.getMessage())?e.getMessage():Taal.T("Lokaal voorlezen lukt niet; probeer een korter stuk tekst"));}
+        }catch(Throwable e){android.util.Log.w("Voorlezen",where(e));if(job.alive())event(job,"error",e instanceof Exception&&e.getMessage()!=null&&Arrays.asList("Download eerst een lokale voorleesstem","Deze tekst is te lang om in één keer voor te lezen","Voorlezen kan nu niet: er is iets anders bezig met geluid (bijvoorbeeld een gesprek).").contains(e.getMessage())?e.getMessage():Taal.T("Lokaal voorlezen lukt niet; probeer een korter stuk tekst"));}
         finally{
             AudioTrack track=job.track;job.track=null;if(track!=null)try{track.pause();track.flush();track.release();}catch(Throwable ignored){ }
             if(engine!=null)try{engine.close();}catch(Throwable ignored){ }if(wake!=null&&wake.isHeld())try{wake.release();}catch(Throwable ignored){ }
@@ -97,6 +97,8 @@ final class ReadAloud {
             job.text="";synchronized(LOCK){if(current==job)current=null;}if(job.background)ReadAloudService.finished(job.context,job.request);
         }
     }
+    /** Soort fout en plek in de code voor logcat; nooit de foutmelding (die kan tekst of paden bevatten). */
+    static String where(Throwable e){StringBuilder out=new StringBuilder();for(Throwable t=e;t!=null&&out.length()<1500;t=t.getCause()){out.append(out.length()==0?"":" | oorzaak ").append(t.getClass().getName());StackTraceElement[] st=t.getStackTrace();for(int i=0;i<Math.min(6,st.length);i++)out.append(" @ ").append(st[i].getClassName()).append('.').append(st[i].getMethodName()).append(':').append(st[i].getLineNumber());if(t.getCause()==t)break;}return out.toString();}
     static void attach(MainActivity a){synchronized(LOCK){Job j=current;if(j==null||!j.background||j.owner.equals(a.speechOwner))return;MainActivity old=j.activity.get();if(old!=null&&!old.isDestroyed()&&old.masterForeground)return;if(!a.masterForeground)return;j.owner=a.speechOwner;j.activity=new WeakReference<>(a);j.sink=ReadAloudBridge.sink(a,"onSpeech");}}
     static JSONObject state(String owner)throws Exception {Job j=current;if(j==null||!j.owner.equals(owner))return new JSONObject().put("active",false);return new JSONObject().put("active",true).put("request",j.request).put("source",j.source).put("state",j.state).put("book",j.book).put("chapter",j.chapter).put("offset",j.offset);}
 }

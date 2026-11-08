@@ -28,6 +28,12 @@ java -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 --release --min-api 24 --lib "
 "$BT/apksigner" sign --ks keys/release.p12 --ks-key-alias release --ks-pass file:keys/keystore.pass --out "$B/test.apk" "$B/aligned.apk"
 if [ "${VOICE_BUILD_ONLY:-0}" = 1 ]; then exit 0; fi
 adb install -r "$B/test.apk"
+adb logcat -c || true
 adb shell am instrument -w "$TARGET_PACKAGE.voicetest/nl.rene.tools.test.VoiceDeviceTest" | tee "$B/result.txt"
-grep -q 'voorlezen=ok' "$B/result.txt"
+adb logcat -d -v threadtime > "$B/logcat.txt" 2>&1 || true
+if ! grep -q 'voorlezen=ok' "$B/result.txt"; then
+ # Soort fout en plek (ReadAloud.where), native crashes en audiomeldingen; nooit voorgelezen tekst.
+ grep -E ' (Voorlezen|AndroidRuntime|DEBUG|libc|AudioTrack|AudioFlinger|AudioPolicyManager|sherpa-onnx)\b' "$B/logcat.txt" | tail -n 120 || true
+ exit 1
+fi
 echo 'Lokale stem: modelinstallatie, echte audio en stale bediening op Android gecontroleerd'
