@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.171",
+    "date": "2026-11-08",
+    "changes": [
+      "Formulieren invullen: nieuwe knop \"Tussentijds opslaan\". Je invoer wordt bewaard als concept, ook als nog niet alle verplichte velden ingevuld zijn; bij een andere stap en als je weggaat gebeurt dat ook vanzelf. Je ziet steeds of alles is opgeslagen en hoeveel verplichte velden nog leeg zijn. Het concept staat versleuteld op je telefoon en komt terug als je het formulier weer opent.",
+      "Formulieren invullen: lege verplichte velden houden je niet meer tegen bij Volgende stap (ze zijn pas nodig voor de PDF). Bij een fout of een ontbrekend veld springt de app naar dat veld en staat de reden er direct onder; bij Controleren zie je wat nog leeg is, met een knop per veld."
+    ]
+  },
+  {
     "version": "1.170",
     "date": "2026-11-08",
     "changes": [
