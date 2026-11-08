@@ -26,7 +26,7 @@ import javax.xml.parsers.SAXParserFactory;
 final class NieuwsFeed {
     private NieuwsFeed() { }
 
-    static final int MAX_TEKST = 20_000, MAX_BLOKKEN = 120, MAX_ITEMS = 200;
+    static final int MAX_TEKST = 20_000, MAX_BLOKKEN = 120, MAX_ITEMS = 200, MAX_HTML = 100_000;
 
     static final class Blok {
         final String tekst; final boolean kop;
@@ -47,6 +47,47 @@ final class NieuwsFeed {
 
     /** Geen nieuwsfeed (bijv. een gewone webpagina): dan kan de aanroeper op die pagina naar een feed zoeken. */
     static final class GeenFeed extends Exception { GeenFeed() { super(Taal.T("Dit is geen nieuwsfeed")); } }
+
+    /** Eigen entiteiten of een DTD: nooit lezen, ook niet half. */
+    static final class Onveilig extends SAXException { Onveilig() { super(Taal.T("Deze feed wordt niet gelezen (onveilige opbouw)")); } }
+
+    /** Tekens die in XML niet mogen (stuurtekens behalve tab en regeleinden) weg, zodat één fout teken niet de hele feed kost. */
+    static final class XmlTekens extends java.io.FilterReader {
+        XmlTekens(java.io.Reader r) { super(r); }
+        static boolean mag(int c) { return c >= 0x20 || c == '\t' || c == '\n' || c == '\r'; }
+        @Override public int read() throws java.io.IOException { int c; do { c = super.read(); } while (c >= 0 && !mag(c)); return c; }
+        @Override public int read(char[] b, int off, int len) throws java.io.IOException {
+            while (true) {
+                int n = super.read(b, off, len);
+                if (n <= 0) return n;
+                int w = off;
+                for (int i = off; i < off + n; i++) if (mag(b[i])) b[w++] = b[i];
+                if (w > off) return w - off;
+            }
+        }
+    }
+
+    /** Een adres naar een gewone site op internet: geen eigen apparaat, thuisnetwerk of lokale naam. */
+    static boolean openbaar(String host) {
+        if (host == null) return false;
+        String h = host.toLowerCase(Locale.ROOT);
+        while (h.endsWith(".")) h = h.substring(0, h.length() - 1);
+        if (h.isEmpty() || !h.contains(".") || h.startsWith("[") || h.contains(":")) return false;
+        if (h.equals("localhost") || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal") || h.endsWith(".lan") || h.endsWith(".home.arpa")) return false;
+        Matcher m = IPV4.matcher(h);
+        if (!m.matches()) return true;
+        int a = Integer.parseInt(m.group(1)), b = Integer.parseInt(m.group(2));
+        return !(a == 0 || a == 10 || a == 127 || a >= 224 || (a == 169 && b == 254) || (a == 172 && b >= 16 && b <= 31)
+                || (a == 192 && b == 168) || (a == 100 && b >= 64 && b <= 127));
+    }
+    private static final Pattern IPV4 = Pattern.compile("(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})");
+
+    /** Een https-adres naar een openbare site (zonder inloggegevens in het adres). */
+    static boolean httpsOpenbaar(String u) {
+        if (u == null || u.length() > 2000 || !u.regionMatches(true, 0, "https://", 0, 8)) return false;
+        try { java.net.URL x = new java.net.URL(u); return openbaar(x.getHost()) && x.getUserInfo() == null; }
+        catch (Exception e) { return false; }
+    }
 
     static Feed parse(InputStream raw, String httpCharset) throws Exception {
         java.io.BufferedInputStream in = new java.io.BufferedInputStream(raw, 1 << 16);
@@ -69,9 +110,13 @@ final class NieuwsFeed {
         SAXParser p = f.newSAXParser();
         Handler h = new Handler();
         try { p.setProperty("http://xml.org/sax/properties/declaration-handler", h); } catch (Exception ignored) { }
-        try { p.parse(new org.xml.sax.InputSource(new PodcastFeed.EntityGuard(new java.io.InputStreamReader(in, cs))), h); }
+        try { p.parse(new org.xml.sax.InputSource(new PodcastFeed.EntityGuard(new XmlTekens(new java.io.InputStreamReader(in, cs)))), h); }
         catch (PodcastFeed.Enough ignored) { }
-        catch (SAXException e) { if (!h.feedRoot) throw new GeenFeed(); throw e; }
+        catch (Onveilig e) { throw e; }
+        catch (SAXException e) {
+            if (!h.feedRoot) throw new GeenFeed();
+            if (h.feed.artikelen.isEmpty()) throw e;
+        }
         if (!h.feedRoot) throw new GeenFeed();
         return h.feed;
     }
@@ -87,8 +132,8 @@ final class NieuwsFeed {
         String xhtmlVeld = "";
         final StringBuilder text = new StringBuilder();
 
-        @Override public void internalEntityDecl(String name, String value) throws SAXException { throw new SAXException("Deze feed wordt niet gelezen (onveilige opbouw)"); }
-        @Override public void externalEntityDecl(String name, String pub, String sys) throws SAXException { throw new SAXException("Deze feed wordt niet gelezen (onveilige opbouw)"); }
+        @Override public void internalEntityDecl(String name, String value) throws SAXException { throw new Onveilig(); }
+        @Override public void externalEntityDecl(String name, String pub, String sys) throws SAXException { throw new Onveilig(); }
 
         @Override public void startElement(String uri, String local, String q, Attributes a) throws SAXException {
             String n = q.toLowerCase(Locale.ROOT);
@@ -145,7 +190,7 @@ final class NieuwsFeed {
         private int beeldBreedte;
         private void beeld(String u, String breed) {
             u = u.trim();
-            if (!u.startsWith("https://") || u.length() >= 1000) return;
+            if (u.length() >= 1000 || !httpsOpenbaar(u)) return;
             int w = 0;
             try { w = Integer.parseInt(breed.trim()); } catch (NumberFormatException ignored) { }
             if (art.beeld.isEmpty() || (w > beeldBreedte && beeldBreedte > 0)) { art.beeld = u; beeldBreedte = w; }
@@ -194,7 +239,7 @@ final class NieuwsFeed {
             Artikel x = art; art = null;
             if (x.link.isEmpty() && guidLink && guid.startsWith("http")) x.link = guid;
             String html = inhoud.trim().length() > samenvatting.trim().length() ? inhoud : samenvatting;
-            if (x.beeld.isEmpty()) { Matcher m = IMG.matcher(html); if (m.find()) { String u = ontsnap(m.group(1)).trim(); if (u.startsWith("https://") && u.length() < 1000) x.beeld = u; } }
+            if (x.beeld.isEmpty()) { Matcher m = IMG.matcher(cut(html, MAX_HTML)); if (m.find()) { String u = ontsnap(m.group(1)).trim(); if (u.length() < 1000 && httpsOpenbaar(u)) x.beeld = u; } }
             boolean[] kort = new boolean[1];
             x.blokken = blokken(html, kort);
             x.ingekort = kort[0];
@@ -230,22 +275,26 @@ final class NieuwsFeed {
 
     static String escape(String s) { return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"); }
 
-    private static final Pattern IMG = Pattern.compile("(?i)<img\\b[^>]{0,2000}?\\bsrc\\s*=\\s*[\"']([^\"'>\\s]{1,1000})[\"']");
+    private static final Pattern IMG = Pattern.compile("(?i)<img\\b[^<>]{0,2000}?\\bsrc\\s*=\\s*[\"']([^\"'<>\\s]{1,1000})[\"']");
     /** media:content zonder soort: geen plaatje als het adres op video of geluid eindigt. */
     static final Pattern GEEN_BEELD = Pattern.compile("(?i)\\.(mp4|m4v|mov|webm|m3u8|mp3|m4a|aac|ogg|opus|wav)(\\?|#|$)");
-    private static final Pattern WEG = Pattern.compile("(?is)<(script|style|noscript|iframe|object|svg|template|button|form|figure)\\b[^>]{0,2000}>.*?</\\1\\s*>");
-    private static final Pattern KOP_BEGIN = Pattern.compile("(?i)<h[1-6]\\b[^>]{0,2000}>"), KOP_EIND = Pattern.compile("(?i)</h[1-6]\\s*>");
-    private static final Pattern LI = Pattern.compile("(?i)<li\\b[^>]{0,2000}>");
-    private static final Pattern BLOK = Pattern.compile("(?i)</?(p|div|ul|ol|li|blockquote|section|article|table|tr|figcaption|dl|dd|dt|hr|pre)\\b[^>]{0,2000}>");
+    /* Elk patroon stopt bij de volgende < of aan het eind van de tekst: een feed vol halve tags kost zo geen kwadratische tijd
+     * (Android kan een zoekopdracht niet afbreken). Een niet afgesloten script of opmerking loopt door tot het eind. */
+    private static final Pattern WEG = Pattern.compile("(?is)<(script|style|noscript|iframe|object|svg|template|button|form|figure)\\b[^<>]{0,2000}>.*?(?:</\\1\\s*>|\\z)");
+    private static final Pattern KOP_BEGIN = Pattern.compile("(?i)<h[1-6]\\b[^<>]{0,2000}>"), KOP_EIND = Pattern.compile("(?i)</h[1-6]\\s*>");
+    private static final Pattern LI = Pattern.compile("(?i)<li\\b[^<>]{0,2000}>");
+    private static final Pattern BLOK = Pattern.compile("(?i)</?(p|div|ul|ol|li|blockquote|section|article|table|tr|figcaption|dl|dd|dt|hr|pre)\\b[^<>]{0,2000}>");
+    private static final Pattern OPMERKING = Pattern.compile("(?s)<!--.*?(?:-->|\\z)");
     private static final Pattern BR = Pattern.compile("(?i)<br\\s*/?>");
     /** Alleen wat echt een tag is (een letter, / ! of ? na de <): "3 < 5 en 6 > 4" blijft staan. */
-    private static final Pattern TAG = Pattern.compile("(?s)<[/!?]?[A-Za-z][^<>]{0,2000}>|<!--.*?-->");
+    private static final Pattern TAG = Pattern.compile("(?s)<[/!?]?[A-Za-z][^<>]{0,2000}>|<!--.*?(?:-->|\\z)");
     private static final Pattern INLINE = Pattern.compile("(?i)</?(b|i|em|strong|span|a|small|sup|sub|u|mark|abbr|q|cite|code|font)\\b[^<>]{0,2000}>");
     private static final char KOP = '\u0001';
 
     /** Eén regel tekst (titel, naam): tags weg, tekens terug, witruimte samen. */
     static String regel(String s) {
         if (s == null) return "";
+        s = cut(s, 4000);
         String r = s.indexOf('<') >= 0 ? TAG.matcher(INLINE.matcher(s).replaceAll("")).replaceAll(" ") : s;
         return ontsnap(r).replaceAll("[\\s\\u00a0]+", " ").trim();
     }
@@ -257,10 +306,12 @@ final class NieuwsFeed {
     static List<Blok> blokken(String html, boolean[] ingekort) {
         List<Blok> out = new ArrayList<>();
         if (html == null) return out;
-        String s = html.replaceAll("[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f]", "");
+        String s = html;
+        if (s.length() > MAX_HTML) { s = s.substring(0, MAX_HTML); if (ingekort != null) ingekort[0] = true; }
+        s = s.replaceAll("[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f]", "");
         if (s.indexOf('<') < 0 && s.indexOf('&') < 0) s = s.replaceAll("\\r?\\n\\s*\\r?\\n", "\n\n");
         else {
-            s = s.replaceAll("\\s+", " ").replaceAll("<!--.*?-->", " ");
+            s = OPMERKING.matcher(s.replaceAll("\\s+", " ")).replaceAll(" ");
             s = WEG.matcher(s).replaceAll(" ");
             s = KOP_BEGIN.matcher(s).replaceAll("\n\n" + KOP);
             s = KOP_EIND.matcher(s).replaceAll("\n\n");

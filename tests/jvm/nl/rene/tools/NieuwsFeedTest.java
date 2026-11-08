@@ -17,6 +17,7 @@ public class NieuwsFeedTest {
     static NieuwsFeed.Feed lees(String xml, String charset) throws Exception {
         return NieuwsFeed.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)), charset);
     }
+    static String herhaal(String s, int n) { StringBuilder b = new StringBuilder(s.length() * n); for (int i = 0; i < n; i++) b.append(s); return b.toString(); }
     static long iso(String s) { return java.time.Instant.parse(s).toEpochMilli(); }
     static String tekst(List<NieuwsFeed.Blok> bl) {
         StringBuilder b = new StringBuilder();
@@ -116,6 +117,43 @@ public class NieuwsFeedTest {
         check("Prijs < 5 euro | Commentaar weg | ".equals(tekst(NieuwsFeed.blokken("<p>Prijs &lt; 5 euro</p><!-- <p>x</p> --><p>Commentaar weg</p>", null))), "losse < en commentaar");
         String grootKop = "<h2>" + new String(new char[300]).replace('\0', 'x') + "</h2>";
         check(!NieuwsFeed.blokken(grootKop, null).get(0).kop, "een 'kop' van 300 tekens is gewone tekst");
+        check("Voor | ".equals(tekst(NieuwsFeed.blokken("<p>Voor</p><script>x = 1; <p>na</p>", null))) && "Kop".equals(NieuwsFeed.regel("Kop <!-- rest")),
+                "niet afgesloten script of opmerking: de rest valt weg");
+        kort[0] = false;
+        bl = NieuwsFeed.blokken(herhaal("<span class=\"opmaak\"></span>", 5_000) + "<p>Achteraan</p>", kort);
+        check(kort[0] && !tekst(bl).contains("Achteraan"), "meer dan " + NieuwsFeed.MAX_HTML + " tekens HTML: alleen het begin, en ingekort");
+
+        // Halve tags in grote hoeveelheden: geen kwadratische tijd (Android kan een zoekopdracht niet afbreken)
+        for (String stuk : new String[]{"<!--", "<script>", "<h1 a", "<img a", "<li a", "<p a", "<a ", "<b", "<form x>", "<!-- <script>"}) {
+            String h = herhaal(stuk + "x", 200_000 / (stuk.length() + 1));
+            long t0 = System.nanoTime();
+            NieuwsFeed.blokken(h, null);
+            NieuwsFeed.regel(h);
+            long ms = (System.nanoTime() - t0) / 1_000_000;
+            check(ms < 1500, "200.000 tekens '" + stuk + "…' snel gelezen (" + ms + " ms)");
+        }
+
+        // Eén fout teken of een kapot artikel kost niet de hele feed
+        String stuur = "<rss><channel><title>T</title><item><title>Met \u0001stuurteken</title><guid>a</guid></item><item><title>Twee</title><guid>b</guid></item></channel></rss>";
+        f = lees(stuur, null);
+        check(f.artikelen.size() == 2 && "Met stuurteken".equals(f.artikelen.get(0).titel), "stuurteken in de feed overgeslagen");
+        String half = "<rss><channel><title>T</title><item><title>Goed</title><guid>a</guid></item><item><title>Kapot &#1; </title></item></channel></rss>";
+        f = lees(half, null);
+        check(f.artikelen.size() == 1 && "Goed".equals(f.artikelen.get(0).titel), "kapotte feed: wat ervoor stond blijft");
+        boolean leeg = false;
+        try { lees("<rss><channel><item><title>Kapot &#1;</title></item></channel></rss>", null); } catch (org.xml.sax.SAXException x) { leeg = true; }
+        check(leeg, "kapot vóór het eerste artikel: niet goed leesbaar");
+
+        // Afbeeldingen en adressen alleen van openbare sites
+        f = lees("<rss><channel><title>T</title><item><title>Thuis</title><guid>a</guid><media:thumbnail url=\"https://192.168.1.10/a.jpg\"/>"
+                + "<description>&lt;img src=\"https://localhost./b.jpg\"&gt;</description></item></channel></rss>", null);
+        check(f.artikelen.get(0).beeld.isEmpty(), "geen afbeelding van het thuisnetwerk of het toestel zelf");
+        for (String h : new String[]{"localhost", "127.0.0.1", "10.1.2.3", "172.16.0.1", "172.31.255.1", "192.168.1.1", "169.254.1.1", "100.64.0.1", "0.0.0.0",
+                "[::1]", "::1", "printer.local", "nas.lan", "router.home.arpa", "intranet", "", null})
+            check(!NieuwsFeed.openbaar(h), "niet openbaar: " + h);
+        for (String h : new String[]{"nos.nl", "feeds.nos.nl.", "8.8.8.8", "172.32.0.1", "www.rijnmond.nl"}) check(NieuwsFeed.openbaar(h), "openbaar: " + h);
+        check(!NieuwsFeed.httpsOpenbaar("https://user:pw@nos.nl/feed") && !NieuwsFeed.httpsOpenbaar("http://nos.nl/") && NieuwsFeed.httpsOpenbaar("https://nos.nl/feed"),
+                "https zonder inloggegevens");
 
         // Datums
         check(NieuwsFeed.datum("2026-11-08T12:00:00+0200") == iso("2026-11-08T10:00:00Z"), "ISO met +0200 zonder dubbele punt");

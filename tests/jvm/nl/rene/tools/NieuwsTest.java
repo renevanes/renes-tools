@@ -107,6 +107,12 @@ public class NieuwsTest {
         l = Nieuws.lijst(dir, cache);
         JSONObject nb = bron(l.getJSONArray("bronnen"), "nos");
         check(l.getJSONArray("artikelen").length() == 6 && "Geen verbinding".equals(nb.optString("fout")) && nb.getLong("poging") == nu + 7_200_000L, "mislukt: artikelen blijven, fout erbij");
+        // Een ronde die pas klaar is na een nieuwere (een trage site): overschrijft niets
+        check(Nieuws.bewaarFeed(cache, "nos", "https://nieuws.example.org/rss.xml", rss(), nu + 1_800_000L) == 0, "oudere ronde: niets nieuws");
+        Nieuws.bewaarFout(cache, "nos", "Oud", nu + 1_800_000L);
+        l = Nieuws.lijst(dir, cache);
+        nb = bron(l.getJSONArray("bronnen"), "nos");
+        check(l.getJSONArray("artikelen").length() == 6 && "Geen verbinding".equals(nb.optString("fout")) && nb.getLong("poging") == nu + 7_200_000L, "oudere ronde overschrijft de nieuwere niet");
         // Bron uit: niet in het overzicht
         Nieuws.zetAan(dir, "nos", false);
         l = Nieuws.lijst(dir, cache);
@@ -154,6 +160,11 @@ public class NieuwsTest {
         check(gl.length() == 1 && bevat(gl, id), "na 60 dagen: alleen het bewaarde artikel nog gelezen: " + gl);
         Nieuws.bewaar(dir, cache, id, false, later);
         check(Nieuws.lijst(dir, cache).getJSONArray("bewaard").length() == 0, "niet meer bewaard");
+        Nieuws.bewaar(dir, cache, id, true, later + 1);
+        bw = Nieuws.lijst(dir, cache).getJSONArray("bewaard");
+        check(bw.length() == 1 && bw.getJSONObject(0).getString("id").equals(id) && Nieuws.artikel(dir, cache, id).getJSONArray("blokken").length() >= 5,
+                "per ongeluk niet meer bewaard: opnieuw bewaren kan, ook als het niet meer in de feed staat");
+        Nieuws.bewaar(dir, cache, id, false, later + 2);
 
         // Wat bijgewerkt moet worden
         File d2 = tmp("todo-dir"), c2 = tmp("todo-cache");
@@ -174,6 +185,8 @@ public class NieuwsTest {
         check(geeftFout(() -> Nieuws.adres("")) && geeftFout(() -> Nieuws.adres("ftp://x.example.org/")) && geeftFout(() -> Nieuws.adres("geen adres.nl"))
                 && geeftFout(() -> Nieuws.adres("localhost")) && geeftFout(() -> Nieuws.adres("https://user:pw@x.example.org/")), "ongeldige adressen geweigerd");
         check(!Nieuws.https("http://x.example.org/") && Nieuws.https("https://x.example.org/a?b=c"), "alleen https");
+        check(!Nieuws.https("https://192.168.1.1/feed") && !Nieuws.https("https://localhost./rss") && geeftFout(() -> Nieuws.adres("10.0.0.2/rss")) && geeftFout(() -> Nieuws.adres("http://[::1]/"))
+                && geeftFout(() -> Nieuws.adres("nas.local/feed")), "geen adressen op het toestel of in het thuisnetwerk");
         check("nu".equals(Nieuws.bekendeSite("https://www.nu.nl/")) && "nos-sport".equals(Nieuws.bekendeSite("https://nos.nl/sport")) && Nieuws.bekendeSite("https://nu.nl/rss/Sport") == null, "bekende sites");
         check("https://a.example.org/x?id=1&b=2#k".equals(Nieuws.schoon("https://a.example.org/x?utm_source=rss&id=1&at_medium=RSS&b=2&fbclid=z#k")), "volgparameters weg, de rest blijft");
         check("https://a.example.org/x".equals(Nieuws.schoon("https://a.example.org/x?utm_campaign=y")), "alleen volgparameters: geen ? meer");
@@ -191,6 +204,9 @@ public class NieuwsTest {
         check("Feed is te groot".equals(Nieuws.kort(new java.io.IOException("Feed is te groot"))), "te groot");
         check("Bijwerken lukt niet".equals(Nieuws.kort(new RuntimeException("NullPointer at x.y"))), "onbekende fout: geen technische tekst");
         check("Deze feed is niet goed leesbaar".equals(Nieuws.kort(new org.xml.sax.SAXParseException("x", null))), "kapotte XML");
+        check("Deze feed wordt niet gelezen (onveilige opbouw)".equals(Nieuws.kort(new NieuwsFeed.Onveilig())), "onveilige opbouw: eigen tekst");
+        check("Toevoegen lukt niet".equals(Nieuws.kort(new RuntimeException("x"), "Toevoegen lukt niet")) && "Geen verbinding".equals(Nieuws.kort(new java.net.UnknownHostException("x"), "Toevoegen lukt niet")),
+                "toevoegen: eigen tekst bij een onbekende fout");
 
         // Backup: nieuws/ gaat mee in Alle appgegevens, niet in de Android-backup
         check(AppData.FILE_ROOTS.contains("nieuws"), "Alle appgegevens: nieuws/ gaat mee");

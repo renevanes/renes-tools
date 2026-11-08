@@ -45,8 +45,10 @@ final class Nieuws {
     private Nieuws() { }
 
     static final int MAX_PER_BRON = 60, MAX_EIGEN = 30, MAX_BEWAARD = 300, MAX_GELEZEN = 5000, MAX_LIJST = 800;
-    static final int MAX_FEED = 8 * 1024 * 1024, MAX_HOPS = 6;
-    static final long VERS = 15 * 60_000L, OPNIEUW_NA_FOUT = 2 * 60_000L, GELEZEN_BEWAREN = 60L * 86_400_000L, MAX_DUUR = 90_000L;
+    static final int MAX_FEED = 4 * 1024 * 1024, MAX_HOPS = 6;
+    static final long VERS = 15 * 60_000L, OPNIEUW_NA_FOUT = 2 * 60_000L, GELEZEN_BEWAREN = 60L * 86_400_000L, MAX_DUUR = 90_000L, MAX_HAAL = 60_000L;
+    /** Geen naam of adres van Rene of de repository: een nieuwssite hoeft niet te weten wie er leest. */
+    static final String UA = "Mozilla/5.0 (Linux; Android) Nieuwslezer/1.0";
 
     /**
      * Bronnen die de app kent: id, naam, adres, standaard aan ("1"), de sites ervan (wie zo'n site intikt, zet de bron aan:
@@ -210,11 +212,7 @@ final class Nieuws {
         catch (Exception e) { return url; }
     }
 
-    static boolean https(String u) {
-        if (u == null || u.length() > 2000 || !u.regionMatches(true, 0, "https://", 0, 8)) return false;
-        try { URL x = new URL(u); return x.getHost() != null && x.getHost().contains(".") && x.getUserInfo() == null; }
-        catch (Exception e) { return false; }
-    }
+    static boolean https(String u) { return NieuwsFeed.httpsOpenbaar(u); }
 
     /** Wat Rene intikt ("nos.nl", "http://…", "feed://…") → een https-adres. */
     static String adres(String in) throws Fout {
@@ -283,6 +281,7 @@ final class Nieuws {
         synchronized (LOCK) {
             File cf = new File(cache, bron + ".json");
             JSONObject oud = leesObject(cf);
+            if (oud != null && Math.max(oud.optLong("t"), oud.optLong("poging")) > nu) return 0; // een latere ronde was eerder klaar
             Map<String, Long> bekend = new HashMap<>();
             JSONArray oa = oud == null ? null : oud.optJSONArray("artikelen");
             if (oa != null) for (int i = 0; i < oa.length(); i++) { JSONObject a = oa.optJSONObject(i); if (a != null) bekend.put(a.optString("id"), datum(a)); }
@@ -313,6 +312,7 @@ final class Nieuws {
                 File cf = new File(cache, bron + ".json");
                 JSONObject o = leesObject(cf);
                 if (o == null) o = new JSONObject();
+                if (Math.max(o.optLong("t"), o.optLong("poging")) > nu) return;
                 schrijf(cf, o.put("poging", nu).put("fout", fout).toString(), false);
             } catch (Exception ignored) { }
         }
@@ -427,6 +427,9 @@ final class Nieuws {
         }
     }
 
+    /** Het laatst niet meer bewaarde artikel: zo zet Bewaren het terug, ook als het intussen uit de feed is. */
+    private static JSONObject wegGehaald;
+
     /** Bewaren (een kopie met de hele tekst, nieuwste bovenaan) of niet meer bewaren. */
     static void bewaar(File dir, File cache, String id, boolean aan, long nu) throws Exception {
         if (id == null || !ART_ID.matcher(id).matches()) throw new Fout(Taal.T("Dit artikel is niet meer beschikbaar"));
@@ -434,15 +437,18 @@ final class Nieuws {
             File f = new File(dir, "bewaard.json");
             JSONArray oud = leesLijst(f), rest = new JSONArray();
             boolean al = false;
+            JSONObject weg = null;
             if (oud != null) for (int i = 0; i < oud.length(); i++) {
                 JSONObject a = oud.optJSONObject(i);
                 if (a == null) continue;
-                if (a.optString("id").equals(id)) al = true; else rest.put(a);
+                if (a.optString("id").equals(id)) { al = true; weg = a; } else rest.put(a);
             }
             if (aan == al) return;
             JSONArray uit = rest;
+            if (!aan) wegGehaald = weg;
             if (aan) {
                 JSONObject a = zoekCache(dir, cache, id);
+                if (a == null && wegGehaald != null && id.equals(wegGehaald.optString("id"))) a = new JSONObject(wegGehaald.toString());
                 if (a == null) throw new Fout(Taal.T("Dit artikel is niet meer beschikbaar"));
                 if (rest.length() >= MAX_BEWAARD) throw new Fout(Taal.fill(Taal.T("Je hebt al {n} artikelen bewaard"), "n", MAX_BEWAARD));
                 uit = new JSONArray().put(a.put("bewaard", nu));
@@ -469,18 +475,25 @@ final class Nieuws {
 
     private static Fout antwoord(int code) { return new Fout(Taal.fill(Taal.T("De nieuwssite antwoordt met {code}"), "code", code)); }
 
-    /** Een adres ophalen: alleen https, ook bij doorverwijzingen; hooguit MAX_FEED bytes. */
-    static Antwoord haal(String adres) throws Exception {
+    /** Hoeveel tijd er nog is tot {@code tot}; voorbij = de site is te traag. */
+    private static int rest(long tot) throws Fout {
+        long r = tot - System.currentTimeMillis();
+        if (r <= 0) throw new Fout(Taal.T("De nieuwssite reageert te traag"));
+        return (int) Math.max(1000, Math.min(r, 20_000));
+    }
+
+    /** Een adres ophalen: alleen https naar openbare sites, ook bij doorverwijzingen; hooguit MAX_FEED bytes, klaar vóór {@code tot}. */
+    static Antwoord haal(String adres, long tot) throws Exception {
         String u = adres;
         for (int hop = 0; hop < MAX_HOPS; hop++) {
             if (!https(u)) throw new Fout(Taal.T("Alleen https-adressen"));
             HttpURLConnection h = (HttpURLConnection) new URL(u).openConnection();
             try {
                 h.setInstanceFollowRedirects(false);
-                h.setConnectTimeout(15_000);
-                h.setReadTimeout(20_000);
+                h.setConnectTimeout(Math.min(15_000, rest(tot)));
+                h.setReadTimeout(rest(tot));
                 h.setUseCaches(false);
-                h.setRequestProperty("User-Agent", Radio.UA);
+                h.setRequestProperty("User-Agent", UA);
                 h.setRequestProperty("Accept", "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.9, text/html;q=0.5, */*;q=0.2");
                 int code = h.getResponseCode();
                 if (code >= 300 && code < 400) {
@@ -490,17 +503,18 @@ final class Nieuws {
                     continue;
                 }
                 if (code != 200) throw antwoord(code);
-                if (h.getContentLengthLong() > MAX_FEED) throw new Fout(Taal.T("Feed is te groot"));
+                long lengte = h.getContentLengthLong();
+                if (lengte > MAX_FEED) throw new Fout(Taal.T("Feed is te groot"));
                 Antwoord a = new Antwoord();
                 a.url = u;
                 String ct = h.getContentType();
                 Matcher m = CHARSET.matcher(ct == null ? "" : ct);
                 if (m.find()) a.charset = m.group(1);
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                ByteArrayOutputStream out = new ByteArrayOutputStream(lengte > 0 ? (int) lengte : 65536);
                 try (InputStream in = new PodcastFeed.Limited(h.getInputStream(), MAX_FEED)) {
                     byte[] buf = new byte[16384];
                     int n;
-                    while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                    while ((n = in.read(buf)) > 0) { out.write(buf, 0, n); rest(tot); }
                 }
                 a.data = out.toByteArray();
                 return a;
@@ -540,8 +554,8 @@ final class Nieuws {
     private static NieuwsFeed.Feed parse(Antwoord a) throws Exception { return NieuwsFeed.parse(new ByteArrayInputStream(a.data), a.charset); }
 
     /** Een feed lezen; is het adres een webpagina, dan de feed die die pagina noemt. */
-    static Gelezen lees(String adres) throws Exception {
-        Antwoord a = haal(adres);
+    static Gelezen lees(String adres, long tot) throws Exception {
+        Antwoord a = haal(adres, tot);
         try { return new Gelezen(parse(a), a.url); }
         catch (NieuwsFeed.GeenFeed g) {
             int n = Math.min(a.data.length, 1_000_000);
@@ -550,7 +564,7 @@ final class Nieuws {
             if (alt == null && HTML.matcher(html.length() > 4096 ? html.substring(0, 4096) : html).find())
                 throw new Fout(Taal.T("Op deze pagina staat geen nieuwsfeed. Zoek op de site naar RSS en vul dat adres in."));
             if (alt == null) throw g;
-            Antwoord b = haal(alt);
+            Antwoord b = haal(alt, tot);
             return new Gelezen(parse(b), b.url);
         }
     }
@@ -559,24 +573,28 @@ final class Nieuws {
             "Feed is te groot", "Deze feed wordt niet gelezen (onveilige opbouw)"));
 
     /** De fout zoals hij bewaard wordt (Nederlands; de brug vertaalt hem bij het tonen). */
-    static String kort(Throwable e) {
+    static String kort(Throwable e) { return kort(e, Taal.T("Bijwerken lukt niet")); }
+
+    static String kort(Throwable e, String anders) {
         if (e instanceof java.net.UnknownHostException || e instanceof java.net.SocketTimeoutException || e instanceof java.net.ConnectException
                 || e instanceof java.net.NoRouteToHostException) return Taal.T("Geen verbinding");
         if (e instanceof Fout || e instanceof NieuwsFeed.GeenFeed) return e.getMessage();
         if (e.getMessage() != null && EIGEN_TEKST.contains(e.getMessage())) return e.getMessage();
         if (e instanceof javax.net.ssl.SSLException) return Taal.T("Geen veilige verbinding met de nieuwssite");
         if (e instanceof org.xml.sax.SAXException) return Taal.T("Deze feed is niet goed leesbaar");
-        return Taal.T("Bijwerken lukt niet");
+        return anders;
     }
 
-    /** Eén bron ophalen en bewaren; -1 = mislukt (de fout staat dan bij de bron). */
-    static int haalBron(File cache, String id, String url) {
+    /** Eén bron ophalen en bewaren; -1 = mislukt (de fout staat dan bij de bron). Een bron die intussen weg is, komt niet terug. */
+    static int haalBron(File dir, File cache, String id, String url) {
         long nu = System.currentTimeMillis();
         try {
-            Gelezen g = lees(url);
-            return bewaarFeed(cache, id, g.url, g.feed, nu);
+            Gelezen g = lees(url, nu + MAX_HAAL);
+            synchronized (LOCK) { return zoekBron(bronnen(dir), id) != null ? bewaarFeed(cache, id, g.url, g.feed, nu) : -1; }
         } catch (Throwable e) {
-            bewaarFout(cache, id, kort(e), nu);
+            synchronized (LOCK) {
+                try { if (zoekBron(bronnen(dir), id) != null) bewaarFout(cache, id, kort(e), nu); } catch (Throwable ignored) { }
+            }
             return -1;
         }
     }
@@ -620,7 +638,7 @@ final class Nieuws {
             if (!todo.isEmpty()) {
                 ExecutorService ex = Executors.newFixedThreadPool(Math.min(4, todo.size()));
                 List<Future<Integer>> fs = new ArrayList<>();
-                for (String[] b : todo) fs.add(ex.submit(() -> haalBron(cache, b[0], b[1])));
+                for (String[] b : todo) fs.add(ex.submit(() -> haalBron(dir, cache, b[0], b[1])));
                 ex.shutdown();
                 for (Future<Integer> f : fs) {
                     try {
@@ -649,7 +667,7 @@ final class Nieuws {
         String u = adres(invoer);
         String bekend = bekendeSite(u);
         if (bekend != null) return zetBekendeAan(dir(c), bekend);
-        Gelezen g = lees(u);
+        Gelezen g = lees(u, System.currentTimeMillis() + MAX_HAAL);
         if (g.feed.artikelen.isEmpty()) throw new Fout(Taal.T("Deze feed heeft geen artikelen"));
         JSONObject b = voegToe(dir(c), g.url, g.feed.titel);
         bewaarFeed(cache(c), b.getString("id"), g.url, g.feed, System.currentTimeMillis());

@@ -52,7 +52,7 @@ public class NieuwsBridge extends EreaderBridge {
         new Thread(() -> {
             String r;
             try { r = new JSONObject().put("bron", Nieuws.toevoegen(ctx, adres)).toString(); }
-            catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(Taal.tx(ctx, Nieuws.kort(e))) + "}"; }
+            catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(Taal.tx(ctx, Nieuws.kort(e, Taal.T("Toevoegen lukt niet")))) + "}"; }
             a.js("onNieuwsBron", r);
         }, "nieuws-bron").start();
     }

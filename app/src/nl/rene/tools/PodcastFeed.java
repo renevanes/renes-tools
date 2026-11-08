@@ -80,20 +80,33 @@ final class PodcastFeed {
      * DTD staan). Nodig omdat de parser van Android declaraties niet doorgeeft en oudere versies geen grens hebben.
      */
     static final class EntityGuard extends java.io.FilterReader {
-        private static final String BAD = "<!ENTITY", COM = "<!--";
+        private static final String BAD = "<!ENTITY", COM = "<!--", DOC = "<!DOCTYPE";
         private final StringBuilder tail = new StringBuilder();
-        private boolean inComment, done;
+        private boolean inComment, inPi, inDoctype, done;
+        private char quote;
         EntityGuard(java.io.Reader r) { super(r); }
 
+        /* Tot het hoofdelement begint: opmerkingen, <?…?> en de DOCTYPE (met aanhalingstekens) apart volgen, zodat een
+         * "<a" daarbinnen niet voor het hoofdelement doorgaat. Een DOCTYPE met eigen declaraties ([…]) lezen we nooit. */
         private void see(char ch) throws IOException {
             if (done) return;
             char prev = tail.length() > 0 ? tail.charAt(tail.length() - 1) : 0;
             tail.append(ch);
-            if (tail.length() > 8) tail.delete(0, tail.length() - 8);
+            if (tail.length() > 9) tail.delete(0, tail.length() - 9);
             String t = tail.toString();
-            if (t.endsWith(BAD)) throw new IOException("Deze feed wordt niet gelezen (onveilige opbouw)");
+            if (t.endsWith(BAD)) throw new IOException(Taal.T("Deze feed wordt niet gelezen (onveilige opbouw)"));
             if (inComment) { if (t.endsWith("-->")) inComment = false; return; }
+            if (inPi) { if (prev == '?' && ch == '>') inPi = false; return; }
+            if (inDoctype) {
+                if (quote != 0) { if (ch == quote) quote = 0; }
+                else if (ch == '"' || ch == '\'') quote = ch;
+                else if (ch == '[') throw new IOException(Taal.T("Deze feed wordt niet gelezen (onveilige opbouw)"));
+                else if (ch == '>') inDoctype = false;
+                return;
+            }
             if (t.endsWith(COM)) { inComment = true; return; }
+            if (t.endsWith(DOC)) { inDoctype = true; return; }
+            if (prev == '<' && ch == '?') { inPi = true; return; }
             if (prev == '<' && Character.isLetter(ch)) done = true; // het hoofdelement begint: verder geen DTD meer
         }
 
@@ -115,8 +128,8 @@ final class PodcastFeed {
         String mediaUrl = "", mediaType = "";
         Handler(int max) { this.max = max; }
 
-        @Override public void internalEntityDecl(String name, String value) throws SAXException { throw new SAXException("Deze feed wordt niet gelezen (onveilige opbouw)"); }
-        @Override public void externalEntityDecl(String name, String pub, String sys) throws SAXException { throw new SAXException("Deze feed wordt niet gelezen (onveilige opbouw)"); }
+        @Override public void internalEntityDecl(String name, String value) throws SAXException { throw new SAXException(Taal.T("Deze feed wordt niet gelezen (onveilige opbouw)")); }
+        @Override public void externalEntityDecl(String name, String pub, String sys) throws SAXException { throw new SAXException(Taal.T("Deze feed wordt niet gelezen (onveilige opbouw)")); }
 
         @Override public void startElement(String uri, String local, String q, Attributes a) throws SAXException {
             text.setLength(0);

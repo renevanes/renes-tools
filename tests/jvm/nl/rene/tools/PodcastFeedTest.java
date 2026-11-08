@@ -46,7 +46,10 @@ public class PodcastFeedTest {
         try { PodcastFeed.parse(new java.io.ByteArrayInputStream(laat.getBytes("UTF-8")), 10); } catch (Exception x) { ent = x.getMessage() != null && x.getMessage().contains("onveilig"); }
         check(ent, "entiteit na 4 KB commentaar ook geweigerd");
         // De bewaker zelf (op Android geeft de parser declaraties niet door)
-        String[] fout = { pad + "--><!DOCTYPE rss [<!ENTITY a \"x\">]><rss/>", "<!-- <rss> --><!DOCTYPE rss [<!ENTITY a \"x\">]><rss/>", "<!DOCTYPE rss SYSTEM \"<!--\" [<!ENTITY a \"x\">]><rss/>" };
+        String[] fout = { pad + "--><!DOCTYPE rss [<!ENTITY a \"x\">]><rss/>", "<!-- <rss> --><!DOCTYPE rss [<!ENTITY a \"x\">]><rss/>", "<!DOCTYPE rss SYSTEM \"<!--\" [<!ENTITY a \"x\">]><rss/>",
+            // Een "<a" in een <?…?> of in de DOCTYPE is nog niet het hoofdelement
+            "<!DOCTYPE rss [<?x <a?><!ENTITY a \"x\">]><rss/>", "<!DOCTYPE rss SYSTEM \"<a\" [<!ENTITY a \"x\">]><rss/>", "<?x <a?><!DOCTYPE rss [<!ENTITY a \"x\">]><rss/>",
+            "<!DOCTYPE rss SYSTEM 'a>b' [<!ENTITY a \"x\">]><rss/>", "<!DOCTYPE rss [ ]><rss/>" };
         for (String x : fout) {
             boolean g = false;
             try (java.io.Reader r = new PodcastFeed.EntityGuard(new java.io.StringReader(x))) { char[] buf = new char[100]; while (r.read(buf, 0, buf.length) > 0) { } }
