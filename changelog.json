@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.172",
+    "date": "2026-11-08",
+    "changes": [
+      "Nieuws: lees de koppen en artikelen van NOS, Rijnmond en andere nieuwssites (of je eigen feeds) als rustige tekst, zonder reclame of account. Bewaar artikelen voor later, zoek en filter op ongelezen; je kiest de bronnen bij de instellingen van Nieuws."
+    ]
+  },
+  {
     "version": "1.171",
     "date": "2026-11-08",
     "changes": [

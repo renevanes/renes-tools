@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.171",
-  "versionCode": 172,
-  "nativeLevel": 152,
+  "versionName": "1.172",
+  "versionCode": 173,
+  "nativeLevel": 153,
   "web": "index.html",
-  "webSha256": "681db7cb9aba8d059c562329a9d8f1094b14eaaf24b6d8b1fe2a809e9eef6928",
+  "webSha256": "36083df9b5ad42f7899f1a8ad93fbe9b648a3761882be22dcd38645cc892885f",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "2f1a99f7589394c7ee83b52118c855aba3960a4a8f6a4194264112a53e626f50",
+  "apkSha256": "dd418e5173028b2e188339502b55fe8e42a3d477a5b40e1d7403ea89d447662d",
   "changelog": [
+    {
+      "version": "1.172",
+      "date": "2026-11-08",
+      "changes": [
+        "Nieuws: lees de koppen en artikelen van NOS, Rijnmond en andere nieuwssites (of je eigen feeds) als rustige tekst, zonder reclame of account. Bewaar artikelen voor later, zoek en filter op ongelezen; je kiest de bronnen bij de instellingen van Nieuws."
+      ]
+    },
     {
       "version": "1.171",
       "date": "2026-11-08",
@@ -1510,5 +1517,5 @@
       ]
     }
   ],
-  "webSig2": "Ozqv2YOEQUvCEdqX5rtiMhQFvAod20xQYjeBA4dPj2CGdqQqQSgHgchsDe7Wst4+JMmVjvunT2swTnAGSldhKJJjkqaLICMvODXhzTXTHUK4D5aA/cz+a2eHiROu8zHzStcMeoya816hpxXZjPDK8GO7k7OKW/QEs+cxYHmyAo509E2UDh70irY/8qpJ40PXqwhGARWD32XnFFqvTGRP8W7gIQtEufi+aYEglgfB+bwMDC3zuvBJ6460zKd3gEVL8zSaeiw2X9Pq8knyLcMnz1PFpF1jftUbvhTP8pBBFK8Tctx9O2upafqQk5XNszTM6+KV1fv6Pe7t9NjjLQi6fU/HJz1FQ+PSGdM6i/R6A1vsLao3CnIBRwf863QPeqK0fO/6XgznyQJvJ7vnq8gW8lwjOteUWlYaN6xHKR1gH9pJh/hiYj9INIFjXLNFYjd5Z4kvuG7i3tYqlOB+4RdEljnFLUr+bntygcrKzaqoiSiR2mwOE4uJMp4uqDJp8dJU"
+  "webSig2": "R0INU60kEh59edamwQUc4URYSgYItAQHg15BW7Bb/KvX3pCJ39SzLy8OmBl2V5FK0qCWn3dfG6NVZpsEYu6ZD3WaivWnTRkqrD8RRQARN89tvi6cjvpfE+pMfShTdIeJahvDr1p/Dxb+hlg5o6/+pmOEfyiTOlCYFwX381kr+eQVjce/DYK13bvAOkn0emQ3Gl9bb+GgIRfpJqjdVXhl9I+tCIXOjdQz0VrdC0ngfRGFP5uJ88OeBg0isX+eUpf3TE83kWsasgha8lqta3Y3XnykTZzAdmPW3F2+Gu2SjHkZCNEGbXeJzTdCO6yaLryaq3lvg/GkBQXzVpxAAxGD/ssPOWMKAIlQaewrlvjX4HBNDpA1uZgWNQN4DG7FnKpY9zTZKlbf8oeKWLG1J8RPTn35JbgzOCHRtepTGmy1HtzmP0OVwH7AwnSY+pOeJLYXtQy9ztcsGfQs2ifIfhzREeGH153zKrIFbagjOvBV5nZOo7zJ726KDipGDjRFxtmW"
 }
