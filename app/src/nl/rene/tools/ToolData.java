@@ -28,7 +28,7 @@ import java.util.Set;
  * dossier, aanleveren), Apparaten, Toiletten (eigen laag), versies van contacten, Spotify, Gebruik, gespreksopnames en
  * de instellingen van alle tools (regio en taal, lokale AI, Slaappraat, uitschrijven, losse apps …).
  *
- * Volgt de lijsten van {@link AppData}: een nieuwe tool die daar is ingedeeld, gaat vanzelf mee. Nooit mee: geheimen
+ * Volgt {@link AppData}: alles gaat standaard mee, ook van een nieuwe tool (instellingen en zijn map in getFilesDir()). Nooit mee: geheimen
  * (wachtwoorden, sleutels, tokens, de app-code, VPN), wat alleen versleuteld mag (kluis, foto's van Gebruik), de privé-
  * onderdelen met een eigen vinkje (assistent, Slaappraat-nachten, Check-in), Bankzaken en stamgegevens.
  * Terugzetten voegt alleen toe wat er nog niet is: bestaande instellingen en bestanden worden nooit overschreven.
@@ -129,7 +129,7 @@ final class ToolData {
         if (tree == null) throw new Exception("Kies eerst een backup-map");
         JSONObject prefs = new JSONObject();
         int n = 0;
-        for (String f : AppData.PREFS_KEEP) {
+        for (String f : AppBackup.prefsOnDevice(c)) {
             if (!keepPrefsFile(f)) continue;
             SharedPreferences p = c.getSharedPreferences(f, Context.MODE_PRIVATE);
             JSONObject o = new JSONObject();
@@ -373,7 +373,7 @@ final class ToolData {
     /** Welke mappen en instellingen er mee gaan (voor de uitleg en de test). */
     static List<String> prefsFiles() {
         List<String> l = new ArrayList<>();
-        for (String f : AppData.PREFS_KEEP) if (keepPrefsFile(f)) l.add(f);
+        for (String f : AppData.PREFS_KNOWN) if (keepPrefsFile(f)) l.add(f);
         Collections.sort(l);
         return l;
     }

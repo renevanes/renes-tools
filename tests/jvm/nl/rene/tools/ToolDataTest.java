@@ -16,6 +16,7 @@ public class ToolDataTest {
         check(!ToolData.keepPrefsFile("lock") && !ToolData.keepPrefsFile("vpn") && !ToolData.keepPrefsFile("secure") && !ToolData.keepPrefsFile("statistiek"), "slot, VPN en sleutels gaan niet mee");
         check(ToolData.secretKey("music", "token") && ToolData.secretKey("spotify", "access_token") && ToolData.secretKey("x", "apiKey"), "tokens en sleutels herkend");
         check(!ToolData.keepPref("spotify", "refresh"), "Spotify-koppeling niet mee");
+        check(ToolData.keepPref("nieuwetool", "lijst") && !ToolData.keepPref("nieuwetool", "apiToken") && ToolData.keepFile("nieuwetool/data.json"), "nieuwe tool: standaard mee, geheimen niet");
         check(!ToolData.keepPref("wabackup", "waKey"), "WhatsApp-sleutel nooit mee");
         check(!ToolData.keepPref("localai", "cfg_about") && !ToolData.keepPref("localai", "cfg_instr"), "persoonlijke tekst voor de assistent niet");
         check(!ToolData.keepPref("ui", "notifAsked") && !ToolData.keepPref("gebruik", "watermark") && !ToolData.keepPref("contacts", "suspectFp"), "toestand van deze installatie niet");

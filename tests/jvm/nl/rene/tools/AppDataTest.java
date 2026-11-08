@@ -37,10 +37,16 @@ public class AppDataTest {
         check(!AppData.keepPref("lock", "fails") && !AppData.keepPref("lock", "waitUntil") && AppData.keepPref("lock", "codeHash"), "app-slot: code wel, wachttijd niet");
         check(!AppData.keepPref("spotify", "refresh") && AppData.keepPref("spotify", "clientId"), "Spotify: ververs-sleutel apart (geheim), rest gewoon");
         check(!AppData.keepPref("mockloc", "active"), "gekozen locatie die nu actief is: niet");
-        check(!AppData.keepPref("onbekend", "x"), "onbekend instellingenbestand: niet");
+        // Standaard mee: een tool die er later bij komt, gaat zonder lijst bij te werken mee.
+        check(AppData.keepPref("nieuwetool", "x") && AppData.keepPrefsFile("nieuwe_tool2"), "nieuw instellingenbestand: standaard mee");
+        check(!AppData.keepPrefsFile("WebViewChromiumPrefs") && !AppData.keepPrefsFile("nl.rene.tools_preferences") && !AppData.keepPrefsFile("_has_set_default_values")
+                && !AppData.keepPrefsFile("../secure") && !AppData.keepPrefsFile(null), "bestanden van Android en bibliotheken (andere namen): niet");
+        check(AppData.prefsFiles(Arrays.asList("nieuwetool", "secure", "WebViewChromiumPrefs", "auto")).contains("nieuwetool")
+                && !AppData.prefsFiles(Arrays.asList("secure")).contains("secure") && AppData.prefsFiles(null).contains("regio"), "op de telefoon gevonden bestanden gaan mee, behalve de uitzonderingen");
         check(!AppData.keepPref("auto", ""), "lege sleutel: niet");
 
-        // Elke naam die de app gebruikt, moet ingedeeld zijn (mee of bewust niet): zo vergeet niemand een nieuwe
+        // Elke naam die de app gebruikt, gaat mee of staat met een reden bij de uitzonderingen. Een naam die niet aan het
+        // patroon voldoet (hoofdletters, punt) zou stilletjes buiten de backup vallen: dan faalt deze test.
         File src = new File("app/src/nl/rene/tools");
         TreeSet<String> prefs = new TreeSet<>(), roots = new TreeSet<>();
         Pattern pp = Pattern.compile("getSharedPreferences\\(\"([A-Za-z0-9_]+)\""), pc = Pattern.compile("static final String PREFS\\s*=\\s*\"([A-Za-z0-9_]+)\"");
@@ -54,13 +60,17 @@ public class AppDataTest {
             m = pf.matcher(t); while (m.find()) roots.add(m.group(1).split("/")[0]);
         }
         List<String> loose = new ArrayList<>();
-        for (String p : prefs) if (!AppData.PREFS_KEEP.contains(p) && !AppData.PREFS_SKIP.containsKey(p)) loose.add(p);
-        check(loose.isEmpty(), "alle instellingenbestanden ingedeeld " + loose);
+        for (String p : prefs) if (!AppData.keepPrefsFile(p) && !AppData.PREFS_SKIP.containsKey(p)) loose.add(p);
+        check(loose.isEmpty(), "alle instellingenbestanden gaan mee of staan bij de uitzonderingen " + loose);
         loose.clear();
-        for (String r : roots) if (!AppData.FILE_ROOTS.contains(r) && !AppData.FILE_SKIP.containsKey(r)) loose.add(r);
-        check(loose.isEmpty(), "alle mappen in getFilesDir ingedeeld " + loose);
+        for (String r : roots) if (AppData.fileRule(r) != null && !AppData.FILE_SKIP.containsKey(r)) loose.add(r);
+        check(loose.isEmpty(), "alle mappen in getFilesDir gaan mee of staan bij de uitzonderingen " + loose);
+        for (String p : AppData.PREFS_KNOWN) check(AppData.keepPrefsFile(p), "bekend en mee: " + p);
         check(prefs.contains("vpn") && prefs.contains("lock") && roots.contains("call-recordings"), "inventaris vindt vpn, lock en opnames");
-        for (String p : AppData.PREFS_SKIP.keySet()) check(!AppData.PREFS_KEEP.contains(p), "niet tegelijk mee en niet mee: " + p);
+        for (String p : AppData.PREFS_SKIP.keySet()) check(!AppData.PREFS_KNOWN.contains(p) && !AppData.keepPrefsFile(p), "niet tegelijk mee en niet mee: " + p);
+        // Uitzonderingen op uitdrukkelijke wens of om veiligheid: nooit vanzelf mee, ook niet als de regel verandert.
+        for (String r : new String[]{"bank", "masterdata", "web", "kluis", "ai-models", "whisper"}) check(AppData.FILE_SKIP.containsKey(r), "bewust niet mee: " + r);
+        for (String p : new String[]{"secure", "intent_token", "facturen_geheim", "statistiek"}) check(AppData.PREFS_SKIP.containsKey(p), "bewust niet mee: " + p);
 
         // ---------- bestanden ----------
         check(AppData.fileRule("notes.json") == null, "notities mee");
@@ -75,7 +85,11 @@ public class AppDataTest {
         check(AppData.fileRule("podcasts/abonnementen.json") == null && AppData.fileRule("podcasts/downloads.json") != null, "podcasts: abonnementen wel, downloadlijst niet");
         check(AppData.fileRule("tracks/r1.trk") == null && AppData.fileRule("tracks/live.trk") != null, "routes wel, lopende opname niet");
         check(AppData.fileRule("transcripts/x.json.tmp") != null && AppData.fileRule("ai/chats.json.writing") != null && AppData.fileRule("sleep/a.wav.rt-part") != null, "tijdelijke bestanden niet");
-        check(AppData.fileRule(".cache/llama") != null && AppData.fileRule("iets-nieuws/a.txt") != null, "onbekende mappen niet");
+        check(AppData.fileRule("iets-nieuws/a.txt") == null && AppData.fileRule("iets-nieuws") == null && AppData.fileRule("nieuwetool.json") == null, "map of bestand van een nieuwe tool: standaard mee");
+        check(AppData.fileRule(".cache/llama") != null && AppData.fileRule("iets-nieuws/a.json.tmp") != null, "verborgen mappen van bibliotheken en tijdelijke bestanden niet");
+        check("f:iets-nieuws/a.txt".equals(AppData.target("Appgegevens/bestanden/iets-nieuws/a.txt")), "nieuwe tool ook terugzetten");
+        check(AppData.restoreRoots(Arrays.asList("notes.json", "web", "kluis", "bank", "nieuwetool", ".cache"), Arrays.asList("ereader", "masterdata", "x/y"))
+                .equals(Arrays.asList("ereader", "nieuwetool", "notes.json")), "terugzetten vervangt alleen wat meegaat: " + AppData.restoreRoots(Arrays.asList("notes.json", "web", "kluis", "bank", "nieuwetool", ".cache"), Arrays.asList("ereader", "masterdata", "x/y")));
 
         // ---------- namen uit een (niet te vertrouwen) archief ----------
         check(AppData.safeRel("a/b/c.txt") != null, "gewoon pad");
