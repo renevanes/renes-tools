@@ -4,6 +4,7 @@ module.exports = p => {
   const tab = async s => {
     const id = await p.evaluate(s => { const b = document.querySelector(s)?.closest('[data-cm-tab]'); return b && b.classList.contains('cm-off') ? b.dataset.cmTab : ''; }, s);
     if (id) await p.click('#cm-tab-' + id);
+    await p.evaluate(s=>{const field=document.querySelector(s);for(const d of document.querySelectorAll('#cm-editor details'))if(d.contains(field))d.open=true;},s);
   };
   return {
     tab,

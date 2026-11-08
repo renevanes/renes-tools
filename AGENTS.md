@@ -22,6 +22,11 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
 - `web/src/script/01-testbrug.js` — de nagebootste Android-brug voor de tests (in de app zelf weggelaten).
 - `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends NieuwsBridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends FeatureBridge`.
 - `web/start.html` — de Telefoon-skin (eigen startscherm); `tests/` — Java- en interfacetests; `tools/` — hulpscripts.
+- **Iedere nieuwe schermtool ondersteunt standaard losse apps.** Registreer hem in `web/src/script/00-tools.js`: het
+  openen, het overzicht Losse apps en het native register volgen daaruit. Subschermen krijgen een `BACK`-verwijzing
+  naar hun eigen tool. `solo-alle-tools.test.js` en `SoloTest` bewaken dit; behoud de eigen ontgrendeling en privacy.
+  Alleen de telefoon-skin gebruikt zijn bestaande `HomeActivity`. Zie `docs/startscherm-en-automatiseringen.md`.
+- **Iedere tool doet standaard mee in de backup** (nu en later): zie "Backups: elke tool doet mee" hieronder.
 
 ## Regels voor de code
 - **Java 8-bron, minSdk 24, targetSdk 36.** API's die nieuwer zijn dan 24 altijd achter `Build.VERSION.SDK_INT >= …`
@@ -41,8 +46,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   VPN-sleutels en wachtwoorden blijven versleuteld (`Secure.deviceKey`, AES-GCM) en buiten Android-backups.
   Alleen "Alle appgegevens" (`AppBackup`/`AppData`, terugzetten na herinstallatie) neemt ze mee, en alleen binnen het
   versleutelde archief (.rtb, wachtwoord van de backup); bij terugzetten worden ze opnieuw versleuteld met de sleutel van
-  de nieuwe installatie. Nieuw instellingenbestand of nieuwe map in `getFilesDir()`? Deel die in bij `AppData`
-  (mee of bewust niet); `AppDataTest` controleert dat.
+  de nieuwe installatie. Alle gegevens van elke tool gaan **standaard mee** in de backup; zie "Backups: elke tool doet mee".
 - **Regio en taal**: datums, tijden, getallen, bedragen en eenheden die Rene ziet, altijd via de helpers in
   `web/src/script/02-regio.js` (`fmtDate`, `fmtTime`, `fmtDT`, `fmtHm`, `fmtNum`, `fmtMoney`, `fmtDist`, `fmtTemp`, `fmtSize`, …) of
   `Regio.java` (`Regio.df`, `Regio.fmt`, `Regio.num`, `Regio.dist`, `Regio.deg`, `Regio.size`), nooit zelf met
@@ -97,6 +101,52 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   `--primary` licht). Elk scherm heeft `<div class="hdr">` met terugknop en `<h1>`; detailschermen `class="hdr sm"`.
   Bouw met de gedeelde onderdelen uit "Interface-patronen" hieronder.
 
+## Backups: elke tool doet mee (eisen voor alle tools, nu en later)
+Alles wat Rene in een tool invoert of opbouwt, moet na een nieuwe telefoon of herinstallatie terug te zetten zijn. Daarom
+gaat alles **standaard** mee; een uitzondering is een bewuste keuze met een reden. Dit regelt `AppData` (Java), samen met
+`AppBackup` ("Alle appgegevens", versleuteld, alles) en `ToolData` ("Toolgegevens", leesbaar, zonder geheimen); de
+interface gaat mee via `store.set` (`webstore`, in Alle appgegevens en in het onderdeel Instellingen). Een tool voldoet als:
+1. **Gegevens staan op een plek die meegaat:** in een eigen map of eigen bestand in `getFilesDir()` (bijv.
+   `getFilesDir()/<tool>/…`), in eigen SharedPreferences met een naam van kleine letters, cijfers en `_` (bijv.
+   `"<tool>"`), of in de interface met `store.set('<tool>…', …)` (localStorage-sleutels `rt.…`; uitzonderingen in
+   `WS_SKIP` in `02-kern.js`). Die gaan vanzelf mee in Alle appgegevens en worden vanzelf teruggezet, ook als je niets
+   bijwerkt. **Niet** voor gegevens van Rene: `getCacheDir()`, `getNoBackupFilesDir()`, `getExternalFilesDir()`, `getDir()`,
+   `databases/` (SQLite via `SQLiteOpenHelper`) of localStorage zonder `store`: die vallen buiten de backup. Een SQLite-
+   database in `getFilesDir()` gaat niet goed los mee (`-wal`/`-shm` gaan niet mee): zet die map in `FILE_SKIP` en neem de
+   inhoud zelf mee. Zelf meenemen (zoals de meldingsgeschiedenis of de handtekening) = in `AppBackup` maken én terugzetten, met een test.
+2. **Een bewuste keuze per naam** (de test eist dat): zet de naam van de map in `AppData.FILE_KNOWN` en van het
+   instellingenbestand in `AppData.PREFS_KNOWN` als hij gewoon mee mag (na nakijken dat er geen geheimen leesbaar in
+   staan), of bij de uitzonderingen hieronder. Voor de leesbare "Toolgegevens" daarnaast: privé of al een eigen onderdeel →
+   `ToolData.FILES_OWN` (map) of `ToolData.PREFS_NEVER` (instellingenbestand). Een map die (nog) niet in `FILE_KNOWN`
+   staat, gaat in Toolgegevens alleen mee als tekstbestand zonder namen die naar een geheim klinken (`ToolData.readableOk`;
+   een grove controle, geen garantie: zet de map na nakijken in `FILE_KNOWN`).
+3. **Uitzonderingen alleen met een reden** in `AppData`: `PREFS_SKIP` (heel instellingenbestand), `KEY_SKIP`/`KEY_SKIP_PREFIX`
+   (losse sleutels), `FILE_SKIP` (map of bestand in `getFilesDir()`) of `PATH_SKIP` (één bestand in een map die wel meegaat).
+   Toegestaan: geheimen die aan deze installatie vastzitten en die je opnieuw instelt, wat opnieuw te downloaden of af te
+   leiden is (modellen, caches, zoekindex, de interface in `web/`), toestand van dit moment (lopende opname, wachttijden,
+   downloads) en wat Rene uitdrukkelijk op de telefoon wil houden (Bankzaken, stamgegevens). Gegevens die Rene zelf invoert
+   uitsluiten = eerst Rene vragen. Wat in `FILE_SKIP` staat, wordt ook nooit uit een backup teruggezet (zo blijft bijv.
+   `web/` veilig): een map met code of iets wat de app vertrouwt, hoort daar.
+4. **Geheimen gaan versleuteld mee:** wachtwoorden, tokens en sleutels die op de telefoon met `Secure.deviceKey()` of een
+   andere sleutel uit de sleutelopslag versleuteld zijn, zijn op een nieuwe telefoon onleesbaar. Neem ze dan ontsleuteld
+   op in `geheim/` van "Alle appgegevens" en versleutel ze bij terugzetten opnieuw (zoals VPN, Spotify en de kluis), of
+   zet ze bewust in `KEY_SKIP` met "opnieuw invullen" als reden. In "Toolgegevens" (leesbaar) gaan instellingen met een
+   naam met token, key, sleutel, wachtwoord, code e.d. niet mee (`ToolData.secretKey`), net als bestanden met zo'n naam in
+   het pad (`ToolData.keepFile`); de inhoud van een bestand in een bekende map wordt niet nagekeken. Kies zulke namen voor
+   geheimen en zet geheimen nooit leesbaar in een bestand in een map uit `FILE_KNOWN`.
+5. **Toestand van dit moment apart houden:** tijdelijke bestanden eindigen op `.tmp`, `.part`, `.writing` of een andere
+   `AppData.TEMP_SUFFIX`; tellers, "laatst gedaan" en lopende acties in `KEY_SKIP` (sleutels die op `Asked` eindigen, slaat
+   "Toolgegevens" al vanzelf over).
+6. **Terugzetten moet kunnen:** bestanden met een `format`/`version`-veld, tegen ontbrekende of oudere velden bestand;
+   wat de tool bij het starten opnieuw moet plannen (wekkers, taken), plant hij na terugzetten opnieuw (`Herstel`).
+7. **Privé met eigen vinkje** (assistent, Slaappraat, Check-in): als eigen onderdeel van Alles back-uppen alleen als Rene
+   het aanvinkt, en dan versleuteld; in Alle appgegevens (altijd versleuteld) wel, in Toolgegevens nooit (`FILES_OWN`,
+   `PREFS_NEVER`). Een nieuwe privé-categorie volgt dat model (`AllBackup.PRIVATE`) en Rene beslist.
+8. **Getest:** `AppDataTest` zoekt in de code elke `getSharedPreferences("…")`, elke `PREFS`-constante en elke map in
+   `getFilesDir()` (ook via een constante uit hetzelfde bestand, zoals `getFilesDir(), DIR`) en faalt als die niet in `PREFS_KNOWN`/`FILE_KNOWN` of bij de
+   uitzonderingen staat, of als de naam niet mee kan (een instellingenbestand met hoofdletters of een punt). Een naam die je anders opbouwt, ziet de test
+   niet: houd het bij een vaste naam. Bij een tool met een eigen bestandsformaat: ook een test die maakt, terugzet en vergelijkt.
+
 ## Interface-patronen
 Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/script/02-patronen.js`), bewaakt door
 `tests/ui/ui-patronen.test.js`. Gebruik ze in plaats van iets nieuws, zodat de app overal hetzelfde werkt.
@@ -122,6 +172,10 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   `<button class="icon-btn hset" id="…" data-to="carset" aria-label="Instellingen van Mijn auto"></button>`
   (pictogram en klik vult `uiPatterns()` in; geen eigen onclick of inhoud). Zo bij Gebruik, Apparaten en Mijn auto. Ontbreekt er iets waardoor de tool niet
   werkt (een toestemming), laat dan op de tool zelf een korte balk zien die naar de instellingen gaat.
+- **Voortgang bij bestanden toevoegen**: leest of verwerkt de app een gekozen bestand (boek, document, factuur,
+  afschriften, foto's), gebruik dan `Voortgang` in Java: `try (Voortgang v = Voortgang.van(a, "soort", aantal)) { … v.open(c, uri) … v.stap("verwerken", 0, 0) … }`.
+  De interface toont dan vanzelf de balk onderin (`uiVoortgang` in `02-patronen.js`; nieuwe soort = een kop in `uiVgWat`).
+  Alleen stappen en aantallen, nooit namen. Test: `tests/ui/voortgang.test.js`, `VoortgangTest`.
 - **Lege lijst**: `uiEmpty('mic', t('Nog geen opnames.'), t('Knoptekst'), 'actie()')`: pictogram, één regel en hooguit één (tonale) knop.
 - **Eenmalig instellen**: een kaart `class="card setup"` die weg gaat als het klaar is (`<div … hidden>`), of inklapt als er
   ook later nog iets in staat (`<details class="card setup"><summary><span class="setup-h" role="heading" aria-level="2">Eenmalig instellen</span><small id="…">stand</small></summary>…</details>`;
@@ -183,6 +237,11 @@ Actions, of `gh api repos/renevanes/renes-tools/actions/runs`) en meld Rene de n
    het), voegt de nieuwste main samen (merge), bepaalt het versienummer vanaf main (`NATIVE_LEVEL` gaat vanzelf omhoog
    als `app/` veranderde), schrijft het wijzigingslog, bouwt, draait alle tests en pusht "Versie X.Y" naar main.
    Botst je werk met main, dan stopt het: los de merge op, test en publiceer opnieuw.
+   Versienummer en versiecode worden bij de publicatie samen met main atomair geregistreerd als tags
+   `versie-<nummer>` en `versiecode-<code>`, met leasecontrole op het slot in dezelfde push. Verwijder of overschrijf
+   die tags nooit. Bij een botsing haalt het script
+   de nieuwste main en registraties op en bepaalt het een nieuw nummer; een verloren of onleesbaar slot stopt de
+   publicatie. Testvoorbereiding (`VOORBEREIDEN`) reserveert niets en mag hetzelfde toekomstige nummer tonen.
    Op GitHub draaien de interfacetests naast de telefoontest (`interfacetests.yml`, met `VOORBEREIDEN=…
    ./publish.sh`: dezelfde merge, versie en wijzigingslog, zonder sleutel of push; daarna bouwen met een testsleutel,
    Java-tests en interfacetests, in dezelfde volgorde als `publish.sh`). De taak publiceren slaat de interfacetests alleen
@@ -242,6 +301,8 @@ alles kunnen lezen, dat controleert Bouwen en testen):
 | Leaflet, jsQR (in de app) | `web/vendor/` (kopregel) | Onderhoud: npm + OSV | agent, bij elke nieuwe versie |
 | whisper.cpp (transcriberen) | `app/lib/arm64-v8a/README.txt` + `Transcribe.ENGINE` (EngineVersionTest) | Onderhoud: GitHub-release + OSV | agent: `tools/whisper-build.sh`, bij elke nieuwe release |
 | llama.cpp (lokale AI) | `tools/llm-build.sh` (TAG/COMMIT) + README + `LocalAi.ENGINE` (EngineVersionTest) | Onderhoud: GitHub-release + OSV | agent: bij kwetsbaarheid of >1500 commits achter (dagelijkse releases) |
+| Tesseract4Android en C-onderdelen (Tesseract, Leptonica, libpng, libjpeg) | `app/ocr/metadata.json`, binaries in `app/ocr/` en `app/lib/*/` | Onderhoud: GitHub-release + OSV; iedere bouw: `tools/ocr-verify.py` | agent: `app/ocr/README.md`; alle vier ABI's, hashes, licenties en Android-OCR-test |
+| OCR-model tessdata_fast (Latin/LSTM) | `app/ocr/metadata.json` (repositorycommit en SHA-256), `RijbewijsOcr.MODEL_HASH` | Onderhoud: wijzigingscommit van modelbestand op GitHub | agent: model en beide hashes samen; geen telefoondownload |
 | zig (bouwt whisper/llama) | `ZIG_VERSION` in beide bouwscripts | Onderhoud: PyPI | agent, samen met een nieuwe whisper/llama-bouw |
 | Android build-tools (d8, apksigner, zipalign) | `setup-tools.sh` (`BUILD_TOOLS`, URL, SHA-1 en grootte van Google, dl.google.com) | Onderhoud: Google (repository2-3.xml) | agent; wisselen van d8 vraagt een test op een telefoon. Is Google niet bereikbaar (afgeschermde cloudsessie), dan valt `setup-tools.sh` lokaal terug op androidide-tools 34.0.4, alleen om te testen; in CI (`CI` gezet) moet de download lukken en `./publish.sh` bouwt alleen met de vastgezette versie |
 | android.jar en targetSdk | `setup-tools.sh`, `build.sh` | Onderhoud: Google | agent; gedragswijzigingen van de nieuwe Android-versie nalopen en op een telefoon testen |
@@ -394,7 +455,8 @@ Rene's inkomsten en uitgaven. **Niets mag de telefoon verlaten** (wens van Rene)
   Keystore, waar mogelijk gekoppeld aan de ontgrendeling (15 minuten). Map `bank/` gaat bewust nergens mee (Android-backup,
   Alles back-uppen, "Alle appgegevens"), niet in zoeken, de assistent of Statistieken. Logregels (`App.log` soort BANK)
   bevatten nooit bedragen, namen of rekeningnummers. Op slot na 5 minuten niets doen en zodra de app uit beeld gaat;
-  de interface vergeet dan alles. Op het scherm FLAG_SECURE (`bankSecure`). Niet als losse app.
+  de interface vergeet dan alles. Op het scherm FLAG_SECURE (`bankSecure`). Ook als losse app alleen na eigen
+  ontgrendeling; de vrijgave hoort bij dat venster en mag niet van een andere banksessie worden overgenomen.
 - **Inlezen:** `BankImport` (zuiver, getest in `BankTest`): CSV met kopregel (ING, Rabobank, Knab, bunq, algemeen), zonder
   kopregel (ABN AMRO TXT, ASN/SNS/RegioBank, Triodos), MT940 en CAMT.053/052/054 (XML zonder DOCTYPE: XXE). Dubbele
   boekingen: id = rekening|datum|bedrag|volgnummer op die dag. Nieuwe bank = herkenning erbij + een test met een voorbeeld.

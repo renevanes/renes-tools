@@ -1,5 +1,76 @@
 [
   {
+    "version": "1.170",
+    "date": "2026-11-08",
+    "changes": [
+      "Alles back-uppen: de gegevens van alle tools gaan nu standaard mee (ook van tools die er later bij komen); alleen bewuste uitzonderingen blijven op de telefoon, zoals Bankzaken en stamgegevens."
+    ]
+  },
+  {
+    "version": "1.169",
+    "date": "2026-11-08",
+    "changes": [
+      "Bij het toevoegen van een boek, document, factuur, afschriften of foto's zie je nu onderin hoe ver het is (lezen in procenten, verwerken, opslaan)."
+    ]
+  },
+  {
+    "version": "1.168",
+    "date": "2026-11-08",
+    "changes": [
+      "Rijbewijsgegevens herkennen uit een foto, geheel op je telefoon. Identiteitsdocumenten hebben nu Gegevens en Foto’s, met extra velden ingeklapt. Controleer gevonden gegevens en bewaar je gekozen document- en persoonsgegevens in één keer."
+    ]
+  },
+  {
+    "version": "1.167",
+    "date": "2026-11-08",
+    "changes": [
+      "Stamgegevens: na het kiezen van een kaartfoto hoef je niet meer opnieuw te ontgrendelen (als je binnen 2 minuten een foto kiest)."
+    ]
+  },
+  {
+    "version": "1.166",
+    "date": "2026-11-08",
+    "changes": [
+      "Publiceren: versienummers en versiecodes kunnen niet opnieuw worden uitgegeven. Gelijktijdige publicaties worden atomair gecontroleerd en stoppen bij verlies van het publicatieslot."
+    ]
+  },
+  {
+    "version": "1.165",
+    "date": "2026-11-08",
+    "changes": [
+      "E-reader: afbeeldingen in EPUB-boeken worden nu getoond, ook SVG-tekeningen en pagina's met alleen beeld. Tik om te vergroten, zoomen en verschuiven.",
+      "E-reader: koppen, vet en cursief, lijsten, tabellen, code, voetnoten en de echte geneste inhoudsopgave blijven behouden. Vanuit een voetnoot ga je terug naar je tekst.",
+      "Eerder ingelezen EPUB-boeken kun je met hetzelfde bronbestand herstellen, met behoud van leespositie, favorieten en alle leeswijzers.",
+      "E-reader: afbeeldingen en hoofdstukverwijzingen werken ook bij EPUB-bestandsnamen met spaties, hekjes en procenttekens.",
+      "Stamgegevens: Herkennen uit foto bewaart de foto nu als bijlage bij het nieuwe document (versleuteld, achterkant van de ID-kaart of fotopagina van het paspoort). Daar kun je hem bekijken, opnieuw laten herkennen met Gegevens herkennen, of verwijderen."
+    ]
+  },
+  {
+    "version": "1.164",
+    "date": "2026-11-08",
+    "changes": [
+      "Stamgegevens: ID-gegevens herkennen uit een foto. Bij een persoon → ID → Herkennen uit foto leest de app de strook met <<< (achterkant ID-kaart, fotopagina paspoort) op je telefoon en stelt documentnummer, geldig tot, naam, geboortedatum, geslacht en nationaliteit voor; jij vinkt aan wat je overneemt. De foto gaat nergens heen.",
+      "Stamgegevens: kies je een kaartfoto met die strook, dan stelt de app de gegevens ook voor."
+    ]
+  },
+  {
+    "version": "1.163",
+    "date": "2026-11-08",
+    "changes": [
+      "Alle tools kunnen nu als losse app op je startscherm, ook Toiletten en douches, E-reader, Slaappraat, Check-in, Apparaten, Gebruik, Facturen, Bankzaken, Stamgegevens, Alles back-uppen en Automatiseringen. Nieuwe tools ondersteunen dit voortaan automatisch.",
+      "Kluis, Bankzaken en Stamgegevens houden hun eigen ontgrendeling in een losse app."
+    ]
+  },
+  {
+    "version": "1.162",
+    "date": "2026-11-08",
+    "changes": [
+      "E-reader vernieuwd: een boekenkast met omslagen, favorieten, filters en Verder lezen.",
+      "Rustig lezen met paginaknoppen, vegen, leesthema’s en meer instellingen voor letters en ruimte, met behoud van je leesplek.",
+      "Zoeken in het hele boek en bladwijzers, tekstmarkeringen en eigen notities bewaren."
+    ]
+  },
+  {
     "version": "1.161",
     "date": "2026-11-07",
     "changes": [

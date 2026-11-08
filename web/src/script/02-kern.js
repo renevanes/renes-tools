@@ -101,6 +101,12 @@ function bars(){
     const key = top + bottom + 'pl'; if (key === bars.last) return; bars.last = key;
     Android.setBars(top, bottom, false); return;
   }
+  if (current === 'erbook' && typeof erStyle === 'function') {
+    const theme = erStyle().theme, paper = getComputedStyle($('#s-erbook')).getPropertyValue('--er-paper').trim();
+    const light = theme === 'auto' ? !dark() : theme !== 'night';
+    const key = JSON.stringify(['reader', paper, light]); if (key === bars.last) return; bars.last = key;
+    Android.setBars(paper, paper, light); return;
+  }
   const key = top + bottom + dark(); if (key === bars.last) return; bars.last = key;
   Android.setBars(top, bottom, !dark());
 }
@@ -112,7 +118,11 @@ function show(name){
     store.set('autoDraft', { rule: aeRule, isNew: aeIsNew, t: Date.now(), left: true });
     aeRule = null; aeSnap = null;
   }
-  if (current === 'erbook' && name !== 'erbook') erLeave();
+  if (current === 'erbook' && name !== 'erbook') erLeave(name);
+  if (typeof erBook !== 'undefined') {
+    if (!ER_SCREENS.includes(name) && ER_SCREENS.includes(current) && current !== 'erbook') erLeave(name);
+    document.body.classList.toggle('er-reading', name === 'erbook');
+  }
   if (typeof plIsOpen !== 'undefined' && plIsOpen) plClose(); // naar een ander scherm: de speler verkleint
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
   const current_prev = current;
@@ -155,6 +165,9 @@ function show(name){
   if (name==='spotify') enterSpotify();
   if (typeof FA_SCHERMEN !== 'undefined' && FA_SCHERMEN && FA_SCHERMEN.includes(name) && !FA_FORMS.includes(name)) enterFacturen();
   if (name==='ereader') enterEreader();
+  if (name==='erbook') erResume();
+  if (name==='ercontents') erContents();
+  if (name==='erset') erSettings();
   if (name==='nieuws') enterNieuws(current_prev); else if (name==='nieuwsart') nwArtRender(); else if (name==='nieuwsset') enterNieuwsSet();
   if (name==='bank') enterBank(); else if (current_prev==='bank' && typeof bkVerlaat === 'function') bkVerlaat();
   if (name==='vpn') enterVpn();
@@ -188,7 +201,7 @@ function show(name){
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); renderDash(); refreshAutoTile(); refreshPodTile(); refreshVpnTile(); refreshLocTile(); refreshCheckinTile(); }
   if (name==='home' && typeof updTryReload === 'function') setTimeout(() => updTryReload(false), 0);
 }
-const BACK = {ereader:'home', erbook:'ereader', nieuws:'home', nieuwsart:'nieuws', nieuwsset:'nieuws', masterdata:'home', cmedit:'masterdata', cmlog:'masterdata', cmwis:'masterdata',idcopy:'pdf', formulieren:'pdf', pdfedit:'pdf', pdfimg:'pdf', pdfsplit:'pdf', pdftext:'pdf', pdfmade:'pdf', bank:'home', facturen:'home', faclev:'facturen', facoverz:'facturen', facopslag:'facturen', fackopp:'facturen', faclok:'facopslag', facgoogle:'fackopp', facec:'fackopp', facsmtp:'fackopp', facdos:'facturen', facstuk:'facdos', facaanl:'facturen', facontv:'facaanl', models:'aiset', aisetmodel:'aiset', aisetmem:'aiset', aisetdata:'aiset', aisetanswer:'aiset', aisetpers:'aiset', aisetvoice:'aiset', aisetsearch:'aiset', aisetperf:'aiset', aisetpriv:'aiset', setnotif:'settings', setlook:'settings', setregio:'settings', setregioplek:'setregio', setregiotz:'setregio', setskin:'settings', setlock:'settings', setsolo:'settings', setperm:'settings', setmusic:'settings', setcrash:'settings', ai:'home', aiset:'ai', aichats:'ai', search:'home', redial:'home', wa:'home', wasel:'wa', waauto:'wa', warestore:'wa', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', sleep:'home', sleepnight:'sleep', sleepset:'sleep', checkin:'home', checkined:'checkin', checkinq:'checkin', checkincmp:'checkin', gebruik:'home', gebruikset:'gebruik', gebruikontgr:'gebruikset', car:'home', carset:'car', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', podspotify:'podcasts', podlijst:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', wc:'home', wcplek:'wc', wcbewerk:'wcplek', wcdeel:'wcplek', wcset:'wc', wcbronnen:'wcset', wcbron:'wcbronnen', wceigen:'wcset', wcgedeeld:'wcset', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', bkparts:'backup', bkset:'backup', bkrestore:'backup', bkmap:'backup', herstel:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
+const BACK = {ereader:'home', erbook:'ereader', ercontents:'erbook', erset:'erbook', nieuws:'home', nieuwsart:'nieuws', nieuwsset:'nieuws', masterdata:'home', cmedit:'masterdata', cmlog:'masterdata', cmwis:'masterdata',idcopy:'pdf', formulieren:'pdf', pdfedit:'pdf', pdfimg:'pdf', pdfsplit:'pdf', pdftext:'pdf', pdfmade:'pdf', bank:'home', facturen:'home', faclev:'facturen', facoverz:'facturen', facopslag:'facturen', fackopp:'facturen', faclok:'facopslag', facgoogle:'fackopp', facec:'fackopp', facsmtp:'fackopp', facdos:'facturen', facstuk:'facdos', facaanl:'facturen', facontv:'facaanl', models:'aiset', aisetmodel:'aiset', aisetmem:'aiset', aisetdata:'aiset', aisetanswer:'aiset', aisetpers:'aiset', aisetvoice:'aiset', aisetsearch:'aiset', aisetperf:'aiset', aisetpriv:'aiset', setnotif:'settings', setlook:'settings', setregio:'settings', setregioplek:'setregio', setregiotz:'setregio', setskin:'settings', setlock:'settings', setsolo:'settings', setperm:'settings', setmusic:'settings', setcrash:'settings', ai:'home', aiset:'ai', aichats:'ai', search:'home', redial:'home', wa:'home', wasel:'wa', waauto:'wa', warestore:'wa', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', sleep:'home', sleepnight:'sleep', sleepset:'sleep', checkin:'home', checkined:'checkin', checkinq:'checkin', checkincmp:'checkin', gebruik:'home', gebruikset:'gebruik', gebruikontgr:'gebruikset', car:'home', carset:'car', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', podspotify:'podcasts', podlijst:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', wc:'home', wcplek:'wc', wcbewerk:'wcplek', wcdeel:'wcplek', wcset:'wc', wcbronnen:'wcset', wcbron:'wcbronnen', wceigen:'wcset', wcgedeeld:'wcset', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', bkparts:'backup', bkset:'backup', bkrestore:'backup', bkmap:'backup', herstel:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
 window.goBack = function(){
   // Eerst wat bovenop ligt: slotscherm (dan de app verlaten), dialoog, menu
   if ($('#lockscr').classList.contains('on')) return false;
@@ -203,6 +216,9 @@ window.goBack = function(){
   if ($('#sleepdlg').classList.contains('on')) { sleepClose(); return true; }
   if ($('#vp-scan') && $('#vp-scan').classList.contains('on')) { vpScanClose(); return true; }
   if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
+  if ($('#er-image').classList.contains('on')) { erImageClose(); return true; }
+  if (current === 'erbook' && erLinks.length && erLinkBack()) return true;
+  if (current === 'erbook' && document.body.classList.contains('er-focus')) { erFocus(false); return true; }
   if (typeof plIsOpen !== 'undefined' && plIsOpen) { plClose(); return true; }
   if (current === 'autoed' && typeof aeDirty === 'function' && aeDirty()) {
     askChoice('Wijzigingen opslaan?', 'Je hebt deze automatisering aangepast.', 'Opslaan', 'Weggooien', () => aeSave(), () => { aeRule = null; aeSnap = null; store.set('autoDraft', null); show('auto'); });
@@ -239,12 +255,18 @@ function closeSheet(){ const s = document.getElementById('sheet'); if (s) s.clas
 
 window.openTool = function(n){
   if (n === 'share') { noteFromShare(); return; }
-  if (n === 'skin') { Android.homeOpen(); return; } // snelkoppeling "Telefoon-skin": meteen de skin tonen
-  if (n === 'auto-rec') { autoRecBack(); return; } // terug na opnemen in een andere app
-  if (n === 'player') { rdPollOnce(true); pcPoll(false); if (plModel()) plOpen(); else show('radio'); return; } // vanaf de widget of het zwevende venster
-  if (n === 'auto') { store.set('autoDraft', null); if (current !== 'autoed') show('auto'); return; } // ✕ bij opnemen
-  if (n === 'music-now' && $('#lockscr').classList.contains('on')) { show('music'); return; } // op slot: niet zomaar opnemen
-  if (n === 'music-now') { show('music'); setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (current === 'music' && !$('#lockscr').classList.contains('on') && st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }
-  if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; } if (typeof n === 'string' && n.startsWith('checkin')) { ciOpenFrom(n); return; } if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='history') show('history'); if (n==='recorder') show('recorder'); if (n==='sleep') show('sleep'); if (n==='gebruik') show('gebruik'); if (n==='car') show('car'); if (n==='pdf') show('pdf'); if (n==='pdf-share') pdfShared(); if (n==='podcasts') show('podcasts'); if (n==='spotify') show('spotify'); if (n==='facturen') show('facturen'); if (n==='ereader') show('ereader'); if (n==='nieuws') show('nieuws'); if (n==='bank') show('bank'); if (typeof n === 'string' && n.startsWith('facturen-meekijken:')) { show('facturen'); setTimeout(() => askConfirm('Inloggen nodig', 'De app kon niet vanzelf inloggen. Kijk mee om zelf in te loggen; daarna gaat de app verder.', 'Meekijken', () => faNu(n.slice(19), true)), 400); } if (n==='vpn') show('vpn'); if (n==='loc') show('loc'); if (n==='wc') show('wc'); if (n==='kluis') show('kluis'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); if (n==='ai') show('ai'); if (n==='settings') show('settings'); if (n==='backup') show('backup'); if (n==='bkmap') { show('backup'); jumpTo('bkmap'); } if (n==='herstel') show('herstel'); if (n==='selftest') show('selftest'); if (n==='models') show('models'); };
+  if (n === 'skin') { Android.homeOpen(); return; }
+  if (n === 'auto-rec') { autoRecBack(); return; }
+  if (n === 'player') { if (SOLO === 'player') show('radio'); rdPollOnce(true); pcPoll(false); if (plModel()) plOpen(); else show('radio'); return; }
+  if (n === 'auto') { store.set('autoDraft', null); if (current !== 'autoed') show('auto'); return; }
+  if (n === 'music-now') { show('music'); if (!$('#lockscr').classList.contains('on')) setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (current === 'music' && !$('#lockscr').classList.contains('on') && st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }
+  if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; }
+  if (typeof n === 'string' && n.startsWith('checkin')) { ciOpenFrom(n); return; }
+  if (n === 'pdf-share') { pdfShared(); return; }
+  if (typeof n === 'string' && n.startsWith('facturen-meekijken:')) { show('facturen'); setTimeout(() => askConfirm('Inloggen nodig', 'De app kon niet vanzelf inloggen. Kijk mee om zelf in te loggen; daarna gaat de app verder.', 'Meekijken', () => faNu(n.slice(19), true)), 400); return; }
+  if (n === 'bkmap') { show('backup'); jumpTo('bkmap'); return; }
+  // Nieuwe tools openen vanzelf via het register; systeembestemmingen blijven expliciet.
+  if ((Object.prototype.hasOwnProperty.call(TOOLS, n) || ['settings', 'herstel', 'selftest', 'models'].includes(n)) && document.getElementById('s-' + n)) show(n);
+};
 window.onResumeApp = function(){ appPaused = false; if (typeof applyTheme === 'function') applyTheme(); if (typeof plTick === 'function') plTick(); if (current==='car' || current==='carset') enterCar(); if (current==='kluis') klRender(); if (typeof pdfScr === 'function' && pdfScr(current)) pdfResume(); if (current==='podcasts') pcPoll(true); if (current==='podspotify') enterPodSpotify(); if (current==='podlijst') enterPodLijst(); if (current==='spotify') spRender(); if (typeof FA_SCHERMEN !== 'undefined' && FA_SCHERMEN && FA_SCHERMEN.includes(current) && !FA_FORMS.includes(current)) faRender(); if (current==='bank') enterBank(); if (current==='nieuws') nwResume(); if (current==='vpn') vpRender(); if (current==='loc') lcRender(); if (typeof wcResume === 'function') wcResume(); uncache('smsInfo'); uncache('waInfo'); if (current==='sms') enterSms(); if (current==='recorder') loadRecorder(); if (current==='sleep') enterSleep(); if (current==='sleepnight') enterSleepNight(); if (current==='sleepset') enterSleepSet(); if (current==='checkin') enterCheckin(); if (current==='checkinq') ciqLoad(); if (current==='checkincmp') cicRender(); if (current==='gebruik') enterGebruik(); if (current==='gebruikset' || current==='gebruikontgr') enterGebruikSet(); if (current==='home') refreshCheckinTile(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (WA_SCR.includes(current)) renderWa(current === 'wa' || current === 'wasel'); if (current==='chats') { waInfoC = waInfo(); renderReadable(); } if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (stOn()) enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if ((!SOLO || SOLO === 'auto') && (current==='autoed' || store.get('autoDraft', null))) autoDraftBack(); if (current==='models') mdResumed(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 

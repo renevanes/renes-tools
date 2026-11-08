@@ -146,7 +146,7 @@ function cmiEditor(){
   if(cmi.labelFor!==r){cmi.labelFor=r;cmi.autoLabel=r.type==='relatie'?cmiRelationText(r.fields,'label'):'';}
   cmiRelationSentence();
   cmiPhotoClear();$('#cmi-photos').hidden=r.type!=='identiteit';
-  if(r.type==='identiteit')for(const side of ['front','back']){$('#cmi-'+side+'-status').textContent=r.images?.[side]?t('Kaartfoto opgeslagen.'):t('Nog geen kaartfoto opgeslagen.');$('#cmi-'+side+'-delete').disabled=!r.images?.[side];}
+  if(r.type==='identiteit')for(const side of ['front','back']){$('#cmi-'+side+'-status').textContent=r.images?.[side]?t('foto opgeslagen'):t('nog geen foto');$('#cmi-'+side+'-delete').disabled=!r.images?.[side];}
   $('#cmi-photo-show').disabled=!r.images?.front&&!r.images?.back;
 }
 function cmiPhotoClear(){cmi.photoEpoch++;cmi.show=false;for(const side of ['front','back']){$('#cmi-'+side+'-image').removeAttribute('src');$('#cmi-'+side+'-paper').hidden=true;$('#cmi-'+side+'-paper').classList.remove('zoom');$('#cmi-'+side+'-zoom').hidden=true;}$('#cmi-photo-show').hidden=false;}

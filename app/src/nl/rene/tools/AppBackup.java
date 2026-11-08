@@ -153,7 +153,7 @@ final class AppBackup {
     /** Alle instellingen die meegaan, met hun soort: {bestand: {sleutel: {t, v}}}. */
     static JSONObject prefsSnapshot(Context c, JSONObject secrets, AppData.Manifest m) throws Exception {
         JSONObject files = new JSONObject();
-        for (String f : AppData.PREFS_KEEP) {
+        for (String f : prefsOnDevice(c)) {
             SharedPreferences p = c.getSharedPreferences(f, Context.MODE_PRIVATE);
             JSONObject o = new JSONObject();
             for (Map.Entry<String, ?> e : p.getAll().entrySet()) {
@@ -771,12 +771,13 @@ final class AppBackup {
         JSONObject secrets = secretBytes == null ? new JSONObject() : new JSONObject(new String(secretBytes, StandardCharsets.UTF_8));
         JSONObject out = new JSONObject();
         if (in == null) return out;
-        for (Iterator<String> it = in.keys(); it.hasNext(); ) {
+        int files = 0;
+        for (Iterator<String> it = in.keys(); it.hasNext() && files < AppData.MAX_PREFS_FILES; ) {
             String f = it.next();
             if (!AppData.keepPrefsFile(f)) continue;
             JSONObject src = in.optJSONObject(f);
             if (src == null) continue;
-            JSONObject dst = new JSONObject();
+            JSONObject dst = new JSONObject(); files++;
             for (Iterator<String> ks = src.keys(); ks.hasNext(); ) {
                 String key = ks.next();
                 if (!AppData.keepPref(f, key)) continue;
@@ -875,7 +876,11 @@ final class AppBackup {
                 if (cur.isFile() && !dst.exists()) HerstelLog.move(jf, cur, dst);
             }
             // 1. Mappen en bestanden: de huidige opzij, de klaargezette op hun plek
-            for (String r : AppData.FILE_ROOTS) {
+            java.util.List<String> local = new java.util.ArrayList<>(), inBackup = new java.util.ArrayList<>();
+            String[] ln = files.list(), sn = new File(st, "files").list();
+            if (ln != null) java.util.Collections.addAll(local, ln);
+            if (sn != null) java.util.Collections.addAll(inBackup, sn);
+            for (String r : AppData.restoreRoots(local, inBackup)) {
                 File cur = new File(files, r);
                 if (cur.exists()) HerstelLog.move(jf, cur, new File(old, "files/" + r));
                 File in = new File(st, "files/" + r);
@@ -981,9 +986,24 @@ final class AppBackup {
 
     static boolean readBio(Context c) { String s = readOr(new File(stageDir(c), "vlaggen.txt")); return s != null && s.contains("bio"); }
 
+    /**
+     * Instellingenbestanden die meegaan: de bekende plus alles wat in shared_prefs/ staat (ook van nieuwe tools),
+     * behalve wat in AppData.PREFS_SKIP staat. Standaard dus mee.
+     */
+    static java.util.List<String> prefsOnDevice(Context c) {
+        java.util.List<String> present = new java.util.ArrayList<>();
+        try {
+            File[] xs = new File(c.getApplicationInfo().dataDir, "shared_prefs").listFiles();
+            if (xs != null) for (File x : xs) { String n = x.getName(); if (n.endsWith(".xml")) present.add(n.substring(0, n.length() - 4)); }
+        } catch (Throwable ignored) { }
+        return AppData.prefsFiles(present);
+    }
+
     /** Alle instellingen die meegaan vervangen door die uit de backup (wat bij deze installatie hoort blijft staan). */
     static void writePrefs(Context c, JSONObject ready) throws Exception {
-        for (String f : AppData.PREFS_KEEP) {
+        java.util.TreeSet<String> names = new java.util.TreeSet<>(prefsOnDevice(c));
+        for (Iterator<String> it = ready.keys(); it.hasNext(); ) { String f = it.next(); if (AppData.keepPrefsFile(f)) names.add(f); }
+        for (String f : names) {
             SharedPreferences p = c.getSharedPreferences(f, Context.MODE_PRIVATE);
             SharedPreferences.Editor e = p.edit();
             for (String k : p.getAll().keySet()) if (AppData.keepPref(f, k) || ("spotify".equals(f) && "refresh".equals(k))) e.remove(k);
@@ -1071,7 +1091,8 @@ final class AppBackup {
      */
     static boolean hasLocalData(Context c) {
         try {
-            for (String r : AppData.FILE_ROOTS) if (hasFiles(new File(c.getFilesDir(), r), r, 0)) return true;
+            String[] tops = c.getFilesDir().list();
+            if (tops != null) for (String r : AppData.restoreRoots(java.util.Arrays.asList(tops), null)) if (hasFiles(new File(c.getFilesDir(), r), r, 0)) return true;
             File[] kl = new File(c.getFilesDir(), "kluis").listFiles();
             if (kl != null && kl.length > 0) return true;
             if (PdfSignature.file(c).getBaseFile().exists()) return true;

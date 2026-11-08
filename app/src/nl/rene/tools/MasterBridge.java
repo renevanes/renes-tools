@@ -37,7 +37,7 @@ public class MasterBridge extends BankBridge {
     }
     @JavascriptInterface public void masterUnlock(String request){
         a.h.post(()->{
-            if(!a.masterWanted||a.isDestroyed()||a.isFinishing()||!a.masterForeground||a.isSolo()){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Open Stamgegevens in de hoofdapp om te ontgrendelen"));}catch(Exception ignored){ }reply(request,"",e);return;}
+            if(!a.masterWanted||a.isDestroyed()||a.isFinishing()||!a.masterForeground||(a.isSolo()&&!"masterdata".equals(a.solo)&&!"pdf".equals(a.solo))){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Ontgrendel de stamgegevens opnieuw"));}catch(Exception ignored){ }reply(request,"",e);return;}
             if(Lock.busy()){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Er staat al een vraag om te ontgrendelen open"));}catch(Exception ignored){ }reply(request,"",e);return;}
             final long auth=a.masterAuthSerial.incrementAndGet(),dataset=MasterSession.datasetEpoch();final String view=a.masterView;
             a.masterAuthPending=true;
@@ -85,6 +85,9 @@ public class MasterBridge extends BankBridge {
     @JavascriptInterface public void masterSave(String token,String json,String request){
         work(token,request,key->{if(json==null||json.length()>20000)throw new MasterError(Taal.T("Ongeldige stamgegevens"));JSONObject saved=MasterStore.save(ctx,key,a.masterSession,token,new JSONObject(json));refreshIdentity(key,token,saved);return saved;});
     }
+    @JavascriptInterface public void masterScanSave(String token,String json,String request){
+        work(token,request,key->{if(json==null||json.length()>20000)throw new MasterError(Taal.T("Ongeldige stamgegevens"));JSONObject saved=MasterStore.scanSave(ctx,key,a.masterSession,token,new JSONObject(json));refreshIdentity(key,token,saved);return saved;});
+    }
     void refreshIdentity(SecretKey key,String token,JSONObject result)throws Exception{
         try{MasterStore.refreshContext(ctx,key,a.masterSession,token);}catch(Throwable e){result.put("contextError",Taal.T("Gegevens opgeslagen; de gedeelde app-context kon niet worden ververst"));}
         MainActivity.appIdentityChanged(MasterAppContext.read(ctx).toString());
@@ -98,9 +101,27 @@ public class MasterBridge extends BankBridge {
             if(!a.masterForeground)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
             a.masterSession.require(token);SecretKey key=MasterKeys.authenticated(ctx);
             MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,true);a.masterSession.require(token);
-            // De kiezer verlaat bewust de app en sluit de sessie. Geen nacontrole op die oude sessie.
+            // De kiezer gaat even over de app heen; binnen 2 minuten terug = zonder opnieuw ontgrendelen (MainActivity.masterPickUntil).
             a.masterPhotos.pick(token,id,revision,side,request);result.put("picking",true);
         }catch(Throwable e){try{result.put("error",why(e)).put("locked",!a.masterSession.accepts(token));}catch(Exception ignored){ }}reply(request,token,result);},"master-photo-pick").start();
+    }
+    /** Herkennen uit foto, voor een bestaande persoon: kiezen; na ontgrendelen een nieuw document met de foto als bijlage en voorstellen. */
+    @JavascriptInterface public void masterScanPick(String token,String person,String request){
+        if(request==null||request.length()>100)return;
+        new Thread(()->{JSONObject result=new JSONObject();try{
+            if(!a.masterForeground)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
+            a.masterSession.require(token);SecretKey key=MasterKeys.authenticated(ctx);
+            MasterStore.scanStart(ctx,key,a.masterSession,token,person);a.masterSession.require(token);
+            a.masterPhotos.pick(token,person,0,"scan",request);result.put("picking",true);
+        }catch(Throwable e){try{result.put("error",why(e)).put("locked",!a.masterSession.accepts(token));}catch(Exception ignored){ }}reply(request,token,result);},"master-scan-pick").start();
+    }
+    /** Gegevens herkennen vanaf de bewaarde kaartfoto van een document (op de telefoon, niets gaat weg). */
+    @JavascriptInterface public void masterPhotoScan(String token,String id,long revision,String side,String request){
+        work(token,request,key->{
+            JSONObject photo=MasterStore.photoScan(ctx,key,a.masterSession,token,id,revision,side);
+            JSONObject found=MasterPhotos.recognizeStored(ctx,photo.optString("image"),Regio.dayKey(ctx,System.currentTimeMillis()),()->a.masterSession.accepts(token)&&a.masterForeground&&a.masterWanted);
+            JSONObject out=new JSONObject().put("id",id).put("side",side);if(found!=null)out.put("herkend",found);return out;
+        });
     }
     @JavascriptInterface public void masterPhotoRead(String token,String id,long revision,String side,String request){work(token,request,key->MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,true));}
     @JavascriptInterface public void masterPhotoDelete(String token,String id,long revision,String side,String request){work(token,request,key->MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,false));}

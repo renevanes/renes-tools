@@ -26,7 +26,7 @@ public class BankBridge extends FacturenBridge {
 
     /** Toestand zonder iets te ontsleutelen (open, tijd over, of er gegevens zijn, hoe de sleutel beveiligd is). */
     @JavascriptInterface public String bankState() {
-        try { return Bank.state(ctx).put("ai", aiInfo()).toString(); } catch (Throwable t) { return "{\"open\":false,\"error\":\"Laden lukt niet\"}"; }
+        try { return Bank.state(ctx).put("open", a.bankOk()).put("left", a.bankOk() ? Bank.remaining() : 0).put("ai", aiInfo()).toString(); } catch (Throwable t) { return "{\"open\":false,\"error\":\"Laden lukt niet\"}"; }
     }
 
     JSONObject aiInfo() {
@@ -38,22 +38,30 @@ public class BankBridge extends FacturenBridge {
 
     /** Openen met vingerafdruk of pincode van de telefoon. Antwoord via onBank(true | melding). */
     @JavascriptInterface public void bankUnlock() {
-        if (a.isSolo()) { a.js("onBank", q("Bankzaken werkt alleen in de app zelf")); return; }
+        if (a.isSolo() && !"bank".equals(a.solo)) { a.js("onBank", q("Bankzaken is op slot")); return; }
         a.h.post(() -> {
             if (Lock.busy()) { a.js("onBank", q("Er staat al een vraag om te ontgrendelen open")); return; }
+            if (!a.bankScreen || a.isDestroyed() || a.isFinishing()) return;
+            final long request = a.bankAuth.begin();
+            if (request < 0) return;
             Lock.prompt(a, "Bankzaken openen", (ok, msg) -> {
-                if (!ok) { a.js("onBank", q(msg == null ? "Niet ontgrendeld" : msg)); return; }
-                new Thread(() -> {
+                if (!ok) { a.bankAuth.cancel(); a.js("onBank", q(msg == null ? "Niet ontgrendeld" : msg)); return; }
+                if (!a.bankAuth.authenticated(request, android.os.SystemClock.elapsedRealtime())) return;
+                a.afterBankAuth(() -> new Thread(() -> {
                     try {
-                        Bank.open();
+                        if (!a.bankAuth.ready(request, android.os.SystemClock.elapsedRealtime())) return;
                         // De sleutel meteen na de ontgrendeling maken (dan kan hij aan die ontgrendeling gekoppeld worden)
                         if (!Bank.hasData(ctx)) Bank.key(ctx);
+                        synchronized (a.bankAuth) {
+                            if (!a.bankAuth.claim(request, android.os.SystemClock.elapsedRealtime())) return;
+                            a.bankGen = Bank.open();
+                        }
                         a.js("onBank", "true");
                         // Automatisch opgehaald terwijl Bankzaken op slot ging: nu alsnog importeren
                         JSONObject w = Bank.wachtendeImporteren(ctx);
-                        if (w != null) a.js("onBankImport", w.toString());
+                        if (w != null) a.h.post(() -> { if (a.bankOk()) a.js("onBankImport", w.toString()); });
                     } catch (Throwable t) { a.js("onBank", q(Bank.why(t))); }
-                }, "bank-open").start();
+                }, "bank-open").start());
             });
         });
     }
@@ -61,7 +69,7 @@ public class BankBridge extends FacturenBridge {
     /** De ontsleutelde gegevens: {left, store} (store = null als er nog niets is), of {error}. */
     @JavascriptInterface public String bankLoad() {
         try {
-            if (!Bank.isOpen()) return "{\"locked\":true}";
+            if (!a.bankOk()) return "{\"locked\":true}";
             Bank.touch();
             String s = Bank.load(ctx);
             return "{\"left\":" + Bank.remaining() + ",\"store\":" + (s.isEmpty() ? "null" : s) + "}";
@@ -73,7 +81,7 @@ public class BankBridge extends FacturenBridge {
     /** Opslaan (regels, categorieën, budgetten, notities). Geeft "" of een melding. */
     @JavascriptInterface public String bankSave(String json) {
         try {
-            if (!Bank.isOpen()) return "Bankzaken is op slot";
+            if (!a.bankOk()) return "Bankzaken is op slot";
             if (json == null || json.length() > 150_000_000) return "Te veel gegevens";
             JSONObject o = new JSONObject(json);
             if (o.optJSONArray("tx") == null) return "Ongeldige gegevens";
@@ -84,25 +92,26 @@ public class BankBridge extends FacturenBridge {
     }
 
     /** Nog bezig: het slot 5 minuten verder zetten (hooguit tot de sleutel verloopt). Geeft de tijd die over is. */
-    @JavascriptInterface public String bankTouch() { Bank.touch(); return String.valueOf(Bank.remaining()); }
+    @JavascriptInterface public String bankTouch() { if (!a.bankOk()) return "0"; Bank.touch(); return String.valueOf(Bank.remaining()); }
 
-    @JavascriptInterface public void bankLock() { Bank.close(); }
+    @JavascriptInterface public void bankLock() { synchronized (a.bankAuth) { a.bankAuth.cancel(); Bank.close(); } }
 
     /** Alles wissen, ook de sleutel. Alleen als Bankzaken open is (dus na vingerafdruk of pincode). */
     @JavascriptInterface public String bankWipe() {
-        if (!Bank.isOpen()) return "Ontgrendel Bankzaken eerst";
+        if (!a.bankOk()) return "Ontgrendel Bankzaken eerst";
         try { Bank.wipe(ctx); App.log(ctx, "BANK", "gewist"); return ""; } catch (Throwable t) { return "Wissen lukt niet"; }
     }
 
     /** Op het scherm van Bankzaken: geen schermafdrukken, schermopnames of voorbeeld in "recente apps". */
     @JavascriptInterface public void bankSecure(boolean on) {
         a.bankScreen = on;
+        if (!on) a.bankAuth.cancel();
         a.h.post(() -> { a.applySecure(); a.bankPrive(a.bankScreen || a.idScreen || a.masterScreen); });
     }
 
     /** Afschriften kiezen (meerdere tegelijk). wis = de gekozen bestanden na het inlezen verwijderen. Antwoord via onBankImport. */
     @JavascriptInterface public void bankImport(boolean wis) {
-        if (!Bank.isOpen()) { a.js("onBankImport", "{\"error\":\"Bankzaken is op slot\"}"); return; }
+        if (!a.bankOk()) { a.js("onBankImport", "{\"error\":\"Bankzaken is op slot\"}"); return; }
         a.bankWis = wis;
         a.h.post(() -> {
             Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
@@ -119,14 +128,16 @@ public class BankBridge extends FacturenBridge {
         final android.content.Context ctx = a.getApplicationContext();
         new Thread(() -> {
             JSONObject out = new JSONObject();
-            try {
+            try (Voortgang v = Voortgang.van(a, "bank", uris.size())) {
                 java.util.List<Bank.Bestand> lijst = new java.util.ArrayList<>();
                 java.util.List<String> fouten = new java.util.ArrayList<>();
-                for (Uri u : uris) {
+                for (int k = 0; k < uris.size(); k++) {
+                    Uri u = uris.get(k); v.bestand(k);
                     String n = name(a, u);
-                    try { lijst.add(new Bank.Bestand(n, read(a, u))); fouten.add(null); }
+                    try { lijst.add(new Bank.Bestand(n, read(a, u, v))); fouten.add(null); }
                     catch (Throwable t) { lijst.add(new Bank.Bestand(n, null)); fouten.add(t instanceof OutOfMemoryError ? "Bestand is te groot" : t.getMessage() == null ? "Lezen lukt niet" : t.getMessage()); }
                 }
+                v.alleBestanden(); v.stap("verwerken", 0, 0);
                 out = Bank.importeer(ctx, lijst, fouten);
                 // Pas na veilig opslaan de bronbestanden weghalen (als dat gevraagd is)
                 int weg = 0;
@@ -150,8 +161,8 @@ public class BankBridge extends FacturenBridge {
         return "afschrift";
     }
 
-    static byte[] read(MainActivity a, Uri u) throws Exception {
-        try (InputStream in = a.getContentResolver().openInputStream(u)) {
+    static byte[] read(MainActivity a, Uri u, Voortgang v) throws Exception {
+        try (InputStream in = v.open(a, u)) {
             if (in == null) throw new Exception("Bestand niet te openen");
             ByteArrayOutputStream b = new ByteArrayOutputStream();
             byte[] buf = new byte[1 << 16]; int r;
@@ -178,7 +189,7 @@ public class BankBridge extends FacturenBridge {
 
     /** Automatisch importeren starten: de website van de bank in beeld (BankLinkActivity). van = jjjj-mm-dd. Geeft "" of een melding. */
     @JavascriptInterface public String bankKoppel(String id, String van) {
-        if (!Bank.isOpen()) return "Bankzaken is op slot";
+        if (!a.bankOk()) return "Bankzaken is op slot";
         if (Bank.linking) return "Er loopt al een automatische import";
         JSONObject b = BankLink.bank(BankLink.banken(ctx), id == null ? "" : id);
         if (b == null || !b.optBoolean("robot")) return "Voor deze bank kan dat (nog) niet automatisch";
@@ -193,7 +204,7 @@ public class BankBridge extends FacturenBridge {
     }
 
     /** Uitkomst van de laatste automatische import (eenmalig; daarna leeg). */
-    @JavascriptInterface public String bankKoppelUitkomst() { String s = Bank.laatsteKoppeling; Bank.laatsteKoppeling = ""; return s; }
+    @JavascriptInterface public String bankKoppelUitkomst() { if (!a.bankOk()) return ""; String s = Bank.laatsteKoppeling; Bank.laatsteKoppeling = ""; return s; }
 
     // ---------- lokale AI ----------
 
@@ -222,7 +233,7 @@ public class BankBridge extends FacturenBridge {
     /** Vraag aan de lokale AI: json = {mode: vraag|samenvatting|categorie, messages:[{role, content}]}.
      *  Geen geheugen, niets bewaard. Antwoord via onBankAiToken/onBankAiDone/onBankAiError/onBankAiStatus. */
     @JavascriptInterface public String bankAi(String json) {
-        if (!Bank.isOpen()) return "Bankzaken is op slot";
+        if (!a.bankOk()) return "Bankzaken is op slot";
         try {
             JSONObject req = new JSONObject(json);
             String mode = req.optString("mode", "vraag");

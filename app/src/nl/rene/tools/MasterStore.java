@@ -138,25 +138,48 @@ final class MasterStore {
         });
     }
     static JSONObject save(Context c,SecretKey key,MasterSession session,String token,JSONObject input)throws Exception{
+        return transaction(c,key,session,token,(db,k,h)->saveRecord(c,db,k,h,input));
+    }
+    private static JSONObject saveRecord(Context c,SQLiteDatabase db,SecretKey k,JSONObject h,JSONObject input)throws Exception{
         JSONObject clean=MasterSchema.clean(input);
+        boolean fresh=input.optString("id").isEmpty();JSONObject old=fresh?null:record(db,k,input.getString("id"));
+        if(old!=null&&(old.getLong("revision")!=input.getLong("revision")||!old.getString("type").equals(clean.getString("type"))))throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
+        if(fresh&&number(db,"SELECT COUNT(*) FROM records")>=2000)throw new MasterError(Taal.T("Maximaal 2000 stamgegevens"));
+        JSONObject fields=clean.getJSONObject("fields");
+        person(db,k,fields.optString("persoon"));person(db,k,fields.optString("vanPersoon"));person(db,k,fields.optString("naarPersoon"));
+        if("formulier".equals(clean.getString("type")))MasterFormProfile.validate(fields,ref->record(db,k,ref));
+        if(clean.getString("type").equals("profiel")&&fresh){JSONArray all=records(db,k);for(int i=0;i<all.length();i++)if(all.getJSONObject(i).getString("type").equals("profiel"))throw new MasterError(Taal.T("Er mag maar één eigen app-profiel zijn"));}
+        String id=fresh?java.util.UUID.randomUUID().toString():old.getString("id");long rev=fresh?1:old.getLong("revision")+1;
+        JSONObject r=new JSONObject(clean.toString()).put("id",id).put("revision",rev).put("created",fresh?System.currentTimeMillis():old.getLong("created")).put("updated",System.currentTimeMillis());
+        if(old!=null&&old.has("images"))r.put("images",old.getJSONObject("images"));
+        ContentValues values=new ContentValues();values.put("id",id);values.put("rev",rev);values.put("body",MasterCipher.encrypt(k,"record/"+id+"/"+rev,bytes(r)));
+        MasterAppContext.invalidate(c);
+        if(fresh)db.insertOrThrow("records",null,values);else db.update("records",values,"id=?",new String[]{id});
+        JSONArray changed=new JSONArray();for(String field:MasterSchema.fields(r.getString("type")))if(old==null||!old.getJSONObject("fields").optString(field).equals(r.getJSONObject("fields").optString(field)))changed.put(field);
+        if(old==null||!old.getString("label").equals(r.getString("label")))changed.put("label");
+        append(db,k,h,fresh?"create":"update","masterdata","",r,changed);return new JSONObject().put("record",summary(r));
+    }
+    /** Gekozen foto-velden van document en eigenaar worden samen bewaard of samen teruggedraaid. */
+    static JSONObject scanSave(Context c,SecretKey key,MasterSession session,String token,JSONObject input)throws Exception{
         return transaction(c,key,session,token,(db,k,h)->{
-            boolean fresh=input.optString("id").isEmpty();JSONObject old=fresh?null:record(db,k,input.getString("id"));
-            if(old!=null&&(old.getLong("revision")!=input.getLong("revision")||!old.getString("type").equals(clean.getString("type"))))throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
-            if(fresh&&number(db,"SELECT COUNT(*) FROM records")>=2000)throw new MasterError(Taal.T("Maximaal 2000 stamgegevens"));
-            JSONObject fields=clean.getJSONObject("fields");
-            person(db,k,fields.optString("persoon"));person(db,k,fields.optString("vanPersoon"));person(db,k,fields.optString("naarPersoon"));
-            if("formulier".equals(clean.getString("type")))MasterFormProfile.validate(fields,ref->record(db,k,ref));
-            if(clean.getString("type").equals("profiel")&&fresh){JSONArray all=records(db,k);for(int i=0;i<all.length();i++)if(all.getJSONObject(i).getString("type").equals("profiel"))throw new MasterError(Taal.T("Er mag maar één eigen app-profiel zijn"));}
-            String id=fresh?java.util.UUID.randomUUID().toString():old.getString("id");long rev=fresh?1:old.getLong("revision")+1;
-            JSONObject r=new JSONObject(clean.toString()).put("id",id).put("revision",rev).put("created",fresh?System.currentTimeMillis():old.getLong("created")).put("updated",System.currentTimeMillis());
-            if(old!=null&&old.has("images"))r.put("images",old.getJSONObject("images"));
-            ContentValues values=new ContentValues();values.put("id",id);values.put("rev",rev);values.put("body",MasterCipher.encrypt(k,"record/"+id+"/"+rev,bytes(r)));
-            MasterAppContext.invalidate(c);
-            if(fresh)db.insertOrThrow("records",null,values);else db.update("records",values,"id=?",new String[]{id});
-            JSONArray changed=new JSONArray();for(String field:MasterSchema.fields(r.getString("type")))if(old==null||!old.getJSONObject("fields").optString(field).equals(r.getJSONObject("fields").optString(field)))changed.put(field);
-            if(old==null||!old.getString("label").equals(r.getString("label")))changed.put("label");
-            append(db,k,h,fresh?"create":"update","masterdata","",r,changed);return new JSONObject().put("record",summary(r));
+            JSONObject doc=record(db,k,input.getString("documentId")),owner=record(db,k,input.getString("personId"));
+            if(!"identiteit".equals(doc.getString("type"))||!"persoon".equals(owner.getString("type"))||!owner.getString("id").equals(doc.getJSONObject("fields").optString("persoon")))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
+            if(doc.getLong("revision")!=input.getLong("documentRevision")||owner.getLong("revision")!=input.getLong("personRevision"))throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
+            JSONObject df=input.getJSONObject("document"),pf=input.getJSONObject("persoon");
+            mergeScan(doc,df,new String[]{"documentsoort","document","geldig","uitgifteland","afgifte","afgegevenDoor","categorieen"});
+            mergeScan(owner,pf,new String[]{"naam","voornamen","geboortedatum","geslacht","nationaliteit","bsn"});
+            if(input.has("label"))doc.put("label",input.getString("label"));
+            JSONObject out=saveRecord(c,db,k,h,doc);
+            if(pf.length()>0)saveRecord(c,db,k,h,owner);
+            return out;
         });
+    }
+    private static void mergeScan(JSONObject record,JSONObject patch,String[] allowed)throws Exception{
+        java.util.Set<String> keys=new java.util.HashSet<>(java.util.Arrays.asList(allowed));
+        for(java.util.Iterator<String> it=patch.keys();it.hasNext();){String name=it.next();Object value=patch.get(name);
+            if(!keys.contains(name)||!(value instanceof String))throw new MasterError(Taal.T("Ongeldige stamgegevens"));
+            record.getJSONObject("fields").put(name,value);
+        }
     }
     static JSONObject delete(Context c,SecretKey key,MasterSession session,String token,String id,long revision)throws Exception{
         return transaction(c,key,session,token,(db,k,h)->{
@@ -197,6 +220,44 @@ final class MasterStore {
     static void consumerEvent(Context c,SecretKey key,MasterSession session,String token,String source,String action,Commit commit)throws Exception{
         if(!"formulieren".equals(source)&&!"idcopy".equals(source))throw new MasterError(Taal.T("Dit onderdeel heeft geen toegang tot stamgegevens"));
         transaction(c,key,session,token,(db,k,h)->{append(db,k,h,action,source,"",null,null);return new JSONObject();},commit);
+    }
+    /** Herkennen uit een foto starten voor een persoon: alleen controleren en in het logboek zetten. */
+    static void scanStart(Context c,SecretKey key,MasterSession session,String token,String id)throws Exception{
+        transaction(c,key,session,token,(db,k,h)->{JSONObject r=record(db,k,id);if(!"persoon".equals(r.getString("type")))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
+            append(db,k,h,"scan","masterdata","",r,null);return new JSONObject();});
+    }
+    /**
+     * Herkennen uit foto: in één keer een nieuw identiteitsdocument bij de persoon mét de foto als bijlage (geen document
+     * zonder foto als er halverwege iets misgaat). De commit-controle (nog dezelfde keuze, venster en sessie) gaat vóór het vastleggen.
+     */
+    static JSONObject scanCreate(Context c,SecretKey key,MasterSession session,String token,String person,String soort,String side,String image,Commit commit)throws Exception{
+        if(!side.equals("front")&&!side.equals("back"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
+        if(image==null||!image.startsWith("data:image/jpeg;base64,")||image.length()>MasterPhotos.MAX_DATA)throw new MasterError(Taal.T("De kaartfoto is te groot"));
+        return transaction(c,key,session,token,(db,k,h)->{
+            JSONObject p=record(db,k,person);if(!"persoon".equals(p.getString("type")))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
+            if(number(db,"SELECT COUNT(*) FROM records")>=2000)throw new MasterError(Taal.T("Maximaal 2000 stamgegevens"));
+            String word="paspoort".equals(soort)?"Paspoort":"identiteitskaart".equals(soort)?"Identiteitskaart":"rijbewijs".equals(soort)?"Rijbewijs":"verblijfsdocument".equals(soort)?"Verblijfsdocument":"Document";
+            String label=Taal.t(c,"{soort} {naam}","soort",Taal.t(c,word),"naam",p.getString("label"));if(label.length()>120)label=label.substring(0,120);
+            JSONObject fields=new JSONObject().put("persoon",person);if(!soort.isEmpty())fields.put("documentsoort",soort);
+            JSONObject clean=MasterSchema.clean(new JSONObject().put("type","identiteit").put("label",label).put("fields",fields));
+            String id=java.util.UUID.randomUUID().toString();long now=System.currentTimeMillis();
+            JSONObject r=new JSONObject(clean.toString()).put("id",id).put("revision",1).put("created",now).put("updated",now).put("images",new JSONObject().put(side,image));
+            ContentValues values=new ContentValues();values.put("id",id);values.put("rev",1);values.put("body",MasterCipher.encrypt(k,"record/"+id+"/1",bytes(r)));
+            MasterAppContext.invalidate(c);db.insertOrThrow("records",null,values);
+            JSONArray changed=names(r.getJSONObject("fields"));changed.put("label");
+            append(db,k,h,"create","masterdata","",r,changed);append(db,k,h,"photo_add","masterdata","",r,new JSONArray().put(side));
+            return new JSONObject().put("id",id).put("revision",1);
+        },commit);
+    }
+    /** Bewaarde kaartfoto lezen om er gegevens uit te herkennen (eigen regel in het logboek: "Gegevens herkend uit kaartfoto"). */
+    static JSONObject photoScan(Context c,SecretKey key,MasterSession session,String token,String id,long revision,String side)throws Exception{
+        if(!side.equals("front")&&!side.equals("back"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
+        return transaction(c,key,session,token,(db,k,h)->{
+            JSONObject r=record(db,k,id);if(!r.getString("type").equals("identiteit"))throw new MasterError(Taal.T("Kaartfoto’s horen bij een identiteitsdocument"));
+            if(r.getLong("revision")!=revision)throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
+            JSONObject images=r.optJSONObject("images");append(db,k,h,"photo_scan","masterdata","",r,new JSONArray().put(side));
+            return new JSONObject().put("image",images==null?"":images.optString(side));
+        });
     }
     static JSONObject photo(Context c,SecretKey key,MasterSession session,String token,String id,long revision,String side,String value,boolean read)throws Exception{
         return photo(c,key,session,token,id,revision,side,value,read,()->{});

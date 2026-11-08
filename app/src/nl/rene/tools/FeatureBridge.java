@@ -156,11 +156,12 @@ public class FeatureBridge {
     }
 
     /** Uitkomst van een bestandskeuze voor het PDF-scherm (op een achtergrondthread). */
-    static String pdfResult(Context c, int req, java.util.List<Uri> us, String saveName) {
+    static String pdfResult(Context c, int req, java.util.List<Uri> us, String saveName, Voortgang v) {
         try {
+            if (req != MainActivity.REQ_PDF_IMG) v.stap("verwerken", 0, 0);
             if (req == MainActivity.REQ_PDF_IMG) {
                 int n = 0; StringBuilder warn = new StringBuilder();
-                for (Uri u : us) { try { PdfTools.addImage(c, u); n++; } catch (Exception e) { if (warn.length() < 200) warn.append(e.getMessage()).append(". "); } }
+                for (int k = 0; k < us.size(); k++) { Uri u = us.get(k); v.bestand(k); v.stap("verwerken", 0, 0); try { PdfTools.addImage(c, u); n++; } catch (Exception e) { if (warn.length() < 200) warn.append(e.getMessage()).append(". "); } }
                 return new JSONObject().put("kind", "images").put("count", n).put("warn", warn.toString().trim()).toString();
             }
             if (req == MainActivity.REQ_PDF_FILE) return new JSONObject(PdfTools.openPdf(c, us.get(0))).put("kind", "pdf").toString();

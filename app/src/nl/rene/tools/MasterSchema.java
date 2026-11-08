@@ -12,7 +12,7 @@ final class MasterSchema {
     static final String[] PERSON={"naam","voornamen","roepnaam","initialen","geboortedatum","geboorteplaats","geslacht","nationaliteit","bsn","adres","postcode","plaats","land","telefoon","email","context"};
     static final String[] ORGANISATION={"naam","registratienummer","adres","postcode","plaats","land","telefoon","email"};
     static final String[] ADDRESS={"naam","adres","postcode","plaats","land","telefoon"};
-    static final String[] IDENTITY={"persoon","documentsoort","document","geldig","afgifte","afgifteplaats","uitgifteland","afgegevenDoor"};
+    static final String[] IDENTITY={"persoon","documentsoort","document","geldig","afgifte","afgifteplaats","uitgifteland","afgegevenDoor","categorieen"};
     static final String[] TRIP={"van","tot","alleen","tweedeBegeleider","tweedeGever","accommodatie","postcode","plaats","land","telefoon","reisgegevens"};
     static final String[] PROFILE={"persoon","delen","context"};
     static final String[] RELATION={"vanPersoon","naarPersoon","relatie","status","toelichting","delen"};

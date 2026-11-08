@@ -103,6 +103,17 @@ public class MainActivity extends Activity {
     final java.util.concurrent.atomic.AtomicLong masterAuthSerial=new java.util.concurrent.atomic.AtomicLong(),masterSecurityGeneration=new java.util.concurrent.atomic.AtomicLong();
     volatile boolean masterForeground,masterAuthPending,masterWanted,masterScreen,masterCover,masterFormBound,masterIdBound;
     volatile String masterView="";
+    /**
+     * Kaartfoto kiezen uit Stamgegevens: de kiezer gaat even over de app heen. Tot dit moment (elapsedRealtime, hooguit
+     * 2 minuten) blijft de ontgrendeling staan, net als bij bestanden kiezen in Bankzaken. Komt de keuze op tijd terug, dan
+     * gaat het zonder opnieuw ontgrendelen verder; kom je op een andere manier terug in de app, dan gaat hij alsnog op slot.
+     * Tijdens het kiezen weigert de brug alles (masterForeground is dan false).
+     */
+    volatile long masterPickUntil;volatile boolean masterPickReturned;
+    static final long MASTER_PICK_MS=120_000L;
+    boolean masterPicking(){return masterPickUntil!=0&&android.os.SystemClock.elapsedRealtime()<=masterPickUntil&&masterSession.isOpen();}
+    /** De 2 minuten zijn om terwijl de app nog uit beeld is (kiezer open gelaten, andere app, scherm uit): nu op slot. */
+    void masterPickExpired(){if(!isDestroyed()&&masterPickUntil!=0&&!masterForeground&&!masterPicking()){masterPickUntil=0;masterPickReturned=false;suspendMaster(false);}}
     private Runnable masterAfterAuth;
     void afterMasterAuth(Runnable task){long due=android.os.SystemClock.elapsedRealtime()+5000;masterAfterAuth=()->{if(android.os.SystemClock.elapsedRealtime()>due)masterAuthSerial.incrementAndGet();task.run();};if(masterForeground)h.post(this::runMasterAfterAuth);}
     void runMasterAfterAuth(){Runnable task=masterAfterAuth;masterAfterAuth=null;if(task!=null)task.run();}
@@ -129,6 +140,11 @@ public class MainActivity extends Activity {
     String solo;
     /** Losse kluis: met welke ontgrendeling (Kluis.gen) dit venster de kluis zelf opende; -1 = nog niet. */
     volatile int kluisGen = -1;
+    volatile long bankGen = -1;
+    final Bank.Unlock bankAuth = new Bank.Unlock();
+    private Runnable bankAfterAuth;
+    void afterBankAuth(Runnable task) { bankAfterAuth = task; h.post(this::runBankAfterAuth); }
+    void runBankAfterAuth() { if (!masterForeground || isDestroyed() || isFinishing()) return; Runnable task = bankAfterAuth; bankAfterAuth = null; if (task != null) task.run(); }
 
     /** Bankzaken staat in beeld (schermbeveiliging aan) / de gekozen afschriften na inlezen verwijderen. */
     volatile boolean bankScreen = false, bankWis = false;
@@ -137,6 +153,8 @@ public class MainActivity extends Activity {
     boolean kluisMine() { return !isSolo() || kluisGen == Kluis.gen; }
     /** De kluis is open én mag door dit venster gebruikt worden. */
     boolean kluisOk() { return Kluis.isOpen() && kluisMine(); }
+    /** Een losse bank-app kan niet meeliften op de ontgrendeling van een ander venster. */
+    boolean bankOk() { return (!isSolo() || "bank".equals(solo)) && Bank.session(bankGen); }
 
     boolean isSolo() { return this instanceof SoloActivity; }
 
@@ -224,7 +242,7 @@ public class MainActivity extends Activity {
         } else live = this;
         synchronized (ALL) { ALL.add(this); }
         // Een terugzetten dat halverwege stopte (ook als de app vóór het ontgrendelen startte): eerst afmaken of terugdraaien
-        if (!isSolo()) AppBackup.recoverIfNeeded(getApplicationContext());
+        if (!isSolo() || "backup".equals(solo)) AppBackup.recoverIfNeeded(getApplicationContext());
         IdCopy.cleanStale(getApplicationContext());
         PlayPolicy.sanitizePreferences(getApplicationContext());
         if (!Updater.viaPlay(this)) {
@@ -475,6 +493,7 @@ public class MainActivity extends Activity {
         if (live == this) live = null;
         synchronized (ALL) { ALL.remove(this); }
         if (isFinishing() && !isSolo()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
+        bankAuth.cancel();bankAfterAuth=null;
         masterSession.close();masterAfterAuth=null;masterAuthSerial.incrementAndGet();h.removeCallbacks(masterExpiry);
         final IdCopy closingId = idCopy;
         new Thread(() -> { try { closingId.clear(); } catch (Throwable ignored) { } }, "id-copy-close").start();
@@ -577,9 +596,12 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
-        visible = false; masterForeground=false; suspendMaster(false);
+        visible = false; masterForeground=false; if(!masterPicking())suspendMaster(false);
         // Bankzaken gaat op slot zodra de app uit beeld gaat (niet tijdens bestanden kiezen of de vraag om te ontgrendelen)
-        if (!Bank.kiest() && !Bank.linking && !Lock.authBusy && Bank.isOpen()) Bank.close();
+        synchronized (bankAuth) {
+            bankAuth.pause(Lock.authBusy);
+            if (!Bank.kiest() && !Bank.linking && !Lock.authBusy && Bank.isOpen()) Bank.close();
+        }
         if ("recording".equals(VoiceNote.state)) VoiceNote.cancel(); // inspreken alleen met de app open
         AiSpeech.release(); // voorlezen alleen met de app open; de spraakmotor weer vrijgeven
         AiTalk.bargeStop(); // gesprek met de assistent: niet doorluisteren
@@ -590,7 +612,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        visible = true; masterForeground=true;runMasterAfterAuth();
+        visible = true; masterForeground=true;
+        if(masterPickUntil!=0){boolean back=masterPickReturned&&masterPicking();masterPickUntil=0;masterPickReturned=false;if(back)masterPhotos.continueAfterPick();else suspendMaster(false);}
+        runMasterAfterAuth();bankAuth.resume();runBankAfterAuth();
         js("onResumeApp", "");
         try { GebruikLive.start(getApplicationContext()); } catch (Throwable ignored) { }
         if (isSolo()) return; // updates regelt de gewone app
@@ -767,7 +791,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
-        if(req==MasterPhotos.REQUEST){masterPhotos.result(res,data);return;}
+        if(req==MasterPhotos.REQUEST){masterPickReturned=masterPickUntil!=0&&res==RESULT_OK&&data!=null&&data.getData()!=null;masterPhotos.result(res,data);return;}
         if (req == REQ_FACT_PDF) {
             final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
             if (u == null) { js("onFacturenToegevoegd", "{\"error\":\"\"}"); return; }
@@ -781,8 +805,11 @@ public class MainActivity extends Activity {
                         if (naam == null) naam = "";
                     } catch (Exception ignored) { }
                     byte[] b;
-                    try (java.io.InputStream in = getContentResolver().openInputStream(u)) { b = Facturen.lees(in, Facturen.MAX_PDF); }
-                    r = new org.json.JSONObject().put("sha", FacturenDossier.voegToe(this, b, naam, levId, levNaam)).toString();
+                    try (Voortgang v = Voortgang.van(this, "factuur", 1)) {
+                        try (java.io.InputStream in = v.open(this, u)) { b = Facturen.lees(in, Facturen.MAX_PDF); }
+                        v.stap("verwerken", 0, 0);
+                        r = new org.json.JSONObject().put("sha", FacturenDossier.voegToe(this, b, naam, levId, levNaam)).toString();
+                    }
                 } catch (Throwable e) { r = "{\"error\":" + org.json.JSONObject.quote(Facturen.kort(e)) + "}"; }
                 js("onFacturenToegevoegd", r);
             }, "facturen-toevoegen").start();
@@ -880,7 +907,7 @@ public class MainActivity extends Activity {
             }
             new Thread(() -> {
                 String result;
-                try { result = store.add(getApplicationContext(), uris).put("session", session).toString(); }
+                try (Voortgang v = Voortgang.van(this, "idkopie", uris.size())) { result = store.add(getApplicationContext(), uris, v).put("session", session).toString(); }
                 catch (Throwable e) { result = PdfTools.err(e); }
                 try { result = new org.json.JSONObject(result).put("session", session).toString(); } catch (Exception ignored) { }
                 if (store == idCopy && idScreen) js("onIdCopyPicked", result);
@@ -895,7 +922,11 @@ public class MainActivity extends Activity {
             if (us.isEmpty()) return;
             final Context app = getApplicationContext();
             final String saveName = pdfSaveName != null ? pdfSaveName : getSharedPreferences("pdf", MODE_PRIVATE).getString("saveName", null);
-            new Thread(() -> js("onPdf", FeatureBridge.pdfResult(app, req, us, saveName)), "pdf-pick").start();
+            new Thread(() -> {
+                // Opslaan als schrijft alleen weg; bij toevoegen de balk onderin (bestand 2 van 5 …).
+                try (Voortgang v = req == REQ_PDF_SAVE ? Voortgang.GEEN : Voortgang.van(this, "pdf", us.size())) { js("onPdf", FeatureBridge.pdfResult(app, req, us, saveName, v)); }
+                catch (Throwable e) { js("onPdf", PdfTools.err(e)); }
+            }, "pdf-pick").start();
             return;
         }
         if (req == EreaderBridge.REQ_BOOK) {
@@ -919,7 +950,7 @@ public class MainActivity extends Activity {
             final Uri u = data.getData();
             new Thread(() -> {
                 String r;
-                try { if (!kluisOk()) throw new Exception("De kluis is weer op slot"); Kluis.add(getApplicationContext(), u); r = "ok"; }
+                try (Voortgang v = Voortgang.van(this, "kluis", 1)) { if (!kluisOk()) throw new Exception("De kluis is weer op slot"); Kluis.add(getApplicationContext(), u, v); r = "ok"; }
                 catch (Throwable e) { r = e instanceof OutOfMemoryError ? "Bestand is te groot" : e.getMessage() == null ? "Toevoegen lukt niet" : e.getMessage(); }
                 js("onKluisChanged", JSONObject.quote(r));
             }, "kluis-add").start();
@@ -1166,7 +1197,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void waRequestFilesAccess() { a.h.post(a::requestFilesAccess); }
-        @JavascriptInterface public void waPickFolder() { if (!a.isSolo()) a.h.post(a::pickBackupFolder); } // niet vanuit een losse app
+        @JavascriptInterface public void waPickFolder() { if (!a.isSolo() || "backup".equals(a.solo)) a.h.post(a::pickBackupFolder); } // de backup-tool beheert zijn eigen map
 
         @JavascriptInterface public void waScanSizes() {
             new Thread(() -> {
