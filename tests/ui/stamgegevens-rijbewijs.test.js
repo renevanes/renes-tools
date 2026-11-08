@@ -23,6 +23,7 @@ for(const colorScheme of ['light','dark']){
  const doc=await p.evaluate(()=>cm.edit.id);
  assert.deepEqual(await p.$$eval('#cm-tabs button',bs=>bs.map(b=>b.textContent)),['Gegevens','Foto’s'],'twee duidelijke tabbladen');
  assert.equal(await p.evaluate(()=>cm.edit.label),'Rijbewijs Anna');
+ assert.ok(await p.evaluate(()=>$('#cm-save').getBoundingClientRect().width>=innerWidth-40),'bewaaractie gebruikt de schermbreedte');
  assert.equal(await p.evaluate(()=>!!cm.edit.images.front),true,'rijbewijsfoto als voorkant');
  assert.match(await p.textContent('#cmh-source'),/geen controlecijfers/);assert.doesNotMatch(await p.textContent('#cmh-source'),/Niet alle controlecijfers kloppen/,'tekstherkenning heeft een eigen uitleg');
  for(const key of ['naam','voornamen','afgegevenDoor'])assert.equal(await p.isChecked(`#cmh-list input[data-key="${key}"]`),false,'afwijkend of onzeker veld uit: '+key);

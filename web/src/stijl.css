@@ -1230,3 +1230,5 @@ details.cm-fold[open]>summary{margin-bottom:8px}
 
 .cmh-review #cm-editor-card{padding:0;border:0;background:transparent}
 .cmh-review .cmh-panel{margin:0}
+
+.cmh-review~.cm-savebar{width:calc(100% + 32px)}
