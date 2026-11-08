@@ -32,7 +32,7 @@ public class MasterBridge extends BankBridge {
         },"masterdata").start();
     }
     @JavascriptInterface public String masterState(){
-        try{return new JSONObject().put("open",a.masterSession.isOpen()).put("left",a.masterSession.remaining()).put("data",MasterStore.exists(ctx)).put("secure",Lock.deviceSecure(ctx)).toString();}
+        try{return new JSONObject().put("open",a.masterSession.isOpen()).put("left",a.masterSession.remaining()).put("data",MasterStore.exists(ctx)||ProtectedRestore.has(ctx,"masterdata")).put("secure",Lock.deviceSecure(ctx)).toString();}
         catch(Throwable ignored){return "{\"open\":false}";}
     }
     @JavascriptInterface public void masterUnlock(String request){
@@ -49,6 +49,8 @@ public class MasterBridge extends BankBridge {
                     try{
                         synchronized(MasterStore.LOCK){
                             if(dataset!=MasterSession.datasetEpoch())throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
+                            if(auth!=a.masterAuthSerial.get()||!view.equals(a.masterView)||!a.masterWanted||!a.masterForeground)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
+                            PrivateBackup.restoreMaster(ctx);
                             SecretKey key=MasterKeys.authenticated(ctx);
                             synchronized(a.masterSession){
                                 if(auth!=a.masterAuthSerial.get()||!view.equals(a.masterView)||!a.masterWanted||!a.masterForeground)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));

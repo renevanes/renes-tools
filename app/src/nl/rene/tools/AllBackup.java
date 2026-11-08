@@ -35,7 +35,7 @@ final class AllBackup {
     static boolean optIn(String part) { return "notifications".equals(part) || priv(part); }
 
     /** Slaappraat met geluid (WAV) of alleen de tekst (standaard). */
-    static boolean sleepAudio(Context c) { return prefs(c).getBoolean("sleep_audio", false); }
+    static boolean sleepAudio(Context c) { return prefs(c).getBoolean("sleep_audio", Secure.on(c)); }
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("allbackup", Context.MODE_PRIVATE); }
 
@@ -60,17 +60,26 @@ final class AllBackup {
 
     /** Probeert een backup te starten; false als er al een loopt. */
     static boolean tryBegin() {
+        synchronized (BackupRisk.EPOCH) {
         if (!running.compareAndSet(false, true)) return false;
         busy = true;
         stop = false;
         return true;
+        }
     }
+    static void endRunning() { synchronized (BackupRisk.EPOCH) { busy = false; running.set(false); } }
 
     static final String STOPPED = "Gestopt: Android beëindigde de backup (volgende keer opnieuw)";
 
     static boolean has(Context c, String p) { return c.checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED; }
 
-    static boolean enabledPart(Context c, String part) { return prefs(c).getBoolean("part_" + part, !optIn(part)); }
+    static boolean defaultPart(String part, boolean encrypted) { return encrypted || !optIn(part); }
+    static String partTool(String part) { return "notifications".equals(part) ? "history" : "launcher".equals(part) ? "skin" : "routes".equals(part) ? "tracks" : part; }
+    static boolean enabledPart(Context c, String part) {
+        String tool = partTool(part);
+        if (!"app".equals(part) && ToolRegister.ADAPTERS.containsKey(tool) && !BackupRisk.enabled(c, tool)) return false;
+        return prefs(c).getBoolean("part_" + part, defaultPart(part, Secure.on(c)));
+    }
 
     /**
      * Toestemming om assistent of Slaappraat onversleuteld mee te nemen (alleen na de vraag "Onversleuteld meenemen?").
@@ -136,7 +145,8 @@ final class AllBackup {
                     int n = runPart(c, part);
                     // Geheugen, gesprekken en Slaappraat zonder versleutelen: in de uitkomst laten zien dat het leesbaar is
                     boolean plain = n > 0 && zip == null && priv(part);
-                    put(res, part, true, n, n < 0 ? "Niets te bewaren" : plain ? n + " (niet versleuteld)" : null);
+                    boolean complete = !"app".equals(part) || AppBackup.lastProblem == null;
+                    put(res, part, complete, n, !complete ? AppBackup.lastProblem : n < 0 ? "Niets te bewaren" : plain ? n + " (niet versleuteld)" : null);
                     // Onthouden dat deze telefoon zelf een leesbare kopie schreef (alleen die mag later weg)
                     if (plain) Secure.prefs(c).edit().putBoolean("plain_written_" + part, true).apply();
                 } catch (Throwable e) {
@@ -192,8 +202,7 @@ final class AllBackup {
                 prefs(c).edit().putString("last", res.toString()).apply(); // ook na stoppen: dan is te zien wat niet meer lukte
                 HomeWidgets.refresh(c, HomeWidgets.Overview.class);
             } catch (Exception ignored) { }
-            busy = false;
-            running.set(false);
+            endRunning();
         }
         return res;
     }
@@ -295,7 +304,7 @@ final class AllBackup {
             for (String p : PARTS) parts.put(p, effectivePart(c, p));
             JSONObject extra = AiSleepBackup.sizes(c);
             CheckinStore.sizes(c, extra);
-            o.put("parts", parts).put("sleepAudio", sleepAudio(c)).put("extra", extra);
+            o.put("parts", parts).put("sleepAudio", sleepAudio(c)).put("extra", extra).put("risk", BackupRisk.state(c));
             try { o.put("herstel", Herstel.ready(c)); } catch (Exception ignored) { }
             String last = prefs(c).getString("last", null);
             if (last != null) o.put("last", new JSONObject(last));

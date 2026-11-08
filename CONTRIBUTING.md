@@ -14,6 +14,9 @@ berichten, wachtwoorden of VPN-sleutels.
 
 Een beveiligingsprobleem meld je niet in een openbaar issue maar via [SECURITY.md](SECURITY.md).
 
+## Contract voor alle tools
+Lees [de verplichte toolafspraken](docs/toolcontract.md) voor opslag, automatische versleutelde backup, herstel, risicoclassificatie, zelfstandig gebruik en tests. Ze gelden voor bestaande én nieuwe tools.
+
 ## Code bijdragen
 1. Maak een fork en een branch (`git checkout -b mijn-onderwerp`).
 2. Zet het gereedschap klaar (Linux x86_64 of WSL2; nodig: Java 17+, Python 3, Node 22+, `zip`, `openssl`, `curl`, `git`):

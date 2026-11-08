@@ -1,0 +1,54 @@
+// Standaard alle gewone toolgegevens versleuteld; hoog risico alleen expliciet en na ontgrendeling.
+const assert = require('assert');
+const fs = require('fs'), path = require('path');
+const { chromium } = require('playwright');
+const register = require('../../tools/tool-register');
+(async () => {
+  const source = fs.readFileSync(path.join(__dirname,'../../web/src/script/00-tools.js'),'utf8');
+  const withTool = policy => source.replace('const TOOLS = {', "const TOOLS = {\n nieuwtool:['Nieuwe tool','#123456','★',"+JSON.stringify(policy)+"],");
+  const ordinary = register.readTools(withTool({}));
+  assert(register.javaSource(ordinary).includes('"nieuwtool"'), 'nieuwe gewone tool zonder extra backup-lijst');
+  const high = register.readTools(withTool({backup:'hoog',roots:['nieuwtool.json']}));
+  assert(register.javaSource(high).includes('m.put("nieuwtool.json", "nieuwtool")'));
+  assert(register.javaSource(high).includes('m.put("nieuwtool_geheim", "nieuwtool")'));
+  assert.throws(()=>register.readTools(withTool({backup:'hoog',roots:['bank']})),/Gedeelde/);
+  assert.throws(()=>register.readTools(withTool({backup:'hoog',adapter:'bank'})),/andere tool/);
+  assert.throws(()=>register.readTools(withTool({backup:'hoog',roots:['..\/bank']})),/Ongeldige/);
+  assert.notEqual(register.javaSource(high),register.javaSource(register.readTools(withTool({backup:'hoog',roots:['nieuwtool.json'],versie:2}))), 'gewijzigd beleid vraagt opnieuw toestemming');
+  const browser = await chromium.launch();
+  for (const colorScheme of ['light','dark']) {
+    const page = await browser.newPage({viewport:{width:390,height:844},colorScheme}); const errors = [];
+    page.on('pageerror', e=>errors.push(e.message));
+    await page.goto('file://'+path.join(__dirname,'ui/index.html'));
+    await page.evaluate(()=>show('bkparts'));
+    assert.equal(await page.locator('#bk-risk input:checked').count(),0,'beide uitzonderingen standaard uit');
+    assert.equal(await page.locator('#bk-risk input').count(),2,'risicokeuzes uit toolregister');
+    assert((await page.locator('#bk-risk-card').textContent()).includes('Uitzetten verwijdert eerdere backups niet'));
+    await page.click('#bk-risk input[data-risk="bank"]');
+    assert.equal(await page.locator('#bk-risk input:checked').count(),0,'geen hoog risico zonder versleuteling');
+    await page.evaluate(()=>{Android._sec.on=true;enterBackup();});
+    const defaults = await page.evaluate(()=>JSON.parse(Android.backupState(true)));
+    assert(defaults.parts.ai && defaults.parts.sleep && defaults.parts.checkin && defaults.parts.notifications && defaults.sleepAudio,'gewone privégegevens standaard versleuteld mee');
+    await page.click('#bk-risk input[data-risk="bank"]');
+    assert((await page.locator('#modal').textContent()).includes('backup-wachtwoord'));
+    await page.click('#modal-cancel');
+    assert.equal(await page.locator('#bk-risk input:checked').count(),0,'annuleren geeft geen toestemming');
+    await page.evaluate(()=>{Android._bk.riskAuthDenied=true;});
+    await page.click('#bk-risk input[data-risk="bank"]'); await page.click('#modal-ok');
+    await page.waitForTimeout(150);
+    assert.equal(await page.locator('#bk-risk input:checked').count(),0,'geweigerde ontgrendeling geeft geen toestemming');
+    await page.evaluate(()=>{Android._bk.riskAuthDenied=false;});
+    await page.click('#bk-risk input[data-risk="bank"]'); await page.click('#modal-ok');
+    await page.waitForFunction(()=>document.querySelector('#bk-risk input[data-risk="bank"]').checked);
+    await page.evaluate(()=>{Android.backupSetPart('app',false);enterBackup();});
+    assert.equal(await page.locator('#bk-risk input:checked').count(),0,'Alle appgegevens uit trekt toestemming in');
+    await page.evaluate(()=>{Android.backupSetPart('app',true);enterBackup();});
+    await page.click('#bk-risk input[data-risk="masterdata"]'); await page.click('#modal-ok');
+    await page.waitForFunction(()=>document.querySelector('#bk-risk input[data-risk="masterdata"]').checked);
+    await page.screenshot({path:path.join(__dirname,'shots/backup-risico-'+colorScheme+'.png'),fullPage:true});
+    await page.evaluate(()=>{Android.backupEncryptOff();enterBackup();});
+    assert.equal(await page.locator('#bk-risk input:checked').count(),0,'versleuteling uit trekt toestemming in');
+    assert.deepEqual(errors,[]); await page.close();
+  }
+  await browser.close(); console.log('errors []');
+})().catch(error=>{console.log('errors',[String(error.stack||error)]);process.exit(1);});

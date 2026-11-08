@@ -57,6 +57,7 @@ final class SettingsBackup {
     static JSONObject snapshot(Context c) throws Exception {
         JSONObject prefs = new JSONObject();
         for (String[] k : KEEP) {
+            if (ToolRegister.PREFS.containsKey(k[0])) continue; // hoog risico uitsluitend via de expliciete versleutelde appbackup
             SharedPreferences p = c.getSharedPreferences(k[0], Context.MODE_PRIVATE);
             JSONObject o = new JSONObject();
             for (Map.Entry<String, ?> e : p.getAll().entrySet()) {

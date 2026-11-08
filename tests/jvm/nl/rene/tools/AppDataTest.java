@@ -37,7 +37,9 @@ public class AppDataTest {
         check(!AppData.keepPref("lock", "fails") && !AppData.keepPref("lock", "waitUntil") && AppData.keepPref("lock", "codeHash"), "app-slot: code wel, wachttijd niet");
         check(!AppData.keepPref("spotify", "refresh") && AppData.keepPref("spotify", "clientId"), "Spotify: ververs-sleutel apart (geheim), rest gewoon");
         check(!AppData.keepPref("mockloc", "active"), "gekozen locatie die nu actief is: niet");
-        check(!AppData.keepPref("onbekend", "x"), "onbekend instellingenbestand: niet");
+        check(AppData.keepPref("nieuwtool", "x"), "nieuwe instellingen standaard versleuteld mee");
+        check(AppData.fileRule("nieuwtool/gegevens.json") == null, "nieuwe bestanden standaard versleuteld mee");
+        check(!AppData.keepPref("nieuwtool_geheim", "token") && AppData.secretPrefsFile("nieuwtool_geheim"), "nieuwe geheimen apart overdraagbaar");
         check(!AppData.keepPref("auto", ""), "lege sleutel: niet");
 
         // Elke naam die de app gebruikt, moet ingedeeld zijn (mee of bewust niet): zo vergeet niemand een nieuwe
@@ -54,10 +56,10 @@ public class AppDataTest {
             m = pf.matcher(t); while (m.find()) roots.add(m.group(1).split("/")[0]);
         }
         List<String> loose = new ArrayList<>();
-        for (String p : prefs) if (!AppData.PREFS_KEEP.contains(p) && !AppData.PREFS_SKIP.containsKey(p)) loose.add(p);
+        for (String p : prefs) if (!AppData.keepPrefsFile(p) && !AppData.secretPrefsFile(p) && !AppData.PREFS_SKIP.containsKey(p)) loose.add(p);
         check(loose.isEmpty(), "alle instellingenbestanden ingedeeld " + loose);
         loose.clear();
-        for (String r : roots) if (!AppData.FILE_ROOTS.contains(r) && !AppData.FILE_SKIP.containsKey(r)) loose.add(r);
+        for (String r : roots) if (AppData.fileRule(r) != null && !AppData.FILE_SKIP.containsKey(r) && !ToolRegister.ROOTS.containsKey(r)) loose.add(r);
         check(loose.isEmpty(), "alle mappen in getFilesDir ingedeeld " + loose);
         check(prefs.contains("vpn") && prefs.contains("lock") && roots.contains("call-recordings"), "inventaris vindt vpn, lock en opnames");
         for (String p : AppData.PREFS_SKIP.keySet()) check(!AppData.PREFS_KEEP.contains(p), "niet tegelijk mee en niet mee: " + p);
@@ -75,7 +77,7 @@ public class AppDataTest {
         check(AppData.fileRule("podcasts/abonnementen.json") == null && AppData.fileRule("podcasts/downloads.json") != null, "podcasts: abonnementen wel, downloadlijst niet");
         check(AppData.fileRule("tracks/r1.trk") == null && AppData.fileRule("tracks/live.trk") != null, "routes wel, lopende opname niet");
         check(AppData.fileRule("transcripts/x.json.tmp") != null && AppData.fileRule("ai/chats.json.writing") != null && AppData.fileRule("sleep/a.wav.rt-part") != null, "tijdelijke bestanden niet");
-        check(AppData.fileRule(".cache/llama") != null && AppData.fileRule("iets-nieuws/a.txt") != null, "onbekende mappen niet");
+        check(AppData.fileRule(".cache/llama") != null && AppData.fileRule("iets-nieuws/a.txt") == null, "nieuwe gegevens mee, verborgen technische bestanden niet");
 
         // ---------- namen uit een (niet te vertrouwen) archief ----------
         check(AppData.safeRel("a/b/c.txt") != null, "gewoon pad");

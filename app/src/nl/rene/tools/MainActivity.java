@@ -142,6 +142,24 @@ public class MainActivity extends Activity {
     volatile int kluisGen = -1;
     volatile long bankGen = -1;
     final Bank.Unlock bankAuth = new Bank.Unlock();
+    final java.util.concurrent.atomic.AtomicLong backupAuthSerial = new java.util.concurrent.atomic.AtomicLong();
+    private Runnable backupAfterAuth;
+    void runBackupAfterAuth() { if (!masterForeground || isDestroyed() || isFinishing()) return; Runnable task = backupAfterAuth; backupAfterAuth = null; if (task != null) task.run(); }
+    void backupAuthenticate(String title, Runnable task, String callback) {
+        h.post(() -> {
+            if (!masterForeground || isDestroyed() || isFinishing() || Lock.busy()) { js(callback, JSONObject.quote(Taal.T("Ontgrendel opnieuw"))); return; }
+            final long request = backupAuthSerial.incrementAndGet();
+            Lock.prompt(this, title, (ok, message) -> {
+                if (!ok) { js(callback, JSONObject.quote(message == null ? "Niet ontgrendeld" : message)); return; }
+                final long due = android.os.SystemClock.elapsedRealtime() + 5000;
+                backupAfterAuth = () -> {
+                    if (request != backupAuthSerial.get() || android.os.SystemClock.elapsedRealtime() > due) { js(callback, JSONObject.quote(Taal.T("Ontgrendel opnieuw"))); return; }
+                    task.run();
+                };
+                if (masterForeground) h.post(this::runBackupAfterAuth);
+            });
+        });
+    }
     private Runnable bankAfterAuth;
     void afterBankAuth(Runnable task) { bankAfterAuth = task; h.post(this::runBankAfterAuth); }
     void runBankAfterAuth() { if (!masterForeground || isDestroyed() || isFinishing()) return; Runnable task = bankAfterAuth; bankAfterAuth = null; if (task != null) task.run(); }
@@ -154,7 +172,7 @@ public class MainActivity extends Activity {
     /** De kluis is open én mag door dit venster gebruikt worden. */
     boolean kluisOk() { return Kluis.isOpen() && kluisMine(); }
     /** Een losse bank-app kan niet meeliften op de ontgrendeling van een ander venster. */
-    boolean bankOk() { return (!isSolo() || "bank".equals(solo)) && Bank.session(bankGen); }
+    boolean bankOk() { return !Bank.restoring && (!isSolo() || "bank".equals(solo)) && Bank.session(bankGen); }
 
     boolean isSolo() { return this instanceof SoloActivity; }
 
@@ -493,7 +511,7 @@ public class MainActivity extends Activity {
         if (live == this) live = null;
         synchronized (ALL) { ALL.remove(this); }
         if (isFinishing() && !isSolo()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
-        bankAuth.cancel();bankAfterAuth=null;
+        bankAuth.cancel();bankAfterAuth=null;backupAuthSerial.incrementAndGet();backupAfterAuth=null;
         masterSession.close();masterAfterAuth=null;masterAuthSerial.incrementAndGet();h.removeCallbacks(masterExpiry);
         final IdCopy closingId = idCopy;
         new Thread(() -> { try { closingId.clear(); } catch (Throwable ignored) { } }, "id-copy-close").start();
@@ -596,6 +614,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        if (!Lock.authBusy) { backupAuthSerial.incrementAndGet(); backupAfterAuth = null; }
         visible = false; masterForeground=false; if(!masterPicking())suspendMaster(false);
         // Bankzaken gaat op slot zodra de app uit beeld gaat (niet tijdens bestanden kiezen of de vraag om te ontgrendelen)
         synchronized (bankAuth) {
@@ -614,7 +633,7 @@ public class MainActivity extends Activity {
         super.onResume();
         visible = true; masterForeground=true;
         if(masterPickUntil!=0){boolean back=masterPickReturned&&masterPicking();masterPickUntil=0;masterPickReturned=false;if(back)masterPhotos.continueAfterPick();else suspendMaster(false);}
-        runMasterAfterAuth();bankAuth.resume();runBankAfterAuth();
+        runMasterAfterAuth();bankAuth.resume();runBankAfterAuth();runBackupAfterAuth();
         js("onResumeApp", "");
         try { GebruikLive.start(getApplicationContext()); } catch (Throwable ignored) { }
         if (isSolo()) return; // updates regelt de gewone app
@@ -2320,25 +2339,43 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public String backupState(boolean full) { return AllBackup.stateJson(ctx, full); }
+        @JavascriptInterface public String backupSetRisk(String tool, boolean on) {
+            if (a.isSolo() && !"backup".equals(a.solo)) return "Kan alleen vanuit de gewone app";
+            if (!on) { a.backupAuthSerial.incrementAndGet(); return BackupRisk.set(ctx, tool, false); }
+            if (!ToolRegister.ADAPTERS.containsKey(tool)) return "Onbekend onderdeel";
+            final long policy = BackupRisk.EPOCH.ticket();
+            a.backupAuthenticate(Taal.t(ctx, "Gegevens met hoog risico in backup opnemen"), () -> a.js("onBackupRisk", JSONObject.quote(BackupRisk.set(ctx, tool, true, policy))), "onBackupRisk");
+            return "";
+        }
 
         // ----- Versleutelen, opruimen, ruimtegebruik -----
         /** Wachtwoord instellen (sleutel afleiden duurt even); uitkomst via onSecure("" of foutmelding). */
         @JavascriptInterface public void backupSetPassword(String pw) {
-            new Thread(() -> {
+            final long policy; final boolean highRisk;
+            synchronized (BackupRisk.EPOCH) {
+                if (AllBackup.running.get() || AllBackup.busy) { a.js("onSecure", JSONObject.quote(Taal.T("Er loopt al een backup"))); return; }
+                policy = BackupRisk.EPOCH.ticket(); highRisk = BackupRisk.any(ctx);
+            }
+            Runnable start = () -> new Thread(() -> {
                 String r = "";
-                try { Secure.setPassword(ctx, pw); AllBackupJob.ensureScheduled(ctx); } // (elke nacht: standaard aan met versleutelen)
+                try { Secure.setPassword(ctx, pw, policy); AllBackupJob.ensureScheduled(ctx); } // (elke nacht: standaard aan met versleutelen)
                 catch (Exception e) { r = e.getMessage() != null ? e.getMessage() : "Instellen mislukt"; App.log(ctx, "SECURE", "wachtwoord: " + e); }
                 a.js("onSecure", JSONObject.quote(r));
             }, "secure").start();
+            if (highRisk) a.backupAuthenticate(Taal.t(ctx, "Backup-wachtwoord wijzigen"), start, "onSecure");
+            else start.run();
         }
 
         /** Versleutelen uit: de privé-onderdelen (assistent, Slaappraat, Check-in) gaan dan ook uit; weer aanzetten vraagt eerst. */
         @JavascriptInterface public void backupEncryptOff() {
+            synchronized (BackupRisk.EPOCH) {
+            if (AllBackup.running.get() || AllBackup.busy) { a.js("onSecure", JSONObject.quote(Taal.T("Er loopt al een backup"))); return; }
             Secure.off(ctx);
             try { AllBackupJob.ensureScheduled(ctx); } catch (Exception ignored) { }
             android.content.SharedPreferences.Editor e = AllBackup.prefs(ctx).edit();
             for (String p : AllBackup.PRIVATE) { e.putBoolean("part_" + p, false); AllBackup.setPlain(ctx, p, false); }
             e.apply();
+            }
         }
 
         @JavascriptInterface public void backupSetRotate(boolean on) { AllBackup.prefs(ctx).edit().putBoolean("rotate", on).apply(); }
@@ -2568,6 +2605,14 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void backupSetPart(String part, boolean on) {
+            if ("app".equals(part)) {
+                synchronized (BackupRisk.EPOCH) {
+                    if (AllBackup.running.get() || AllBackup.busy) { a.js("onBackupRisk", JSONObject.quote(Taal.T("Er loopt al een backup"))); return; }
+                    if (AllBackup.enabledPart(ctx, "app") != on) BackupRisk.clear(ctx);
+                    if (!AllBackup.prefs(ctx).edit().putBoolean("part_app", on).commit()) a.js("onBackupRisk", JSONObject.quote(Taal.T("Instellingen bewaren lukt niet")));
+                }
+                return;
+            }
             if ("sleepAudio".equals(part)) { AllBackup.prefs(ctx).edit().putBoolean("sleep_audio", on).apply(); return; }
             // Toestemming voor onversleuteld (alleen na "Onversleuteld meenemen?"); uitvinken trekt hem weer in
             if (part != null && part.startsWith("plain:") && AllBackup.priv(part.substring(6))) { AllBackup.setPlain(ctx, part.substring(6), on); return; }

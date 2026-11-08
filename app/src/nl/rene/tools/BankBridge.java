@@ -26,7 +26,7 @@ public class BankBridge extends FacturenBridge {
 
     /** Toestand zonder iets te ontsleutelen (open, tijd over, of er gegevens zijn, hoe de sleutel beveiligd is). */
     @JavascriptInterface public String bankState() {
-        try { return Bank.state(ctx).put("open", a.bankOk()).put("left", a.bankOk() ? Bank.remaining() : 0).put("ai", aiInfo()).toString(); } catch (Throwable t) { return "{\"open\":false,\"error\":\"Laden lukt niet\"}"; }
+        try { return Bank.state(ctx).put("data", Bank.hasData(ctx) || ProtectedRestore.has(ctx, "bank")).put("open", a.bankOk()).put("left", a.bankOk() ? Bank.remaining() : 0).put("ai", aiInfo()).toString(); } catch (Throwable t) { return "{\"open\":false,\"error\":\"Laden lukt niet\"}"; }
     }
 
     JSONObject aiInfo() {
@@ -51,10 +51,17 @@ public class BankBridge extends FacturenBridge {
                     try {
                         if (!a.bankAuth.ready(request, android.os.SystemClock.elapsedRealtime())) return;
                         // De sleutel meteen na de ontgrendeling maken (dan kan hij aan die ontgrendeling gekoppeld worden)
-                        if (!Bank.hasData(ctx)) Bank.key(ctx);
-                        synchronized (a.bankAuth) {
-                            if (!a.bankAuth.claim(request, android.os.SystemClock.elapsedRealtime())) return;
-                            a.bankGen = Bank.open();
+                        if (!Bank.hasData(ctx) && !ProtectedRestore.has(ctx, "bank")) Bank.key(ctx);
+                        synchronized (Bank.LOCK) {
+                            Bank.restoring = true;
+                            try {
+                                synchronized (a.bankAuth) {
+                                    if (!a.bankAuth.claim(request, android.os.SystemClock.elapsedRealtime())) return;
+                                    a.bankGen = Bank.open();
+                                }
+                                PrivateBackup.restoreBank(ctx);
+                            } catch (Throwable error) { Bank.close(); throw error; }
+                            finally { Bank.restoring = false; }
                         }
                         a.js("onBank", "true");
                         // Automatisch opgehaald terwijl Bankzaken op slot ging: nu alsnog importeren
@@ -68,19 +75,19 @@ public class BankBridge extends FacturenBridge {
 
     /** De ontsleutelde gegevens: {left, store} (store = null als er nog niets is), of {error}. */
     @JavascriptInterface public String bankLoad() {
-        try {
+        try { synchronized (Bank.LOCK) {
             if (!a.bankOk()) return "{\"locked\":true}";
             Bank.touch();
             String s = Bank.load(ctx);
             return "{\"left\":" + Bank.remaining() + ",\"store\":" + (s.isEmpty() ? "null" : s) + "}";
-        } catch (Throwable t) {
+        } } catch (Throwable t) {
             return t instanceof OutOfMemoryError ? "{\"error\":\"Te veel gegevens om te openen\"}" : "{\"error\":" + q(Bank.why(t)) + "}";
         }
     }
 
     /** Opslaan (regels, categorieën, budgetten, notities). Geeft "" of een melding. */
     @JavascriptInterface public String bankSave(String json) {
-        try {
+        try { synchronized (Bank.LOCK) {
             if (!a.bankOk()) return "Bankzaken is op slot";
             if (json == null || json.length() > 150_000_000) return "Te veel gegevens";
             JSONObject o = new JSONObject(json);
@@ -88,7 +95,7 @@ public class BankBridge extends FacturenBridge {
             Bank.touch();
             Bank.saveFromUi(ctx, o);
             return "";
-        } catch (Throwable t) { return t instanceof OutOfMemoryError ? "Te veel gegevens" : Bank.why(t); }
+        } } catch (Throwable t) { return t instanceof OutOfMemoryError ? "Te veel gegevens" : Bank.why(t); }
     }
 
     /** Nog bezig: het slot 5 minuten verder zetten (hooguit tot de sleutel verloopt). Geeft de tijd die over is. */

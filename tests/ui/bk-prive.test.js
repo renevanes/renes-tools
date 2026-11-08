@@ -44,7 +44,7 @@ const { chromium } = require('playwright');
     await pg.click('#bk-enc-off'); await pg.waitForTimeout(150);
     const offText = await pg.textContent('#modal-text');
     console.log('uitzetten', offText.replace(/\n/g, ' / '));
-    if (!/Het geheugen en de gesprekken van de assistent, en Slaappraat, gaan dan niet meer mee, want die zijn privé/.test(offText)) throw new Error('dialoog noemt privé-onderdelen niet');
+    if (!/Het geheugen en de gesprekken van de assistent, Slaappraat, en Check-in, gaan dan niet meer mee, want die zijn privé/.test(offText)) throw new Error('dialoog noemt privé-onderdelen niet');
     await pg.click('#modal-ok'); await pg.waitForTimeout(150);
     const p4 = await priv();
     console.log('na uitzetten', JSON.stringify(p4), await pg.textContent('#toast'));

@@ -45,16 +45,23 @@
     <p class="hint">Geldt voor Nu alles back-uppen en voor de nachtelijke backup.</p>
     <div class="card">
       <h2>Onderdelen</h2>
+      <p class="note">Alle appgegevens bewaart de eigen toolgegevens voor herinstallatie. Losse exportformaten hebben hun eigen vinkjes. De keuzes voor meldingen en Slaappraat-geluid gelden ook voor de volledige kopie. Hoog risico blijft standaard uitgesloten.</p>
       <div id="bk-parts"></div>
     </div>
     <div class="card bk-privcard">
       <h2 class="bk-privh"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span> Privé</h2>
-      <p class="note" style="margin-top:0">Staat standaard uit. Zet het alleen aan als je het mee wilt nemen, liefst versleuteld.</p>
+      <p class="note" style="margin-top:0">Gaat standaard mee als Versleutelen aan staat. Zonder versleutelen is vooraf toestemming nodig.</p>
       <div id="bk-private"></div>
       <details class="help in"><summary data-icon="info">Waarvoor is dit?</summary><div class="help-body">
         <p>Handig als je overstapt naar een nieuwe telefoon: de gewone Android-backup neemt dit bewust niet mee.</p>
         <p>Taalmodellen en de zoekindex gaan nooit mee (die download of maak je opnieuw).</p>
       </div></details>
+    </div>
+    <div class="card" id="bk-risk-card">
+      <h2>Hoog risico</h2>
+      <p class="note warn">Standaard uit. Deze gegevens kunnen zeer persoonlijke of financiële informatie bevatten. Een backup maakt een extra kopie buiten de tool. Wie het backup-wachtwoord heeft, kan die kopie lezen. Uitzetten verwijdert eerdere backups niet. Na een wachtwoordwijziging of terugzetten staan deze keuzes weer uit.</p>
+      <p class="note">Alleen met Versleutelen en Alle appgegevens aan. Ontgrendel de betreffende tool kort voor de backup. Lukt dat niet, dan wordt de backup als onvolledig gemeld. Na terugzetten ontgrendel je de tool opnieuw.</p>
+      <div id="bk-risk"></div>
     </div>
   </main>
 </section>

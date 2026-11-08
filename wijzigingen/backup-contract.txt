@@ -1,0 +1,3 @@
+Gewone toolgegevens gaan voortaan standaard in de versleutelde backup mee, ook bij nieuwe tools. Er zijn vaste afspraken en automatische controles voor opslag, backup, terugzetten en zelfstandig gebruik.
+Bankzaken en Stamgegevens blijven standaard uitgesloten. Je kunt ze bij Wat gaat er mee → Hoog risico bewust inschakelen, met risico-uitleg en toestelontgrendeling. Dezelfde indeling is bruikbaar voor toekomstige tools.
+Facturen-wachtwoorden en nieuwe toolgeheimen worden in de versleutelde appbackup meegenomen en na terugzetten opnieuw beveiligd voor de nieuwe installatie.

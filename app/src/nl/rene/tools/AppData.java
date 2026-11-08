@@ -38,6 +38,11 @@ import javax.crypto.spec.GCMParameterSpec;
 final class AppData {
 
     private AppData() { }
+    /** Een oudere APK kent de schema's en risicoclassificaties van een nieuwere backup nog niet. */
+    static boolean supportedCode(String code, long current) {
+        try { return code.isEmpty() || (code.matches("[0-9]{1,10}") && Long.parseLong(code) <= current); }
+        catch (RuntimeException invalid) { return false; }
+    }
 
     static final String DIR = "Appgegevens";
     static final String MANIFEST = DIR + "/inhoud.txt";
@@ -58,7 +63,7 @@ final class AppData {
 
     // ---------- instellingen (SharedPreferences) ----------
 
-    /** Instellingen die meegaan (en teruggezet mogen worden). Elke naam in de code staat hier of in PREFS_SKIP. */
+    /** Bestaande namespaces voor ontdekken en de beperkte leesbare exports. Nieuwe gewone namespaces gaan automatisch versleuteld mee. */
     static final List<String> PREFS_KEEP = Collections.unmodifiableList(Arrays.asList(
             "allbackup", "alarm", "apparaten", "backupmap", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "facturen", "gebruik", "launcher",
             "localai", "lock", "mockloc", "models", "music", "notepins", "notification_history", "notifcenter", "pdf",
@@ -80,7 +85,6 @@ final class AppData {
         m.put("update", "toestand van de updates van deze installatie");
         m.put("alarm_dp", "kopie van de radiowekker voor na een herstart (wordt opnieuw gemaakt)");
         m.put("notewidget", "koppeling met widgets (die moet je opnieuw plaatsen)");
-        m.put("facturen_geheim", "wachtwoorden voor Facturen, versleuteld met de sleutel van deze telefoon (opnieuw invullen)");
         PREFS_SKIP = Collections.unmodifiableMap(m);
     }
 
@@ -111,7 +115,10 @@ final class AppData {
 
     static Set<String> set(String... s) { return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(s))); }
 
-    static boolean keepPrefsFile(String file) { return file != null && PREFS_KEEP.contains(file); }
+    /** Nieuwe instellingen gaan standaard versleuteld mee; uitzonderingen zijn altijd expliciet. */
+    static boolean prefsName(String file) { return file != null && file.matches("[A-Za-z][A-Za-z0-9_-]{0,99}"); }
+    static boolean secretPrefsFile(String file) { return prefsName(file) && !PREFS_SKIP.containsKey(file) && file.endsWith("_geheim"); }
+    static boolean keepPrefsFile(String file) { return prefsName(file) && !secretPrefsFile(file) && !PREFS_SKIP.containsKey(file); }
 
     /** Gaat deze instelling mee (en mag hij teruggezet worden)? */
     static boolean keepPref(String file, String key) {
@@ -125,7 +132,7 @@ final class AppData {
 
     // ---------- bestanden (getFilesDir) ----------
 
-    /** Mappen en bestanden in getFilesDir() die meegaan. (De kluis gaat apart: ontsleuteld via geheim/kluis.) */
+    /** Bestaande mappen/bestanden voor lege-map-herstel en beperkte leesbare exports. Nieuwe gewone opslag gaat automatisch versleuteld mee. (De kluis gaat apart: ontsleuteld via geheim/kluis.) */
     static final List<String> FILE_ROOTS = Collections.unmodifiableList(Arrays.asList(
             "notes.json", "notes.json.bak", "music.json", "ai", "apparaten", "call-recordings", "checkin", "contacts", "ereader", "facturen", "gebruik", "podcasts",
             "shortcut-icons", "sleep", "spotify", "toiletten", "tracks", "transcripts"));
@@ -139,9 +146,9 @@ final class AppData {
         m.put("web", "bijgewerkte interface: komt vanzelf weer binnen");
         m.put("wa", "leesbare kopie van de WhatsApp-backup: wordt opnieuw gemaakt uit de WhatsApp-backup");
         m.put("kluis", "gaat apart mee (ontsleuteld, versleuteld in het archief)");
-        m.put("masterdata", "stamgegevens en lokaal activiteitenlog: alleen versleuteld op dit toestel; sleutel is toestelgebonden");
+        m.put("masterdata", "stamgegevens en lokaal activiteitenlog: afzonderlijk overdraagbaar via de risicokeuze; nooit als toestelgebonden ciphertext");
         m.put("toiletten-cache", "gedownloade bronnen van Toiletten en douches: worden opnieuw opgehaald");
-        m.put("bank", "Bankzaken: blijft bewust alleen op deze telefoon (versleuteld met een sleutel die de telefoon niet uit kan)");
+        m.put("bank", "Bankzaken: afzonderlijk overdraagbaar via de risicokeuze; nooit als toestelgebonden ciphertext");
         m.put("crash.log", "foutlogboek van deze installatie");
         m.put("notes.json.tmp", "tijdelijk bestand");
         FILE_SKIP = Collections.unmodifiableMap(m);
@@ -157,22 +164,23 @@ final class AppData {
         PATH_SKIP = Collections.unmodifiableMap(m);
     }
 
-    static final String[] TEMP_SUFFIX = {".part", ".tmp", ".writing", ".download", ".rt-part", ".rt-tmp", ".keep", "-journal"};
+    static final String[] TEMP_SUFFIX = {".part", ".tmp", ".writing", ".download", ".rt-part", ".rt-tmp", ".keep", "-journal", "-wal", "-shm"};
 
     /**
-     * Gaat dit bestand (pad binnen getFilesDir(), met /) mee? null = ja, anders de reden. Onbekende mappen gaan niet mee:
-     * alleen wat de app zelf kent, kan ook weer veilig teruggezet worden.
+     * Gaat dit bestand (pad binnen getFilesDir(), met /) mee? null = ja, anders de reden. Nieuwe gewone opslag gaat mee; technische en beschermde domeinen zijn expliciet uitgesloten.
      */
-    static String fileRule(String rel) {
+    static String fileRule(String rel) { return fileRule(rel, false); }
+    static String fileRule(String rel, boolean highRisk) {
         String r = safeRel(rel);
         if (r == null) return "vreemde naam";
         int slash = r.indexOf('/');
         String top = slash < 0 ? r : r.substring(0, slash);
+        if (top.startsWith(".")) return "verborgen technisch bestand";
         if (FILE_SKIP.containsKey(top)) return FILE_SKIP.get(top);
         // Foto's van Gebruik gaan niet via de gewone bestanden mee (ze zijn met de kluissleutel versleuteld): apart,
         // ontsleuteld in het archief en bij terugzetten opnieuw versleuteld (zoals de kluis).
         if (r.equals("gebruik/foto") || r.startsWith("gebruik/foto/")) return "gaat apart mee (versleuteld met de kluissleutel)";
-        if (!FILE_ROOTS.contains(top)) return "onbekend";
+        if (!highRisk && ToolRegister.ROOTS.containsKey(top)) return "hoog risico: afzonderlijke toestemming nodig";
         if (slash < 0 && !top.contains(".")) return null; // lege map zelf
         if (PATH_SKIP.containsKey(r)) return PATH_SKIP.get(r);
         String low = r.toLowerCase(Locale.ROOT);
@@ -227,6 +235,8 @@ final class AppData {
         if (p.equals(HISTORY)) return "history";
         if (p.equals(MODELS)) return "models";
         if (p.equals(STATE)) return "state";
+        String protectedId = PrivateBackup.target(p);
+        if (protectedId != null) return "protected:" + protectedId;
         if (p.startsWith(KLUIS_DIR + "/")) {
             String id = p.substring(KLUIS_DIR.length() + 1);
             return id.matches("[a-z0-9]{6,24}") ? "kluis:" + id : null;
@@ -237,7 +247,7 @@ final class AppData {
         }
         if (p.startsWith(FILES + "/")) {
             String rel = p.substring(FILES.length() + 1);
-            return fileRule(rel) == null ? "f:" + rel : null;
+            return fileRule(rel, true) == null ? "f:" + rel : null;
         }
         return null;
     }
@@ -274,6 +284,20 @@ final class AppData {
         long bytes() { long n = 0; for (Entry e : entries) n += e.size; return n; }
         long refBytes() { long n = 0; for (Ref r : refs) n += r.size; return n; }
         Entry find(String path) { for (Entry e : entries) if (e.path.equals(path)) return e; return null; }
+    }
+    /** Iedere ontbrekende duurzame entry maakt de kopie onvolledig; alleen bewuste technische/keuze-uitsluitingen tellen niet. */
+    static boolean incomplete(Manifest m) {
+        if (!m.broken.isEmpty()) return true;
+        for (String[] skipped : m.skipped) {
+            if (skipped.length < 2) return true;
+            String rule = fileRule(skipped[0]);
+            if ("vreemde naam".equals(rule) || skipped[1] == null) return true;
+            if (skipped[1].equals(rule)) continue;
+            if ("sleep-geluid".equals(skipped[0]) && skipped[1].endsWith("Slaappraat met geluid staat uit")) continue;
+            if ("meldingen".equals(skipped[0]) && "Meldingsgeschiedenis staat uit bij Wat gaat er mee".equals(skipped[1])) continue;
+            return true;
+        }
+        return false;
     }
 
     static String clean(String s) { return s == null ? "" : s.replace('\t', ' ').replace('\n', ' ').replace('\r', ' '); }

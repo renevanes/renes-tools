@@ -48,11 +48,11 @@ function enterBackup(){
   $('#st-dest').textContent = st.dest ? t('Huidige map: {map}', { map: st.destName || t('gekozen') }) : t('Nog niet gekozen');
   $('#bk-dest-btn').textContent = st.dest ? t('Andere map kiezen') : t('Map kiezen');
   $('#bk-parts').innerHTML = Object.keys(BK_PARTS).map(k => '<label class=chk><input type=checkbox data-p="' + k + '"' + (bkPartOn(st, k) ? ' checked' : '') +
-    ' onchange="Android.backupSetPart(this.dataset.p, this.checked); bkSums()"> ' + t(BK_PARTS[k]) + '</label>' +
+    ' onchange="Android.backupSetPart(this.dataset.p, this.checked); bkSums(); bkRiskRender(bkState(true))"> ' + t(BK_PARTS[k]) + '</label>' +
     (k === 'app' ? '<div class=bk-sub><p class="note' + (st.encrypted ? '' : ' warn') + '" id=bk-app-note>' + bkAppNote(st.encrypted) + '</p></div>' : '')).join('');
   $('#bk-auto').checked = !!st.auto; $('#bk-charging').checked = st.charging !== false;
   $('#bk-next').textContent = st.auto && st.next ? t('Volgende backup: {wanneer}', { wanneer: fmtDT(st.next, {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) }) : '';
-  bkRestoreList();
+  bkRestoreList(); bkRiskRender(st);
   bkRenderLast(st); bkRenderSecure(st); bkRenderHerstel(st); bkSums(st);
   if (typeof bmRender === 'function') bmRender();
   stopBkPoll(); bkPoll = setInterval(bkPollOnce, 1000);
@@ -62,7 +62,7 @@ function bkRestoreList(){
   $('#bk-restore-list').innerHTML = BK_RESTORE.map(([k, label, icon, sub]) => '<button class="strow" data-k="' + k + '" onclick="Android.restorePick(\'' + k + '\')"><span class="stic">' + uiIcon(icon) + '</span><span class="sttxt"><b>' + esc(t(label)) + '</b><small class=bk-sumwrap>' + esc(t(sub)) + '</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>').join('');
 }
 bkRestoreList();
-function bkPartOn(st, k){ const p = st.parts || {}; return p[k] === true || (k !== 'notifications' && !(k in BK_PRIV) && p[k] !== false); }
+function bkPartOn(st, k){ const p = st.parts || {}; return p[k] === true || (p[k] !== false && (st.encrypted || (k !== 'notifications' && !(k in BK_PRIV)))); }
 /* De stand op de rijen van het overzicht (en bij Instellingen → Backup-map) */
 function bkSetSumText(st){
   return [st.auto ? t(st.charging !== false ? 'Elke nacht, tijdens opladen' : 'Elke nacht') : t('Niet automatisch'),
@@ -133,7 +133,7 @@ function bkRenderLast(st){
   uiHtml($('#bk-parts-res'), bad.map(row).join('') + (l.all ? '<div class=bkres><span class=bad>' + esc(l.all.msg || '') + '</span></div>' : '') +
     (good.length || extra ? uiHelp(bad.length ? tn(good.length, '{n} onderdeel gelukt', '{n} onderdelen gelukt') : tn(good.length, '✓ {n} onderdeel gelukt', '✓ Alle {n} onderdelen gelukt'), good.map(row).join('') + extra, true, 'bk-res') : ''));
 }
-function bkPollOnce(){ let st = bkState(); if (st.busy !== bkBusy && bkOn()) { st = bkState(true); bkRenderLast(st); bkRenderHerstel(st); bkSums(st); } else if (st.busy) bkRenderLast(st); const tt = $('#tile-backup-sub'); if (tt) tt.textContent = st.busy ? t('Bezig met back-uppen…') : (st.last && st.last.t ? t('Laatst: {wat}', { wat: fmtD(st.last.t) }) : t('Alles in één keer bewaren')); }
+function bkPollOnce(){ let st = bkState(); if (st.busy !== bkBusy && bkOn()) { st = bkState(true); bkRenderLast(st); bkRenderHerstel(st); bkSums(st); bkRiskRender(st); } else if (st.busy) bkRenderLast(st); const tt = $('#tile-backup-sub'); if (tt) tt.textContent = st.busy ? t('Bezig met back-uppen…') : (st.last && st.last.t ? t('Laatst: {wat}', { wat: fmtD(st.last.t) }) : t('Alles in één keer bewaren')); }
 function bkRun(){ const e = Android.backupStart($('#bk-wa').checked); if (e) toast(e); setTimeout(bkPollOnce, 200); }
 window.onBackupDone = function(r){
   const failed = Object.keys(r || {}).filter(k => r[k] && r[k].ok === false).length;
@@ -259,3 +259,22 @@ window.onRestoreDone = function(r){
   } else toast(r);
 };
 
+
+/* Risicoclassificatie volgt hetzelfde register als de tools en de native backup. */
+function bkRiskRender(st){
+  const box = $('#bk-risk'); if (!box) return;
+  const ids = Object.keys(TOOLS).filter(id => TOOLS[id][3]?.backup === 'hoog');
+  $('#bk-risk-card').hidden = !ids.length;
+  box.innerHTML = ids.map(id => '<label class="chk"><input type="checkbox" data-risk="' + id + '"' + (st.risk?.[id] ? ' checked' : '') + (st.busy ? ' disabled' : '') + ' onchange="bkRiskSet(this)"> ' + esc(t(TOOLS[id][0])) + '</label>').join('');
+}
+function bkRiskSet(el){
+  const id = el.dataset.risk, st = bkState(true);
+  if (!el.checked) { const error = Android.backupSetRisk(id, false); if (error) toast(t(error)); bkRiskRender(bkState(true)); return; }
+  el.checked = false;
+  if (!st.encrypted || !bkPartOn(st, 'app')) { toast(t('Zet eerst Versleutelen en Alle appgegevens aan.')); return; }
+  askConfirm(t('{naam} in de backup opnemen?', {naam:t(TOOLS[id][0])}), t('Dit zijn gegevens met een hoog risico. Ze komen als extra kopie in je versleutelde backup. Wie het backup-wachtwoord heeft, kan ze lezen. Ook een kopie op een gedeelde schijf of in de cloud blijft bestaan als je deze keuze later uitzet. Ontgrendel de tool kort voor de backup; anders wordt de backup als onvolledig gemeld.'), 'Ik begrijp het, meenemen', () => {
+    const error = Android.backupSetRisk(id, true); if (error) toast(t(error)); bkRiskRender(bkState(true));
+  });
+}
+
+window.onBackupRisk = function(error){ if (error) toast(t(error)); if(bkOn())enterBackup();else bkRiskRender(bkState(true)); };

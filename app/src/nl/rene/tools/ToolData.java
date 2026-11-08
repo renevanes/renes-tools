@@ -82,7 +82,7 @@ final class ToolData {
     static final long MAX_FILE = 2L * 1024 * 1024, MAX_TOTAL = 8L * 1024 * 1024;
 
     /** Gaat dit instellingenbestand mee? */
-    static boolean keepPrefsFile(String f) { return AppData.keepPrefsFile(f) && !PREFS_NEVER.contains(f); }
+    static boolean keepPrefsFile(String f) { return AppData.PREFS_KEEP.contains(f) && AppData.keepPrefsFile(f) && !ToolRegister.PREFS.containsKey(f) && !PREFS_NEVER.contains(f); }
 
     /** Toestand van deze installatie (gevraagde toestemmingen, tellers, tijdstippen van de laatste keer): niet terugzetten. */
     static final Set<String> INSTALL = new HashSet<>(Arrays.asList(
@@ -103,6 +103,7 @@ final class ToolData {
         if (r == null || AppData.fileRule(r) != null) return false;
         int slash = r.indexOf('/');
         String top = slash < 0 ? r : r.substring(0, slash);
+        if (!AppData.FILE_ROOTS.contains(top)) return false; // nieuwe opslag gaat standaard alleen versleuteld mee
         if (FILES_OWN.contains(top)) return false;
         if (r.startsWith("facturen/pdf/") || r.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) return false; // de PDF's staan al in Facturen/
         return !r.toLowerCase(java.util.Locale.ROOT).matches(".*(geheim|secret|token|wachtwoord|password).*");

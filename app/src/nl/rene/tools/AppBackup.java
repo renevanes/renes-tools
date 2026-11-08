@@ -60,6 +60,7 @@ final class AppBackup {
 
     /** Hoeveel de appgegevens zelf in de laatste backup innamen (zonder verwijzingen), voor de uitleg bij opruimen. */
     static volatile long lastBytes = 0;
+    static volatile String lastProblem = null;
 
     // ===================================================================================================
     // Maken (in de versleutelde Alles back-uppen)
@@ -70,6 +71,7 @@ final class AppBackup {
         Secure.Zip zip = Secure.CAPTURE.get();
         if (zip == null) return -1; // nooit leesbaar naar de backup-map
         lastBytes = 0;
+        lastProblem = null;
         AppData.Manifest m = new AppData.Manifest();
         m.app = Version.NAME;
         m.appCode = String.valueOf(Version.CODE);
@@ -80,6 +82,7 @@ final class AppBackup {
         JSONObject prefs = prefsSnapshot(c, secrets, m);
         putBytes(zip, m, AppData.PREFS, prefs.toString().getBytes(StandardCharsets.UTF_8));
         putBytes(zip, m, AppData.SECRETS, secrets.toString().getBytes(StandardCharsets.UTF_8));
+        PrivateBackup.export(c, zip, m);
 
         // Kluis: ontsleuteld (de sleutel van de kluis blijft op de telefoon); staat het document al in Kluis/: verwijzen
         exportKluis(c, zip, m);
@@ -99,7 +102,7 @@ final class AppBackup {
         if (tops != null) {
             java.util.Arrays.sort(tops);
             for (File t : tops) {
-                String rule = AppData.fileRule(t.getName());
+                String rule = fileRule(c, t.getName());
                 if (rule != null) { m.skipped.add(new String[]{t.getName(), rule}); continue; }
                 walk(w, t, t.getName(), 0);
             }
@@ -117,6 +120,7 @@ final class AppBackup {
         putBytes(zip, m, AppData.STATE, Herstel.stateJson(c).toString().getBytes(StandardCharsets.UTF_8));
 
         // Inhoudsopgave als laatste
+        if (AppData.incomplete(m)) incomplete();
         try (OutputStream o = zip.stream(AppData.DIR, "inhoud.txt")) { o.write(AppData.build(m).getBytes(StandardCharsets.UTF_8)); }
         lastBytes = m.bytes();
         return m.entries.size() + m.refs.size();
@@ -151,10 +155,37 @@ final class AppBackup {
     }
 
     /** Alle instellingen die meegaan, met hun soort: {bestand: {sleutel: {t, v}}}. */
+    static Set<String> prefsNames(Context c) {
+        Set<String> names = new java.util.TreeSet<>(AppData.PREFS_KEEP);
+        names.addAll(ToolRegister.SOLO);
+        for (String id : ToolRegister.SOLO) names.add(id + "_geheim");
+        File[] files = new File(c.getFilesDir().getParentFile(), "shared_prefs").listFiles();
+        if (files != null) for (File file : files) if (file.getName().endsWith(".xml")) names.add(file.getName().substring(0, file.getName().length() - 4));
+        names.add("facturen_geheim");
+        names.removeIf(name -> !AppData.keepPrefsFile(name) && !AppData.secretPrefsFile(name));
+        return names;
+    }
+
+    static String fileRule(Context c, String rel) {
+        String top = rel.split("/", 2)[0], risk = ToolRegister.ROOTS.get(top);
+        return AppData.fileRule(rel, risk != null && BackupRisk.enabled(c, risk));
+    }
+
     static JSONObject prefsSnapshot(Context c, JSONObject secrets, AppData.Manifest m) throws Exception {
         JSONObject files = new JSONObject();
-        for (String f : AppData.PREFS_KEEP) {
+        for (String f : prefsNames(c)) {
+            String risk = ToolRegister.PREFS.get(f);
+            if (risk != null && !BackupRisk.enabled(c, risk)) continue;
             SharedPreferences p = c.getSharedPreferences(f, Context.MODE_PRIVATE);
+            if (AppData.secretPrefsFile(f)) {
+                JSONObject values = new JSONObject();
+                for (Map.Entry<String, ?> e : p.getAll().entrySet()) {
+                    if (!(e.getValue() instanceof String)) throw new Exception(Taal.T("De geheime instellingen zijn niet te lezen"));
+                    values.put(e.getKey(), AppData.open(Secure.deviceKey(), (String)e.getValue()));
+                }
+                JSONObject all = secrets.optJSONObject("prefs"); if (all == null) { all = new JSONObject(); secrets.put("prefs", all); }
+                all.put(f, values); continue;
+            }
             JSONObject o = new JSONObject();
             for (Map.Entry<String, ?> e : p.getAll().entrySet()) {
                 if (!AppData.keepPref(f, e.getKey())) continue;
@@ -218,23 +249,32 @@ final class AppBackup {
     static void walk(Walk w, File f, String rel, int depth) throws Exception {
         stopCheck();
         AppData.Manifest m = w.m;
-        if (depth > AppData.MAX_DEPTH) { m.skipped.add(new String[]{rel, "te diep"}); return; }
+        if (depth > AppData.MAX_DEPTH) { incomplete(); m.skipped.add(new String[]{rel, "te diep"}); return; }
         // Geen snelkoppelingen naar buiten de app-map volgen
         File cf = f.getCanonicalFile();
-        if (!cf.getPath().startsWith(w.root.getPath() + File.separator)) { m.skipped.add(new String[]{rel, "buiten de app-map"}); return; }
+        if (!cf.getPath().startsWith(w.root.getPath() + File.separator)) { incomplete(); m.skipped.add(new String[]{rel, "buiten de app-map"}); return; }
         if (f.isDirectory()) {
             File[] kids = f.listFiles();
-            if (kids == null) return;
+            if (kids == null) { incomplete(); m.skipped.add(new String[]{rel, "niet te lezen"}); return; }
             java.util.Arrays.sort(kids);
             for (File k : kids) {
                 String r = rel + "/" + k.getName();
-                String rule = AppData.fileRule(r);
+                String rule = fileRule(w.c, r);
                 if (rule != null) { if (!"tijdelijk bestand".equals(rule)) m.skipped.add(new String[]{r, rule}); continue; }
                 walk(w, k, r, depth + 1);
             }
             return;
         }
-        if (!f.isFile() || AppData.fileRule(rel) != null) return;
+        if (!f.isFile() || fileRule(w.c, rel) != null) return;
+        // Een actieve database heeft een eigen consistente snapshot nodig; nooit ongetest ruwe DB/WAL-bestanden kopiëren.
+        try (InputStream probe = new FileInputStream(f)) {
+            byte[] header = new byte[16]; int n = probe.read(header);
+            if (n == 16 && new String(header, StandardCharsets.ISO_8859_1).equals("SQLite format 3\u0000")) {
+                incomplete(); m.skipped.add(new String[]{rel, "database zonder backup-adapter"}); return;
+            }
+        } catch (java.io.FileNotFoundException e) { return;
+        } catch (IOException e) { incomplete(); m.skipped.add(new String[]{rel, "niet te lezen"}); return;
+        }
         // Slaappraat met geluid staat uit: dan ook hier zonder geluid (zoals bij het onderdeel Slaappraat)
         if (!w.sleepAudio && rel.startsWith("sleep/") && AppData.audio(rel)) { w.sleepAudioSkipped++; return; }
         String path = AppData.FILES + "/" + rel;
@@ -263,8 +303,10 @@ final class AppBackup {
             m.broken.add(written);
             w.zip.bad.add(written);
             m.skipped.add(new String[]{rel, "niet te lezen"});
+            incomplete();
         }
     }
+    static void incomplete() { if (lastProblem == null) lastProblem = Taal.T("Niet alle appgegevens zijn meegenomen. Controleer de backup en probeer opnieuw."); }
 
     /**
      * Staat precies deze inhoud al bij een ander onderdeel in dit archief (bijv. Slaappraat/ of Kluis/)? Dan alleen een
@@ -364,6 +406,8 @@ final class AppBackup {
 
     /** Klaargezet en gecontroleerd (tussen stage() en apply()). */
     static final class Staged {
+        final Set<String> protectedTools = new java.util.TreeSet<>();
+        final Set<String> incompleteRisk = new HashSet<>();
         AppData.Manifest manifest;
         Vault.Key key;
         String name;
@@ -409,7 +453,7 @@ final class AppBackup {
         Staged s = staged;
         staged = null;
         if (s != null && s.key != null) java.util.Arrays.fill(s.key.key, (byte) 0);
-        if (!journal(c).exists()) wipe(stageDir(c));
+        if (!journal(c).exists()) { ProtectedRestore.clear(new File(stageDir(c), "protected")); wipe(stageDir(c)); }
     }
 
     /** Toestand tijdens het klaarzetten. */
@@ -418,6 +462,7 @@ final class AppBackup {
         long all = 0, lastFree = 0;
         final Map<String, File> stagedFiles = new HashMap<>();   // naam in het archief → klaargezet bestand
         final Map<String, String> kinds = new HashMap<>();       // naam → "f" of "kluis"
+        final Set<String> invalidProtected = new HashSet<>();
         byte[] prefs, secrets, kluisIndex, signature, models, state;
         Ctx(Context c, File st, Staged s) throws IOException {
             this.c = c; this.st = st; this.s = s;
@@ -439,7 +484,15 @@ final class AppBackup {
     static AppData.Entry stageEntry(Ctx x, InputStream z, String name, String t, byte[] buf) throws Exception {
         long en;
         String esha;
-        if (t.startsWith("f:")) {
+        if (t.startsWith("protected:")) {
+            String id = t.substring(10);
+            File out = new File(new File(x.st, "protected/" + id), ProtectedRestore.FILE);
+            ProtectedRestore.Staged item = ProtectedRestore.stage(x.c, out, z, name);
+            if (!item.valid) x.invalidProtected.add(name);
+            if (item.valid) x.s.protectedTools.add(id);
+            x.count(item.entry.size); x.stagedFiles.put(name, out); x.kinds.put(name, "protected"); x.s.files++;
+            return item.entry;
+        } else if (t.startsWith("f:")) {
             File out = new File(x.stFiles, t.substring(2));
             if (!out.getCanonicalPath().startsWith(x.stFilesPath)) throw new Exception("Onveilige naam in de backup: " + AppData.cut(name));
             File dir = out.getParentFile();
@@ -556,8 +609,8 @@ final class AppBackup {
                     if (AppData.safeRel(name) == null) throw new Exception("Onveilige naam in de backup");
                     String t = AppData.target(name);
                     if (t == null) { drain(z, buf); continue; } // van een nieuwere versie, of niet meer bekend: overslaan
-                    AppData.Entry en = stageEntry(x, z, name, t, buf);
                     if (seen.containsKey(name)) throw new Exception("Dubbele naam in de backup: " + AppData.cut(name));
+                    AppData.Entry en = stageEntry(x, z, name, t, buf);
                     seen.put(name, en);
                 }
                 drain(vault[0], buf); // ook het slot van het archief: pas dan is alles echt gecontroleerd (afgekapt = fout)
@@ -565,20 +618,34 @@ final class AppBackup {
             if (manifest == null && !seen.isEmpty()) throw new Exception("De appgegevens in deze backup zijn onvolledig (afgebroken backup); kies een andere backup");
             if (manifest == null) throw new NoAppData();
             AppData.Manifest m = AppData.parse(manifest);
+            if (!AppData.supportedCode(m.appCode, Version.CODE)) throw new Exception(Taal.T("Deze backup is gemaakt met een nieuwere of niet ondersteunde versie van Tools. Werk Tools eerst bij."));
             String bad = AppData.verify(m, seen, others);
             if (bad != null) throw new Exception(bad);
+            for (String path : m.broken) {
+                String target = AppData.target(path);
+                if (target != null && target.startsWith("f:")) {
+                    String root = target.substring(2).split("/", 2)[0], risk = ToolRegister.ROOTS.get(root);
+                    if (risk != null) s.incompleteRisk.add(risk);
+                }
+            }
+            for (String[] skipped : m.skipped) {
+                String root = skipped[0].split("/", 2)[0], risk = ToolRegister.ROOTS.get(root);
+                if (risk != null && !skipped[1].equals(AppData.fileRule(skipped[0]))) s.incompleteRisk.add(risk);
+            }
 
             // ---- halve bestanden (bij het maken niet af gekomen) niet terugzetten en niet meetellen ----
             for (String b : m.broken) {
                 File f = x.stagedFiles.remove(b);
                 if (f == null) continue;
-                f.delete();
                 String kind = x.kinds.get(b);
-                if ("f".equals(kind) || "gfoto".equals(kind)) s.files--;
+                if ("protected".equals(kind)) { ProtectedRestore.remove(f); x.invalidProtected.remove(b); s.protectedTools.remove(PrivateBackup.target(b)); }
+                else f.delete();
+                if ("f".equals(kind) || "gfoto".equals(kind) || "protected".equals(kind)) s.files--;
                 else if ("kluis".equals(kind)) s.kluis--;
                 else if ("history".equals(kind)) s.history = false;
                 s.broken++;
             }
+            if (!x.invalidProtected.isEmpty()) throw new Exception(Taal.T("De beschermde gegevens in deze backup zijn niet te lezen; er is niets vervangen"));
 
             // ---- 2. verwijzingen: die inhoud staat bij een ander onderdeel (vóór de appgegevens in het archief) ----
             Map<String, List<AppData.Ref>> want = new HashMap<>();
@@ -615,7 +682,7 @@ final class AppBackup {
             // Alles wat terug gaat, nu al inlezen en controleren (pas daarna mag er iets veranderen).
             // De instellingen (met o.a. de WhatsApp- en AudD-sleutel) staan alleen versleuteld klaar.
             JSONObject ready;
-            try { ready = readyPrefs(x.prefs, x.secrets); }
+            try { ready = readyPrefs(x.prefs, x.secrets); for (String pref : ToolRegister.PREFS.keySet()) if (s.incompleteRisk.contains(ToolRegister.PREFS.get(pref))) ready.remove(pref); }
             catch (org.json.JSONException je) { throw new Exception("De instellingen in deze backup zijn niet te lezen"); }
             Contacts.writeText(new File(st, "instellingen-klaar.bin"), AppData.seal(Secure.deviceKey(), ready.toString()), false);
             if (x.kluisIndex != null) {
@@ -650,7 +717,7 @@ final class AppBackup {
             return s;
         } finally {
             x.wipeSecrets();
-            if (!ok) wipe(st);
+            if (!ok) { ProtectedRestore.clear(new File(st, "protected")); wipe(st); }
         }
     }
 
@@ -673,6 +740,7 @@ final class AppBackup {
             else if ("spotify".equals(k)) text = "de Spotify-koppeling (opnieuw koppelen)";
             else if (k.startsWith("vpn:")) text = "de sleutel van een VPN-tunnel (opnieuw instellen)";
             else if ("handtekening".equals(k)) text = "de bewaarde PDF-handtekening";
+            else if (k.startsWith("hoog:")) text = "hoog:bank".equals(k) ? Taal.T("Bankzaken (niet ontgrendeld bij het maken)") : Taal.T("Stamgegevens (niet ontgrendeld bij het maken)");
             else if ("niet te lezen".equals(sk[1]) || "dubbele naam".equals(sk[1])) text = "losse bestanden die bij het maken niet te lezen waren";
             else continue; // modellen, zoekindex e.d.: bewust, staat in de uitleg
             if (seen.add(text)) s.missing.add(text);
@@ -807,6 +875,13 @@ final class AppBackup {
             if (f == null) { f = new JSONObject(); out.put("spotify", f); }
             f.put("refresh", typed(AppData.seal(Secure.deviceKey(), sp.getString("refresh"))));
         }
+        JSONObject secretPrefs = secrets.optJSONObject("prefs");
+        if (secretPrefs != null) for (Iterator<String> names = secretPrefs.keys(); names.hasNext();) {
+            String file = names.next(); if (!AppData.secretPrefsFile(file)) throw new Exception(Taal.T("De geheime instellingen in deze backup zijn niet te lezen"));
+            JSONObject values = secretPrefs.getJSONObject(file), sealed = new JSONObject();
+            for (Iterator<String> keys = values.keys(); keys.hasNext();) { String key = keys.next(); if (key.isEmpty() || key.length() > 200) throw new Exception(Taal.T("De geheime instellingen in deze backup zijn niet te lezen")); sealed.put(key, typed(AppData.seal(Secure.deviceKey(), values.getString(key)))); }
+            out.put(file, sealed);
+        }
         // App-slot: de vingerafdruksleutel is weg met de oude installatie; met de app-code kom je er wel in
         JSONObject lock = out.optJSONObject("lock");
         if (lock != null && lock.optJSONObject("codeBio") != null && lock.getJSONObject("codeBio").optBoolean("v")) {
@@ -875,11 +950,28 @@ final class AppBackup {
                 if (cur.isFile() && !dst.exists()) HerstelLog.move(jf, cur, dst);
             }
             // 1. Mappen en bestanden: de huidige opzij, de klaargezette op hun plek
-            for (String r : AppData.FILE_ROOTS) {
+            Set<String> roots = new java.util.TreeSet<>(AppData.FILE_ROOTS);
+            for (File parent : new File[]{files, new File(st, "files")}) {
+                File[] children = parent.listFiles();
+                if (children != null) for (File child : children) if (AppData.fileRule(child.getName(), true) == null) roots.add(child.getName());
+            }
+            roots.removeIf(name -> ToolRegister.ROOTS.containsKey(name) && (!new File(st, "files/" + name).exists() || s.incompleteRisk.contains(ToolRegister.ROOTS.get(name))));
+            for (String r : roots) {
                 File cur = new File(files, r);
                 if (cur.exists()) HerstelLog.move(jf, cur, new File(old, "files/" + r));
                 File in = new File(st, "files/" + r);
                 if (in.exists()) HerstelLog.move(jf, in, cur);
+            }
+            // Beschermde gegevens blijven staan als het archief ze niet bevat. Alleen expliciet opgenomen kopieën vervangen ze.
+            for (String id : new String[]{"bank", "masterdata"}) {
+                File in = new File(st, "protected/" + id);
+                if (!s.protectedTools.contains(id) || !new File(in, ProtectedRestore.FILE).isFile()) continue;
+                synchronized ("bank".equals(id) ? Bank.LOCK : MasterStore.LOCK) {
+                    if ("bank".equals(id)) Bank.close(); else { MasterSession.invalidateAll(); MasterAppContext.reset(c); MainActivity.appIdentityChanged("{}"); }
+                    File cur = new File(files, id);
+                    if (cur.exists()) HerstelLog.move(jf, cur, new File(old, "files/" + id));
+                    HerstelLog.move(jf, in, cur);
+                }
             }
             // 2. Kluis: vervangen, houden (niet te lezen bij het maken) of samenvoegen (deels)
             File kl = new File(files, "kluis"), stKl = new File(st, "kluis");
@@ -934,6 +1026,7 @@ final class AppBackup {
 
     /** Na het verplaatsen: instellingen, geschiedenis, handtekening, en de sleutel. Ook bij afmaken na omvallen. */
     static void finish(Context c, Vault.Key key) throws Exception {
+        BackupRisk.clear(c); // een herstel draagt nooit toestemming voor nieuwe kopieën met hoog risico over
         File st = stageDir(c), jf = journal(c);
         File rp = new File(st, "instellingen-klaar.bin");
         if (rp.isFile()) {
@@ -966,6 +1059,7 @@ final class AppBackup {
         Herstel.restored(c, readBio(c), keySet, readOr(new File(st, "modellen.json")), readOr(new File(st, "toestand.json")));
         HerstelLog.line(jf, "ok");
         jf.delete();
+        ProtectedRestore.clear(new File(oldDir(c), "files"));
         wipe(oldDir(c));
         wipe(st);
         Staged s = staged;
@@ -983,17 +1077,20 @@ final class AppBackup {
 
     /** Alle instellingen die meegaan vervangen door die uit de backup (wat bij deze installatie hoort blijft staan). */
     static void writePrefs(Context c, JSONObject ready) throws Exception {
-        for (String f : AppData.PREFS_KEEP) {
+        Set<String> names = prefsNames(c);
+        for (Iterator<String> it = ready.keys(); it.hasNext();) { String name = it.next(); if (AppData.keepPrefsFile(name) || AppData.secretPrefsFile(name)) names.add(name); }
+        for (String f : names) {
+            if ((ToolRegister.PREFS.containsKey(f) || AppData.secretPrefsFile(f)) && !ready.has(f)) continue;
             SharedPreferences p = c.getSharedPreferences(f, Context.MODE_PRIVATE);
             SharedPreferences.Editor e = p.edit();
-            for (String k : p.getAll().keySet()) if (AppData.keepPref(f, k) || ("spotify".equals(f) && "refresh".equals(k))) e.remove(k);
+            for (String k : p.getAll().keySet()) if (AppData.keepPref(f, k) || AppData.secretPrefsFile(f) || ("spotify".equals(f) && "refresh".equals(k))) e.remove(k);
             JSONObject in = ready.optJSONObject(f);
             if (in != null) for (Iterator<String> it = in.keys(); it.hasNext(); ) {
                 String k = it.next();
                 JSONObject v = in.optJSONObject(k);
                 if (v == null || !valid(v)) continue;
                 boolean special = "webstore".equals(f) && ("restoreAll".equals(k) || "pending".equals(k) || "replace".equals(k));
-                if (!special && !AppData.keepPref(f, k) && !("spotify".equals(f) && "refresh".equals(k))) continue;
+                if (!special && !AppData.keepPref(f, k) && !AppData.secretPrefsFile(f) && !("spotify".equals(f) && "refresh".equals(k))) continue;
                 if (!PlayPolicy.keepPreference(c.getPackageName(), f, k)) continue;
                 Object x = v.opt("v");
                 if ("auto".equals(f) && "rules".equals(k) && "s".equals(v.optString("t")))
@@ -1071,7 +1168,10 @@ final class AppBackup {
      */
     static boolean hasLocalData(Context c) {
         try {
-            for (String r : AppData.FILE_ROOTS) if (hasFiles(new File(c.getFilesDir(), r), r, 0)) return true;
+            File[] roots = c.getFilesDir().listFiles();
+            if (roots != null) for (File file : roots) if (hasFiles(file, file.getName(), 0)) return true;
+            if (Bank.hasData(c) || MasterStore.exists(c) || ProtectedRestore.has(c, "bank") || ProtectedRestore.has(c, "masterdata")) return true;
+            for (String pref : prefsNames(c)) if (!AppData.PREFS_KEEP.contains(pref) && !c.getSharedPreferences(pref, Context.MODE_PRIVATE).getAll().isEmpty()) return true;
             File[] kl = new File(c.getFilesDir(), "kluis").listFiles();
             if (kl != null && kl.length > 0) return true;
             if (PdfSignature.file(c).getBaseFile().exists()) return true;
@@ -1106,7 +1206,7 @@ final class AppBackup {
         for (String m : s.missing) miss.put(m);
         return new JSONObject().put("app", s.manifest.app).put("t", s.manifest.time).put("files", s.files).put("kluis", s.kluis)
                 .put("bytes", s.manifest.bytes() + s.manifest.refBytes()).put("name", s.name == null ? "" : s.name).put("history", s.history)
-                .put("missing", miss);
+                .put("missing", miss).put("protected", new JSONArray(s.protectedTools));
     }
 
     static String readOr(File f) { try { return f.isFile() ? Contacts.readText(f, false) : null; } catch (Exception e) { return null; } }

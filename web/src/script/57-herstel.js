@@ -83,6 +83,7 @@ window.onHerstelOpened = function(r){
     (r.app ? '<div class=bkres><b>Gemaakt met</b><span>Tools ' + esc(r.app) + '</span></div>' : '') +
     '<div class=bkres><b>Inhoud</b><span>' + esc(parts.join(', ') || 'instellingen') + ' · ' + fmtB(r.bytes || 0) + '</span></div>' +
     '<div class=bkres><b>Gecontroleerd</b><span class=good>✓ compleet en onbeschadigd</span></div>' +
+    ((r.protected || []).length ? '<p class="note warn">' + esc(t('Deze backup bevat gegevens met een hoog risico: {namen}. Ze vervangen bij terugzetten de huidige gegevens van die tools. Na terugzetten moet je iedere tool zelf ontgrendelen.', {namen:r.protected.map(id => t(TOOLS[id]?.[0] || id)).join(', ')})) + '</p>' : '') +
     ((r.missing || []).length ? '<p class="note warn" id="hs-missing">' + esc(t('Niet in deze backup: {wat}.', { wat: r.missing.map(x => t(x)).join('; ') })) + '</p>' : '');
   hsWarn = hsManual || !!r.warn;
   hsMissing = r.missing || [];

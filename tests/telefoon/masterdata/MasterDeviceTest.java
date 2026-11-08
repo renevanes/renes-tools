@@ -91,6 +91,34 @@ public final class MasterDeviceTest extends Instrumentation {
         operation("refreshContext",new Class<?>[]{});check(!cacheFile.exists(),"revoked cache remains absent after refresh");
         call(cache,null,"reset",new Class<?>[]{Context.class},context);
     }
+    void backupReceiptsAndSecrets()throws Exception {
+        Class<?> bank=type("Bank"),protectedRestore=type("ProtectedRestore"),appBackup=type("AppBackup"),secure=type("Secure");
+        File pending=new File(root,"bank/backup-herstel.rtp");pending.getParentFile().mkdirs();
+        java.security.KeyPairGenerator generator=java.security.KeyPairGenerator.getInstance("RSA");generator.initialize(2048);java.security.KeyPair pair=generator.generateKeyPair();
+        String receipt="renes_herstel_"+java.util.UUID.randomUUID();JSONObject data=new JSONObject().put("v",1).put("tx",new JSONArray());
+        try(java.io.FileOutputStream raw=new java.io.FileOutputStream(pending)){
+            call(protectedRestore,null,"envelope",new Class<?>[]{java.io.OutputStream.class,java.io.InputStream.class,String.class,String.class,java.security.PublicKey.class},raw,new java.io.ByteArrayInputStream(data.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)),"Appgegevens/geheim/hoog-risico/bank",receipt,pair.getPublic());
+        }
+        call(bank,null,"open",new Class<?>[]{});
+        try{
+            call(bank,null,"restoreBackup",new Class<?>[]{Context.class,JSONObject.class},context,data);
+            String committed=(String)call(bank,null,"load",new Class<?>[]{Context.class},context);
+            check(receipt.equals(new JSONObject(committed).getString("_backupRestore")),"Bank committed an encrypted receipt before pending cleanup");
+            call(bank,null,"restoreBackup",new Class<?>[]{Context.class,JSONObject.class},context,new JSONObject(data.toString()).put("budget",new JSONObject().put("mustNotReplace",1)));
+            check(committed.equals((String)call(bank,null,"load",new Class<?>[]{Context.class},context)),"Bank resumes after commit without replacing data twice");
+        }finally{call(bank,null,"wipe",new Class<?>[]{Context.class},context);}
+        Class<?> secrets=type("ToolSecrets");
+        call(secrets,null,"set",new Class<?>[]{Context.class,String.class,String.class,String.class},context,"notes","transferTest","PORTABLE_TEST_TOKEN");
+        JSONObject portable=new JSONObject();JSONObject prefs=(JSONObject)call(appBackup,null,"prefsSnapshot",new Class<?>[]{Context.class,JSONObject.class,type("AppData$Manifest")},context,portable,manifest());
+        check("PORTABLE_TEST_TOKEN".equals(portable.getJSONObject("prefs").getJSONObject("notes_geheim").getString("transferTest")),"tool secrets have a portable encrypted-archive representation");
+        java.security.KeyStore keyStore=java.security.KeyStore.getInstance("AndroidKeyStore");keyStore.load(null);keyStore.deleteEntry("rt-backup");
+        JSONObject ready=(JSONObject)call(appBackup,null,"readyPrefs",new Class<?>[]{byte[].class,byte[].class},prefs.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8),portable.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        String sealed=ready.getJSONObject("notes_geheim").getJSONObject("transferTest").getString("v");
+        context.getSharedPreferences("notes_geheim",Context.MODE_PRIVATE).edit().putString("transferTest",sealed).commit();
+        check("PORTABLE_TEST_TOKEN".equals(call(secrets,null,"get",new Class<?>[]{Context.class,String.class,String.class},context,"notes","transferTest")),"secret readable under new installation key");
+        context.getSharedPreferences("notes_geheim",Context.MODE_PRIVATE).edit().remove("transferTest").commit();
+    }
+    Object manifest()throws Exception{java.lang.reflect.Constructor<?> ctor=type("AppData$Manifest").getDeclaredConstructor();ctor.setAccessible(true);return ctor.newInstance();}
     void runChecks()throws Exception {
         store=type("MasterStore");sessionType=type("MasterSession");keys=type("MasterKeys");
         // Stop op een installatie met echte centrale gegevens; uitsluitend geisoleerde testopslag.
@@ -110,6 +138,30 @@ public final class MasterDeviceTest extends Instrumentation {
         save(person);rejected(()->save(person)); // stale revision cannot overwrite or append an audit event
         JSONObject identity=new JSONObject().put("type","identiteit").put("label","Test document").put("fields",new JSONObject().put("persoon",id).put("document","DOC123456").put("geldig","2030-06-30"));JSONObject docSaved=save(identity).getJSONObject("record");String docId=docSaved.getString("id");identity.put("id",docId).put("revision",1);
         photoAndProfileChecks(identity,docId,id);
+        // Beschermde backup: snapshot bevat alle gegevens; na overdracht beschermt een andere sleutel dezelfde rijen en auditregels.
+        java.io.ByteArrayOutputStream snapshot=new java.io.ByteArrayOutputStream();
+        call(type("PrivateBackup"),null,"writeMaster",new Class<?>[]{Context.class,SecretKey.class,java.io.OutputStream.class},context,key,snapshot);
+        byte[] transferred=snapshot.toByteArray();
+        call(type("PrivateData"),null,"validate",new Class<?>[]{String.class,java.io.InputStream.class},"masterdata",new java.io.ByteArrayInputStream(transferred));
+        KeyGenerator nextGenerator=KeyGenerator.getInstance("AES");nextGenerator.init(256);SecretKey nextKey=nextGenerator.generateKey();
+        File restored=new File(root,"restored-master.db");
+        call(type("PrivateBackup"),null,"importMaster",new Class<?>[]{java.io.Reader.class,File.class,SecretKey.class,String.class},new java.io.StringReader(new String(transferred,java.nio.charset.StandardCharsets.UTF_8)),restored,nextKey,"restore-receipt-test");
+        check((Boolean)call(type("PrivateBackup"),null,"masterReceipt",new Class<?>[]{File.class,SecretKey.class,String.class},restored,nextKey,"restore-receipt-test"),"restart after commit recognises receipt");
+        check(!(Boolean)call(type("PrivateBackup"),null,"masterReceipt",new Class<?>[]{File.class,SecretKey.class,String.class},restored,nextKey,"another-receipt"),"different pending restore cannot replace committed data");
+        SQLiteDatabase restoredDb=SQLiteDatabase.openDatabase(restored.getPath(),null,SQLiteDatabase.OPEN_READONLY);
+        try{
+            JSONObject restoredHead=(JSONObject)call(store,null,"verify",new Class<?>[]{SQLiteDatabase.class,SecretKey.class},restoredDb,nextKey);
+            check("restore-receipt-test".equals(restoredHead.getString("restore")),"durable encrypted restore receipt");
+            JSONObject restoredRecord=(JSONObject)call(store,null,"record",new Class<?>[]{SQLiteDatabase.class,SecretKey.class,String.class},restoredDb,nextKey,id);
+            check(restoredRecord.getJSONObject("fields").getString("bsn").equals("123456782"),"all fields restored under new key");
+            rejected(()->call(store,null,"verify",new Class<?>[]{SQLiteDatabase.class,SecretKey.class},restoredDb,key));
+        }finally{restoredDb.close();restored.delete();}
+        check(!new String(read(dbFile),"ISO-8859-1").contains("restore-receipt-test"),"export never changes original data");
+        File invalidTarget=new File(root,"invalid-restore.db");String incompleteSnapshot=new String(transferred,java.nio.charset.StandardCharsets.UTF_8);incompleteSnapshot=incompleteSnapshot.substring(0,incompleteSnapshot.lastIndexOf("{\"end\""));final String partial=incompleteSnapshot;
+        rejected(()->call(type("PrivateBackup"),null,"importMaster",new Class<?>[]{java.io.Reader.class,File.class,SecretKey.class,String.class},new java.io.StringReader(partial),invalidTarget,nextKey,"incomplete"));invalidTarget.delete();
+        check(operation("read",new Class<?>[]{String.class,String.class,String.class},id,"masterdata","").getJSONObject("record").getJSONObject("fields").getString("bsn").equals("123456782"),"failed restore cannot change original source");
+        Arrays.fill(transferred,(byte)0);
+
         rejected(()->operation("delete",new Class<?>[]{String.class,long.class},id,2L));
         JSONObject audit=operation("audit",new Class<?>[]{long.class},0L);check(!audit.getJSONArray("events").toString().contains("123456782"),"audit has field names without field values");
         // Transaction rollback when the session is withdrawn during work.
@@ -130,6 +182,7 @@ public final class MasterDeviceTest extends Instrumentation {
         byte[] corrupt="Invalid SQLite database; preserve original bytes".getBytes("UTF-8");write(dbFile,corrupt);
         rejected(()->operation("list",new Class<?>[]{String.class,String.class},"masterdata",""));check(Arrays.equals(corrupt,read(dbFile)),"corruption never deletes/replaces original database");
         privacyFrames();
+        backupReceiptsAndSecrets();
         // An emulator without a configured phone lock must refuse an auth-bound key.
         android.app.KeyguardManager kg=(android.app.KeyguardManager)target.getSystemService(Context.KEYGUARD_SERVICE);
         if(!kg.isDeviceSecure())rejected(()->call(keys,null,"authenticated",new Class<?>[]{Context.class},context));

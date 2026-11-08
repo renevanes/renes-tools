@@ -7,3 +7,6 @@
 - [ ] Wijzigingsregel(s) in `wijzigingen/<onderwerp>.txt`, in het Nederlands
 - [ ] Geen wijzigingen aan `VERSION`, `changelog.json` of `update/`
 - [ ] Geen persoonlijke gegevens, sleutels of wachtwoorden in de code of tests
+- [ ] [Toolcontract](../docs/toolcontract.md) gevolgd: zelfstandig gebruik, opslag en volledige versleutelde backup
+- [ ] Risicoklasse beoordeeld; hoog risico blijft standaard uit en bestaande kopieën/toestemming zijn toegelicht
+- [ ] Export → herstel met nieuwe sleutel en onderbroken/corrupt herstel gecontroleerd; uitgesloten data blijft staan

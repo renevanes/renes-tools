@@ -10,8 +10,9 @@ import javax.crypto.spec.GCMParameterSpec;
 final class MasterCipher {
     private MasterCipher() { }
     private static final byte[] MAGIC = {'R','T','M','D',1};
+    static final int MAX_PLAIN = 1024 * 1024;
     static byte[] encrypt(SecretKey key, String purpose, byte[] plain) throws Exception {
-        if (plain == null || plain.length > 1024 * 1024) throw new IllegalArgumentException();
+        if (plain == null || plain.length > MAX_PLAIN) throw new IllegalArgumentException();
         Cipher c=Cipher.getInstance("AES/GCM/NoPadding");c.init(Cipher.ENCRYPT_MODE,key);
         c.updateAAD(("Tools.Masterdata.v1/"+purpose).getBytes(StandardCharsets.UTF_8));
         byte[] iv=c.getIV(), encrypted=c.doFinal(plain);
@@ -19,7 +20,7 @@ final class MasterCipher {
         byte[] out=new byte[MAGIC.length+12+encrypted.length];System.arraycopy(MAGIC,0,out,0,MAGIC.length);System.arraycopy(iv,0,out,MAGIC.length,12);System.arraycopy(encrypted,0,out,MAGIC.length+12,encrypted.length);return out;
     }
     static byte[] decrypt(SecretKey key,String purpose,byte[] blob)throws Exception{
-        if(blob==null||blob.length<33||blob.length>1024*1024+33||!Arrays.equals(MAGIC,Arrays.copyOf(blob,5)))throw new IllegalArgumentException();
+        if(blob==null||blob.length<33||blob.length>MAX_PLAIN+33||!Arrays.equals(MAGIC,Arrays.copyOf(blob,5)))throw new IllegalArgumentException();
         Cipher c=Cipher.getInstance("AES/GCM/NoPadding");c.init(Cipher.DECRYPT_MODE,key,new GCMParameterSpec(128,Arrays.copyOfRange(blob,5,17)));
         c.updateAAD(("Tools.Masterdata.v1/"+purpose).getBytes(StandardCharsets.UTF_8));return c.doFinal(blob,17,blob.length-17);
     }

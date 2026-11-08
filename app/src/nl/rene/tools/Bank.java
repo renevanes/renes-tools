@@ -39,11 +39,12 @@ final class Bank {
     static final int KEY_SECONDS = 15 * 60;
     static final long IDLE_MS = 5 * 60_000L, MAX_MS = KEY_SECONDS * 1000L - 30_000L;
 
-    private static final Object LOCK = new Object();
+    static final Object LOCK = new Object();
     /** Open tot dit moment (5 min na het laatste gebruik), en hooguit tot maxUntil (de sleutel verloopt dan). */
     static volatile long openUntil = 0, maxUntil = 0;
     /** Elke ontgrendeling heeft een eigen generatie; een los venster moet zelf ontgrendeld zijn. */
     static volatile long generation = 0;
+    static volatile boolean restoring = false;
     /** De AI is gebruikt met bankgegevens: bij op slot gaan het taalmodel stoppen (dan staat er niets meer in zijn geheugen). */
     static volatile boolean aiUsed = false;
     /** Bestanden kiezen loopt (de app gaat dan even uit beeld): niet op slot doen. */
@@ -219,6 +220,32 @@ final class Bank {
             o.put("rev", rev + 1);
             save(c, o.toString());
             rev = rev + 1;
+        }
+    }
+
+    /** Alleen na de eigen systeemontgrendeling, en alleen voor een door de gebruiker toegepaste backup. */
+    static void restoreBackup(Context c, JSONObject data) throws Exception {
+        synchronized (LOCK) {
+            if (!isOpen() || !ProtectedRestore.has(c, "bank")) throw new Exception("Bankzaken is op slot");
+            String receipt = ProtectedRestore.receipt(c, "bank");
+            if (hasData(c)) {
+                if (receipt.equals(new JSONObject(load(c)).optString("_backupRestore"))) return;
+                throw new Exception("De klaargezette gegevens zijn niet te lezen");
+            }
+            ks().deleteEntry(ALIAS); createKey(c);
+            save(c, data.put("_backupRestore", receipt));
+        }
+    }
+
+    /** Geen geopende schermsessie nodig: de afzonderlijke backup-toestemming én hardware-ontgrendeling zijn vereist. */
+    static byte[] backup(Context c) throws Exception {
+        synchronized (LOCK) {
+            if (!BackupRisk.enabled(c, "bank") || Secure.CAPTURE.get() == null) throw new Exception("Bankzaken is op slot");
+            SecretKey key = existingKey();
+            if (key == null) throw new Exception(LOST);
+            try (java.io.InputStream in = new java.io.FileInputStream(data(c))) {
+                return BankCrypt.decrypt(Facturen.lees(in, BankCrypt.MAX_PLAIN + 1024 * 1024), key);
+            }
         }
     }
 

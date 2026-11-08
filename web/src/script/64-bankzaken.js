@@ -665,7 +665,7 @@ function bkBeheer(){
     st.ontgrendeling ? 'De telefoon zelf geeft de sleutel alleen vrij tot 15 minuten na je vingerafdruk of pincode.' : 'Openen alleen na je vingerafdruk of pincode (deze telefoon koppelt de sleutel niet aan de ontgrendeling zelf).',
     'Gaat op slot na 5 minuten niets doen en zodra je de app verlaat; dan is alles ook uit het geheugen.',
     'Geen schermafdrukken of schermopnames, en niet zichtbaar in "recente apps".',
-    'Gaat niet mee in de Android-backup, Alles back-uppen, zoeken, de assistent of de statistieken.',
+    t('Standaard niet in backups. Alleen na je eigen keuze bij Alles back-uppen → Hoog risico in een versleutelde kopie. Nooit in de Android-backup, zoeken, de assistent of statistieken.'),
     'De lokale AI draait op deze telefoon, onthoudt niets en bewaart geen gesprekken.',
     'Automatisch ophalen praat alleen met de website van je bank (https); je logt zelf in met de app van je bank en na afloop wordt de sessie gewist.',
     'Wissen haalt ook de sleutel weg: daarna is niets meer terug te halen.'];

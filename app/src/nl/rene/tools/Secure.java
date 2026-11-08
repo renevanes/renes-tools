@@ -59,7 +59,7 @@ final class Secure {
 
     // ---------- sleutel ----------
 
-    static SecretKey deviceKey() throws Exception {
+    static synchronized SecretKey deviceKey() throws Exception {
         KeyStore ks = KeyStore.getInstance("AndroidKeyStore");
         ks.load(null);
         if (ks.containsAlias(ALIAS)) return (SecretKey) ks.getKey(ALIAS, null);
@@ -71,17 +71,26 @@ final class Secure {
     }
 
     static void setPassword(Context c, String pw) throws Exception {
+        setPassword(c, pw, BackupRisk.EPOCH.ticket());
+    }
+    static void setPassword(Context c, String pw, long policy) throws Exception {
         if (pw == null || pw.length() < 8) throw new Exception("Kies een wachtwoord van minstens 8 tekens");
-        char[] p = pw.toCharArray();
-        Vault.Key k;
+        if (!BackupRisk.canMutate(policy)) throw new Exception(Taal.T("Instellingen zijn intussen gewijzigd of er loopt een backup. Probeer opnieuw."));
+        char[] p = pw.toCharArray(); Vault.Key k;
         try { k = Vault.create(p); } finally { java.util.Arrays.fill(p, '\0'); }
-        Cipher ci = Cipher.getInstance("AES/GCM/NoPadding");
-        ci.init(Cipher.ENCRYPT_MODE, deviceKey());
+        try { storeKey(c, k, policy); } finally { java.util.Arrays.fill(k.key, (byte)0); }
+    }
+
+    static void storeKey(Context c, Vault.Key k, long policy) throws Exception {
+        Cipher ci = Cipher.getInstance("AES/GCM/NoPadding"); ci.init(Cipher.ENCRYPT_MODE, deviceKey());
         byte[] wrapped = ci.doFinal(k.key);
-        prefs(c).edit()
-                .putString("wrapped", b64(ci.getIV()) + ":" + b64(wrapped))
-                .putString("salt", b64(k.salt)).putInt("iter", k.iter).putInt("kdf", k.kdf)
-                .putLong("since", System.currentTimeMillis()).apply();
+        synchronized (BackupRisk.EPOCH) {
+            if (!BackupRisk.canMutate(policy)) throw new Exception(Taal.T("Instellingen zijn intussen gewijzigd of er loopt een backup. Probeer opnieuw."));
+            if (!BackupRisk.revokeEditor(c)
+                    .putString("wrapped", b64(ci.getIV()) + ":" + b64(wrapped))
+                    .putString("salt", b64(k.salt)).putInt("iter", k.iter).putInt("kdf", k.kdf)
+                    .putLong("since", System.currentTimeMillis()).commit()) throw new Exception("Bewaren van de sleutel lukt niet");
+        }
     }
 
     /**
@@ -91,16 +100,15 @@ final class Secure {
      */
     static void setKey(Context c, Vault.Key k) throws Exception {
         if (k == null || k.key == null || k.key.length != 32) throw new Exception("Geen bruikbare sleutel");
-        Cipher ci = Cipher.getInstance("AES/GCM/NoPadding");
-        ci.init(Cipher.ENCRYPT_MODE, deviceKey());
-        byte[] wrapped = ci.doFinal(k.key);
-        if (!prefs(c).edit()
-                .putString("wrapped", b64(ci.getIV()) + ":" + b64(wrapped))
-                .putString("salt", b64(k.salt)).putInt("iter", k.iter).putInt("kdf", k.kdf)
-                .putLong("since", System.currentTimeMillis()).commit()) throw new Exception("Bewaren van de sleutel lukt niet");
+        storeKey(c, k, BackupRisk.EPOCH.ticket());
     }
 
-    static void off(Context c) { prefs(c).edit().remove("wrapped").remove("salt").remove("iter").remove("kdf").remove("since").apply(); }
+    static void off(Context c) {
+        synchronized (BackupRisk.EPOCH) {
+            if (AllBackup.running.get() || AllBackup.busy) throw new IllegalStateException(Taal.T("Er loopt al een backup"));
+            if (!BackupRisk.revokeEditor(c).remove("wrapped").remove("salt").remove("iter").remove("kdf").remove("since").commit()) throw new IllegalStateException(Taal.T("Instellingen bewaren lukt niet"));
+        }
+    }
 
     /** Is de bewaarde sleutel nog bruikbaar? (Niet na terugzetten van app-gegevens op een andere telefoon.) */
     static boolean broken(Context c) {

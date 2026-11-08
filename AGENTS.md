@@ -27,6 +27,11 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   naar hun eigen tool. `solo-alle-tools.test.js` en `SoloTest` bewaken dit; behoud de eigen ontgrendeling en privacy.
   Alleen de telefoon-skin gebruikt zijn bestaande `HomeActivity`. Zie `docs/startscherm-en-automatiseringen.md`.
 
+## Contract voor iedere bestaande en nieuwe tool
+De verplichte afspraken staan in [docs/toolcontract.md](docs/toolcontract.md). Lees ze bij iedere nieuwe tool of wijziging aan opslag, backup, herstel of risicoclassificatie. Gewone duurzame gegevens gaan standaard in de versleutelde appbackup; nieuwe namespaces worden automatisch meegenomen. Gebruik de eigen tool-id voor bestanden/instellingen en `ToolSecrets` voor overdraagbare geheimen. Nieuwe databases vereisen een consistente snapshot-adapter en native hersteltest. Iedere schermtool ondersteunt ook zelfstandig gebruik.
+
+`00-tools.js` is de centrale risicoregistratie: normaal = standaard mee; hoog = standaard uit en alleen na expliciete toestemming plus toestelontgrendeling. Bankzaken en Stamgegevens blijven hoog en zijn optioneel versleuteld mee te nemen. Hoog-risico-toestemming is installatiegebonden, wordt niet hersteld en vervalt bij veranderde opslag/adapter/beleidsversie, een wachtwoordwijziging of uitzetten van versleutelen. Test foutpaden en herhaalbaar herstel vóór publiceren. Een uitgesloten of kapot beschermd onderdeel mag bestaande gegevens niet wissen.
+
 ## Regels voor de code
 - **Java 8-bron, minSdk 24, targetSdk 36.** API's die nieuwer zijn dan 24 altijd achter `Build.VERSION.SDK_INT >= …`
   (geen `ThreadLocal.withInitial`, `java.util.Base64`, `Long.compareUnsigned`; `registerNetworkCallback` met Handler pas vanaf 26).
@@ -45,8 +50,8 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   VPN-sleutels en wachtwoorden blijven versleuteld (`Secure.deviceKey`, AES-GCM) en buiten Android-backups.
   Alleen "Alle appgegevens" (`AppBackup`/`AppData`, terugzetten na herinstallatie) neemt ze mee, en alleen binnen het
   versleutelde archief (.rtb, wachtwoord van de backup); bij terugzetten worden ze opnieuw versleuteld met de sleutel van
-  de nieuwe installatie. Nieuw instellingenbestand of nieuwe map in `getFilesDir()`? Deel die in bij `AppData`
-  (mee of bewust niet); `AppDataTest` controleert dat.
+  de nieuwe installatie. Nieuwe gewone instellingen/bestanden gaan standaard versleuteld mee; technische uitzonderingen hebben in `AppData` een reden.
+  Toestelgebonden geheimen krijgen een overdraagbare adapter; zie het toolcontract en `BackupContractTest`.
 - **Regio en taal**: datums, tijden, getallen, bedragen en eenheden die Rene ziet, altijd via de helpers in
   `web/src/script/02-regio.js` (`fmtDate`, `fmtTime`, `fmtDT`, `fmtHm`, `fmtNum`, `fmtMoney`, `fmtDist`, `fmtTemp`, `fmtSize`, …) of
   `Regio.java` (`Regio.df`, `Regio.fmt`, `Regio.num`, `Regio.dist`, `Regio.deg`, `Regio.size`), nooit zelf met
@@ -389,7 +394,7 @@ achtergrond (`FacturenJob`, onzichtbare WebView) of terwijl Rene meekijkt (`Fact
 - **Schermen:** Facturen (deze maand, leveranciers, Meer) → Dossier, Aanleveren, Overzicht per maand, Opslaan (plekken) en
   Koppelingen (Google, Eigen Cloud, eigen mailserver); een leverancier heeft tabbladen (website: Inloggen, Planning, Opslaan, Meer; mail: Zoeken, Planning, Opslaan).
   Google en Eigen Cloud zijn via Opslaan én Koppelingen te bereiken: navigeer met `faNaar()` zodat terug klopt.
-- **Grenzen:** alleen https; alleen echte PDF's (`%PDF`) tellen; wachtwoorden versleuteld (`facturen_geheim`, niet in backups);
+- **Grenzen:** alleen https; alleen echte PDF's (`%PDF`) tellen; wachtwoorden versleuteld (`facturen_geheim`, alleen overdraagbaar in de versleutelde volledige appbackup);
   de inlogcode alleen uit sms van de ingestelde afzender of uit Rene's eigen Eigen Cloud; afleveren alleen naar plekken
   die hij zelf kiest: zijn backup-map, een zelf gekozen map op de telefoon, zijn eigen Google Drive (`FacturenDrive`, eigen
   Google-project (koppelen met het Google-account op de telefoon via `FacturenGoogleToestel`/AccountManager en een Android-client met pakketnaam en SHA-1, of via de browser met een desktop-client), alleen de rechten `drive.file`; Gmail `gmail.readonly` en, als Rene het aanvinkt, `gmail.send`) en zijn eigen Eigen Cloud (`/api/mail/send` naar zichzelf).
@@ -398,10 +403,9 @@ achtergrond (`FacturenJob`, onzichtbare WebView) of terwijl Rene meekijkt (`Fact
 
 ## Bankzaken (afschriften analyseren, alles op de telefoon)
 Bankzaken (scherm `s-bank`, `web/src/script/64-bankzaken.js` en `65-bankzaken-ai.js`, `Bank*.java`) maakt rapportages over
-Rene's inkomsten en uitgaven. **Niets mag de telefoon verlaten** (wens van Rene): houd dat bij elke wijziging vast.
+Rene's inkomsten en uitgaven. Standaard blijft alles op het toestel. Alleen de gebruiker mag een afzonderlijke versleutelde backup inschakelen, met de waarschuwing en systeemontgrendeling uit het toolcontract. Andere exports, zoeken, AI-geheugen en statistieken blijven uitgesloten.
 - **Opslag:** `Bank` + `BankCrypt` (AES-256-GCM, gzip, blokken met volgnummer); sleutel `renes_bankzaken` in de Android
-  Keystore, waar mogelijk gekoppeld aan de ontgrendeling (15 minuten). Map `bank/` gaat bewust nergens mee (Android-backup,
-  Alles back-uppen, "Alle appgegevens"), niet in zoeken, de assistent of Statistieken. Logregels (`App.log` soort BANK)
+  Keystore, waar mogelijk gekoppeld aan de ontgrendeling (15 minuten). Map `bank/` gaat niet als toestelgebonden ciphertext mee. Alleen na de risico-keuze maakt `PrivateBackup` een overdraagbare kopie in het versleutelde archief. Nooit in Android-backup, zoeken, de assistent of Statistieken. Logregels (`App.log` soort BANK)
   bevatten nooit bedragen, namen of rekeningnummers. Op slot na 5 minuten niets doen en zodra de app uit beeld gaat;
   de interface vergeet dan alles. Op het scherm FLAG_SECURE (`bankSecure`). Ook als losse app alleen na eigen
   ontgrendeling; de vrijgave hoort bij dat venster en mag niet van een andere banksessie worden overgenomen.
