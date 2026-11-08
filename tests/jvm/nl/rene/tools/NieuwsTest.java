@@ -231,7 +231,7 @@ public class NieuwsTest {
                 "toevoegen: eigen tekst bij een onbekende fout");
 
         // Backup: nieuws/ gaat mee in Alle appgegevens, niet in de Android-backup
-        check(AppData.FILE_ROOTS.contains("nieuws"), "Alle appgegevens: nieuws/ gaat mee");
+        check(AppData.FILE_KNOWN.contains("nieuws") && !AppData.FILE_SKIP.containsKey("nieuws"), "Alle appgegevens: nieuws/ gaat mee");
         String br = new String(Files.readAllBytes(Paths.get("app/res/xml/backup_rules.xml")), StandardCharsets.UTF_8);
         String dr = new String(Files.readAllBytes(Paths.get("app/res/xml/data_rules.xml")), StandardCharsets.UTF_8);
         String ex = "<exclude domain=\"file\" path=\"nieuws/\" />";
