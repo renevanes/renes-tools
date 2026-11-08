@@ -23,7 +23,10 @@ const path=require('path');
       return [...document.querySelectorAll('#s-formulieren button')].filter(e=>e.getClientRects().length&&getComputedStyle(e).backgroundColor===prim).map(e=>e.textContent.trim());
     });
     assert.deepEqual(await gevuld(),['Volgende stap']);
-    await p.click('#pff-volgende');assert.equal(await p.evaluate(()=>fm.step),0,'verplichte velden blokkeren doorgaan');
+    // Lege verplichte velden houden niet tegen (die zijn pas nodig voor de PDF), maar je ziet het wel.
+    await p.click('#pff-volgende');assert.equal(await p.evaluate(()=>fm.step),1,'lege verplichte velden: toch verder');
+    assert.match(await p.textContent('#pff-melding'),/verplichte velden in de vorige stap zijn nog leeg/);
+    await p.click('#pff-vorige');assert.equal(await p.evaluate(()=>fm.step),0);
     const fill=async(id,value)=>p.fill('#pff-v-'+id,value);
     assert.equal(await p.evaluate(()=>$('#pff-meer').open),false,'optionele velden ingeklapt');
     await fill('van','2027-07-15');await fill('tot','2027-07-01');await fill('land','Frankrijk');
@@ -70,7 +73,7 @@ const path=require('path');
     await p.getByRole('button',{name:'Opslaan als…',exact:true}).click();assert.equal(await p.evaluate(()=>Android._pdf.saved),'Reistoestemming Zoë.pdf');
     await p.getByRole('button',{name:'Delen',exact:true}).click();assert.deepEqual(await p.evaluate(()=>Android._pdf.shared),['Reistoestemming Zoë.pdf']);
     await p.getByRole('button',{name:'Bekijken en afdrukken',exact:true}).click();assert.equal(await p.evaluate(()=>Android._pdf.opened),'Reistoestemming Zoë.pdf');
-    assert.equal(await p.evaluate(()=>Object.values(localStorage).join('').includes('Ouder & voogd')),false,'geen concept in lokale opslag');
+    assert.equal(await p.evaluate(()=>Object.values(localStorage).join('').includes('Ouder & voogd')),false,'geen concept in lokale opslag (alleen versleuteld in de app)');
     await p.evaluate(()=>goBack());assert.match(await p.textContent('#pff-zelf-stand'),/PDF gemaakt: Reistoestemming Zoë\.pdf/);await p.click('#pff-zelf');
     // Terug en conditionele personen: eerder ingevulde, verborgen begeleiders mogen niet worden geëxporteerd.
     await p.evaluate(()=>{fm.step=0;fmRender();});
