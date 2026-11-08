@@ -40,6 +40,13 @@ public class VoortgangTest {
         uit.clear(); Voortgang s = new Voortgang(uit::add, "kluis", 1, () -> nu[0]);
         try (InputStream in = s.lees(new ByteArrayInputStream(data), 0)) { check(in.skip(100) == 100, "skip"); check(in.read() >= 0, "read"); }
         JSONObject o = new JSONObject(uit.get(0)); check(o.getLong("totaal") == 0 && o.getLong("gedaan") == 100, "onbekende grootte: " + o);
+        // Android meldt een te kleine grootte: het einde gaat één keer mee, daarna blijft het begrensd.
+        uit.clear(); Voortgang k = new Voortgang(uit::add, "ereader", 1, () -> nu[0]);
+        try (InputStream in = k.lees(new ByteArrayInputStream(data), 4096)) { byte[] buf = new byte[1024]; while (in.read(buf) > 0) { } }
+        check(uit.size() <= 3, "te kleine grootte: niet bij elk blok een bericht (" + uit.size() + ")");
+        // Na de bestanden: alles samen (bestand 0 = geen "bestand n van m").
+        uit.clear(); Voortgang a = new Voortgang(uit::add, "bank", 3, () -> nu[0]); a.bestand(2); a.alleBestanden(); a.stap("verwerken", 0, 0);
+        check(new JSONObject(uit.get(0)).getInt("bestand") == 0, "alle bestanden samen: " + uit);
         System.out.println("Voortgang: begrensd, stappen, bestanden, einde en alleen aantallen gecontroleerd");
     }
 }

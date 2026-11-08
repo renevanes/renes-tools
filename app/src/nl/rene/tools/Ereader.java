@@ -45,7 +45,6 @@ final class Ereader {
         }
         return out;
     }
-    static JSONObject add(Context c, Uri uri) throws Exception { return add(c, uri, Voortgang.GEEN); }
     /** Boek toevoegen; v meldt lezen (bytes), verwerken en opslaan (hoofdstukken en afbeeldingen) aan de balk onderin. */
     static synchronized JSONObject add(Context c, Uri uri, Voortgang v) throws Exception {
         String name = PdfTools.displayName(c, uri);

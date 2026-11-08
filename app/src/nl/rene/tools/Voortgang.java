@@ -23,7 +23,7 @@ final class Voortgang implements AutoCloseable {
     static final Voortgang GEEN = new Voortgang(null, "", 1, () -> 0L);
 
     private final Uit uit; private final String soort; private final Klok klok; private final int bestanden;
-    private int bestand; private String stap = ""; private long laatst = Long.MIN_VALUE; private boolean klaar;
+    private int bestand; private String stap = ""; private long laatst = Long.MIN_VALUE; private boolean klaar, eindGemeld;
 
     Voortgang(Uit uit, String soort, int bestanden, Klok klok) {
         this.uit = uit; this.soort = soort; this.bestanden = Math.max(1, bestanden); this.klok = klok;
@@ -33,13 +33,19 @@ final class Voortgang implements AutoCloseable {
     }
 
     /** Het hoeveelste bestand (vanaf 0) nu aan de beurt is. */
-    synchronized void bestand(int i) { if (i == bestand) return; bestand = Math.max(0, Math.min(i, bestanden - 1)); stap = ""; }
+    synchronized void bestand(int i) { if (uit == null || i == bestand) return; bestand = Math.max(0, Math.min(i, bestanden - 1)); stap = ""; }
+    /** Na de afzonderlijke bestanden: een stap voor alles samen (de balk zegt dan niet "bestand 3 van 3"). */
+    synchronized void alleBestanden() { if (uit == null || bestand == -1) return; bestand = -1; stap = ""; }
 
     /** Stand van een stap; totaal 0 = onbekend (de balk loopt dan heen en weer). */
     synchronized void stap(String naam, long gedaan, long totaal) {
         if (uit == null || klaar) return;
-        long nu = klok.nu(); boolean nieuw = !naam.equals(stap), eind = totaal > 0 && gedaan >= totaal;
+        long nu = klok.nu(); boolean nieuw = !naam.equals(stap);
+        if (nieuw) eindGemeld = false;
+        // Het einde van een stap gaat één keer meteen mee; daarna (bijv. een bestand dat groter is dan Android zei) weer begrensd.
+        boolean eind = totaal > 0 && gedaan >= totaal && !eindGemeld;
         if (!nieuw && !eind && laatst != Long.MIN_VALUE && nu - laatst < ELKE_MS) return;
+        if (eind) eindGemeld = true;
         stap = naam; laatst = nu;
         stuur(new Bericht(naam, Math.max(0, gedaan), Math.max(0, totaal), false));
     }

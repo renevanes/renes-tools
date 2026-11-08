@@ -193,7 +193,6 @@ final class Kluis {
     }
 
     /** Document toevoegen uit een gekozen bestand. */
-    static JSONObject add(Context c, Uri u) throws Exception { return add(c, u, Voortgang.GEEN); }
     static synchronized JSONObject add(Context c, Uri u, Voortgang v) throws Exception {
         String name = "document", mime = c.getContentResolver().getType(u);
         long size = -1;

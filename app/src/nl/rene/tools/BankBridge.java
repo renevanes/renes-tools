@@ -137,7 +137,7 @@ public class BankBridge extends FacturenBridge {
                     try { lijst.add(new Bank.Bestand(n, read(a, u, v))); fouten.add(null); }
                     catch (Throwable t) { lijst.add(new Bank.Bestand(n, null)); fouten.add(t instanceof OutOfMemoryError ? "Bestand is te groot" : t.getMessage() == null ? "Lezen lukt niet" : t.getMessage()); }
                 }
-                v.stap("verwerken", 0, 0);
+                v.alleBestanden(); v.stap("verwerken", 0, 0);
                 out = Bank.importeer(ctx, lijst, fouten);
                 // Pas na veilig opslaan de bronbestanden weghalen (als dat gevraagd is)
                 int weg = 0;

@@ -25,6 +25,12 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.textContent("#vg-stand"),await p.evaluate(()=>"Lezen… "+fmtSize(1536)));
   const box=await p.locator('#vg').boundingBox();assert.ok(box.x>=16&&box.x+box.width<=374,'past binnen de kantlijnen: '+JSON.stringify(box));
   const kleur=await p.evaluate(()=>[getComputedStyle($('#vg')).backgroundColor,getComputedStyle(document.body).backgroundColor]);assert.notEqual(kleur[0],kleur[1]);
+  assert.equal(await p.evaluate(()=>getComputedStyle($('#vg')).pointerEvents),'none','de balk houdt geen tikken tegen (menu, dialoog)');
+  await p.evaluate(()=>toast('Opgeslagen'));await p.waitForTimeout(300);
+  const tb=await p.locator('#toast').boundingBox(),vb=await p.locator('#vg').boundingBox();assert.ok(vb.y+vb.height<=tb.y+1,'een melding schuift de balk omhoog: '+JSON.stringify([vb,tb]));
+  await p.evaluate(()=>onVoortgang({soort:'bank',stap:'verwerken',gedaan:0,totaal:0,bestand:0,bestanden:3}));assert.equal(await p.textContent('#vg-wat'),'Afschriften inlezen','alles samen: geen bestandsnummer');
+  await p.evaluate(()=>onVoortgang({soort:'kluis',stap:'lezen',gedaan:5,totaal:10,bestand:1,bestanden:1}));assert.equal(await p.textContent('#vg-wat'),'Document toevoegen','twee tegelijk: de nieuwste neemt de balk over');assert.equal(await p.isVisible('#vg'),true);
+  await p.evaluate(()=>onVoortgang({soort:'bank',stap:'verwerken',gedaan:0,totaal:0,bestand:0,bestanden:3}));
   await p.evaluate(()=>onVoortgang({soort:'pdf',klaar:true,bestand:1,bestanden:1}));await p.waitForTimeout(50);assert.equal(await p.isVisible('#vg'),true,'klaar van een ander laat staan');
   await p.evaluate(()=>onVoortgang({soort:'bank',klaar:true,bestand:1,bestanden:3}));assert.equal(await p.isVisible('#vg'),false,'eigen klaar: weg');
   // 3. Snel klaar: nooit zichtbaar.

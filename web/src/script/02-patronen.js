@@ -67,11 +67,20 @@ function uiVgVerberg(){ clearTimeout(uiVg.toon); clearTimeout(uiVg.wacht); uiVg.
 function uiVoortgang(r){
   if (!r || !r.soort) return;
   if (r.klaar) { if (r.soort === uiVg.soort) uiVgVerberg(); return; }
-  if (r.soort !== uiVg.soort) { uiVgVerberg(); uiVg.soort = r.soort; uiVg.toon = setTimeout(() => { uiVg.toon = 0; if (uiVg.soort) $('#vg').hidden = false; }, 400); }
+  // Een andere soort (twee toevoegingen tegelijk) neemt de balk over; de wachttijd begint niet opnieuw.
+  if (r.soort !== uiVg.soort) {
+    uiVg.soort = r.soort;
+    if ($('#vg').hidden && !uiVg.toon) uiVg.toon = setTimeout(() => {
+      uiVg.toon = 0; if (!uiVg.soort) return;
+      $('#vg').hidden = false;
+      // De kop opnieuw zetten nu hij zichtbaar is, zodat een schermlezer hem één keer voorleest.
+      const w = $('#vg-wat'), k = w.textContent; w.textContent = ''; requestAnimationFrame(() => { w.textContent = k; });
+    }, 400);
+  }
   // Komt het eind nooit (de app herstart de interface), dan na 5 minuten stilte weg.
   clearTimeout(uiVg.wacht); uiVg.wacht = setTimeout(uiVgVerberg, 300000);
   const wat = uiVgWat(r.soort);
-  const kop = r.bestanden > 1 ? t('{wat}: bestand {n} van {m}', { wat, n: fmtNum(r.bestand), m: fmtNum(r.bestanden) }) : wat;
+  const kop = r.bestanden > 1 && r.bestand > 0 ? t('{wat}: bestand {n} van {m}', { wat, n: fmtNum(r.bestand), m: fmtNum(r.bestanden) }) : wat;
   if ($('#vg-wat').textContent !== kop) $('#vg-wat').textContent = kop;
   $('#vg-stand').textContent = uiVgStand(r);
   const p = $('#vg-prog'), num = r.totaal > 0 && r.stap !== 'verwerken';
