@@ -131,6 +131,11 @@ const SHOTS=process.env.ER_SHOTS||path.join(__dirname,'shots');
   await page.evaluate(()=>openTool('ereader-lezen'));ok(await page.evaluate(()=>current==='erbook'),'melding openen houdt het boek open');
   await page.click('#er-tts-stop');ok(await page.evaluate(()=>Android._spk.state==='stopped'&&!CSS.highlights.get('er-speak'))&&!(await page.locator('#er-tts').isVisible()),'stoppen');
 
+  // ---------- assistent en zoeken ----------
+  ok(await page.evaluate(()=>[['nachtfilter','ereader.ogen'],['blauw licht','ereader.ogen'],['helderheid','ereader.helderheid'],['voorleessnelheid','ereader.voorleessnelheid'],['scherm aan laten tijdens het lezen','ereader.schermaan']].every(([q,id])=>((setFind(q)[0]||{}).e||{}).id===id)&&((setFind('tekstgrootte')[0]||{}).e||{}).id==='weergave.tekstgrootte'),'assistent vindt helderheid, nachtfilter, voorleessnelheid en scherm aan (tekstgrootte blijft die van de app)');
+  ok(await page.evaluate(()=>{const e=setEntry('ereader.helderheid');e.set('25');const r=Android._erWin.bright===.25&&erLezen().bright===.25;e.set('telefoon');return r&&erLezen().bright===-1;}),'helderheid via het register, meteen in het boek');
+  ok(await page.evaluate(()=>GS_SYN['e-reader'].includes('voorlezen')&&GS_SYN['e-reader'].includes('nachtfilter')),'zoekwoorden voorlezen en nachtfilter bij de e-reader');
+
   // ---------- TalkBack ----------
   await page.evaluate(()=>{goBack();Android._talkback=true;erOpen('z');});
   ok(await page.evaluate(()=>!document.body.classList.contains('er-immersive'))&&await page.locator('.er-toolbar').isVisible(),'TalkBack: knoppen blijven altijd zichtbaar');
