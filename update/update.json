@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.168",
-  "versionCode": 169,
-  "nativeLevel": 149,
+  "versionName": "1.169",
+  "versionCode": 170,
+  "nativeLevel": 150,
   "web": "index.html",
-  "webSha256": "3dde652951a36693727b832b5f11d4c0d9061c431d9304ec905440b840f93a85",
+  "webSha256": "9e01c6594696accdc4cc83e151f9ef3cf642b8b52ab36a31e9950d7fd4655b1d",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "abbe6e8b55162c4cfa2afec7414addedd5232a82be720e03f7c5ec48acde8960",
+  "apkSha256": "a826c4b1416984c3e37e5f2c43e889676ddb9e638d9e921590c63db72cb5cde5",
   "changelog": [
+    {
+      "version": "1.169",
+      "date": "2026-11-08",
+      "changes": [
+        "Bij het toevoegen van een boek, document, factuur, afschriften of foto's zie je nu onderin hoe ver het is (lezen in procenten, verwerken, opslaan)."
+      ]
+    },
     {
       "version": "1.168",
       "date": "2026-11-08",
@@ -1488,5 +1495,5 @@
       ]
     }
   ],
-  "webSig2": "jeBMla1C9fjt0IHv+FVNMjh7sSsP3z/jYGT4uzFwdgbDWCOtQlIHKOLg3V2FFPrk8cQQDRNtEFmJfFSZq4AbsE9kfzKcK0GWVR7EWnBtiHDWtWN6cTcH9uQjMp6YdQzciO7jj80fMFfswSU37vJ9F8X2dYoZYcAI4wsvhH4zPST1DeJ7Dd4bs48xgryzB1oZ0FvxYrFtsenknpyrQsbeNNg7iJ96pg9FL0PE4cyt/vp8+/BN0hkowjlBblZwGAhg5BL/cMHgMZfma+7D42xxh/KtdaFDgtgsTrDWlLFCH9W5rRcDbo0p0mHJ2TglTtWqgIXtqBfXtYAjNPGxa8Pwcg1Ij/tEdTh27gbbBq+N1jnqgEMB607wotQ4L/+PUIePE4r/mUxZjujXbGQvO0e9exkS3C1TxQu50UptS/tWWEM971I/8XzNbXTKBpL1ndIkZKCHBW7Oo3VhLiK2QWHp6WFxwi3s4aVRKG0DIQmgrVFR1qyeTbaFWP6J1cvImmj9"
+  "webSig2": "T8/WJGOYIrTDzG53CB4OmAljvEz1gIuFJoe54T+MjbJ5IXhnzJXzjUTWgrlxX/WcbXmrHhrwluHUwjmCyVYzFoKwpVUXdMbdutr3lSa8demeZY5HfXPr5/LsbA1mjXfFeUmhkyzxdM7ZhByBiHotURRB/VHpfNaX+0zoqNgV540wmG0VWKWO07snqTplFwUmqofGMrS4rTRvahSaNeo4kJ9aVIje2IIjIOwXBuppRdIvpEXGQD11pF4MqiQtl9At1yqllbGM/1DdP2SH6LtuCgCcDrHo2/5zh3tTxIG3Uz8tH3ALzlVGumhXllZmFXvjJcRn2LsWMgiC/I9DNH3DegOgcXtduro+1k2lCSN5xYmuYkAMf4Bq5k0S+jRi9cNke/ZdT/SwEZDjw/+xG8QfHpsvYIRr7T4ECJXmm4YN+sDTrkqw9plSUIWWPdKQYTGUCgSyR+CYVhBViSmA1mPB7hw7G7NNDbd7SxzVRJWGEs5/dRJxtCLhV3hYKyW/vAhg"
 }
