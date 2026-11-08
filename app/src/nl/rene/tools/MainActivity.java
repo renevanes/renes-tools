@@ -2366,7 +2366,7 @@ public class MainActivity extends Activity {
             Runnable start = () -> new Thread(() -> {
                 String r = "";
                 try { Secure.setPassword(ctx, pw, policy); AllBackupJob.ensureScheduled(ctx); } // (elke nacht: standaard aan met versleutelen)
-                catch (Exception e) { r = e.getMessage() != null ? e.getMessage() : "Instellen mislukt"; App.log(ctx, "SECURE", "wachtwoord: " + e); }
+                catch (Throwable e) { r = e.getMessage() != null ? e.getMessage() : "Instellen mislukt"; App.log(ctx, "SECURE", "wachtwoord: " + e); }
                 a.js("onSecure", JSONObject.quote(r));
             }, "secure").start();
             if (highRisk) a.backupAuthenticate(Taal.t(ctx, "Backup-wachtwoord wijzigen"), start, "onSecure");
