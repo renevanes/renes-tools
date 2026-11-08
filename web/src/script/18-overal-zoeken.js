@@ -22,7 +22,7 @@ function gsBuildIndex(){
   gsIndex = [];
   const fold = tt => norm2(tt);
   // Detailschermen (één notitie, chat, route …) hebben iets nodig om te tonen: die niet los openen
-  const DETAIL = ['erbook', 'note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'podlijst', 'sleepnight', 'checkined', 'checkinq', 'apdev'];
+  const DETAIL = ['erbook', 'ercontents', 'erset', 'note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'podlijst', 'sleepnight', 'checkined', 'checkinq', 'apdev'];
   const tiles = []; // tegels op een overzicht (bijv. PDF): {to, title, key, sub}
   document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {
     const scr = sec.id.slice(2);

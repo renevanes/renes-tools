@@ -386,7 +386,7 @@ const SET_NEED = [['wa.leesbaar', /whatsapp|whats app|leesba|chats/], ['wa.', /w
 
 /* Schakelaars en keuzes die bewust niet in het register staan, met de reden */
 const SET_EXCLUDE = [
-  ['#er-chapters, #er-size, #er-font', 'Navigatie en leesweergave in de boeklezer, geen algemene appinstellingen'],
+  ['#er-size, #er-font, #er-line, #er-margin, #er-align, #er-theme, #er-mode, #er-filters, #er-sort, #er-tabs', 'Navigatie en leesweergave in de boeklezer, geen algemene appinstellingen'],
   ['#s-masterdata input, #s-masterdata select, #s-cmedit input, #s-cmedit select, #s-cmedit textarea, #s-cmlog input, #s-cmwis input, #cm-picker input, #cm-filter', 'Centrale persoonsgegevens en expliciete vrijgave; geen toegang via de assistent (ook het soortfilter in de lijst)'],
   ['#s-idcopy input', 'Tijdelijke ID-afscherming en controle per pagina; deze keuzes maakt de gebruiker zelf, nooit de assistent'],
   ['#rp-time, #rp-days', 'Auto redial op een tijdstip hoort bij een nummer; dat plan je op het scherm (zie redial.planning)'],

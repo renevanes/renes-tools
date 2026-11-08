@@ -26,6 +26,7 @@ import org.xml.sax.InputSource;
 final class EreaderBook {
     static final int MAX_FILE = 20 * 1024 * 1024, MAX_ENTRY = 4 * 1024 * 1024;
     String title = "", author = "";
+    byte[] cover;
     final List<String> chapters = new ArrayList<>();
     final List<String> names = new ArrayList<>();
 
@@ -117,10 +118,20 @@ final class EreaderBook {
         b.author = first(meta, "creator");
         Map<String, String> items = new HashMap<>();
         NodeList manifest = meta.getElementsByTagNameNS("*", "item");
+        String coverId = "", coverPath = "";
+        NodeList tags = meta.getElementsByTagNameNS("*", "meta");
+        for (int i = 0; i < tags.getLength(); i++) {
+            Element e = (Element) tags.item(i);
+            if ("cover".equals(e.getAttribute("name"))) coverId = e.getAttribute("content");
+        }
         for (int i = 0; i < manifest.getLength(); i++) {
             Element e = (Element) manifest.item(i);
             if ("application/xhtml+xml".equals(e.getAttribute("media-type"))) items.put(e.getAttribute("id"), path(opf, e.getAttribute("href")));
+            if (e.getAttribute("media-type").matches("image/(jpeg|png|webp)") &&
+                    (e.getAttribute("id").equals(coverId) || (" " + e.getAttribute("properties") + " ").contains(" cover-image ")))
+                coverPath = path(opf, e.getAttribute("href"));
         }
+        b.cover = files.get(coverPath);
         NodeList spine = meta.getElementsByTagNameNS("*", "itemref");
         for (int i = 0; i < spine.getLength(); i++) {
             Element e = (Element) spine.item(i);
