@@ -6,6 +6,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -113,6 +114,13 @@ public class NieuwsTest {
         l = Nieuws.lijst(dir, cache);
         nb = bron(l.getJSONArray("bronnen"), "nos");
         check(l.getJSONArray("artikelen").length() == 6 && "Geen verbinding".equals(nb.optString("fout")) && nb.getLong("poging") == nu + 7_200_000L, "oudere ronde overschrijft de nieuwere niet");
+        // Klok teruggezet: een bewaarde tijd in de toekomst houdt bijwerken niet tegen
+        File dk = tmp("klok-dir"), ck = tmp("klok-cache");
+        long morgen = System.currentTimeMillis() + 86_400_000L;
+        Nieuws.bewaarFout(ck, "nos", "Geen verbinding", morgen);
+        Nieuws.bewaarFeed(ck, "nos", "https://x.example.org/", rss(), nu);
+        l = Nieuws.lijst(dk, ck);
+        check(l.getJSONArray("artikelen").length() > 0 && bron(l.getJSONArray("bronnen"), "nos").getLong("t") == nu, "tijd in de toekomst (klok teruggezet): toch bijgewerkt");
         // Bron uit: niet in het overzicht
         Nieuws.zetAan(dir, "nos", false);
         l = Nieuws.lijst(dir, cache);
@@ -187,6 +195,9 @@ public class NieuwsTest {
         check(!Nieuws.https("http://x.example.org/") && Nieuws.https("https://x.example.org/a?b=c"), "alleen https");
         check(!Nieuws.https("https://192.168.1.1/feed") && !Nieuws.https("https://localhost./rss") && geeftFout(() -> Nieuws.adres("10.0.0.2/rss")) && geeftFout(() -> Nieuws.adres("http://[::1]/"))
                 && geeftFout(() -> Nieuws.adres("nas.local/feed")), "geen adressen op het toestel of in het thuisnetwerk");
+        for (String ip : new String[]{"127.0.0.1", "10.0.0.8", "192.168.2.1", "172.20.1.1", "169.254.3.4", "100.100.1.1", "0.0.0.0", "224.0.0.1", "::1", "fe80::1", "fd12:3456::1"})
+            check(Nieuws.intern(InetAddress.getByName(ip)), "naam die naar " + ip + " wijst: niet ophalen");
+        for (String ip : new String[]{"145.58.29.30", "8.8.8.8", "2a00:1450::1", "100.128.0.1"}) check(!Nieuws.intern(InetAddress.getByName(ip)), "openbaar adres " + ip);
         check("nu".equals(Nieuws.bekendeSite("https://www.nu.nl/")) && "nos-sport".equals(Nieuws.bekendeSite("https://nos.nl/sport")) && Nieuws.bekendeSite("https://nu.nl/rss/Sport") == null, "bekende sites");
         check("https://a.example.org/x?id=1&b=2#k".equals(Nieuws.schoon("https://a.example.org/x?utm_source=rss&id=1&at_medium=RSS&b=2&fbclid=z#k")), "volgparameters weg, de rest blijft");
         check("https://a.example.org/x".equals(Nieuws.schoon("https://a.example.org/x?utm_campaign=y")), "alleen volgparameters: geen ? meer");

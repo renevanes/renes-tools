@@ -104,9 +104,10 @@ final class PodcastFeed {
                 else if (ch == '>') inDoctype = false;
                 return;
             }
-            if (t.endsWith(COM)) { inComment = true; return; }
+            // Na het begin opnieuw tellen: "<!-->" sluit de opmerking niet (de streepjes van het begin tellen niet mee)
+            if (t.endsWith(COM)) { inComment = true; tail.setLength(0); return; }
             if (t.endsWith(DOC)) { inDoctype = true; return; }
-            if (prev == '<' && ch == '?') { inPi = true; return; }
+            if (prev == '<' && ch == '?') { inPi = true; tail.setLength(0); return; }
             if (prev == '<' && Character.isLetter(ch)) done = true; // het hoofdelement begint: verder geen DTD meer
         }
 

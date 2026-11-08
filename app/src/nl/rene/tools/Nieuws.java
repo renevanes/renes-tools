@@ -9,8 +9,10 @@ import org.json.JSONObject;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,6 +27,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
@@ -281,7 +285,7 @@ final class Nieuws {
         synchronized (LOCK) {
             File cf = new File(cache, bron + ".json");
             JSONObject oud = leesObject(cf);
-            if (oud != null && Math.max(oud.optLong("t"), oud.optLong("poging")) > nu) return 0; // een latere ronde was eerder klaar
+            if (oud != null && later(oud, nu)) return 0;
             Map<String, Long> bekend = new HashMap<>();
             JSONArray oa = oud == null ? null : oud.optJSONArray("artikelen");
             if (oa != null) for (int i = 0; i < oa.length(); i++) { JSONObject a = oa.optJSONObject(i); if (a != null) bekend.put(a.optString("id"), datum(a)); }
@@ -305,6 +309,12 @@ final class Nieuws {
         }
     }
 
+    /** Een latere ronde was eerder klaar (een trage site). Een tijd in de toekomst (klok teruggezet) telt niet. */
+    private static boolean later(JSONObject c, long nu) {
+        long t = Math.max(c.optLong("t"), c.optLong("poging"));
+        return t > nu && t <= System.currentTimeMillis();
+    }
+
     /** Bijwerken mislukt: de vorige artikelen blijven, met de fout erbij. */
     static void bewaarFout(File cache, String bron, String fout, long nu) {
         synchronized (LOCK) {
@@ -312,7 +322,7 @@ final class Nieuws {
                 File cf = new File(cache, bron + ".json");
                 JSONObject o = leesObject(cf);
                 if (o == null) o = new JSONObject();
-                if (Math.max(o.optLong("t"), o.optLong("poging")) > nu) return;
+                if (later(o, nu)) return;
                 schrijf(cf, o.put("poging", nu).put("fout", fout).toString(), false);
             } catch (Exception ignored) { }
         }
@@ -475,6 +485,21 @@ final class Nieuws {
 
     private static Fout antwoord(int code) { return new Fout(Taal.fill(Taal.T("De nieuwssite antwoordt met {code}"), "code", code)); }
 
+    /** Verbreekt een verbinding die over zijn tijd gaat (ook als hij nog op het antwoord van de server wacht). */
+    private static final ScheduledExecutorService WACHTER = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "nieuws-wachter");
+        t.setDaemon(true);
+        return t;
+    });
+
+    /** Het toestel zelf, het thuisnetwerk of een ander niet-openbaar adres (ook achter een naam als 127.0.0.1.nip.io). */
+    static boolean intern(InetAddress a) {
+        if (a.isLoopbackAddress() || a.isSiteLocalAddress() || a.isLinkLocalAddress() || a.isAnyLocalAddress() || a.isMulticastAddress()) return true;
+        byte[] b = a.getAddress();
+        if (b.length == 4) return (b[0] & 0xff) == 0 || ((b[0] & 0xff) == 100 && (b[1] & 0xc0) == 64);
+        return b.length == 16 && (b[0] & 0xfe) == 0xfc;
+    }
+
     /** Hoeveel tijd er nog is tot {@code tot}; voorbij = de site is te traag. */
     private static int rest(long tot) throws Fout {
         long r = tot - System.currentTimeMillis();
@@ -487,7 +512,9 @@ final class Nieuws {
         String u = adres;
         for (int hop = 0; hop < MAX_HOPS; hop++) {
             if (!https(u)) throw new Fout(Taal.T("Alleen https-adressen"));
+            for (InetAddress ia : InetAddress.getAllByName(new URL(u).getHost())) if (intern(ia)) throw new Fout(Taal.T("Dit adres is niet van een site op internet"));
             HttpURLConnection h = (HttpURLConnection) new URL(u).openConnection();
+            ScheduledFuture<?> wacht = WACHTER.schedule(() -> { try { h.disconnect(); } catch (Throwable ignored) { } }, Math.max(1, tot - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
             try {
                 h.setInstanceFollowRedirects(false);
                 h.setConnectTimeout(Math.min(15_000, rest(tot)));
@@ -518,7 +545,10 @@ final class Nieuws {
                 }
                 a.data = out.toByteArray();
                 return a;
-            } finally { h.disconnect(); }
+            } catch (IOException e) {
+                if (System.currentTimeMillis() >= tot) throw new Fout(Taal.T("De nieuwssite reageert te traag"));
+                throw e;
+            } finally { wacht.cancel(false); h.disconnect(); }
         }
         throw new Fout(Taal.T("Te veel doorverwijzingen"));
     }

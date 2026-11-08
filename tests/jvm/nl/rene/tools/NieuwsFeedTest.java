@@ -119,12 +119,18 @@ public class NieuwsFeedTest {
         check(!NieuwsFeed.blokken(grootKop, null).get(0).kop, "een 'kop' van 300 tekens is gewone tekst");
         check("Voor | ".equals(tekst(NieuwsFeed.blokken("<p>Voor</p><script>x = 1; <p>na</p>", null))) && "Kop".equals(NieuwsFeed.regel("Kop <!-- rest")),
                 "niet afgesloten script of opmerking: de rest valt weg");
+        check("Een | Twee | ".equals(tekst(NieuwsFeed.blokken("<p>Een</p><svg class=\"i\"/><p>Twee</p>", null)))
+                && "Een | Twee | ".equals(tekst(NieuwsFeed.blokken("<p>Een</p><iframe src=\"https://x.example.org/\" /><p>Twee</p>", null)))
+                && "Een | Twee | ".equals(tekst(NieuwsFeed.blokken("<p>Een</p><figure><img src=\"x\"><p>Twee</p>", null)))
+                && "Een | Drie | ".equals(tekst(NieuwsFeed.blokken("<p>Een</p><FIGURE><p>Twee</p></Figure><p>Drie</p>", null)))
+                && "İstanbul | Twee | ".equals(tekst(NieuwsFeed.blokken("<p>İstanbul</p><figure>x</figure><p>Twee</p>", null))),
+                "zelfsluitende of nooit gesloten figuur, svg of iframe: de tekst erna blijft");
         kort[0] = false;
         bl = NieuwsFeed.blokken(herhaal("<span class=\"opmaak\"></span>", 5_000) + "<p>Achteraan</p>", kort);
         check(kort[0] && !tekst(bl).contains("Achteraan"), "meer dan " + NieuwsFeed.MAX_HTML + " tekens HTML: alleen het begin, en ingekort");
 
         // Halve tags in grote hoeveelheden: geen kwadratische tijd (Android kan een zoekopdracht niet afbreken)
-        for (String stuk : new String[]{"<!--", "<script>", "<h1 a", "<img a", "<li a", "<p a", "<a ", "<b", "<form x>", "<!-- <script>"}) {
+        for (String stuk : new String[]{"<!--", "<script>", "<h1 a", "<img a", "<li a", "<p a", "<a ", "<b", "<form x>", "<!-- <script>", "<figure>", "<svg/>", "<noscript>a</figure>", "<script/>"}) {
             String h = herhaal(stuk + "x", 200_000 / (stuk.length() + 1));
             long t0 = System.nanoTime();
             NieuwsFeed.blokken(h, null);
@@ -149,7 +155,7 @@ public class NieuwsFeedTest {
                 + "<description>&lt;img src=\"https://localhost./b.jpg\"&gt;</description></item></channel></rss>", null);
         check(f.artikelen.get(0).beeld.isEmpty(), "geen afbeelding van het thuisnetwerk of het toestel zelf");
         for (String h : new String[]{"localhost", "127.0.0.1", "10.1.2.3", "172.16.0.1", "172.31.255.1", "192.168.1.1", "169.254.1.1", "100.64.0.1", "0.0.0.0",
-                "[::1]", "::1", "printer.local", "nas.lan", "router.home.arpa", "intranet", "", null})
+                "[::1]", "::1", "printer.local", "nas.lan", "router.home.arpa", "intranet", "", null, "127.1", "0x7f.0.0.1", "0177.0.0.1", "10.1", "1.2.3.999", "8.8.8.08"})
             check(!NieuwsFeed.openbaar(h), "niet openbaar: " + h);
         for (String h : new String[]{"nos.nl", "feeds.nos.nl.", "8.8.8.8", "172.32.0.1", "www.rijnmond.nl"}) check(NieuwsFeed.openbaar(h), "openbaar: " + h);
         check(!NieuwsFeed.httpsOpenbaar("https://user:pw@nos.nl/feed") && !NieuwsFeed.httpsOpenbaar("http://nos.nl/") && NieuwsFeed.httpsOpenbaar("https://nos.nl/feed"),

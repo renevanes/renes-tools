@@ -75,7 +75,12 @@ final class NieuwsFeed {
         if (h.isEmpty() || !h.contains(".") || h.startsWith("[") || h.contains(":")) return false;
         if (h.equals("localhost") || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal") || h.endsWith(".lan") || h.endsWith(".home.arpa")) return false;
         Matcher m = IPV4.matcher(h);
-        if (!m.matches()) return true;
+        if (!m.matches()) {
+            // "127.1", "0x7f.0.0.1": het toestel leest dat als IP-adres; een echte naam eindigt nooit op cijfers
+            String laatste = h.substring(h.lastIndexOf('.') + 1);
+            return !laatste.matches("[0-9]+|0x[0-9a-f]*");
+        }
+        for (int i = 1; i <= 4; i++) { String o = m.group(i); if ((o.length() > 1 && o.charAt(0) == '0') || Integer.parseInt(o) > 255) return false; }
         int a = Integer.parseInt(m.group(1)), b = Integer.parseInt(m.group(2));
         return !(a == 0 || a == 10 || a == 127 || a >= 224 || (a == 169 && b == 254) || (a == 172 && b >= 16 && b <= 31)
                 || (a == 192 && b == 168) || (a == 100 && b >= 64 && b <= 127));
@@ -280,7 +285,9 @@ final class NieuwsFeed {
     static final Pattern GEEN_BEELD = Pattern.compile("(?i)\\.(mp4|m4v|mov|webm|m3u8|mp3|m4a|aac|ogg|opus|wav)(\\?|#|$)");
     /* Elk patroon stopt bij de volgende < of aan het eind van de tekst: een feed vol halve tags kost zo geen kwadratische tijd
      * (Android kan een zoekopdracht niet afbreken). Een niet afgesloten script of opmerking loopt door tot het eind. */
-    private static final Pattern WEG = Pattern.compile("(?is)<(script|style|noscript|iframe|object|svg|template|button|form|figure)\\b[^<>]{0,2000}>.*?(?:</\\1\\s*>|\\z)");
+    private static final Pattern WEG = Pattern.compile("(?is)<(script|style)\\b[^<>]{0,2000}(?<!/)>.*?(?:</\\1\\s*>|\\z)");
+    /** Blokken die alleen met hun sluittag weg gaan (zelfsluitend of nooit gesloten: alleen de tag zelf). */
+    private static final Pattern WEG_BLOK = Pattern.compile("(?i)<(noscript|iframe|object|svg|template|button|form|figure)\\b[^<>]{0,2000}(?<!/)>");
     private static final Pattern KOP_BEGIN = Pattern.compile("(?i)<h[1-6]\\b[^<>]{0,2000}>"), KOP_EIND = Pattern.compile("(?i)</h[1-6]\\s*>");
     private static final Pattern LI = Pattern.compile("(?i)<li\\b[^<>]{0,2000}>");
     private static final Pattern BLOK = Pattern.compile("(?i)</?(p|div|ul|ol|li|blockquote|section|article|table|tr|figcaption|dl|dd|dt|hr|pre)\\b[^<>]{0,2000}>");
@@ -290,6 +297,31 @@ final class NieuwsFeed {
     private static final Pattern TAG = Pattern.compile("(?s)<[/!?]?[A-Za-z][^<>]{0,2000}>|<!--.*?(?:-->|\\z)");
     private static final Pattern INLINE = Pattern.compile("(?i)</?(b|i|em|strong|span|a|small|sup|sub|u|mark|abbr|q|cite|code|font)\\b[^<>]{0,2000}>");
     private static final char KOP = '\u0001';
+
+    /**
+     * Figuren, formulieren, iframes en dergelijke met hun inhoud weg, tot de eerstvolgende sluittag. Zonder sluittag erna
+     * blijft de tekst staan. Per soort één keer opzoeken waar de laatste sluittag staat, zodat het lineair blijft.
+     */
+    static String wegBlok(String s) {
+        char[] k = s.toCharArray();
+        for (int i = 0; i < k.length; i++) if (k[i] >= 'A' && k[i] <= 'Z') k[i] += 32; // even lang als s (toLowerCase kan tekens verdubbelen)
+        String l = new String(k);
+        Map<String, Integer> laatste = new HashMap<>();
+        StringBuilder b = new StringBuilder(s.length());
+        Matcher m = WEG_BLOK.matcher(s);
+        int pos = 0;
+        while (pos < s.length() && m.find(pos)) {
+            String naam = m.group(1).toLowerCase(Locale.ROOT), sluit = "</" + naam;
+            Integer last = laatste.get(naam);
+            if (last == null) { last = l.lastIndexOf(sluit); laatste.put(naam, last); }
+            int eind = last >= m.end() ? l.indexOf(sluit, m.end()) : -1, gt = eind < 0 ? -1 : l.indexOf('>', eind);
+            if (gt < 0) { b.append(s, pos, m.end()); pos = m.end(); continue; }
+            b.append(s, pos, m.start()).append(' ');
+            pos = gt + 1;
+        }
+        if (pos < s.length()) b.append(s, pos, s.length());
+        return b.toString();
+    }
 
     /** Eén regel tekst (titel, naam): tags weg, tekens terug, witruimte samen. */
     static String regel(String s) {
@@ -312,7 +344,7 @@ final class NieuwsFeed {
         if (s.indexOf('<') < 0 && s.indexOf('&') < 0) s = s.replaceAll("\\r?\\n\\s*\\r?\\n", "\n\n");
         else {
             s = OPMERKING.matcher(s.replaceAll("\\s+", " ")).replaceAll(" ");
-            s = WEG.matcher(s).replaceAll(" ");
+            s = wegBlok(WEG.matcher(s).replaceAll(" "));
             s = KOP_BEGIN.matcher(s).replaceAll("\n\n" + KOP);
             s = KOP_EIND.matcher(s).replaceAll("\n\n");
             s = LI.matcher(s).replaceAll("\n\n• ");

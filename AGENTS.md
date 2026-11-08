@@ -462,10 +462,14 @@ in de buurt, ook plekken waar er meestal een is (tankstations, verzorgingsplaats
 Nieuws (schermen `s-nieuws`, `s-nieuwsart`, `s-nieuwsset`; `web/src/script/75-nieuws.js`, `Nieuws*.java`) toont koppen en
 artikelen uit RSS-, Atom- en RDF-feeds.
 - **Ophalen alleen in Java** (de WebView heeft `connect-src 'none'`): `Nieuws.haal` volgt doorverwijzingen zelf en alleen
-  naar https, met tijd- en groottegrenzen; geen account, geen tussendienst en geen leesmodus die de webpagina van een
+  naar https op openbare adressen (`NieuwsFeed.httpsOpenbaar`, en na het opzoeken van de naam `Nieuws.intern`: niet het
+  toestel of het thuisnetwerk), met een vaste eindtijd per feed (een wachter verbreekt de verbinding) en een groottegrens;
+  geen account, geen tussendienst en geen leesmodus die de webpagina van een
   artikel ophaalt (cookiemuren). De tekst komt uit de feed; "Lees op de website" opent de link in de browser.
-- **Lezen** (`NieuwsFeed`, zuiver, getest in `NieuwsFeedTest`): SAX zonder DTD of externe entiteiten; HTML uit de feed wordt
-  alinea's en tussenkoppen (platte tekst), de interface zet het altijd met `textContent`/`esc` neer, nooit als HTML.
+- **Lezen** (`NieuwsFeed`, zuiver, getest in `NieuwsFeedTest`): SAX zonder externe entiteiten; een DOCTYPE met eigen
+  declaraties weigert `PodcastFeed.EntityGuard` al vóór de parser (de parser van Android geeft declaraties niet door).
+  Opschoonpatronen moeten lineair blijven (Android kan een zoekopdracht niet afbreken; `NieuwsFeedTest` meet het). HTML uit
+  de feed wordt alinea's en tussenkoppen (platte tekst), de interface zet het altijd met `textContent`/`esc` neer, nooit als HTML.
   Afbeeldingen alleen via https, zonder referrer, uit te zetten (Instellingen van Nieuws).
 - **Bronnen**: vaste lijst in `Nieuws.STANDAARD` (id, naam, feed, standaard aan, sites); een eigen bron (id `e…`) is een
   https-feed of een pagina met `<link rel="alternate">`. Een bekende site (bijv. nos.nl) zet de bekende bron aan.

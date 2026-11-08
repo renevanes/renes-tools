@@ -49,14 +49,16 @@ public class PodcastFeedTest {
         String[] fout = { pad + "--><!DOCTYPE rss [<!ENTITY a \"x\">]><rss/>", "<!-- <rss> --><!DOCTYPE rss [<!ENTITY a \"x\">]><rss/>", "<!DOCTYPE rss SYSTEM \"<!--\" [<!ENTITY a \"x\">]><rss/>",
             // Een "<a" in een <?…?> of in de DOCTYPE is nog niet het hoofdelement
             "<!DOCTYPE rss [<?x <a?><!ENTITY a \"x\">]><rss/>", "<!DOCTYPE rss SYSTEM \"<a\" [<!ENTITY a \"x\">]><rss/>", "<?x <a?><!DOCTYPE rss [<!ENTITY a \"x\">]><rss/>",
-            "<!DOCTYPE rss SYSTEM 'a>b' [<!ENTITY a \"x\">]><rss/>", "<!DOCTYPE rss [ ]><rss/>" };
+            "<!DOCTYPE rss SYSTEM 'a>b' [<!ENTITY a \"x\">]><rss/>", "<!DOCTYPE rss [ ]><rss/>",
+            // "<!-->" en "<!--->" openen een opmerking die pas bij een latere --> sluit
+            "<!--><a --><!DOCTYPE rss [<!ENTITY a \"x\">]><rss>&a;</rss>", "<!---><a --><!DOCTYPE rss [<!ENTITY a \"x\">]><rss/>", "<?x?><!--><b --><!DOCTYPE rss [<!ENTITY a \"x\">]><rss/>" };
         for (String x : fout) {
             boolean g = false;
             try (java.io.Reader r = new PodcastFeed.EntityGuard(new java.io.StringReader(x))) { char[] buf = new char[100]; while (r.read(buf, 0, buf.length) > 0) { } }
             catch (java.io.IOException io) { g = io.getMessage().contains("onveilig"); }
             check(g, "bewaker weigert: " + x.substring(Math.max(0, x.length() - 40)));
         }
-        String goed = "<?xml version=\"1.0\"?><!DOCTYPE rss SYSTEM \"http://my.netscape.com/publish/formats/rss-0.91.dtd\"><rss version=\"0.91\"><channel><title>T</title>"
+        String goed = "<?xml version=\"1.0\"?><!----><!-- opmerking --><!DOCTYPE rss SYSTEM \"http://my.netscape.com/publish/formats/rss-0.91.dtd\"><rss version=\"0.91\"><channel><title>T</title>"
                 + "<item><title>Over &lt;!ENTITY&gt;</title><description><![CDATA[Zo schrijf je <!ENTITY x \"y\"> in XML]]></description><enclosure url=\"https://x/a.mp3\"/></item></channel></rss>";
         f = PodcastFeed.parse(new java.io.ByteArrayInputStream(goed.getBytes("UTF-8")), 10);
         check("T".equals(f.title) && f.items.size() == 1, "RSS 0.91 met DOCTYPE en de tekst <!ENTITY in een beschrijving: gewoon gelezen");
