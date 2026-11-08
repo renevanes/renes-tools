@@ -684,6 +684,43 @@ public class MainActivity extends Activity {
     @SuppressWarnings("deprecation")
     public void onBackPressed() { handleBack(); }
 
+    /** E-reader: volumeknoppen bladeren (alleen terwijl een boek open is, en niet tijdens voorlezen: dan zijn ze voor het volume). */
+    volatile boolean ereaderKeys;
+
+    @Override
+    public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+        int k = e == null ? 0 : e.getKeyCode();
+        if (ereaderKeys && visible && (k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN || k == android.view.KeyEvent.KEYCODE_VOLUME_UP) && !EreaderSpeakService.speaking()) {
+            if (e.getAction() == android.view.KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) js("onEreaderKey", k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN ? "1" : "-1");
+            return true;
+        }
+        return super.dispatchKeyEvent(e);
+    }
+
+    /** E-reader: lezen op het volle scherm, scherm aan en eigen helderheid; alles terug zodra het boek dicht gaat. */
+    @SuppressWarnings("deprecation")
+    void ereaderWindow(boolean full, boolean awake, double bright) {
+        Window w = getWindow();
+        if (awake) w.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        else w.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        android.view.WindowManager.LayoutParams lp = w.getAttributes();
+        float b = Double.isNaN(bright) || bright < 0 ? android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE : (float) Math.max(0.01, Math.min(1, bright));
+        if (lp.screenBrightness != b) { lp.screenBrightness = b; w.setAttributes(lp); }
+        if (Build.VERSION.SDK_INT >= 30) {
+            WindowInsetsController c = w.getInsetsController();
+            if (c != null) {
+                // Vegen vanaf de rand laat de balken even zien; de inhoud blijft buiten de inkeping (cutout)
+                if (full) { c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE); c.hide(WindowInsets.Type.systemBars()); }
+                else c.show(WindowInsets.Type.systemBars());
+            }
+        } else {
+            View d = w.getDecorView();
+            int imm = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+            int f = d.getSystemUiVisibility();
+            d.setSystemUiVisibility(full ? f | imm : f & ~imm);
+        }
+    }
+
     /** Thema gewisseld (in de interface): achtergrond van venster, WebView en afdeklaag mee (op de hoofdthread). */
     void themeChanged() {
         int c = Thema.bg(this);

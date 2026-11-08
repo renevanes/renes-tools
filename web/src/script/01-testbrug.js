@@ -26,6 +26,46 @@ if (!window.Android) window.Android = (function(){
     ereaderPosition(id, chapter, offset){ const b = this._erBooks.find(x => x.id === id); if (b) Object.assign(b, { chapter, offset, last: Date.now() }); return ""; },
     ereaderDelete(id){ this._erBooks = this._erBooks.filter(x => x.id !== id); delete this._erTexts[id]; return ""; },
     ereaderPick(){ setTimeout(() => onEreaderImport(this._erPick || { cancelled: true }), 100); },
+    /* Lezen: het venster (volle scherm, scherm aan, helderheid, volumeknoppen) en voorlezen met een nagebootste stem.
+       Zinnen gaan pas verder met _spkTick() (de test bepaalt het tempo); _spkNoVoice = talen zonder stem. */
+    _erWin: {}, _erWinLog: [], _talkback: false,
+    ereaderWindow(json){ this._erWin = JSON.parse(json || '{}'); this._erWinLog.push(this._erWin); return JSON.stringify({ talkback: !!this._talkback }); },
+    _spk: { state: 'stopped', id: '', title: '', chapter: 0, chapterName: '', start: 0, end: 0, rate: 1, sleepAt: 0, sleepChapter: false, error: '', code: '', lang: '' },
+    _spkLog: [], _spkNoVoice: [], _spkSentences: [], _spkIdx: 0, _spkVoices: { nl: [{ name: 'nl-nl-x-a-local', label: 'Nederlands (Nederland), stem 1' }, { name: 'nl-nl-x-b-local', label: 'Nederlands (Nederland), stem 2' }], en: [{ name: 'en-gb-x-a-local', label: 'Engels (Verenigd Koninkrijk), stem 1' }] },
+    _spkSplit(text){ const out = []; let i = 0; const n = text.length;
+      while (i < n) { while (i < n && /\s/.test(text[i])) i++; if (i >= n) break; const s = i;
+        while (i < n && text[i] !== '\n' && !(/[.!?…]/.test(text[i]) && (i + 1 >= n || /\s/.test(text[i + 1])))) i++;
+        const e = text[i] === '\n' ? i : Math.min(n, i + 1); out.push([s, e]); i = e; }
+      return out; },
+    _spkEmit(){ const r = Object.assign({}, this._spk); setTimeout(() => window.onEreaderSpeak && onEreaderSpeak(r), 0); },
+    _spkSave(){ const s = this._spk, len = ((this._erTexts[s.id] || [])[s.chapter] || '').length; if (s.id) this.ereaderReadPosition(s.id, s.chapter, len ? s.start / len : 0, s.start); },
+    _spkLoad(chapter, at){ const s = this._spk, text = (this._erTexts[s.id] || [])[chapter]; if (text == null) return false; const b = this._erBooks.find(x => x.id === s.id) || {};
+      this._spkSentences = this._spkSplit(text); s.chapter = chapter; s.chapterName = (b.chapters || [])[chapter] || '';
+      this._spkIdx = at === 'last' ? this._spkSentences.length - 1 : Math.max(0, this._spkSentences.findIndex(x => x[1] > at)); if (this._spkIdx < 0) this._spkIdx = 0; this._spkMark(); return true; },
+    _spkMark(){ const x = this._spkSentences[this._spkIdx] || [0, 0]; this._spk.start = x[0]; this._spk.end = x[1]; },
+    _spkNextChapter(){ const s = this._spk, b = this._erBooks.find(x => x.id === s.id) || {}; for (let c = s.chapter + 1; c < (b.chapters || []).length; c++) if (!b.linear || b.linear[c] !== false) return c; return -1; },
+    ereaderSpeak(json){ const o = JSON.parse(json), base = String(o.lang || 'nl').split('-')[0]; this._spkLog.push(['speak', o]);
+      if (this._spkNoVoice.includes(base)) { Object.assign(this._spk, { state: 'error', code: 'nolang', error: 'Er is geen stem voor deze taal op je telefoon.', lang: o.lang, id: o.id }); this._spkEmit(); return ''; }
+      const b = this._erBooks.find(x => x.id === o.id); if (!b) return 'Voorlezen lukte niet';
+      Object.assign(this._spk, { state: 'playing', id: o.id, title: b.title, rate: o.rate || 1, lang: o.lang, code: '', error: '' }); this._spkVoice = o.voice;
+      this._spkLoad(o.chapter, o.anchor); this._spkEmit(); return ''; },
+    _spkTick(){ const s = this._spk; if (s.state !== 'playing') return;
+      if (s.sleepAt && Date.now() >= s.sleepAt) { s.sleepAt = 0; this._spkIdx++; if (this._spkIdx >= this._spkSentences.length) this._spkIdx = this._spkSentences.length - 1; this._spkMark(); s.state = 'paused'; this._spkSave(); this._spkEmit(); return; }
+      if (this._spkIdx + 1 < this._spkSentences.length) { this._spkIdx++; this._spkMark(); this._spkEmit(); return; }
+      const next = this._spkNextChapter(); if (next < 0) { s.state = 'paused'; s.code = 'end'; this._spkSave(); this._spkEmit(); return; }
+      if (s.sleepChapter) { s.sleepChapter = false; s.state = 'paused'; }
+      this._spkLoad(next, 0); if (s.state === 'paused') this._spkSave(); this._spkEmit(); },
+    ereaderSpeakCmd(cmd, arg){ const s = this._spk; this._spkLog.push([cmd, arg]); if (s.state === 'stopped' || s.state === 'error') return;
+      if (cmd === 'pause' || (cmd === 'toggle' && s.state === 'playing')) { s.state = 'paused'; this._spkSave(); }
+      else if (cmd === 'resume' || cmd === 'toggle') { s.state = 'playing'; s.code = ''; }
+      else if (cmd === 'stop') { this._spkSave(); Object.assign(s, { state: 'stopped', sleepAt: 0, sleepChapter: false }); }
+      else if (cmd === 'next' || cmd === 'prev') { const to = this._spkIdx + (cmd === 'next' ? 1 : -1); if (to >= 0 && to < this._spkSentences.length) { this._spkIdx = to; this._spkMark(); } else if (cmd === 'prev' && s.chapter > 0) this._spkLoad(s.chapter - 1, 'last'); else if (cmd === 'next') { const c = this._spkNextChapter(); if (c >= 0) this._spkLoad(c, 0); } }
+      else if (cmd === 'rate') s.rate = Math.max(.75, Math.min(2, +arg || 1));
+      else if (cmd === 'sleep') { s.sleepChapter = arg === 'chapter'; s.sleepAt = ['15', '30', '60'].includes(arg) ? Date.now() + arg * 60000 : 0; }
+      this._spkEmit(); },
+    ereaderSpeakState(){ return JSON.stringify(this._spk); },
+    ereaderVoices(lang){ const base = String(lang || 'nl').split('-')[0]; setTimeout(() => onEreaderVoices({ state: 'ok', lang: base, langs: [{ tag: 'en', label: 'Engels' }, { tag: 'nl', label: 'Nederlands' }], voices: this._spkNoVoice.includes(base) ? [] : (this._spkVoices[base] || []) }), 20); },
+    ereaderTtsSettings(install){ this._ttsSettings = install ? 'install' : 'settings'; },
     version:()=>JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts','masterdata']}),
     lastManifest:()=>'null', checkUpdates:()=>setTimeout(()=>onUpdateStatus({state:'uptodate',kind:'web',manual:true,versionName:VERSION_NAME}),400),
     reloadUi(){ if (window.prepareUiReload && window.prepareUiReload()) { this._uiReloads = (this._uiReloads || 0) + 1; document.body.inert = false; } },

@@ -76,6 +76,54 @@ public class EreaderBridge extends ToilettenBridge {
     @JavascriptInterface public String ereaderDelete(String id) {
         try { Ereader.delete(ctx, id); return ""; } catch (Throwable e) { return Taal.t(ctx, "Boek verwijderen lukt niet"); }
     }
+    /**
+     * Het venster tijdens het lezen: {full (systeembalken weg), awake (scherm aan), bright (0..1, -1 = zoals de telefoon),
+     * keys (volumeknoppen bladeren)}; alles uit/terug met {}. Antwoord {talkback}: dan blijven de knoppen zichtbaar.
+     */
+    @JavascriptInterface public String ereaderWindow(String json) {
+        boolean talkback = false;
+        try {
+            android.view.accessibility.AccessibilityManager am = (android.view.accessibility.AccessibilityManager) ctx.getSystemService(android.content.Context.ACCESSIBILITY_SERVICE);
+            talkback = am != null && am.isEnabled() && am.isTouchExplorationEnabled();
+        } catch (Throwable ignored) { }
+        try {
+            JSONObject o = new JSONObject(json == null ? "{}" : json);
+            final boolean full = o.optBoolean("full"), awake = o.optBoolean("awake");
+            final double bright = o.optDouble("bright", -1);
+            a.ereaderKeys = o.optBoolean("keys");
+            a.h.post(() -> { try { a.ereaderWindow(full, awake, bright); } catch (Throwable ignored) { } });
+        } catch (Throwable ignored) { }
+        return "{\"talkback\":" + talkback + "}";
+    }
+    /** Voorlezen beginnen: {id, chapter, anchor, rate, lang, voice}. Geeft "" of een melding. */
+    @JavascriptInterface public String ereaderSpeak(String json) {
+        try {
+            JSONObject o = new JSONObject(json);
+            String id = o.optString("id");
+            if (id.isEmpty() || id.length() > 200 || o.optInt("chapter", -1) < 0) return Taal.t(ctx, "Voorlezen lukte niet");
+            if (o.optString("lang").length() > 35 || o.optString("voice").length() > 200) return Taal.t(ctx, "Voorlezen lukte niet");
+            EreaderSpeakService.send(ctx, EreaderSpeakService.START, o.toString());
+            return "";
+        } catch (Throwable e) { return Taal.t(ctx, "Voorlezen lukte niet"); }
+    }
+    private static final java.util.Set<String> SPEAK_CMDS = new java.util.HashSet<>(java.util.Arrays.asList(
+            EreaderSpeakService.PAUSE, EreaderSpeakService.RESUME, EreaderSpeakService.TOGGLE, EreaderSpeakService.STOP,
+            EreaderSpeakService.PREV, EreaderSpeakService.NEXT, EreaderSpeakService.RATE, EreaderSpeakService.SLEEP));
+    /** pause, resume, toggle, stop, prev, next, rate (0.75..2), sleep (15, 30, 60, chapter, 0). */
+    @JavascriptInterface public void ereaderSpeakCmd(String cmd, String arg) {
+        if (cmd == null || !SPEAK_CMDS.contains(cmd) || (arg != null && arg.length() > 20)) return;
+        EreaderSpeakService.send(ctx, cmd, arg);
+    }
+    @JavascriptInterface public String ereaderSpeakState() { return EreaderSpeakService.stateJson(); }
+    /** Talen en stemmen op de telefoon; antwoord via onEreaderVoices. */
+    @JavascriptInterface public void ereaderVoices(String lang) {
+        final String l = lang == null || lang.length() > 35 ? "" : lang;
+        EreaderSpeakService.voices(ctx, l, json -> a.js("onEreaderVoices", json));
+    }
+    /** De instellingen voor tekst-naar-spraak van Android (install = een stem toevoegen). */
+    @JavascriptInterface public void ereaderTtsSettings(boolean install) {
+        a.h.post(() -> { try { if (install) TtsCheck.install(a); else TtsCheck.openSettings(a); } catch (Throwable ignored) { } });
+    }
     @JavascriptInterface public void ereaderPick() {
         a.h.post(() -> {
             Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")

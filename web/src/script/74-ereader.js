@@ -2,7 +2,7 @@
 let erBooks=[],erBook=null,erIndex=0,erText='',erTimer=null,erBusy=false,erRestoring=false,erNodes=[],erSelection=null,erHit=null,erCurrentAnchor=0,erTab='chapters',erFindTimer=null,erRequest='',erCoverCache={},erCoverGeneration=0;
 const ER_SCREENS=['erbook','ercontents','erset'];
 const ER_STYLE={size:22,font:'serif',line:'1.65',margin:'28',align:'start',theme:'auto',mode:'pages'};
-const ER_VALUES={size:[18,22,26,32,38],font:['serif','sans-serif','monospace'],line:['1.4','1.65','2'],margin:['16','28','44'],align:['start','justify'],theme:['auto','paper','sepia','night'],mode:['pages','scroll']};
+const ER_VALUES={size:[16,18,20,22,24,26,28,30,32,35,38,42],font:['serif','sans-serif','monospace'],line:['1.4','1.65','2'],margin:['16','28','44'],align:['start','justify'],theme:['auto','paper','sepia','night'],mode:['pages','scroll']};
 function erData(raw){try{return JSON.parse(raw);}catch(e){return{error:t('Boek openen lukt niet')};}}
 function erStyle(){const s=Object.assign({},ER_STYLE,store.get('erStyle',{}));if(!store.get('erStyle',null)){s.size=store.get('erSize',22);s.font=store.get('erFont','serif');}Object.keys(ER_VALUES).forEach(k=>{if(!ER_VALUES[k].includes(s[k]))s[k]=ER_STYLE[k];});return s;}
 function erStatus(text){const e=$('#er-status');e.textContent=text||'';e.hidden=!text;}
@@ -10,7 +10,7 @@ function enterEreader(){
   const ready=typeof Android.ereaderList==='function';$('#er-add').disabled=erBusy||!ready;
   if(!ready){erStatus(t('Installeer de nieuwste APK om de e-reader te gebruiken'));return;}
   const r=erData(Android.ereaderList());if(r.error){erStatus(r.error);return;}
-  erBooks=r.books||[];$('#er-sort').value=store.get('erSort','recent');erRender();
+  erBooks=r.books||[];$('#er-sort').value=store.get('erSort','recent');erRender();erSpeakSync();erSpeakRender();
 }
 function erLength(b,i){return Math.max(1,Number((b.lengths||[])[i])||1);}
 function erFraction(b,offset){
@@ -126,27 +126,31 @@ function erScroll(){erQueueImages();if(!erBook||current!=='erbook'||erRestoring)
 function erSave(){
   clearTimeout(erTimer);if(!erBook||current!=='erbook'||erRestoring||erUpgrading)return;
   const offset=erPendingLocation?erPendingLocation.offset:erOffset(),anchor=erPendingLocation?erPendingLocation.anchor:erText.length?erAnchor():-1;let error;
-  if(typeof Android.ereaderReadPosition==='function')error=Android.ereaderReadPosition(erBook.id,erIndex,offset,anchor);else error=Android.ereaderPosition(erBook.id,erIndex,offset);
+  if(erSpeakOwns())error='';// tijdens voorlezen bewaart de voorleesfunctie de plek van de zin die klinkt
+  else if(typeof Android.ereaderReadPosition==='function')error=Android.ereaderReadPosition(erBook.id,erIndex,offset,anchor);else error=Android.ereaderPosition(erBook.id,erIndex,offset);
   if(error){toast(error);return;}Object.assign(erBook,{chapter:erIndex,offset,anchor,last:Date.now()});erCurrentAnchor=anchor;erCurrentOffset=offset;if(erLinear(erBook,erIndex))erBook.reading={chapter:erIndex,offset,anchor};
 }
 function erLeave(next){
-  erSave();erImageClose();erFocus(false);erSelection=null;$('#er-selection').hidden=true;
+  erSave();erImageClose();erLezenLeave();erSelection=null;$('#er-selection').hidden=true;
   if(!ER_SCREENS.includes(next)){erPendingLocation=null;erBook=null;erText='';erDoc=null;erLinks=[];erLinkButton();erCancelImages();erNodes=[];$('#er-content').textContent='';erCancelSearch();}
 }
-function erResume(){if(!erBook)return;erApplyStyle();erRestoreLocation({anchor:erCurrentAnchor,offset:erCurrentOffset});erProgress();erQueueImages();}
+function erResume(){if(!erBook)return;erApplyStyle();erLezenEnter();erRestoreLocation({anchor:erCurrentAnchor,offset:erCurrentOffset});erProgress();erQueueImages();}
 function erBrowse(tab){erTab=tab;show('ercontents');}
-function erFocus(on){const position=erBook&&current==='erbook'?erLocation():{anchor:erCurrentAnchor,offset:erCurrentOffset};document.body.classList.toggle('er-focus',!!on);$('#er-focus-exit').hidden=!on;if(erBook&&current==='erbook'){erRestoreLocation(position);erProgress();}}
 function erApplyStyle(){
   const s=erStyle(),font=s.font==='serif'?'Georgia, "Noto Serif", serif':s.font==='sans-serif'?'system-ui, sans-serif':'monospace';
   for(const el of [$('#s-erbook'),$('#s-erset')]){el.dataset.erTheme=s.theme;el.dataset.erMode=s.mode;el.style.setProperty('--er-size',s.size+'px');el.style.setProperty('--er-font',font);el.style.setProperty('--er-line',s.line);el.style.setProperty('--er-margin',s.margin+'px');el.style.setProperty('--er-align',s.align);}
   if(current==='erbook')bars();
+  erQuickRender();
 }
-function erSettings(){erApplyStyle();const s=erStyle();for(const k of Object.keys(ER_STYLE))$('#er-'+k).value=String(s[k]);$('#er-sample-text').textContent=(erText||t('Open een boek om hier je eigen tekst te bekijken.')).slice(0,350);}
+function erSettings(){
+  erApplyStyle();const s=erStyle(),size=$('#er-size');
+  if(size.options.length!==ER_VALUES.size.length)size.replaceChildren(...ER_VALUES.size.map(v=>new Option(v===22?t('{n} (standaard)',{n:erSizePct(v)}):erSizePct(v),String(v))));
+  for(const k of Object.keys(ER_STYLE))$('#er-'+k).value=String(s[k]);erSetRender();$('#er-sample-text').textContent=(erText||t('Open een boek om hier je eigen tekst te bekijken.')).slice(0,350);}
 function erPreference(key,value){
   if(key==='size')value=Number(value);if(!ER_VALUES[key]||!ER_VALUES[key].includes(value))return;
-  const anchor=current==='erbook'?erAnchor():erCurrentAnchor,s=erStyle();s[key]=value;store.set('erStyle',s);
+  const position=current==='erbook'&&erBook?erLocation():null,anchor=position?position.anchor:erCurrentAnchor,s=erStyle();s[key]=value;store.set('erStyle',s);
   if(key==='size')store.set('erSize',value);if(key==='font')store.set('erFont',value);
-  erApplyStyle();erCurrentAnchor=anchor;if(current==='erbook'){erRestoreAnchor(anchor);erProgress();erSave();}if(current==='erset')erSettings();
+  erApplyStyle();erCurrentAnchor=anchor;if(position){erRestoreLocation(position);erProgress();erSave();erSpeakHighlight(erSpk);}if(current==='erset')erSettings();
 }
 function erSize(value){erPreference('size',value);}
 function erFont(value){erPreference('font',value);}
@@ -222,7 +226,7 @@ document.addEventListener('selectionchange',()=>{clearTimeout(erReadSelection.ti
 let erTouch=null;
 $('#er-text').addEventListener('touchstart',e=>{if(e.touches.length===1)erTouch={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});
 $('#er-text').addEventListener('touchend',e=>{if(!erTouch||!e.changedTouches.length)return;const d=e.changedTouches[0],dx=d.clientX-erTouch.x,dy=d.clientY-erTouch.y;erTouch=null;if(erStyle().mode==='pages'&&Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5&&window.getSelection().isCollapsed)erTurn(dx<0?1:-1);},{passive:true});
-document.addEventListener('keydown',e=>{if(current!=='erbook'||e.target.closest('input,textarea,select,button,a,[role="button"]')||document.querySelector('#modal.on,#sheet.on,#er-image.on'))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='f'){e.preventDefault();erBrowse('search');return;}if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();erTurn(1);}else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();erTurn(-1);}else if(e.key==='Escape')erFocus(false);});
+document.addEventListener('keydown',e=>{if(current!=='erbook'||e.target.closest('input,textarea,select,button,a,[role="button"]')||document.querySelector('#modal.on,#sheet.on,#er-image.on'))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='f'){e.preventDefault();erBrowse('search');return;}if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();erTurn(1);}else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();erTurn(-1);}});
 window.addEventListener('resize',()=>{if(current==='erbook'&&erBook){erRestoreLocation({anchor:erCurrentAnchor,offset:erCurrentOffset});erProgress();erQueueImages();}});
 window.addEventListener('pagehide',erSave);document.addEventListener('visibilitychange',()=>{if(document.hidden)erSave();});
 (function(){const previous=window.onPauseApp;window.onPauseApp=function(){erSave();if(previous)previous();};})();

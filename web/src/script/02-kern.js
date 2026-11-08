@@ -102,7 +102,8 @@ function bars(){
     Android.setBars(top, bottom, false); return;
   }
   if (current === 'erbook' && typeof erStyle === 'function') {
-    const theme = erStyle().theme, paper = getComputedStyle($('#s-erbook')).getPropertyValue('--er-paper').trim();
+    const theme = erStyle().theme, paper0 = getComputedStyle($('#s-erbook')).getPropertyValue('--er-paper').trim();
+    const paper = typeof erWarmTint === 'function' ? erWarmTint(paper0) : paper0; // "Prettig voor je ogen" kleurt de balken mee
     const light = theme === 'auto' ? !dark() : theme !== 'night';
     const key = JSON.stringify(['reader', paper, light]); if (key === bars.last) return; bars.last = key;
     Android.setBars(paper, paper, light); return;
@@ -216,8 +217,8 @@ window.goBack = function(){
   if ($('#vp-scan') && $('#vp-scan').classList.contains('on')) { vpScanClose(); return true; }
   if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
   if ($('#er-image').classList.contains('on')) { erImageClose(); return true; }
+  if (typeof erPanelBack === 'function' && erPanelBack()) return true; // e-reader: eerst het paneel (leesweergave, voorlezen)
   if (current === 'erbook' && erLinks.length && erLinkBack()) return true;
-  if (current === 'erbook' && document.body.classList.contains('er-focus')) { erFocus(false); return true; }
   if (typeof plIsOpen !== 'undefined' && plIsOpen) { plClose(); return true; }
   if (current === 'autoed' && typeof aeDirty === 'function' && aeDirty()) {
     askChoice('Wijzigingen opslaan?', 'Je hebt deze automatisering aangepast.', 'Opslaan', 'Weggooien', () => aeSave(), () => { aeRule = null; aeSnap = null; store.set('autoDraft', null); show('auto'); });
@@ -262,6 +263,7 @@ window.openTool = function(n){
   if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; }
   if (typeof n === 'string' && n.startsWith('checkin')) { ciOpenFrom(n); return; }
   if (n === 'pdf-share') { pdfShared(); return; }
+  if (n === 'ereader-lezen' && typeof erSpeakOpen === 'function') { erSpeakOpen(); return; } // melding van voorlezen
   if (typeof n === 'string' && n.startsWith('facturen-meekijken:')) { show('facturen'); setTimeout(() => askConfirm('Inloggen nodig', 'De app kon niet vanzelf inloggen. Kijk mee om zelf in te loggen; daarna gaat de app verder.', 'Meekijken', () => faNu(n.slice(19), true)), 400); return; }
   if (n === 'bkmap') { show('backup'); jumpTo('bkmap'); return; }
   // Nieuwe tools openen vanzelf via het register; systeembestemmingen blijven expliciet.

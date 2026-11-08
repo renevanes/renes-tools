@@ -354,7 +354,33 @@ const SET_REG = [
   { id: 'gebruik.foto.bewaren', scr: 'gebruikontgr', ctl: '#gb-pkeep', type: 'keuze', vals: [['7', '1 week'], ['30', '30 dagen'], ['90', '90 dagen']], label: 'Gebruik: foto\'s bewaren', desc: 'Hoe lang de foto\'s bij ontgrendelen bewaard blijven.', syn: 'gebruik foto bewaren dagen week',
     get: () => String(gbSet().photoKeep || 30), set: v => { gbSaveOne('photoKeep', +v); setIf(['gebruikset', 'gebruikontgr'], enterGebruikSet); return ''; } },
   { id: 'toiletten.kaart', scr: 'wcset', ctl: '#wcs-kaart', label: 'Toiletten en douches: kaart tonen', desc: 'De kaart met toiletten en douches tonen; de kaartbeelden komen van OpenStreetMap. Uit: alleen de lijst.', syn: 'toiletten douches wc kaart tonen kaartbeelden openstreetmap', synEn: 'toilets toilet showers shower loo restroom map',
-    get: () => setB(wcKaartAan()), set: v => { store.set('wcKaart', setOnV(v)); setIf('wcset', wcsRender); return ''; } }
+    get: () => setB(wcKaartAan()), set: v => { store.set('wcKaart', setOnV(v)); setIf('wcset', wcsRender); return ''; } },
+  /* ---------- E-reader: lezen en voorlezen (helderheid en filter gelden alleen in de e-reader) ---------- */
+  { id: 'ereader.helderheid', scr: 'erset', type: 'keuze', vals: [['telefoon', 'Zoals de telefoon'], ['10', '10%'], ['25', '25%'], ['50', '50%'], ['75', '75%'], ['100', '100%']],
+    label: 'Schermhelderheid in de e-reader', desc: 'Een eigen helderheid tijdens het lezen; buiten de e-reader volgt het scherm weer de telefoon. Ook te kiezen met Aa in een boek.',
+    syn: 'helderheid licht scherm feller donkerder dimmen e-reader boek lezen', synEn: 'brightness dim brighter darker screen e-reader book reading', need: /helder|licht|dim|bright|e-?reader|boek|book|lees|read/,
+    get: () => { const b = erLezen().bright; return b < 0 ? 'telefoon' : String(Math.round(b * 100)); }, set: v => erLezenSet('bright', v === 'telefoon' ? -1 : Math.max(2, Math.min(100, +v)) / 100) },
+  { id: 'ereader.ogen', scr: 'erset', label: 'Prettig voor je ogen (e-reader)', desc: 'Een warm filter over het boek, met minder blauw licht. Werkt ook op donker papier.',
+    syn: 'prettig ogen nachtfilter nachtlicht blauw licht blauwlicht blauwfilter warm oranje filter e-reader boek lezen', synEn: 'eye comfort night light blue light filter warm e-reader book reading',
+    get: () => setB(erLezen().warm), set: v => erLezenSet('warm', setOnV(v)) },
+  { id: 'ereader.ogen.avond', scr: 'erset', label: "Prettig voor je ogen vanzelf 's avonds", desc: 'Het warme filter gaat in de e-reader vanzelf aan tussen zonsondergang en zonsopkomst.',
+    syn: 'nachtfilter blauw licht avond zonsondergang automatisch warm e-reader', synEn: 'night light blue light evening sunset automatic e-reader',
+    get: () => setB(erLezen().warmAuto), set: v => erLezenSet('warmAuto', setOnV(v)) },
+  { id: 'ereader.tekstgrootte', scr: 'erset', ctl: '#er-size', type: 'keuze', vals: () => ER_VALUES.size.map(v => [String(v), erSizePct(v)]), label: 'Tekstgrootte in de e-reader', desc: 'Hoe groot de letters van een boek zijn (100% is standaard). Je leesplek blijft bewaard.',
+    syn: 'tekstgrootte letters lettergrootte groter kleiner e-reader boek lezen', synEn: 'text size font larger smaller e-reader book reading', need: /e-?reader|boek|book|lees|read/,
+    get: () => String(erStyle().size), set: v => { erPreference('size', +v); return ''; } },
+  { id: 'ereader.schermaan', scr: 'erset', ctl: '#er-awake', label: 'Scherm aan laten tijdens het lezen', desc: 'Het scherm gaat niet vanzelf uit zolang er een boek open is in de e-reader.',
+    syn: 'scherm aan wakker uit vergrendelen time-out e-reader boek lezen', synEn: 'keep screen on awake timeout e-reader book reading', need: /e-?reader|boek|book|lees|read/,
+    get: () => setB(erLezen().awake), set: v => erLezenSet('awake', setOnV(v)) },
+  { id: 'ereader.volscherm', scr: 'erset', ctl: '#er-full', label: 'Lezen op het volle scherm', desc: 'Een boek opent zonder balken en knoppen; tik in het midden van de tekst om de knoppen te tonen.',
+    syn: 'volle scherm volledig scherm schermvullend balken knoppen verbergen immersief e-reader boek lezen', synEn: 'full screen immersive hide bars buttons e-reader book reading', need: /e-?reader|boek|book|lees|read|vol|full/,
+    get: () => setB(erLezen().full), set: v => erLezenSet('full', setOnV(v)) },
+  { id: 'ereader.volumeknoppen', scr: 'erset', ctl: '#er-keys', label: 'Bladeren met de volumeknoppen', desc: 'In een boek gaat zachter naar de volgende en harder naar de vorige pagina (niet tijdens het voorlezen).',
+    syn: 'volumeknoppen volume knoppen bladeren pagina e-reader boek', synEn: 'volume buttons keys turn page e-reader book', need: /volume|blader|pagina|page|e-?reader|boek|book/,
+    get: () => setB(erLezen().keys), set: v => erLezenSet('keys', setOnV(v)) },
+  { id: 'ereader.voorleessnelheid', scr: 'erset', type: 'keuze', vals: () => ER_RATES.map(r => [String(r), fmtNum(r) + '×']), label: 'Voorleessnelheid in de e-reader', desc: 'Hoe snel de stem van je telefoon een boek voorleest.',
+    syn: 'voorlezen voorleessnelheid snelheid sneller langzamer stem spraak tts e-reader boek', synEn: 'read aloud speed faster slower voice speech tts e-reader book', need: /voorle|snelheid|speed|read aloud|e-?reader|boek|book/,
+    get: () => String(erSpeakPrefs().rate), set: v => { erSpeakPref('rate', +v); return ''; } }
 ];
 
 const SET_SRC_PRIV = ['sms', 'wa', 'calls', 'contacts', 'tx', 'sleep', 'checkin', 'gebruik', 'apparaten'];
@@ -386,7 +412,7 @@ const SET_NEED = [['wa.leesbaar', /whatsapp|whats app|leesba|chats/], ['wa.', /w
 
 /* Schakelaars en keuzes die bewust niet in het register staan, met de reden */
 const SET_EXCLUDE = [
-  ['#er-size, #er-font, #er-line, #er-margin, #er-align, #er-theme, #er-mode, #er-filters, #er-sort, #er-tabs', 'Navigatie en leesweergave in de boeklezer, geen algemene appinstellingen'],
+  ['#er-font, #er-line, #er-margin, #er-align, #er-theme, #er-mode, #er-filters, #er-sort, #er-tabs', 'Navigatie en leesweergave in de boeklezer, geen algemene appinstellingen'],
   ['#s-masterdata input, #s-masterdata select, #s-cmedit input, #s-cmedit select, #s-cmedit textarea, #s-cmlog input, #s-cmwis input, #cm-picker input, #cm-filter', 'Centrale persoonsgegevens en expliciete vrijgave; geen toegang via de assistent (ook het soortfilter in de lijst)'],
   ['#s-idcopy input', 'Tijdelijke ID-afscherming en controle per pagina; deze keuzes maakt de gebruiker zelf, nooit de assistent'],
   ['#rp-time, #rp-days', 'Auto redial op een tijdstip hoort bij een nummer; dat plan je op het scherm (zie redial.planning)'],
