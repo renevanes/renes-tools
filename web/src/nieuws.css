@@ -1,0 +1,33 @@
+.nw-stand{min-height:1.45em;margin-top:0}
+.nw-zoek{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.nw-zoek select.sel{flex:0 1 auto;max-width:48%;min-width:0;min-height:48px;text-overflow:ellipsis}
+.nw-zoek .search{flex:1 1 160px;min-width:0;margin:0}
+.card.nw-lijst{padding:0;overflow:hidden}
+.nw-rij{display:flex;gap:12px;align-items:flex-start;width:100%;min-height:44px;padding:12px 14px;border-top:1px solid var(--line);text-align:left;color:var(--ink)}
+.nw-rij:first-child{border-top:0}
+.nw-rij:active{background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.nw-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.nw-meta{color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nw-rij[data-new] .nw-meta::before{content:'';display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--primary);vertical-align:1px}
+.nw-rij b{font-size:16px;line-height:1.3;font-weight:500;color:var(--muted);overflow-wrap:anywhere}
+.nw-rij[data-new] b{font-weight:650;color:var(--ink)}
+.nw-sam{color:var(--muted);font-size:14px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.nw-img{flex:none;width:84px;height:64px;object-fit:cover;border-radius:10px;background:var(--hi)}
+.nw-verder{margin-top:12px}
+@media (prefers-reduced-motion: no-preference){#nw-ververs.nw-draai::before{animation:nw-draai 1s linear infinite}}
+@keyframes nw-draai{to{transform:rotate(360deg)}}
+.nw-art{max-width:46rem;margin:auto}
+.nwa-titel{font-size:24px;line-height:1.25;font-weight:700;color:var(--ink);margin:4px 0 6px;overflow-wrap:anywhere}
+.nwa-titel:focus:not(:focus-visible){outline:none}
+.nwa-meta{margin:0 0 14px}
+.nwa-beeld{display:block;width:100%;max-height:50vh;object-fit:cover;border-radius:14px;margin:0 0 16px;background:var(--hi)}
+.nwa-tekst{font-size:17px;line-height:1.6;color:var(--ink);overflow-wrap:anywhere;user-select:text;-webkit-user-select:text}
+.nwa-tekst p{margin:0 0 14px;white-space:pre-line}
+.nwa-tekst h3{font-size:18px;line-height:1.35;font-weight:650;margin:22px 0 8px;color:var(--ink)}
+.nw-art .big{margin-top:10px}
+.nws-bronnen .srow{gap:6px}
+.nws-bronnen .stxt{padding:10px 2px}
+.nws-bronnen .stxt small{white-space:normal;overflow-wrap:anywhere}
+.nws-bronnen .stxt small.nws-fout{color:var(--bad)}
+.nws-bronnen .nws-weg{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:8px;color:var(--muted)}
+.nws-bronnen .tg{flex:none}
