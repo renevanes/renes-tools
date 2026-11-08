@@ -88,7 +88,8 @@ final class EreaderBook {
     }
 
     static String path(String base, String href) throws Exception {
-        URI u = new URI("/" + base).resolve(href).normalize();
+        // Het basispad is al een gedecodeerde ZIP-naam; behandel spaties, # en % als padtekens.
+        URI u = new URI(null, null, "/" + base, null).resolve(href).normalize();
         String p = u.getPath();
         if (u.isAbsolute() || u.getAuthority() != null || p == null || !p.startsWith("/") || p.contains("/../") || p.startsWith("/../") || p.contains("\\"))
             throw new Exception(Taal.T("Dit EPUB-bestand kan niet veilig worden gelezen"));

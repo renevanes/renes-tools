@@ -75,6 +75,13 @@ public class EreaderContentTest {
         check(b.chapters.size()==5 && b.chapters.get(0).isEmpty() && b.linear.get(0) && !b.linear.get(4),"beeldpagina en niet-lineaire voetnoten behouden");
         check(b.assets.size()==5 && b.assets.get(2).mime.equals("image/gif"),"PNG, GIF, SVG-wrapper en inline-SVG registreren");
         check(b.assets.get(4).base.equals("OPS/images/vector.svg"),"los SVG-bestand bewaart zijn eigen basispad voor lokale afbeeldingen");
+        check(EreaderBook.path("OPS/text/chapter one.xhtml","../images/land.png").equals("OPS/images/land.png")
+                && EreaderBook.path("OPS/text/chapter#100%.xhtml","#deel%20twee").equals("OPS/text/chapter#100%.xhtml"),"gedecodeerde ZIP-basisnamen met spaties, hekje en procent blijven gewone paden");
+        Map<String,byte[]> spaced=new LinkedHashMap<>(files);
+        spaced.put("OPS/book.opf",utf(new String(spaced.get("OPS/book.opf"),StandardCharsets.UTF_8).replace("text/one.xhtml","text/chapter%20one.xhtml")));
+        spaced.put("OPS/text/chapter one.xhtml",spaced.remove("OPS/text/one.xhtml"));
+        EreaderBook renamed=EreaderBook.parse(zip(spaced),"spaties.epub");
+        check(find(renamed.content.get(1).getJSONObject("content"),"tag","img").getInt("asset")>=0&&renamed.assets.size()==b.assets.size(),"relatieve afbeeldingen werken in hoofdstukken met spaties in de ZIP-naam");
         String text = b.chapters.get(1);JSONObject tree=b.content.get(1).getJSONObject("content");
         check(text.contains("— 📚")&&text.contains("café én ©")&&text.contains("  één\n    twee  drie"),"XHTML-entiteiten en codewitruimte behouden");
         check(find(tree,"tag","h1")!=null&&find(tree,"tag","strong")!=null&&find(tree,"tag","table")!=null&&find(tree,"tag","sup")!=null,"semantische opmaak behouden");
