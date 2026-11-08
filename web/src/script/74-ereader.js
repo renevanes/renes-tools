@@ -70,7 +70,7 @@ function erDisplay(offset,anchor){
   erRestoring=true;erPendingLocation=null;erPendingFragment='';erSelection=null;$('#er-selection').hidden=true;erApplyStyle();erPaint();$('#er-chapter-name').textContent=erChapterName(erBook,erIndex);
   $('#er-text').setAttribute('aria-label',t('Boektekst'));
   if(anchor>=0&&erText.length)erRestoreAnchor(anchor);else erRestoreLocation({anchor:-1,offset:offset||0});
-  erRestoring=false;erCurrentAnchor=erAnchor();erCurrentOffset=erPendingLocation?erPendingLocation.offset:erOffset();erProgress();erSave();erQueueImages();
+  erRestoring=false;erCurrentAnchor=erPendingLocation?erPendingLocation.anchor:erAnchor();erCurrentOffset=erPendingLocation?erPendingLocation.offset:erOffset();erProgress();erSave();erQueueImages();
 }
 function erPaint(){
   const ranges=(erBook.annotations||[]).filter(x=>x.kind==='highlight'&&x.chapter===erIndex&&x.start>=0&&x.end>x.start&&x.end<=erText.length);
@@ -125,7 +125,7 @@ function erProgress(){
 function erScroll(){erQueueImages();if(!erBook||current!=='erbook'||erRestoring)return;clearTimeout(erTimer);erTimer=setTimeout(()=>{erCurrentAnchor=erAnchor();erProgress();erSave();},160);}
 function erSave(){
   clearTimeout(erTimer);if(!erBook||current!=='erbook'||erRestoring||erUpgrading)return;
-  const offset=erPendingLocation?erPendingLocation.offset:erOffset(),anchor=erText.length?erAnchor():-1;let error;
+  const offset=erPendingLocation?erPendingLocation.offset:erOffset(),anchor=erPendingLocation?erPendingLocation.anchor:erText.length?erAnchor():-1;let error;
   if(typeof Android.ereaderReadPosition==='function')error=Android.ereaderReadPosition(erBook.id,erIndex,offset,anchor);else error=Android.ereaderPosition(erBook.id,erIndex,offset);
   if(error){toast(error);return;}Object.assign(erBook,{chapter:erIndex,offset,anchor,last:Date.now()});erCurrentAnchor=anchor;erCurrentOffset=offset;if(erLinear(erBook,erIndex))erBook.reading={chapter:erIndex,offset,anchor};
 }

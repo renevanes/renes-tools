@@ -6,7 +6,7 @@ function erLinear(b,i){return !b.linear||b.linear[i]!==false;}
 function erOrder(b){return b.chapters.map((_,i)=>i).filter(i=>erLinear(b,i));}
 function erNeighbor(direction){for(let i=erIndex+direction;i>=0&&i<erBook.chapters.length;i+=direction)if(erLinear(erBook,i))return i;return -1;}
 function erLocation(){return erPendingLocation||{chapter:erIndex,anchor:erText.length?erAnchor():-1,offset:erOffset()};}
-function erRestoreLocation(p){if(!erText.length||p.anchor<0)erPendingLocation={chapter:erIndex,anchor:-1,offset:p.offset||0};if(p.anchor>0&&erText.length)erRestoreAnchor(p.anchor);else $('#er-text').scrollTop=Math.max(0,Math.min(1,p.offset||0))*Math.max(0,$('#er-text').scrollHeight-$('#er-text').clientHeight);erCurrentAnchor=erAnchor();erCurrentOffset=erPendingLocation?erPendingLocation.offset:erOffset();}
+function erRestoreLocation(p){if(!erText.length||p.anchor<0)erPendingLocation={chapter:erIndex,anchor:-1,offset:p.offset||0};if(p.anchor>0&&erText.length)erRestoreAnchor(p.anchor);else $('#er-text').scrollTop=Math.max(0,Math.min(1,p.offset||0))*Math.max(0,$('#er-text').scrollHeight-$('#er-text').clientHeight);erCurrentAnchor=erPendingLocation?erPendingLocation.anchor:erAnchor();erCurrentOffset=erPendingLocation?erPendingLocation.offset:erOffset();}
 function erCancelImages(){erImageEpoch++;erImageRequests.clear();erImages.clear();if(typeof Android.ereaderImagesCancel==='function')Android.ereaderImagesCancel();}
 function erRichPaint(ranges,points){
   erCancelImages();erNodes=[];const box=$('#er-content');box.replaceChildren();box.classList.add('er-rich');
@@ -108,7 +108,7 @@ function erPlaceFragment(){
   const el=[...$('#er-content').querySelectorAll('[data-er-id]')].find(e=>e.dataset.erId===erPendingFragment);if(!el)return false;
   const box=$('#er-text');box.scrollTop+=el.getBoundingClientRect().top-box.getBoundingClientRect().top-20;
   erPendingLocation=null;if(!erText.length||erAnchor()<0)erPendingLocation={chapter:erIndex,anchor:-1,offset:erOffset()};
-  erCurrentAnchor=erAnchor();erCurrentOffset=erOffset();return true;
+  erCurrentAnchor=erPendingLocation?erPendingLocation.anchor:erAnchor();erCurrentOffset=erOffset();return true;
 }
 function erLinkBack(){const p=erLinks.pop();if(!p)return false;if(!erChapter(p.chapter,p.anchor>=0?p.anchor:undefined)){erLinks.push(p);return false;}erRestoreLocation(p);erSave();erProgress();erLinkButton();return true;}
 function erBoundary(node,offset,end){

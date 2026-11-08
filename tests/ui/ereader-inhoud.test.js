@@ -57,6 +57,10 @@ const fs=require('fs'),path=require('path');
   await page.evaluate(()=>{document.querySelector('#er-text').scrollTop=400;erPendingLocation=null;erSave();});const imagePos=await page.evaluate(()=>({offset:erOffset(),anchor:erAnchor(),chapter:erIndex}));
   await page.evaluate(()=>{show('ereader');erOpen('rich');});await page.waitForFunction(()=>document.querySelector('#er-content img')?.naturalHeight>500);
   ok(await page.evaluate(p=>erIndex===p.chapter&&p.anchor===-1&&Math.abs(erOffset()-p.offset)<.03,imagePos),'lange afbeelding met bijschrift heropent midden in het beeld');
+  await page.evaluate(p=>{show('ereader');Object.assign(Android._erBooks[0],{chapter:p.chapter,offset:.16,anchor:-1});Android._erImageMs=800;erOpen('rich');show('ereader');},imagePos);
+  ok(await page.evaluate(()=>Android._erBooks[0].anchor===-1&&Math.abs(Android._erBooks[0].offset-.16)<.001),'traag beeld laden en direct sluiten bewaart het visuele anker');
+  await page.evaluate(()=>{Android._erImageMs=50;erOpen('rich');});await page.waitForFunction(()=>document.querySelector('#er-content img')?.naturalHeight>500);
+  ok(await page.evaluate(()=>Math.abs(erOffset()-.16)<.03),'visuele leesplek herstelt ook na afgebroken afbeeldingsaanvraag');
   ok(requests.length===0,'alle afbeeldingen en boekonderdelen werken zonder netwerk');await page.close();
  }
  await browser.close();console.log('errors',JSON.stringify(errors));if(errors.length)process.exitCode=1;
