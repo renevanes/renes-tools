@@ -101,6 +101,12 @@ function bars(){
     const key = top + bottom + 'pl'; if (key === bars.last) return; bars.last = key;
     Android.setBars(top, bottom, false); return;
   }
+  if (current === 'erbook' && typeof erStyle === 'function') {
+    const theme = erStyle().theme, paper = getComputedStyle($('#s-erbook')).getPropertyValue('--er-paper').trim();
+    const light = theme === 'auto' ? !dark() : theme !== 'night';
+    const key = JSON.stringify(['reader', paper, light]); if (key === bars.last) return; bars.last = key;
+    Android.setBars(paper, paper, light); return;
+  }
   const key = top + bottom + dark(); if (key === bars.last) return; bars.last = key;
   Android.setBars(top, bottom, !dark());
 }
@@ -112,7 +118,11 @@ function show(name){
     store.set('autoDraft', { rule: aeRule, isNew: aeIsNew, t: Date.now(), left: true });
     aeRule = null; aeSnap = null;
   }
-  if (current === 'erbook' && name !== 'erbook') erLeave();
+  if (current === 'erbook' && name !== 'erbook') erLeave(name);
+  if (typeof erBook !== 'undefined') {
+    if (!ER_SCREENS.includes(name) && ER_SCREENS.includes(current) && current !== 'erbook') erLeave(name);
+    document.body.classList.toggle('er-reading', name === 'erbook');
+  }
   if (typeof plIsOpen !== 'undefined' && plIsOpen) plClose(); // naar een ander scherm: de speler verkleint
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
   const current_prev = current;
@@ -155,6 +165,9 @@ function show(name){
   if (name==='spotify') enterSpotify();
   if (typeof FA_SCHERMEN !== 'undefined' && FA_SCHERMEN && FA_SCHERMEN.includes(name) && !FA_FORMS.includes(name)) enterFacturen();
   if (name==='ereader') enterEreader();
+  if (name==='erbook') erResume();
+  if (name==='ercontents') erContents();
+  if (name==='erset') erSettings();
   if (name==='bank') enterBank(); else if (current_prev==='bank' && typeof bkVerlaat === 'function') bkVerlaat();
   if (name==='vpn') enterVpn();
   if (name==='loc') enterLoc();
@@ -187,7 +200,7 @@ function show(name){
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); renderDash(); refreshAutoTile(); refreshPodTile(); refreshVpnTile(); refreshLocTile(); refreshCheckinTile(); }
   if (name==='home' && typeof updTryReload === 'function') setTimeout(() => updTryReload(false), 0);
 }
-const BACK = {ereader:'home', erbook:'ereader', masterdata:'home', cmedit:'masterdata', cmlog:'masterdata', cmwis:'masterdata',idcopy:'pdf', formulieren:'pdf', pdfedit:'pdf', pdfimg:'pdf', pdfsplit:'pdf', pdftext:'pdf', pdfmade:'pdf', bank:'home', facturen:'home', faclev:'facturen', facoverz:'facturen', facopslag:'facturen', fackopp:'facturen', faclok:'facopslag', facgoogle:'fackopp', facec:'fackopp', facsmtp:'fackopp', facdos:'facturen', facstuk:'facdos', facaanl:'facturen', facontv:'facaanl', models:'aiset', aisetmodel:'aiset', aisetmem:'aiset', aisetdata:'aiset', aisetanswer:'aiset', aisetpers:'aiset', aisetvoice:'aiset', aisetsearch:'aiset', aisetperf:'aiset', aisetpriv:'aiset', setnotif:'settings', setlook:'settings', setregio:'settings', setregioplek:'setregio', setregiotz:'setregio', setskin:'settings', setlock:'settings', setsolo:'settings', setperm:'settings', setmusic:'settings', setcrash:'settings', ai:'home', aiset:'ai', aichats:'ai', search:'home', redial:'home', wa:'home', wasel:'wa', waauto:'wa', warestore:'wa', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', sleep:'home', sleepnight:'sleep', sleepset:'sleep', checkin:'home', checkined:'checkin', checkinq:'checkin', checkincmp:'checkin', gebruik:'home', gebruikset:'gebruik', gebruikontgr:'gebruikset', car:'home', carset:'car', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', podspotify:'podcasts', podlijst:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', wc:'home', wcplek:'wc', wcbewerk:'wcplek', wcdeel:'wcplek', wcset:'wc', wcbronnen:'wcset', wcbron:'wcbronnen', wceigen:'wcset', wcgedeeld:'wcset', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', bkparts:'backup', bkset:'backup', bkrestore:'backup', bkmap:'backup', herstel:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
+const BACK = {ereader:'home', erbook:'ereader', ercontents:'erbook', erset:'erbook', masterdata:'home', cmedit:'masterdata', cmlog:'masterdata', cmwis:'masterdata',idcopy:'pdf', formulieren:'pdf', pdfedit:'pdf', pdfimg:'pdf', pdfsplit:'pdf', pdftext:'pdf', pdfmade:'pdf', bank:'home', facturen:'home', faclev:'facturen', facoverz:'facturen', facopslag:'facturen', fackopp:'facturen', faclok:'facopslag', facgoogle:'fackopp', facec:'fackopp', facsmtp:'fackopp', facdos:'facturen', facstuk:'facdos', facaanl:'facturen', facontv:'facaanl', models:'aiset', aisetmodel:'aiset', aisetmem:'aiset', aisetdata:'aiset', aisetanswer:'aiset', aisetpers:'aiset', aisetvoice:'aiset', aisetsearch:'aiset', aisetperf:'aiset', aisetpriv:'aiset', setnotif:'settings', setlook:'settings', setregio:'settings', setregioplek:'setregio', setregiotz:'setregio', setskin:'settings', setlock:'settings', setsolo:'settings', setperm:'settings', setmusic:'settings', setcrash:'settings', ai:'home', aiset:'ai', aichats:'ai', search:'home', redial:'home', wa:'home', wasel:'wa', waauto:'wa', warestore:'wa', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', sleep:'home', sleepnight:'sleep', sleepset:'sleep', checkin:'home', checkined:'checkin', checkinq:'checkin', checkincmp:'checkin', gebruik:'home', gebruikset:'gebruik', gebruikontgr:'gebruikset', car:'home', carset:'car', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', podspotify:'podcasts', podlijst:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', wc:'home', wcplek:'wc', wcbewerk:'wcplek', wcdeel:'wcplek', wcset:'wc', wcbronnen:'wcset', wcbron:'wcbronnen', wceigen:'wcset', wcgedeeld:'wcset', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', bkparts:'backup', bkset:'backup', bkrestore:'backup', bkmap:'backup', herstel:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
 window.goBack = function(){
   // Eerst wat bovenop ligt: slotscherm (dan de app verlaten), dialoog, menu
   if ($('#lockscr').classList.contains('on')) return false;
@@ -202,6 +215,7 @@ window.goBack = function(){
   if ($('#sleepdlg').classList.contains('on')) { sleepClose(); return true; }
   if ($('#vp-scan') && $('#vp-scan').classList.contains('on')) { vpScanClose(); return true; }
   if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
+  if (current === 'erbook' && document.body.classList.contains('er-focus')) { erFocus(false); return true; }
   if (typeof plIsOpen !== 'undefined' && plIsOpen) { plClose(); return true; }
   if (current === 'autoed' && typeof aeDirty === 'function' && aeDirty()) {
     askChoice('Wijzigingen opslaan?', 'Je hebt deze automatisering aangepast.', 'Opslaan', 'Weggooien', () => aeSave(), () => { aeRule = null; aeSnap = null; store.set('autoDraft', null); show('auto'); });

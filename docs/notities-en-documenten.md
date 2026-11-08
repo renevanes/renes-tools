@@ -35,8 +35,16 @@ Voor het invullen van officiële formulieren: zie [PDF-formulieren](formulieren.
 
 ## E-reader
 
-Open **E-reader** onder **Documenten & geld** en tik op **Boek toevoegen**. Kies een EPUB zonder versleutelde onderdelen of een UTF-8-tekstbestand (maximaal 20 MB). De tekst wordt per hoofdstuk getoond; afbeeldingen en oorspronkelijke opmaak worden niet overgenomen. Alles wordt op de telefoon gelezen, zonder internet.
+Open **E-reader** onder **Documenten & geld**. De boekenkast toont omslagen (uit nieuwe EPUB-imports), titels, auteurs en leesvoortgang. Zonder omslag krijgt een boek een eigen getekende kaft. De kaart **Verder lezen** brengt je terug bij het laatst gelezen boek. Zoek op titel of auteur, sorteer op titel/auteur/laatst gelezen en wissel tussen omslagen en een lijst. Met het sterretje bewaar je favorieten; filters tonen wat je leest of al uit hebt.
 
-Tools bewaart de leespositie, ook binnen een hoofdstuk. Kies een hoofdstuk uit de lijst of gebruik Vorig/Volgend hoofdstuk. Tekstgrootte en lettertype zijn aan te passen. Via het menu bij een geopend boek verwijder je de kopie en leespositie; je oorspronkelijke bestand blijft staan. Boeken en leesposities gaan mee in **Alles back-uppen → Alle appgegevens**.
+**Boek toevoegen** leest een EPUB zonder versleutelde onderdelen of een UTF-8-tekstbestand (maximaal 20 MB). Boeken die je al had, blijven beschikbaar. Als je hetzelfde bestand opnieuw kiest, worden ontbrekende omslaggegevens aangevuld zonder je leespositie of leeswijzers te wissen. In het boek lees je de tekst; afbeeldingen en de oorspronkelijke opmaak worden niet overgenomen. Met **PDF openen** kies je een PDF in de bestaande PDF-lezer van Tools; na sluiten kom je terug bij de e-reader.
 
-Met **PDF openen** op het e-readerscherm kies je een PDF voor de bestaande PDF-lezer van Tools. Als je de PDF sluit, kom je terug bij de e-reader.
+Het leesscherm vult het scherm. Blader met de pijlen, een veeg naar links/rechts of de pijltjestoetsen. Je ziet je plek in het boek, de pagina in het hoofdstuk en een geschatte resterende leestijd. De voortgangsschuif springt door het boek. **Inhoud** toont de hoofdstukken. De knop met het oog verbergt de bediening voor rustig lezen; het kruisje of Terug haalt de bediening terug. Aan het einde kun je een boek als uitgelezen markeren; dit kan ook in het menu.
+
+Bij **Aa → Leesweergave** kies je lettertype, grootte, regelafstand, marges, uitlijning, een leesthema (zoals de app, papier, sepia of nacht) en bladeren of doorlopend scrollen. De app onthoudt je tekstplek ook als je letters of schermbreedte veranderen.
+
+Met het bladwijzericoon bewaar je je huidige plek. Selecteer tekst om te **Markeren** of een **Notitie toevoegen**. Tik op een markering om de notitie aan te passen. **Inhoud → Leeswijzers** verzamelt bladwijzers, markeringen en notities en brengt je terug naar de gekozen tekst. Per boek passen er maximaal 500 leeswijzers in; een markering bevat maximaal 5000 tekens en een notitie maximaal 2000.
+
+Bij **Zoeken** zoek je letterlijk en zonder onderscheid tussen hoofdletters en kleine letters in alle hoofdstukken, ook de hoofdstukken die niet open zijn. Een resultaat opent de juiste tekst; bij meer dan 100 resultaten kun je de zoekopdracht verfijnen.
+
+Alles blijft op de telefoon. Boeken, leesposities, omslagen en leeswijzers gaan mee in **Alles back-uppen → Alle appgegevens**. Verwijderen uit de boekenkast verwijdert de kopie in Tools en de leeswijzers, na bevestiging; het oorspronkelijke bestand blijft staan.

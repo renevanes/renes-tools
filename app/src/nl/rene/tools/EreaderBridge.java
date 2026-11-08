@@ -6,6 +6,7 @@ import android.webkit.JavascriptInterface;
 import org.json.JSONObject;
 
 public class EreaderBridge extends ToilettenBridge {
+    private final java.util.concurrent.atomic.AtomicInteger searchGeneration = new java.util.concurrent.atomic.AtomicInteger();
     static final int REQ_BOOK = 66;
     EreaderBridge(MainActivity a) { super(a); }
     private String error(Throwable e) {
@@ -16,6 +17,42 @@ public class EreaderBridge extends ToilettenBridge {
     }
     @JavascriptInterface public String ereaderChapter(String id, int chapter) {
         try { return Ereader.chapter(ctx, id, chapter).toString(); } catch (Throwable e) { return error(e); }
+    }
+    @JavascriptInterface public String ereaderDetails(String id) {
+        try { return Ereader.details(ctx, id).toString(); } catch (Throwable e) { return error(e); }
+    }
+    @JavascriptInterface public String ereaderCover(String id) {
+        try { return Ereader.cover(ctx, id); } catch (Throwable e) { return ""; }
+    }
+    @JavascriptInterface public String ereaderUpdate(String id, String json) {
+        try { return Ereader.update(ctx, id, json).toString(); } catch (Throwable e) { return error(e); }
+    }
+    @JavascriptInterface public String ereaderAnnotation(String id, String json) {
+        try { return Ereader.annotate(ctx, id, json).toString(); } catch (Throwable e) { return error(e); }
+    }
+    @JavascriptInterface public String ereaderReadPosition(String id, int chapter, double offset, int anchor) {
+        try { Ereader.position(ctx, id, chapter, offset, anchor); return ""; } catch (Throwable e) { return Taal.t(ctx, "Leespositie bewaren lukt niet"); }
+    }
+    @JavascriptInterface public void ereaderSearchCancel() { searchGeneration.incrementAndGet(); }
+    @JavascriptInterface public void ereaderSearch(String id, String query, String request) {
+        final int generation = searchGeneration.incrementAndGet();
+        if (query == null || query.trim().length() < 2 || query.length() > 80 || request == null || request.length() > 80) return;
+        new Thread(() -> {
+            try {
+                JSONObject meta = Ereader.meta(ctx, id); org.json.JSONArray hits = new org.json.JSONArray();
+                for (int i = 0; i < meta.getJSONArray("chapters").length() && hits.length() < 101; i++) {
+                    if (generation != searchGeneration.get()) return;
+                    String text = Ereader.chapter(ctx, id, i).getString("text");
+                    for (EreaderSearch.Hit hit : EreaderSearch.find(text, query.trim(), 101 - hits.length()))
+                        hits.put(new JSONObject().put("chapter", i).put("start", hit.start).put("end", hit.end).put("excerpt", hit.excerpt));
+                }
+                if (generation == searchGeneration.get()) a.js("onEreaderSearch", new JSONObject().put("request", request).put("id", id).put("hits", hits).toString());
+            } catch (Throwable e) {
+                if (generation == searchGeneration.get()) {
+                    try { a.js("onEreaderSearch", new JSONObject(error(e)).put("request", request).put("id", id).toString()); } catch (Throwable ignored) { }
+                }
+            }
+        }, "ereader-search").start();
     }
     @JavascriptInterface public String ereaderPosition(String id, int chapter, double offset) {
         try { Ereader.position(ctx, id, chapter, offset); return ""; } catch (Throwable e) { return Taal.t(ctx, "Leespositie bewaren lukt niet"); }

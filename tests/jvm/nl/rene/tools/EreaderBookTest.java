@@ -48,6 +48,12 @@ public class EreaderBookTest {
         check(b.chapters.size() == 2 && b.names.get(0).equals("Eerst B") && b.names.get(1).equals("Begin"), "leesvolgorde uit spine, niet zip of manifest");
         check(b.chapters.get(1).contains("café") && b.chapters.get(1).contains("Tweede alinea.") && b.chapters.get(1).contains("\n"), "tekens en alinea's behouden");
         check(!b.chapters.get(1).contains("niet uitvoeren") && !b.chapters.get(1).contains("verborgen") && !b.chapters.get(1).contains("https://"), "uitsluitend zichtbare tekst, geen scripts, stijl of beeldverwijzingen");
+        Map<String, String> withCover = book();
+        withCover.put("OPS/book.opf", withCover.get("OPS/book.opf").replace("<manifest>", "<manifest><item id='cover' href='cover.jpg' media-type='image/jpeg' properties='cover-image'/>"));
+        withCover.put("OPS/cover.jpg", "cover-bytes");
+        check(new String(EreaderBook.parse(zip(withCover), "omslag.epub").cover, StandardCharsets.UTF_8).equals("cover-bytes"), "EPUB-omslag uit eigen archief, zonder netwerk");
+        withCover.put("OPS/book.opf", withCover.get("OPS/book.opf").replace("href='cover.jpg'", "href='https://example.com/cover.jpg'"));
+        rejects(withCover, "geen omslag van internet of buiten het archief");
         baseFactory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
         String factoryKey = "javax.xml.parsers.DocumentBuilderFactory", previous = System.getProperty(factoryKey);
         try {
