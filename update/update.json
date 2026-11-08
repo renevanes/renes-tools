@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.172",
-  "versionCode": 173,
-  "nativeLevel": 153,
+  "versionName": "1.173",
+  "versionCode": 174,
+  "nativeLevel": 154,
   "web": "index.html",
-  "webSha256": "36083df9b5ad42f7899f1a8ad93fbe9b648a3761882be22dcd38645cc892885f",
+  "webSha256": "bf00d63ee8f883f03db309b5858fd9b4821a87228bcaeb43bcaaccd67aa600c0",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "dd418e5173028b2e188339502b55fe8e42a3d477a5b40e1d7403ea89d447662d",
+  "apkSha256": "62fec51efefa79b2863dea4238417b0b3e905d8291ae555254a0450b82780e5c",
   "changelog": [
+    {
+      "version": "1.173",
+      "date": "2026-11-08",
+      "changes": [
+        "Stamgegevens: een rijbewijs wordt beter herkend (ook het nummer uit de regel onderaan en de datums), en als het niet lukt zie je wat er misging, met tips en de knoppen Opnieuw proberen, Grondiger proberen, Andere foto kiezen en Zelf invullen.",
+        "Stamgegevens: jij staat centraal. Bovenaan Ik met je eigen documenten, daaronder Mijn mensen met wat ze voor jou zijn (gezin, familie, anderen). Een persoon toevoegen begint met Wie is het voor jou?, en persoon en relatie worden samen bewaard; een relatie tussen anderen kan nog via de persoon."
+      ]
+    },
     {
       "version": "1.172",
       "date": "2026-11-08",
@@ -1517,5 +1525,5 @@
       ]
     }
   ],
-  "webSig2": "R0INU60kEh59edamwQUc4URYSgYItAQHg15BW7Bb/KvX3pCJ39SzLy8OmBl2V5FK0qCWn3dfG6NVZpsEYu6ZD3WaivWnTRkqrD8RRQARN89tvi6cjvpfE+pMfShTdIeJahvDr1p/Dxb+hlg5o6/+pmOEfyiTOlCYFwX381kr+eQVjce/DYK13bvAOkn0emQ3Gl9bb+GgIRfpJqjdVXhl9I+tCIXOjdQz0VrdC0ngfRGFP5uJ88OeBg0isX+eUpf3TE83kWsasgha8lqta3Y3XnykTZzAdmPW3F2+Gu2SjHkZCNEGbXeJzTdCO6yaLryaq3lvg/GkBQXzVpxAAxGD/ssPOWMKAIlQaewrlvjX4HBNDpA1uZgWNQN4DG7FnKpY9zTZKlbf8oeKWLG1J8RPTn35JbgzOCHRtepTGmy1HtzmP0OVwH7AwnSY+pOeJLYXtQy9ztcsGfQs2ifIfhzREeGH153zKrIFbagjOvBV5nZOo7zJ726KDipGDjRFxtmW"
+  "webSig2": "RoSOnhgYcSxtNxRXJA8nDNsm27e6MfKVS+rmQsnPsIMqJabApnpVvtToFThrwWKSQ4rnye8mdp88qHCraqlDAGvRwJjHWKwGOnXT9IermxjjKdnYxCTh1nGqqxXTu+H3BWoMWa4zKGn/ACW6RIA0CLzUfvmbTm1rVCcB4H+0aBlNtElf8UXxEQ6thY3s21tuhrdI5T0c1aeOQ06oaM/WNxwBZ8j40lwSsVFyJyCaLMYRFIhX/pmYmV51WQKHOTEPSugmvbSN50WxvcNEC+/QyF2q//Z0kFy0VMCpyuAH91h41VFPIx85Wb4zMTgKNQinVr7pCKJapUqYkUaujiPrvNkLwd+p+mSXAFgK2/wr5ZxBIPjLDOmzyTe9rN8Pl3jSYOltIjWQFMVYza5qfso1Lq0zdteeDVAQ/hr7G3PWea75KLvUlh0bRdCjHb28+X0ixuyI5KEj7zU0moTJAntY044+hsD4xeImJTfYl5vUpZLKYiQMdkZgb3Ta/mLjaZkf"
 }
