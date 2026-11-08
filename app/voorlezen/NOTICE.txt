@@ -17,7 +17,7 @@ Versie 2 van sherpa-onnx heeft deze fonemizer niet meer ingebouwd.
 
 Archieven: uitsluitend de TAR/BZip2-codecs en bijbehorende tekencoderingen van
 Apache Ant 1.10.18 (Apache-2.0), zonder de Ant-bouwtaken of ZIP-schrijver.
-Bronnen: https://archive.apache.org/dist/ant/source/apache-ant-1.10.18-src.tar.xz
+Bronnen: https://repo.maven.apache.org/maven2/org/apache/ant/ant/1.10.18/ant-1.10.18-sources.jar
 De bronjar en SHA-256 staan in tools/voorlezen/deps.json; deps.py beschrijft de
 exact meegeleverde classes. De licentie en NOTICE van Ant zijn bijgevoegd.
 
