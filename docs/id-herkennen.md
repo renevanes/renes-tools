@@ -65,3 +65,20 @@ java -Djava.awt.headless=true -cp build/mrz:build/classes:$TOOLS/ap/android-36/a
 
 Dit schrijft `app/src/nl/rene/tools/MrzGlyphs.java` en de testbeelden in `tests/jvm/mrz/` (verzonnen gegevens). `MrzTest`
 leest ze en controleert ook de voorbeelden uit ICAO 9303.
+
+## Rijbewijs: lezen en als het niet lukt
+- **Regel onderaan de voorkant** (`Rijbewijs.bottomLine`): een Nederlands rijbewijs heeft onderaan een leesregel van 30 tekens,
+  `D1NLD` + een cijfer + het rijbewijsnummer (10 cijfers) + 13 tekens + een controlecijfer (7-3-1 over de eerste 29 tekens,
+  zoals bij de MRZ). Klopt het controlecijfer, dan is het nummer zeker en gaat het voor op een los gelezen veld 5. Letters die
+  op cijfers lijken (O, I, S, B …) worden op cijferplekken als cijfer gelezen; het controlecijfer beslist.
+- **Zonder veldnummers** (de kleine "4a.", "4b.", "5." worden op foto's vaak niet gelezen): de afgifte- en einddatum liggen 5,
+  10 of 15 jaar uit elkaar (dezelfde dag of een dag eerder), de geboortedatum ligt minstens 16 jaar daarvoor; een los nummer
+  van 10 cijfers is het rijbewijsnummer. Alleen als het een rijbewijs is (titel of leesregel), en altijd als twijfel (uitgevinkt).
+- **Lezen** (`RijbewijsOcr`): gewoon in vier draaiingen; ontbreekt nummer, einddatum of geboortedatum, dan nog eens op een
+  zwart-wit-versie (drempel per buurt, tegen het achtergrondpatroon). *Grondiger proberen* (`masterPhotoRescan`, tot ±70 s):
+  ook vergroot met opgerekt contrast en als één tekstblok. Lezingen worden samengevoegd (`Rijbewijs.merge`).
+- **Hulp bij mislukken** (tabblad Foto's, `#cmh-hulp`): wat er gebeurde (geen tekst, tekst maar geen document, rijbewijs zonder
+  leesbare velden), tips die bij de foto passen (onscherp, donker, schittering, de regel D1NLD niet op de foto, te lang) en
+  knoppen *Opnieuw proberen*, *Grondiger proberen*, *Andere foto kiezen* en *Zelf invullen*. Bij een gedeeltelijk resultaat
+  staat onder de voorstellen wat niet gevonden is. De hint over de foto (`diag`) bevat alleen ja/nee en aantallen, nooit tekst.
+  Een gewone kaartfoto (bijv. de voorkant van een ID-kaart) geeft geen foutmelding.

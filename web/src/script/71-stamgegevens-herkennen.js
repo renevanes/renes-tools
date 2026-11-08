@@ -30,8 +30,9 @@ const cmhAfterUnlock=cmiPhotoAfterUnlock;cmiPhotoAfterUnlock=function(photo){
   cmh.data=null;cmh.back=null;cmh.hulp=null;
   if(photo&&!photo.error&&photo.saved){
     if(photo.herkend)cmh.data={doc:photo.id,fields:photo.herkend};
-    // Niets gevonden: de hulp op het tabblad Foto's (wat er misging en wat je kunt doen).
-    else if(photo.diag)cmh.hulp={doc:photo.id,diag:photo.diag};
+    // Niets gevonden bij "Foto herkennen" (of een rijbewijs dat niet te lezen was): de hulp op het tabblad Foto's.
+    // Een gewone kaartfoto (bijv. de voorkant van een ID-kaart, zonder strook) geeft geen melding.
+    else if(photo.diag&&(photo.scan||photo.diag.rijbewijs))cmh.hulp={doc:photo.id,diag:photo.diag};
     // Uit "Herkennen uit foto": een nieuw document; na opslaan terug naar de persoon.
     if(photo.scan)cmh.back={id:photo.person,tab:'documenten'};
   }
