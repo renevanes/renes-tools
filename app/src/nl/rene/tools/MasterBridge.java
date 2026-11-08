@@ -98,7 +98,7 @@ public class MasterBridge extends BankBridge {
             if(!a.masterForeground)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
             a.masterSession.require(token);SecretKey key=MasterKeys.authenticated(ctx);
             MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,true);a.masterSession.require(token);
-            // De kiezer verlaat bewust de app en sluit de sessie. Geen nacontrole op die oude sessie.
+            // De kiezer gaat even over de app heen; binnen 2 minuten terug = zonder opnieuw ontgrendelen (MainActivity.masterPickUntil).
             a.masterPhotos.pick(token,id,revision,side,request);result.put("picking",true);
         }catch(Throwable e){try{result.put("error",why(e)).put("locked",!a.masterSession.accepts(token));}catch(Exception ignored){ }}reply(request,token,result);},"master-photo-pick").start();
     }

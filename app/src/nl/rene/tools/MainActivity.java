@@ -103,6 +103,15 @@ public class MainActivity extends Activity {
     final java.util.concurrent.atomic.AtomicLong masterAuthSerial=new java.util.concurrent.atomic.AtomicLong(),masterSecurityGeneration=new java.util.concurrent.atomic.AtomicLong();
     volatile boolean masterForeground,masterAuthPending,masterWanted,masterScreen,masterCover,masterFormBound,masterIdBound;
     volatile String masterView="";
+    /**
+     * Kaartfoto kiezen uit Stamgegevens: de kiezer gaat even over de app heen. Tot dit moment (elapsedRealtime, hooguit
+     * 2 minuten) blijft de ontgrendeling staan, net als bij bestanden kiezen in Bankzaken. Komt de keuze op tijd terug, dan
+     * gaat het zonder opnieuw ontgrendelen verder; kom je op een andere manier terug in de app, dan gaat hij alsnog op slot.
+     * Tijdens het kiezen weigert de brug alles (masterForeground is dan false).
+     */
+    volatile long masterPickUntil;volatile boolean masterPickReturned;
+    static final long MASTER_PICK_MS=120_000L;
+    boolean masterPicking(){return masterPickUntil!=0&&android.os.SystemClock.elapsedRealtime()<=masterPickUntil&&masterSession.isOpen();}
     private Runnable masterAfterAuth;
     void afterMasterAuth(Runnable task){long due=android.os.SystemClock.elapsedRealtime()+5000;masterAfterAuth=()->{if(android.os.SystemClock.elapsedRealtime()>due)masterAuthSerial.incrementAndGet();task.run();};if(masterForeground)h.post(this::runMasterAfterAuth);}
     void runMasterAfterAuth(){Runnable task=masterAfterAuth;masterAfterAuth=null;if(task!=null)task.run();}
@@ -585,7 +594,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
-        visible = false; masterForeground=false; suspendMaster(false);
+        visible = false; masterForeground=false; if(!masterPicking())suspendMaster(false);
         // Bankzaken gaat op slot zodra de app uit beeld gaat (niet tijdens bestanden kiezen of de vraag om te ontgrendelen)
         synchronized (bankAuth) {
             bankAuth.pause(Lock.authBusy);
@@ -601,7 +610,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        visible = true; masterForeground=true;runMasterAfterAuth();bankAuth.resume();runBankAfterAuth();
+        visible = true; masterForeground=true;
+        if(masterPickUntil!=0){boolean back=masterPickReturned&&masterPicking();masterPickUntil=0;masterPickReturned=false;if(back)masterPhotos.continueAfterPick();else suspendMaster(false);}
+        runMasterAfterAuth();bankAuth.resume();runBankAfterAuth();
         js("onResumeApp", "");
         try { GebruikLive.start(getApplicationContext()); } catch (Throwable ignored) { }
         if (isSolo()) return; // updates regelt de gewone app
@@ -778,7 +789,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
-        if(req==MasterPhotos.REQUEST){masterPhotos.result(res,data);return;}
+        if(req==MasterPhotos.REQUEST){masterPickReturned=masterPickUntil!=0;masterPhotos.result(res,data);return;}
         if (req == REQ_FACT_PDF) {
             final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
             if (u == null) { js("onFacturenToegevoegd", "{\"error\":\"\"}"); return; }

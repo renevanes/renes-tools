@@ -12,7 +12,15 @@ function cmhPendingText(){
   $('#cmi-photo-pending-text').textContent=cmh.scanning?t('Een foto is gekozen. Ontgrendel Stamgegevens: de app maakt dan een nieuw document met deze foto als bijlage en herkent de gegevens.'):t('Een kaartfoto is gekozen. Ontgrendel Stamgegevens om de foto bij het document op te slaan. Je vorige bewerking is bij het verlaten van de app gewist.');
   $('#cmi-photo-pending-btn').textContent=cmh.scanning?t('Ontgrendelen en gegevens herkennen'):t('Ontgrendelen en kaartfoto opslaan');
 }
-const cmhPicked=window.onMasterPhotoPicked;window.onMasterPhotoPicked=function(r){cmhPendingText();cmhPicked(r);};
+const cmhPicked=window.onMasterPhotoPicked;window.onMasterPhotoPicked=function(r){
+  // Binnen 2 minuten terug uit de kiezer en nog ontgrendeld: geen kaart "Ontgrendel…", de foto wordt meteen verwerkt.
+  if(r&&r.request===cmi.photoRequest&&r.picked&&r.direct&&cmOpen()){cmNote(t('Foto verwerken…'));return;}
+  cmhPendingText();cmhPicked(r);
+};
+window.onMasterPhotoDone=function(r){
+  if(!r||!r.photo||!cmi.photoRequest||r.token!==cm.token||!cmOpen())return;
+  cmiPhotoAfterUnlock(r.photo);if(!r.photo.error)cmListLoad();
+};
 const cmhCancel=cmiPhotoCancel;cmiPhotoCancel=function(){cmh.scanning=false;cmhCancel();};
 const cmhAfterUnlock=cmiPhotoAfterUnlock;cmiPhotoAfterUnlock=function(photo){
   cmh.data=null;cmh.back=null;

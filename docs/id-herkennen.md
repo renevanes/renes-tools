@@ -12,7 +12,10 @@ tekens), de fotopagina van het paspoort (2 × 44) of een ander reisdocument (2 �
   herkend, dan blijft het document met de foto als voorzijde staan, zonder soort ("Document …"). Op het tabblad Foto's:
   **Gegevens herkennen** (`masterPhotoScan`, vanaf de bewaarde foto's, eerst de achterzijde; zonder de app te verlaten; in
   het logboek "Gegevens herkend uit kaartfoto") en per zijde **verwijderen**.
-- Foto kiezen verlaat de app, dus Stamgegevens vergrendelt; na ontgrendelen wordt herkend (`MasterPhotos.resume`). Dat
+- Foto kiezen opent de kiezer van Android over de app heen. Komt de keuze binnen 2 minuten terug en is de kluis nog open,
+  dan gaat het zonder opnieuw ontgrendelen verder (`MainActivity.masterPickUntil`, `MasterPhotos.continueAfterPick`; net als
+  bestanden kiezen in Bankzaken). Tijdens het kiezen weigert de brug alles; te laat, of op een andere manier terug in de app
+  (zonder keuze), dan gaat Stamgegevens alsnog op slot en wordt na ontgrendelen herkend (`MasterPhotos.resume`). Herkennen
   gebeurt op de oorspronkelijke foto (scherper dan de bewaarde kopie).
 - Uitkomst = voorstel: Document (soort, nummer, geldig tot, land van afgifte) en Persoon (naam, voornamen, geboortedatum,
   geslacht, nationaliteit; BSN alleen als het in de strook staat, de 11-proef klopt en het controlecijfer van de hele strook klopt).
