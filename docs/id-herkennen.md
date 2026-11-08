@@ -6,11 +6,12 @@ tekens), de fotopagina van het paspoort (2 × 44) of een ander reisdocument (2 �
 
 ## Wat er gebeurt
 - Alles op de telefoon (`MrzOcr`, `Mrz`, zuiver Java, geen bibliotheek, geen netwerk).
-- De foto blijft als bijlage bij het document (verkleind, zonder metadata, versleuteld): **Herkennen uit foto** maakt direct
-  een nieuw identiteitsdocument bij de persoon (`MasterPhotos.scanDocument`; naam "Paspoort …"/"Identiteitskaart …") met de
-  foto als achterzijde (ID-kaart, TD1) of voorzijde (paspoort en de rest). Wordt niets herkend, dan blijft het document met
-  de foto staan. Op het tabblad Foto's: per zijde **Gegevens herkennen** (`masterPhotoScan`, vanaf de bewaarde foto, zonder
-  de app te verlaten) en **verwijderen**.
+- De foto blijft als bijlage bij het document (precies 1600 px, zonder metadata, versleuteld): **Herkennen uit foto** maakt in
+  één keer (`MasterStore.scanCreate`, één transactie) een nieuw identiteitsdocument bij de persoon met de foto als
+  achterzijde (ID-kaart, TD1) of voorzijde (paspoort en de rest); naam "Paspoort …"/"Identiteitskaart …". Wordt niets
+  herkend, dan blijft het document met de foto als voorzijde staan, zonder soort ("Document …"). Op het tabblad Foto's:
+  **Gegevens herkennen** (`masterPhotoScan`, vanaf de bewaarde foto's, eerst de achterzijde; zonder de app te verlaten; in
+  het logboek "Gegevens herkend uit kaartfoto") en per zijde **verwijderen**.
 - Foto kiezen verlaat de app, dus Stamgegevens vergrendelt; na ontgrendelen wordt herkend (`MasterPhotos.resume`). Dat
   gebeurt op de oorspronkelijke foto (scherper dan de bewaarde kopie).
 - Uitkomst = voorstel: Document (soort, nummer, geldig tot, land van afgifte) en Persoon (naam, voornamen, geboortedatum,

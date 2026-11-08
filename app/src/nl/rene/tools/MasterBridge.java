@@ -102,7 +102,7 @@ public class MasterBridge extends BankBridge {
             a.masterPhotos.pick(token,id,revision,side,request);result.put("picking",true);
         }catch(Throwable e){try{result.put("error",why(e)).put("locked",!a.masterSession.accepts(token));}catch(Exception ignored){ }}reply(request,token,result);},"master-photo-pick").start();
     }
-    /** Document herkennen uit een foto, voor een bestaande persoon: kiezen, herkennen na ontgrendelen; de foto wordt niet bewaard. */
+    /** Herkennen uit foto, voor een bestaande persoon: kiezen; na ontgrendelen een nieuw document met de foto als bijlage en voorstellen. */
     @JavascriptInterface public void masterScanPick(String token,String person,String request){
         if(request==null||request.length()>100)return;
         new Thread(()->{JSONObject result=new JSONObject();try{
@@ -115,7 +115,7 @@ public class MasterBridge extends BankBridge {
     /** Gegevens herkennen vanaf de bewaarde kaartfoto van een document (op de telefoon, niets gaat weg). */
     @JavascriptInterface public void masterPhotoScan(String token,String id,long revision,String side,String request){
         work(token,request,key->{
-            JSONObject photo=MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,true);
+            JSONObject photo=MasterStore.photoScan(ctx,key,a.masterSession,token,id,revision,side);
             JSONObject found=MasterPhotos.recognizeStored(photo.optString("image"),Regio.dayKey(ctx,System.currentTimeMillis()));
             JSONObject out=new JSONObject().put("id",id).put("side",side);if(found!=null)out.put("herkend",found);return out;
         });

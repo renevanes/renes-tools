@@ -49,6 +49,12 @@ for(const colorScheme of ['light','dark']){
   await p.click('#cmh-scan');await p.waitForFunction(()=>!$('#cmi-photo-pending').hidden);await p.click('#cmi-photo-pending-btn');
   await p.waitForFunction(()=>cm.edit&&cm.edit.type==='identiteit'&&cm.tab==='fotos'&&/geen strook/.test($('#cm-edit-status').textContent+$('#cm-status').textContent));
   assert.equal(await p.evaluate(()=>Android._cm.records.filter(r=>r.type==='identiteit').length),2);
+  assert.equal(await p.evaluate(()=>{const r=Android._cm.records.filter(r=>r.type==='identiteit').pop();return r.label+'|'+(r.fields.documentsoort||'')+'|'+Object.keys(r.images);}),'Document Zoë <b>|'+'|front','niets herkend: geen soort, foto als voorzijde');
+  // Daarna alsnog herkend vanaf de foto: soort en naam van het document gaan mee.
+  await p.evaluate(()=>{Android._cm.herkend={document:{documentsoort:'paspoort',document:'NW3RP8K25'},persoon:{},soort:'TD3',zeker:true};});
+  await p.click('#cmh-photo-scan');await p.waitForFunction(()=>!$('#cmh-panel').hidden);
+  await p.getByRole('button',{name:'Gekozen gegevens overnemen',exact:true}).click();assert.equal(await p.inputValue('#cm-label'),'Paspoort Zoë <b>','automatische naam volgt de soort');
+  assert.ok(await p.evaluate(()=>Android._cm.events.some(e=>e.action==='photo_scan')),'herkennen vanaf foto in het logboek');
   // 4. Vergrendelen wist voorstellen.
   await p.evaluate(()=>{Android._cm.herkend={document:{document:'X1'},persoon:{},zeker:true};});
   await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!cmOpen());

@@ -65,21 +65,15 @@ final class MasterPhotos {
     }
     /**
      * Nieuw identiteitsdocument bij de persoon, met de foto als bijlage: de strook van een ID-kaart staat op de achterkant,
-     * die van een paspoort op de fotopagina (voorkant). Herkende gegevens worden niet vanzelf ingevuld; die zijn een voorstel.
+     * die van een paspoort op de fotopagina (voorkant). Niets herkend: soort leeg en de foto als voorzijde ("Document …").
+     * Herkende gegevens worden niet vanzelf ingevuld; die zijn een voorstel.
      */
     JSONObject scanDocument(SecretKey key,MasterSession session,String token,Pending job,String image,JSONObject found)throws Exception{
-        String soort=found==null?"identiteitskaart":found.getJSONObject("document").optString("documentsoort","identiteitskaart");
+        String soort=found==null?"":found.getJSONObject("document").optString("documentsoort","");
         String side=found!=null&&"TD1".equals(found.optString("soort"))?"back":"front";
-        JSONObject person=MasterStore.read(activity,key,session,token,job.id,"masterdata","").getJSONObject("record");
-        if(!"persoon".equals(person.getString("type")))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
-        // taal-vast: weergavenaam is een gegeven, net als wat Rene zelf invult
-        String label=("paspoort".equals(soort)?"Paspoort":"identiteitskaart".equals(soort)?"Identiteitskaart":"verblijfsdocument".equals(soort)?"Verblijfsdocument":"Document")+" "+person.getString("label");
-        if(label.length()>120)label=label.substring(0,120);
-        JSONObject draft=new JSONObject().put("type","identiteit").put("label",label).put("fields",new JSONObject().put("persoon",job.id).put("documentsoort",soort));
-        JSONObject saved=MasterStore.save(activity,key,session,token,draft).getJSONObject("record");session.require(token);
-        try{MasterStore.refreshContext(activity,key,session,token);}catch(Throwable ignored){ }
+        JSONObject out=MasterStore.scanCreate(activity,key,session,token,job.id,soort,side,image,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});
+        try{MasterStore.refreshContext(activity,key,session,token);}catch(Throwable e){out.put("contextError",Taal.T("Gegevens opgeslagen; de gedeelde app-context kon niet worden ververst"));}
         MainActivity.appIdentityChanged(MasterAppContext.read(activity).toString());
-        JSONObject out=MasterStore.photo(activity,key,session,token,saved.getString("id"),saved.getLong("revision"),side,image,false,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});
         out.put("saved",true).put("scan",true).put("person",job.id).put("side",side);if(found!=null)out.put("herkend",found);
         return out;
     }
@@ -120,8 +114,10 @@ final class MasterPhotos {
     static String normalize(byte[] bytes)throws Exception {
         BitmapFactory.Options o=new BitmapFactory.Options();o.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(bytes,0,bytes.length,o);
         if(o.outWidth<1||o.outHeight<1||o.outWidth>16000||o.outHeight>16000||(long)o.outWidth*o.outHeight>80_000_000)throw new MasterError(Taal.T("Deze kaartfoto kan niet worden geopend"));
-        int sample=1;while(o.outWidth/sample>1600||o.outHeight/sample>1600)sample*=2;o=new BitmapFactory.Options();o.inSampleSize=sample;
+        // Inlezen net boven 1600 px en dan precies naar 1600 px: scherp genoeg om later nog de strook te herkennen.
+        int sample=1;while(Math.max(o.outWidth,o.outHeight)/(sample*2)>=1600)sample*=2;o=new BitmapFactory.Options();o.inSampleSize=sample;
         Bitmap image=BitmapFactory.decodeByteArray(bytes,0,bytes.length,o);if(image==null)throw new MasterError(Taal.T("Deze kaartfoto kan niet worden geopend"));
+        {int side=Math.max(image.getWidth(),image.getHeight());if(side>1600){Bitmap scaled=Bitmap.createScaledBitmap(image,Math.max(1,image.getWidth()*1600/side),Math.max(1,image.getHeight()*1600/side),true);if(scaled!=image){image.recycle();image=scaled;}}}
         try{
             Matrix m=new Matrix();try{int orientation=new ExifInterface(new ByteArrayInputStream(bytes)).getAttributeInt(ExifInterface.TAG_ORIENTATION,1);switch(orientation){case 2:m.setScale(-1,1);break;case 3:m.setRotate(180);break;case 4:m.setScale(1,-1);break;case 5:m.setRotate(90);m.postScale(-1,1);break;case 6:m.setRotate(90);break;case 7:m.setRotate(270);m.postScale(-1,1);break;case 8:m.setRotate(270);break;default:break;}}catch(Exception ignored){ }
             if(!m.isIdentity()){Bitmap rotated=Bitmap.createBitmap(image,0,0,image.getWidth(),image.getHeight(),m,true);if(rotated!=image){image.recycle();image=rotated;}}
