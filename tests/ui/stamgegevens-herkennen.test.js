@@ -13,33 +13,42 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
   await p.locator('#cm-list .strow',{hasText:'Zoë <b>'}).click();await p.waitForFunction(()=>cm.edit&&cm.edit.label==='Zoë <b>');
   await p.click('#cm-tab-documenten');assert.equal(await p.isVisible('#cmh-scan'),true,'knop Herkennen uit foto');
-  // 1. Foto kiezen verlaat de app (vergrendelt); daarna ontgrendelen en herkennen.
+  // 1. Foto kiezen verlaat de app (vergrendelt); na ontgrendelen een nieuw document met de foto als bijlage, en voorstellen.
   await p.click('#cmh-scan');await p.waitForFunction(()=>!$('#cmi-photo-pending').hidden);
-  assert.match(await p.textContent('#cmi-photo-pending'),/gegevens te herkennen.*niet bewaard/);
-  await p.click('#cmi-photo-pending-btn');await p.waitForFunction(()=>cm.edit&&cm.edit.type==='identiteit'&&!cm.edit.id&&!$('#cmh-panel').hidden&&document.querySelectorAll('#cmh-list input').length>0);
-  assert.equal(await p.inputValue('#cm-field-persoon'),kid,'nieuw document bij de persoon');
-  assert.equal(await p.evaluate(()=>cm.edit.fields.document||''),'','nog niets vanzelf ingevuld');
+  assert.match(await p.textContent('#cmi-photo-pending'),/nieuw document met deze foto als bijlage/);
+  await p.click('#cmi-photo-pending-btn');await p.waitForFunction(()=>cm.edit&&cm.edit.type==='identiteit'&&cm.edit.id&&!$('#cmh-panel').hidden&&document.querySelectorAll('#cmh-list input').length>0);
+  const doc=await p.evaluate(()=>cm.edit.id);
+  assert.equal(await p.evaluate(()=>JSON.stringify(Android._cm.records.find(r=>r.id===cm.edit.id).images&&Object.keys(Android._cm.records.find(r=>r.id===cm.edit.id).images))),'["back"]','foto als achterzijde bewaard (ID-kaart)');
+  assert.equal(await p.inputValue('#cm-field-persoon'),kid,'document bij de persoon');assert.equal(await p.inputValue('#cm-label'),'Identiteitskaart Zoë <b>');
+  assert.equal(await p.evaluate(()=>cm.edit.fields.document||''),'','gegevens nog niet vanzelf ingevuld');
   const rows=await p.$$eval('#cmh-list input',x=>x.map(i=>i.dataset.key+':'+(i.checked?'v':'-')+(i.disabled?'x':'')));
-  assert.deepEqual(rows,['documentsoort:v','document:v','geldig:v','uitgifteland:v','naam:vx','voornamen:-','geboortedatum:v','geslacht:v','nationaliteit:v'],'standaard: lege velden aangevinkt, gelijke vast');
+  assert.deepEqual(rows,['documentsoort:vx','document:v','geldig:v','uitgifteland:v','naam:vx','voornamen:-','geboortedatum:v','geslacht:v','nationaliteit:v'],'standaard: lege velden aangevinkt, gelijke vast');
   assert.match(await p.textContent('#cmh-list'),/nu: Zoë/);assert.match(await p.textContent('#cmh-list'),/staat er al/);
   assert.doesNotMatch(await p.textContent('#cmh-list'),/NX7P41KD9/,'documentnummer afgeschermd');assert.equal(await p.locator('#cmh-list b b').count(),0,'namen blijven tekst');
   // 2. Overnemen vult het document; opslaan, daarna de persoon met de gekozen gegevens.
   await p.getByRole('button',{name:'Gekozen gegevens overnemen',exact:true}).click();
-  assert.equal(await p.evaluate(()=>cm.edit.fields.document),'NX7P41KD9');assert.equal(await p.evaluate(()=>cm.edit.fields.geldig),'2031-06-11');
-  assert.equal(await p.inputValue('#cm-label'),'Identiteitskaart Zoë <b>');assert.equal(await p.isVisible('#cmh-panel'),false);
-  await p.click('#cm-save');await p.waitForFunction(()=>cm.edit&&cm.edit.id==='00000000-0000-0000-0000-000000000001'&&cm.dirty);
+  assert.equal(await p.evaluate(()=>cm.edit.fields.document),'NX7P41KD9');assert.equal(await p.evaluate(()=>cm.edit.fields.geldig),'2031-06-11');assert.equal(await p.isVisible('#cmh-panel'),false);
+  await p.click('#cm-save');await p.waitForFunction(kid=>cm.edit&&cm.edit.id===kid&&cm.dirty,kid);
   assert.equal(await p.evaluate(()=>[cm.edit.fields.geboortedatum,cm.edit.fields.geslacht,cm.edit.fields.voornamen].join('|')),'2015-02-03|V|Zoë','alleen de aangevinkte persoonsgegevens');
   assert.equal(await p.evaluate(()=>cm.tab),'geboorte','persoon opent waar de gegevens staan');
   assert.match(await p.textContent('#cm-edit-status'),/uit de foto ingevuld/);
-  await p.click('#cm-save');await p.waitForFunction(()=>Android._cm.records.find(r=>r.id==='00000000-0000-0000-0000-000000000001').fields.geboortedatum==='2015-02-03');
-  assert.equal(await p.evaluate(()=>Android._cm.records.some(r=>r.type==='identiteit'&&r.fields.document==='NX7P41KD9'&&r.fields.persoon==='00000000-0000-0000-0000-000000000001')),true);
+  await p.click('#cm-save');await p.waitForFunction(kid=>Android._cm.records.find(r=>r.id===kid).fields.geboortedatum==='2015-02-03',kid);
+  assert.equal(await p.evaluate(doc=>{const r=Android._cm.records.find(r=>r.id===doc);return r.fields.document==='NX7P41KD9'&&!!r.images.back;},doc),true,'document met nummer en foto');
   assert.ok(await p.evaluate(()=>Android._cm.events.some(e=>e.action==='scan')),'start in het logboek');
-  // 3. Geen strook gevonden: duidelijke melding, geen document.
-  await p.evaluate(()=>{Android._cm.herkend=null;});await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+  // 3. Vanaf de bewaarde foto opnieuw herkennen, zonder de app te verlaten; daarna de foto verwijderen.
+  await p.waitForFunction(()=>current==='masterdata'&&cm.recordsReady);
+  await p.evaluate(doc=>cmEdit(doc,'fotos'),doc);await p.waitForFunction(doc=>cm.edit&&cm.edit.id===doc&&cm.tab==='fotos',doc);
+  assert.equal(await p.isDisabled('#cmh-photo-scan'),false);
+  await p.click('#cmh-photo-scan');await p.waitForFunction(()=>!$('#cmh-panel').hidden);assert.equal(await p.evaluate(()=>cmOpen()),true,'blijft ontgrendeld');
+  assert.match(await p.textContent('#cmh-list'),/staat er al/,'nummer staat er al');
+  await p.click('#cmi-back-delete');await p.waitForFunction(()=>$('#modal').classList.contains('on'));await p.click('#modal-ok');
+  await p.waitForFunction(doc=>!Android._cm.records.find(r=>r.id===doc).images.back,doc);assert.equal(await p.isDisabled('#cmh-photo-scan'),true,'na verwijderen niets meer te herkennen');
+  // Geen strook gevonden: wel een document met de foto, en een duidelijke melding.
+  await p.evaluate(()=>{Android._cm.herkend=null;cmCancelEdit();});await p.waitForFunction(()=>current==='masterdata'&&cm.recordsReady);
   await p.locator('#cm-list .strow',{hasText:'Zoë <b>'}).click();await p.waitForFunction(()=>cm.edit&&cm.edit.label==='Zoë <b>');await p.click('#cm-tab-documenten');
   await p.click('#cmh-scan');await p.waitForFunction(()=>!$('#cmi-photo-pending').hidden);await p.click('#cmi-photo-pending-btn');
-  await p.waitForFunction(()=>/Geen strook/.test($('#cm-status').textContent+$('#cm-edit-status').textContent));
-  assert.equal(await p.evaluate(()=>Android._cm.records.filter(r=>r.type==='identiteit').length),1);
+  await p.waitForFunction(()=>cm.edit&&cm.edit.type==='identiteit'&&cm.tab==='fotos'&&/geen strook/.test($('#cm-edit-status').textContent+$('#cm-status').textContent));
+  assert.equal(await p.evaluate(()=>Android._cm.records.filter(r=>r.type==='identiteit').length),2);
   // 4. Vergrendelen wist voorstellen.
   await p.evaluate(()=>{Android._cm.herkend={document:{document:'X1'},persoon:{},zeker:true};});
   await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!cmOpen());

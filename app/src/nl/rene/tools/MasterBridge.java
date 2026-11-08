@@ -112,6 +112,14 @@ public class MasterBridge extends BankBridge {
             a.masterPhotos.pick(token,person,0,"scan",request);result.put("picking",true);
         }catch(Throwable e){try{result.put("error",why(e)).put("locked",!a.masterSession.accepts(token));}catch(Exception ignored){ }}reply(request,token,result);},"master-scan-pick").start();
     }
+    /** Gegevens herkennen vanaf de bewaarde kaartfoto van een document (op de telefoon, niets gaat weg). */
+    @JavascriptInterface public void masterPhotoScan(String token,String id,long revision,String side,String request){
+        work(token,request,key->{
+            JSONObject photo=MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,true);
+            JSONObject found=MasterPhotos.recognizeStored(photo.optString("image"),Regio.dayKey(ctx,System.currentTimeMillis()));
+            JSONObject out=new JSONObject().put("id",id).put("side",side);if(found!=null)out.put("herkend",found);return out;
+        });
+    }
     @JavascriptInterface public void masterPhotoRead(String token,String id,long revision,String side,String request){work(token,request,key->MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,true));}
     @JavascriptInterface public void masterPhotoDelete(String token,String id,long revision,String side,String request){work(token,request,key->MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,false));}
     @JavascriptInterface public void masterPhotoCancel(){a.masterPhotos.cancel();}

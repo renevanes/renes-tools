@@ -5,9 +5,14 @@ De app leest de **strook met <<<** (machineleesbare zone, MRZ, ICAO 9303): de ac
 tekens), de fotopagina van het paspoort (2 × 44) of een ander reisdocument (2 × 36).
 
 ## Wat er gebeurt
-- Alles op de telefoon (`MrzOcr`, `Mrz`, zuiver Java, geen bibliotheek, geen netwerk). Bij **Herkennen uit foto** wordt de
-  foto niet bewaard; bij een kaartfoto wordt hij bewaard zoals altijd (verkleind en versleuteld).
-- Foto kiezen verlaat de app, dus Stamgegevens vergrendelt; na ontgrendelen wordt herkend (`MasterPhotos.resume`).
+- Alles op de telefoon (`MrzOcr`, `Mrz`, zuiver Java, geen bibliotheek, geen netwerk).
+- De foto blijft als bijlage bij het document (verkleind, zonder metadata, versleuteld): **Herkennen uit foto** maakt direct
+  een nieuw identiteitsdocument bij de persoon (`MasterPhotos.scanDocument`; naam "Paspoort …"/"Identiteitskaart …") met de
+  foto als achterzijde (ID-kaart, TD1) of voorzijde (paspoort en de rest). Wordt niets herkend, dan blijft het document met
+  de foto staan. Op het tabblad Foto's: per zijde **Gegevens herkennen** (`masterPhotoScan`, vanaf de bewaarde foto, zonder
+  de app te verlaten) en **verwijderen**.
+- Foto kiezen verlaat de app, dus Stamgegevens vergrendelt; na ontgrendelen wordt herkend (`MasterPhotos.resume`). Dat
+  gebeurt op de oorspronkelijke foto (scherper dan de bewaarde kopie).
 - Uitkomst = voorstel: Document (soort, nummer, geldig tot, land van afgifte) en Persoon (naam, voornamen, geboortedatum,
   geslacht, nationaliteit; BSN alleen als het in de strook staat, de 11-proef klopt en het controlecijfer van de hele strook klopt).
   Standaard aangevinkt: alleen wat nog leeg is. Persoonsgegevens worden ingevuld nadat het document is opgeslagen, in de

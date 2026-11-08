@@ -55,17 +55,38 @@ final class MasterPhotos {
             if(job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kies de kaartfoto opnieuw vanuit Stamgegevens"));
             session.require(token);byte[] bytes=read(activity.getContentResolver().openInputStream(job.uri));
             JSONObject found=recognize(bytes,Regio.dayKey(activity,System.currentTimeMillis()));session.require(token);
-            // Alleen herkennen (Document herkennen uit foto): de foto zelf wordt niet bewaard.
-            if("scan".equals(job.side)){
-                synchronized(this){if(pending!=job)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}
-                if(found==null)throw new MasterError(Taal.T("Geen strook met <<< gevonden. Fotografeer de achterkant van de ID-kaart of de fotopagina van het paspoort recht van boven, scherp en zonder schittering."));
-                return result.put("scan",true).put("person",job.id).put("herkend",found);
-            }
             String image=normalize(bytes);session.require(token);
+            // Herkennen uit foto (bij een persoon): een nieuw document met deze foto als bijlage, daarna voorstellen.
+            if("scan".equals(job.side))return scanDocument(key,session,token,job,image,found);
             result=MasterStore.photo(activity,key,session,token,job.id,job.revision,job.side,image,false,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});result.put("saved",true);if(found!=null)result.put("herkend",found);
         }catch(Throwable e){try{result.put("error",e instanceof MasterError?e.getMessage():Taal.T("De kaartfoto kan niet worden opgeslagen. Kies een duidelijke afbeelding."));}catch(Exception ignored){ }}
         finally{clear(job);}
         return result;
+    }
+    /**
+     * Nieuw identiteitsdocument bij de persoon, met de foto als bijlage: de strook van een ID-kaart staat op de achterkant,
+     * die van een paspoort op de fotopagina (voorkant). Herkende gegevens worden niet vanzelf ingevuld; die zijn een voorstel.
+     */
+    JSONObject scanDocument(SecretKey key,MasterSession session,String token,Pending job,String image,JSONObject found)throws Exception{
+        String soort=found==null?"identiteitskaart":found.getJSONObject("document").optString("documentsoort","identiteitskaart");
+        String side=found!=null&&"TD1".equals(found.optString("soort"))?"back":"front";
+        JSONObject person=MasterStore.read(activity,key,session,token,job.id,"masterdata","").getJSONObject("record");
+        if(!"persoon".equals(person.getString("type")))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
+        // taal-vast: weergavenaam is een gegeven, net als wat Rene zelf invult
+        String label=("paspoort".equals(soort)?"Paspoort":"identiteitskaart".equals(soort)?"Identiteitskaart":"verblijfsdocument".equals(soort)?"Verblijfsdocument":"Document")+" "+person.getString("label");
+        if(label.length()>120)label=label.substring(0,120);
+        JSONObject draft=new JSONObject().put("type","identiteit").put("label",label).put("fields",new JSONObject().put("persoon",job.id).put("documentsoort",soort));
+        JSONObject saved=MasterStore.save(activity,key,session,token,draft).getJSONObject("record");session.require(token);
+        try{MasterStore.refreshContext(activity,key,session,token);}catch(Throwable ignored){ }
+        MainActivity.appIdentityChanged(MasterAppContext.read(activity).toString());
+        JSONObject out=MasterStore.photo(activity,key,session,token,saved.getString("id"),saved.getLong("revision"),side,image,false,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});
+        out.put("saved",true).put("scan",true).put("person",job.id).put("side",side);if(found!=null)out.put("herkend",found);
+        return out;
+    }
+    /** Herkennen vanaf een bewaarde kaartfoto (data:image/jpeg;base64,…). Geeft null als er geen betrouwbare strook op staat. */
+    static JSONObject recognizeStored(String data,String today){
+        if(data==null||!data.startsWith("data:image/jpeg;base64,"))return null;
+        try{return recognize(Base64.decode(data.substring(23),Base64.DEFAULT),today);}catch(Throwable e){return null;}
     }
     static byte[] read(InputStream input)throws Exception{
         if(input==null)throw new MasterError(Taal.T("Deze kaartfoto kan niet worden geopend"));

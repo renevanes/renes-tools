@@ -44,7 +44,7 @@
           <p class="hint">Reisdocumenten en andere identiteitsbewijzen van deze persoon, met hoe lang ze geldig zijn.</p>
           <div id="cmi-person-doc-list" translate="no"></div>
           <div class="row cmi-actions"><button class="mini" onclick="cmiDocNew()">Document toevoegen</button><button class="mini" id="cmh-scan" onclick="cmhScanPick()">Herkennen uit foto</button></div>
-          <p class="hint" id="cmh-scan-hint">Herkennen leest de strook met &lt;&lt;&lt; (achterkant ID-kaart, fotopagina paspoort) op je telefoon. De foto gaat nergens heen en wordt niet bewaard.</p>
+          <p class="hint" id="cmh-scan-hint">Herkennen leest de strook met &lt;&lt;&lt; (achterkant ID-kaart, fotopagina paspoort) op je telefoon. De foto gaat nergens heen; hij wordt versleuteld als bijlage bij het nieuwe document bewaard, waar je hem weer kunt verwijderen.</p>
         </div>
         <div id="cmi-person-relations" data-cm-tab="relaties" hidden>
           <div id="cmi-person-relation-list" translate="no"></div>
@@ -59,7 +59,7 @@
         </div>
         <div id="cmi-photos" data-cm-tab="fotos" hidden>
           <h3>Voor- en achterkant</h3><p class="note">Kies een afbeelding uit Foto’s of Bestanden. De kopie wordt verkleind, zonder fotometadata, en versleuteld bij deze persoon bewaard. Staat de strook met &lt;&lt;&lt; op de foto, dan stelt de app de gegevens voor. Sla wijzigingen eerst op voordat je een kaartfoto kiest.</p>
-          <button class="mini" id="cmi-photo-show" onclick="cmiPhotoShow()">Kaartfoto’s tonen</button>
+          <div class="row cmi-actions"><button class="mini" id="cmi-photo-show" onclick="cmiPhotoShow()">Kaartfoto’s tonen</button><button class="mini" id="cmh-photo-scan" onclick="cmhPhotoScan()">Gegevens herkennen</button></div>
           <div class="cmi-sides">
             <div><h4>Voorzijde</h4><p class="note" id="cmi-front-status"></p><div class="cmi-photo-paper" id="cmi-front-paper" hidden><img id="cmi-front-image" alt="Voorzijde van het identiteitsdocument"></div><div class="row cmi-actions"><button class="mini" onclick="cmiPhotoPick('front')">Voorzijde kiezen</button><button class="mini" id="cmi-front-delete" onclick="cmiPhotoDelete('front')">Voorzijde verwijderen</button><button class="mini" id="cmi-front-zoom" onclick="cmiPhotoZoom('front')" hidden>Voorzijde vergroten</button></div></div>
             <div><h4>Achterzijde</h4><p class="note" id="cmi-back-status"></p><div class="cmi-photo-paper" id="cmi-back-paper" hidden><img id="cmi-back-image" alt="Achterzijde van het identiteitsdocument"></div><div class="row cmi-actions"><button class="mini" onclick="cmiPhotoPick('back')">Achterzijde kiezen</button><button class="mini" id="cmi-back-delete" onclick="cmiPhotoDelete('back')">Achterzijde verwijderen</button><button class="mini" id="cmi-back-zoom" onclick="cmiPhotoZoom('back')" hidden>Achterzijde vergroten</button></div></div>
