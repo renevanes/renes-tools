@@ -28,7 +28,7 @@ final class MasterPhotos {
     }
     synchronized void pick(String token,String id,long revision,String side,String request)throws Exception {
         if(pending!=null)throw new MasterError(Taal.T("Er staat al een kaartfoto klaar; ontgrendel om die op te slaan"));
-        if(!side.equals("front")&&!side.equals("back"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
+        if(!side.equals("front")&&!side.equals("back")&&!side.equals("scan"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
         Pending job=new Pending(id,revision,side,request,activity.masterView);pending=job;
         activity.h.post(()->{
             synchronized(MasterPhotos.this){if(pending!=job)return;}
@@ -53,17 +53,51 @@ final class MasterPhotos {
         JSONObject result=new JSONObject();
         try{
             if(job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kies de kaartfoto opnieuw vanuit Stamgegevens"));
-            session.require(token);String image=normalize(activity.getContentResolver().openInputStream(job.uri));session.require(token);
-            result=MasterStore.photo(activity,key,session,token,job.id,job.revision,job.side,image,false,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});result.put("saved",true);
+            session.require(token);byte[] bytes=read(activity.getContentResolver().openInputStream(job.uri));
+            JSONObject found=recognize(bytes,Regio.dayKey(activity,System.currentTimeMillis()));session.require(token);
+            // Alleen herkennen (Document herkennen uit foto): de foto zelf wordt niet bewaard.
+            if("scan".equals(job.side)){
+                synchronized(this){if(pending!=job)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}
+                if(found==null)throw new MasterError(Taal.T("Geen strook met <<< gevonden. Fotografeer de achterkant van de ID-kaart of de fotopagina van het paspoort recht van boven, scherp en zonder schittering."));
+                return result.put("scan",true).put("person",job.id).put("herkend",found);
+            }
+            String image=normalize(bytes);session.require(token);
+            result=MasterStore.photo(activity,key,session,token,job.id,job.revision,job.side,image,false,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});result.put("saved",true);if(found!=null)result.put("herkend",found);
         }catch(Throwable e){try{result.put("error",e instanceof MasterError?e.getMessage():Taal.T("De kaartfoto kan niet worden opgeslagen. Kies een duidelijke afbeelding."));}catch(Exception ignored){ }}
         finally{clear(job);}
         return result;
     }
-    static String normalize(InputStream input)throws Exception {
+    static byte[] read(InputStream input)throws Exception{
         if(input==null)throw new MasterError(Taal.T("Deze kaartfoto kan niet worden geopend"));
         ByteArrayOutputStream source=new ByteArrayOutputStream();
         try(InputStream in=input){byte[] buffer=new byte[65536];int n;while((n=in.read(buffer))!=-1){if(source.size()+n>20*1024*1024)throw new MasterError(Taal.T("De kaartfoto is te groot"));source.write(buffer,0,n);}}
-        byte[] bytes=source.toByteArray();BitmapFactory.Options o=new BitmapFactory.Options();o.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(bytes,0,bytes.length,o);
+        return source.toByteArray();
+    }
+    /**
+     * De strook (MRZ) lezen, op de telefoon zelf (MrzOcr, geen dienst op internet). Geeft null als er geen betrouwbare strook is;
+     * een fout in het herkennen laat het bewaren van de foto nooit mislukken.
+     */
+    static JSONObject recognize(byte[] bytes,String today){
+        Bitmap image=null;
+        try{
+            BitmapFactory.Options o=new BitmapFactory.Options();o.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(bytes,0,bytes.length,o);
+            if(o.outWidth<1||o.outHeight<1||o.outWidth>16000||o.outHeight>16000)return null;
+            // Zo klein mogelijk inlezen maar niet onder de werkmaat, dan precies op de werkmaat brengen (geheugen en scherpte).
+            int max=MrzOcr.MAX_SIDE,sample=1;while(Math.max(o.outWidth,o.outHeight)/(sample*2)>=max)sample*=2;
+            o=new BitmapFactory.Options();o.inSampleSize=sample;image=BitmapFactory.decodeByteArray(bytes,0,bytes.length,o);if(image==null)return null;
+            int side=Math.max(image.getWidth(),image.getHeight());
+            if(side>max){Bitmap scaled=Bitmap.createScaledBitmap(image,Math.max(1,image.getWidth()*max/side),Math.max(1,image.getHeight()*max/side),true);if(scaled!=image){image.recycle();image=scaled;}}
+            int w=image.getWidth(),h=image.getHeight();int[] px=new int[w*h];image.getPixels(px,0,w,0,0,w,h);image.recycle();image=null;
+            for(int i=0;i<px.length;i++){int c=px[i];px[i]=((c>>16&255)*30+(c>>8&255)*59+(c&255)*11)/100;}
+            Mrz.Result r=MrzOcr.read(px,w,h);if(r==null||!r.usable())return null;
+            return Mrz.fields(r,today);
+        }catch(Throwable e){return null;}
+        finally{if(image!=null)image.recycle();}
+    }
+    /** Kaartfoto uit een stroom: lezen en verkleinen (ook gebruikt door de telefoontest). */
+    static String normalize(InputStream input)throws Exception{return normalize(read(input));}
+    static String normalize(byte[] bytes)throws Exception {
+        BitmapFactory.Options o=new BitmapFactory.Options();o.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(bytes,0,bytes.length,o);
         if(o.outWidth<1||o.outHeight<1||o.outWidth>16000||o.outHeight>16000||(long)o.outWidth*o.outHeight>80_000_000)throw new MasterError(Taal.T("Deze kaartfoto kan niet worden geopend"));
         int sample=1;while(o.outWidth/sample>1600||o.outHeight/sample>1600)sample*=2;o=new BitmapFactory.Options();o.inSampleSize=sample;
         Bitmap image=BitmapFactory.decodeByteArray(bytes,0,bytes.length,o);if(image==null)throw new MasterError(Taal.T("Deze kaartfoto kan niet worden geopend"));

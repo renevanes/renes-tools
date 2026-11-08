@@ -1,15 +1,31 @@
 {
   "app": "Tools",
-  "versionName": "1.162",
-  "versionCode": 163,
-  "nativeLevel": 144,
+  "versionName": "1.164",
+  "versionCode": 165,
+  "nativeLevel": 146,
   "web": "index.html",
-  "webSha256": "f83dd4b2de8ef9e1574293eb2ba6f09c178bfea612bd762e0b043f49313fb7be",
+  "webSha256": "8b5e5064d44a7ed067a8e9d238010ae48063d2afef3cf0efd7059ae5d99f60a6",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "4672296799332139c4db514585181ea1b45eed849f24bfcaf5d3fe4c1bb8bcf3",
+  "apkSha256": "261d61528160a577f588ee9331860abaefb0e651f68e148bf43a8c32785e8ab7",
   "changelog": [
+    {
+      "version": "1.164",
+      "date": "2026-11-08",
+      "changes": [
+        "Stamgegevens: ID-gegevens herkennen uit een foto. Bij een persoon → ID → Herkennen uit foto leest de app de strook met <<< (achterkant ID-kaart, fotopagina paspoort) op je telefoon en stelt documentnummer, geldig tot, naam, geboortedatum, geslacht en nationaliteit voor; jij vinkt aan wat je overneemt. De foto gaat nergens heen.",
+        "Stamgegevens: kies je een kaartfoto met die strook, dan stelt de app de gegevens ook voor."
+      ]
+    },
+    {
+      "version": "1.163",
+      "date": "2026-11-08",
+      "changes": [
+        "Alle tools kunnen nu als losse app op je startscherm, ook Toiletten en douches, E-reader, Slaappraat, Check-in, Apparaten, Gebruik, Facturen, Bankzaken, Stamgegevens, Alles back-uppen en Automatiseringen. Nieuwe tools ondersteunen dit voortaan automatisch.",
+        "Kluis, Bankzaken en Stamgegevens houden hun eigen ontgrendeling in een losse app."
+      ]
+    },
     {
       "version": "1.162",
       "date": "2026-11-08",
@@ -1440,5 +1456,5 @@
       ]
     }
   ],
-  "webSig2": "BxaWsPl2uzbk+Cit9XYdhpdkRwSJZp6djTHVOOgKpXjem9nE58qOiJLEG56ezKxgna6AniMIfn9zFQ01/J11u8zolY9HTSZ/lBeDfuWQSeUW+XOgbaUNc2J/uiA2ByKO3hUFgJpzvlZNyD5QBiJS/64VD3SSbZ4uZB5DfFXSDpGYnIdX532ft3OAIEFuXZtsz+ADcB8Tmuv3uoJ2VZq0EeKHWdJYB3gScP30UfhSmv1ioyV5SswaEPCF6iLJbstXaRkYe35aknMIiBnrMCLyuKrM4Tondr7IbYXLmpo5tmh+RcQMzrrsxBYBfiMI7Ma5b3nGi+xUKONiIGDhCIgiJsjsQ3BEo0UuFCflZTpPcyBepcvXvdvIoTQeDV04vW0pbv5xhOUeC1oucZ9SDSI/lEj/YEHcH/qe4fwodufUOyW8W5uxvFuDwCZ+s1+XgoVV1LoO23sC7fycNQMdcrnjalHBoym0fJLoxPs9sUO+9O9ilVh3QxXax/cOWgdifjnv"
+  "webSig2": "eOwYZ6EKGEez4Vzq9iGzKYPCLUNJMAuLmqr+CTkD3LMTWVlaPSj5MBo+EeCP7HzQ8j/BfwCJl7rAb95a6VpxzBGbwYirInfMC+ipzuF8FEB0y8W3Y0GqMcwcSnCdD1kVYn8T4aW1oDF5YKRc1MyyxhsJmbrqcRiipiyMZqGQmqkeOIx8G6Ge1tqWGWM4+A3FcD3/m5jeLZVyWqf9ijihJIFx4VWslKfCx/b79pDLJxCe/EbMdBGrQC9B13p6dSqDVbyqua9KpJlkRVPxbXPBTfvglSCDJpe9POWIcfzyQ1Dud9H2hFNsLQZ/jGNBlBWC1tLPWcGfzAjVM1TWRK9sZKfrkgMMWTdz8p/RN6xmFaz6sr5qc5LqSTiEpGneS9/tecI9WzLILxZD4fwew+H5DjmR0x5scN9NhCHCsp1Nyfu1jQdtbNS1B4mPxpb5U+TdE6IUa6zM5P14Pws2iGeyMfsLJdpSaLF+u8hEePXcsm5LPJag6PpP+B1NQ/dBEA3Z"
 }

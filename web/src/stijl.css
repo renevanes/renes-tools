@@ -1177,6 +1177,7 @@ body.talk-on #s-ai main{padding-bottom:200px}
 .cmi-actions{flex-wrap:wrap;gap:8px}.cmi-actions .big{flex:1;min-width:130px}
 .cmi-sides{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
 .cmi-warn{color:var(--warn);font-weight:600}
+.cmh-panel{background:var(--card);border:1.5px solid var(--primary)}.cmh-panel[hidden]{display:none}.cmh-row{align-items:flex-start;min-height:44px}.cmh-row small{display:block;color:var(--muted)}.cmh-panel h4{margin:12px 0 4px}
 .cmi-zin{margin:12px 0;padding:10px 14px;border-radius:12px;background:var(--tonal);color:var(--on-tonal)}.cmi-zin[hidden]{display:none}
 /* Stamgegevens op de telefoon: korte schermen. Overzicht met filter en Toevoegen-knop, bewerken met tabbladen en een vaste opslaanbalk. */
 #s-masterdata .cm-status:empty,#s-cmedit .cm-status:empty,#s-cmlog .cm-status:empty,#s-cmwis .cm-status:empty{display:none}

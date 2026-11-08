@@ -1,2 +1,0 @@
-Alle tools kunnen nu als losse app op je startscherm, ook Toiletten en douches, E-reader, Slaappraat, Check-in, Apparaten, Gebruik, Facturen, Bankzaken, Stamgegevens, Alles back-uppen en Automatiseringen. Nieuwe tools ondersteunen dit voortaan automatisch.
-Kluis, Bankzaken en Stamgegevens houden hun eigen ontgrendeling in een losse app.

@@ -198,6 +198,11 @@ final class MasterStore {
         if(!"formulieren".equals(source)&&!"idcopy".equals(source))throw new MasterError(Taal.T("Dit onderdeel heeft geen toegang tot stamgegevens"));
         transaction(c,key,session,token,(db,k,h)->{append(db,k,h,action,source,"",null,null);return new JSONObject();},commit);
     }
+    /** Herkennen uit een foto starten voor een persoon: alleen controleren en in het logboek zetten. */
+    static void scanStart(Context c,SecretKey key,MasterSession session,String token,String id)throws Exception{
+        transaction(c,key,session,token,(db,k,h)->{JSONObject r=record(db,k,id);if(!"persoon".equals(r.getString("type")))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
+            append(db,k,h,"scan","masterdata","",r,null);return new JSONObject();});
+    }
     static JSONObject photo(Context c,SecretKey key,MasterSession session,String token,String id,long revision,String side,String value,boolean read)throws Exception{
         return photo(c,key,session,token,id,revision,side,value,read,()->{});
     }
