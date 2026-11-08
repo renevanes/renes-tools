@@ -1,0 +1,28 @@
+Lokaal voorlezen in Tools
+========================
+
+Spraakmotor: sherpa-onnx 1.13.8 (Apache-2.0), met ONNX Runtime (MIT).
+Broncode en bouwinstructies:
+https://github.com/k2-fsa/sherpa-onnx/tree/v1.13.8
+https://github.com/microsoft/onnxruntime
+De exacte gedistribueerde archieven en SHA-256 staan in tools/voorlezen/deps.json.
+
+De versie 1.13.8 bevat de eSpeak NG-fonemizer voor Piper. eSpeak NG valt onder
+GPL-3.0-or-later, zoals Tools. Broncode, inclusief de bijbehorende versie van de
+fonemizer en overige native bouwafhankelijkheden, is via de CMake-bestanden van
+de bovenstaande sherpa-onnx-versie te verkrijgen. eSpeak NG:
+https://github.com/espeak-ng/espeak-ng
+De GPL-3.0-licentie wordt met Tools meegeleverd onder licenties/GPL-3.0.txt.
+Versie 2 van sherpa-onnx heeft deze fonemizer niet meer ingebouwd.
+
+Archieven: Apache Commons Compress 1.28.0, Commons IO 2.22.0 en Commons Lang 3.21.0
+(Apache-2.0). Bronnen: https://commons.apache.org/ . Vaste bestanden en SHA-256:
+tools/voorlezen/deps.json. De licentieteksten zijn bijgevoegd.
+
+Downloadbare stemmen (geen onderdeel van de APK):
+- Ronnie / nl_NL-ronnie-medium, Piper int8. De modelkaart vermeldt CC0 voor de
+  Nederlandse opnames (OHF Voice) en de trainingsherkomst. Zie Ronnie-MODEL_CARD.txt.
+- LJ Speech / en_US-ljspeech-medium, Piper int8. Vanaf nul getraind op de
+  LJ Speech-dataset (publiek domein). Zie LJSpeech-MODEL_CARD.txt.
+Conversie en archieven: https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models
+De modellen en hun naam/controlegetal wijzigen nooit onder een bestaande id.

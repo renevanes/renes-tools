@@ -25,6 +25,7 @@ final class VoiceArchive {
                 if(stop.getAsBoolean())throw new ModelFetch.Stopped();if(++count>2000)throw new IOException();
                 String name=entry.getName();if(name.equals(prefix+"/")&&entry.isDirectory())continue;
                 if(!name.startsWith(prefix+"/"))throw new IOException();String rel=name.substring(prefix.length()+1);if(entry.isDirectory()&&rel.endsWith("/"))rel=rel.substring(0,rel.length()-1);
+                if(entry.getLinkFlag()!=0&&entry.getLinkFlag()!='0'&&entry.getLinkFlag()!='5')throw new IOException();
                 if(AppData.safeRel(rel)==null||!seen.add(rel)||entry.isLink()||entry.isSymbolicLink()||entry.isSparse()||(!entry.isDirectory()&&!entry.isFile()))throw new IOException();
                 if(entry.getSize()<0||entry.getSize()>80L*1024*1024||(total+=entry.getSize())>160L*1024*1024)throw new IOException();
                 File target=new File(stage,rel);if(!target.getCanonicalPath().startsWith(stage.getCanonicalPath()+File.separator))throw new IOException();

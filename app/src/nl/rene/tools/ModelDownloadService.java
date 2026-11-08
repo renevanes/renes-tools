@@ -196,7 +196,7 @@ public class ModelDownloadService extends Service {
                 long[] was = RUN.put(id, new long[]{done, total});
                 // Er komt echt iets binnen: een volgende onderbreking mag bij het openen van de app meteen weer verder
                 if (was != null && done > was[0] && was[0] == startAt[0]) LocalAi.prefs(this).edit().remove("tried_" + id).apply();
-                long now = System.currentTimeMillis();
+                long now = android.os.SystemClock.elapsedRealtime();
                 if (!STOP.contains(id) && (now - lastNotif > 1000 || done >= total)) {
                     lastNotif = now;
                     int pct = total > 0 ? (int) (done * 100 / total) : -1;
@@ -225,8 +225,8 @@ public class ModelDownloadService extends Service {
             java.util.function.BooleanSupplier stopped=()->{if(STOP.contains(id)||!VoiceModels.wanted(this,id))return true;long now=android.os.SystemClock.elapsedRealtime();if(now-netAt[0]>2000){netAt[0]=now;if(netBlocked(this)!=null)reason[0]=waitForNet(id);}return STOP.contains(id)||reason[0]!=null;};
             RUN.put(id,new long[]{VoiceModels.part(this,voice).length(),voice.size});
             ModelFetch.fetch(voice.url(),VoiceModels.part(this,voice),voice.size,(done,total)->{RUN.put(id,new long[]{done,total});long now=android.os.SystemClock.elapsedRealtime();if(now-lastNotif>1000){lastNotif=now;((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID,notif(Taal.t(this,"Voorleesstem downloaden"),Taal.t(this,"{a} van {b}","a",Regio.size(this,done,1,2),"b",Regio.size(this,total,1,2)),(int)(done*100/total)));}},stopped);
-            if(stopped.getAsBoolean())throw new ModelFetch.Stopped();
-            ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID,notif(Taal.t(this,"Voorleesstem controleren"),Taal.t(this,"Controleren en uitpakken…"),-1));VoiceModels.install(this,voice,stopped);
+            if(STOP.contains(id)||!VoiceModels.wanted(this,id))throw new ModelFetch.Stopped();
+            ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID,notif(Taal.t(this,"Voorleesstem controleren"),Taal.t(this,"Controleren en uitpakken…"),-1));VoiceModels.install(this,voice,()->STOP.contains(id)||!VoiceModels.wanted(this,id));
         }catch(ModelFetch.Stopped ignored){ }catch(Throwable e){VoiceModels.failed(this,id,why(e));}finally{RUN.remove(id);STOP.remove(id);MainActivity.jsAll("onAiModels","");}
     }
 

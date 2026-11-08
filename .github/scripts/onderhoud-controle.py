@@ -96,6 +96,14 @@ ALLE = {"Leaflet": LEAFLET, "jsQR": JSQR, "Playwright": PLAYWRIGHT, "whisper.cpp
         "llama.cpp": LLAMA, "build-tools": BUILDTOOLS, "aapt2": AAPT2, "android-platform": PLATFORM,
         "targetSdk": TARGET, "zig": ZIG, "zig (llm)": ("tools/llm-build.sh", ZIG[1]), "toiletten-momentopname": TOILETTEN}
 
+# Gedistribueerde voorleespakketten: de vaste manifestversies ook offline leesbaar houden.
+ALLE.update({
+    "sherpa-onnx": ("tools/voorlezen/deps.json", r'"engine": "sherpa-onnx (\d+\.\d+\.\d+)"'),
+    "Commons Compress": ("tools/voorlezen/deps.json", r'commons-compress/(\d+\.\d+\.\d+)/'),
+    "Commons IO": ("tools/voorlezen/deps.json", r'commons-io/(\d+\.\d+\.\d+)/'),
+    "Commons Lang": ("tools/voorlezen/deps.json", r'commons-lang3/(\d+\.\d+\.\d+)/'),
+})
+
 
 def modellen():
     tekst = (ROOT / MODELLEN[0]).read_text(errors="replace")
@@ -203,6 +211,17 @@ def main():
     # Playwright (alleen tests; alle workflows gebruiken dezelfde package-lock.json)
     huidig = lees(*PLAYWRIGHT)
     item("Playwright (tests)", "package.json", huidig, npm_nieuwste("playwright"))
+
+    # Voorleesarchieven: Commons op bekende Maven-kwetsbaarheden controleren. Een nieuwe
+    # sherpa-hoofdversie is niet zonder meer bruikbaar (v2 mist de eSpeak-fonemizer).
+    for naam, package in [("Commons Compress", "org.apache.commons:commons-compress"),
+                          ("Commons IO", "commons-io:commons-io"),
+                          ("Commons Lang", "org.apache.commons:commons-lang3")]:
+        pad, patroon = ALLE[naam]
+        huidig = lees(pad, patroon)
+        item(naam, pad, huidig, None,
+             osv({"package": {"name": package, "ecosystem": "Maven"}, "version": huidig}),
+             "Vastgezette voorleesbibliotheek; alleen bekende kwetsbaarheden automatisch, versies bewust bijwerken.")
 
     # whisper.cpp (zelf gebouwde libwhisper*.so)
     commit = lees(*WHISPER)

@@ -20,7 +20,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   `kop.html`, `stijl.css` (Material 3-kleurrollen: `--bg --card --hi --ink --muted --line --outline --primary --on-primary --tonal --chip --on-chip …`),
   `schermen/NN-*.html` (één `<section class="screen" id="s-naam">` per scherm), `script/NN-*.js`, `vensters.html` (dialogen, tabbalk).
 - `web/src/script/01-testbrug.js` — de nagebootste Android-brug voor de tests (in de app zelf weggelaten).
-- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends FeatureBridge`.
+- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends ReadAloudBridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends FeatureBridge`.
 - `web/start.html` — de Telefoon-skin (eigen startscherm); `tests/` — Java- en interfacetests; `tools/` — hulpscripts.
 - **Iedere nieuwe schermtool ondersteunt standaard losse apps.** Registreer hem in `web/src/script/00-tools.js`: het
   openen, het overzicht Losse apps en het native register volgen daaruit. Subschermen krijgen een `BACK`-verwijzing
@@ -258,6 +258,8 @@ alles kunnen lezen, dat controleert Bouwen en testen):
 | Playwright (alleen tests) | `package.json` en `package-lock.json` | Onderhoud: npm | agent |
 | Node en Java (alleen CI-gereedschap) | `node-version`/`java-version` in de workflows | Onderhoud: Node-schema, Adoptium | agent, naar de nieuwste LTS |
 | AI-modellen (Qwen3/Qwen3.5 GGUF) | `LocalAi.java` (vaste commit + SHA-256) | Onderhoud: Hugging Face (zelfde maker, zelfde grootte) | agent voegt een nieuw `Model` toe na overleg met Rene (1–3 GB); Rene kiest zelf of hij downloadt |
+| Lokale voorleesbibliotheken (sherpa-onnx/Piper, ONNX Runtime, Apache Commons) | `tools/voorlezen/deps.json`, licenties in `app/voorlezen/` | Onderhoud: vastgelegde versies; sherpa 1.x nodig wegens eSpeak-fonemizer | agent: vastgezette archieven en SHA-256 bijwerken; echte Android-synthesetest op API 24/36 |
+| Voorleesstemmen (Piper int8) | `VoiceModels.java` (grootte + SHA-256), modelkaarten in `app/voorlezen/` | niet automatisch | alleen bewust downloaden; nieuw bestand krijgt een eigen id |
 | Spraakmodellen (whisper ggml) | `Transcribe.java` (vaste SHA-256) | niet automatisch: het formaat verandert zelden | alleen op verzoek van Rene |
 | Toiletten-momentopname (OpenStreetMap, ODbL) | release `toiletten-gegevens` (workflow `toiletten-gegevens.yml`, `tools/toiletten/`; Geofabrik-extract met osmium) | Onderhoud: datum in `meta.json` (ouder dan 10 dagen = melding) | vanzelf elke week; agent: als de workflow faalt (oorzaak oplossen, met de hand starten) |
 

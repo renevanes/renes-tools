@@ -125,7 +125,7 @@ function mdCatCard(cat){
   const head = '<div class="md-cathead"><span class="md-caticon">' + uiIcon(cat.icon) + '</span><div><h2>' + esc(cat.title) + '</h2><small class="md-catst' + (ok ? ' ok' : '') + '">' + (st.startsWith('✓ ') ? '<span aria-hidden="true">✓ </span>' + esc(st.slice(2)) : esc(st)) + '</small></div></div>' +
     '';
   // Waarvoor en of je hem nodig hebt: ingeklapt (Hoe werkt dit?), net als de motor
-  const help = eng => uiHelp(t('Waarvoor is dit?'), '<p class="md-what">' + esc(cat.what) + ' <span class="md-need">' + esc(cat.need) + '</span></p>' + (eng ? '<p class="md-engine">' + esc(t('Motor: {motor} (zit in de app, wordt bijgewerkt met de app)', { motor: eng })) + '</p>' : ''), true, 'md-' + cat.kind);
+  const help = eng => uiHelp(t('Waarvoor is dit?'), '<p class="md-what">' + esc(t(cat.what)) + ' <span class="md-need">' + esc(t(cat.need)) + '</span></p>' + (eng ? '<p class="md-engine">' + esc(t('Motor: {motor} (zit in de app, wordt bijgewerkt met de app)', { motor: eng })) + '</p>' : ''), true, 'md-' + cat.kind);
   if (cat.kind === 'tts') return '<section class="card md-cat" data-kind="tts" aria-label="' + esc(cat.title) + '">' + head + mdTtsBody(mdSt.tts || {}) + help('') + '</section>';
   const lines = mdLines(mdModels(), cat.kind), eng = (mdSt.engines || {})[cat.kind];
   // Het model (dat je downloadt) en de motor die het draait (zit in de app en gaat mee met app-updates)

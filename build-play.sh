@@ -11,7 +11,8 @@ cd "$(dirname "$0")"
 T=${TOOLS:-/home/claude/toolchain}
 # Dezelfde gecontroleerde lokale spraakmotor in de gewone app en Play.
 python3 tools/voorlezen/deps.py "$T/voorlezen"
-VOICE_JARS=("$T/voorlezen/"*.jar)
+VOICE_JARS=("$T/voorlezen/sherpa.jar" "$T/voorlezen/compress.jar" "$T/voorlezen/io.jar" "$T/voorlezen/lang.jar")
+VOICE_CP="$T/voorlezen/sherpa.jar:$T/voorlezen/compress.jar:$T/voorlezen/io.jar:$T/voorlezen/lang.jar"
 BTV=${BT_VERSION:-$(cat "$T/bt/VERSION" 2>/dev/null || true)}
 [ -n "$BTV" ] && [ -d "$T/bt/build-tools/$BTV" ] || BTV=$(ls "$T/bt/build-tools" 2>/dev/null | sort -V | tail -1)
 [ -n "$BTV" ] || { echo "Build-tools ontbreken: ./setup-tools.sh"; exit 1; }
@@ -68,6 +69,8 @@ cp web/facturen-robot.js web/facturen-leveranciers.json web/bank-robot.js web/ba
 mkdir -p $B/assets/formulieren
 cp app/formulieren/*.pdf $B/assets/formulieren/
 cp LICENSE $B/assets/licenties/GPL-3.0.txt
+mkdir -p $B/assets/licenties/voorlezen
+cp app/voorlezen/*.txt $B/assets/licenties/voorlezen/
 cp web/vendor/LEAFLET-LICENSE $B/assets/licenties/leaflet.txt
 cp web/vendor/JSQR-LICENSE $B/assets/licenties/jsqr.txt
 cp app/lib/arm64-v8a/LICENSE-whisper.cpp.txt $B/assets/licenties/whisper.cpp.txt
@@ -94,7 +97,7 @@ $AAPT2 link --proto-format -I "$ANDROID_JAR" --manifest $B/AndroidManifest.xml -
 
 # 5. Java -> dex
 run javac -nowarn -Xlint:-options -source 8 -target 8 -encoding UTF-8 -bootclasspath "$ANDROID_JAR:$BT/core-lambda-stubs.jar" \
-  -classpath "$T/voorlezen/*" -d $B/classes $(find $B/src $B/gen -name '*.java') || { echo "javac mislukt"; exit 1; }
+  -classpath "$VOICE_CP" -d $B/classes $(find $B/src $B/gen -name '*.java') || { echo "javac mislukt"; exit 1; }
 run java -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 --release --min-api 24 --lib "$ANDROID_JAR" \
   --output $B/dex "${VOICE_JARS[@]}" $(find $B/classes -name '*.class') || { echo "d8 mislukt"; exit 1; }
 
@@ -103,7 +106,10 @@ run java -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 --release --min-api 24 --l
 if python3 -c 'import sys; sys.path.insert(0,"play"); from config import profile; sys.exit(0 if profile()["native"] else 1)'; then
   mkdir -p $B/module/lib
   cp -r app/lib/arm64-v8a $B/module/lib/
-  cp -r "$T/voorlezen/lib/"* "$B/module/lib/"
+  for abi in arm64-v8a x86_64; do
+    mkdir -p "$B/module/lib/$abi"
+    cp "$T/voorlezen/lib/$abi/libonnxruntime.so" "$T/voorlezen/lib/$abi/libsherpa-onnx-jni.so" "$B/module/lib/$abi/"
+  done
   find $B/module/lib -type f ! -name '*.so' -delete
 fi
 (cd $B/module && zip -q -r ../base.zip .)

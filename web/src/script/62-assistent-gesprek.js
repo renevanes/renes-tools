@@ -177,7 +177,7 @@ function aiTalkPump(){
   if (aiTk.q.length && aiTalkCfg().speak && !aiTk.noTts) {
     const text = aiTk.q.join(' ').replace(/\s+/g, ' ').trim(); aiTk.q = [];
     if (text) {
-      const id = 'k' + (++aiTk.seq); aiTk.spk = id;
+      const id = 'k' + Date.now() + '-' + (++aiTk.seq); aiTk.spk = id;
       aiTalkSt('spreekt');
       Android.aiSpeak(text, id);
       aiTalkBargeOn();

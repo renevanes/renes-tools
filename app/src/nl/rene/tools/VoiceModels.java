@@ -19,8 +19,8 @@ final class VoiceModels {
         String url(){return "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/"+folder+".tar.bz2";}
     }
     static final Voice[] VOICES={
-        new Voice("tts-en-lessac",Taal.T("Lessac · Engels"),"en","vits-piper-en_US-lessac-medium-int8","en_US-lessac-medium.onnx",20969179L,"f1c6d0295cf16087b05f80fdca5b44daca5cd78e2c425d419a42ba34929805f9"),
-        new Voice("tts-nl-ronnie",Taal.T("Ronnie · Nederlands"),"nl","vits-piper-nl_NL-ronnie-medium-int8","nl_NL-ronnie-medium.onnx",21158108L,"eb16022c9c8ee48b75dc833e8a8b04e08730929ea68cde9b67e2dc712f988978")
+        new Voice("tts-nl-ronnie",Taal.T("Ronnie · Nederlands"),"nl","vits-piper-nl_NL-ronnie-medium-int8","nl_NL-ronnie-medium.onnx",21158108L,"eb16022c9c8ee48b75dc833e8a8b04e08730929ea68cde9b67e2dc712f988978"),
+        new Voice("tts-en-ljspeech",Taal.T("LJ Speech · Engels"),"en","vits-piper-en_US-ljspeech-medium-int8","en_US-ljspeech-medium.onnx",21090429L,"24dc3bd77dd48c291e52c297878d3437c9492f245d823d7f6a06c4bbb67f4b6b")
     };
     static Voice model(String id){for(Voice v:VOICES)if(v.id.equals(id))return v;return null;}
     static boolean supported(){for(String abi:Build.SUPPORTED_ABIS)if(abi.equals("arm64-v8a")||abi.equals("x86_64"))return true;return false;}
@@ -30,7 +30,7 @@ final class VoiceModels {
     static File part(Context c,Voice v){return new File(root(c),v.id+".part");}
     static boolean ready(Context c,Voice v){return new File(dir(c,v),"klaar").isFile()&&new File(dir(c,v),v.model).length()>1000000&&new File(dir(c,v),"tokens.txt").isFile()&&new File(dir(c,v),"espeak-ng-data/phondata").isFile();}
     static Voice active(Context c){Voice picked=model(prefs(c).getString("voice",""));if(picked!=null&&ready(c,picked))return picked;for(Voice v:VOICES)if(ready(c,v))return v;return null;}
-    static float speed(Context c){return Math.max(.6f,Math.min(1.8f,prefs(c).getFloat("speed",1)));}
+    static float speed(Context c){float value=prefs(c).getFloat("speed",1);return Float.isNaN(value)||Float.isInfinite(value)?1:Math.max(.6f,Math.min(1.8f,value));}
     static void configure(Context c,String voice,double speed)throws Exception {if(!Double.isFinite(speed)||speed<.6||speed>1.8||!voice.isEmpty()&&model(voice)==null)throw new Exception(Taal.T("Kies een stem en een snelheid tussen 0,6 en 1,8"));SharedPreferences.Editor e=prefs(c).edit().putFloat("speed",(float)speed);if(!voice.isEmpty())e.putString("voice",voice);e.apply();}
     static boolean wanted(Context c,String id){return prefs(c).getBoolean("download_"+id,false);}
     static void failed(Context c,String id,String message){prefs(c).edit().putString("error_"+id,message).apply();MainActivity.jsAll("onAiModels", "");}
@@ -47,6 +47,7 @@ final class VoiceModels {
             archive.delete();SharedPreferences.Editor edit=prefs(c).edit().putBoolean("download_"+v.id,false).remove("error_"+v.id);if(prefs(c).getString("voice","").isEmpty())edit.putString("voice",v.id);edit.apply();
         }finally{if(stage.exists())VoiceArchive.erase(stage);}
     }
+    static long bytes(File dir){if(dir.isFile())return dir.length();long size=0;File[] files=dir.listFiles();if(files!=null)for(File f:files)size+=bytes(f);return size;}
     static JSONObject json(Context c)throws Exception {
         JSONArray voices=new JSONArray();Voice active=active(c);
         for(Voice v:VOICES){long[] progress=ModelDownloadService.RUN.get(v.id);String state=ready(c,v)?"ready":ModelDownloadService.QUEUED.contains(v.id)?"queued":progress!=null?"running":part(c,v).isFile()?"paused":"none";

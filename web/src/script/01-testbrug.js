@@ -566,24 +566,22 @@ if (!window.Android) window.Android = (function(){
       if (ok) { out.action.at = at; out.action.day = day; } else if (day && !at) { out.action.day = day; if (type === 'agenda') out.action.allDay = true; }
       return out;
     },
-    _speech:{voice:'tts-nl-ronnie',speed:1,background:true,supported:true,active:null,said:[],ms:500,voices:[{id:'tts-nl-ronnie',label:'Ronnie · Nederlands',language:'nl',state:'ready',size:21158108,bytes:0},{id:'tts-en-lessac',label:'Lessac · Engels',language:'en',state:'none',size:20969179,bytes:0}]},
-    speechModels(){const s=this._speech;return JSON.stringify({...s,active:undefined,said:undefined,voices:s.voices.map(v=>({...v,selected:v.state==='ready'&&v.id===s.voice})),engine:'sherpa-onnx 1.13.8 · Piper VITS'});},
+    _speech:{voice:'tts-nl-ronnie',speed:1,background:true,supported:true,active:null,said:[],ms:500,voices:[{id:'tts-nl-ronnie',label:'Ronnie · Nederlands',language:'nl',state:'ready',size:21158108,bytes:0},{id:'tts-en-ljspeech',label:'LJ Speech · Engels',language:'en',state:'none',size:21090429,bytes:0}]},
+    speechModels(){const s=this._speech;return JSON.stringify({...s,active:undefined,said:undefined,voices:s.voices.map(v=>({...v,label:t(v.label),selected:v.state==='ready'&&v.id===s.voice})),engine:'sherpa-onnx 1.13.8 · Piper VITS'});},
     speechConfigure(voice,speed,background){if(!Number.isFinite(speed)||speed<.6||speed>1.8||voice&&!this._speech.voices.some(v=>v.id===voice))return 'Kies een stem en een snelheid tussen 0,6 en 1,8';if(voice)this._speech.voice=voice;this._speech.speed=speed;this._speech.background=background;return '';},
     speechDownload(id){const v=this._speech.voices.find(v=>v.id===id);if(!v)return 'Onbekende stem';v.state='running';v.bytes=0;v.timer=setTimeout(()=>{v.state='ready';v.bytes=v.size;if(!this._speech.voice)this._speech.voice=id;onAiModels('');},this._speech.downloadMs||150);return '';},
     speechDownloadStop(id){const v=this._speech.voices.find(v=>v.id===id);if(v){clearTimeout(v.timer);v.state='paused';}},
     speechDelete(id){const v=this._speech.voices.find(v=>v.id===id);if(v){clearTimeout(v.timer);v.state='none';v.bytes=0;}if(this._speech.voice===id)this._speech.voice='';this.speechStop(this._speech.active?.request);},
-    _speechEvent(state){const s=this._speech,a=s.active;if(!a)return;onSpeech({...a,state});if(['done','stopped','error'].includes(state))s.active=null;else a.state=state;},
-    speechStart(text,request,source,markdown){const s=this._speech;this.speechStop(s.active?.request);s.said.push({text,request,source,markdown});s.active={request,source,state:'loading'};this._speechEvent('loading');s.timer=setTimeout(()=>{if(s.active?.request!==request)return;this._speechEvent('playing');s.timer=setTimeout(()=>{if(s.active?.request===request)this._speechEvent('done');},s.ms);},20);},
+    _speechEvent(state){const s=this._speech,a=s.active;if(!a)return;if(['done','stopped','error'].includes(state))s.active=null;else a.state=state;onSpeech({...a,state});if(a.source==='ai'){if(state==='playing'&&!a.begun){a.begun=true;onAiSpeak({state:'start',id:a.request});}else if(['done','stopped','error'].includes(state)){if(this._tts.cur===a.request)this._tts.cur='';onAiSpeak({state:state==='stopped'?'stop':state,id:a.request});}}},
+    speechStart(text,request,source,markdown){const s=this._speech;this.speechStop(s.active?.request);s.said.push({text,request,source,markdown});s.active={request,source,state:'loading'};this._speechEvent('loading');const duration=s.ms;s.timer=setTimeout(()=>{if(s.active?.request!==request)return;this._speechEvent('playing');s.timer=setTimeout(()=>{if(s.active?.request===request)this._speechEvent('done');},duration);},20);},
     speechBook(book,chapter,offset,request){const r=JSON.parse(this.ereaderChapter(book,chapter));this.speechStart((r.text||'').slice(offset),request,'reader',false);Object.assign(this._speech.active,{book,chapter,offset});},
     speechPause(request,paused){const s=this._speech;if(s.active?.request!==request)return;clearTimeout(s.timer);this._speechEvent(paused?'paused':'playing');if(!paused)s.timer=setTimeout(()=>{if(s.active?.request===request)this._speechEvent('done');},s.ms);},
     speechStop(request){const s=this._speech;if(!s.active||request!==s.active.request)return;clearTimeout(s.timer);this._speechEvent('stopped');},
     speechState(){return JSON.stringify(this._speech.active?{active:true,...this._speech.active}:{active:false});},
     // Voorlezen zoals AiSpeech: start, klaar (na _tts.ms), stoppen; of een fout (_tts.err)
     _tts: { said: [], stops: 0, ms: 400, cur: '' },
-    aiSpeak(text, id){ const T = this._tts; T.said.push(text); clearTimeout(T.t1); clearTimeout(T.t2); T.cur = id;
-      if (T.err) { T.t1 = setTimeout(() => { T.cur = ''; onAiSpeak({ state: 'error', id, error: T.err }); }, 20); return; }
-      T.t1 = setTimeout(() => onAiSpeak({ state: 'start', id }), 20); T.t2 = setTimeout(() => { T.cur = ''; onAiSpeak({ state: 'done', id }); }, T.ms); },
-    aiSpeakStop(){ const T = this._tts; T.stops++; clearTimeout(T.t1); clearTimeout(T.t2); if (T.cur) { const id = T.cur; T.cur = ''; setTimeout(() => onAiSpeak({ state: 'stop', id }), 10); } },
+    aiSpeak(text,id){if(text.length>30000){setTimeout(()=>onAiSpeak({state:'error',id,error:'Deze tekst is te lang om in één keer voor te lezen'}),0);return;}const t=this._tts;t.said.push(text);if(t.err){setTimeout(()=>onAiSpeak({state:'error',id,error:t.err}),20);return;}t.cur=id;const before=this._speech.ms;this._speech.ms=t.ms;this.speechStart(text,id,'ai',true);this._speech.ms=before;},
+    aiSpeakStop(){this._tts.stops++;if(this._speech.active?.source==='ai')this.speechStop(this._speech.active.request);},
     aiCalendarAdd(j){ if (this._calErr) return this._calErr; this._cal = JSON.parse(j); return ''; },
     aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },
     aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },

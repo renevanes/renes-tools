@@ -135,7 +135,7 @@ public class AiBridge extends SleepBridge {
         if (text == null) return;
         // App op de achtergrond (bijv. net weggeschakeld terwijl het antwoord nog kwam): niet gaan praten
         if (!MainActivity.visible) { try { a.js("onAiSpeak", new JSONObject().put("state", "stop").put("id", id == null ? "" : id).toString()); } catch (Exception ignored) { } return; }
-        if(text.length()>30000)return;
+        if(text.length()>30000){try{a.js("onAiSpeak",new JSONObject().put("state","error").put("id",id).put("error",Taal.t(ctx,"Deze tekst is te lang om in één keer voor te lezen")).toString());}catch(Throwable ignored){ }return;}
         ReadAloud.start(a,id,"ai",AiSpeech.plain(text),"",0,0,false,ReadAloudBridge.aiSink(a));
     }
     @JavascriptInterface public void aiSpeakStop() { ReadAloud.Job j=ReadAloud.current;if(j!=null&&j.source.equals("ai"))ReadAloud.stop(a.speechOwner,j.request); }

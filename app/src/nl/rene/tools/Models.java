@@ -23,7 +23,7 @@ final class Models {
         o.put("free", free).put("online", ModelDownloadService.online(c)).put("metered", ModelDownloadService.metered(c))
                 .put("wifiOnly", LocalAi.wifiOnly(c)).put("supported", LocalAi.supported()).put("txBusy", TranscribeService.busy);
         JSONArray ms = new JSONArray();
-        long used = 0;
+        long used = VoiceModels.bytes(VoiceModels.root(c));
         String chat = LocalAi.chatModel(c).id;
         for (LocalAi.Model m : LocalAi.MODELS) {
             JSONObject s = LocalAi.state(c, m);
