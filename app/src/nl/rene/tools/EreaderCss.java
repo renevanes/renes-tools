@@ -85,8 +85,17 @@ final class EreaderCss {
             if (key.equals("text-transform") && value.matches("none|uppercase|lowercase|capitalize")) out.put("textTransform", value);
             if (key.equals("vertical-align") && value.matches("baseline|super|sub")) out.put("verticalAlign", value);
             if (key.equals("font-variant") && value.matches("normal|small-caps")) out.put("fontVariant", value);
+            if (key.equals("float") && value.matches("left|right|none")) out.put("cssFloat", value);
+            if (key.equals("clear") && value.matches("left|right|both|none")) out.put("clear", value);
+            if (key.equals("width") && value.matches("(?:[0-9]+(?:\\.[0-9]+)?|\\.[0-9]+)(?:px|em|%)")) {
+                Matcher width = Pattern.compile("([0-9.]+)(px|em|%)").matcher(value);
+                if (width.matches()) {
+                    double n = Double.parseDouble(width.group(1)); String unit = width.group(2);
+                    if (n > 0 && n <= (unit.equals("px") ? 1200 : unit.equals("em") ? 60 : 100)) out.put("width", value);
+                }
+            }
             if (key.matches("font-size|text-indent|margin-top|margin-bottom")) {
-                Matcher size = Pattern.compile("(-?\\d+(?:\\.\\d+)?)(em|rem|%|pt|px)?").matcher(value);
+                Matcher size = Pattern.compile("(-?(?:\\d+(?:\\.\\d+)?|\\.\\d+))(em|rem|%|pt|px)?").matcher(value);
                 if (!size.matches()) continue;
                 double amount = Double.parseDouble(size.group(1)); String unit = size.group(2);
                 if ("%".equals(unit)) amount /= 100; else if ("pt".equals(unit)) amount /= 12; else if ("px".equals(unit)) amount /= 16;

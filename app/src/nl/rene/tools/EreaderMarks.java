@@ -27,6 +27,7 @@ final class EreaderMarks {
         if (kind.equals("bookmark") && p.has("offset")) {
             double offset = p.optDouble("offset", 0);
             if (!Double.isNaN(offset) && !Double.isInfinite(offset)) mark.put("offset", Math.max(0, Math.min(1, offset)));
+            if (p.optBoolean("visual")) mark.put("visual", true);
         }
         out.put(mark);
         return out;

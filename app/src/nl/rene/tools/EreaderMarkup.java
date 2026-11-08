@@ -25,6 +25,7 @@ final class EreaderMarkup {
     private final String base;
     private final Budget budget;
     int images;
+    private int visibleCharacters;
 
     EreaderMarkup(Element body, String base, EreaderCss css, Media media, Budget budget) throws Exception {
         this.base = base; this.css = css; this.media = media; this.budget = budget;
@@ -48,6 +49,7 @@ final class EreaderMarkup {
     }
     private JSONObject leaf(String value, boolean pre) throws Exception {
         int start = raw.length(); raw.append(value); if (pre) exact.set(start, raw.length());
+        for (int i = 0; i < value.length(); i++) if (!Character.isWhitespace(value.charAt(i))) visibleCharacters++;
         return new JSONObject().put("t", value).put("s", start).put("e", raw.length());
     }
     private static String name(Node n) { String tag = n.getLocalName(); return (tag == null ? n.getNodeName() : tag).toLowerCase(Locale.ROOT); }
@@ -57,6 +59,7 @@ final class EreaderMarkup {
             return leaf(pre ? node.getNodeValue() : node.getNodeValue().replaceAll("\\s+", " "), pre);
         if (!(node instanceof Element)) return null;
         Element e = (Element)node; String sourceTag = name(e);
+        int beforeText = visibleCharacters;
         if (sourceTag.matches("script|style|head|iframe|frame|frameset|base|link|meta|title|embed")) return null;
         if (sourceTag.equals("svg") || sourceTag.equals("img") || sourceTag.equals("image") || sourceTag.equals("object")) {
             if (sourceTag.equals("object") && !e.getAttribute("type").startsWith("image/")) return null;
@@ -70,8 +73,11 @@ final class EreaderMarkup {
                 if (titles.getLength() > 0) alt = titles.item(0).getTextContent();
             }
             int asset = media.image(base, source, sourceTag.equals("svg") ? e : null); images++;
+            JSONObject style = css.style(e);
+            if (!style.has("width") && e.getAttribute("width").matches("[1-9][0-9]{0,3}")) style.put("width", e.getAttribute("width") + "px");
+            if (!style.has("width") && e.getAttribute("width").matches("[1-9][0-9]?%|100%")) style.put("width", e.getAttribute("width"));
             return new JSONObject().put("tag", "img").put("asset", asset).put("alt", cut(alt, 500)).put("at", raw.length())
-                    .put("id", cut(e.getAttribute("id"), 300));
+                    .put("id", cut(e.getAttribute("id"), 300)).put("style", style);
         }
         boolean math = "http://www.w3.org/1998/Math/MathML".equals(e.getNamespaceURI()) && MATH.contains(" " + sourceTag + " ");
         String tag = math || TAGS.contains(" " + sourceTag + " ") ? sourceTag : "span";
@@ -115,6 +121,7 @@ final class EreaderMarkup {
         }
         if (tag.equals("td") || tag.equals("th")) children.put(leaf("\t", false));
         if (block) children.put(leaf("\n", false));
+        if (visibleCharacters == beforeText) out.put("mediaOnly", true);
         return out.put("c", children);
     }
     private void normalize(JSONObject node, int[] map) throws Exception {

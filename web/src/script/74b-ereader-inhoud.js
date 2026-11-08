@@ -1,12 +1,12 @@
 /* Een EPUB wordt als een gesloten boom met tekst, typografie en lokale mediaverwijzingen opgebouwd. */
-let erDoc=null,erImages=new Map(),erImageRequests=new Map(),erImageSerial=0,erImageEpoch=0,erLinks=[],erUpgrading=false,erCurrentOffset=0,erPendingLocation=null;
+let erDoc=null,erImages=new Map(),erImageRequests=new Map(),erImageSerial=0,erImageEpoch=0,erLinks=[],erUpgrading=false,erCurrentOffset=0,erPendingLocation=null,erPendingFragment='';
 const ER_TAGS=new Set('div span p h1 h2 h3 h4 h5 h6 strong b em i u s del ins small sup sub blockquote q pre code kbd samp var ul ol li dl dt dd table thead tbody tfoot tr th td caption figure figcaption hr br a ruby rt rp abbr cite time aside section article header footer main nav address details summary'.split(' '));
 const ER_MATH=new Set('math mrow mi mn mo mtext mspace ms msqrt mroot mfrac msup msub msubsup munder mover munderover mfenced menclose mtable mtr mtd mstyle mphantom mpadded semantics annotation'.split(' '));
 function erLinear(b,i){return !b.linear||b.linear[i]!==false;}
 function erOrder(b){return b.chapters.map((_,i)=>i).filter(i=>erLinear(b,i));}
 function erNeighbor(direction){for(let i=erIndex+direction;i>=0&&i<erBook.chapters.length;i+=direction)if(erLinear(erBook,i))return i;return -1;}
 function erLocation(){return erPendingLocation||{chapter:erIndex,anchor:erText.length?erAnchor():-1,offset:erOffset()};}
-function erRestoreLocation(p){if(!erText.length)erPendingLocation={chapter:erIndex,anchor:-1,offset:p.offset||0};if(p.anchor>0&&erText.length)erRestoreAnchor(p.anchor);else $('#er-text').scrollTop=Math.max(0,Math.min(1,p.offset||0))*Math.max(0,$('#er-text').scrollHeight-$('#er-text').clientHeight);erCurrentAnchor=erAnchor();erCurrentOffset=erPendingLocation?erPendingLocation.offset:erOffset();}
+function erRestoreLocation(p){if(!erText.length||p.anchor<0)erPendingLocation={chapter:erIndex,anchor:-1,offset:p.offset||0};if(p.anchor>0&&erText.length)erRestoreAnchor(p.anchor);else $('#er-text').scrollTop=Math.max(0,Math.min(1,p.offset||0))*Math.max(0,$('#er-text').scrollHeight-$('#er-text').clientHeight);erCurrentAnchor=erAnchor();erCurrentOffset=erPendingLocation?erPendingLocation.offset:erOffset();}
 function erCancelImages(){erImageEpoch++;erImageRequests.clear();erImages.clear();if(typeof Android.ereaderImagesCancel==='function')Android.ereaderImagesCancel();}
 function erRichPaint(ranges,points){
   erCancelImages();erNodes=[];const box=$('#er-content');box.replaceChildren();box.classList.add('er-rich');
@@ -37,6 +37,7 @@ function erRichPaint(ranges,points){
     if(tag==='details')el.open=true;
     if(tag==='a'&&n.target){el.href='#';el.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();erFollow(n.target);});}
     parent.append(el);for(const child of n.c||[])visit(child,el,depth+1);
+    if(n.mediaOnly&&el.querySelector('.er-media'))erMediaStyle(el,n.style);
     if(tag==='table'){const wrap=document.createElement('div');wrap.className='er-table-scroll';wrap.tabIndex=0;el.replaceWith(wrap);wrap.append(el);}
   };
   visit(erDoc.content,box,0);erNodes.sort((a,b)=>a.start-b.start);
@@ -45,6 +46,7 @@ function erRichPaint(ranges,points){
 }
 function erMediaNode(n,parent){
   const button=document.createElement('button');button.type='button';button.className='er-media';button.dataset.erAt=String(n.at||0);if(n.id)button.dataset.erId=n.id;
+  erMediaStyle(button,n.style);
   const alt=String(n.alt||'').slice(0,500);button.setAttribute('aria-label',alt?t('Afbeelding vergroten: {naam}',{naam:alt}):t('Afbeelding vergroten'));
   const img=document.createElement('img');img.alt=alt;img.hidden=true;img.draggable=false;
   const status=document.createElement('span');status.className='er-media-status';status.textContent=t('Afbeelding laden…');
@@ -68,11 +70,19 @@ window.onEreaderImage=function(r){
   erImageRequests.delete(r.request);entry.pending=false;
   if(r.error||!/^data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(r.src||'')){entry.failed=true;entry.status.textContent=r.error||t('Deze afbeelding kan niet worden weergegeven');erQueueImages();return;}
   const position=current==='erbook'?erLocation():null;
+  if(r.width>0&&r.width<100000)entry.button.style.maxWidth=Math.min(720,r.width)+'px';
   if(r.width>0&&r.height>0&&r.width<100000&&r.height<100000)entry.button.style.aspectRatio=r.width+'/'+r.height;
   entry.img.onload=()=>{if(entry.epoch!==erImageEpoch)return;entry.loaded=true;entry.button.classList.add('er-media-ready');entry.img.hidden=false;entry.status.hidden=true;if(current==='erbook')erProgress();erQueueImages();};
   entry.img.onerror=()=>{entry.failed=true;entry.status.textContent=t('Deze afbeelding kan niet worden weergegeven');};
-  entry.img.src=r.src;if(position)erRestoreLocation(position);erQueueImages();
+  entry.img.src=r.src;if(current==='erbook'&&erPendingFragment)erPlaceFragment();else if(position)erRestoreLocation(position);erQueueImages();
 };
+function erMediaStyle(el,style){
+  if(!style)return;
+  if(/^(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)(px|em|%)$/.test(style.width||''))el.style.width=style.width;
+  if(/^(left|right|none)$/.test(style.cssFloat||''))el.style.cssFloat=style.cssFloat;
+  if(/^(left|right|both|none)$/.test(style.clear||''))el.style.clear=style.clear;
+  el.classList.add('er-media-container');
+}
 function erUpgrade(){
   if(erBusy||!erBook)return;erSave();erUpgrading=true;erPick();
 }
@@ -90,8 +100,15 @@ function erFollow(target){
   }else toast(t('Deze verwijzing staat niet in het boek'));
 }
 function erFragment(fragment,start){
-  if(fragment){const el=[...$('#er-content').querySelectorAll('[data-er-id]')].find(e=>e.dataset.erId===fragment);if(el){const box=$('#er-text');box.scrollTop+=el.getBoundingClientRect().top-box.getBoundingClientRect().top-20;erScroll();return;}}
+  erPendingLocation=null;erPendingFragment=fragment||'';
+  if(fragment&&erPlaceFragment()){erScroll();return;}
   if(start!=null)erRestoreAnchor(start);erProgress();
+}
+function erPlaceFragment(){
+  const el=[...$('#er-content').querySelectorAll('[data-er-id]')].find(e=>e.dataset.erId===erPendingFragment);if(!el)return false;
+  const box=$('#er-text');box.scrollTop+=el.getBoundingClientRect().top-box.getBoundingClientRect().top-20;
+  erPendingLocation=null;if(!erText.length||erAnchor()<0)erPendingLocation={chapter:erIndex,anchor:-1,offset:erOffset()};
+  erCurrentAnchor=erAnchor();erCurrentOffset=erOffset();return true;
 }
 function erLinkBack(){const p=erLinks.pop();if(!p)return false;if(!erChapter(p.chapter,p.anchor>=0?p.anchor:undefined)){erLinks.push(p);return false;}erRestoreLocation(p);erSave();erProgress();erLinkButton();return true;}
 function erBoundary(node,offset,end){
@@ -113,4 +130,22 @@ for(const name of ['pointerup','pointercancel'])erImageView.addEventListener(nam
 erImageView.addEventListener('dblclick',()=>erImageZoom(erZoom.scale>1?-4:1));
 erImageView.addEventListener('wheel',e=>{e.preventDefault();erImageZoom(e.deltaY<0?.25:-.25);},{passive:false});
 
-for(const name of ['wheel','touchstart','pointerdown'])$('#er-text').addEventListener(name,()=>{erPendingLocation=null;},{passive:true});
+for(const name of ['wheel','touchstart','pointerdown'])$('#er-text').addEventListener(name,()=>{erPendingLocation=null;erPendingFragment='';},{passive:true});
+
+function erRichAnchor(){
+  const box=$('#er-text'),view=box.getBoundingClientRect(),top=view.top+(parseFloat(getComputedStyle(box).paddingTop)||0)+1,range=document.createRange();
+  let best=null,distance=Infinity;
+  for(const entry of erNodes){
+    if(!entry.node.data.trim())continue;range.selectNodeContents(entry.node);const bounds=range.getBoundingClientRect();if(bounds.bottom<top||bounds.top>view.bottom)continue;
+    for(const rect of range.getClientRects()){
+      if(!rect.height||rect.bottom<=top)continue;const score=Math.max(0,rect.top-top);
+      if(score<distance){best=entry;distance=score;}break;
+    }
+  }
+  const onImage=[...erImages.values()].some(({button})=>{const r=button.getBoundingClientRect();return r.top<=top&&r.bottom>top;});
+  if(onImage&&distance>4)return -1;
+  if(!best)return erCurrentAnchor>=0?erCurrentAnchor:0;
+  let lo=0,hi=Math.max(0,best.node.length-1);
+  while(lo<hi){const mid=Math.floor((lo+hi)/2);range.setStart(best.node,mid);range.setEnd(best.node,Math.min(best.node.length,mid+1));const rect=range.getBoundingClientRect();if(rect.bottom<=top)lo=mid+1;else hi=mid;}
+  return best.start+lo;
+}

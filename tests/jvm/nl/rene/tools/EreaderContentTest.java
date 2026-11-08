@@ -31,7 +31,7 @@ public class EreaderContentTest {
                 + "<item id='png' href='images/land.png' media-type='image/png'/><item id='gif' href='images/dot.gif' media-type='image/gif'/><item id='svg' href='images/vector.svg' media-type='image/svg+xml'/><item id='font' href='font.otf' media-type='font/otf'/></manifest>"
                 + "<spine toc='ncx'><itemref idref='cover'/><itemref idref='one'/><itemref idref='two'/></spine></package>"));
         String html = "<html xmlns='http://www.w3.org/1999/xhtml' xmlns:epub='http://www.idpf.org/2007/ops'><head><title>Een nieuw hoofdstuk</title><link rel='stylesheet' href='../book.css'/></head><body>";
-        f.put("OPS/cover.xhtml", utf(html + "<figure><svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 640 2000'><title>De heuvels</title><image width='640' height='480' xlink:href='images/land.png'/></svg></figure></body></html>"));
+        f.put("OPS/cover.xhtml", utf(html + "<figure><svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 640 2000'><title>De heuvels</title><image width='640' height='480' xlink:href='images/land.png'/></svg></figure><img id='second' src='images/land.png' alt='Tweede afbeelding'/></body></html>"));
         StringBuilder longText = new StringBuilder(); for (int i = 0; i < 18; i++) longText.append("<p>De ochtendzon scheen over de groene heuvels. We namen de tijd om het landschap te bekijken en verder te lezen.</p>");
         f.put("OPS/text/one.xhtml", utf(html + "<h1 id='begin'>Een reis &mdash; 📚</h1><p class='intro'>Een <strong>bijzonder</strong> <em>verhaal</em> met café &eacute;n &copy; tekens.<br/>Een nieuwe regel.</p>"
                 + "<figure id='land'><img src='../images/land.png' alt='Groene heuvels onder de zon'/><figcaption>Het landschap</figcaption></figure>"
@@ -42,8 +42,9 @@ public class EreaderContentTest {
                 + "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60'><rect width='100' height='60' fill='#345'/><text x='10' y='35' fill='white'>Vector</text></svg>"
                 + "<object type='image/svg+xml' data='../images/vector.svg'/><p><img src='https://example.org/remote.png' alt='Niet lokaal'/></p><script>window.bookRan=true</script><iframe src='https://example.org/frame'/>"
                 + longText + "</body></html>"));
-        f.put("OPS/text/two.xhtml", utf(html + "<h1>Thuiskomst</h1><p>Het einde van een mooie reis.</p><math xmlns='http://www.w3.org/1998/Math/MathML'><mfrac><mn>1</mn><mn>2</mn></mfrac></math></body></html>"));
-        f.put("OPS/notes.xhtml", utf(html + "<aside epub:type='footnote' id='noot een'><p>Dit is de uitleg bij het landschap. <a href='text/one.xhtml#begin'>Terug</a></p></aside></body></html>"));
+        StringBuilder tallCell = new StringBuilder();for (int i=0;i<100;i++)tallCell.append("Een regel in de eerste kolom.\n");
+        f.put("OPS/text/two.xhtml", utf(html + "<h1>Thuiskomst</h1><p>Het einde van een mooie reis.</p><math xmlns='http://www.w3.org/1998/Math/MathML'><mfrac><mn>1</mn><mn>2</mn></mfrac></math><table><tr><td><pre>" + tallCell + "</pre></td><td>Korte tweede kolom</td></tr></table><p>Na de tabel.</p></body></html>"));
+        f.put("OPS/notes.xhtml", utf(html + "<figure><img src='images/vector.svg' alt='Staande illustratie'/><figcaption>Een bijschrift onder het beeld</figcaption></figure><aside epub:type='footnote' id='noot een'><p>Dit is de uitleg bij het landschap. <a href='text/one.xhtml#begin'>Terug</a></p></aside></body></html>"));
         f.put("OPS/nav.xhtml", utf(html + "<nav epub:type='toc'><ol><li><a href='text/one.xhtml#begin'>De reis begint</a><ol><li><a href='text/one.xhtml#deel%20twee'>Een nadere blik</a></li></ol></li><li><a href='text/two.xhtml'>Thuiskomst</a></li></ol></nav></body></html>"));
         f.put("OPS/toc.ncx", utf("<ncx><navMap><navPoint><navLabel><text>Route uit NCX</text></navLabel><content src='text/one.xhtml#begin'/><navPoint><navLabel><text>Deel twee</text></navLabel><content src='text/one.xhtml#deel%20twee'/></navPoint></navPoint></navMap></ncx>"));
         f.put("OPS/book.css", utf(".intro{font-style:italic;text-indent:1em;color:red;position:fixed;background:url(https://example.org/bg)} h1{text-align:center} p{margin-top:.6em} body{display:none} @import url(https://example.org/other.css);"));
@@ -51,7 +52,7 @@ public class EreaderContentTest {
         java.awt.Graphics2D g = image.createGraphics();g.setColor(new java.awt.Color(195,220,232));g.fillRect(0,0,640,480);g.setColor(new java.awt.Color(244,198,95));g.fillOval(450,55,95,95);g.setColor(new java.awt.Color(63,110,87));g.fillOval(-130,260,650,400);g.setColor(new java.awt.Color(105,145,99));g.fillOval(290,220,650,450);g.dispose();
         ByteArrayOutputStream png = new ByteArrayOutputStream();javax.imageio.ImageIO.write(image,"png",png);f.put("OPS/images/land.png",png.toByteArray());
         f.put("OPS/images/dot.gif", EreaderBytes.decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"));
-        f.put("OPS/images/vector.svg", utf("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 480'><image width='640' height='480' href='land.png'/></svg>"));
+        f.put("OPS/images/vector.svg", utf("<svg xmlns='http://www.w3.org/2000/svg' width='640' height='2000'><image width='640' height='2000' href='land.png'/></svg>"));
         f.put("OPS/font.otf", new byte[]{1,2,3});
         return f;
     }
@@ -65,7 +66,7 @@ public class EreaderContentTest {
         for (EreaderBook.Asset a : book.assets) {
             byte[] data = a.bytes;
             if (a.mime.equals("image/svg+xml")) data = utf(EreaderSvg.clean(data, source -> { byte[] raw = files.get(EreaderBook.path(a.base,source)); return raw == null ? "" : "data:image/png;base64," + EreaderBytes.encode(raw); }));
-            images.put(new JSONObject().put("src","data:" + a.mime + ";base64," + EreaderBytes.encode(data)).put("width",640).put("height",a.mime.equals("image/svg+xml") && new String(data, StandardCharsets.UTF_8).contains("640 2000") ? 2000 : 480));
+            images.put(new JSONObject().put("src","data:" + a.mime + ";base64," + EreaderBytes.encode(data)).put("width",640).put("height",a.mime.equals("image/svg+xml") && new String(data, StandardCharsets.UTF_8).matches("(?s).*(?:640 2000|640\\.0 2000\\.0).*") ? 2000 : 480));
         }
         out.put("images",images);Files.createDirectories(Paths.get("build/test-data"));Files.write(Paths.get("build/test-data/ereader-rich.json"),utf(out.toString()));
     }
@@ -94,6 +95,8 @@ public class EreaderContentTest {
         String svg=EreaderSvg.clean(utf("<svg xmlns='http://www.w3.org/2000/svg' onload='alert(1)'><script>bad</script><foreignObject>html</foreignObject><rect width='2' fill='url(https://example.org/x)'/><image href='https://example.org/x'/><style>.a{fill:red;filter:url(https://example.org/f)}</style></svg>"),src->"");
         check(!svg.contains("onload")&&!svg.contains("script")&&!svg.contains("foreignObject")&&!svg.contains("https:")&&svg.contains("fill:red"),"SVG actief en extern materiaal verwijderen");
         check(EreaderSvg.clean(utf("<svg width='600' height='900'><rect width='600' height='900'/></svg>"),src->"").contains("viewBox=\"0 0 600.0 900.0\""),"staande SVG zonder viewBox houdt verhouding en schaalt volledig");
+        String gradient=EreaderSvg.clean(utf("<svg><defs><linearGradient id='base'><stop offset='.5' stop-color='red'/></linearGradient><linearGradient id='copy' href='#base'/></defs><rect width='1e3' height='100' fill='url(#copy)'/></svg>"),src->"");
+        check(gradient.contains("href=\"#base\"")&&gradient.contains("offset=\".5\"")&&gradient.contains("width=\"1e3\""),"lokale SVG-gradienten en gangbare getalnotaties behouden");
         refused=false;try{EreaderSvg.clean(utf("<svg><defs><g id='a'><use href='#a'/></g></defs><use href='#a'/></svg>"),src->"");}catch(Exception expected){refused=true;}check(refused,"cyclische SVG-verwijzingen begrenzen");
         exported(b,files);
         files.put("OPS/nav.xhtml",utf("<html><body>Geen navigatie</body></html>"));b=EreaderBook.parse(zip(files),"ncx.epub");

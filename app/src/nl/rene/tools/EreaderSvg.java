@@ -44,7 +44,8 @@ final class EreaderSvg {
             if (depth > 100 || !active.add(e)) throw new Exception("svg");
             if (counts.containsKey(e)) { active.remove(e); return counts.get(e); }
             int total = 1;
-            if ("use".equals(e.getLocalName()) || "use".equals(e.getNodeName())) {
+            String tag = e.getLocalName() == null ? e.getNodeName() : e.getLocalName();
+            if (" use linearGradient radialGradient pattern ".contains(" " + tag + " ")) {
                 String ref = e.getAttribute("href"); if (ref.isEmpty()) ref = e.getAttributeNS("http://www.w3.org/1999/xlink", "href");
                 if (ref.startsWith("#") && ids.containsKey(ref.substring(1))) total += count(ids.get(ref.substring(1)), active, depth + 1);
             }
@@ -69,7 +70,7 @@ final class EreaderSvg {
         }
         String href = e.getAttribute("href"); if (href.isEmpty()) href = e.getAttributeNS("http://www.w3.org/1999/xlink", "href");
         String target = "";
-        if (tag.equals("use") && href.matches("#[A-Za-z_][A-Za-z0-9_.:-]{0,200}")) target = href;
+        if (" use linearGradient radialGradient pattern ".contains(" " + tag + " ") && href.matches("#[A-Za-z_][A-Za-z0-9_.:-]{0,200}")) target = href;
         if (tag.equals("image") && !href.isEmpty()) { try { target = images.load(href); } catch (Exception ignored) { } }
         if (!target.isEmpty() && (target.startsWith("#") || target.matches("data:image/(?:png|jpeg|gif|webp|svg\\+xml);base64,[A-Za-z0-9+/=]+")))
             out.append(" href=\"").append(escape(target)).append("\" xlink:href=\"").append(escape(target)).append('"');
