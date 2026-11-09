@@ -7,7 +7,7 @@
   </div>
   <main>
     <p class="hint nw-stand" id="nw-stand" role="status" translate="no"></p>
-    <button class="bar1 warn" id="nw-beeldbalk" style="display:none;width:100%;margin:0 0 12px;text-align:left" onclick="show('nieuwsset')"><span><b id="nw-beeldbalk-t" translate="no"></b><small id="nw-beeldbalk-s" translate="no"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    <button class="bar1 warn" id="nw-beeldbalk" style="display:none;width:100%;margin:0 0 12px;text-align:left" onclick="show('nieuwsset')" aria-labelledby="nw-beeldbalk-t" aria-describedby="nw-beeldbalk-s"><span><b id="nw-beeldbalk-t" translate="no"></b><small id="nw-beeldbalk-s" translate="no"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     <div class="chips sm" id="nw-filter" role="radiogroup" aria-label="Wat tonen">
       <button role="radio" aria-checked="true" class="on" data-v="alles" onclick="nwFilter('alles')">Alles</button>
       <button role="radio" aria-checked="false" data-v="ongelezen" onclick="nwFilter('ongelezen')">Ongelezen</button>
