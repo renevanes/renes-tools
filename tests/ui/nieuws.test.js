@@ -156,6 +156,23 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     await page.screenshot({ path: path.join(__dirname, 'shots', 'nieuws-instellingen-' + colorScheme + '.png'), fullPage: true });
     ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'instellingen passen op de telefoon');
     ok(await page.evaluate(() => [...document.querySelectorAll('#s-nieuwsset .nws-weg, #s-nieuwsset .big')].every(e => { const r = e.getBoundingClientRect(); return r.height >= 44 && r.width >= 44; })), 'instellingen: tikvlakken minstens 44 px');
+    // Tweakers laat de artikelpagina (met de afbeelding) pas zien na een cookiekeuze: eenmalig instellen
+    const cookieOpen = () => page.evaluate(() => { const d = document.querySelector('#nws-cookie'); return !d.hidden && d.open; });
+    ok(await cookieOpen() && (await page.locator('#nws-cookie-st').innerText()) === 'Nog niet klaar'
+      && (await page.locator('#nws-cookie-uitleg').innerText()).startsWith('Tweakers Nieuws laat de artikelpagina met de afbeelding pas zien')
+      && (await page.locator('#nws-cookie-privacy').innerText()).includes('de site herkent je'), 'Tweakers vraagt een cookiekeuze: eenmalig instellen staat open, met wat de site dan ziet');
+    await page.evaluate(() => { Android._nw.calls.length = 0; });
+    await page.click('#nws-cookie-knop');
+    ok((await nwCalls()).join() === 'cookies:tweakers', 'cookiekeuze maken: het venster gaat open');
+    await page.evaluate(() => { Android._nw.cookie = true; onResumeApp(); });
+    await page.waitForTimeout(500);
+    ok((await nwCalls()).join() === 'cookies:tweakers,verversen:true' && (await page.locator('#nws-cookie-st').innerText()) === 'Klaar'
+      && await page.evaluate(() => { const d = document.querySelector('#nws-cookie'); return !d.hidden && !d.open && d.classList.contains('done'); }), 'terug uit het venster: alles bijwerken, eenmalig instellen klapt in');
+    await page.evaluate(() => onResumeApp()); await page.waitForTimeout(300);
+    ok((await nwCalls()).join() === 'cookies:tweakers,verversen:true', 'later terug in de app: niet nog eens');
+    await page.evaluate(() => { Android._nw.bronnen.find(b => b.id === 'tweakers').aan = false; nwLaad(); nwSetRender(); });
+    ok(await page.evaluate(() => document.querySelector('#nws-cookie').hidden), 'Tweakers uit: geen cookiekeuze');
+    await page.evaluate(() => { Android._nw.bronnen.find(b => b.id === 'tweakers').aan = true; nwLaad(); nwSetRender(); });
     await page.click('#nws-bronnen .nws-weg'); await page.click('#modal-cancel');
     ok(await page.locator('#nws-bronnen .srow:has-text("blog.example.org")').count() === 1, 'verwijderen annuleren');
     await page.click('#nws-bronnen .nws-weg');
@@ -165,6 +182,7 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     // Afbeeldingen uit
     await page.click('#nws-img');
     ok(await page.evaluate(() => store.get('nwBeelden') === false) && await page.getAttribute('#nws-img', 'aria-checked') === 'false', 'afbeeldingen uit');
+    ok(await page.evaluate(() => document.querySelector('#nws-cookie').hidden), 'afbeeldingen uit: geen cookiekeuze nodig');
     await page.evaluate(() => goBack());
     ok(await page.evaluate(() => current === 'nieuws') && await page.locator('#nw-lijst img').count() === 0, 'lijst zonder afbeeldingen');
     await page.waitForTimeout(500);

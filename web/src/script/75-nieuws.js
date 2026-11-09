@@ -110,7 +110,7 @@ function nwRender(){
 function nwVerder(){ nw.toon += 60; nwRender(); }
 function nwVerversen(alles){
   if (!nwKlaar()) return;
-  if (nw.bezig) { nw.nogEens = true; return; } // bijv. een bron aangezet tijdens het bijwerken: daarna nog een ronde
+  if (nw.bezig) { nw.nogEens = alles || nw.nogEens === 'alles' ? 'alles' : true; return; } // bijv. een bron aangezet tijdens het bijwerken: daarna nog een ronde
   if (alles && !nwBronnen().some(b => b.aan)) { toast(t('Zet eerst een bron aan')); show('nieuwsset'); return; }
   nw.bezig = true;
   if (current === 'nieuws') nwRender();
@@ -124,7 +124,7 @@ window.onNieuws = function(r){
   if (!nwLaad()) return;
   if (current === 'nieuws') { nwRender(); if (r.nieuw > 0) toast(tn(r.nieuw, 'Eén nieuw artikel', '{n} nieuwe artikelen')); }
   if (current === 'nieuwsset') nwSetRender();
-  if (nw.nogEens && !nw.bezig) { nw.nogEens = false; nwVerversen(false); }
+  if (nw.nogEens && !nw.bezig) { const alles = nw.nogEens === 'alles'; nw.nogEens = false; nwVerversen(alles); }
 };
 function nwMenu(){
   const lijst = nwZichtbaar().filter(a => !nw.gelezen.has(a.id));
@@ -222,7 +222,34 @@ function nwSetRender(){
       '<button class="tg' + (b.aan ? ' on' : '') + '" role="switch" aria-checked="' + (b.aan ? 'true' : 'false') + '" aria-labelledby="' + esc(k) + '" translate="no" onclick="togUi(this); nwBronAan(' + jsq(b.id) + ', this.classList.contains(\'on\'))"></button></div>';
   }).join('');
   uiHtml($('#nws-bronnen'), html);
+  nwCookieRender();
 }
+/* Eenmalig instellen: de cookiekeuze voor een bron die de afbeeldingen van de artikelpagina haalt (Tweakers). */
+function nwCookieBron(){ return nwBeeldenAan() ? nwBronnen().find(b => b.aan && b.cookiekeuze) : null; }
+function nwCookieRender(){
+  const el = $('#nws-cookie'), b = nwCookieBron();
+  el.hidden = !b;
+  if (!b) return;
+  const stand = b.beeldStand || '';
+  uiSetup(el, stand === 'ok');
+  const st = stand === 'ok' ? t('Klaar') : stand === 'cookiekeuze' ? t('Nog niet klaar') : stand === 'fout' ? t('Ophalen lukte niet') : t('Nog niet nagekeken');
+  const uitleg = t('{naam} laat de artikelpagina met de afbeelding pas zien na een cookiekeuze. Die maak je één keer zelf, op de pagina van de site.', { naam: b.naam });
+  const privacy = t('Tools stuurt daarna de cookies van deze site mee als het de afbeeldingen ophaalt, dus de site herkent je.');
+  [['#nws-cookie-st', st], ['#nws-cookie-uitleg', uitleg], ['#nws-cookie-privacy', privacy]].forEach(([s, v]) => { if ($(s).textContent !== v) $(s).textContent = v; });
+}
+function nwCookies(){
+  const b = nwCookieBron(); if (!b) return;
+  const fout = Android.nieuwsCookies(b.id);
+  if (fout) { toast(fout); return; }
+  nw.cookie = true;
+}
+(function(){
+  const prev = window.onResumeApp;
+  window.onResumeApp = function(){
+    if (typeof prev === 'function') prev();
+    if (nw.cookie) { nw.cookie = false; nwVerversen(true); }
+  };
+})();
 function nwBronAan(id, aan){
   const fout = Android.nieuwsBron(id, aan);
   if (fout) { toast(fout); }
@@ -255,4 +282,4 @@ window.onNieuwsBron = function(r){
   if (nwLaad() && current === 'nieuwsset') nwSetRender();
   if (b.al) nwVerversen(false);
 };
-function nwBeelden(on){ store.set('nwBeelden', !!on); }
+function nwBeelden(on){ store.set('nwBeelden', !!on); if (nw.data) nwCookieRender(); }

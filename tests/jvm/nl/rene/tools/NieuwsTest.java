@@ -95,31 +95,81 @@ public class NieuwsTest {
         java.util.List<String> gehaald = new java.util.ArrayList<>();
         Nieuws.Pagina site = (url, tot) -> {
             gehaald.add(url);
-            return url.contains("/2/") ? "<head><title>zonder</title></head>" : "<meta property=\"og:image\" content=\"https://tweakers.net/i/" + url.replaceAll("\\D", "") + ".jpg\">";
+            return url.contains("/2/") ? "<head><meta property=\"og:title\" content=\"zonder\"></head>" : "<meta property=\"og:image\" content=\"https://tweakers.net/i/" + url.replaceAll("\\D", "") + ".jpg\">";
         };
         NieuwsFeed.Feed tf = tweakers();
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf, null, System.currentTimeMillis() + 60_000, site);
         check(gehaald.size() == 2 && gehaald.get(0).endsWith("/nieuws/1/een.html") && gehaald.get(1).endsWith("/nieuws/2/twee.html"), "alleen pagina's van de site zelf, niet als de feed al een afbeelding heeft: " + gehaald);
         check("https://tweakers.net/i/1.jpg".equals(tf.artikelen.get(0).beeld) && tf.artikelen.get(1).beeld.isEmpty() && tf.artikelen.get(1).zonderBeeld
                 && "https://tweakers.net/i/al.jpg".equals(tf.artikelen.get(2).beeld) && tf.artikelen.get(3).beeld.isEmpty() && !tf.artikelen.get(3).zonderBeeld, "afbeelding gevonden, pagina zonder afbeelding onthouden, andere site overgeslagen");
+        check("ok".equals(tf.beeldStand), "stand: ok");
         File tc = tmp("tweakers");
         Nieuws.bewaarFeed(tc, "tweakers", "https://tweakers.net/feeds/mixed.xml", tf, nu);
         JSONObject tcache = new JSONObject(new String(Files.readAllBytes(Nieuws.cacheBestand(tc, "tweakers").toPath()), StandardCharsets.UTF_8));
         check(art(tcache.getJSONArray("artikelen"), "een").optString("beeld").endsWith("/i/1.jpg") && art(tcache.getJSONArray("artikelen"), "twee").optBoolean("zonderBeeld")
                 && !Nieuws.kort(art(tcache.getJSONArray("artikelen"), "twee")).has("zonderBeeld"), "in de cache: afbeelding en zonderBeeld (niet in de lijst)");
+        check("ok".equals(tcache.optString("beeldStand")), "stand in de cache");
         gehaald.clear();
         NieuwsFeed.Feed tf2 = tweakers();
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf2, tcache, System.currentTimeMillis() + 60_000, site);
         check(gehaald.isEmpty() && "https://tweakers.net/i/1.jpg".equals(tf2.artikelen.get(0).beeld) && tf2.artikelen.get(1).zonderBeeld, "volgende ronde: uit de cache, geen pagina's opnieuw");
+        check("ok".equals(tf2.beeldStand), "niets opgehaald: de vorige stand blijft");
+        File td = tmp("tweakers-dir");
+        Nieuws.zetAan(td, "tweakers", true);
+        JSONObject tl = Nieuws.lijst(td, tc);
+        check(bron(tl.getJSONArray("bronnen"), "tweakers").optBoolean("cookiekeuze") && "ok".equals(bron(tl.getJSONArray("bronnen"), "tweakers").optString("beeldStand"))
+                && !bron(tl.getJSONArray("bronnen"), "nos").has("cookiekeuze") && !bron(tl.getJSONArray("bronnen"), "nos").has("beeldStand"), "in de lijst: cookiekeuze en stand, alleen bij Tweakers");
+
+        // De toestemmingspagina: de site stuurt naar een andere site (DPG Media); dan stoppen en de cookiekeuze vragen
+        gehaald.clear();
+        NieuwsFeed.Feed td1 = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", td1, tcache, System.currentTimeMillis() + 60_000, (url, tot) -> {
+            gehaald.add(url); throw new Nieuws.Doorverwezen(); });
+        NieuwsFeed.Feed td2 = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", td2, null, System.currentTimeMillis() + 60_000, (url, tot) -> {
+            gehaald.add(url); throw new Nieuws.Doorverwezen(); });
+        check(gehaald.size() == 1 && "ok".equals(td1.beeldStand) && "cookiekeuze".equals(td2.beeldStand) && !td2.artikelen.get(0).zonderBeeld && !td2.artikelen.get(1).zonderBeeld,
+                "doorverwezen: na één pagina stoppen, stand cookiekeuze, niets onthouden (uit de cache: niets opgehaald)");
+        gehaald.clear();
+        NieuwsFeed.Feed muur = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", muur, null, System.currentTimeMillis() + 60_000, (url, tot) -> {
+            gehaald.add(url); return "<html><body><h1>Kies je cookies</h1></body></html>"; });
+        check(gehaald.size() == 1 && "fout".equals(muur.beeldStand) && !muur.artikelen.get(0).zonderBeeld, "een pagina zonder og:-gegevens (een muur): stoppen, niet als zonder afbeelding onthouden");
+        gehaald.clear();
+        NieuwsFeed.Feed weg = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", weg, null, System.currentTimeMillis() + 60_000, (url, tot) -> {
+            if (url.contains("/1/")) { gehaald.add(url); throw new Nieuws.HttpFout(404); }
+            return site.haal(url, tot);
+        });
+        check(gehaald.size() == 2 && weg.artikelen.get(0).zonderBeeld && weg.artikelen.get(1).zonderBeeld && "".equals(weg.artikelen.get(0).beeld), "404: die pagina zonder afbeelding onthouden en verder");
+        gehaald.clear();
+        NieuwsFeed.Feed dubbel = tweakers();
+        NieuwsFeed.Artikel kopie = new NieuwsFeed.Artikel();
+        kopie.titel = "een (kopie)"; kopie.link = dubbel.artikelen.get(0).link; kopie.sleutel = dubbel.artikelen.get(0).sleutel;
+        dubbel.artikelen.add(1, kopie);
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", dubbel, null, System.currentTimeMillis() + 60_000, site);
+        check(gehaald.size() == 2 && "https://tweakers.net/i/1.jpg".equals(dubbel.artikelen.get(1).beeld), "hetzelfde artikel twee keer in de feed: één keer ophalen: " + gehaald);
+
+        // Het venster voor de cookiekeuze: alleen https en alleen de domeinen van de bron
+        check(Nieuws.cookieAdres("tweakers", "https://tweakers.net/nieuws/") && Nieuws.cookieAdres("tweakers", "https://pg.tweakers.net/api/x")
+                && Nieuws.cookieAdres("tweakers", "https://myprivacy.dpgmedia.nl/consent?siteKey=a") && Nieuws.cookieAdres("tweakers", "https://myprivacy-static.dpgmedia.net/consent.js")
+                && Nieuws.cookieAdres("tweakers", "https://tweakimg.net/g/x.png"), "toegestaan: Tweakers en DPG Media");
+        check(!Nieuws.cookieAdres("tweakers", "http://tweakers.net/") && !Nieuws.cookieAdres("tweakers", "https://eviltweakers.net/") && !Nieuws.cookieAdres("tweakers", "https://tweakers.net.example.org/")
+                && !Nieuws.cookieAdres("tweakers", "https://www.google-analytics.com/a.js") && !Nieuws.cookieAdres("nos", "https://nos.nl/") && !Nieuws.cookieAdres("tweakers", null)
+                && !Nieuws.cookieAdres("tweakers", "javascript:alert(1)") && !Nieuws.cookieAdres("tweakers", "intent://tweakers.net/#Intent;end"), "geblokkeerd: andere sites, http en andere soorten adressen");
+        check(Nieuws.cookieKlaar("tweakers", "https://tweakers.net/nieuws/") && Nieuws.cookieKlaar("tweakers", "https://www.tweakers.net/")
+                && !Nieuws.cookieKlaar("tweakers", "https://tweakers.net/privacygate-confirm?redirectUri=x") && !Nieuws.cookieKlaar("tweakers", "https://myprivacy.dpgmedia.nl/consent")
+                && !Nieuws.cookieKlaar("tweakers", "https://pg.tweakers.net/api/") && !Nieuws.cookieKlaar("nos", "https://nos.nl/"), "klaar = terug op de site zelf");
+        gehaald.clear();
         NieuwsFeed.Feed tf3 = tweakers();
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf3, tcache, System.currentTimeMillis() + 60_000, null);
         NieuwsFeed.Feed tf4 = tweakers();
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf4, null, System.currentTimeMillis() + 60_000, null);
         check("https://tweakers.net/i/1.jpg".equals(tf3.artikelen.get(0).beeld) && tf4.artikelen.get(0).beeld.isEmpty() && !tf4.artikelen.get(0).zonderBeeld && gehaald.isEmpty(), "afbeeldingen uit: geen pagina's, wel wat de cache al had");
-        Nieuws.Pagina weigert = (url, tot) -> { gehaald.add(url); throw new Nieuws.Fout("De nieuwssite antwoordt met 403"); };
+        Nieuws.Pagina weigert = (url, tot) -> { gehaald.add(url); throw new Nieuws.HttpFout(403); };
         NieuwsFeed.Feed tf5 = tweakers();
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf5, null, System.currentTimeMillis() + 60_000, weigert);
-        check(gehaald.size() == 1 && !tf5.artikelen.get(0).zonderBeeld && !tf5.artikelen.get(1).zonderBeeld, "de site weigert: na één pagina stoppen, niets als zonder afbeelding onthouden");
+        check(gehaald.size() == 1 && !tf5.artikelen.get(0).zonderBeeld && !tf5.artikelen.get(1).zonderBeeld && "fout".equals(tf5.beeldStand), "de site weigert: na één pagina stoppen, niets als zonder afbeelding onthouden");
         gehaald.clear();
         NieuwsFeed.Feed nosf = tweakers();
         Nieuws.beelden("nos", "https://feeds.nos.nl/nosnieuwsalgemeen", nosf, null, System.currentTimeMillis() + 60_000, site);
@@ -327,6 +377,7 @@ public class NieuwsTest {
         check("https://site.example.org/feed.xml?soort=alles&taal=nl".equals(Nieuws.zoekFeed(html, "https://site.example.org/nieuws/")), "feed op de pagina gevonden (https, relatief): " + Nieuws.zoekFeed(html, "https://site.example.org/nieuws/"));
         check(Nieuws.zoekFeed("<link rel=\"alternate\" type=\"application/rss+xml\" href=\"http://x.example.org/rss\">", "https://x.example.org/") == null, "feed via http: niet");
         check(Nieuws.zoekFeed("<link rel=\"stylesheet\" type=\"application/rss+xml\" href=\"/rss\">", "https://x.example.org/") == null, "geen alternate: niet");
+        check(Nieuws.zoekFeed("<link rel=\"alternate\" type=\"application/rss+xml\" href=\">", "https://x.example.org/") == null, "een losse \" in een link-tag: geen fout");
 
         // Fouten voor Rene
         check("Geen verbinding".equals(Nieuws.kort(new java.net.UnknownHostException("x"))) && "Geen verbinding".equals(Nieuws.kort(new java.net.SocketTimeoutException())), "geen netwerk");

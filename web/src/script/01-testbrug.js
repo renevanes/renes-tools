@@ -75,7 +75,8 @@ if (!window.Android) window.Android = (function(){
       const s = this._nwInit();
       if (s.lijstFout) return JSON.stringify({ error: s.lijstFout });
       const aan = new Set(s.bronnen.filter(b => b.aan).map(b => b.id));
-      const bronnen = s.bronnen.map(b => Object.assign({}, b, s.stand[b.id] || {}, { aantal: aan.has(b.id) ? s.artikelen.filter(a => a.bron === b.id).length : 0 }));
+      const bronnen = s.bronnen.map(b => Object.assign({}, b, s.stand[b.id] || {}, b.id === 'tweakers' ? { cookiekeuze: true } : {},
+        { aantal: aan.has(b.id) ? s.artikelen.filter(a => a.bron === b.id).length : 0 }));
       const artikelen = s.artikelen.filter(a => aan.has(a.bron)).sort((x, y) => y.datum - x.datum).map(a => this._nwKort(a));
       return JSON.stringify({ bronnen, artikelen, bewaard: s.bewaard.map(a => this._nwKort(a)), gelezen: [...s.gelezen], bezig: !!s.bezig });
     },
@@ -91,7 +92,8 @@ if (!window.Android) window.Android = (function(){
         s.bronnen.filter(b => b.aan).forEach(b => {
           totaal++;
           if (s.mislukt[b.id]) { s.stand[b.id] = Object.assign({}, s.stand[b.id], { poging: nu, fout: s.mislukt[b.id] }); return; }
-          ok++; s.stand[b.id] = { t: nu, poging: nu };
+          ok++; s.stand[b.id] = Object.assign({ t: nu, poging: nu }, b.id === 'tweakers' && s.beelden ? { beeldStand: s.cookie ? 'ok' : 'cookiekeuze' }
+            : b.id === 'tweakers' && s.stand[b.id] && s.stand[b.id].beeldStand ? { beeldStand: s.stand[b.id].beeldStand } : {});
         });
         const nieuw = s.erbij.splice(0).map(a => s.artikelen.push(a)).length;
         s.bezig = false; onNieuws({ ok, totaal, nieuw });
@@ -131,6 +133,8 @@ if (!window.Android) window.Android = (function(){
       return '';
     },
     nieuwsDeel(titel, link){ this._nwInit().gedeeld = [titel, link]; },
+    /* Het venster voor de cookiekeuze: de test zet _nw.cookie zelf en roept onResumeApp aan, zoals na het sluiten. */
+    nieuwsCookies(id){ const s = this._nwInit(); s.calls.push(['cookies', id]); return id === 'tweakers' ? '' : 'Bijwerken lukt niet'; },
     version:()=>JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts','masterdata']}),
     lastManifest:()=>'null', checkUpdates:()=>setTimeout(()=>onUpdateStatus({state:'uptodate',kind:'web',manual:true,versionName:VERSION_NAME}),400),
     reloadUi(){ if (window.prepareUiReload && window.prepareUiReload()) { this._uiReloads = (this._uiReloads || 0) + 1; document.body.inert = false; } },

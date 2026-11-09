@@ -44,6 +44,8 @@ final class NieuwsFeed {
 
     static final class Feed {
         String titel = "", link = "";
+        /** Hoe het ophalen van afbeeldingen van de artikelpagina's ging ({@link Nieuws#beelden}), of "". */
+        String beeldStand = "";
         final List<Artikel> artikelen = new ArrayList<>();
     }
 

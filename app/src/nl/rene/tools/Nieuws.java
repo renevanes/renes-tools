@@ -101,26 +101,68 @@ final class Nieuws {
         if (f.artikelen.isEmpty()) throw new Fout(Taal.T("In deze feed staat nu geen nieuws"));
     }
 
-    /** Bronnen waarvan de feed geen afbeeldingen heeft: die komen dan van de artikelpagina zelf ({@link #beelden}). */
-    static final Set<String> BEELD_VAN_PAGINA = new HashSet<>(Collections.singletonList("tweakers"));
+    /**
+     * Bronnen waarvan de feed geen afbeeldingen heeft: die komen dan van de artikelpagina zelf ({@link #beelden}). Per bron:
+     * id, naam, waar Rene zijn cookiekeuze maakt (de site vraagt die eerst) en de domeinen die daarbij mogen (de rest is
+     * geblokkeerd). Het eerste domein is de site zelf; de andere zijn van de toestemmingspagina.
+     */
+    static final String[][] BEELD_VAN_PAGINA = {
+        {"tweakers", "Tweakers", "https://tweakers.net/nieuws/", "tweakers.net tweakimg.net dpgmedia.nl dpgmedia.net"},
+    };
     static final int MAX_PAGINA = 64 * 1024, MAX_PAGINAS = 20;
     static final long MAX_PER_PAGINA = 10_000L;
+
+    static String[] paginaBron(String id) {
+        for (String[] b : BEELD_VAN_PAGINA) if (b[0].equals(id)) return b;
+        return null;
+    }
+
+    /** Mag het venster voor de cookiekeuze van deze bron dit adres laden? Alleen https naar de domeinen van de bron (ook subdomeinen). */
+    static boolean cookieAdres(String id, String url) {
+        String[] b = paginaBron(id);
+        if (b == null || url == null || !https(url)) return false;
+        String h;
+        try { h = new URL(url).getHost().toLowerCase(Locale.ROOT); } catch (Exception e) { return false; }
+        for (String d : b[3].split(" ")) if (h.equals(d) || h.endsWith("." + d)) return true;
+        return false;
+    }
+
+    /** Is dit adres de site zelf (niet de toestemmingspagina en ook niet de bevestiging daarvan)? Dan is de keuze gemaakt. */
+    static boolean cookieKlaar(String id, String url) {
+        String[] b = paginaBron(id);
+        if (b == null || !cookieAdres(id, url)) return false;
+        try {
+            URL u = new URL(url);
+            String h = u.getHost().toLowerCase(Locale.ROOT), d = b[3].split(" ")[0];
+            return (h.equals(d) || h.equals("www." + d)) && !u.getPath().toLowerCase(Locale.ROOT).startsWith("/privacygate");
+        } catch (Exception e) { return false; }
+    }
 
     /** Het begin van een artikelpagina ophalen (in de test zonder internet). */
     interface Pagina { String haal(String url, long tot) throws Exception; }
 
-    static final Pagina WEB = (url, tot) -> {
-        Antwoord a = haal(url, tot, true);
-        return new String(a.data, 0, a.data.length, PodcastFeed.charset(a.data, a.data.length, a.charset));
-    };
+    /** De cookies die bij een adres horen (de cookiekeuze die Rene in het venster maakte), of null. */
+    interface Koekjes { String voor(String url); }
+
+    static Pagina web(Koekjes k) {
+        return (url, tot) -> {
+            Antwoord a = haal(url, tot, true, k);
+            return new String(a.data, 0, a.data.length, PodcastFeed.charset(a.data, a.data.length, a.charset));
+        };
+    }
+
+    private static final Pattern OG = Pattern.compile("(?i)\\b(og|twitter):");
 
     /**
      * Afbeeldingen van de artikelpagina's bij een bron uit {@link #BEELD_VAN_PAGINA}. Wat de vorige ronde al vond (ook dat een
      * pagina er geen heeft) komt uit de cache; daarna hooguit MAX_PAGINAS pagina's van de site zelf, in de volgorde van de
-     * feed. Na een fout (de site weigert of is traag) wacht de rest op de volgende ronde. Zonder {@code p} alleen de cache.
+     * feed. Alleen een pagina die wel og:-gegevens heeft maar geen afbeelding, of die er niet meer is (404/410), telt als
+     * "zonder afbeelding". Bij elke andere fout wacht de rest op de volgende ronde. Zonder {@code p} alleen de cache.
+     * De stand staat in {@code f.beeldStand}: "ok", "cookiekeuze" (de site stuurt naar een toestemmingspagina) of "fout".
      */
     static void beelden(String bron, String basis, NieuwsFeed.Feed f, JSONObject oud, long tot, Pagina p) {
-        if (!BEELD_VAN_PAGINA.contains(bron)) return;
+        if (paginaBron(bron) == null) return;
+        f.beeldStand = oud == null ? "" : oud.optString("beeldStand");
         Map<String, String> bekend = new HashMap<>();
         JSONArray oa = oud == null ? null : oud.optJSONArray("artikelen");
         if (oa != null) for (int i = 0; i < oa.length(); i++) {
@@ -132,16 +174,23 @@ final class Nieuws {
         boolean stop = p == null;
         for (NieuwsFeed.Artikel a : f.artikelen) {
             if (!a.beeld.isEmpty()) continue;
-            String b = bekend.get(artikelId(bron, a.sleutel));
+            String id = artikelId(bron, a.sleutel), b = bekend.get(id);
             if (b != null) { a.beeld = b; a.zonderBeeld = b.isEmpty(); continue; }
             String l = link(a.link, basis);
             if (stop || gehaald >= MAX_PAGINAS || System.currentTimeMillis() >= tot || !https(l) || !host(l).equals(site)) continue;
             gehaald++;
             try {
-                String u = paginaBeeld(p.haal(l, Math.min(tot, System.currentTimeMillis() + MAX_PER_PAGINA)), l);
-                a.beeld = u;
-                a.zonderBeeld = u.isEmpty();
-            } catch (Throwable e) { stop = true; }
+                String html = p.haal(l, Math.min(tot, System.currentTimeMillis() + MAX_PER_PAGINA));
+                if (!OG.matcher(html).find()) { f.beeldStand = "fout"; stop = true; continue; } // geen artikelpagina (een muur?)
+                a.beeld = paginaBeeld(html, l);
+                a.zonderBeeld = a.beeld.isEmpty();
+                f.beeldStand = "ok";
+            } catch (Doorverwezen e) { f.beeldStand = "cookiekeuze"; stop = true; }
+            catch (HttpFout e) {
+                if (e.code == 404 || e.code == 410) a.zonderBeeld = true;
+                else { f.beeldStand = "fout"; stop = true; }
+            } catch (Throwable e) { f.beeldStand = "fout"; stop = true; }
+            if (a.zonderBeeld || !a.beeld.isEmpty()) bekend.put(id, a.beeld);
         }
     }
 
@@ -176,7 +225,16 @@ final class Nieuws {
     private static final Pattern BRON_ID = Pattern.compile("[a-z0-9-]{1,40}"), ART_ID = Pattern.compile("n[0-9a-f]{1,16}");
 
     /** Een fout met een Nederlandse tekst voor Rene (de brug vertaalt hem). */
-    static final class Fout extends Exception { Fout(String nl) { super(nl); } }
+    static class Fout extends Exception { Fout(String nl) { super(nl); } }
+
+    /** De site antwoordt met een andere code dan 200. */
+    static final class HttpFout extends Fout {
+        final int code;
+        HttpFout(int code) { super(Taal.fill(Taal.T("De nieuwssite antwoordt met {code}"), "code", code)); this.code = code; }
+    }
+
+    /** Een artikelpagina stuurt naar een andere site (een toestemmingspagina): daar gaat Tools niet heen. */
+    static final class Doorverwezen extends Exception { Doorverwezen() { super("doorverwezen naar een andere site"); } }
 
     static File dir(Context c) { return new File(c.getFilesDir(), "nieuws"); }
     static File cache(Context c) { return new File(c.getCacheDir(), "nieuws"); }
@@ -403,7 +461,9 @@ final class Nieuws {
             nieuwsteEerst(lijst);
             JSONArray arr = new JSONArray();
             for (int i = 0; i < lijst.size() && i < MAX_PER_BRON; i++) arr.put(lijst.get(i));
-            schrijf(cf, new JSONObject().put("t", nu).put("poging", nu).put("titel", f.titel).put("artikelen", arr).toString(), false);
+            JSONObject o = new JSONObject().put("t", nu).put("poging", nu).put("titel", f.titel).put("artikelen", arr);
+            if (!f.beeldStand.isEmpty()) o.put("beeldStand", f.beeldStand);
+            schrijf(cf, o.toString(), false);
             return oud == null ? 0 : nieuw;
         }
     }
@@ -454,9 +514,11 @@ final class Nieuws {
                 JSONObject b = bs.getJSONObject(i);
                 JSONObject c = leesObject(cacheBestand(cache, b.getString("id")));
                 int n = 0;
+                if (paginaBron(b.getString("id")) != null) b.put("cookiekeuze", true);
                 if (c != null) {
                     b.put("t", c.optLong("t")).put("poging", c.optLong("poging"));
                     if (c.has("fout")) b.put("fout", c.optString("fout"));
+                    if (c.has("beeldStand")) b.put("beeldStand", c.optString("beeldStand"));
                     JSONArray as = c.optJSONArray("artikelen");
                     if (as != null && b.optBoolean("aan")) for (int j = 0; j < as.length(); j++) {
                         JSONObject a = as.optJSONObject(j);
@@ -582,7 +644,7 @@ final class Nieuws {
 
     private static final Pattern CHARSET = Pattern.compile("(?i)charset\\s*=\\s*\"?([A-Za-z0-9._:-]{1,40})");
 
-    private static Fout antwoord(int code) { return new Fout(Taal.fill(Taal.T("De nieuwssite antwoordt met {code}"), "code", code)); }
+    private static Fout antwoord(int code) { return new HttpFout(code); }
 
     /** Verbreekt een verbinding die over zijn tijd gaat (ook als hij nog op het antwoord van de server wacht). */
     private static final ScheduledThreadPoolExecutor WACHTER = wachter();
@@ -619,10 +681,13 @@ final class Nieuws {
     }
 
     /** Een adres ophalen: alleen https naar openbare sites, ook bij doorverwijzingen; hooguit MAX_FEED bytes, klaar vóór {@code tot}. */
-    static Antwoord haal(String adres, long tot) throws Exception { return haal(adres, tot, false); }
+    static Antwoord haal(String adres, long tot) throws Exception { return haal(adres, tot, false, null); }
 
-    /** Zo ook een artikelpagina ({@code pagina}): daarvan alleen de eerste MAX_PAGINA bytes (de kop met de afbeelding). */
-    static Antwoord haal(String adres, long tot, boolean pagina) throws Exception {
+    /**
+     * Zo ook een artikelpagina ({@code pagina}): daarvan alleen de eerste MAX_PAGINA bytes (de kop met de afbeelding), met de
+     * cookies van de site zelf ({@code k}) en nooit naar een andere site.
+     */
+    static Antwoord haal(String adres, long tot, boolean pagina, Koekjes k) throws Exception {
         String u = adres;
         int max = pagina ? MAX_PAGINA : MAX_FEED;
         for (int hop = 0; hop < MAX_HOPS; hop++) {
@@ -642,13 +707,14 @@ final class Nieuws {
                 h.setRequestProperty("User-Agent", UA);
                 h.setRequestProperty("Accept", pagina ? "text/html, application/xhtml+xml;q=0.9, */*;q=0.2"
                         : "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.9, text/html;q=0.5, */*;q=0.2");
+                String ck = pagina && k != null ? k.voor(u) : null;
+                if (ck != null && !ck.isEmpty()) h.setRequestProperty("Cookie", ck);
                 int code = h.getResponseCode();
                 if (code >= 300 && code < 400) {
                     String loc = h.getHeaderField("Location");
                     if (loc == null || loc.trim().isEmpty()) throw antwoord(code);
                     u = new URL(new URL(u), loc.trim()).toString();
-                    // een artikelpagina die naar een andere site stuurt (een toestemmingspagina): daar niet heen
-                    if (pagina && !host(u).equals(host(adres))) throw new Fout(Taal.T("Bijwerken lukt niet"));
+                    if (pagina && !host(u).equals(host(adres))) throw new Doorverwezen();
                     continue;
                 }
                 if (code != 200) throw antwoord(code);
@@ -676,7 +742,7 @@ final class Nieuws {
     }
 
     private static final Pattern LINK_TAG = Pattern.compile("(?i)<link\\b[^>]{0,2000}>");
-    private static final Pattern ATTR = Pattern.compile("(?i)\\b(rel|type|href)\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)");
+    private static final Pattern ATTR = Pattern.compile("(?i)\\b(rel|type|href)\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>\"']+)");
     private static final Set<String> FEED_TYPES = new HashSet<>(Arrays.asList("application/rss+xml", "application/atom+xml", "application/rdf+xml"));
 
     /** Het feedadres dat een webpagina zelf noemt ({@code <link rel="alternate" type="application/rss+xml">}), alleen https. */
@@ -739,16 +805,17 @@ final class Nieuws {
 
     /**
      * Eén bron ophalen en bewaren; -1 = mislukt (de fout staat dan bij de bron). Een bron die intussen weg is, komt niet terug.
-     * Zonder {@code beelden} (Rene wil geen afbeeldingen zien) worden er geen artikelpagina's opgehaald.
+     * Zonder {@code pagina} (Rene wil geen afbeeldingen zien) worden er geen artikelpagina's opgehaald; die zijn klaar vóór
+     * {@code eind}, het eind van de hele ronde.
      */
-    static int haalBron(File dir, File cache, String id, String url, boolean beelden) {
+    static int haalBron(File dir, File cache, String id, String url, Pagina pagina, long eind) {
         long nu = System.currentTimeMillis();
         try {
             Gelezen g = lees(url, nu + MAX_HAAL);
             filter(id, g.url, g.feed);
             JSONObject oud;
             synchronized (LOCK) { oud = leesObject(cacheBestand(cache, id)); }
-            beelden(id, g.url, g.feed, oud, nu + MAX_HAAL, beelden ? WEB : null);
+            beelden(id, g.url, g.feed, oud, Math.min(nu + MAX_HAAL, eind), pagina);
             synchronized (LOCK) { return zoekBron(bronnen(dir), id) != null ? bewaarFeed(cache, id, g.url, g.feed, nu) : -1; }
         } catch (Throwable e) {
             synchronized (LOCK) {
@@ -787,6 +854,11 @@ final class Nieuws {
         }
     }
 
+    /** De cookies van de WebView (de cookiekeuze uit {@link NieuwsCookiesActivity}). */
+    private static String koekjes(String url) {
+        try { return android.webkit.CookieManager.getInstance().getCookie(url); } catch (Throwable e) { return null; }
+    }
+
     /** Bijwerken (op een achtergrondthread aanroepen): de bronnen tegelijk, hooguit vier, hooguit MAX_DUUR. */
     static JSONObject ververs(Context c, boolean alles, boolean beelden) throws Exception {
         if (!BEZIG.compareAndSet(false, true)) return new JSONObject().put("bezig", true);
@@ -798,7 +870,9 @@ final class Nieuws {
             if (!todo.isEmpty()) {
                 ExecutorService ex = Executors.newFixedThreadPool(Math.min(4, todo.size()));
                 List<Future<Integer>> fs = new ArrayList<>();
-                for (String[] b : todo) fs.add(ex.submit(() -> haalBron(dir, cache, b[0], b[1], beelden)));
+                Pagina pagina = beelden ? web(Nieuws::koekjes) : null;
+                long eind = start + MAX_DUUR - 5_000L;
+                for (String[] b : todo) fs.add(ex.submit(() -> haalBron(dir, cache, b[0], b[1], pagina, eind)));
                 ex.shutdown();
                 for (Future<Integer> f : fs) {
                     try {
@@ -808,6 +882,12 @@ final class Nieuws {
                 }
                 ex.shutdownNow();
                 App.log(c, "NIEUWS", "bijgewerkt: " + ok + " van " + todo.size() + " bronnen");
+                if (beelden) for (String[] b : todo) if (paginaBron(b[0]) != null) {
+                    JSONObject cb;
+                    synchronized (LOCK) { cb = leesObject(cacheBestand(cache, b[0])); }
+                    String stand = cb == null ? "" : cb.optString("beeldStand");
+                    if (!stand.isEmpty()) App.log(c, "NIEUWS", "afbeeldingen van de pagina: " + stand);
+                }
             }
             ruimOp(dir, cache);
             return new JSONObject().put("ok", ok).put("totaal", todo.size()).put("nieuw", nieuw);

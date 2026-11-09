@@ -79,6 +79,14 @@ public class NieuwsBridge extends EreaderBridge {
         catch (Throwable e) { return fout(e, Taal.T("Opslaan lukt niet")); }
     }
 
+    /** De cookiekeuze voor een bron die afbeeldingen van de artikelpagina haalt (Tweakers): de echte pagina, in een eigen venster. */
+    @JavascriptInterface public String nieuwsCookies(String id) {
+        if (id == null || Nieuws.paginaBron(id) == null) return Taal.tx(ctx, "Bijwerken lukt niet");
+        Intent i = new Intent(ctx, NieuwsCookiesActivity.class).putExtra("bron", id);
+        a.h.post(() -> { try { a.startActivity(i); } catch (Throwable ignored) { } });
+        return "";
+    }
+
     /** Delen: titel en adres van het artikel (zonder volgparameters), via de gewone Android-keuze. */
     @JavascriptInterface public void nieuwsDeel(String titel, String link) {
         if (link == null || !Podcasts.httpUrl(link)) return;
