@@ -185,8 +185,10 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     await page.click('#nw-beeldbalk'); await page.waitForTimeout(300);
     ok(await page.evaluate(() => {
       const d = document.querySelector('#nws-cookie'), r = document.querySelector('#nws-cookie-reden').getBoundingClientRect();
-      return current === 'nieuwsset' && d.open && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight;
-    }), 'balk bij een fout: de kaart gaat open en de reden staat in beeld');
+      return current === 'nieuwsset' && d.open && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight && document.activeElement === d.querySelector('summary');
+    }), 'balk bij een fout: de kaart gaat open, de reden staat in beeld en de focus staat op de kaart');
+    ok(await page.evaluate(() => { const d = document.querySelector('#nws-cookie'), st = getComputedStyle(document.querySelector('#nws-cookie-st')).color;
+      return d.classList.contains('nws-mis') && getComputedStyle(d).borderLeftColor === st && st !== getComputedStyle(document.querySelector('#nws-cookie-uitleg')).color; }), 'fout: de kaart is niet groen (zoals klaar), maar in de waarschuwingskleur');
     await page.evaluate(() => show('nieuws')); await page.waitForTimeout(200);
     // Bijwerken: de balk blijft staan (de lijst verspringt niet) en zegt dat hij nakijkt; de reden komt van de brug
     const boven = () => page.evaluate(() => document.querySelector('#nw-lijst').getBoundingClientRect().top);

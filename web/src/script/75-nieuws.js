@@ -235,6 +235,7 @@ function nwCookieRender(){
   const stand = b.beeldStand || '';
   // alleen een toestemmingspagina (of nog niets geprobeerd) vraagt om de keuze; een gewone fout klapt de kaart niet open
   uiSetup(el, stand === 'ok' || stand === 'fout');
+  el.classList.toggle('nws-mis', stand === 'fout');
   const st = nw.bezig ? t('Nakijken…') : stand === 'ok' ? tc('status', 'Klaar') : stand === 'cookiekeuze' ? t('Nog niet klaar')
     : stand === 'fout' ? t('Ophalen lukte niet') : t('Nog niet nagekeken');
   const uitleg = t('{naam} laat de artikelpagina met de afbeelding pas zien na een cookiekeuze. Die maak je één keer zelf, op de pagina van de site.', { naam: b.naam });
@@ -270,6 +271,8 @@ function nwBeeldBalkOpen(){
   if (el.hidden) return;
   uiOpenTo(el);
   el.scrollIntoView({ block: 'start' });
+  // na de focus op de kop die show() later zet: de schermlezer begint bij de kaart, niet bij de bronnenlijst
+  setTimeout(() => el.querySelector('summary').focus({ preventScroll: true }), 0);
 }
 function nwCookies(){
   const b = nwCookieBron(); if (!b) return;

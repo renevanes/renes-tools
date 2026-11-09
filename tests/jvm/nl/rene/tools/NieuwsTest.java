@@ -285,7 +285,10 @@ public class NieuwsTest {
                 && Nieuws.talen("nl").equals("nl") && Nieuws.talen("nl-NL,nl,en").equals("nl-NL,nl;q=0.9,en;q=0.8")
                 && Nieuws.talen(null).equals("nl-NL,nl;q=0.9,en;q=0.8") && Nieuws.talen("").equals("nl-NL,nl;q=0.9,en;q=0.8")
                 && Nieuws.talen("nl-NL\r\nCookie: x,en").equals("en") && Nieuws.talen("a,b-c,ü-NL").equals("nl-NL,nl;q=0.9,en;q=0.8")
-                && Nieuws.talen("de,fr,it,es,pt,pl,sv,da,fi,no,cs").split(",").length == 8,
+                && Nieuws.talen("de,fr,it,es,pt,pl,sv,da,fi,no,cs").split(",").length == 8
+                && Nieuws.talen("nl-NL-u-mu-celsius,en-US").equals("nl-NL,nl;q=0.9,en-US;q=0.8,en;q=0.7") && Nieuws.talen("nl-NL-u-mu-celsius").equals("nl-NL,nl;q=0.9")
+                && Nieuws.talen("zh-Hant-TW,NL-nl").equals("zh-TW,zh;q=0.9,nl-NL;q=0.8,nl;q=0.7") && Nieuws.talen("es-419").equals("es-419,es;q=0.9")
+                && Nieuws.talen("de-DE,fr-FR,it-IT,es-ES,pt-PT").equals("de-DE,de;q=0.9,fr-FR;q=0.8,fr;q=0.7,it-IT;q=0.6,it;q=0.5,es-ES;q=0.4,es;q=0.3"),
                 "Accept-Language uit de talen van de telefoon, zoals de WebView: alleen geldige taalcodes, hooguit acht");
         check("traag".equals(Nieuws.reden(new java.net.SocketTimeoutException())) && "traag".equals(Nieuws.reden(new Nieuws.TeTraag()))
                 && "verbinding".equals(Nieuws.reden(new java.net.UnknownHostException("x"))) && "verbinding".equals(Nieuws.reden(new java.net.ConnectException()))

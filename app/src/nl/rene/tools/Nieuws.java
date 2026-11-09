@@ -239,23 +239,26 @@ final class Nieuws {
 
     /**
      * De kop Accept-Language zoals de WebView hem maakt uit de talen van de telefoon ({@code tags}, zoals "nl-NL,en-US"):
-     * "nl-NL,nl;q=0.9,en-US;q=0.8,en;q=0.7". Alleen geldige taalcodes; zonder bruikbare taal Nederlands en Engels.
+     * "nl-NL,nl;q=0.9,en-US;q=0.8,en;q=0.7". Zoals Chromium alleen taal en land (geen schrift of voorkeuren als
+     * "nl-NL-u-mu-celsius"), hooguit acht; zonder bruikbare taal Nederlands en Engels.
      */
     static String talen(String tags) {
         List<String> uit = new ArrayList<>();
         if (tags != null) for (String t : tags.split(",")) {
-            String s = t.trim();
-            if (!s.matches("[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8}){0,3}")) continue;
-            String basis = s.contains("-") ? s.substring(0, s.indexOf('-')) : null;
-            if (!uit.contains(s)) uit.add(s);
-            if (basis != null && !uit.contains(basis)) uit.add(basis);
-            if (uit.size() >= 8) break;
+            Matcher m = TAALCODE.matcher(t.trim());
+            if (!m.matches()) continue;
+            String taal = m.group(1).toLowerCase(Locale.ROOT), s = m.group(2) == null ? taal : taal + "-" + m.group(2).toUpperCase(Locale.ROOT);
+            if (!uit.contains(s) && uit.size() < 8) uit.add(s);
+            if (!uit.contains(taal) && uit.size() < 8) uit.add(taal);
         }
         if (uit.isEmpty()) return "nl-NL,nl;q=0.9,en;q=0.8";
         StringBuilder b = new StringBuilder(uit.get(0));
         for (int i = 1; i < uit.size() && i < 9; i++) b.append(',').append(uit.get(i)).append(";q=0.").append(10 - i);
         return b.toString();
     }
+
+    /** Taal, eventueel schrift (weggelaten), land en dan alleen nog onderdelen met een streepje ervoor (voorkeuren, extensies). */
+    private static final Pattern TAALCODE = Pattern.compile("([A-Za-z]{2,3})(?:-[A-Za-z]{4})?(?:-([A-Za-z]{2}|[0-9]{3}))?(?:-[A-Za-z0-9]{1,8}){0,12}");
 
     /** De talen van de telefoon (zoals de WebView ze meestuurt), of null. */
     private static String telefoonTalen() {
