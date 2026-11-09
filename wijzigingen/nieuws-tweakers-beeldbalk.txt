@@ -1,2 +1,0 @@
-Nieuws: moet je voor de afbeeldingen van Tweakers nog een cookiekeuze maken, of lukte het ophalen niet, dan staat dat nu als balk bovenaan het nieuws, met de reden als die bekend is. Tik erop en je komt meteen bij de uitleg in de instellingen.
-Nieuws: Tools haalt de artikelpagina's van Tweakers nu op met dezelfde browsernaam als het venster waarin je de cookiekeuze maakt. Weigerde Tweakers de afbeeldingen, dan lukt het daardoor mogelijk weer.
