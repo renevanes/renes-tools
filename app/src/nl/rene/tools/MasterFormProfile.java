@@ -38,8 +38,11 @@ final class MasterFormProfile {
     }
     static boolean relationField(String key){return "begeleider1Relatie".equals(key)||"begeleider2Relatie".equals(key);}
 
-    /** Controle bij opslaan: verwijzingen bestaan, hebben de juiste soort en documenten horen bij de gekozen persoon. */
-    static void validate(JSONObject fields,Lookup lookup)throws Exception{
+    /**
+     * Controle bij opslaan: verwijzingen bestaan, hebben de juiste soort en documenten horen bij de gekozen persoon.
+     * self = de persoon uit het app-profiel ("Dit ben ik", leeg als die er niet is): de bewaarde handtekening is van hem.
+     */
+    static void validate(JSONObject fields,Lookup lookup,String self)throws Exception{
         if(!FORMS.contains(fields.optString("formulier")))throw new MasterError(Taal.T("Kies voor welk formulier deze vaste gegevens zijn"));
         required(fields);
         for(String key:FIELDS){
@@ -58,10 +61,23 @@ final class MasterFormProfile {
         if(!fields.optString("begeleider2").isEmpty()&&fields.optString("begeleider2").equals(fields.optString("begeleider1")))throw new MasterError(Taal.T("Kies twee verschillende begeleiders"));
         if(!fields.optString("gever2").isEmpty()&&fields.optString("gever2").equals(fields.optString("gever1")))throw new MasterError(Taal.T("Kies twee verschillende toestemmingsgevers"));
         for(String g:new String[]{"gever1","gever2"})for(String b:new String[]{"begeleider1","begeleider2"}){
-            String id=fields.optString(g);            if(!id.isEmpty()&&id.equals(fields.optString(b)))throw new MasterError(Taal.T("Een toestemminggever reist niet mee; kies een andere begeleider"));
+            String id=fields.optString(g);if(!id.isEmpty()&&id.equals(fields.optString(b)))throw new MasterError(Taal.T("Een toestemminggever reist niet mee; kies een andere begeleider"));
         }
         String sign=fields.optString("handtekening");
-        if(!sign.isEmpty()&&!"nee".equals(sign)&&signer(fields).isEmpty())throw new MasterError(Taal.T("Kies voor je handtekening een begeleider die meereist"));
+        if(sign.isEmpty()||"nee".equals(sign))return;
+        if("ja".equals(fields.optString("alleen")))throw new MasterError(Taal.T("Het kind reist alleen: kies bij je handtekening Nergens"));
+        if(signer(fields).isEmpty())throw new MasterError(Taal.T("Kies voor je handtekening een begeleider die meereist"));
+        ownSignature(fields,self);
+    }
+    /** Je bewaarde handtekening hoort bij jou: staat er een app-profiel, dan alleen bij de begeleider die jij bent. */
+    static void ownSignature(JSONObject f,String self)throws Exception{
+        String role=signer(f);
+        if(!role.isEmpty()&&!self.isEmpty()&&!self.equals(f.optString(role)))throw new MasterError(Taal.T("Je bewaarde handtekening is van jou: zet hem bij de begeleider die jij bent"));
+    }
+    /** De persoon uit het app-profiel ("Dit ben ik"), of "". */
+    static String self(JSONArray all)throws Exception{
+        for(int i=0;i<all.length();i++){JSONObject r=all.getJSONObject(i);if("profiel".equals(r.getString("type")))return r.getJSONObject("fields").optString("persoon");}
+        return "";
     }
     /** De begeleider bij wie de handtekening komt, of "" als er geen handtekening komt of die begeleider niet meereist. */
     static String signer(JSONObject f){
@@ -135,7 +151,7 @@ final class MasterFormProfile {
         values.put("tweedeBegeleider",!alone&&!f.optString("begeleider2").isEmpty()?"ja":"nee");
         values.put("tweedeGever",f.optString("gever2").isEmpty()?"nee":"ja");
         JSONArray vast=new JSONArray().put("formulier");
-        String place=f.optString("tekenplaats"),signer=signer(f);
+        String place=f.optString("tekenplaats"),signer=signer(f);ownSignature(f,self(all));
         if(!place.isEmpty()&&!alone)vast.put("tekenplaats");
         if(!signer.isEmpty()){vast.put("handtekening");values.put(signer+"-handtekening","ja");}
         use.used(profile,"vast",vast);

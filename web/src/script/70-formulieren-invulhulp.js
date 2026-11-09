@@ -93,7 +93,7 @@ function fmHelpFixed(){
 function fmHelpAi(){
   if(!fmHelpReady())return;fmHelpDiscard();
   if(typeof Android.pdfFormAi!=='function'){fmHelpNote(t('Installeer de nieuwste APK voor lokale invulhulp.'));return;}
-  const fields=fmHelpFields().map(f=>({id:f.id,label:f.label,type:f.type||'text',sources:f.sources||[],...(f.type==='select'?{options:f.options.map(o=>o[0])}:{})}));
+  const fields=fmHelpFields().filter(f=>!fmHandtekeningVeld(f)).map(f=>({id:f.id,label:f.label,type:f.type||'text',sources:f.sources||[],...(f.type==='select'?{options:f.options.map(o=>o[0])}:{})}));
   const sources=fmHelpRelevant().map(({id,label,type,role,fields})=>({id,label,type,role,fields}));
   fmh.request='formulier-ai-'+(++fmh.seq);fmh.snapshot=fmHelpSnapshot();fmh.busy=true;fmHelpControls();
   fmHelpNote(t('De lokale AI maakt een voorstel. Dit kan even duren.'));

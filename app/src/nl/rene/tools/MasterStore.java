@@ -147,7 +147,7 @@ final class MasterStore {
         if(fresh&&number(db,"SELECT COUNT(*) FROM records")>=2000)throw new MasterError(Taal.T("Maximaal 2000 stamgegevens"));
         JSONObject fields=clean.getJSONObject("fields");
         person(db,k,fields.optString("persoon"));person(db,k,fields.optString("vanPersoon"));person(db,k,fields.optString("naarPersoon"));
-        if("formulier".equals(clean.getString("type")))MasterFormProfile.validate(fields,ref->record(db,k,ref));
+        if("formulier".equals(clean.getString("type")))MasterFormProfile.validate(fields,ref->record(db,k,ref),MasterFormProfile.self(records(db,k)));
         if(clean.getString("type").equals("profiel")&&fresh){JSONArray all=records(db,k);for(int i=0;i<all.length();i++)if(all.getJSONObject(i).getString("type").equals("profiel"))throw new MasterError(Taal.T("Er mag maar één eigen app-profiel zijn"));}
         String id=fresh?java.util.UUID.randomUUID().toString():old.getString("id");long rev=fresh?1:old.getLong("revision")+1;
         JSONObject r=new JSONObject(clean.toString()).put("id",id).put("revision",rev).put("created",fresh?System.currentTimeMillis():old.getLong("created")).put("updated",System.currentTimeMillis());

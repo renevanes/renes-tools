@@ -79,6 +79,8 @@ function fmInvoer(f){
   return [label,input];
 }
 function fmMeerSleutel(s){return s.fields[0].id;}
+/* Iets ingevuld: een keuze die nog op de standaardwaarde staat telt niet. */
+function fmIngevuld(f){const value=fm.values[f.id];return !!value&&value!==(f.value||'');}
 function fmRender(){
   const def=fmDef(),sections=fmSecties();fm.step=Math.min(fm.step,sections.length);
   const review=fm.step===sections.length,start=fm.view!=='stap';
@@ -95,7 +97,7 @@ function fmRender(){
       // Optionele velden ingeklapt; open als er al iets in staat of als je ze zelf opende.
       const key=fmMeerSleutel(sections[fm.step]),details=document.createElement('details'),summary=document.createElement('summary');
       details.className='pff-meer';details.id='pff-meer';summary.dataset.icon='chevron-down';summary.textContent=t('Meer gegevens (optioneel)');
-      details.open=key in fm.meer?fm.meer[key]:meer.some(f=>fm.values[f.id]);
+      details.open=key in fm.meer?fm.meer[key]:meer.some(fmIngevuld);
       details.addEventListener('toggle',()=>{fm.meer[key]=details.open;});
       details.append(summary);meer.forEach(f=>details.append(...fmInvoer(f)));box.append(details);
     }
@@ -114,7 +116,7 @@ function fmSamenvatting(){
     const button=document.createElement('button');button.className='mini';button.textContent=t('{stap} aanpassen',{stap:s.title});button.onclick=()=>{if(!fm.busy){fm.step=index;fmRender();$('#pff-titel').focus();}};
     const dl=document.createElement('dl');
     fmVelden(s).forEach(f=>{
-      const value=fm.values[f.id];if(!value)return;
+      const value=fm.values[f.id];if(!value||f.more&&!fmIngevuld(f))return;
       const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=f.label;dd.setAttribute('translate','no');
       dd.textContent=f.type==='date'?fmtDate(value):f.type==='select'?(f.options.find(o=>o[0]===value)||[])[1]:value;
       dl.append(dt,dd);
@@ -156,6 +158,9 @@ function fmGeldig(all,strict=true){
     const index=sections.findIndex(s=>s.fields.some(f=>f.id===rule.to));
     if(a&&b&&a>b&&index>=0){const f=sections[index].fields.find(x=>x.id===rule.to);fmToonFout(index,f,rule.message);$('#pff-melding').textContent=rule.message;return false;}
   }
+  // Je bewaarde handtekening is van één persoon: hooguit bij één begeleider.
+  const getekend=sections.flatMap((s,index)=>fmVelden(s).filter(f=>fmHandtekeningVeld(f)&&fm.values[f.id]==='ja').map(f=>({index,f})));
+  if(getekend.length>1){fmToonFout(getekend[1].index,getekend[1].f,t('Je bewaarde handtekening kan maar bij één persoon staan.'));return false;}
   return true;
 }
 /* Bij Controleren: wat nog leeg is, met een knop per veld. */
@@ -281,6 +286,7 @@ function fmTeken(canvas,page){
   }
   return canvas;
 }
+function fmHandtekeningVeld(f){return (f.pdf||[]).some(target=>target.signature);}
 /* De handtekening die je zelf bewaarde (PDF → Bewerken en ondertekenen), niet vervormd, onderaan op de lijn van het vak. */
 function fmHandtekening(){
   let r;try{r=JSON.parse(Android.pdfSignatureLoad());}catch(e){r={error:'Handtekening laden lukt niet'};}

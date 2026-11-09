@@ -81,8 +81,17 @@ function fmqFill(record,reis,consent,id,epoch,warnings){
       $('#pff-titel').focus();
       $('#pff-melding').textContent=r.omitted?t('Ingevuld. Documentnummers en BSN zijn weggelaten; vul ze zelf in of kies Nieuwe reis invullen opnieuw met het vinkje aan.'):t('Ingevuld met je vaste gegevens. Controleer beide pagina’s en maak de PDF.');
     }else $('#pff-melding').textContent=t('Ingevuld met je vaste gegevens, maar er ontbreekt nog iets: {melding}',{melding:$('#pff-melding').textContent});
+    const handtekening=fmqHandtekening();if(handtekening)$('#pff-melding').textContent=t('{melding} {handtekening}',{melding:$('#pff-melding').textContent,handtekening});
     fmqVerloop(warnings);
   },false,e=>{if(epoch!==fmq.epoch)return;fmq.busy=false;$('#fmq-ga').disabled=!fmq.records.length;fmqNote(e&&e.error?t(e.error):'');});
+}
+/* Waar je bewaarde handtekening komt, of waarom dat niet kan: de PDF zelf toont het pas op die pagina. */
+function fmqHandtekening(){
+  for(const s of fmSecties())for(const f of fmVelden(s))if(fmHandtekeningVeld(f)&&fm.values[f.id]==='ja'){
+    try{fmHandtekening();}catch(e){return e.message;}
+    return t('Je bewaarde handtekening staat bij {wie}, op pagina {pagina}.',{wie:s.title,pagina:f.pdf[0].page+1});
+  }
+  return '';
 }
 /* Alleen in een stap die er met deze vaste gegevens is (geen datum voor een tweede begeleider die er niet is). */
 function fmqInBeeld(target){return fmSecties().some(s=>fmVelden(s).some(f=>f.id===target));}

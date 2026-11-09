@@ -33,6 +33,7 @@ for(const colorScheme of ['light','dark']){
   await p.fill('#fmq-van','2027-07-15');await p.fill('#fmq-tot','2027-07-30');await p.fill('#fmq-land','Frankrijk');await p.fill('#fmq-datum','2027-07-01');
   await p.click('#fmq-ga');await p.waitForFunction(()=>!fmq.open&&fm.step===fmSecties().length&&fm.view==='stap');
   const v=await p.evaluate(()=>fm.values);
+  assert.match(await p.textContent('#pff-melding'),/Je bewaarde handtekening staat bij Begeleider 1, op pagina 2\./,'melding zegt waar de handtekening staat');
   assert.equal(v['begeleider1-datum'],'2027-07-01');assert.equal(v['begeleider1-tekenplaats'],'Rotterdam');assert.equal(v['begeleider1-handtekening'],'ja');
   assert.equal(v['begeleider2-datum']||'','','geen datum voor een begeleider die er niet is');
   assert.equal(v['gever1-datum'],'');assert.equal(v['gever1-tekenplaats'],'','de toestemminggever vult zelf in');
@@ -46,6 +47,15 @@ for(const colorScheme of ['light','dark']){
   });
   assert.ok(inkt.b1>50,'handtekening bij begeleider 1: '+inkt.b1);assert.equal(inkt.b2,0);assert.equal(inkt.g1,0);
   await p.waitForFunction(()=>!document.querySelector('#pff-maak').disabled);
+  // De invulhulp (taalmodel) krijgt het handtekeningveld niet.
+  const aiVelden=await p.evaluate(()=>{fm.step=fmSecties().findIndex(s=>s.fields.some(f=>f.id==='begeleider1-handtekening'));fmRender();
+    $('#pff-hulp-tekst').value='Papa';fmh.sources=[{id:'00000000-0000-0000-0000-000000000003',label:'Papa',type:'persoon',role:'begeleider1',fields:{voornamen:'Rene',naam:'Jansen'}}];const o=Android.pdfFormAi;let got=null;Android.pdfFormAi=(tk,j)=>{got=JSON.parse(j);return 'Gestopt';};
+    try{fmHelpAi();}finally{Android.pdfFormAi=o;fmHelpClear();}return got&&got.fields.map(f=>f.id);});
+  assert.ok(aiVelden&&aiVelden.includes('begeleider1-datum')&&!aiVelden.includes('begeleider1-handtekening'),'invulhulp zonder handtekening: '+aiVelden);
+  // Twee keer je eigen handtekening kan niet.
+  assert.equal(await p.evaluate(()=>{const was={...fm.values};for(const k of Object.keys(was))if(k.startsWith('begeleider1-'))fm.values[k.replace('begeleider1-','begeleider2-')]=was[k];fm.values.tweedeBegeleider='ja';const ok=fmGeldig(true);fm.values=was;return ok;}),false,'hooguit één handtekening');
+  assert.match(await p.textContent('#pff-melding'),/maar bij één persoon/);
+  await p.evaluate(()=>{fm.step=fmSecties().length;fmRender();});
   // Zelf uitzetten kan bij de begeleider onder Meer gegevens.
   await p.evaluate(()=>{fm.step=fmSecties().findIndex(s=>s.fields.some(f=>f.id==='begeleider1-handtekening'));fmRender();});
   assert.equal(await p.isVisible('#pff-meer'),true);assert.equal(await p.evaluate(()=>$('#pff-meer').open),true,'open: er staat al iets in');
@@ -55,6 +65,11 @@ for(const colorScheme of ['light','dark']){
   await p.selectOption('#pff-v-begeleider1-handtekening','ja');await p.evaluate(()=>{Android._signature=null;fm.step=fmSecties().length;fm.page=1;fmRender();});
   await p.waitForFunction(()=>/Bewaar hem bij PDF/.test($('#pff-preview-status').textContent));
   assert.equal(await p.evaluate(()=>$('#pff-maak').disabled),true,'geen PDF zonder de gekozen handtekening');
+  // Een leeg formulier: Meer gegevens blijft dicht, de keuze Nee telt niet als ingevuld.
+  assert.equal(await p.evaluate(()=>{fm.values={};fm.stam=new Set();fm.meer={};fm.values.alleen='nee';fm.values['begeleider1-handtekening']='nee';fm.step=fmSecties().findIndex(s=>s.fields.some(f=>f.id==='begeleider1-handtekening'));fmRender();return $('#pff-meer').open;}),false,'Meer gegevens dicht');
+  // Met een app-profiel kan je handtekening alleen bij jezelf.
+  await p.evaluate(()=>Android._cm.records.push({id:'00000000-0000-0000-0000-000000000009',type:'profiel',label:'Mijn app-profiel',revision:1,fields:{persoon:'00000000-0000-0000-0000-000000000002'}}));
+  assert.match(await p.evaluate(()=>{try{const r=Android._cm.records.find(x=>x.type==='formulier');Android._cmOwnSignature(r.fields);return 'geen fout';}catch(e){return e.message;}}),/van jou/,'Papa is niet wie ik ben');
   await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!fm.masterSensitive&&!cm.token);
   await p.close();
 }

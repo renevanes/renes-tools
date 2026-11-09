@@ -29,16 +29,16 @@ public class MasterTest {
         MasterFormProfile.Lookup lookup=id->{JSONObject r=db.get(id);if(r==null)throw new MasterError("weg");return r;};
         JSONObject fields=new JSONObject().put("formulier","reistoestemming").put("kind",kid).put("kindDocument",kidDoc).put("alleen","nee")
                 .put("begeleider1",dad).put("begeleider1Document",dadDoc).put("gever1",mum).put("gever1Instelling",org).put("bsnInvullen","nee");
-        MasterFormProfile.validate(fields,lookup);
+        MasterFormProfile.validate(fields,lookup,"");
         check(MasterSchema.clean(new JSONObject().put("type","formulier").put("label","Reistoestemming Zoë").put("fields",fields)).getJSONObject("fields").length()==fields.length(),"vaste gegevens opslaan");
-        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("kindDocument",dadDoc),lookup));
-        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("kind",kidDoc),lookup));
-        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("gever1",dad),lookup));
-        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("gever1Instelling",mum),lookup));
-        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("formulier","ander"),lookup));
-        JSONObject noGever=new JSONObject(fields.toString());noGever.remove("gever1");noGever.remove("gever1Instelling");rejects(()->MasterFormProfile.validate(noGever,lookup));
-        JSONObject noCompanion=new JSONObject(fields.toString());noCompanion.remove("begeleider1");noCompanion.remove("begeleider1Document");rejects(()->MasterFormProfile.validate(noCompanion,lookup));
-        noCompanion.put("alleen","ja");MasterFormProfile.validate(noCompanion,lookup);
+        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("kindDocument",dadDoc),lookup,""));
+        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("kind",kidDoc),lookup,""));
+        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("gever1",dad),lookup,""));
+        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("gever1Instelling",mum),lookup,""));
+        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("formulier","ander"),lookup,""));
+        JSONObject noGever=new JSONObject(fields.toString());noGever.remove("gever1");noGever.remove("gever1Instelling");rejects(()->MasterFormProfile.validate(noGever,lookup,""));
+        JSONObject noCompanion=new JSONObject(fields.toString());noCompanion.remove("begeleider1");noCompanion.remove("begeleider1Document");rejects(()->MasterFormProfile.validate(noCompanion,lookup,""));
+        noCompanion.put("alleen","ja");MasterFormProfile.validate(noCompanion,lookup,"");
         rejects(()->MasterSchema.clean(new JSONObject().put("type","formulier").put("label","x").put("fields",new JSONObject(fields.toString()).put("kind","Zoë"))));
         rejects(()->MasterSchema.clean(new JSONObject().put("type","formulier").put("label","x").put("fields",new JSONObject(fields.toString()).put("begeleider1Relatie","baas"))));
         check(MasterSchema.permitted("formulieren","vast","formulier").contains("formulier")&&MasterSchema.permitted("formulieren","vast","persoon").isEmpty(),"vaste gegevens kiezen geeft geen persoonsvelden");
@@ -85,16 +85,22 @@ public class MasterTest {
         fields.put("alleen","ja");check(MasterFormProfile.expiry(profile,lookup,"2030-07-01","2030-08-01",true,checked).length()==1,"alleen reizen: begeleider niet gecontroleerd");fields.put("alleen","nee");
         // Plaats van ondertekening en de eigen handtekening: alleen bij de begeleiders, nooit bij een toestemminggever.
         check(!v.has("begeleider1-tekenplaats")&&!v.has("begeleider1-handtekening"),"zonder instelling geen plaats of handtekening");
-        fields.put("tekenplaats","Rotterdam").put("handtekening","begeleider1");MasterFormProfile.validate(fields,lookup);
+        fields.put("tekenplaats","Rotterdam").put("handtekening","begeleider1");MasterFormProfile.validate(fields,lookup,"");
         check(MasterSchema.clean(new JSONObject().put("type","formulier").put("label","x").put("fields",fields)).getJSONObject("fields").getString("handtekening").equals("begeleider1"),"handtekening opslaan");
         log.clear();v=MasterFormProfile.resolve(profile,lookup,all,false,use,rel2).getJSONObject("values");
         check("Rotterdam".equals(v.getString("begeleider1-tekenplaats"))&&"ja".equals(v.getString("begeleider1-handtekening")),"plaats en handtekening bij begeleider 1");
         check(!v.has("gever1-tekenplaats")&&!v.has("gever1-handtekening")&&!v.has("begeleider2-handtekening"),"niet bij de toestemminggever");
         check(log.contains("vast:Reistoestemming Zoë:[\"formulier\",\"tekenplaats\",\"handtekening\"]"),"plaats en handtekening in het logboek");
         rejects(()->MasterSchema.clean(new JSONObject().put("type","formulier").put("label","x").put("fields",new JSONObject(fields.toString()).put("handtekening","gever1"))));
-        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("handtekening","begeleider2"),lookup));
-        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("alleen","ja"),lookup));
-        MasterFormProfile.validate(new JSONObject(fields.toString()).put("alleen","ja").put("handtekening","nee"),lookup);
+        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("handtekening","begeleider2"),lookup,""));
+        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("alleen","ja"),lookup,""));
+        MasterFormProfile.validate(new JSONObject(fields.toString()).put("alleen","ja").put("handtekening","nee"),lookup,"");
+        // Met een app-profiel ("Dit ben ik") alleen bij de begeleider die jij bent, ook als het profiel later verandert.
+        MasterFormProfile.validate(fields,lookup,dad);rejects(()->MasterFormProfile.validate(fields,lookup,other));
+        JSONObject me=rec(uid(12),"profiel","Mijn app-profiel",new JSONObject().put("persoon",other));
+        check(other.equals(MasterFormProfile.self(new JSONArray().put(db.get(kid)).put(me)))&&MasterFormProfile.self(new JSONArray().put(db.get(kid))).isEmpty(),"wie ik ben uit het app-profiel");
+        JSONArray withMe=new JSONArray(all.toString()).put(me);rejects(()->MasterFormProfile.resolve(profile,lookup,withMe,false,use,rel2));
+        me.getJSONObject("fields").put("persoon",dad);check(MasterFormProfile.resolve(profile,lookup,new JSONArray(all.toString()).put(me),false,use,rel2).getJSONObject("values").has("begeleider1-handtekening"),"handtekening bij jezelf");
         fields.put("alleen","ja");v=MasterFormProfile.resolve(profile,lookup,all,false,use,rel2).getJSONObject("values");
         check(!v.has("begeleider1-tekenplaats")&&!v.has("begeleider1-handtekening"),"alleen reizen: geen plaats of handtekening");
         fields.put("alleen","nee");fields.remove("tekenplaats");fields.remove("handtekening");
