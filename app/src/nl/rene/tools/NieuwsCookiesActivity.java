@@ -32,7 +32,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -53,7 +52,7 @@ public class NieuwsCookiesActivity extends Activity {
     volatile boolean keuzeGezien = false, bewaard = false, klaar = false;
     /** De pagina die niet laadde (de foutmelding komt soms vóór onPageStarted van die pagina). */
     volatile String foutAdres = null;
-    /** De cookies van de site toen het venster openging: pas als die veranderd zijn, is de keuze echt bewaard. */
+    /** De namen van de cookies van de site toen de toestemmingspagina er stond: pas met nieuwe namen is de keuze echt bewaard. */
     private String koekjesVoor = null;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -66,7 +65,6 @@ public class NieuwsCookiesActivity extends Activity {
         if (cfg == null) { finish(); return; }
         bron = id;
         start = cfg[2];
-        koekjesVoor = koekjes();
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -155,7 +153,7 @@ public class NieuwsCookiesActivity extends Activity {
     }
 
     String koekjes() {
-        try { return CookieManager.getInstance().getCookie(start); } catch (Throwable e) { return null; }
+        try { return Nieuws.koekjesNamen(CookieManager.getInstance().getCookie(start)); } catch (Throwable e) { return ""; }
     }
 
     /** De pagina is geladen: wat het venster nu zegt, en of het klaar is. */
@@ -163,8 +161,12 @@ public class NieuwsCookiesActivity extends Activity {
         if (klaar || url == null) return;
         boolean fout = url.equals(foutAdres);
         if (!fout) onderweg(url);
-        switch (Nieuws.cookieVenster(bron, url, keuzeGezien, bewaard, fout, !Objects.equals(koekjes(), koekjesVoor))) {
-            case "kiezen": zet(Taal.t(this, "Kies op de pagina welke cookies je toestaat. Log hier niet in. Daarna sluit dit venster vanzelf.")); break;
+        String nu = koekjes();
+        switch (Nieuws.cookieVenster(bron, url, keuzeGezien, bewaard, fout, koekjesVoor != null && !nu.equals(koekjesVoor))) {
+            case "kiezen":
+                if (koekjesVoor == null) koekjesVoor = nu;
+                zet(Taal.t(this, "Kies op de pagina welke cookies je toestaat. Log hier niet in. Daarna sluit dit venster vanzelf."));
+                break;
             case "klaar":
                 klaar = true;
                 zet(Taal.t(this, "Je keuze is bewaard."));

@@ -160,6 +160,18 @@ public class NieuwsTest {
             return site.haal(url, tot);
         });
         check(gehaald.size() == 2 && gone.artikelen.get(0).zonderBeeld && "".equals(gone.artikelen.get(0).beeld) && "ok".equals(gone.beeldStand), "410 (blijvend weg): onthouden als zonder afbeelding, en verder");
+        gehaald.clear();
+        NieuwsFeed.Feed elders = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", elders, null, System.currentTimeMillis() + 60_000, (url, tot) -> {
+            if (url.contains("/1/")) { gehaald.add(url); throw new Nieuws.Elders(); }
+            return site.haal(url, tot);
+        });
+        check(gehaald.size() == 2 && elders.artikelen.get(0).zonderBeeld && "".equals(elders.artikelen.get(0).beeld) && "ok".equals(elders.beeldStand),
+                "naar een andere pagina op de site (verplaatst, inloggen): zonder afbeelding onthouden, geen cookiekeuze vragen, en verder");
+        check("".equals(Nieuws.koekjesNamen(null)) && "".equals(Nieuws.koekjesNamen("")) && "a;b".equals(Nieuws.koekjesNamen("b=2; a=1"))
+                && Nieuws.koekjesNamen("ak_bmsc=1; bm_sv=2").equals(Nieuws.koekjesNamen("bm_sv=3; ak_bmsc=4"))
+                && !Nieuws.koekjesNamen("ak_bmsc=1").equals(Nieuws.koekjesNamen("ak_bmsc=1; pg_consent=x")) && "a".equals(Nieuws.koekjesNamen("a=1; a=2; ;")),
+                "cookienamen: nieuwe waarden tellen niet, een nieuwe naam wel");
 
         // Doorverwijzing binnen de site: alleen de titel in het adres mag anders, een andere pagina is een muur
         check(Nieuws.zelfdeArtikel(pag, pag) && Nieuws.zelfdeArtikel(pag, "https://tweakers.net/nieuws/1/een-nieuwe-titel.html") && Nieuws.zelfdeArtikel(pag, "https://www.tweakers.net/nieuws/1/een.html?x=1")
@@ -457,7 +469,8 @@ public class NieuwsTest {
         String ex = "<exclude domain=\"file\" path=\"nieuws/\" />";
         int cb = dr.indexOf("<cloud-backup>"), dt = dr.indexOf("<device-transfer>");
         check(br.contains(ex) && cb >= 0 && dt > cb && dr.substring(cb, dt).contains(ex) && dr.substring(dt).contains(ex), "Android-backup en overzetten: nieuws/ uitgesloten");
-        for (String c : new String[]{"app_webview/Cookies", "app_webview/Cookies-journal", "app_webview/Default/Cookies", "app_webview/Default/Cookies-journal", "app_webview/Default/Network/"}) {
+        for (String c : new String[]{"app_webview/Cookies", "app_webview/Cookies-journal", "app_webview/Cookies-wal", "app_webview/Cookies-shm", "app_webview/Default/Cookies",
+                "app_webview/Default/Cookies-journal", "app_webview/Default/Cookies-wal", "app_webview/Default/Cookies-shm", "app_webview/Default/Network/"}) {
             String wv = "<exclude domain=\"root\" path=\"" + c + "\" />";
             check(br.contains(wv) && dr.substring(cb, dt).contains(wv) && dr.substring(dt).contains(wv), "Android-backup en overzetten: cookies van de WebView uitgesloten: " + c);
         }

@@ -35,8 +35,12 @@
         <exclude domain="file" path="nieuws/" />
         <exclude domain="root" path="app_webview/Cookies" />
         <exclude domain="root" path="app_webview/Cookies-journal" />
+        <exclude domain="root" path="app_webview/Cookies-wal" />
+        <exclude domain="root" path="app_webview/Cookies-shm" />
         <exclude domain="root" path="app_webview/Default/Cookies" />
         <exclude domain="root" path="app_webview/Default/Cookies-journal" />
+        <exclude domain="root" path="app_webview/Default/Cookies-wal" />
+        <exclude domain="root" path="app_webview/Default/Cookies-shm" />
         <exclude domain="root" path="app_webview/Default/Network/" />
         <exclude domain="file" path="whisper/" />
         <exclude domain="file" path="contacts/" />
@@ -90,8 +94,12 @@
         <exclude domain="file" path="nieuws/" />
         <exclude domain="root" path="app_webview/Cookies" />
         <exclude domain="root" path="app_webview/Cookies-journal" />
+        <exclude domain="root" path="app_webview/Cookies-wal" />
+        <exclude domain="root" path="app_webview/Cookies-shm" />
         <exclude domain="root" path="app_webview/Default/Cookies" />
         <exclude domain="root" path="app_webview/Default/Cookies-journal" />
+        <exclude domain="root" path="app_webview/Default/Cookies-wal" />
+        <exclude domain="root" path="app_webview/Default/Cookies-shm" />
         <exclude domain="root" path="app_webview/Default/Network/" />
         <exclude domain="file" path="whisper/" />
         <exclude domain="file" path="contacts/" />

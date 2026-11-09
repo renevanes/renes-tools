@@ -172,6 +172,20 @@ final class Nieuws {
         return false;
     }
 
+    /** De namen in een Cookie-kop ("a=1; b=2"), gesorteerd: de waarden ververst de site bij elk antwoord, nieuwe namen = een bewaarde keuze. */
+    static String koekjesNamen(String kop) {
+        List<String> n = new ArrayList<>();
+        if (kop != null) for (String c : kop.split(";")) {
+            int i = c.indexOf('=');
+            String naam = (i < 0 ? c : c.substring(0, i)).trim();
+            if (!naam.isEmpty() && !n.contains(naam)) n.add(naam);
+        }
+        Collections.sort(n);
+        StringBuilder s = new StringBuilder();
+        for (String naam : n) s.append(s.length() == 0 ? "" : ";").append(naam);
+        return s.toString();
+    }
+
     /** Het begin van een artikelpagina ophalen (in de test zonder internet). */
     interface Pagina { String haal(String url, long tot) throws Exception; }
 
@@ -189,7 +203,8 @@ final class Nieuws {
      * Afbeeldingen van de artikelpagina's bij een bron uit {@link #BEELD_VAN_PAGINA}. Wat de vorige ronde al vond (ook dat een
      * pagina er geen heeft) komt uit de cache; daarna hooguit MAX_PAGINAS pagina's van de site zelf, in de volgorde van de
      * feed. Alleen een hele kop met og:-gegevens maar zonder afbeelding telt als "zonder afbeelding", en een pagina die
-     * blijvend weg is (410). Een pagina die er (nog) niet is (404) wordt overgeslagen; bij elke andere fout wacht de rest op
+     * blijvend weg is (410) of naar een andere pagina op de site stuurt. Een pagina die er (nog) niet is (404) wordt
+     * overgeslagen; bij elke andere fout wacht de rest op
      * de volgende ronde. Zonder {@code p} alleen
      * de cache. De stand staat in {@code f.beeldStand}: "ok", "cookiekeuze" (de site stuurt naar een toestemmingspagina) of "fout".
      */
@@ -221,6 +236,7 @@ final class Nieuws {
                 a.zonderBeeld = u.isEmpty();
                 f.beeldStand = "ok";
             } catch (Doorverwezen e) { f.beeldStand = "cookiekeuze"; stop = true; }
+            catch (Elders e) { a.zonderBeeld = true; }
             catch (HttpFout e) {
                 if (e.code == 410) a.zonderBeeld = true;
                 else if (e.code != 404) { f.beeldStand = "fout"; stop = true; }
@@ -289,6 +305,9 @@ final class Nieuws {
 
     /** Een artikelpagina stuurt naar een andere site (een toestemmingspagina): daar gaat Tools niet heen. */
     static final class Doorverwezen extends Exception { Doorverwezen() { super("doorverwezen naar een andere site"); } }
+
+    /** Een artikelpagina stuurt binnen de site naar een andere pagina (een verplaatst artikel, inloggen): daar geen afbeelding van. */
+    static final class Elders extends Exception { Elders() { super("doorverwezen naar een andere pagina"); } }
 
     static File dir(Context c) { return new File(c.getFilesDir(), "nieuws"); }
     static File cache(Context c) { return new File(c.getCacheDir(), "nieuws"); }
@@ -756,7 +775,8 @@ final class Nieuws {
 
     /**
      * Blijft een doorverwijzing bij hetzelfde artikel? Het begin van het pad (/nieuws/12345/) moet blijven; alleen de titel
-     * erachter mag anders. Een andere pagina op de site (zoals /privacy-gate/…) is een muur, ook als die een og:image heeft.
+     * erachter mag anders. Van een andere pagina op de site (/privacy-gate/…, inloggen) geen afbeelding, ook niet als die
+     * een og:image (het logo) heeft.
      */
     static boolean zelfdeArtikel(String adres, String eind) {
         try {
@@ -808,7 +828,11 @@ final class Nieuws {
                 }
                 if (code != 200) throw antwoord(code);
                 if (pagina && weg(adres, u)) throw new HttpFout(404);
-                if (pagina && !zelfdeArtikel(adres, u)) throw new Doorverwezen();
+                if (pagina && !zelfdeArtikel(adres, u)) {
+                    String p = new URL(u).getPath().toLowerCase(Locale.ROOT);
+                    if (p.startsWith("/privacy-gate") || p.startsWith("/privacygate")) throw new Doorverwezen();
+                    throw new Elders();
+                }
                 long lengte = h.getContentLengthLong();
                 if (!pagina && lengte > MAX_FEED) throw new Fout(Taal.T("Feed is te groot"));
                 Antwoord a = new Antwoord();
