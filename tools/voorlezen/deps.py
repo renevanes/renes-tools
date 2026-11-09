@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Vastgezette voorleesbibliotheken; controle vóór uitpakken, alleen de benodigde native bestanden."""
-import hashlib, json, pathlib, subprocess, sys, tarfile, zipfile
+import hashlib, json, pathlib, subprocess, sys, tarfile, time, zipfile
 root=pathlib.Path(__file__).resolve().parent
 out=pathlib.Path(sys.argv[1]); out.mkdir(parents=True,exist_ok=True)
 manifest=json.loads((root/'deps.json').read_text())
@@ -8,7 +8,11 @@ for name,(url,digest) in manifest['files'].items():
     target=out/name
     if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest()!=digest:
         tmp=out/(name+'.part')
-        subprocess.run(['curl','--fail','--location','--proto','=https','--proto-redir','=https','--silent','--show-error','--retry','5','--retry-delay','20','--max-time','180','--output',str(tmp),url],check=True)
+        # GitHub-releases geven soms minutenlang 504: tot ±10 minuten blijven proberen (de SHA-256 controleert alles).
+        for attempt in range(7):
+            if subprocess.run(['curl','--fail','--location','--proto','=https','--proto-redir','=https','--silent','--show-error','--retry','3','--retry-delay','10','--max-time','180','--output',str(tmp),url]).returncode==0: break
+            if attempt==6: raise SystemExit('Voorleesbibliotheek niet te downloaden: '+url)
+            wait=min(120,15*2**attempt); print(f'{name}: download mislukt, over {wait} s opnieuw',file=sys.stderr); time.sleep(wait)
         if hashlib.sha256(tmp.read_bytes()).hexdigest()!=digest:
             tmp.unlink(); raise SystemExit('Voorleesbibliotheek: controlegetal klopt niet')
         tmp.replace(target)
