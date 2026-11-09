@@ -202,7 +202,7 @@ final class Toiletten {
             boolean keuze = c == '|' || (c == '?' && i > 0 && p.charAt(i - 1) != '(');
             if (herhaal || keuze) groep[0] = true;
         }
-        return open > 3 || kost > (double) VELD_MAX * VELD_MAX * VELD_MAX;
+        return open > 3 || kost > 4.0 * VELD_MAX * VELD_MAX * VELD_MAX; // ruimte voor drie keer + of * met wat ? erbij
     }
 
     /** Zoveel tekens van een veld bekijkt een regel (ToilettenScan.past). */

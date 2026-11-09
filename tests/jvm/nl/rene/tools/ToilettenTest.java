@@ -212,7 +212,7 @@ public class ToilettenTest {
             check(Toiletten.riskant(p) && err(() -> Toiletten.normaal(new JSONObject().put("naam", "x").put("soort", "geojson").put("url", "https://a.nl").put("licentie", "CC0")
                     .put("regels", new JSONArray().put(new JSONObject().put("veld", "naam").put("patroon", p).put("zet", "klanten"))))).contains("traag"), "riskant zoekpatroon geweigerd: " + p);
         for (String p : new String[]{"^ja$", "^(heren|dames)$", "gratis|free", "\\d+[.,]\\d+", "(ja)?", "[(+*]+", "\\(a+\\)+", "^(a|b)c{2}$", "(wc|toilet)s?", "(heren|dames)?", "^(\\d{1,2}):(\\d{2})", "(?:wc)+",
-                "(?i)colou?r", "^[0-9]{4} ?[a-z]{2}$", "a+?b*?c+?", "x{0,99999999999999999999}"})
+                "(?i)colou?r", "^[0-9]{4} ?[a-z]{2}$", "a+?b*?c+?", "x{0,99999999999999999999}", "\\d+[.,]?\\d*\\s*(euro|eur|€)?"})
             check(!Toiletten.riskant(p), "gewoon zoekpatroon mag: " + p);
         check(ToilettenScan.past("^ja$", "JA") && !ToilettenScan.past("^ja$", "nee"), "gewoon zoekpatroon werkt (hoofdletters maken niet uit)");
 

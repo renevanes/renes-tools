@@ -40,6 +40,7 @@ public class NieuwsTest {
         check(bron(bs, "nu").optBoolean("aan") && !bron(bs, "rijnmond").optBoolean("aan"), "aan- en uitzetten bewaard");
         check(geeftFout(() -> Nieuws.zetAan(dir, "bestaat-niet", true)), "onbekende bron: fout");
         check(Nieuws.cacheBestand(cache, "nos").equals(new File(cache, "nos.json")) && Nieuws.cacheBestand(cache, "e0123456789abcdef").getParentFile().equals(cache), "cachebestand van een bron staat in de cachemap");
+        for (int i = 0; i < bs.length(); i++) Nieuws.cacheBestand(cache, bs.getJSONObject(i).getString("id")); // elke bron (ook de vaste) heeft een geldig id
         for (String slecht : new String[]{"../dir/bronnen", "a/b", "", "NOS", null}) {
             boolean geweigerd;
             try { Nieuws.cacheBestand(cache, slecht); geweigerd = false; } catch (IllegalArgumentException x) { geweigerd = true; }

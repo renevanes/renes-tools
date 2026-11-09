@@ -82,8 +82,36 @@ final class FacturenGmail implements FacturenMail.Bron {
         return t.length() > 20_000 ? t.substring(0, 20_000) : t;
     }
 
+    /** Haalt script- en style-blokken weg met indexOf (lineair; een regex met .*? was kwadratisch op vreemde html). */
+    static String zonderScript(String h) {
+        StringBuilder b = new StringBuilder(h.length());
+        int i = 0;
+        while (i < h.length()) {
+            int s = h.indexOf('<', i);
+            String tag = null;
+            while (s >= 0) {
+                if (h.regionMatches(true, s + 1, "script", 0, 6)) { tag = "</script"; break; }
+                if (h.regionMatches(true, s + 1, "style", 0, 5)) { tag = "</style"; break; }
+                s = h.indexOf('<', s + 1);
+            }
+            if (tag == null) break;
+            int e = sluit(h, tag, s);
+            int gt = e < 0 ? -1 : h.indexOf('>', e);
+            if (gt < 0) break; // geen sluittag: de rest blijft staan (zoals vroeger)
+            b.append(h, i, s).append(' ');
+            i = gt + 1;
+        }
+        return b.append(h, Math.min(i, h.length()), h.length()).toString();
+    }
+
+    private static int sluit(String h, String tag, int van) {
+        for (int j = h.indexOf("</", van); j >= 0; j = h.indexOf("</", j + 2))
+            if (h.regionMatches(true, j, tag, 0, tag.length())) return j;
+        return -1;
+    }
+
     static String html(String h) {
-        return h.replaceAll("(?is)<(script|style)[^>]*>.*?</\\1>", " ").replaceAll("(?i)<br\\s*/?>|</p>|</div>|</tr>", "\n").replaceAll("<[^<>]+>", " ")
+        return zonderScript(h).replaceAll("(?i)<br\\s*/?>|</p>|</div>|</tr>", "\n").replaceAll("<[^<>]+>", " ")
                 .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&nbsp;", " ").replace("&amp;", "&");
     }
 

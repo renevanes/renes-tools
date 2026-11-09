@@ -55,6 +55,8 @@ public class FacturenHerkenTest {
                 && FacturenHerken.adres(rep(" ", 50_000) + "KPN <noreply@kpn.com>").equals("noreply@kpn.com"), "lange afzender: adres achteraan gevonden, onzin leeg");
         check(FacturenHerken.schoneNaam(rep("via ", 12_500) + ")x").length() <= 60 && FacturenHerken.doorgestuurdVan(rep("-", 20_000)).isEmpty()
                 && FacturenGmail.html(rep("<", 50_000)).length() == 50_000, "lange naam, streepjes en '<': begrensd");
+        check(FacturenGmail.zonderScript("a<SCRIPT type=x>var b;</script >c<style>p{}</Style>d").equals("a c d") && FacturenGmail.zonderScript("a<script>x").equals("a<script>x")
+                && FacturenGmail.zonderScript(rep("<script>", 12_000)).length() == 96_000 && FacturenGmail.zonderScript(rep("<style>x", 12_000) + "</style>").equals(" "), "script en style weg, ook bij veel open tags snel");
         check(!fout(new JSONObject().put("domeinen", rep("a.", 5_000) + "nl")).isEmpty() && !fout(new JSONObject().put("afzenders", "x@" + rep("a.", 5_000) + "nl")).isEmpty(), "te lang domein of adres: geweigerd");
         check(System.currentTimeMillis() - t0 < 3000, "lange invoer: binnen 3 seconden");
 
