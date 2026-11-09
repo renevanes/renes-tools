@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.176",
-  "versionCode": 177,
-  "nativeLevel": 157,
+  "versionName": "1.177",
+  "versionCode": 178,
+  "nativeLevel": 158,
   "web": "index.html",
-  "webSha256": "e9450da1c46111a2991f066cfec7cbfa5ccdd0eb35e0ae7e1cdd539f18654789",
+  "webSha256": "8b2efa4b3faaa2b131603e46dd6357caf28b0bbce832e19eea1ef17790ff5ff6",
   "start": "start.html",
   "startSha256": "eb96929e99cefd1937525b8c0c5d0ed8979828dcbe88a9789da523294b6331be",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "279d3244d7a4c259c31f0e4a6f535cf9d848a02536dd8d3dfe0320b5e2b33a36",
+  "apkSha256": "0d689ec9d67b6bcab0fbcb4b4992ff894c45fef13a90ee988be16152fa3fc31e",
   "changelog": [
+    {
+      "version": "1.177",
+      "date": "2026-11-09",
+      "changes": [
+        "Formulieren invullen: Nieuwe reis invullen zet nu ook de datum (standaard vandaag) en plaats van ondertekening bij de begeleiders, en als je dat kiest je eigen bewaarde handtekening.",
+        "Vaste formuliergegevens: nieuw tabblad Ondertekenen met de plaats van ondertekening en bij welke begeleider je bewaarde handtekening komt."
+      ]
+    },
     {
       "version": "1.176",
       "date": "2026-11-09",
@@ -1557,5 +1565,5 @@
       ]
     }
   ],
-  "webSig2": "e53qnH0xrGujO7z4pDwaLXt/5ZZ/2D2o1OMZL9T7hCzbYaqJkWLsA7NPRFx6JqlF2I4O8k6Qp9KYauGSpuDfqItypR6vqX1ItV4vGLjTaQqr+yWIWfLXvV1/QJAVRxskIyXRUtK8Wr2WMuade5SlQ5iNAGBTDbI4qYW/qOODJpIPnUmPsigmfFgwCvaGWQbnmQ1JF//5lnelhw85CqGL+GWs7mf0ORthVGmXQflappvlav1klFvptQ+art4mXWuLQnz5v4o7ibSRiq6pU2XNKJZUyp5xWLTcyoggs/FlrLST90XJp3lJiDywPwz1xbDABxU4xiR+mDuGvaKRHioKWEx/nUfViaeowZKWp49RRYyeGUkm+KewHxeUXhwnAMFI/9PC0rytKc/8WE7dDjyo4+FE338k1VR3CI00vsbXZRQk10C1xsokFpUQ7yAhbciE44gOAxZDN9Nwi8RfPTeTKL++Ww0eF5qcCG2s2QttKPCnpwucxm3vUUwv5FpWvP/D"
+  "webSig2": "kqPqtYXX/fWhIJoE5e04drNIPkmX0VZz+tm1d96R3pDG5IedTFUE+tZmyJZh1d8FbDljT6YfxVyKVTSW5KlRNeGmWgmRxLjVbGkx7SiYD5pdCZChKV8b7z2nB+xXSQCtaszoZR1vikcA2lCkP/TQokl2oDy+IT3iNQqE/4HEJs2luvaja0VAVz+EiWL92Cw3ECiK2wDqhLH8oCvFTVn2SIDOCzbeNvz3jBpkU7lMpzqmDEgmfq5ZDLiJK7a3JH3JFQFvSjklcbTZeIvwgRXhlxrUgUkIPYQCLGVeDkSRBmPRRQVRtEMW0loRmw9+yntCLFhXS+NVP8K1cOHJmcoDIRiezcSDb7itMFlXMow914FR5oPSeTJ9pCUoJOH3boOnFNX1cQAoDChPPRpd4AqdrX7LuKsJL+KPoYsj3aq4BexBN24sMzeEfsjDjGoODBMdfkOefOV2b2VgSxsbet0H1TjrgRLu3Gxaw+nBfaNn77icjAEAzz2ai9BG0uCQprji"
 }

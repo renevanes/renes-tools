@@ -1,2 +1,0 @@
-Formulieren invullen: Nieuwe reis invullen zet nu ook de datum (standaard vandaag) en plaats van ondertekening bij de begeleiders, en als je dat kiest je eigen bewaarde handtekening.
-Vaste formuliergegevens: nieuw tabblad Ondertekenen met de plaats van ondertekening en bij welke begeleider je bewaarde handtekening komt.
