@@ -7,6 +7,7 @@
   </div>
   <main>
     <p class="hint nw-stand" id="nw-stand" role="status" translate="no"></p>
+    <button class="bar1 warn" id="nw-beeldbalk" style="display:none;width:100%;margin:0 0 12px;text-align:left" onclick="nwBeeldBalkOpen()" aria-labelledby="nw-beeldbalk-t" aria-describedby="nw-beeldbalk-s"><span><b id="nw-beeldbalk-t" translate="no"></b><small id="nw-beeldbalk-s" translate="no"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     <div class="chips sm" id="nw-filter" role="radiogroup" aria-label="Wat tonen">
       <button role="radio" aria-checked="true" class="on" data-v="alles" onclick="nwFilter('alles')">Alles</button>
       <button role="radio" aria-checked="false" data-v="ongelezen" onclick="nwFilter('ongelezen')">Ongelezen</button>
@@ -42,6 +43,7 @@
     <details class="card setup" id="nws-cookie" hidden>
       <summary><span class="setup-h" role="heading" aria-level="2">Eenmalig instellen</span><small id="nws-cookie-st" translate="no"></small></summary>
       <p class="note" id="nws-cookie-uitleg" translate="no"></p>
+      <p class="hint" id="nws-cookie-reden" translate="no" hidden></p>
       <p class="hint" id="nws-cookie-privacy" translate="no"></p>
       <button class="big tonal" id="nws-cookie-knop" onclick="nwCookies()">Cookiekeuze maken</button>
     </details>

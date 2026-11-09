@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.180",
-  "versionCode": 181,
-  "nativeLevel": 160,
+  "versionName": "1.181",
+  "versionCode": 182,
+  "nativeLevel": 161,
   "web": "index.html",
-  "webSha256": "6d493c3d0e6e477886c7e5b81c160823a9670f7978631a2e92b740dfeef7d212",
+  "webSha256": "c08418170218796853847196ecc6fb9718a84a1ab4a997c42b6962ebb202b064",
   "start": "start.html",
   "startSha256": "eb96929e99cefd1937525b8c0c5d0ed8979828dcbe88a9789da523294b6331be",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "a6ae7eb7d4b3ced2533918b39204304425485ffd3391eabf6fdc3644af9da6ee",
+  "apkSha256": "18be086fb93777cef785c7d9234179cb5cf7a8f79e6a131561209ccae3392d04",
   "changelog": [
+    {
+      "version": "1.181",
+      "date": "2026-11-09",
+      "changes": [
+        "Nieuws: moet je voor de afbeeldingen van Tweakers nog een cookiekeuze maken, of lukte het ophalen niet, dan staat dat nu als balk bovenaan het nieuws, met de reden als die bekend is. Tik erop en je komt meteen bij de uitleg in de instellingen.",
+        "Nieuws: Tools haalt de artikelpagina's van Tweakers nu op met dezelfde browsernaam als het venster waarin je de cookiekeuze maakt. Weigerde Tweakers de afbeeldingen, dan lukt het daardoor mogelijk weer."
+      ]
+    },
     {
       "version": "1.180",
       "date": "2026-11-09",
@@ -1597,5 +1605,5 @@
       ]
     }
   ],
-  "webSig2": "T3B6WLmEJPsMh4AszKhlQxtaV+cIYhboDPWWi3t2e2Rj6MZ0TYDwA5DpUctqmFeZB/N/PX6IfXzfgs1e71c7+wr36XSHrl5NGQKYDzEchHSlL5kytlrXR65eHbf1Fu1xxJEtiqY3XSF6wrn81XjtONgKwyFzB0mhk7HQMfqgwBIRghfWQtIEBRwGwBZWJ6KE2nraSLM4Ncn8qSZ6nsij80DGlBR1o+kjlbbHrRfsX/poUS9rFq86UCzf9bDBEjyNGitQnMhqhxZonBWvv2R3aqu5XSY0M/H/p3Ca/zZOO6FpgoWGVhJ1IDM+NHDb0WDZPHP4VOe14DpqhPnXDr7+wvy94GmaQyeItMDUxFAeoaPw/QOlDwazv0KNHfaF91OZMJ8NJok/lmhLkwi8Lfc1b2iRa3FjCwpU5FUMOcP+jZDdEyBb9d0ySqd2qvHrzw9fkhlbK5eZmeeLkxCL2HLsaNpe97kmTGlKH3XPUaWJOR11zR8zAmbUkoL+0HJCPiJT"
+  "webSig2": "WIdwIZk6z747kWY2vA/YUxv9xXgxTn5YOrrrsCINmmNPyLl9PT4PhclawM5MJYc+R07q7d+RN6+8f6gSZvV6RYYtLQoTvoez2DX4ocotQZPyKPgWbkycf9kRIP3srVj8PMR9Sr1B/ybXyj+FqCoFJcOVW1FxWE2xtSQ25vppp9N/kMTiUh7V7/zt7mZ/wMIjywOApF3pvpSxR95JMxlnBLiKanhe/cGMeWdl8/XV1LplolYdBRhucbEllo9cnSmx9BJ6lRPfe4Z5HZb75dGfFF8vTgGeTxIgB4qzdoh1XdlHLgIfQxUEuWmSoVWz5g6HHyQenye1hQKYpfqXiHR/SO3Q4sUSNKPMAq1/tE7RY5cs1qkWLtcDmRXvIVFg4tY/lQfxlH09/L9QOmRbxOrsPXnI82nxInpeyGGeyP/BHfA3j/OR8Ca9TioolWvc43qt17LBF7U5zxRdwg74NN+Q/mRFQfVsmZW5UmWtM2mUcGPvQsWHWFyWKf3Q6wux2d+1"
 }

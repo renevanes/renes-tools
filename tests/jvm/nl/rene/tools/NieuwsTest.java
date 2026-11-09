@@ -11,6 +11,9 @@ import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /** Nieuws: bronnen, cache, gelezen en bewaard (in tijdelijke mappen), adressen en de backupregels. Zonder netwerk. */
 public class NieuwsTest {
@@ -134,7 +137,7 @@ public class NieuwsTest {
         NieuwsFeed.Feed muur = tweakers();
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", muur, null, System.currentTimeMillis() + 60_000, (url, tot) -> {
             gehaald.add(url); return "<html><body><h1>Kies je cookies</h1></body></html>"; });
-        check(gehaald.size() == 1 && "fout".equals(muur.beeldStand) && !muur.artikelen.get(0).zonderBeeld, "een pagina zonder og:-gegevens (een muur): stoppen, niet als zonder afbeelding onthouden");
+        check(gehaald.size() == 1 && "fout".equals(muur.beeldStand) && "geenkop".equals(muur.beeldReden) && !muur.artikelen.get(0).zonderBeeld, "een pagina zonder og:-gegevens (een muur): stoppen, niet als zonder afbeelding onthouden");
         for (String[] pg : new String[][]{
                 {"<html><head><script>var x = 'twitter:card';</script></head><body>Kies je cookies</body></html>", "og: alleen als tekst in een script"},
                 {"<html><head><meta property=\"og:title\" content=\"x\"><link rel=\"stylesheet\" href=\"/a.css\">", "kop niet helemaal gelezen"}}) {
@@ -243,6 +246,82 @@ public class NieuwsTest {
         NieuwsFeed.Feed tf5 = tweakers();
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf5, null, System.currentTimeMillis() + 60_000, weigert);
         check(gehaald.size() == 1 && !tf5.artikelen.get(0).zonderBeeld && !tf5.artikelen.get(1).zonderBeeld && "fout".equals(tf5.beeldStand), "de site weigert: na één pagina stoppen, niets als zonder afbeelding onthouden");
+        check("403".equals(tf5.beeldReden), "de reden: de HTTP-code");
+        File tc5 = tmp("tweakers-reden");
+        Nieuws.bewaarFeed(tc5, "tweakers", "https://tweakers.net/feeds/mixed.xml", tf5, nu);
+        JSONObject c5 = new JSONObject(new String(Files.readAllBytes(Nieuws.cacheBestand(tc5, "tweakers").toPath()), StandardCharsets.UTF_8));
+        File td5 = tmp("tweakers-reden-dir");
+        Nieuws.zetAan(td5, "tweakers", true);
+        check("403".equals(c5.optString("beeldReden")) && "403".equals(bron(Nieuws.lijst(td5, tc5).getJSONArray("bronnen"), "tweakers").optString("beeldReden")), "de reden in de cache en in de lijst");
+        gehaald.clear();
+        NieuwsFeed.Feed tf6 = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf6, c5, System.currentTimeMillis() + 60_000, site);
+        check("ok".equals(tf6.beeldStand) && "".equals(tf6.beeldReden), "daarna lukt het: de reden is weg");
+        NieuwsFeed.Feed tf7 = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf7, c5, System.currentTimeMillis() + 60_000, null);
+        check("fout".equals(tf7.beeldStand) && "403".equals(tf7.beeldReden), "afbeeldingen uit (niets opgehaald): stand en reden blijven");
+        Nieuws.bewaarFeed(tc5, "tweakers", "https://tweakers.net/feeds/mixed.xml", tf6, nu);
+        JSONObject c6 = new JSONObject(new String(Files.readAllBytes(Nieuws.cacheBestand(tc5, "tweakers").toPath()), StandardCharsets.UTF_8));
+        check(!c6.has("beeldReden") && !bron(Nieuws.lijst(td5, tc5).getJSONArray("bronnen"), "tweakers").has("beeldReden"), "geen reden: ook niet in de cache of de lijst");
+        c6.put("beeldStand", "fout").put("beeldReden", "403");
+        gehaald.clear();
+        NieuwsFeed.Feed tf8 = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf8, c6, System.currentTimeMillis() + 60_000, site);
+        check(gehaald.isEmpty() && "fout".equals(tf8.beeldStand) && "403".equals(tf8.beeldReden), "alles al bekend (niets opgehaald): stand en reden blijven");
+        NieuwsFeed.Feed tf9 = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf9, c5, System.currentTimeMillis() + 60_000, (url, tot) -> { throw new Nieuws.Doorverwezen(); });
+        check("cookiekeuze".equals(tf9.beeldStand) && "".equals(tf9.beeldReden), "cookiekeuze: de reden van de fout is weg");
+        NieuwsFeed.Feed tfa = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tfa, c6, System.currentTimeMillis() + 3_000, (url, tot) -> { throw new Nieuws.TeTraag(); });
+        NieuwsFeed.Feed tfb = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tfb, null, System.currentTimeMillis() + 60_000, (url, tot) -> { throw new Nieuws.TeTraag(); });
+        check("fout".equals(tfa.beeldStand) && "403".equals(tfa.beeldReden) && "fout".equals(tfb.beeldStand) && "traag".equals(tfb.beeldReden),
+                "te traag: alleen een fout als de pagina zelf te lang duurde, niet als de tijd voor de hele bron op was");
+        check(Nieuws.beeldLog("ok", "", false).equals("afbeeldingen van de pagina: ok") && Nieuws.beeldLog("ok", "", true).equals("afbeeldingen van de pagina: ok (als Tools)")
+                && Nieuws.beeldLog("fout", "403", true).equals("afbeeldingen van de pagina: fout (403)") && Nieuws.beeldLog("fout", "", false).equals("afbeeldingen van de pagina: fout")
+                && Nieuws.beeldLog("cookiekeuze", "", true).equals("afbeeldingen van de pagina: cookiekeuze") && Nieuws.beeldLog("", "403", true).isEmpty() && Nieuws.beeldLog(null, null, false).isEmpty(),
+                "logregel: vaste woorden en de code, niets als er geen stand is");
+        check(Nieuws.talen("nl-NL,en-US").equals("nl-NL,nl;q=0.9,en-US;q=0.8,en;q=0.7") && Nieuws.talen("en-GB").equals("en-GB,en;q=0.9")
+                && Nieuws.talen("nl").equals("nl") && Nieuws.talen("nl-NL,nl,en").equals("nl-NL,nl;q=0.9,en;q=0.8")
+                && Nieuws.talen(null).equals("nl-NL,nl;q=0.9,en;q=0.8") && Nieuws.talen("").equals("nl-NL,nl;q=0.9,en;q=0.8")
+                && Nieuws.talen("nl-NL\r\nCookie: x,en").equals("en") && Nieuws.talen("a,b-c,ü-NL").equals("nl-NL,nl;q=0.9,en;q=0.8")
+                && Nieuws.talen("de,fr,it,es,pt,pl,sv,da,fi,no,cs").split(",").length == 8
+                && Nieuws.talen("nl-NL-u-mu-celsius,en-US").equals("nl-NL,nl;q=0.9,en-US;q=0.8,en;q=0.7") && Nieuws.talen("nl-NL-u-mu-celsius").equals("nl-NL,nl;q=0.9")
+                && Nieuws.talen("zh-Hant-TW,NL-nl").equals("zh-TW,zh;q=0.9,nl-NL;q=0.8,nl;q=0.7") && Nieuws.talen("es-419").equals("es-419,es;q=0.9")
+                && Nieuws.talen("de-DE,fr-FR,it-IT,es-ES,pt-PT").equals("de-DE,de;q=0.9,fr-FR;q=0.8,fr;q=0.7,it-IT;q=0.6,it;q=0.5,es-ES;q=0.4,es;q=0.3"),
+                "Accept-Language uit de talen van de telefoon, zoals de WebView: alleen geldige taalcodes, hooguit acht");
+        check("traag".equals(Nieuws.reden(new java.net.SocketTimeoutException())) && "traag".equals(Nieuws.reden(new Nieuws.TeTraag()))
+                && "verbinding".equals(Nieuws.reden(new java.net.UnknownHostException("x"))) && "verbinding".equals(Nieuws.reden(new java.net.ConnectException()))
+                && "beveiliging".equals(Nieuws.reden(new javax.net.ssl.SSLHandshakeException("x"))) && "anders".equals(Nieuws.reden(new RuntimeException("geheim: tweakers.net/nieuws/1"))),
+                "reden: alleen vaste woorden, nooit de fouttekst");
+        // Artikelpagina's met de User-Agent van de WebView (de cookies horen bij die browser)
+        String wvUa = "Mozilla/5.0 (Linux; Android 14; Pixel 7 Build/AP2A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.0.0 Mobile Safari/537.36";
+        check(wvUa.equals(Nieuws.paginaUa(wvUa)) && wvUa.equals(Nieuws.paginaUa(" " + wvUa + " ")) && Nieuws.UA.equals(Nieuws.paginaUa(null)) && Nieuws.UA.equals(Nieuws.paginaUa(""))
+                && Nieuws.UA.equals(Nieuws.paginaUa("Mozilla\r\nCookie: x=1")) && Nieuws.UA.equals(Nieuws.paginaUa("Mozilla/5.0 (Linux; Android 14; Ünïcode)"))
+                && Nieuws.UA.equals(Nieuws.paginaUa(new String(new char[600]).replace('\0', 'a'))), "User-Agent van de WebView, anders de eigen naam (en nooit iets wat de kopregel breekt)");
+        List<String> namen = new ArrayList<>();
+        Nieuws.WebPagina alsTools = new Nieuws.WebPagina((url, tot, ua) -> { namen.add(ua); if (!Nieuws.UA.equals(ua)) throw new Nieuws.HttpFout(403); Nieuws.Antwoord ant = new Nieuws.Antwoord(); ant.data = "<head></head>".getBytes(StandardCharsets.UTF_8); return ant; }, wvUa);
+        alsTools.haal("https://tweakers.net/nieuws/1/een.html", nu + 60_000);
+        alsTools.haal("https://tweakers.net/nieuws/2/twee.html", nu + 60_000);
+        check(namen.equals(Arrays.asList(wvUa, Nieuws.UA, Nieuws.UA)) && alsTools.alsTools(), "weigert de site de WebView-naam: die pagina nog eens als Tools, de rest van de ronde ook: " + namen);
+        namen.clear();
+        Nieuws.WebPagina alsWv = new Nieuws.WebPagina((url, tot, ua) -> { namen.add(ua); Nieuws.Antwoord ant = new Nieuws.Antwoord(); ant.data = "<head></head>".getBytes(StandardCharsets.UTF_8); return ant; }, wvUa);
+        alsWv.haal("https://tweakers.net/nieuws/1/een.html", nu + 60_000);
+        alsWv.haal("https://tweakers.net/nieuws/2/twee.html", nu + 60_000);
+        check(namen.equals(Arrays.asList(wvUa, wvUa)) && !alsWv.alsTools(), "lukt het met de WebView-naam: geen tweede poging");
+        for (int code : new int[]{403, 404, 503}) {
+            namen.clear();
+            String fout = null;
+            try {
+                new Nieuws.WebPagina((url, tot, ua) -> { namen.add(ua); throw new Nieuws.HttpFout(code); }, code == 403 ? null : wvUa).haal("https://tweakers.net/nieuws/1/een.html", nu + 60_000);
+            } catch (Nieuws.HttpFout e) { fout = String.valueOf(e.code); }
+            check(String.valueOf(code).equals(fout) && namen.size() == 1, code + ": geen tweede poging (403 als het al de eigen naam was), de fout gaat door");
+        }
+        namen.clear();
+        try {
+            new Nieuws.WebPagina((url, tot, ua) -> { namen.add(ua); throw new Nieuws.HttpFout(403); }, wvUa).haal("https://tweakers.net/nieuws/1/een.html", nu + 60_000);
+            check(false, "beide namen geweigerd: een fout");
+        } catch (Nieuws.HttpFout e) { check(e.code == 403 && namen.size() == 2, "beide namen geweigerd: 403, twee pogingen"); }
         gehaald.clear();
         NieuwsFeed.Feed nosf = tweakers();
         Nieuws.beelden("nos", "https://feeds.nos.nl/nosnieuwsalgemeen", nosf, null, System.currentTimeMillis() + 60_000, site);
@@ -254,7 +333,7 @@ public class NieuwsTest {
         NieuwsFeed.Feed traag = tweakers();
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", traag, null, System.currentTimeMillis() - 1, (url, tot) -> {
             gehaald.add(url);
-            if (System.currentTimeMillis() >= tot) throw new Nieuws.Fout("De nieuwssite reageert te traag");
+            if (System.currentTimeMillis() >= tot) throw new Nieuws.TeTraag();
             return "";
         });
         check(gehaald.isEmpty() && traag.artikelen.get(0).beeld.isEmpty() && !traag.artikelen.get(0).zonderBeeld, "geen tijd meer: geen pagina's, niets onthouden");

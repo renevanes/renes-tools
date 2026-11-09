@@ -46,6 +46,8 @@ final class NieuwsFeed {
         String titel = "", link = "";
         /** Hoe het ophalen van afbeeldingen van de artikelpagina's ging ({@link Nieuws#beelden}), of "". */
         String beeldStand = "";
+        /** Bij beeldStand "fout": waarom (een HTTP-code, "geenkop", "traag", "verbinding", "beveiliging" of "anders"). */
+        String beeldReden = "";
         final List<Artikel> artikelen = new ArrayList<>();
     }
 
