@@ -1,15 +1,30 @@
 {
   "app": "Tools",
-  "versionName": "1.177",
-  "versionCode": 178,
-  "nativeLevel": 158,
+  "versionName": "1.178",
+  "versionCode": 179,
+  "nativeLevel": 159,
   "web": "index.html",
-  "webSha256": "8b2efa4b3faaa2b131603e46dd6357caf28b0bbce832e19eea1ef17790ff5ff6",
+  "webSha256": "676d5fd5bb3049d49d0830b6b84d9daef76281271b6bb32eaccebe0a6a8f8adc",
   "start": "start.html",
   "startSha256": "eb96929e99cefd1937525b8c0c5d0ed8979828dcbe88a9789da523294b6331be",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "0d689ec9d67b6bcab0fbcb4b4992ff894c45fef13a90ee988be16152fa3fc31e",
+  "apkSha256": "979ec19761c546844e819cad19647326818c9eda9aabd159bae908925ab7d66e",
   "changelog": [
+    {
+      "version": "1.178",
+      "date": "2026-11-09",
+      "changes": [
+        "Stamgegevens is opnieuw ingedeeld met jou centraal: bovenaan Ik, dan Aandacht nodig (verlopen documenten en wat ontbreekt voor een reistoestemming), de knop Persoon toevoegen en rijen naar Mijn mensen, Documenten, Adressen, Organisaties en Wat weet de assistent?.",
+        "Stamgegevens: een persoon of document opent als visitekaartje om te lezen; met het potlood bij een blok pas je alleen die paar velden aan, zonder tabbladen. Namen in het overzicht ontstaan vanzelf.",
+        "Stamgegevens: \"Wie is dit voor jou?\" staat bovenaan het kaartje van iemand, met de status (zoals ouderlijk gezag of samenwonend). Relaties tussen anderen kan nog steeds, via Relatie tussen anderen.",
+        "Stamgegevens: kies jezelf of een nieuwe persoon uit Contacten; telefoon en e-mail blijven daarna actueel uit Contacten, en vanaf het kaartje bel je, stuur je een bericht of open je het contact.",
+        "Stamgegevens: een document toevoegen begint met een foto (bij een ID-kaart de achterkant met de strook); de voor- en achterkant staan als kleine plaatjes op het documentkaartje.",
+        "Nieuw scherm Wat weet de assistent?: kies per persoon en per soort gegeven (status van relaties, geboortedatum en leeftijd, documenten en geldigheid, bellen via Contacten, woonplaats) wat de assistent weet. Deelde je al met de assistent, dan staan die vinkjes aan (woonplaats uit); zet uit wat je niet wilt. Nummers, BSN, foto's en adressen krijgt hij nooit. Ook te openen via Assistent → Persoonlijk.",
+        "Tekst over jezelf staat voortaan op één plek: Over mij bij de assistent. Wat je eerder in Stamgegevens over jezelf schreef, gaat daar vanzelf heen (of de app vraagt het).",
+        "Assistent: zeg \"bel mijn dochter\" of \"bel mama\" (Engels: \"call mum\"); de assistent vindt het nummer via je Stamgegevens en Contacten en zet het klaar in de telefoon-app; bellen doe je zelf.",
+        "Formulieren: Vaste gegevens en Reizen beheer je nu vanaf de start van het formulier. Bij vaste gegevens stelt de app de ouders met ouderlijk gezag voor als toestemminggevers en waarschuwt als je iemand zonder gezag kiest."
+      ]
+    },
     {
       "version": "1.177",
       "date": "2026-11-09",
@@ -1565,5 +1580,5 @@
       ]
     }
   ],
-  "webSig2": "kqPqtYXX/fWhIJoE5e04drNIPkmX0VZz+tm1d96R3pDG5IedTFUE+tZmyJZh1d8FbDljT6YfxVyKVTSW5KlRNeGmWgmRxLjVbGkx7SiYD5pdCZChKV8b7z2nB+xXSQCtaszoZR1vikcA2lCkP/TQokl2oDy+IT3iNQqE/4HEJs2luvaja0VAVz+EiWL92Cw3ECiK2wDqhLH8oCvFTVn2SIDOCzbeNvz3jBpkU7lMpzqmDEgmfq5ZDLiJK7a3JH3JFQFvSjklcbTZeIvwgRXhlxrUgUkIPYQCLGVeDkSRBmPRRQVRtEMW0loRmw9+yntCLFhXS+NVP8K1cOHJmcoDIRiezcSDb7itMFlXMow914FR5oPSeTJ9pCUoJOH3boOnFNX1cQAoDChPPRpd4AqdrX7LuKsJL+KPoYsj3aq4BexBN24sMzeEfsjDjGoODBMdfkOefOV2b2VgSxsbet0H1TjrgRLu3Gxaw+nBfaNn77icjAEAzz2ai9BG0uCQprji"
+  "webSig2": "kLahmZW2VcWurK6TKEAXabUhRDV1QDCjGb4/k7eXut+FjoVv6Lomi4P/bnTmADQAZssVISySfKlWUj1u8Y8C9rHI0a8EIy081FfiCwZVAtCTFTb2ZqQSd58I60DQ7LY0z0YFGBqKNZOnaQMiYyub/D0/pvvH+CCszNr5nsTuc4YIPdtHaemVzbVQ3OdwqKzpItxxO0rBogGTCDcXMk3pKrU9OkwPPHt8x6E4119mbdtAX319RWCgWaix+unLv1RRF4b75MDR+3JkRM4I8RgfXUczGZmakwE1kGRjgf4Cb0kuDwCzyKFluFs0wZNjuUTXQjYkNotmjHT6GsHXSEYNz48ezSJr9Q7h9CeepXA03925rgjpBNa3vgT8+VqyN1iqCeZRpnPa63S7uzGWtcgABZesLaIUVCS82iXyljMlgL5ha37ou8plQmLr38qWJwY+gxKeQjQ6GPd5dFsFXAEH82b1tM0mqUFPUxMdxNN/yhd4JjK/rL5rFTGz8ewffMRF"
 }
