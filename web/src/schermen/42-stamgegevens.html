@@ -4,25 +4,70 @@
     <button class="icon-btn" id="cm-menu" onclick="cmMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button></div>
   <main>
     <div class="card" id="cm-locked">
-      <h2>Je centrale gegevenskluis</h2>
-      <p class="note">Bewaar personen, relaties, reizen en identiteitsdocumenten met voor- en achterkant op één beveiligde plek.</p>
-      <p class="note">Gegevens en activiteiten staan versleuteld op dit toestel. Ze gaan niet mee in back-ups. Bij verlies van het toestel of de beveiligingssleutel zijn ze niet te herstellen.</p>
-      <button class="big" id="cm-unlock" onclick="cmUnlock()">Stamgegevens ontgrendelen</button>
-      <details class="help in"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>Vergrendelt bij verlaten van de app, na vijf minuten niets doen en uiterlijk na negen minuten. Schermafdrukken en automatisch invullen zijn afgeschermd.</p><p>Niet-bewaarde wijzigingen en overgenomen concepten worden bij vergrendelen gewist.</p><p>Wat je met de app en lokale AI deelt, kies je zelf bij Mijn app-profiel. Activiteiten (wat wanneer is bekeken of gewijzigd) en Opnieuw beginnen vind je onder ⋯ rechtsboven.</p></div></details>
+      <h2>Jouw gegevens, alleen op deze telefoon</h2>
+      <p class="note">Jij, je mensen en jullie documenten op één beveiligde plek. Versleuteld op dit toestel en niet in back-ups: zonder dit toestel zijn ze niet te herstellen.</p>
+      <button class="big" id="cm-unlock" onclick="cmUnlock()">Ontgrendelen</button>
+      <details class="help in"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>Vergrendelt bij verlaten van de app, na vijf minuten niets doen en uiterlijk na negen minuten. Schermafdrukken en automatisch invullen zijn afgeschermd.</p><p>Niet-bewaarde wijzigingen en overgenomen concepten worden bij vergrendelen gewist.</p><p>Wat de assistent van jou en je mensen weet, kies je zelf bij Wat weet de assistent?. Activiteiten (wat wanneer is bekeken of gewijzigd) en Opnieuw beginnen vind je onder ⋯ rechtsboven.</p></div></details>
     </div>
+    <div class="card stlist" id="cm-locked-ai"><button class="strow" onclick="cmaiOpen()"><span class="stic"><span class="ui-icon" data-icon="smile" aria-hidden="true"></span></span><span class="sttxt"><b>Wat weet de assistent?</b><small id="cmi-shared-stand" translate="no"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button></div>
     <p class="note cm-status" id="cm-status" role="status" aria-live="polite"></p>
     <div class="card" id="cmi-photo-pending" hidden><p class="note" id="cmi-photo-pending-text">Een kaartfoto is gekozen. Ontgrendel Stamgegevens om de foto bij het document op te slaan. Je vorige bewerking is bij het verlaten van de app gewist.</p><button class="big" id="cmi-photo-pending-btn" onclick="cmUnlock()">Ontgrendelen en kaartfoto opslaan</button><button class="mini" onclick="cmiPhotoCancel()">Foto annuleren</button></div>
-    <details class="card cm-fold" id="cmi-shared-card"><summary><span class="cm-fold-h" role="heading" aria-level="2">Gedeeld met app en lokale AI</span><small id="cmi-shared-stand" translate="no"></small><span class="ui-icon cm-fold-chev" data-icon="chevron-down" aria-hidden="true"></span></summary>
-      <p class="note">Dit is de beperkte context die de app en lokale AI mogen gebruiken, ook wanneer Stamgegevens is vergrendeld.</p><div id="cmi-shared" translate="no"></div>
-      <button class="big tonal" id="cmi-profile-btn" onclick="cmiProfile()" hidden>Mijn app-profiel</button>
-    </details>
     <div id="cm-open" hidden>
       <input class="search" id="cm-search" type="search" autocomplete="off" placeholder="Zoeken" aria-label="Zoeken in stamgegevens" oninput="cmRenderList()">
-      <div class="chips cm-filter" id="cm-filter" role="group" aria-label="Filter op soort" hidden></div>
-      <div class="card stlist" id="cm-list-card"><div id="cm-list" translate="no"></div></div>
+      <div class="card stlist" id="cm-zoek" hidden><div id="cm-list" translate="no"></div></div>
+      <div id="cm-hub">
+        <div class="card stlist" id="cm-ik" translate="no"></div>
+        <div class="card stlist" id="cm-aandacht" hidden><h2 class="cm-kop">Aandacht nodig</h2><div id="cm-aandacht-list" translate="no"></div></div>
+        <button class="big" id="cm-add" onclick="cmAddMenu()">Persoon toevoegen</button>
+        <div class="card stlist" id="cm-rows">
+          <button class="strow" id="cm-row-mensen" onclick="cmLijst('mensen')"><span class="stic"><span class="ui-icon" data-icon="user" aria-hidden="true"></span></span><span class="sttxt"><b>Mijn mensen</b><small id="cm-stand-mensen" translate="no"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+          <button class="strow" id="cm-row-documenten" onclick="cmLijst('documenten')"><span class="stic"><span class="ui-icon" data-icon="document" aria-hidden="true"></span></span><span class="sttxt"><b>Documenten</b><small id="cm-stand-documenten" translate="no"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+          <button class="strow" id="cm-row-adressen" onclick="cmLijst('adressen')"><span class="stic"><span class="ui-icon" data-icon="pin" aria-hidden="true"></span></span><span class="sttxt"><b>Adressen</b><small id="cm-stand-adressen" translate="no"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+          <button class="strow" id="cm-row-organisaties" onclick="cmLijst('organisaties')"><span class="stic"><span class="ui-icon" data-icon="shop" aria-hidden="true"></span></span><span class="sttxt"><b>Organisaties</b><small id="cm-stand-organisaties" translate="no"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+          <button class="strow" id="cm-row-assistent" onclick="cmaiOpen()"><span class="stic"><span class="ui-icon" data-icon="smile" aria-hidden="true"></span></span><span class="sttxt"><b>Wat weet de assistent?</b><small id="cm-stand-assistent" translate="no"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+        </div>
+      </div>
     </div>
   </main>
-  <button class="fab cm-add" id="cm-add" onclick="cmAddMenu()" aria-label="Stamgegeven toevoegen" hidden>+ Toevoegen</button>
+</section>
+<section class="screen" id="s-cmlijst">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1" id="cm-lijst-title">Mijn mensen</h1></div>
+  <main>
+    <p class="note cm-status" id="cm-lijst-status" role="status" aria-live="polite"></p>
+    <div class="card stlist" id="cm-lijst-card"><div id="cm-lijst" translate="no"></div></div>
+    <button class="big tonal" id="cm-lijst-add" onclick="cmLijstAdd()">Persoon toevoegen</button>
+  </main>
+</section>
+<section class="screen" id="s-cmkaart">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1" id="cm-kaart-title" translate="no"></h1>
+    <button class="icon-btn" id="cm-kaart-menu" onclick="cmcMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button></div>
+  <main>
+    <p class="note cm-status" id="cm-kaart-status" role="status" aria-live="polite"></p>
+    <div id="cm-kaart" translate="no"></div>
+  </main>
+</section>
+<section class="screen" id="s-cmai">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">Wat weet de assistent?</h1></div>
+  <main>
+    <p class="hint">Blijft op je telefoon; ook leesbaar als Stamgegevens op slot is.</p>
+    <p class="note cm-status" id="cm-ai-status" role="status" aria-live="polite"></p>
+    <div class="card" id="cm-ai-dicht" hidden><p class="note">Ontgrendel Stamgegevens om te kiezen wat de assistent weet.</p><button class="big" id="cm-ai-unlock" onclick="cmUnlock()">Ontgrendelen</button></div>
+    <div class="card cm-ai-set" id="cm-ai-set">
+      <div class="cm-sw"><span class="cm-sw-t"><b id="cm-ai-delen-t">Assistent kent jou en je mensen</b><small id="cm-ai-delen-s"></small></span><button class="tg" role="switch" id="cm-ai-delen" aria-checked="false" aria-labelledby="cm-ai-delen-t" onclick="cmaiSet('delen')"></button></div>
+      <div id="cm-ai-soorten">
+        <h3 class="cm-kop">Wat de assistent mag weten</h3>
+        <div class="cm-sw"><span class="cm-sw-t"><b id="cm-ai-aiStatus-t">Status van relaties</b><small>Bijvoorbeeld ouderlijk gezag of samenwonend</small></span><button class="tg" role="switch" id="cm-ai-aiStatus" aria-checked="false" aria-labelledby="cm-ai-aiStatus-t" onclick="cmaiSet('aiStatus')"></button></div>
+        <div class="cm-sw"><span class="cm-sw-t"><b id="cm-ai-aiGeboorte-t">Geboortedatum en leeftijd</b></span><button class="tg" role="switch" id="cm-ai-aiGeboorte" aria-checked="false" aria-labelledby="cm-ai-aiGeboorte-t" onclick="cmaiSet('aiGeboorte')"></button></div>
+        <div class="cm-sw"><span class="cm-sw-t"><b id="cm-ai-aiDocumenten-t">Documenten en geldigheid</b><small>Soort en geldig tot, nooit nummers</small></span><button class="tg" role="switch" id="cm-ai-aiDocumenten" aria-checked="false" aria-labelledby="cm-ai-aiDocumenten-t" onclick="cmaiSet('aiDocumenten')"></button></div>
+        <div class="cm-sw"><span class="cm-sw-t"><b id="cm-ai-aiContact-t">Bellen en berichten via Contacten</b><small>Welk contact bij wie hoort, geen nummers</small></span><button class="tg" role="switch" id="cm-ai-aiContact" aria-checked="false" aria-labelledby="cm-ai-aiContact-t" onclick="cmaiSet('aiContact')"></button></div>
+        <div class="cm-sw"><span class="cm-sw-t"><b id="cm-ai-aiWoonplaats-t">Woonplaats</b></span><button class="tg" role="switch" id="cm-ai-aiWoonplaats" aria-checked="false" aria-labelledby="cm-ai-aiWoonplaats-t" onclick="cmaiSet('aiWoonplaats')"></button></div>
+        <p class="hint">BSN, documentnummers, kaartfoto’s, adressen en telefoonnummers krijgt de assistent nooit.</p>
+      </div>
+    </div>
+    <div class="card" id="cm-ai-mensen-card" hidden><h3 class="cm-kop">Wie de assistent kent</h3><div id="cm-ai-mensen" translate="no"></div></div>
+    <div class="card stlist"><button class="strow" id="cm-ai-over" onclick="cmaiOverMij()"><span class="stic"><span class="ui-icon" data-icon="user" aria-hidden="true"></span></span><span class="sttxt"><b>Over mij</b><small>Staat bij de assistent</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button></div>
+    <details class="card cm-fold" id="cm-ai-zie"><summary><span class="cm-fold-h" role="heading" aria-level="2">Dit ziet de assistent</span><span class="ui-icon cm-fold-chev" data-icon="chevron-down" aria-hidden="true"></span></summary><div id="cmi-shared" translate="no"></div></details>
+  </main>
 </section>
 <section class="screen" id="s-cmedit">
   <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1" id="cm-editor-title">Stamgegeven bewerken</h1>
@@ -30,31 +75,17 @@
   <main>
     <p class="note cm-status" id="cm-edit-status" role="status" aria-live="polite"></p>
     <div id="cm-editor" hidden>
-      <div class="cm-tabs" id="cm-tabs" role="tablist" aria-label="Onderdelen" hidden></div>
       <div class="card" id="cm-editor-card">
-        <div id="cm-label-box"><label class="f" for="cm-label">Naam in het overzicht</label><input class="search" id="cm-label" maxlength="120" autocomplete="off" oninput="cmDirty()">
-        <p class="hint">Blijft in het logboek staan, ook na verwijderen.</p></div>
+        <h2 class="cm-blok-h" id="cm-blok-title" hidden></h2>
+        <div id="cm-label-box" data-cm-tab="naam"><label class="f" for="cm-label">Naam in het overzicht</label><input class="search" id="cm-label" maxlength="120" autocomplete="off" oninput="cmDirty()">
+        <p class="hint">Laat leeg voor een naam die vanzelf meegaat met de gegevens. Blijft in het logboek staan, ook na verwijderen.</p></div>
+        <p class="hint" id="cm-contact-hint" translate="no" hidden></p>
         <form id="cm-fields" autocomplete="off" novalidate onsubmit="event.preventDefault();cmSave()"></form>
         <label class="chk cm-off" id="cm-secret-row"><input type="checkbox" id="cm-show-secret" onchange="cmShowSecret(this.checked)">Identiteitsgegevens tonen</label>
-        <p class="note" id="cmi-profile-note" hidden>Je kiest hier wie jij bent. Met app-context aan zijn jouw naam, gedeelde relaties en bewust ingevulde context ook buiten het slot van Stamgegevens beschikbaar voor de app en lokale AI. Documentvelden en kaartfoto’s worden niet gedeeld. Oude gesprekken en zelf opgeslagen AI-herinneringen blijven bestaan.</p>
         <details class="help in" id="cmi-form-note" data-cm-tab="kind" hidden><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>Kies één keer wie er reist, wie meegaat en wie toestemming geeft. Namen, geboortegegevens, adressen en documentnummers komen bij het invullen steeds uit de actuele stamgegevens van die personen. Laat je de relatie op Automatisch staan, dan gebruikt het formulier je opgeslagen relaties. Per reis vul je onder PDF → Formulieren invullen alleen de reisdagen en de bestemming in.</p></div></details>
+        <p class="hint cmi-warn" id="cmi-form-gezag" translate="no" hidden></p>
         <p class="cmi-zin" id="cmi-relation-zin" data-cm-tab="relatie" translate="no" role="status" aria-live="polite" hidden></p>
-        <details class="help in" id="cmi-relation-note" data-cm-tab="relatie" hidden><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>De tweede persoon heeft de gekozen relatie met de eerste persoon. Bijvoorbeeld: van jezelf naar je kind kies je Kind. Een status zoals ouderlijk gezag vul je zelf in; de app leidt die nergens uit af en deelt hem niet met de app of lokale AI. Een relatie is geen bewijs van gezag of toestemming.</p></div></details>
-        <div id="cmi-person-docs" data-cm-tab="documenten" hidden>
-          <p class="hint">Identiteitskaarten, paspoorten en rijbewijzen van deze persoon.</p>
-          <div id="cmi-person-doc-list" translate="no"></div>
-          <div class="row cmi-actions"><button class="mini" id="cmh-scan" onclick="cmhScanPick()">Foto herkennen</button><button class="mini" onclick="cmiDocNew()">Zelf invullen</button></div>
-          <p class="hint" id="cmh-scan-hint">Herkenning gebeurt op je telefoon. De foto blijft als versleutelde bijlage bij het document.</p>
-          <details class="help in" id="cmh-help"><summary data-icon="info">Welke foto kies ik?</summary><div class="help-body"><p>Rijbewijs: de voorkant met naam, geboortedatum en nummer. ID-kaart: de achterkant met de strook &lt;&lt;&lt;. Paspoort: de fotopagina. Kies een scherpe foto, recht van boven en zonder schittering.</p></div></details>
-        </div>
-        <div id="cmi-person-relations" data-cm-tab="relaties" hidden>
-          <div id="cmk-voor-mij" translate="no" hidden></div>
-          <div class="row cmi-actions" id="cmk-mij-acts" hidden><button class="mini" id="cmk-mij-btn" onclick="cmkMine()">Relatie met mij vastleggen</button></div>
-          <div class="row cmi-actions" id="cmk-ik-acts" hidden><button class="mini" onclick="cmkPersonNew()">Persoon toevoegen</button></div>
-          <div id="cmi-person-relation-list" translate="no"></div>
-          <div class="row cmi-actions"><button class="mini" id="cmk-anderen" onclick="cmkOthers()">Relatie tussen anderen…</button></div>
-        </div>
-        <div id="cmi-person-actions" data-cm-tab="meer" hidden><p class="hint">Is dit jouw eigen gegeven? Dan wijs je jezelf aan voor de app en lokale AI.</p><div class="row cmi-actions"><button class="mini" onclick="cmiSelf()">Dit ben ik</button></div></div>
+        <details class="help in" id="cmi-relation-note" data-cm-tab="relatie" hidden><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>De tweede persoon heeft de gekozen relatie met de eerste persoon. Bijvoorbeeld: van jezelf naar je kind kies je Kind. Een status zoals ouderlijk gezag vul je zelf in; de app leidt die nergens uit af. De assistent krijgt de status alleen als je dat aanzet bij Wat weet de assistent?. Een relatie is geen bewijs van gezag of toestemming.</p></div></details>
         <div class="card cmh-panel" id="cmh-panel" data-cm-tab="document" hidden>
           <h3>Controleer de gevonden gegevens</h3>
           <p class="hint" id="cmh-review-hint">Vergelijk met je document en vink aan wat je wilt bewaren. Bestaande afwijkende gegevens blijven uitgevinkt.</p>
@@ -83,7 +114,7 @@
         </div>
       </div>
     </div>
-    <div class="cm-savebar" id="cm-savebar" hidden><button class="big" id="cm-save" onclick="cmSave()">Stamgegeven opslaan</button></div>
+    <div class="cm-savebar" id="cm-savebar" hidden><button class="big" id="cm-save" onclick="cmSave()">Opslaan</button></div>
   </main>
 </section>
 <section class="screen" id="s-cmlog">
