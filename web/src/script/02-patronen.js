@@ -53,7 +53,7 @@ uiPatterns();
    en aan het eind {soort, klaar}. Pas na 400 ms zichtbaar, zodat een klein bestand niet flitst. Alleen stappen en
    aantallen, nooit namen. */
 function uiVgWat(soort){
-  return ({ ereader: tc('voortgang', 'Boek toevoegen'), kluis: tc('voortgang', 'Document toevoegen'), factuur: tc('voortgang', 'Factuur toevoegen'), bank: t('Afschriften inlezen'), pdf: t('Bestanden toevoegen'), idkopie: t("Pagina's toevoegen") })[soort] || t('Bestand toevoegen');
+  return ({ ereader: tc('voortgang', 'Boek toevoegen'), kluis: tc('voortgang', 'Document toevoegen'), factuur: tc('voortgang', 'Factuur toevoegen'), bank: t('Afschriften inlezen'), pdf: t('Bestanden toevoegen'), idkopie: t("Pagina's toevoegen"), handtekening: t('Handtekening inlezen') })[soort] || t('Bestand toevoegen');
 }
 const uiVg = { soort: '', toon: 0, wacht: 0, kop: '' };
 function uiVgStand(r){

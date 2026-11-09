@@ -2,8 +2,9 @@
  * Versleuteld op de telefoon (PdfSignature, gaat mee in Alle appgegevens). Alleen dit bestand leest en schrijft hem
  * (Android.pdfSignature*); tools gebruiken sigLoad/sigSave/sigVraagWeg, tekenen gaat overal via hetzelfde venster
  * (sigTeken) en tonen of in een PDF zetten met sigPaint/sigPreview. Wie wil weten dat hij veranderde: sigWatch.
- * Gebruikt door Stamgegevens (je eigen kaartje, Ondertekenen), PDF → Bewerken en ondertekenen en Formulieren. */
-const sig={value:null,error:'',loaded:false,watch:[],dlg:null,pad:null,terug:''};
+ * Tekenen kan ook vanuit een foto of scan (sigFoto, sigLijnen). Gebruikt door Stamgegevens (je eigen kaartje, Ondertekenen),
+ * PDF → Bewerken en ondertekenen en Formulieren. */
+const sig={value:null,error:'',loaded:false,watch:[],dlg:null,pad:null,terug:'',kiezen:null};
 const SIG_MAX_POINTS=10000,SIG_MAX_PATHS=200;
 function sigValid(s){
   if(!s||!Number.isFinite(s.ratio)||s.ratio<.01||s.ratio>10||!/^#[0-9a-f]{6}$/i.test(s.color||'')||!Array.isArray(s.paths)||!s.paths.length||s.paths.length>SIG_MAX_PATHS)return false;
@@ -30,6 +31,9 @@ function sigFout(m,anders){
     case 'Kluisbestand is beschadigd':return t('Kluisbestand is beschadigd');
     case 'Opslaan kon niet worden gecontroleerd':return t('Opslaan kon niet worden gecontroleerd');
     case 'Opslaan lukt niet; het eerdere bestand blijft behouden':return t('Opslaan lukt niet; het eerdere bestand blijft behouden');
+    case 'Deze afbeelding kan niet worden geopend':return t('Deze afbeelding kan niet worden geopend');
+    case 'De afbeelding is te groot':return t('De afbeelding is te groot');
+    case 'Bestandskiezer niet beschikbaar':return t('Bestandskiezer niet beschikbaar');
     default:return anders;
   }
 }
@@ -81,6 +85,123 @@ function sigFromStrokes(strokes,color,aspect){
   if(!sigValid(s))throw Error(t('Teken een handtekening met maximaal 10.000 punten en 200 lijnen'));
   return s;
 }
+/* ---------- Handtekening uit een foto of scan ----------
+ * Donkere inkt op licht papier wordt lijnen, zodat hij overal net zo werkt als een getekende (PDF, Formulieren): inkt
+ * scheiden van papier met een drempel per buurt (schaduw, ongelijk licht), stipjes en grote vlekken aan de rand weg,
+ * bijsnijden, uitdunnen tot middenlijnen (Zhang-Suen) en die volgen en vereenvoudigen. gray: 0 = zwart … 255 = wit. */
+function sigLijnen(gray,w,h){
+  const n=w*h,W=w+1,I=new Float64Array(W*(h+1)),r=Math.max(8,Math.round(Math.max(w,h)/40));
+  for(let y=0;y<h;y++){let rij=0;for(let x=0;x<w;x++){rij+=gray[y*w+x];I[(y+1)*W+x+1]=I[y*W+x+1]+rij;}}
+  let inkt=new Uint8Array(n),aantal=0;
+  for(let y=0;y<h;y++){const y0=Math.max(0,y-r),y1=Math.min(h,y+r+1);for(let x=0;x<w;x++){
+    const x0=Math.max(0,x-r),x1=Math.min(w,x+r+1),gem=(I[y1*W+x1]-I[y0*W+x1]-I[y1*W+x0]+I[y0*W+x0])/((x1-x0)*(y1-y0)),v=gray[y*w+x];
+    if(v<gem*.8&&gem-v>24){inkt[y*w+x]=1;aantal++;}
+  }}
+  if(aantal>n*.25)throw Error(t('Geen duidelijke handtekening gevonden. Kies een foto van alleen je handtekening, op wit papier.'));
+  // Samenhangende stukken: stipjes (ruis) en grote vlekken aan de rand (schaduw, rand van het papier) weg
+  const deel=new Int32Array(n).fill(-1),stukken=[],stapel=[];
+  for(let i=0;i<n;i++){if(!inkt[i]||deel[i]>=0)continue;
+    const s={id:stukken.length,px:0,rand:false,x0:w,y0:h,x1:0,y1:0};stukken.push(s);deel[i]=s.id;stapel.push(i);
+    while(stapel.length){const p=stapel.pop(),x=p%w,y=(p-x)/w;s.px++;if(x===0||y===0||x===w-1||y===h-1)s.rand=true;
+      if(x<s.x0)s.x0=x;if(x>s.x1)s.x1=x;if(y<s.y0)s.y0=y;if(y>s.y1)s.y1=y;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=w||ny>=h)continue;const q=ny*w+nx;if(inkt[q]&&deel[q]<0){deel[q]=s.id;stapel.push(q);}}}
+  }
+  // Aan de rand (tafel, schaduw, rand van het papier) alleen houden als het een flink stuk van de handtekening kan zijn
+  const grootste=stukken.reduce((m,s)=>Math.max(m,s.rand&&s.px>n*.08?0:s.px),0),min=Math.max(6,n*.00002,grootste*.004);
+  const binnen=stukken.reduce((m,s)=>Math.max(m,s.rand?0:s.px),0);
+  const houd=stukken.map(s=>s.px>=min&&!(s.rand&&(s.px>n*.08||s.px<binnen*.5)));
+  let bx0=w,by0=h,bx1=-1,by1=-1;
+  for(const s of stukken)if(houd[s.id]){bx0=Math.min(bx0,s.x0);by0=Math.min(by0,s.y0);bx1=Math.max(bx1,s.x1);by1=Math.max(by1,s.y1);}
+  if(bx1<0)throw Error(t('Geen handtekening gevonden. Kies een foto van je handtekening in donkere inkt op licht papier.'));
+  // Bijsnijden en zo nodig verkleinen (elk werkpixel is inkt als één van de pixels eronder inkt is)
+  const f=Math.max(1,Math.ceil(Math.max(bx1-bx0+1,by1-by0+1)/700)),ww=Math.ceil((bx1-bx0+1)/f)+2,wh=Math.ceil((by1-by0+1)/f)+2;
+  let b=new Uint8Array(ww*wh);
+  for(let y=by0;y<=by1;y++)for(let x=bx0;x<=bx1;x++){const i=y*w+x;if(inkt[i]&&houd[deel[i]])b[(1+Math.floor((y-by0)/f))*ww+1+Math.floor((x-bx0)/f)]=1;}
+  inkt=null;
+  // Gaatjes in dikke lijnen dicht (sluiten: uitzetten en weer krimpen), anders worden het lusjes
+  const buren=(a,i,waarde)=>{for(const d of [-ww-1,-ww,-ww+1,-1,1,ww-1,ww,ww+1])if(a[i+d]===waarde)return true;return false;};
+  const dik=b.slice();for(let y=1;y<wh-1;y++)for(let x=1;x<ww-1;x++){const i=y*ww+x;if(!b[i]&&buren(b,i,1))dik[i]=1;}
+  const open=[];for(let y=1;y<wh-1;y++)for(let x=1;x<ww-1;x++){const i=y*ww+x;if(dik[i]&&!b[i]&&buren(dik,i,0))open.push(i);}
+  for(const i of open)dik[i]=0;
+  b=dik;const voor=b.slice();
+  // Uitdunnen (Zhang-Suen) tot lijnen van één pixel
+  for(let veranderd=true,ronde=0;veranderd&&ronde<200;ronde++){veranderd=false;
+    for(const stap of [0,1]){const weg=[];
+      for(let y=1;y<wh-1;y++)for(let x=1;x<ww-1;x++){const i=y*ww+x;if(!b[i])continue;
+        const p=[b[i-ww],b[i-ww+1],b[i+1],b[i+ww+1],b[i+ww],b[i+ww-1],b[i-1],b[i-ww-1]],som=p.reduce((s,v)=>s+v,0);if(som<2||som>6)continue;
+        let overgangen=0;for(let k=0;k<8;k++)if(!p[k]&&p[(k+1)%8])overgangen++;if(overgangen!==1)continue;
+        if(stap===0?(p[0]*p[2]*p[4]||p[2]*p[4]*p[6]):(p[0]*p[2]*p[6]||p[0]*p[4]*p[6]))continue;weg.push(i);}
+      for(const i of weg)b[i]=0;if(weg.length)veranderd=true;}
+  }
+  // Zhang-Suen laat een klein rond stuk (de punt op de i) soms helemaal verdwijnen: dan blijft het middelste pixel staan
+  const lbl=new Uint8Array(ww*wh);
+  for(let i=0;i<voor.length;i++){if(!voor[i]||lbl[i])continue;
+    const stuk=[i];lbl[i]=1;let over=false,sx=0,sy=0;
+    for(let k=0;k<stuk.length;k++){const q=stuk[k];if(b[q])over=true;sx+=q%ww;sy+=Math.floor(q/ww);for(const d of [-ww-1,-ww,-ww+1,-1,1,ww-1,ww,ww+1])if(voor[q+d]&&!lbl[q+d]){lbl[q+d]=1;stuk.push(q+d);}}
+    if(!over){const mx=sx/stuk.length,my=sy/stuk.length;b[stuk.reduce((m,q)=>Math.hypot(q%ww-mx,Math.floor(q/ww)-my)<Math.hypot(m%ww-mx,Math.floor(m/ww)-my)?q:m)]=1;}
+  }
+  // Lijnen volgen: eerst vanaf de uiteinden, daarna wat overblijft (rondjes)
+  const RECHT=[-ww,1,ww,-1],SCHUIN=[-ww+1,ww+1,ww-1,-ww-1],gezien=new Uint8Array(ww*wh),lijnen=[];
+  const aantalBuren=i=>{let c=0;for(const d of RECHT.concat(SCHUIN))if(b[i+d])c++;return c;};
+  const volgende=i=>{for(const d of RECHT)if(b[i+d]&&!gezien[i+d])return i+d;for(const d of SCHUIN)if(b[i+d]&&!gezien[i+d])return i+d;return -1;};
+  const aanhaken=(i,niet)=>{for(const d of RECHT.concat(SCHUIN))if(b[i+d]&&gezien[i+d]&&!niet.includes(i+d))return i+d;return -1;};
+  const volg=start=>{const pad=[start];gezien[start]=1;const voor=aanhaken(start,[]);
+    for(let i=volgende(start);i>=0;i=volgende(i)){gezien[i]=1;pad.push(i);}
+    const na=aanhaken(pad[pad.length-1],pad.slice(-3));if(na>=0&&pad.length>1)pad.push(na);if(voor>=0&&voor!==pad[pad.length-1])pad.unshift(voor);
+    lijnen.push(pad.map(i=>[i%ww-1+.5,Math.floor(i/ww)-1+.5]));};
+  for(let i=0;i<b.length;i++)if(b[i]&&!gezien[i]&&aantalBuren(i)===1)volg(i);
+  for(let i=0;i<b.length;i++)if(b[i]&&!gezien[i])volg(i);
+  if(!lijnen.length)throw Error(t('Geen handtekening gevonden. Kies een foto van je handtekening in donkere inkt op licht papier.'));
+  // Vereenvoudigen (Ramer-Douglas-Peucker) tot het binnen de grenzen past; de kortste stukjes vallen als eerste af
+  const lengte=l=>l.reduce((s,p,i)=>i?s+Math.hypot(p[0]-l[i-1][0],p[1]-l[i-1][1]):0,0);
+  const rdp=(l,eps)=>{if(l.length<3)return l;const [a,z]=[l[0],l[l.length-1]],dx=z[0]-a[0],dy=z[1]-a[1],len=Math.hypot(dx,dy);let ver=-1,k=0;
+    for(let i=1;i<l.length-1;i++){const d=len?Math.abs(dy*(l[i][0]-a[0])-dx*(l[i][1]-a[1]))/len:Math.hypot(l[i][0]-a[0],l[i][1]-a[1]);if(d>ver){ver=d;k=i;}}
+    return ver>eps?rdp(l.slice(0,k+1),eps).slice(0,-1).concat(rdp(l.slice(k),eps)):[a,z];};
+  let paden=lijnen.map(l=>l.length<2?[l[0],[l[0][0]+1,l[0][1]]]:l).sort((a,c)=>lengte(c)-lengte(a)).slice(0,SIG_MAX_PATHS);
+  for(let eps=.8;;eps*=1.6){const uit=paden.map(l=>rdp(l,eps));if(uit.reduce((s,l)=>s+l.length,0)<=SIG_MAX_POINTS||eps>50){paden=uit;break;}}
+  // Naar 0–1 binnen de handtekening, met een kleine rand
+  const pts=paden.flat(),x0=Math.min(...pts.map(p=>p[0])),y0=Math.min(...pts.map(p=>p[1])),x1=Math.max(...pts.map(p=>p[0])),y1=Math.max(...pts.map(p=>p[1]));
+  const marge=Math.max(x1-x0,y1-y0,1)*.03,bw=x1-x0+2*marge,bh=y1-y0+2*marge;
+  const rond=v=>Math.round(Math.min(1,Math.max(0,v))*10000)/10000;
+  return {ratio:bh/bw,paths:paden.map(l=>l.map(p=>[rond((p[0]-x0+marge)/bw),rond((p[1]-y0+marge)/bh)]))};
+}
+/* Een geladen afbeelding (img) als lijnen; doorzichtig telt als wit papier. */
+function sigUitAfbeelding(img){
+  const max=1400,s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.max(1,Math.round(img.naturalWidth*s)),h=Math.max(1,Math.round(img.naturalHeight*s));
+  const c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d',{willReadFrequently:true});
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+  const d=ctx.getImageData(0,0,w,h).data,gray=new Uint8Array(w*h);
+  for(let i=0;i<gray.length;i++)gray[i]=(d[i*4]*30+d[i*4+1]*59+d[i*4+2]*11)/100;
+  return sigLijnen(gray,w,h);
+}
+function sigFotoKan(){return typeof Android!=='undefined'&&typeof Android.pdfSignaturePick==='function';}
+/* Kiezen gaat via Android (een kiezer over de app heen); is Stamgegevens open, dan blijft die zo lang open. */
+function sigFoto(){
+  if(!sig.dlg||sig.kiezen||!sigFotoKan())return;
+  sig.kiezen=sig.dlg;$('#sig-fout').textContent='';$('#sig-status').textContent=t('Kies een foto of scan van je handtekening…');
+  const token=typeof cm!=='undefined'&&typeof cmOpen==='function'&&cmOpen()?cm.token:'';
+  try{Android.pdfSignaturePick(token||'');}catch(e){sig.kiezen=null;$('#sig-status').textContent='';$('#sig-fout').textContent=t('Bestandskiezer niet beschikbaar');}
+}
+window.onSignatureImage=function(r){
+  const dlg=sig.kiezen;sig.kiezen=null;if(!dlg||sig.dlg!==dlg)return;
+  const stand=$('#sig-status'),fout=m=>{stand.textContent='';$('#sig-fout').textContent=m;};
+  if(!r||r.cancelled){stand.textContent='';return;}
+  if(r.error){fout(sigFout(r.error,t('Deze afbeelding kan niet worden geopend')));return;}
+  if(typeof r.image!=='string'||r.image.length>1200000||!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(r.image)){fout(t('Deze afbeelding kan niet worden geopend'));return;}
+  stand.textContent=t('Foto verwerken…');
+  const img=new Image();
+  img.onload=()=>{
+    // Even wachten, zodat "Foto verwerken…" in beeld is voordat het rekenen begint
+    setTimeout(()=>{
+      if(sig.dlg!==dlg)return;
+      try{const s=sigUitAfbeelding(img);sig.pad.load(s);stand.textContent=t('Zo ziet je handtekening eruit. Klopt hij niet? Kies Wissen en probeer een andere foto.');}
+      catch(e){fout(e.message||t('Deze afbeelding kan niet worden geopend'));}
+    },30);
+  };
+  img.onerror=()=>{if(sig.dlg===dlg)fout(t('Deze afbeelding kan niet worden geopend'));};
+  img.src=r.image;
+};
+
 /* Een tekenvlak: met vinger, pen of muis. */
 function sigPad(canvas,kleur){
   const pad={strokes:[],stroke:null};
@@ -93,6 +214,15 @@ function sigPad(canvas,kleur){
   });
   for(const ev of ['pointerup','pointercancel'])canvas.addEventListener(ev,()=>{pad.stroke=null;});
   pad.clear=()=>{pad.strokes=[];pad.stroke=null;canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);};
+  pad.draw=()=>{
+    const c=canvas.getContext('2d');c.clearRect(0,0,canvas.width,canvas.height);c.strokeStyle=kleur();c.lineWidth=Math.max(3,canvas.width/150);c.lineCap=c.lineJoin='round';
+    for(const st of pad.strokes){c.beginPath();st.forEach((p,i)=>{const x=p[0]*canvas.width,y=p[1]*canvas.height;if(i)c.lineTo(x,y);else c.moveTo(x,y);});c.stroke();}
+  };
+  /* Een handtekening (uit een foto) op het tekenvlak, in het midden; daarna kun je er nog bij tekenen. */
+  pad.load=s=>{
+    const cw=canvas.width,ch=canvas.height,bw=Math.min(cw*.9,ch*.8/s.ratio),bh=bw*s.ratio,x0=(cw-bw)/2,y0=(ch-bh)/2;
+    pad.strokes=s.paths.map(l=>l.map(p=>[(x0+p[0]*bw)/cw,(y0+p[1]*bh)/ch]));pad.stroke=null;pad.draw();
+  };
   pad.signature=()=>sigFromStrokes(pad.strokes,kleur(),canvas.width/canvas.height);
   return pad;
 }
@@ -102,8 +232,8 @@ function sigPad(canvas,kleur){
  * opts.bewaard(s): na bewaren. */
 function sigTeken(opts={}){
   const heeft=!!(sigHuidig()||sig.error),plaats=typeof opts.plaatsen==='function';
-  if(!sig.pad)sig.pad=sigPad($('#sig-pad'),()=>$('#sig-kleur').value);
-  sig.pad.clear();sig.dlg=opts;sig.terug=document.activeElement&&document.activeElement.id||'';
+  if(!sig.pad){sig.pad=sigPad($('#sig-pad'),()=>$('#sig-kleur').value);$('#sig-kleur').addEventListener('change',()=>sig.pad.draw());}
+  sig.pad.clear();sig.dlg=opts;sig.kiezen=null;$('#sig-status').textContent='';$('#sig-foto').hidden=!sigFotoKan();sig.terug=document.activeElement&&document.activeElement.id||'';
   if(sig.value&&[...$('#sig-kleur').options].some(o=>o.value===sig.value.color))$('#sig-kleur').value=sig.value.color;
   $('#sig-title').textContent=heeft&&!plaats?t('Handtekening vervangen'):t('Handtekening tekenen');
   $('#sig-uitleg').textContent=plaats?t('Teken met je vinger. Bewaar je hem, dan gebruik je hem ook in Formulieren en Stamgegevens.')
@@ -116,12 +246,12 @@ function sigTeken(opts={}){
 function sigOpen(){return $('#sigdlg').classList.contains('on');}
 /* De knop die het venster opende, kan intussen opnieuw getekend zijn (sigWatch): dan de nieuwe met dezelfde id. */
 function sigClose(){
-  if(sig.pad)sig.pad.clear();sig.dlg=null;$('#sig-fout').textContent='';$('#sigdlg').classList.remove('on');dialogFocus.sync();
+  if(sig.pad)sig.pad.clear();sig.dlg=null;sig.kiezen=null;$('#sig-fout').textContent='';$('#sig-status').textContent='';$('#sigdlg').classList.remove('on');dialogFocus.sync();
   const terug=sig.terug;sig.terug='';
   const weg=!document.activeElement||document.activeElement===document.body||$('#sigdlg').contains(document.activeElement);
   if(terug&&weg){const el=document.getElementById(terug);if(el&&!el.closest('[inert]'))el.focus();}
 }
-function sigWis(){if(sig.pad)sig.pad.clear();$('#sig-fout').textContent='';}
+function sigWis(){if(sig.pad)sig.pad.clear();$('#sig-fout').textContent='';$('#sig-status').textContent='';}
 function sigOk(){
   const o=sig.dlg;if(!o)return;
   let s;try{s=sig.pad.signature();}catch(e){$('#sig-fout').textContent=e.message;return;}

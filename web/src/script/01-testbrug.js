@@ -323,6 +323,13 @@ if (!window.Android) window.Android = (function(){
     pdfSignatureLoad(){return JSON.stringify(this._signatureReadError?{error:this._signatureReadError}:{signature:this._signature||null});},
     pdfSignatureSave(json){if(this._signatureError)return this._signatureError;const s=JSON.parse(json);if(!sigValid(s))return 'Ongeldige handtekening';this._signature=JSON.parse(JSON.stringify(s));return '';},
     pdfSignatureDelete(){if(this._signatureError)return this._signatureError;this._signature=null;return '';},
+    // Nabootsing van een gekozen foto van een handtekening: Android._sigFoto = 'annuleer', 'fout', 'leeg' (wit papier) of een eigen data-URL.
+    pdfSignaturePick(token){(this._sigPicks=this._sigPicks||[]).push(token);setTimeout(()=>{
+      const m=this._sigFoto;if(m==='annuleer'){onSignatureImage({cancelled:true});return;}if(m==='fout'){onSignatureImage({error:'Deze afbeelding kan niet worden geopend'});return;}
+      if(typeof m==='string'&&m.startsWith('data:')){onSignatureImage({image:m});return;}
+      const c=document.createElement('canvas');c.width=640;c.height=360;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,640,0);g.addColorStop(0,'#f4f1e8');g.addColorStop(1,'#c9c4b8');x.fillStyle=g;x.fillRect(0,0,640,360);
+      if(m!=='leeg'){x.strokeStyle=x.fillStyle='#1d2235';x.lineWidth=7;x.lineCap=x.lineJoin='round';x.beginPath();x.moveTo(70,240);x.bezierCurveTo(130,60,190,300,250,170);x.bezierCurveTo(310,60,380,280,450,180);x.lineTo(570,200);x.stroke();x.beginPath();x.arc(330,100,6,0,7);x.fill();}
+      onSignatureImage({image:c.toDataURL('image/jpeg',.92)});},20);},
     _pdf: {imgs: [], outs: [], info: {}, pending: ''},
     pdfPickImages(){ const P = this._pdf; P.imgs.push({i: 0, w: 300, h: 400, thumb: 'data:image/jpeg;base64,AAAA'}, {i: 1, w: 400, h: 300, thumb: 'data:image/jpeg;base64,BBBB'}); setTimeout(() => onPdf({kind: 'images', count: 2, warn: ''}), 30); },
     pdfPickPdf(){ this._pdf.info = {name: 'Contract', pages: 8, lossless: true, revision:'pdf-' + Date.now()}; setTimeout(() => onPdf({kind: 'pdf', ...this._pdf.info}), 30); },

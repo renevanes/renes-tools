@@ -238,6 +238,6 @@ details.card.setup>summary .setup-h{flex:1;min-width:0;font-size:15px;font-weigh
 .sig-papier{display:block;width:100%;height:auto;background:#fff;border:1px solid var(--outline);border-radius:12px}
 #sig-pad{touch-action:none;cursor:crosshair;margin:4px 0 10px}
 .sig-box{max-width:520px;max-height:calc(100dvh - 48px);overflow:auto}
-.sig-rij{gap:8px}.sig-rij .sel{flex:1;min-width:0}
-#sig-fout:empty,#sig-bewaar-rij[hidden]{display:none}
+.sig-rij{gap:8px;flex-wrap:wrap}.sig-rij .sel{flex:1;min-width:0}
+#sig-fout:empty,#sig-status:empty,#sig-bewaar-rij[hidden],#sig-foto[hidden]{display:none}#sig-status{margin:8px 0 0}
 .sig-stand{margin:8px 0 0}.sig-stand .mini{float:none}.sig-stand .sig-papier{max-width:320px;margin:4px 0 8px}

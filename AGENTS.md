@@ -178,7 +178,8 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   Alleen stappen en aantallen, nooit namen. Test: `tests/ui/voortgang.test.js`, `VoortgangTest`.
 - **Handtekening**: er is één handtekening voor de hele app (Stamgegevens, PDF, Formulieren). Gebruik altijd
  `web/src/script/02-handtekening.js`: `sigTeken({plaatsen, bewaard})` (het gedeelde tekenvenster), `sigLoad`/`sigHuidig`,
- `sigSave`, `sigVraagWeg`, `sigPaint`/`sigPreview`/`sigCanvas` en `sigWatch`; nooit een eigen tekenvlak of rechtstreeks
+ `sigSave`, `sigVraagWeg`, `sigPaint`/`sigPreview`/`sigCanvas` en `sigWatch`; uit een foto of bestand: `sigFoto` (Java
+ `pdfSignaturePick` → `PdfSignatureImage`, alleen in het geheugen; `sigLijnen` maakt er lijnen van); nooit een eigen tekenvlak of rechtstreeks
  `Android.pdfSignature*` (dat laatste bewaakt `tests/ui/handtekening.test.js`). Opslag: `PdfSignature` (versleuteld, gaat
  mee in Alle appgegevens).
 - **Lege lijst**: `uiEmpty('mic', t('Nog geen opnames.'), t('Knoptekst'), 'actie()')`: pictogram, één regel en hooguit één (tonale) knop.
