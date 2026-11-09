@@ -185,7 +185,7 @@ function cmiPhotoShow(){
   }next();
 }
 function cmiPhotoZoom(side){const src=$('#cmi-'+side+'-image').getAttribute('src');if(cmOpen()&&cmi.show&&src){erImageOpen(src,cmcPhotoAlt(side));cmTouch();}}
-/* In het blok Foto's staan de kaartfoto's meteen (net als op het kaartje); niet bij wijzigingen die nog niet bewaard zijn. */
+/* In het blok Foto's staan de kaartfoto's meteen (net als op het kaartje); niet terwijl er iets wordt bewaard. */
 function cmiPhotoAuto(){
   const r=cm.edit,box=$('#cmi-photos');if(!cmOpen()||!r?.id||r.type!=='identiteit'||cmi.show||cm.mutating||!(r.images?.front||r.images?.back))return;
   if(box.hidden||box.classList.contains('cm-off'))return;cmiPhotoShow();

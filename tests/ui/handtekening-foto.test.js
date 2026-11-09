@@ -41,7 +41,8 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>Android._sigFoto='annuleer');await p.click('#sig-foto');await p.waitForFunction(()=>!sig.kiezen);
   assert.equal(await p.textContent('#sig-status'),'');assert.equal(await p.textContent('#sig-fout'),'');
   // Een antwoord dat pas komt als het venster al dicht is, doet niets
-  await p.evaluate(()=>{Android._sigFoto=null;sigFoto();sigClose();});await p.waitForTimeout(150);assert.equal(await p.evaluate(()=>sigOpen()),false);
+  await p.evaluate(()=>{Android._sigFoto=null;sigFoto();sigClose();sigTeken({});});await p.waitForTimeout(150);
+  assert.equal(await inkt(),0,'te laat antwoord komt niet in een nieuw venster');assert.equal(await p.textContent('#sig-status'),'');await p.click('#sig-cancel');
   assert.equal(await p.textContent('#cmc-sig-teken'),'Opnieuw tekenen');
 
   // 3. De herkenning zelf: een dikke ring wordt één gesloten lijn, alleen ruis is geen handtekening
@@ -53,6 +54,14 @@ for(const colorScheme of ['light','dark']){
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(y>=95&&y<105&&x>=60&&x<240)g[y*w+x]=30;if(x<4&&y>20&&y<60)g[y*w+x]=40;if(y>h-8&&x>100&&x<200)g[y*w+x]=20;}
     const s=sigLijnen(g,w,h);return {n:s.paths.length,ratio:s.ratio};});
   assert.equal(rand.n,1,'kleine stukken aan de rand (tafel, schaduw) vallen weg');assert.ok(rand.ratio<.2,'alleen de streep: '+rand.ratio);
+  const dik=await p.evaluate(()=>{const w=300,h=200,g=new Uint8Array(w*h).fill(235);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const d=Math.hypot(x-150,y-100);if(Math.abs(d-60)<12)g[y*w+x]=30;}
+    const s=sigLijnen(g,w,h);return s.paths.length;});
+  assert.equal(dik,1,'een dikke lijn (viltstift) wordt één lijn, niet twee');
+  const strak=await p.evaluate(()=>{const w=300,h=200,g=new Uint8Array(w*h).fill(235);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(Math.abs(y-100-60*Math.sin(x/30))<8)g[y*w+x]=30;
+    const s=sigLijnen(g,w,h),xs=s.paths.flat().map(q=>q[0]);return Math.max(...xs)-Math.min(...xs);});
+  assert.ok(strak>.9,'strak bijgesneden (raakt de rand) blijft staan: '+strak);
   const ruis=await p.evaluate(()=>{const w=200,h=120,g=new Uint8Array(w*h);for(let i=0;i<g.length;i++)g[i]=Math.imul(i+1,2654435761)>>>24;
     try{sigLijnen(g,w,h);return 'ok';}catch(e){return e.message;}});
   assert.match(ruis,/Geen (duidelijke )?handtekening gevonden/);

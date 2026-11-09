@@ -92,11 +92,11 @@ function sigFromStrokes(strokes,color,aspect){
 function sigLijnen(gray,w,h){
   const n=w*h,W=w+1,I=new Float64Array(W*(h+1)),r=Math.max(8,Math.round(Math.max(w,h)/40));
   for(let y=0;y<h;y++){let rij=0;for(let x=0;x<w;x++){rij+=gray[y*w+x];I[(y+1)*W+x+1]=I[y*W+x+1]+rij;}}
+  const gem=(x,y,r)=>{const x0=Math.max(0,x-r),x1=Math.min(w,x+r+1),y0=Math.max(0,y-r),y1=Math.min(h,y+r+1);return (I[y1*W+x1]-I[y0*W+x1]-I[y1*W+x0]+I[y0*W+x0])/((x1-x0)*(y1-y0));};
+  const donker=(v,g)=>v<g*.8&&g-v>24;
+  // Ook een buurt van drie keer zo groot: anders wordt het midden van een dikke lijn (viltstift, dichtbij) papier en de lijn dubbel
   let inkt=new Uint8Array(n),aantal=0;
-  for(let y=0;y<h;y++){const y0=Math.max(0,y-r),y1=Math.min(h,y+r+1);for(let x=0;x<w;x++){
-    const x0=Math.max(0,x-r),x1=Math.min(w,x+r+1),gem=(I[y1*W+x1]-I[y0*W+x1]-I[y1*W+x0]+I[y0*W+x0])/((x1-x0)*(y1-y0)),v=gray[y*w+x];
-    if(v<gem*.8&&gem-v>24){inkt[y*w+x]=1;aantal++;}
-  }}
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const v=gray[y*w+x];if(donker(v,gem(x,y,r))||donker(v,gem(x,y,3*r))){inkt[y*w+x]=1;aantal++;}}
   if(aantal>n*.25)throw Error(t('Geen duidelijke handtekening gevonden. Kies een foto van alleen je handtekening, op wit papier.'));
   // Samenhangende stukken: stipjes (ruis) en grote vlekken aan de rand (schaduw, rand van het papier) weg
   const deel=new Int32Array(n).fill(-1),stukken=[],stapel=[];
@@ -106,10 +106,14 @@ function sigLijnen(gray,w,h){
       if(x<s.x0)s.x0=x;if(x>s.x1)s.x1=x;if(y<s.y0)s.y0=y;if(y>s.y1)s.y1=y;
       for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=w||ny>=h)continue;const q=ny*w+nx;if(inkt[q]&&deel[q]<0){deel[q]=s.id;stapel.push(q);}}}
   }
-  // Aan de rand (tafel, schaduw, rand van het papier) alleen houden als het een flink stuk van de handtekening kan zijn
-  const grootste=stukken.reduce((m,s)=>Math.max(m,s.rand&&s.px>n*.08?0:s.px),0),min=Math.max(6,n*.00002,grootste*.004);
+  // Aan de rand: een vlek (tafel, schaduw: groot en gevuld) of een streep langs de rand (rand van het papier) weg, en
+  // kleine stukjes alleen als er binnen de foto iets flinks staat. Een strak bijgesneden handtekening raakt de rand ook.
+  const vlek=s=>s.rand&&s.px>n*.08&&s.px>(s.x1-s.x0+1)*(s.y1-s.y0+1)*.35;
+  const langs=s=>s.rand&&((s.y1<h*.04||s.y0>h*.96)&&s.x1-s.x0>w*.5||(s.x1<w*.04||s.x0>w*.96)&&s.y1-s.y0>h*.5);
+  const grootste=stukken.reduce((m,s)=>Math.max(m,vlek(s)||langs(s)?0:s.px),0),min=Math.max(6,n*.00002,grootste*.004);
   const binnen=stukken.reduce((m,s)=>Math.max(m,s.rand?0:s.px),0);
-  const houd=stukken.map(s=>s.px>=min&&!(s.rand&&(s.px>n*.08||s.px<binnen*.5)));
+  let houd=stukken.map(s=>s.px>=min&&!vlek(s)&&!langs(s)&&!(s.rand&&binnen>=min&&s.px<binnen*.5));
+  if(!houd.some(Boolean))houd=stukken.map(s=>s.px>=min&&!vlek(s));
   let bx0=w,by0=h,bx1=-1,by1=-1;
   for(const s of stukken)if(houd[s.id]){bx0=Math.min(bx0,s.x0);by0=Math.min(by0,s.y0);bx1=Math.max(bx1,s.x1);by1=Math.max(by1,s.y1);}
   if(bx1<0)throw Error(t('Geen handtekening gevonden. Kies een foto van je handtekening in donkere inkt op licht papier.'));

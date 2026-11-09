@@ -40,7 +40,7 @@ for(const colorScheme of ['light','dark']){
  // Op het kaartje meteen getoond; tikken opent de kijker met zoomen, terug sluit hem en op slot ook
  await p.waitForFunction(()=>!!$('#cmc-foto-front img').getAttribute('src')&&!!$('#cmc-foto-back img').getAttribute('src'));
  assert.equal(await p.evaluate(()=>Android._cm.events.filter(e=>e.action==='photo_view').length>0),true,'bekijken staat in het logboek');
- await p.click('#cmc-foto-front');await p.waitForFunction(()=>$('#er-image').classList.contains('on'));
+ await p.click('#cmc-foto-front');await p.waitForFunction(()=>$('#er-image').classList.contains('on'));assert.equal(await p.isVisible('#er-image-picture'),true,'kijker over het kaartje');
  assert.equal(await p.getAttribute('#er-image-picture','src'),await p.getAttribute('#cmc-foto-front img','src'));
  await p.click('#er-image-more');assert.match(await p.getAttribute('#er-image-picture','style'),/scale\(1\.5\)/,'inzoomen');
  await p.evaluate(()=>goBack());assert.equal(await p.evaluate(()=>$('#er-image').classList.contains('on')),false);assert.equal(await p.evaluate(()=>current),'cmkaart','terug sluit alleen de kijker');

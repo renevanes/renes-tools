@@ -195,7 +195,7 @@ function cmcPhotos(box,r,blok){
   const sec=cmcBlok(box,r,blok,[],{empty:false}),grid=cmEl('div',undefined,'cmc-fotos');
   for(const side of ['front','back']){
     const has=!!r.images?.[side],tile=cmEl('button',undefined,'cmc-foto');tile.classList.toggle('leeg',!has);tile.type='button';tile.id='cmc-foto-'+side;
-    if(has){const img=cmEl('img');img.alt=cmcPhotoAlt(side);img.hidden=true;tile.classList.add('vol');tile.append(img,cmEl('span',t('Foto laden…')));tile.setAttribute('aria-label',side==='front'?t('Voorkant vergroten'):t('Achterkant vergroten'));tile.onclick=()=>cmcPhotoZoom(side);}
+    if(has){const img=cmEl('img');img.alt=cmcPhotoAlt(side);img.hidden=true;tile.classList.add('vol');tile.append(img,cmEl('span',t('Foto laden…')));tile.onclick=()=>cmcPhotoZoom(side);}
     else{tile.innerHTML=uiIcon('camera');tile.append(cmEl('span',side==='front'?t('Voorkant toevoegen'):t('Achterkant toevoegen')));tile.onclick=()=>cmcPhotoPick(side);}
     grid.append(tile);
   }
@@ -206,6 +206,7 @@ function cmcPhotos(box,r,blok){
 function cmcPhotoPut(side){
   const tile=$('#cmc-foto-'+side),src=cmc.fotos[side];if(!tile||!src)return;
   const img=tile.querySelector('img');img.src=src;img.hidden=false;tile.querySelector('span').textContent=side==='front'?t('Voorkant'):t('Achterkant');tile.classList.add('open');
+  tile.setAttribute('aria-label',side==='front'?t('Voorkant vergroten'):t('Achterkant vergroten'));
 }
 function cmcPhotoLoad(side){
   const r=cmc.rec;if(!cmOpen()||!r?.images?.[side])return;

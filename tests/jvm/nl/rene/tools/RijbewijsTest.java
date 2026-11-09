@@ -67,6 +67,10 @@ public class RijbewijsTest {
         check(r.getJSONObject("document").getString("geldig").equals("2024-11-01")&&r.getJSONArray("twijfel").toString().contains("geldig"),"en andersom: geldig tot uit de afgifte");
         r=read("RIJBEWIJS","1. DE VRIES","3. 17.02.1981","4b. 01.11.2024","01.11.2017","5. 5094962111");
         check(!r.getJSONObject("document").has("afgifte"),"een datum die geen 5, 10 of 15 jaar ervoor ligt, wordt geen afgifte");
+        r=read("RIJBEWIJS","1. DE VRIES","3. 17.02.1981","4b. 01.11.2024","01.11.2009","5. 5094962111");
+        check(!r.getJSONObject("document").has("afgifte"),"15 jaar ervoor (een categoriedatum) wordt geen afgifte");
+        r=read("RIJBEWIJS","1. DE VRIES","3. 17.02.1951","4b. 01.11.2024","01.11.2014","01.11.2019","5. 5094962111");
+        check(r.getJSONObject("document").getString("afgifte").equals("2014-11-01"),"10 jaar gaat voor 5 jaar");
         Rijbewijs.Stand st=new Rijbewijs.Stand();Rijbewijs.read(card("WINKELBON","TOTAAL 12,50"),"2026-11-08",st);check(st.regels==2&&!st.rijbewijs&&!st.onderregel,"stand: tekst gelezen, geen rijbewijs");
         // Samenvoegen van twee lezingen: wat ontbreekt aanvullen, zeker gaat voor twijfel
         JSONObject a1=read("RIJBEWIJS","1. DE VRIES","3. 17.02.1981","5. 5094962111"),b1=read("RIJBEWIJS","4b. 01.11.2024","3. 17.02.1981","D1NLD150949621115M2Z6KC47X2W71");

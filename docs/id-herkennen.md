@@ -80,7 +80,7 @@ leest ze en controleert ook de voorbeelden uit ICAO 9303.
   10 of 15 jaar uit elkaar (dezelfde dag of een dag eerder), de geboortedatum ligt minstens 16 jaar daarvoor; een los nummer
   van 10 cijfers is het rijbewijsnummer. Alleen als het een rijbewijs is (titel of leesregel; datums alleen met de titel of
   een gelezen "4a."/"4b.", want op de achterkant staan datums per categorie), en altijd als twijfel (uitgevinkt).
-  Is maar één van de twee datumvelden gelezen (vaak 4b wel en 4a niet), dan is de datum die er precies 5, 10 of 15 jaar
+  Is maar één van de twee datumvelden gelezen (vaak 4b wel en 4a niet), dan is de datum die er precies 10 (of anders 5) jaar
   vandaan ligt de andere (ook als twijfel). Een veldnummer met een komma ("4a,") telt ook.
 - **Lezen** (`RijbewijsOcr`): gewoon in vier draaiingen; ontbreekt nummer, einddatum, geboortedatum of afgiftedatum, dan nog
   eens op een zwart-wit-versie (drempel per buurt, tegen het achtergrondpatroon). *Grondiger proberen* (`masterPhotoRescan`, tot ±70 s):

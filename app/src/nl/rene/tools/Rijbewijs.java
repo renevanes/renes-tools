@@ -152,16 +152,17 @@ final class Rijbewijs {
                 for(String d:dates)if(d.compareTo(today)<0&&yearsBetween(d,first)>=16){person.put("geboortedatum",d);confidence.put("geboortedatum",50);doubtful.add("geboortedatum");count++;break;}
             }
         }
-        // Eén van de twee datums wel gelezen, de andere niet (bijv. "4a." onleesbaar): de datum die er precies 5, 10 of 15 jaar
-        // vandaan ligt, als twijfel.
-        if(!doc.has("afgifte")&&doc.has("geldig")) {
-            String to=doc.getString("geldig"),found=null;
-            for(String d:dates)if(d.compareTo(to)<0&&term(d,to))found=d;
-            if(found!=null){doc.put("afgifte",found);confidence.put("afgifte",50);doubtful.add("afgifte");count++;}
-        }
-        if(!doc.has("geldig")&&doc.has("afgifte")) {
-            String from=doc.getString("afgifte");
-            for(String d:dates)if(d.compareTo(from)>0&&term(from,d)){doc.put("geldig",d);confidence.put("geldig",50);doubtful.add("geldig");count++;break;}
+        // Eén van de twee datums wel gelezen, de andere niet (bijv. "4a." onleesbaar): de datum die er precies 10 (of anders 5)
+        // jaar vandaan ligt, de geldigheid van een rijbewijs, als twijfel.
+        for(int years:new int[]{10,5}) {
+            if(!doc.has("afgifte")&&doc.has("geldig")) {
+                String to=doc.getString("geldig");
+                for(String d:dates)if(d.compareTo(to)<0&&term(d,to,years)){doc.put("afgifte",d);confidence.put("afgifte",50);doubtful.add("afgifte");count++;break;}
+            }
+            if(!doc.has("geldig")&&doc.has("afgifte")) {
+                String from=doc.getString("afgifte");
+                for(String d:dates)if(d.compareTo(from)>0&&term(from,d,years)){doc.put("geldig",d);confidence.put("geldig",50);doubtful.add("geldig");count++;break;}
+            }
         }
         if(!licence&&!(labels.contains("1")&&labels.contains("2")&&labels.contains("3")&&labels.contains("4b")&&labels.contains("5")&&doc.has("document")&&person.has("geboortedatum")))return null;
         boolean sureNumber=bottom!=null&&"ok".equals(bottom[1]);
@@ -179,8 +180,9 @@ final class Rijbewijs {
     static final Pattern TEN_DIGITS=Pattern.compile("(?<![0-9A-Za-z])[0-9]{10}(?![0-9A-Za-z])");
 
     /** Twee datums van een afgifte en de einddatum: 5, 10 of 15 jaar later, dezelfde dag of een dag eerder. */
-    static boolean term(String from,String to) {
-        for(int years:new int[]{5,10,15}) {
+    static boolean term(String from,String to) { return term(from,to,5,10,15); }
+    static boolean term(String from,String to,int... terms) {
+        for(int years:terms) {
             String same=String.format(Locale.ROOT,"%04d%s",Integer.parseInt(from.substring(0,4))+years,from.substring(4));
             if(to.equals(same))return true;
             try{
