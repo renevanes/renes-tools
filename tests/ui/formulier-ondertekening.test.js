@@ -20,12 +20,15 @@ for(const colorScheme of ['light','dark']){
   assert.deepEqual(await p.$$eval('#cm-field-handtekening option',o=>o.map(x=>x.value)),['','begeleider1','begeleider2'],'nooit bij een toestemminggever');
   await T.select('#cm-field-kind',{label:'Zoë'});await T.select('#cm-field-gever1',{label:'Mama'});
   await T.fill('#cm-field-tekenplaats','Rotterdam');assert.equal(await p.isVisible('#cmi-form-sign'),true,'uitleg bij ondertekenen');
+  assert.match(await p.textContent('#cmi-form-sig'),/Je bewaarde handtekening komt bij die begeleider/,'stand van de handtekening (02-handtekening.js)');
+  assert.equal(await p.textContent('#cmi-form-sig #cmc-sig-teken'),'Opnieuw tekenen');
   // Handtekening bij begeleider 2 terwijl er geen is: weigeren.
   await T.select('#cm-field-begeleider1',{label:'Papa'});await T.select('#cm-field-handtekening','begeleider2');
   await p.click('#cm-save');await p.waitForFunction(()=>!cm.mutating&&/meereist/.test($('#cm-edit-status').textContent));
   await T.select('#cm-field-handtekening','begeleider1');
   await p.click('#cm-save');await p.waitForFunction(()=>$('#cm-editor').hidden&&Android._cm.records.some(r=>r.type==='formulier')&&current==='cmkaart'&&!cm.navigating);
   assert.match(await p.textContent('#cm-kaart'),/Rotterdam/);assert.doesNotMatch(await p.textContent('#cm-kaart'),/begeleider1/,'kaartje toont de keuze in woorden');
+  assert.equal(await p.locator('#cmc-sig-stand canvas.sig-papier').count(),1,'kaartje toont welke handtekening er komt');
   const vast=await p.evaluate(()=>Android._cm.records.find(r=>r.type==='formulier').fields);
   assert.equal(vast.tekenplaats,'Rotterdam');assert.equal(vast.handtekening,'begeleider1');
   // 2. Nieuwe reis: de datum staat standaard op vandaag en komt met de plaats en handtekening bij de begeleider.
@@ -65,8 +68,20 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>fm.stam.has('begeleider1-handtekening')),false,'zelf gekozen');
   // Geen bewaarde handtekening: duidelijke melding in plaats van een PDF zonder handtekening.
   await p.selectOption('#pff-v-begeleider1-handtekening','ja');await p.evaluate(()=>{Android._signature=null;fm.step=fmSecties().length;fm.page=1;fmRender();});
-  await p.waitForFunction(()=>/Bewaar hem bij PDF/.test($('#pff-preview-status').textContent));
+  await p.waitForFunction(()=>/Teken hem bij de begeleider/.test($('#pff-preview-status').textContent));
   assert.equal(await p.evaluate(()=>$('#pff-maak').disabled),true,'geen PDF zonder de gekozen handtekening');
+  // Tekenen kan meteen bij de begeleider, met het gedeelde venster; daarna maakt Formulieren de PDF wel.
+  await p.evaluate(()=>{fm.step=fmSecties().findIndex(s=>s.fields.some(f=>f.id==='begeleider1-handtekening'));fmRender();});
+  assert.match(await p.textContent('#pff-sig'),/Er is nog geen handtekening bewaard/);assert.equal(await p.locator('#pff-sig canvas').count(),0);
+  await p.click('#pff-sig-teken');await p.waitForSelector('#sigdlg.on');assert.equal(await p.textContent('#sig-ok'),'Bewaren');
+  const pad=await p.locator('#sig-pad').boundingBox();
+  await p.mouse.move(pad.x+20,pad.y+40);await p.mouse.down();await p.mouse.move(pad.x+80,pad.y+70,{steps:5});await p.mouse.move(pad.x+150,pad.y+25,{steps:5});await p.mouse.up();
+  await p.click('#sig-ok');await p.waitForFunction(()=>!$('#sigdlg').classList.contains('on'));
+  assert.ok(await p.evaluate(()=>Android._signature&&Android._signature.paths.length),'bewaard');
+  assert.equal(await p.locator('#pff-sig canvas.sig-papier').count(),1);assert.equal(await p.evaluate(()=>document.activeElement.id),'pff-sig-teken');
+  await p.selectOption('#pff-v-begeleider1-handtekening','nee');assert.equal(await p.locator('#pff-sig').count(),0,'alleen bij Ja');
+  await p.selectOption('#pff-v-begeleider1-handtekening','ja');
+  await p.evaluate(()=>{fm.step=fmSecties().length;fm.page=1;fmRender();});await p.waitForFunction(()=>!document.querySelector('#pff-maak').disabled);
   // Een leeg formulier: Meer gegevens blijft dicht, de keuze Nee telt niet als ingevuld.
   assert.equal(await p.evaluate(()=>{fm.values={};fm.stam=new Set();fm.meer={};fm.values.alleen='nee';fm.values['begeleider1-handtekening']='nee';fm.step=fmSecties().findIndex(s=>s.fields.some(f=>f.id==='begeleider1-handtekening'));fmRender();return $('#pff-meer').open;}),false,'Meer gegevens dicht');
   // Staat er wie jij bent (Ik), dan kan je handtekening alleen bij jezelf.

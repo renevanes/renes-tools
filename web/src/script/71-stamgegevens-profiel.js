@@ -153,6 +153,7 @@ function cmiPersonStand(p){
 }
 function cmiEditor(){
   const r=cm.edit;$('#cmi-form-note').hidden=r.type!=='formulier';$('#cmi-form-sign').hidden=r.type!=='formulier';$('#cmi-relation-note').hidden=r.type!=='relatie';
+  if(r.type==='formulier'){const old=$('#cmi-form-sig');if(old)old.replaceWith(cmSigStand('cmi-form-sig',false));}
   if(cmi.gevEdit!==r){cmi.gevEdit=r;cmi.gevers=null;}cmiFormGezag();
   cmiRelationSentence();
   cmiPhotoClear();$('#cmi-photos').hidden=r.type!=='identiteit';

@@ -64,6 +64,21 @@
     </div>
   </div>
 </div>
+<!-- Je handtekening tekenen: één venster voor alle tools (script/02-handtekening.js) -->
+<div class="modal" id="sigdlg">
+  <div class="modal-box sig-box" role="dialog" aria-modal="true" aria-labelledby="sig-title" aria-describedby="sig-uitleg">
+    <h3 id="sig-title">Handtekening tekenen</h3>
+    <p id="sig-uitleg"></p>
+    <canvas id="sig-pad" class="sig-papier" width="900" height="450" tabindex="0" aria-label="Teken hier je handtekening"></canvas>
+    <div class="row sig-rij"><label for="sig-kleur">Kleur</label><select id="sig-kleur" class="sel"><option value="#111111">Zwart</option><option value="#1649b8">Blauw</option></select><button class="mini" id="sig-wis" onclick="sigWis()">Wissen</button></div>
+    <label class="sw" id="sig-bewaar-rij" hidden><span id="sig-bewaar-t">Ook bewaren voor later</span><input type="checkbox" class="switch" role="switch" id="sig-bewaar"></label>
+    <p class="note warn" id="sig-fout" role="alert"></p>
+    <div class="modal-btns">
+      <button class="big ghost" id="sig-cancel" onclick="sigClose()">Annuleren</button>
+      <button class="big" id="sig-ok" onclick="sigOk()">Bewaren</button>
+    </div>
+  </div>
+</div>
 <div class="modal" id="modal">
   <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <h3 id="modal-title"></h3>

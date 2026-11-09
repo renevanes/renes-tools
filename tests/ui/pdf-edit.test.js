@@ -19,14 +19,16 @@ const assert = require('node:assert/strict');
     await p.fill('#pdf-edit-text','René van Es');await p.click('#pdf-edit-add-text');
     assert.equal(await p.evaluate(()=>pdfEd.items[0].text),'René van Es');
     await p.click('#pdf-edit-undo');assert.match(await p.evaluate(()=>pdfEd.items[0].text),/<akkoord>/);
-    await p.getByRole('button',{name:'Handtekening tekenen',exact:true}).click();
-    await p.getByRole('button',{name:'Handtekening plaatsen',exact:true}).click();
-    assert.equal(await p.evaluate(()=>pdfEd.items.length),1,'lege handtekening niet geplaatst');
-    const pad=await p.locator('#pdf-edit-sign').boundingBox();
+    // Tekenen gaat via het gedeelde venster (02-handtekening.js); niet bewaren = alleen in deze kopie
+    await p.getByRole('button',{name:'Handtekening tekenen',exact:true}).click();await p.waitForSelector('#sigdlg.on');
+    assert.equal(await p.textContent('#sig-ok'),'Plaatsen');assert.equal(await p.isChecked('#sig-bewaar'),true,'nog geen bewaarde: standaard ook bewaren');
+    await p.click('#sig-ok');
+    assert.equal(await p.evaluate(()=>pdfEd.items.length),1,'lege handtekening niet geplaatst');assert.equal(await p.textContent('#sig-fout'),'Teken eerst je handtekening');
+    const pad=await p.locator('#sig-pad').boundingBox();
     await p.mouse.move(pad.x+20,pad.y+40);await p.mouse.down();await p.mouse.move(pad.x+60,pad.y+65,{steps:5});await p.mouse.move(pad.x+120,pad.y+20,{steps:5});await p.mouse.up();
-    await p.getByRole('button',{name:'Handtekening plaatsen',exact:true}).click();
+    await p.locator('#sig-bewaar').uncheck();await p.click('#sig-ok');
     assert.equal(await p.evaluate(()=>pdfEd.items[1].type),'ink');
-    assert.equal(await p.isVisible('#pdf-edit-sign-box'),false,'tekening na plaatsen gesloten');
+    assert.equal(await p.isVisible('#sigdlg'),false,'venster na plaatsen gesloten');assert.equal(await p.evaluate(()=>Android._signature||null),null,'niet bewaard');
     // Aanwijzen en slepen van de handtekening, binnen de paginagrenzen.
     await p.locator('#pdf-edit-paper').scrollIntoViewIfNeeded();
     const paper=await p.locator('#pdf-edit-layer').boundingBox(),ink=await p.evaluate(()=>pdfEd.items[1]);

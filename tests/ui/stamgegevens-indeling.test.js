@@ -47,7 +47,7 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  assert.equal(await p.getAttribute('#cm-kaart-title','translate'),'no','titel is de naam (gegevens)');
  assert.equal(await p.textContent('#cm-kaart-status'),L('Welkom! Dit ben jij. Voeg nu je documenten en je mensen toe.','Welcome! This is you. Now add your documents and your people.'));
  assert.equal(await p.textContent('#cm-kaart .cmc-ik'),L('Dit ben jij','This is you'));
- assert.deepEqual(await blokken(),['persoon','geboorte','contact','documenten','relaties'],'blokken op je eigen kaartje');
+ assert.deepEqual(await blokken(),['persoon','geboorte','contact','documenten','handtekening','relaties'],'blokken op je eigen kaartje (handtekening: 02-handtekening.js)');
  assert.equal(await p.isVisible('#cmc-over-mij'),true,'Over mij staat bij de assistent');
  assert.ok((await p.locator('#cm-kaart [data-blok=geboorte]').innerText()).includes(await p.evaluate(()=>fmtDate('1980-01-01'))),'datum in de regio-notatie');
 

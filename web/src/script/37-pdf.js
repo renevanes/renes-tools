@@ -49,7 +49,7 @@ function enterPdf(){
   pdfIn = rdJson(Android.pdfInfo(), {});
   pdfRender();
   pdfRenderDef();
-  pdfEditSource();pdfSignatureLoad();
+  pdfEditSource();sigLoad();pdfSignatureRender();
 }
 /* Standaard PDF-app: Android laat dit de gebruiker zelf kiezen ("Altijd"), wij helpen erbij */
 function pdfRenderDef(){

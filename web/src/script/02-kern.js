@@ -209,6 +209,7 @@ window.goBack = function(){
   if(typeof cm!=='undefined'&&cm.picker){cmClosePicker();return true;}
   if(typeof fmq!=='undefined'&&fmq.open){fmqClose();return true;}
   if ($('#modal').classList.contains('on')) { closeModal(null); return true; }
+  if ($('#sigdlg').classList.contains('on')) { sigClose(); return true; }
   if (typeof gbBack === 'function' && gbBack()) return true;
   if (typeof aiTalkBack === 'function' && aiTalkBack()) return true; // eerst het gesprek met de assistent stoppen
   if ($('#voice') && $('#voice').classList.contains('on')) { voiceClose(); return true; }

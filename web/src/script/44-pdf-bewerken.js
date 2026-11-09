@@ -1,5 +1,5 @@
 /* PDF-toevoegingen blijven in het geheugen; alleen expliciet bewaren maakt een document of herbruikbare handtekening. */
-const pdfEd = {revision:'', page:0, meta:{}, items:[], undo:[], selected:-1, loading:false, want:false, saved:'[]', strokes:[], stroke:null, drag:null};
+const pdfEd = {revision:'', page:0, meta:{}, items:[], undo:[], selected:-1, loading:false, want:false, saved:'[]', drag:null};
 function pdfEditDirty(){ return JSON.stringify(pdfEd.items) !== pdfEd.saved; }
 function pdfEditPendingInput(){
   const value = $('#pdf-edit-text').value.trim(), selected = pdfEd.items[pdfEd.selected];
@@ -14,7 +14,7 @@ function pdfEditSource(){
   const ready = !!(pdfIn.pages && pdfIn.revision);
   if (pdfEd.revision && pdfEd.revision !== pdfIn.revision) {
     pdfEd.items = []; pdfEd.undo = []; pdfEd.meta = {}; pdfEd.revision = ''; pdfEd.saved = '[]'; pdfEd.selected = -1;
-    $('#pdf-edit-work').style.display = 'none'; pdfEditSignHide();
+    $('#pdf-edit-work').style.display = 'none';
   }
   if (pdfEd.want && ready) { pdfEd.want = false; pdfEditOpen(); }
   pdfEditPickUi();
@@ -60,7 +60,7 @@ function pdfEditPage(delta){ pdfEditGo(pdfEd.page + 1 + delta); }
 function pdfEditGo(value){
   if (pdfBusy || pdfEd.loading) return;
   const n = Math.min(pdfIn.pages, Math.max(1, Math.round(+value || 1))) - 1;
-  pdfEd.page = n; pdfEditSignHide(); pdfEditLoad();
+  pdfEd.page = n; pdfEditLoad();
 }
 function pdfEditControls(){
   const live = !!(pdfEd.revision && pdfEd.meta[pdfEd.page] && !pdfEd.loading && !pdfBusy);
@@ -159,7 +159,7 @@ function pdfEditDraw(){
 }
 function pdfEditRemove(){ if(pdfBusy||pdfEd.selected<0)return;pdfEditRemember();pdfEd.items.splice(pdfEd.selected,1);pdfEditSelect(-1); }
 function pdfEditUndo(){ if(pdfBusy||!pdfEd.undo.length)return;pdfEd.items=JSON.parse(pdfEd.undo.pop());pdfEditSelect(-1); }
-function pdfEditDiscard(){ if(!pdfEd.items.length)return;askConfirm('Toevoegingen wissen?','Verwijdert alle toevoegingen op alle pagina’s van deze werkkopie.','Wissen',()=>{pdfEditRemember();pdfEd.items=[];pdfEditSelect(-1);pdfEditSignHide();}); }
+function pdfEditDiscard(){ if(!pdfEd.items.length)return;askConfirm('Toevoegingen wissen?','Verwijdert alle toevoegingen op alle pagina’s van deze werkkopie.','Wissen',()=>{pdfEditRemember();pdfEd.items=[];pdfEditSelect(-1);}); }
 function pdfEditPoint(event,canvas){const r=canvas.getBoundingClientRect();return [Math.max(0,Math.min(1,(event.clientX-r.left)/r.width)),Math.max(0,Math.min(1,(event.clientY-r.top)/r.height))];}
 $('#pdf-edit-layer').addEventListener('pointerdown',e=>{
   if(pdfBusy||pdfEd.loading)return;
@@ -178,18 +178,6 @@ $('#pdf-edit-paper').addEventListener('keydown',e=>{
   const delta={ArrowLeft:[-.005,0],ArrowRight:[.005,0],ArrowUp:[0,-.005],ArrowDown:[0,.005]}[e.key],o=pdfEd.items[pdfEd.selected];
   if(!delta||!o||pdfBusy)return;e.preventDefault();pdfEditPut(Object.assign({},o,{x:o.x+delta[0],y:o.y+delta[1]}));
 });
-function pdfEditSignShow(){if(pdfBusy||pdfEd.loading||!pdfEd.meta[pdfEd.page])return;pdfEditSignClear();$('#pdf-edit-sign-box').style.display='';$('#pdf-edit-sign').scrollIntoView({block:'center'});}
-function pdfEditSignHide(){pdfEditSignClear();$('#pdf-edit-sign-box').style.display='none';}
-function pdfEditSignClear(){pdfEd.strokes=[];pdfEd.stroke=null;$('#pdf-edit-sign').getContext('2d').clearRect(0,0,900,300);}
-$('#pdf-edit-sign').addEventListener('pointerdown',e=>{pdfEd.stroke=[pdfEditPoint(e,e.currentTarget)];pdfEd.strokes.push(pdfEd.stroke);e.currentTarget.setPointerCapture(e.pointerId);e.preventDefault();});
-$('#pdf-edit-sign').addEventListener('pointermove',e=>{
-  if(!pdfEd.stroke)return;const p=pdfEditPoint(e,e.currentTarget),q=pdfEd.stroke[pdfEd.stroke.length-1];if(pdfEd.strokes.reduce((s,a)=>s+a.length,0)>=10000)return;
-  pdfEd.stroke.push(p);const c=e.currentTarget.getContext('2d');c.strokeStyle=$('#pdf-edit-color').value;c.lineWidth=3;c.lineCap='round';c.beginPath();c.moveTo(q[0]*900,q[1]*300);c.lineTo(p[0]*900,p[1]*300);c.stroke();
-});
-for(const event of ['pointerup','pointercancel'])$('#pdf-edit-sign').addEventListener(event,()=>{pdfEd.stroke=null;});
-function pdfEditSignAdd(){
-  const s=pdfSignatureFromPad();if(s&&pdfSignaturePut(s))pdfEditSignHide();
-}
 function pdfEditSave(){
   if(pdfBusy||pdfEd.loading||!pdfEd.items.length||!pdfEditDirty())return;
   const pages=[...new Set(pdfEd.items.map(o=>o.page))];if(pages.length>30){toast('Bewerk maximaal 30 pagina’s tegelijk');return;}
@@ -199,4 +187,4 @@ function pdfEditSave(){
     pdfSetBusy('Bewerkte PDF-kopie maken…');pdfEditControls();Android.pdfEditSave(pdfEd.revision,json,$('#pdf-edit-name').value.trim());
   }catch(e){pdfSetBusy('');toast('De bewerkingen kunnen niet worden opgeslagen. Probeer minder toevoegingen.');pdfEditControls();}
 }
-function pdfEditSaved(r){if(r.revision===pdfEd.revision){pdfEd.saved=JSON.stringify(pdfEd.items);pdfEditSignHide();$('#pdf-edit-status').textContent=t('Kopie gemaakt. Tik hieronder op de kopie om hem op te slaan of te delen.');document.querySelectorAll('#pdf-edit-work [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);}pdfEditControls();}
+function pdfEditSaved(r){if(r.revision===pdfEd.revision){pdfEd.saved=JSON.stringify(pdfEd.items);$('#pdf-edit-status').textContent=t('Kopie gemaakt. Tik hieronder op de kopie om hem op te slaan of te delen.');document.querySelectorAll('#pdf-edit-work [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);}pdfEditControls();}
