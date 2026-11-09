@@ -4,8 +4,10 @@ for(const colorScheme of ['light','dark'])for(const play of [false,true]){
  const p=await b.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));await p.addInitScript(v=>window.__testPlay=v,play);
  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen());
  const T=require('./_stamtabs')(p),naam='Centraal <img src=x onerror=alert(1)>';
- await p.click('#cm-add');await p.waitForSelector('#sheet.on');assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),['Kies uit Contacten','Zelf invullen'],'zonder jou: uit Contacten of zelf');
- await p.locator('#sheet-acts').getByRole('button',{name:'Zelf invullen',exact:true}).click();await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='persoon');await p.fill('#cm-field-naam','Testpersoon');await p.fill('#cm-field-voornamen','Ada');
+ await p.click('#cm-add');
+ // De Play-versie heeft geen Contacten: meteen zelf invullen
+ if(!play){await p.waitForSelector('#sheet.on');assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),['Kies uit Contacten','Zelf invullen'],'zonder jou: uit Contacten of zelf');
+ await p.locator('#sheet-acts').getByRole('button',{name:'Zelf invullen',exact:true}).click();}await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='persoon');await p.fill('#cm-field-naam','Testpersoon');await p.fill('#cm-field-voornamen','Ada');
  assert.equal(await p.isVisible('#cm-field-bsn'),false,'nieuw: alleen het korte blok');await p.evaluate(()=>{cmSave();cmSave();});await p.waitForFunction(()=>cm.records.length===1&&$('#cm-editor').hidden&&current==='cmkaart');
  const id=await p.evaluate(()=>cm.records[0].id);await T.blok(id,'naam');await p.fill('#cm-label',naam);await T.opslaan();
  await T.blok(id,'geboorte');await p.fill('#cm-field-bsn','123456782');

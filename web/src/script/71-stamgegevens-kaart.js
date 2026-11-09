@@ -70,6 +70,7 @@ function cmcValue(r,key,v){
   if(key==='status'){const c=(cmiStatusChoices(r.fields.relatie)||[]).find(x=>x[0]===v);return [c?c[1]:v];}
   if(CMC_JANEE.has(key))return [v==='ja'?t('Ja'):t('Nee')];
   if(key==='geslacht'||key==='documentsoort'){const c=(cmiChoices(key)||[]).find(x=>x[0]===v);return [c?c[1]:v];}
+  if(key==='handtekening')return [v==='begeleider1'?t('Begeleider 1'):v==='begeleider2'?t('Begeleider 2'):t('Nergens')];
   return [v];
 }
 

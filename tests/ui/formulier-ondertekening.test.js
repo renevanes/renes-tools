@@ -12,10 +12,11 @@ for(const colorScheme of ['light','dark']){
       rec(3,'persoon','Papa',{naam:'Jansen',voornamen:'Rene'})];
     Android._signature={version:1,ratio:.5,color:'#1a237e',paths:[[[0,0],[1,1]],[[0,1],[1,0]]]};
   });
-  // 1. Vaste gegevens: tabblad Ondertekenen met plaats en bij welke begeleider de handtekening komt.
+  // 1. Vaste gegevens: blok Ondertekenen met plaats en bij welke begeleider de handtekening komt.
   await p.evaluate(()=>{openTool('pdf');});await p.getByRole('button',{name:'Formulieren invullen',exact:true}).click();
-  await p.click('#fmq-instellen');await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.edit&&cm.edit.type==='formulier');
-  assert.equal(await p.isVisible('#cm-tab-ondertekenen'),true,'tabblad Ondertekenen');
+  await p.click('#fmq-instellen');await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&current==='cmlijst'&&cmLijstNu()==='vast');
+  await p.click('#cm-lijst-add');await p.waitForFunction(()=>cm.edit&&cm.edit.type==='formulier'&&current==='cmedit');
+  assert.equal(await p.isVisible('#cm-field-tekenplaats'),true,'blok Ondertekenen');
   assert.deepEqual(await p.$$eval('#cm-field-handtekening option',o=>o.map(x=>x.value)),['','begeleider1','begeleider2'],'nooit bij een toestemminggever');
   await T.select('#cm-field-kind',{label:'Zoë'});await T.select('#cm-field-gever1',{label:'Mama'});
   await T.fill('#cm-field-tekenplaats','Rotterdam');assert.equal(await p.isVisible('#cmi-form-sign'),true,'uitleg bij ondertekenen');
@@ -23,11 +24,12 @@ for(const colorScheme of ['light','dark']){
   await T.select('#cm-field-begeleider1',{label:'Papa'});await T.select('#cm-field-handtekening','begeleider2');
   await p.click('#cm-save');await p.waitForFunction(()=>!cm.mutating&&/meereist/.test($('#cm-edit-status').textContent));
   await T.select('#cm-field-handtekening','begeleider1');
-  await p.click('#cm-save');await p.waitForFunction(()=>$('#cm-editor').hidden&&Android._cm.records.some(r=>r.type==='formulier'));
+  await p.click('#cm-save');await p.waitForFunction(()=>$('#cm-editor').hidden&&Android._cm.records.some(r=>r.type==='formulier')&&current==='cmkaart'&&!cm.navigating);
+  assert.match(await p.textContent('#cm-kaart'),/Rotterdam/);assert.doesNotMatch(await p.textContent('#cm-kaart'),/begeleider1/,'kaartje toont de keuze in woorden');
   const vast=await p.evaluate(()=>Android._cm.records.find(r=>r.type==='formulier').fields);
   assert.equal(vast.tekenplaats,'Rotterdam');assert.equal(vast.handtekening,'begeleider1');
   // 2. Nieuwe reis: de datum staat standaard op vandaag en komt met de plaats en handtekening bij de begeleider.
-  assert.equal(await p.evaluate(()=>goBack()&&current),'formulieren');
+  assert.equal(await p.evaluate(()=>goBack()&&current),'cmlijst');assert.equal(await p.evaluate(()=>goBack()&&current),'formulieren');
   await p.click('#fmq-start');await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden&&fmq.records.length===1);
   assert.equal(await p.inputValue('#fmq-datum'),await p.evaluate(()=>rgDayKey(Date.now())),'datum standaard vandaag');
   await p.fill('#fmq-van','2027-07-15');await p.fill('#fmq-tot','2027-07-30');await p.fill('#fmq-land','Frankrijk');await p.fill('#fmq-datum','2027-07-01');
@@ -67,7 +69,7 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>$('#pff-maak').disabled),true,'geen PDF zonder de gekozen handtekening');
   // Een leeg formulier: Meer gegevens blijft dicht, de keuze Nee telt niet als ingevuld.
   assert.equal(await p.evaluate(()=>{fm.values={};fm.stam=new Set();fm.meer={};fm.values.alleen='nee';fm.values['begeleider1-handtekening']='nee';fm.step=fmSecties().findIndex(s=>s.fields.some(f=>f.id==='begeleider1-handtekening'));fmRender();return $('#pff-meer').open;}),false,'Meer gegevens dicht');
-  // Met een app-profiel kan je handtekening alleen bij jezelf.
+  // Staat er wie jij bent (Ik), dan kan je handtekening alleen bij jezelf.
   await p.evaluate(()=>Android._cm.records.push({id:'00000000-0000-0000-0000-000000000009',type:'profiel',label:'Mijn app-profiel',revision:1,fields:{persoon:'00000000-0000-0000-0000-000000000002'}}));
   assert.match(await p.evaluate(()=>{try{const r=Android._cm.records.find(x=>x.type==='formulier');Android._cmOwnSignature(r.fields);return 'geen fout';}catch(e){return e.message;}}),/van jou/,'Papa is niet wie ik ben');
   await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!fm.masterSensitive&&!cm.token);
