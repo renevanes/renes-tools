@@ -93,7 +93,7 @@ function fmHelpFixed(){
 function fmHelpAi(){
   if(!fmHelpReady())return;fmHelpDiscard();
   if(typeof Android.pdfFormAi!=='function'){fmHelpNote(t('Installeer de nieuwste APK voor lokale invulhulp.'));return;}
-  const fields=fmHelpFields().map(f=>({id:f.id,label:f.label,type:f.type||'text',sources:f.sources||[],...(f.type==='select'?{options:f.options.map(o=>o[0])}:{})}));
+  const fields=fmHelpFields().filter(f=>!fmHandtekeningVeld(f)).map(f=>({id:f.id,label:f.label,type:f.type||'text',sources:f.sources||[],...(f.type==='select'?{options:f.options.map(o=>o[0])}:{})}));
   const sources=fmHelpRelevant().map(({id,label,type,role,fields})=>({id,label,type,role,fields}));
   fmh.request='formulier-ai-'+(++fmh.seq);fmh.snapshot=fmHelpSnapshot();fmh.busy=true;fmHelpControls();
   fmHelpNote(t('De lokale AI maakt een voorstel. Dit kan even duren.'));
@@ -109,7 +109,7 @@ window.onPdfFormAi=function(r){
   fmHelpShow(r.fields||[]);
 };
 function fmHelpShow(rows){
-  const fields=fmHelpFields();fmh.rows=[];fmh.snapshot=fmHelpSnapshot();
+  const fields=fmHelpFields().filter(f=>!fmHandtekeningVeld(f));fmh.rows=[];fmh.snapshot=fmHelpSnapshot();
   const box=$('#pff-hulp-voorstellen');box.replaceChildren();const seen=new Set();
   for(const row of rows){
     const field=fields.find(f=>f.id===row.id);if(!field||seen.has(row.id)||!fmHelpValueOK(field,row.value)||fm.values[row.id]===row.value)continue;seen.add(row.id);fmh.rows.push(row);

@@ -2,9 +2,9 @@
  * De vaste gegevens worden native opgebouwd uit de actuele stamgegevens (MasterFormProfile); hier blijft
  * alles vluchtig, net als bij handmatig overnemen. Bij vergrendelen wordt de invoer gewist. */
 const fmq={open:false,records:[],busy:false,focus:null,ask:false,epoch:0};
-// Formulieren met vaste gegevens en welke reisvelden je per keer invult.
-const FM_VAST={reistoestemming:{van:'van',tot:'tot',land:'land',plaats:'bestemming-plaats',accommodatie:'accommodatie',postcode:'bestemming-postcode',telefoon:'bestemming-telefoon',reisgegevens:'reisgegevens'}};
-const FMQ_REIS=['van','tot','land','plaats','accommodatie','postcode','telefoon','reisgegevens'];
+// Formulieren met vaste gegevens en welke reisvelden je per keer invult (een veld kan op meer plekken komen).
+const FM_VAST={reistoestemming:{van:'van',tot:'tot',land:'land',plaats:'bestemming-plaats',datum:['begeleider1-datum','begeleider2-datum'],accommodatie:'accommodatie',postcode:'bestemming-postcode',telefoon:'bestemming-telefoon',reisgegevens:'reisgegevens'}};
+const FMQ_REIS=['van','tot','land','plaats','datum','accommodatie','postcode','telefoon','reisgegevens'];
 function fmqNote(text){$('#fmq-status').textContent=text;}
 // Met vaste gegevens is "Nieuwe reis invullen" de hoofdknop en staat "Zelf invullen" als rij eronder.
 function fmqKaart(){
@@ -18,7 +18,7 @@ function fmqRenderState(){
 }
 function fmqClearInput(){
   fmq.records=[];$('#fmq-profiel').replaceChildren();$('#fmq-id').checked=false;$('#fmq-geen').hidden=true;fmqNote('');
-  for(const key of FMQ_REIS)$('#fmq-'+key).value='';$('#fmq .fmq-meer').open=false;
+  for(const key of FMQ_REIS)$('#fmq-'+key).value='';$('#fmq-datum').value=rgDayKey(Date.now());$('#fmq .fmq-meer').open=false;
   document.querySelectorAll('#fmq [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);
 }
 function fmqOpen(){
@@ -71,7 +71,7 @@ function fmqFill(record,reis,consent,id,epoch,warnings){
     const known=new Set(fmDef().sections.flatMap(s=>s.fields.map(f=>f.id)));
     for(const [key,value] of Object.entries(r.values||{}))if(known.has(key)&&typeof value==='string'){fm.values[key]=value;fm.stam.add(key);}
     for(const [role,code] of Object.entries(r.relations||{})){const value=CMI_RELATIONS[code]?.toLowerCase();if(value&&known.has(role+'-relatie')){fm.values[role+'-relatie']=value;fm.stam.add(role+'-relatie');}} // taal-vast: veld-id en waarde voor het Nederlandse overheidsformulier
-    for(const [key,target] of Object.entries(FM_VAST[id]))if(reis[key])fm.values[target]=reis[key];
+    for(const [key,targets] of Object.entries(FM_VAST[id]))for(const target of [].concat(targets))if(reis[key]&&fmqInBeeld(target))fm.values[target]=reis[key];
     fm.masterSensitive=true;
     const kind=(fm.values['kind-voornamen']||'').split(/\s+/)[0];
     $('#pff-naam').value=kind?t('Reistoestemming {naam} {datum}',{naam:kind,datum:reis.van}):t('{titel} {datum}',{titel:fmDef().title,datum:reis.van});
@@ -81,9 +81,20 @@ function fmqFill(record,reis,consent,id,epoch,warnings){
       $('#pff-titel').focus();
       $('#pff-melding').textContent=r.omitted?t('Ingevuld. Documentnummers en BSN zijn weggelaten; vul ze zelf in of kies Nieuwe reis invullen opnieuw met het vinkje aan.'):t('Ingevuld met je vaste gegevens. Controleer beide pagina’s en maak de PDF.');
     }else $('#pff-melding').textContent=t('Ingevuld met je vaste gegevens, maar er ontbreekt nog iets: {melding}',{melding:$('#pff-melding').textContent});
+    const handtekening=fmqHandtekening();if(handtekening)$('#pff-melding').textContent=t('{melding} {handtekening}',{melding:$('#pff-melding').textContent,handtekening});
     fmqVerloop(warnings);
   },false,e=>{if(epoch!==fmq.epoch)return;fmq.busy=false;$('#fmq-ga').disabled=!fmq.records.length;fmqNote(e&&e.error?t(e.error):'');});
 }
+/* Waar je bewaarde handtekening komt, of waarom dat niet kan: de PDF zelf toont het pas op die pagina. */
+function fmqHandtekening(){
+  for(const s of fmSecties())for(const f of fmVelden(s))if(fmHandtekeningVeld(f)&&fm.values[f.id]==='ja'){
+    try{fmHandtekening();}catch(e){return e.message;}
+    return t('Je bewaarde handtekening staat bij {wie}, op pagina {pagina}.',{wie:s.title,pagina:f.pdf[0].page+1});
+  }
+  return '';
+}
+/* Alleen in een stap die er met deze vaste gegevens is (geen datum voor een tweede begeleider die er niet is). */
+function fmqInBeeld(target){return fmSecties().some(s=>fmVelden(s).some(f=>f.id===target));}
 /* Verlopen reisdocumenten: vóór de laatste reisdag, of binnen zes maanden daarna (veel landen eisen dat). */
 function fmqVerloop(warnings){
   const box=$('#pff-verloop');

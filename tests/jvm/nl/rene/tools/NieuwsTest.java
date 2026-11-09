@@ -34,6 +34,38 @@ public class NieuwsTest {
         check(bs.length() == Nieuws.STANDAARD.length, "alle bekende bronnen: " + bs.length());
         check(bron(bs, "nos").optBoolean("aan") && bron(bs, "rijnmond").optBoolean("aan") && !bron(bs, "nu").optBoolean("aan"), "standaard aan: NOS en Rijnmond");
         for (String[] s : Nieuws.STANDAARD) check(Nieuws.https(s[2]) && s[0].matches("[a-z0-9-]+") && !s[4].isEmpty(), "bekende bron " + s[0] + ": https, geldige id en een site");
+        for (String[] s : Nieuws.STANDAARD) {
+            String al = Nieuws.alleen(s[0]);
+            boolean vanDeSite = al.isEmpty();
+            for (String site : s[4].split(" ")) vanDeSite |= al.startsWith(site + "/");
+            check(al.isEmpty() || (al.endsWith("/") && vanDeSite), "bekende bron " + s[0] + ": alleen-links horen bij de eigen site");
+        }
+        // Tweakers mengt nieuws met downloads, reviews en aanbiedingen: alleen het nieuws blijft
+        check("tweakers.net/nieuws/".equals(Nieuws.alleen("tweakers")) && Nieuws.alleen("nos").isEmpty() && Nieuws.alleen("e1234").isEmpty(), "alleen nieuws bij Tweakers");
+        check("tweakers".equals(Nieuws.bekendeSite("https://tweakers.net/nieuws/")) && "tweakers".equals(Nieuws.bekendeSite("tweakers.net")), "tweakers.net/nieuws intikken: de bekende bron");
+        NieuwsFeed.Feed gemengd = new NieuwsFeed.Feed();
+        for (String l : new String[]{"https://tweakers.net/nieuws/1/een.html", "https://tweakers.net/downloads/2/twee.html", "https://tweakers.net/reviews/3/drie.html",
+                "/nieuws/4/vier.html", "https://www.tweakers.net/nieuws/5/vijf.html", "https://tweakers.net/nieuws", "https://ander.example.org/tweakers.net/nieuws/6", "https://tweakers.net/plan/7/zeven.html", "", "https://tweakers.net/nieuws/../downloads/8/acht.html"}) {
+            NieuwsFeed.Artikel x = new NieuwsFeed.Artikel();
+            x.link = l; x.titel = l;
+            gemengd.artikelen.add(x);
+        }
+        Nieuws.filter("tweakers", "https://tweakers.net/feeds/mixed.xml", gemengd);
+        StringBuilder over = new StringBuilder();
+        for (NieuwsFeed.Artikel x : gemengd.artikelen) over.append(x.link).append(' ');
+        check("https://tweakers.net/nieuws/1/een.html /nieuws/4/vier.html https://www.tweakers.net/nieuws/5/vijf.html ".equals(over.toString()), "Tweakers: alleen nieuwsartikelen: " + over);
+        NieuwsFeed.Feed alles = new NieuwsFeed.Feed();
+        for (String l : new String[]{"https://nos.nl/l/1", "https://nos.nl/video/2"}) { NieuwsFeed.Artikel x = new NieuwsFeed.Artikel(); x.link = l; alles.artikelen.add(x); }
+        Nieuws.filter("nos", "https://feeds.nos.nl/nosnieuwsalgemeen", alles);
+        check(alles.artikelen.size() == 2, "andere bronnen: alles blijft");
+        NieuwsFeed.Feed geenNieuws = new NieuwsFeed.Feed();
+        NieuwsFeed.Artikel dl = new NieuwsFeed.Artikel(); dl.link = "https://tweakers.net/downloads/9/negen.html"; geenNieuws.artikelen.add(dl);
+        String geen = "";
+        try { Nieuws.filter("tweakers", "https://tweakers.net/feeds/mixed.xml", geenNieuws); } catch (Nieuws.Fout e) { geen = e.getMessage(); }
+        check("In deze feed staat nu geen nieuws".equals(geen), "Tweakers zonder nieuws: een melding, de vorige artikelen blijven");
+        NieuwsFeed.Feed leeg = new NieuwsFeed.Feed();
+        Nieuws.filter("tweakers", "https://tweakers.net/feeds/mixed.xml", leeg);
+        check(leeg.artikelen.isEmpty(), "lege feed: geen extra melding");
         Nieuws.zetAan(dir, "nu", true);
         Nieuws.zetAan(dir, "rijnmond", false);
         bs = Nieuws.bronnen(dir);
