@@ -19,6 +19,12 @@ final class MasterSchema {
     static final String[] PROFILE={"persoon","delen","context","aiStatus","aiGeboorte","aiDocumenten","aiWoonplaats","aiContact"};
     static final java.util.List<String> YES_NO=Arrays.asList("alleen","tweedeBegeleider","tweedeGever","delen","aiStatus","aiGeboorte","aiDocumenten","aiWoonplaats","aiContact");
     static final String[] RELATION={"vanPersoon","naarPersoon","relatie","status","toelichting","delen"};
+    /** Zijde van de eerste foto bij een nieuw document: een herkende strook van een kaart (TD1) staat op de achterkant;
+     *  niets herkend: de kant waar de app om vroeg (ID-kaart en verblijfsdocument: achterkant, anders voorkant). */
+    static String scanSide(String soort,JSONObject found){
+        if(found!=null)return "TD1".equals(found.optString("soort"))?"back":"front";
+        return "identiteitskaart".equals(soort)||"verblijfsdocument".equals(soort)?"back":"front";
+    }
     static boolean sensitive(String key){return "bsn".equals(key)||"document".equals(key)||"geldig".equals(key)||"afgifte".equals(key);}
     static String[] fields(String type)throws Exception{
         if("persoon".equals(type))return PERSON;if("organisatie".equals(type))return ORGANISATION;if("adres".equals(type))return ADDRESS;if("identiteit".equals(type))return IDENTITY;if("reis".equals(type))return TRIP;if("profiel".equals(type))return PROFILE;if("relatie".equals(type))return RELATION;if("formulier".equals(type))return MasterFormProfile.FIELDS;

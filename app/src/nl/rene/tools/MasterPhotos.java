@@ -86,12 +86,12 @@ final class MasterPhotos {
     }
     /**
      * Nieuw identiteitsdocument bij de persoon, met de foto als bijlage: de strook van een ID-kaart staat op de achterkant,
-     * die van een paspoort op de fotopagina (voorkant). Niets herkend: soort leeg en de foto als voorzijde ("Document …").
+     * die van een paspoort op de fotopagina (voorkant). Niets herkend: de soort die Rene koos en de kant waar de app om vroeg.
      * Herkende gegevens worden niet vanzelf ingevuld; die zijn een voorstel.
      */
     JSONObject scanDocument(SecretKey key,MasterSession session,String token,Pending job,String image,JSONObject found)throws Exception{
         String soort=found==null?job.soort:found.getJSONObject("document").optString("documentsoort",job.soort);
-        String side=found!=null&&"TD1".equals(found.optString("soort"))?"back":"front";
+        String side=MasterSchema.scanSide(soort,found);
         JSONObject out=MasterStore.scanCreate(activity,key,session,token,job.id,soort,side,image,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});
         try{MasterStore.refreshContext(activity,key,session,token);}catch(Throwable e){out.put("contextError",Taal.T("Gegevens opgeslagen; de gedeelde app-context kon niet worden ververst"));}
         MainActivity.appIdentityChanged(MasterAppContext.read(activity).toString());

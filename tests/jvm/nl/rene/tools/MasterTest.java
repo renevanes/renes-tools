@@ -115,6 +115,8 @@ public class MasterTest {
         record.getJSONObject("fields").put("onbekend","x");rejects(()->MasterSchema.clean(record));record.getJSONObject("fields").remove("onbekend");
         record.getJSONObject("fields").put("bsn","abc");rejects(()->MasterSchema.clean(record));
         check(MasterSchema.sensitive("document")&&!MasterSchema.sensitive("naam"),"extra toestemming identiteitsgegevens");
+        check("back".equals(MasterSchema.scanSide("paspoort",new JSONObject().put("soort","TD1")))&&"front".equals(MasterSchema.scanSide("identiteitskaart",new JSONObject().put("soort","TD3"))),"herkende strook bepaalt de zijde");
+        check("back".equals(MasterSchema.scanSide("identiteitskaart",null))&&"back".equals(MasterSchema.scanSide("verblijfsdocument",null))&&"front".equals(MasterSchema.scanSide("paspoort",null))&&"front".equals(MasterSchema.scanSide("",null)),"niets herkend: de gevraagde kant");
         formProfile();
         System.out.println("Stamgegevens: encryptie, intrekken, looptijden en veldcontracten gecontroleerd");
     }
