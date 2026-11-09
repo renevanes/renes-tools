@@ -654,7 +654,7 @@ window.onAiSearch = function(r){
 function aiSearchHtml(ql){
   if (!aiSearchRes || aiSearchRes.q !== gsQ) return '';
   if (aiSearchRes.pending) return '<div class="card gsg aigs"><h3>' + uiIcon('sparkle') + 'Op betekenis <span class="n">…</span></h3><p class="note" style="margin:4px 0">Zoeken op betekenis…</p></div>';
-  const it = aiSearchRes.items || [];
+  const it = (aiSearchRes.items || []).filter(h => typeof gsDicht !== 'function' || !gsDicht(aiHitGs(h)[0]));
   if (!it.length) return '';
   return '<div class="card gsg aigs"><h3>' + uiIcon('sparkle') + 'Op betekenis <span class="n">' + it.length + '</span></h3>' + it.map(h => { const g = aiHitGs(h);
     return '<button class=gi data-k="' + esc(g[0]) + '" data-x="' + esc(JSON.stringify(g[1])) + '" onclick="gsOpen(this)"><b>' + uiIcon(aiKindIcon(h.kind)) + ' ' + esc(h.title) + '</b><small>' + esc(String(h.snip || '').slice(0, 160)) + (String(h.snip || '').length > 160 ? '…' : '') + '</small></button>'; }).join('') +

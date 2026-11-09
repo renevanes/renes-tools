@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
     await pg.click('#tabs button[data-t=settings]'); await pg.waitForTimeout(250);
     const groups = await pg.$$eval('#s-settings .stgl', x => x.map(e => e.textContent));
     ok(groups.join('|') === 'Algemeen|Beveiliging en privacy|Gegevens en diensten|Over de app', 'vier groepen');
-    ok((await pg.$$('#s-settings .strow')).length === 15, 'vijftien onderwerpen (met privacybeleid; Modellen staat bij Lokale AI)');
+    ok((await pg.$$('#s-settings .strow')).length === 16, 'zestien onderwerpen (met privacybeleid en extra ontgrendelen; Modellen staat bij Lokale AI)');
     ok(await pg.evaluate(() => document.documentElement.scrollHeight < 1700), 'geen lange pagina meer');
     ok(!(await pg.isVisible('#st-zoom')) && !(await pg.isVisible('#st-perms')), 'de instellingen zelf staan op eigen schermen');
     const sums = await pg.$$eval('#s-settings .strow small', x => x.map(e => e.textContent));
@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
     ok((await pg.evaluate(() => window.testPrivacyUrl)).endsWith('/privacybeleid.md'), 'privacybeleid opent de openbare pagina');
     // Elk onderwerp opent zijn eigen scherm, terug = het overzicht
     const subs = [['Meldingen', 'setnotif', '#st-notif-mute'], ['Weergave', 'setlook', '#st-zoom'], ['Regio en taal', 'setregio', '#rg-clock'], ['Telefoon-skin', 'setskin', '#st-home-btn'], ['App-slot', 'setlock', '#st-lock-btn'],
-      ['Losse apps', 'setsolo', '#st-solo-list'], ['Toestemmingen', 'setperm', '#st-perms'], ['Backup-map', 'bkset', '#st-dest', 'Automatisch en versleutelen'], ['Muziek herkennen', 'setmusic', '#st-audd', 'AudD-sleutel'], ['Foutrapport en statistieken', 'setcrash', '#st-crash']];
+      ['Extra ontgrendelen', 'setslot', '#st-slot-list'], ['Losse apps', 'setsolo', '#st-solo-list'], ['Toestemmingen', 'setperm', '#st-perms'], ['Backup-map', 'bkset', '#st-dest', 'Automatisch en versleutelen'], ['Muziek herkennen', 'setmusic', '#st-audd', 'AudD-sleutel'], ['Foutrapport en statistieken', 'setcrash', '#st-crash']];
     for (const [t, scr, el, h1] of subs) {
       await pg.click('#s-settings .strow:has(.sttxt b:text-is("' + t + '"))'); await pg.waitForTimeout(120);
       const good = await pg.evaluate(s => current === s, scr) && await pg.isVisible(el) && (await pg.textContent('#s-' + scr + ' h1')) === (h1 || t);

@@ -48,6 +48,7 @@ final class ToolData {
             "podcast", "player", "podcast_dl", // hebben al een eigen plek in Instellingen/instellingen.json
             "pinned_shortcuts", // vastgezette snelkoppelingen moet je na een herinstallatie opnieuw plaatsen
             "solo",             // welke losse apps aan staan: die openen zonder app-slot, dus niet uit een leesbaar bestand terugzetten (wel in Alle appgegevens)
+            "toolslot",         // extra ontgrendelen per tool: uitzetten vraagt de schermvergrendeling, dus niet uit een leesbaar bestand terugzetten (wel in Alle appgegevens)
             "checkin",          // privé: gaat alleen mee met het eigen vinkje Check-in
             "txdur", "txmeta"   // hoort bij Uitgeschreven gesprekken (namen en nummers van bellers): eigen onderdeel
     ));

@@ -380,7 +380,13 @@ function plSeekDone(){
 
 /* ---------- openen en sluiten ---------- */
 function plOpen(){
-  if (!plModel()) return;
+  const m = plModel(); if (!m) return;
+  const tool = m.src === 'podcast' ? 'podcasts' : 'radio';
+  if (typeof tsVerborgen === 'function' && tsVerborgen(tool)) { // extra ontgrendelen: eerst de tool, dan de speler
+    if (tsTool(current) !== tool) show(tool);
+    if (tsWacht(tool)) ts.daarna = plOpen;
+    return;
+  }
   plIsOpen = true; plQueueSig = '';
   rdFavs = rdJson(Android.radioFavorites(), []); // ook als het radioscherm nog niet open was (bijv. gestart vanaf de widget)
   const p = $('#player');
@@ -404,7 +410,7 @@ function plClose(){
 }
 
 /* Wat achter de speler ligt is niet bereikbaar (TalkBack, toetsenbord) zolang hij open is. */
-function plInert(on){ document.querySelectorAll('.screen, #plbar').forEach(el => { if (on) el.setAttribute('inert', ''); else el.removeAttribute('inert'); }); }
+function plInert(on){ document.querySelectorAll('.screen, #plbar').forEach(el => dialogFocus.base(el, on)); }
 
 /* ---------- vegen ---------- */
 function plCoverIn(dir){

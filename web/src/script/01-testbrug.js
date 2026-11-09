@@ -92,8 +92,10 @@ if (!window.Android) window.Android = (function(){
         s.bronnen.filter(b => b.aan).forEach(b => {
           totaal++;
           if (s.mislukt[b.id]) { s.stand[b.id] = Object.assign({}, s.stand[b.id], { poging: nu, fout: s.mislukt[b.id] }); return; }
-          ok++; s.stand[b.id] = Object.assign({ t: nu, poging: nu }, b.id === 'tweakers' && s.beelden ? { beeldStand: s.cookie ? 'ok' : 'cookiekeuze' }
-            : b.id === 'tweakers' && s.stand[b.id] && s.stand[b.id].beeldStand ? { beeldStand: s.stand[b.id].beeldStand } : {});
+          const was = s.stand[b.id] || {};
+          ok++; s.stand[b.id] = Object.assign({ t: nu, poging: nu }, b.id === 'tweakers' && s.beelden
+            ? (s.beeldFout ? { beeldStand: 'fout', beeldReden: s.beeldFout } : { beeldStand: s.cookie ? 'ok' : 'cookiekeuze' })
+            : b.id === 'tweakers' && was.beeldStand ? { beeldStand: was.beeldStand, beeldReden: was.beeldReden } : {});
         });
         const nieuw = s.erbij.splice(0).map(a => s.artikelen.push(a)).length;
         s.bezig = false; onNieuws({ ok, totaal, nieuw });
@@ -1166,6 +1168,17 @@ if (!window.Android) window.Android = (function(){
     lockSetCode(on, c){ if (c!==this._st.code) { setTimeout(()=>onSettingsChanged('De app-code klopt niet'),50); return; } this._st.lock=on; setTimeout(()=>onSettingsChanged(''),50); },
     lockUnlock(){ setTimeout(()=>{ this._st.locked=false; onUnlocked(); },200); },
     lockSet(on){ this._st.lock=on; setTimeout(()=>onSettingsChanged(''),100); }, lockTimeout(v){ this._st.timeout=+v; },
+    /* Extra ontgrendelen per tool; _tslot.nee = de volgende vraag mislukt (tests), _tslot.vragen = wat er gevraagd is */
+    _tslot:{aan:(window.__testToolSlot||[]).slice(),nee:'',vragen:[],scherm:false},
+    toolSlotState(){ const s=this._tslot; return JSON.stringify({aan:s.aan.slice().sort(),secure:this._st.secure!==false}); },
+    _tsVraag(tool, soort, ja){ const s=this._tslot; s.vragen.push(soort+':'+tool); const fout=s.nee; s.nee=''; setTimeout(()=>{ if(!fout) ja(); onToolSlot(fout?{tool,soort,ok:false,msg:fout}:{tool,soort,ok:true}); },120); },
+    toolSlotSet(tool, on, naam){ const s=this._tslot; if(!TOOLS[tool]||tool==='skin'){ setTimeout(()=>onToolSlot({tool,soort:on?'aan':'uit',ok:false,msg:'Onbekende tool'}),20); return; }
+      if(on){ if(this._st.secure===false){ setTimeout(()=>onToolSlot({tool,soort:'aan',ok:false,msg:'Stel eerst een schermvergrendeling in op je telefoon (pincode, patroon of vingerafdruk)'}),20); return; }
+        if(!s.aan.includes(tool)) s.aan.push(tool); setTimeout(()=>onToolSlot({tool,soort:'aan',ok:true}),20); return; }
+      if(!s.aan.includes(tool)||this._st.secure===false){ s.aan=s.aan.filter(x=>x!==tool); setTimeout(()=>onToolSlot({tool,soort:'uit',ok:true}),20); return; }
+      this._tsVraag(tool,'uit',()=>{ s.aan=s.aan.filter(x=>x!==tool); }); },
+    toolSlotUnlock(tool, naam){ if(!TOOLS[tool]) return; this._tslot.naam=naam; this._tsVraag(tool,'open',()=>{}); },
+    toolSlotScherm(on){ this._tslot.scherm=!!on; },
     _sec:{on:false,since:0,rotate:false,space:null},
     backupSetPassword(pw){ setTimeout(()=>{ this._sec.on=true; this._sec.since=Date.now(); this._sec.pw=pw; onSecure(''); },200); },
     backupEncryptOff(){ this._sec.on=false; this._bk.parts.ai=false; this._bk.parts.sleep=false; this._bk.parts.checkin=false; this._bk.plain={}; }, backupSetRotate(on){ this._sec.rotate=on; },

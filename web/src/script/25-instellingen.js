@@ -1,6 +1,6 @@
 /* ---------- Instellingen ----------
  * Een overzicht in groepen (met per onderwerp een korte stand van zaken) en per onderwerp een eigen scherm. */
-const ST_SUBS = ['setnotif', 'setlook', 'setregio', 'setskin', 'setlock', 'setsolo', 'setperm', 'setmusic', 'setcrash'];
+const ST_SUBS = ['setnotif', 'setlook', 'setregio', 'setskin', 'setlock', 'setslot', 'setsolo', 'setperm', 'setmusic', 'setcrash'];
 const stOn = () => current === 'settings' || ST_SUBS.includes(current);
 function stJson(s){ try { return JSON.parse(s); } catch(e){ return {}; } }
 function stSum(id, tt){ const e = $('#st-sum-' + id); if (e) e.textContent = tt; }
@@ -14,6 +14,7 @@ function stSummaries(i){
   stSum('lock', lk.on && !(lk.secure || lk.code) ? 'Aan, maar werkt nog niet: stel een vergrendeling of app-code in' : lk.on ? t('Aan') + (lk.code ? ' · ' + t('eigen app-code') : '') : 'Uit');
   const so = typeof soloAllowedList === 'function' ? soloAllowedList().length : 0;
   stSum('solo', so ? tn(so, '{n} tool als losse app', '{n} tools als losse app') : t('Geen'));
+  if (typeof tsStand === 'function') stSum('slot', tsStand());
   const ps = i.perms || [], miss = ps.filter(p => !p.ok).length;
   stSum('perm', !ps.length ? '' : miss ? t('{n} van {totaal} nog niet toegestaan', { n: miss, totaal: ps.length }) : '✓ Alles toegestaan');
   stSum('backup', bkSetSumText(bkState(true))); // Backup: map, nachtelijk en versleutelen staan bij Alles back-uppen → Automatisch en versleutelen
@@ -48,6 +49,7 @@ function stNotifMute(on){
 function enterSettings(){
   stNotifRender();
   stSoloRender();
+  if (typeof tsRender === 'function') tsRender();
   $('#st-zoom').value = String(Android.textZoomGet());
   { const can = typeof Android.themeColors === 'function' && !!Android.themeColors(), on = can && store.get('dynColor', false);
     $('#st-dyn').classList.toggle('on', on); $('#st-dyn').setAttribute('aria-checked', on ? 'true' : 'false'); $('#st-dyn').disabled = !can;

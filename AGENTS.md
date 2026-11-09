@@ -25,6 +25,9 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
 - **Iedere nieuwe schermtool ondersteunt standaard losse apps.** Registreer hem in `web/src/script/00-tools.js`: het
   openen, het overzicht Losse apps en het native register volgen daaruit. Subschermen krijgen een `BACK`-verwijzing
   naar hun eigen tool. `solo-alle-tools.test.js` en `SoloTest` bewaken dit; behoud de eigen ontgrendeling en privacy.
+ Zo doet hij ook vanzelf mee met **Extra ontgrendelen** (per tool aan of uit, `26b-extra-ontgrendelen.js`, `ToolSlot`):
+ elk scherm hoort via `BACK` bij zijn tool. Toont een ander scherm (zoeken, het startscherm) gegevens uit een tool, verberg
+ ze dan met `tsVerborgen(tool)` zolang die tool op slot is.
   Alleen de telefoon-skin gebruikt zijn bestaande `HomeActivity`. Zie `docs/startscherm-en-automatiseringen.md`.
 - **Iedere tool doet standaard mee in de backup** (nu en later): zie "Backups: elke tool doet mee" hieronder.
 

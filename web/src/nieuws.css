@@ -31,3 +31,5 @@
 .nws-bronnen .stxt small.nws-fout{color:var(--bad)}
 .nws-bronnen .nws-weg{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:8px;color:var(--muted)}
 .nws-bronnen .tg{flex:none}
+.card.setup.done.nws-mis{border-left-color:var(--warn)}
+details.card.setup.done.nws-mis>summary small{color:var(--warn)}

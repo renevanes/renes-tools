@@ -47,6 +47,19 @@
     <button class="lockbio" id="lock-bio" onclick="Android.lockBio()" style="display:none">Vingerafdruk of gezicht</button>
   </div>
 </div>
+<div class="toolslot" id="toolslot" role="dialog" aria-modal="true" aria-labelledby="ts-titel">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 id="ts-naam"></h1></div>
+  <main>
+    <div class="card ts-kaart">
+      <span class="ts-ic" id="ts-ic" aria-hidden="true"></span>
+      <h2 id="ts-titel"></h2>
+      <p class="note">Ontgrendel met de schermvergrendeling van je telefoon: vingerafdruk, gezicht of pincode.</p>
+      <p class="note warn" id="ts-msg" role="status" aria-live="polite"></p>
+      <button class="big" id="ts-open" onclick="tsOntgrendel()">Ontgrendelen</button>
+      <details class="help in"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>Je hebt extra ontgrendelen aangezet voor deze tool. Hij gaat weer op slot zodra je de tool of de app verlaat, ook als het scherm uitgaat.</p><p>Aan- of uitzetten kan bij Instellingen → Extra ontgrendelen; uitzetten vraagt ook je schermvergrendeling.</p></div></details>
+    </div>
+  </main>
+</div>
 <div class="modal" id="sleepdlg" onclick="if(event.target===this)sleepClose()">
   <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="sl-t">
     <h3 id="sl-t">Slaaptimer</h3>

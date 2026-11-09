@@ -71,7 +71,7 @@ final class AppData {
             "allbackup", "alarm", "apparaten", "backupmap", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "facturen", "gebruik", "launcher",
             "voorlezen", "localai", "lock", "mockloc", "models", "music", "notepins", "notification_history", "notifcenter", "pdf",
             "pdfview", "pinned_shortcuts", "player", "podcast", "podcast_dl", "radio", "redial", "redialplan", "regio", "reminders",
-            "sleeptalk", "sms", "solo", "spotify", "tracks", "transcribe", "txdur", "txmeta", "ui", "vpn", "wabackup",
+            "sleeptalk", "sms", "solo", "spotify", "toolslot", "tracks", "transcribe", "txdur", "txmeta", "ui", "vpn", "wabackup",
             "webstore", "workspace"));
 
     /** Instellingen die bewust niet meegaan, met de reden. */
