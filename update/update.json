@@ -1,15 +1,30 @@
 {
   "app": "Tools",
-  "versionName": "1.173",
-  "versionCode": 174,
-  "nativeLevel": 154,
+  "versionName": "1.174",
+  "versionCode": 175,
+  "nativeLevel": 155,
   "web": "index.html",
-  "webSha256": "bf00d63ee8f883f03db309b5858fd9b4821a87228bcaeb43bcaaccd67aa600c0",
+  "webSha256": "5b330790c0aec62a6a637f2dc39e9802b6991b5b401c1f9e39787c308e0c3582",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "62fec51efefa79b2863dea4238417b0b3e905d8291ae555254a0450b82780e5c",
+  "apkSha256": "6b6401a27bc226797f9d7c4c0221be16b5837857cb88dea1ec0d7024eae420bb",
   "changelog": [
+    {
+      "version": "1.174",
+      "date": "2026-11-09",
+      "changes": [
+        "E-reader: lezen op het volle scherm; tik in het midden voor de knoppen, links of rechts om te bladeren.",
+        "E-reader: met Aa kies je snel de helderheid, het thema, \"Prettig voor je ogen\" (minder blauw licht, ook vanzelf 's avonds), de tekstgrootte in fijnere stappen en de leesmodus.",
+        "E-reader: boeken voorlezen met de lokale stem, vanaf de eerste zichtbare zin en door de hoofdstukken heen: de zin die je hoort licht op en de pagina bladert mee; met pauze, vorige en volgende zin, snelheid, stemkeuze, slaaptimer en desgewenst verder luisteren met het scherm uit.",
+        "E-reader: het scherm blijft aan tijdens het lezen en bladeren met de volumeknoppen kan (Leesweergave → Scherm).",
+        "Lokaal voorlezen met downloadbare Nederlandse en Engelse stemmen, gedeeld door de e-reader, notities en de assistent.",
+        "Download eenmalig een stem (±21 MB) via Instellingen → Lokaal voorlezen; daarna werkt voorlezen zonder internet.",
+        "Tijdens een telefoongesprek pauzeert het voorlezen en daarna gaat het vanzelf verder; zinnen volgen elkaar zonder stilte op.",
+        "De assistent leest ook voor zolang je nog geen lokale stem hebt, met een stem van je telefoon die zonder internet werkt. De beste stem: Instellingen → Lokaal voorlezen → Ronnie downloaden (21 MB).",
+        "Voorlezen pauzeert als je oortjes of bluetooth loskoppelt, en korte antwoorden zoals \"Ja.\" worden nu ook echt uitgesproken."
+      ]
+    },
     {
       "version": "1.173",
       "date": "2026-11-08",
@@ -1525,5 +1540,5 @@
       ]
     }
   ],
-  "webSig2": "RoSOnhgYcSxtNxRXJA8nDNsm27e6MfKVS+rmQsnPsIMqJabApnpVvtToFThrwWKSQ4rnye8mdp88qHCraqlDAGvRwJjHWKwGOnXT9IermxjjKdnYxCTh1nGqqxXTu+H3BWoMWa4zKGn/ACW6RIA0CLzUfvmbTm1rVCcB4H+0aBlNtElf8UXxEQ6thY3s21tuhrdI5T0c1aeOQ06oaM/WNxwBZ8j40lwSsVFyJyCaLMYRFIhX/pmYmV51WQKHOTEPSugmvbSN50WxvcNEC+/QyF2q//Z0kFy0VMCpyuAH91h41VFPIx85Wb4zMTgKNQinVr7pCKJapUqYkUaujiPrvNkLwd+p+mSXAFgK2/wr5ZxBIPjLDOmzyTe9rN8Pl3jSYOltIjWQFMVYza5qfso1Lq0zdteeDVAQ/hr7G3PWea75KLvUlh0bRdCjHb28+X0ixuyI5KEj7zU0moTJAntY044+hsD4xeImJTfYl5vUpZLKYiQMdkZgb3Ta/mLjaZkf"
+  "webSig2": "T7zE5LUdfS83O8wmLFtHCq/VxFuJgDSqZRXmFAitjId68cpH1t+yx2lCtRZNcSKdrTMRbJYs7TXpQiCkUEPf+RMWkLYxTI5BHr9g6rlKzll9C5+MnC0vMQeTYLAbyaMkh3Xa/6lwQcbiPMbnxZVZG3fn7XMl3Sr+UWxJs045nlj6Y75FgwBIXaKm12/q2Z7Nidpvy11L/nE37Lt60X/1SkF+96jXU4ZzW0BxB5fxKoyHH+UscIlfvP1ZuKA9Qde102bSpTd5F2kshUN+KAl1xKWslizHiFrLdjvFOuBbBphxeYz7ITphxLJJy2wGUzWkhJ0sOKbl5HZr5ryYl96e4b1hveaI8ftiVETyOwQNO7ZSkNo5U1ZItsFS8uLdum4JMUA8Jw1ewXJIdYs0fAHUOcX4DADTvdkLspPw7r6cSR1aAdUVm8qbAJYhWv8qvI9GuLrnwMuBPovDA1QQKu4JMtXebmQslKvjdxpm0D4W5ykBP0jrJYIbLXI2q28Aet0f"
 }

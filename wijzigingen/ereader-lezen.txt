@@ -1,4 +1,0 @@
-E-reader: lezen op het volle scherm; tik in het midden voor de knoppen, links of rechts om te bladeren.
-E-reader: met Aa kies je snel de helderheid, het thema, "Prettig voor je ogen" (minder blauw licht, ook vanzelf 's avonds), de tekstgrootte in fijnere stappen en de leesmodus.
-E-reader: boeken voorlezen met de lokale stem, vanaf de eerste zichtbare zin en door de hoofdstukken heen: de zin die je hoort licht op en de pagina bladert mee; met pauze, vorige en volgende zin, snelheid, stemkeuze, slaaptimer en desgewenst verder luisteren met het scherm uit.
-E-reader: het scherm blijft aan tijdens het lezen en bladeren met de volumeknoppen kan (Leesweergave → Scherm).
