@@ -1,5 +1,0 @@
-Lokaal voorlezen met downloadbare Nederlandse en Engelse stemmen, gedeeld door de e-reader, notities en de assistent.
-Download eenmalig een stem (±21 MB) via Instellingen → Lokaal voorlezen; daarna werkt voorlezen zonder internet.
-Tijdens een telefoongesprek pauzeert het voorlezen en daarna gaat het vanzelf verder; zinnen volgen elkaar zonder stilte op.
-De assistent leest ook voor zolang je nog geen lokale stem hebt, met een stem van je telefoon die zonder internet werkt. De beste stem: Instellingen → Lokaal voorlezen → Ronnie downloaden (21 MB).
-Voorlezen pauzeert als je oortjes of bluetooth loskoppelt, en korte antwoorden zoals "Ja." worden nu ook echt uitgesproken.

@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.174",
+    "date": "2026-11-09",
+    "changes": [
+      "E-reader: lezen op het volle scherm; tik in het midden voor de knoppen, links of rechts om te bladeren.",
+      "E-reader: met Aa kies je snel de helderheid, het thema, \"Prettig voor je ogen\" (minder blauw licht, ook vanzelf 's avonds), de tekstgrootte in fijnere stappen en de leesmodus.",
+      "E-reader: boeken voorlezen met de lokale stem, vanaf de eerste zichtbare zin en door de hoofdstukken heen: de zin die je hoort licht op en de pagina bladert mee; met pauze, vorige en volgende zin, snelheid, stemkeuze, slaaptimer en desgewenst verder luisteren met het scherm uit.",
+      "E-reader: het scherm blijft aan tijdens het lezen en bladeren met de volumeknoppen kan (Leesweergave → Scherm).",
+      "Lokaal voorlezen met downloadbare Nederlandse en Engelse stemmen, gedeeld door de e-reader, notities en de assistent.",
+      "Download eenmalig een stem (±21 MB) via Instellingen → Lokaal voorlezen; daarna werkt voorlezen zonder internet.",
+      "Tijdens een telefoongesprek pauzeert het voorlezen en daarna gaat het vanzelf verder; zinnen volgen elkaar zonder stilte op.",
+      "De assistent leest ook voor zolang je nog geen lokale stem hebt, met een stem van je telefoon die zonder internet werkt. De beste stem: Instellingen → Lokaal voorlezen → Ronnie downloaden (21 MB).",
+      "Voorlezen pauzeert als je oortjes of bluetooth loskoppelt, en korte antwoorden zoals \"Ja.\" worden nu ook echt uitgesproken."
+    ]
+  },
+  {
     "version": "1.173",
     "date": "2026-11-08",
     "changes": [
