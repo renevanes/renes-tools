@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
 final class AiCommands {
     private AiCommands() { }
 
-    /** Een herkende opdracht. type: timer, wekker, radio, podcast, speel, slaap, open, sms, wa. */
+    /** Een herkende opdracht. type: timer, wekker, radio, podcast, speel, slaap, open, sms, wa, bel. */
     static final class Cmd {
         String type = "", q = "", label = "", to = "", number = "", text = "", tool = "", need = "";
         int secs, min = -1;
@@ -313,6 +313,10 @@ final class AiCommands {
             c.q = m.group(2) != null ? m.group(2).trim() : m.group(3) != null ? m.group(3).trim() : "";
             return c;
         }
+        // Bellen: de kiezer opent met het nummer, bellen doe je zelf
+        Cmd call = call(s);
+        if (call != null && call.weak && (known == null || !known.has(call.to))) return null;
+        if (call != null) return call;
         // Berichten (eerst: "stuur Jos een sms" mag geen "open" worden)
         Cmd msg = message(s);
         if (msg != null && msg.weak && (known == null || !known.has(msg.to))) return null; // geen contact met die naam: gewoon de assistent
@@ -370,6 +374,75 @@ final class AiCommands {
         StringBuilder b = new StringBuilder(m.group(1)).append(' ').append(w[fin]);
         for (int i = 0; i < w.length; i++) if (i != fin) b.append(' ').append(w[i]);
         return cap(b.toString());
+    }
+
+    private static final Pattern P_CALL = Pattern.compile("(?iu)^(?:bel|telefoneer)\\s+(?:even\\s+|eens\\s+|nu\\s+)?(?:met\\s+|naar\\s+)?(.+?)(?:\\s+(?:op|even|eens|nu|maar|alsjeblieft|alstublieft|aub|svp))*$"
+            + "|^(?:(?:kun|kan|wil)\\s+(?:je|jij|u)\\s+)?(.+?)\\s+(?:even\\s+|eens\\s+)?(?:bellen|opbellen)$");
+
+    /** "bel Jos", "bel mijn dochter", "bel 06 12345678", "mama even bellen". Alleen het nummer komt klaar te staan. */
+    static Cmd call(String s) {
+        Matcher m = P_CALL.matcher(s);
+        if (!m.matches()) return null;
+        String to = (m.group(1) != null ? m.group(1) : m.group(2)).trim().replaceAll("(?iu)^(?:de|het)\\s+", "");
+        if (to.isEmpty() || to.length() > 40) return null;
+        String num = number(to);
+        if (num.isEmpty() && !to.matches("(?iu)[\\p{L}][\\p{L} .'-]{0,39}")) return null;
+        if (num.isEmpty() && NOT_NAME.matcher(to).find()) return null;
+        Cmd c = new Cmd(); c.type = "bel";
+        c.weak = num.isEmpty() && m.group(1) == null; // "Jos bellen" is alleen een opdracht met een bekende naam
+        c.to = num.isEmpty() ? cap(to) : ""; c.number = num;
+        return c;
+    }
+
+    /** Woorden voor wat iemand voor je is → relaties uit Stamgegevens (eerst), anders de algemene. */
+    private static final String[][] REL_WORDS = {
+            {"mama|mam|ma|mamma|moeder|moeke|mams", "moeder", "ouder"}, {"papa|pap|pa|pappa|vader|paps", "vader", "ouder"},
+            {"ouder|ouders", "ouder vader moeder", ""}, {"dochter|dochtertje", "dochter", "kind"}, {"zoon|zoontje", "zoon", "kind"},
+            {"kind|kindje|kinderen", "kind zoon dochter", ""}, {"vrouw|man|partner|echtgenoot|echtgenote|vrouwtje|lief|liefje", "partner", ""},
+            {"vriend|vriendin|vriendje|vriendinnetje", "vriend", "partner"}, {"broer|broertje", "broer", "broerzus"}, {"zus|zusje|zuster", "zus", "broerzus"},
+            {"oma", "oma", "grootouder"}, {"opa", "opa", "grootouder"}, {"grootouder|grootouders", "grootouder opa oma", ""},
+            {"kleinzoon", "kleinzoon", "kleinkind"}, {"kleindochter", "kleindochter", "kleinkind"}, {"kleinkind|kleinkinderen", "kleinkind kleinzoon kleindochter", ""},
+            {"oom|tante", "oomtante", ""}, {"neef|nicht", "neefnicht", ""}, {"schoonmoeder|schoonvader|schoonouders|schoonouder", "schoonouder", ""},
+            {"ex|ex-partner|expartner|ex-vrouw|ex-man", "expartner", ""}, {"stiefvader|stiefmoeder|stiefouder", "stiefouder", ""},
+            {"buurman|buurvrouw|buren|buur", "buur", ""}, {"collega", "collega", ""}, {"huisgenoot", "huisgenoot", ""}, {"voogd", "voogd", ""},
+            {"pleegvader|pleegmoeder|pleegouder", "pleegouder", ""}, {"pleegkind|pleegzoon|pleegdochter", "pleegkind", ""}, {"noodcontact", "noodcontact", ""}
+    };
+    private static String plain(String s) {
+        String t = java.text.Normalizer.normalize(s == null ? "" : s, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}+", "");
+        return t.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}' -]+", " ").replaceAll("\\s+", " ").trim();
+    }
+
+    /** Wie de assistent kent (de gedeelde gegevens uit Stamgegevens, `app`) met deze naam of als "mama", "mijn dochter":
+     *  eerst op naam, roepnaam of voornaam, dan op wat iemand voor je is. Zuiver (getest in AiCommandsTest). */
+    static java.util.List<org.json.JSONObject> people(org.json.JSONObject app, String q) {
+        java.util.List<org.json.JSONObject> out = new java.util.ArrayList<>();
+        org.json.JSONArray list = app == null ? null : app.optJSONArray("people");
+        String w = plain(q).replaceAll("^(?:mijn|m'n|mn|onze|ons|de|het)\\s+", "");
+        if (list == null || w.isEmpty()) return out;
+        for (int i = 0; i < list.length(); i++) {
+            org.json.JSONObject p = list.optJSONObject(i); if (p == null) continue;
+            String n = plain(p.optString("name")), cn = plain(p.optString("callname"));
+            if (w.equals(n) || w.equals(cn) || !n.isEmpty() && w.equals(n.split(" ")[0])) out.add(p);
+        }
+        if (!out.isEmpty()) return out;
+        for (String[] r : REL_WORDS) {
+            if (!w.matches("(?:" + r[0] + ")")) continue;
+            for (int k = 1; k < r.length && out.isEmpty(); k++) {
+                if (r[k].isEmpty()) continue;
+                java.util.List<String> codes = java.util.Arrays.asList(r[k].split(" "));
+                for (int i = 0; i < list.length(); i++) {
+                    org.json.JSONObject p = list.optJSONObject(i); org.json.JSONArray rs = p == null ? null : p.optJSONArray("relations");
+                    if (rs == null) continue;
+                    for (int j = 0; j < rs.length(); j++) if (codes.contains(rs.optString(j))) { out.add(p); break; }
+                }
+            }
+            return out;
+        }
+        for (int i = 0; i < list.length(); i++) {
+            org.json.JSONObject p = list.optJSONObject(i); org.json.JSONArray rs = p == null ? null : p.optJSONArray("relations");
+            if (rs != null) for (int j = 0; j < rs.length(); j++) if (w.equals(rs.optString(j))) { out.add(p); break; }
+        }
+        return out;
     }
 
     /** Een sms of WhatsApp-bericht klaarzetten: aan wie, met welke tekst. */

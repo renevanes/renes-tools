@@ -173,7 +173,6 @@ public class MasterBridge extends BankBridge {
             }catch(Throwable e){try{a.js("onMasterContactPicked",new JSONObject().put("request",request).put("token",token).put("error",why(e)).toString());}catch(Exception ignored){ }}
         });
     }
-    @JavascriptInterface public boolean masterContactAllowed(){try{return MasterContacts.allowed(ctx);}catch(Throwable e){return false;}}
     /** Vanaf het visitekaartje: bel (kiesscherm, Tools belt zelf niet), bericht of contact (Contacten openen). */
     @JavascriptInterface public void masterContactAction(String token,String id,String what,String request){
         work(token,request,key->{
