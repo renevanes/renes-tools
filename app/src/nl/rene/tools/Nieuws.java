@@ -109,10 +109,8 @@ final class Nieuws {
     /** Het begin van een artikelpagina ophalen (in de test zonder internet). */
     interface Pagina { String haal(String url, long tot) throws Exception; }
 
-    /** Een doorverwijzing naar een andere site (een toestemmingspagina) telt als fout: dan niet de afbeelding van die pagina. */
     static final Pagina WEB = (url, tot) -> {
         Antwoord a = haal(url, tot, true);
-        if (!host(a.url).equals(host(url))) throw new Fout(Taal.T("Bijwerken lukt niet"));
         return new String(a.data, 0, a.data.length, PodcastFeed.charset(a.data, a.data.length, a.charset));
     };
 
@@ -148,7 +146,7 @@ final class Nieuws {
     }
 
     private static final Pattern META = Pattern.compile("(?i)<meta\\b[^<>]{0,2000}>");
-    private static final Pattern META_ATTR = Pattern.compile("(?i)(?<![\\w-])(property|name|content)\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)");
+    private static final Pattern META_ATTR = Pattern.compile("(?i)(?<![\\w-])(property|name|content)\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>\"']+)");
 
     /** De afbeelding die een artikelpagina zelf noemt (og:image, anders twitter:image): alleen https naar een openbare site, anders "". */
     static String paginaBeeld(String html, String basis) {
@@ -649,6 +647,8 @@ final class Nieuws {
                     String loc = h.getHeaderField("Location");
                     if (loc == null || loc.trim().isEmpty()) throw antwoord(code);
                     u = new URL(new URL(u), loc.trim()).toString();
+                    // een artikelpagina die naar een andere site stuurt (een toestemmingspagina): daar niet heen
+                    if (pagina && !host(u).equals(host(adres))) throw new Fout(Taal.T("Bijwerken lukt niet"));
                     continue;
                 }
                 if (code != 200) throw antwoord(code);

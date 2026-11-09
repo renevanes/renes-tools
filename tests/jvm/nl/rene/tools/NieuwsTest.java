@@ -87,6 +87,7 @@ public class NieuwsTest {
         check("https://x.example.org/tw.jpg".equals(Nieuws.paginaBeeld("<meta name=\"twitter:image\" content=\"https://x.example.org/tw.jpg\">", pag))
                 && "https://x.example.org/og.jpg".equals(Nieuws.paginaBeeld("<meta name=\"twitter:image\" content=\"https://x.example.org/tw.jpg\"><meta property=\"og:image\" content=\"https://x.example.org/og.jpg\">", pag)), "twitter:image alleen als er geen og:image is");
         check("https://x.example.org/b.jpg".equals(Nieuws.paginaBeeld("<meta property=\"og:image\" data-content=\"https://x.example.org/a.jpg\" content=\"https://x.example.org/b.jpg\">", pag)), "data-content telt niet als content");
+        check("https://x.example.org/c.jpg".equals(Nieuws.paginaBeeld("<meta name=\"description\" content=\" > Lees meer\"><meta property=\"og:image\" content=\"https://x.example.org/c.jpg\">", pag)), "een > in een andere meta-tag: geen fout, de afbeelding erna telt");
         StringBuilder lang = new StringBuilder("<html><head>");
         while (lang.length() < Nieuws.MAX_PAGINA) lang.append("<!-- vulling -->");
         check("".equals(Nieuws.paginaBeeld(lang + "<meta property=\"og:image\" content=\"https://x.example.org/laat.jpg\">", pag)) && "".equals(Nieuws.paginaBeeld("<p>geen kop</p>", pag)), "alleen het begin van de pagina; geen afbeelding = leeg");
