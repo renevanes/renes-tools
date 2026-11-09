@@ -33,7 +33,11 @@
         <exclude domain="file" path="toiletten/" />
         <exclude domain="file" path="toiletten-cache/" />
         <exclude domain="file" path="nieuws/" />
-        <exclude domain="root" path="app_webview/" />
+        <exclude domain="root" path="app_webview/Cookies" />
+        <exclude domain="root" path="app_webview/Cookies-journal" />
+        <exclude domain="root" path="app_webview/Default/Cookies" />
+        <exclude domain="root" path="app_webview/Default/Cookies-journal" />
+        <exclude domain="root" path="app_webview/Default/Network/" />
         <exclude domain="file" path="whisper/" />
         <exclude domain="file" path="contacts/" />
         <exclude domain="file" path="crash.log" />
@@ -84,7 +88,11 @@
         <exclude domain="file" path="toiletten/" />
         <exclude domain="file" path="toiletten-cache/" />
         <exclude domain="file" path="nieuws/" />
-        <exclude domain="root" path="app_webview/" />
+        <exclude domain="root" path="app_webview/Cookies" />
+        <exclude domain="root" path="app_webview/Cookies-journal" />
+        <exclude domain="root" path="app_webview/Default/Cookies" />
+        <exclude domain="root" path="app_webview/Default/Cookies-journal" />
+        <exclude domain="root" path="app_webview/Default/Network/" />
         <exclude domain="file" path="whisper/" />
         <exclude domain="file" path="contacts/" />
         <exclude domain="file" path="crash.log" />

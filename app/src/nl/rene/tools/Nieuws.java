@@ -103,13 +103,14 @@ final class Nieuws {
 
     /**
      * Bronnen waarvan de feed geen afbeeldingen heeft: die komen dan van de artikelpagina zelf ({@link #beelden}). Per bron:
-     * id, naam, waar Rene zijn cookiekeuze maakt (de site vraagt die eerst) en de hosts die daarbij mogen (de rest is
-     * geblokkeerd; "*." = alle subdomeinen). De eerste host is de site zelf; van de toestemmingspagina alleen precies de
-     * hosts die ze nodig heeft, zodat de meetdiensten van DPG Media er niet bij zitten.
+     * id, naam, waar Rene zijn cookiekeuze maakt (de site vraagt die eerst), de hosts die de pagina's daarbij mogen laden
+     * (de rest is geblokkeerd; "*." = alle subdomeinen) en de hosts van de toestemmingspagina zelf. Van DPG Media alleen
+     * precies de hosts die de toestemmingspagina nodig heeft, zodat de meetdiensten er niet bij zitten.
      */
     static final String[][] BEELD_VAN_PAGINA = {
         {"tweakers", "Tweakers", "https://tweakers.net/nieuws/",
-            "tweakers.net *.tweakers.net tweakimg.net *.tweakimg.net myprivacy.dpgmedia.nl myprivacy-static.dpgmedia.net pg.dpgmedia.nl"},
+            "tweakers.net *.tweakers.net tweakimg.net *.tweakimg.net myprivacy.dpgmedia.nl myprivacy-static.dpgmedia.net pg.dpgmedia.nl",
+            "myprivacy.dpgmedia.nl pg.dpgmedia.nl"},
     };
     static final int MAX_PAGINA = 64 * 1024, MAX_PAGINAS = 20;
     static final long MAX_PER_PAGINA = 10_000L;
@@ -130,18 +131,45 @@ final class Nieuws {
     }
 
     /**
-     * Waar het venster voor de cookiekeuze is (alleen voor de pagina zelf, niet voor wat ze laadt): "" (geblokkeerd), "keuze"
-     * (de toestemmingspagina), "bewaar" (de site bewaart de keuze: /privacy-gate/…) of "site" (de site zelf).
+     * Welke pagina het venster voor de cookiekeuze opent (alleen de pagina zelf, niet wat ze laadt): "keuze" (de
+     * toestemmingspagina), "bewaar" (de site bewaart de keuze: /privacy-gate/…), "site" (de pagina waar het venster begint,
+     * of de voorpagina) of "" (geblokkeerd: andere pagina's, zoals inloggen of een artikel, gaan in dit venster niet open).
      */
     static String cookieStap(String id, String url) {
         String[] b = paginaBron(id);
         if (b == null || !cookieAdres(id, url)) return "";
         try {
             URL u = new URL(url);
-            String h = u.getHost().toLowerCase(Locale.ROOT), d = b[3].split(" ")[0], p = u.getPath().toLowerCase(Locale.ROOT);
-            if (!h.equals(d) && !h.equals("www." + d)) return "keuze";
-            return p.startsWith("/privacy-gate") || p.startsWith("/privacygate") ? "bewaar" : "site";
+            String h = u.getHost().toLowerCase(Locale.ROOT), p = zonderSlash(u.getPath().toLowerCase(Locale.ROOT));
+            if (Arrays.asList(b[4].split(" ")).contains(h)) return "keuze";
+            if (!host(url).equals(host(b[2]))) return "";
+            if (p.startsWith("/privacy-gate") || p.startsWith("/privacygate")) return "bewaar";
+            return p.isEmpty() || p.equals(zonderSlash(new URL(b[2]).getPath())) ? "site" : "";
         } catch (Exception e) { return ""; }
+    }
+
+    /**
+     * Wat het venster voor de cookiekeuze laat zien als pagina {@code url} geladen is: "klaar" (de toestemmingspagina en het
+     * bewaren kwamen voorbij en de cookies van de site zijn veranderd: sluiten), "kiezen" (de toestemmingspagina), "nagaan"
+     * (terug op de site, maar of de keuze bewaard is, is niet zeker), "al" (de keuze was er al) of "" (niets veranderen:
+     * een tussenstap, een fout of een geblokkeerde pagina).
+     */
+    static String cookieVenster(String id, String url, boolean keuzeGezien, boolean bewaard, boolean fout, boolean koekjesAnders) {
+        if (fout) return "";
+        String stap = cookieStap(id, url);
+        if (stap.equals("keuze")) return "kiezen";
+        if (!stap.equals("site")) return "";
+        return keuzeGezien && bewaard && koekjesAnders ? "klaar" : keuzeGezien ? "nagaan" : "al";
+    }
+
+    /**
+     * Gaan er cookies mee naar dit adres? Alleen naar de site zelf van een bron uit {@link #BEELD_VAN_PAGINA}: de WebView
+     * deelt één cookiepot met de rest van de app (zoals de inlog bij een leverancier in Facturen).
+     */
+    static boolean koekjesNaar(String url) {
+        if (url == null || !https(url)) return false;
+        for (String[] b : BEELD_VAN_PAGINA) if (host(url).equals(host(b[2]))) return true;
+        return false;
     }
 
     /** Het begin van een artikelpagina ophalen (in de test zonder internet). */
@@ -160,8 +188,9 @@ final class Nieuws {
     /**
      * Afbeeldingen van de artikelpagina's bij een bron uit {@link #BEELD_VAN_PAGINA}. Wat de vorige ronde al vond (ook dat een
      * pagina er geen heeft) komt uit de cache; daarna hooguit MAX_PAGINAS pagina's van de site zelf, in de volgorde van de
-     * feed. Alleen een hele kop met og:-gegevens maar zonder afbeelding telt als "zonder afbeelding". Een pagina die er (nog)
-     * niet is (404/410) wordt overgeslagen; bij elke andere fout wacht de rest op de volgende ronde. Zonder {@code p} alleen
+     * feed. Alleen een hele kop met og:-gegevens maar zonder afbeelding telt als "zonder afbeelding", en een pagina die
+     * blijvend weg is (410). Een pagina die er (nog) niet is (404) wordt overgeslagen; bij elke andere fout wacht de rest op
+     * de volgende ronde. Zonder {@code p} alleen
      * de cache. De stand staat in {@code f.beeldStand}: "ok", "cookiekeuze" (de site stuurt naar een toestemmingspagina) of "fout".
      */
     static void beelden(String bron, String basis, NieuwsFeed.Feed f, JSONObject oud, long tot, Pagina p) {
@@ -193,7 +222,8 @@ final class Nieuws {
                 f.beeldStand = "ok";
             } catch (Doorverwezen e) { f.beeldStand = "cookiekeuze"; stop = true; }
             catch (HttpFout e) {
-                if (e.code != 404 && e.code != 410) { f.beeldStand = "fout"; stop = true; }
+                if (e.code == 410) a.zonderBeeld = true;
+                else if (e.code != 404) { f.beeldStand = "fout"; stop = true; }
             } catch (Throwable e) { f.beeldStand = "fout"; stop = true; }
             if (a.zonderBeeld || !a.beeld.isEmpty()) bekend.put(id, a.beeld);
         }
@@ -724,6 +754,19 @@ final class Nieuws {
         } catch (Exception x) { return false; }
     }
 
+    /**
+     * Blijft een doorverwijzing bij hetzelfde artikel? Het begin van het pad (/nieuws/12345/) moet blijven; alleen de titel
+     * erachter mag anders. Een andere pagina op de site (zoals /privacy-gate/…) is een muur, ook als die een og:image heeft.
+     */
+    static boolean zelfdeArtikel(String adres, String eind) {
+        try {
+            String a = new URL(adres).getPath(), e = new URL(eind).getPath();
+            int i = a.indexOf('/', 1);
+            if (i >= 0) i = a.indexOf('/', i + 1);
+            return e.startsWith(i < 0 ? a : a.substring(0, i + 1));
+        } catch (Exception x) { return false; }
+    }
+
     private static String zonderSlash(String pad) {
         int n = pad.length();
         while (n > 0 && pad.charAt(n - 1) == '/') n--;
@@ -754,7 +797,7 @@ final class Nieuws {
                 h.setRequestProperty("User-Agent", UA);
                 h.setRequestProperty("Accept", pagina ? "text/html, application/xhtml+xml;q=0.9, */*;q=0.2"
                         : "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.9, text/html;q=0.5, */*;q=0.2");
-                String ck = pagina && k != null ? k.voor(u) : null;
+                String ck = pagina && k != null && koekjesNaar(u) ? k.voor(u) : null;
                 if (ck != null && !ck.isEmpty()) h.setRequestProperty("Cookie", ck);
                 int code = h.getResponseCode();
                 if (code >= 300 && code < 400) {
@@ -765,6 +808,7 @@ final class Nieuws {
                 }
                 if (code != 200) throw antwoord(code);
                 if (pagina && weg(adres, u)) throw new HttpFout(404);
+                if (pagina && !zelfdeArtikel(adres, u)) throw new Doorverwezen();
                 long lengte = h.getContentLengthLong();
                 if (!pagina && lengte > MAX_FEED) throw new Fout(Taal.T("Feed is te groot"));
                 Antwoord a = new Antwoord();

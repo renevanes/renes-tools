@@ -32,24 +32,29 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
  * Nieuws: de cookiekeuze voor een site die zijn artikelpagina's pas laat zien als je die gemaakt hebt (Tweakers, via de
  * toestemmingspagina van DPG Media). Rene kiest zelf op de echte pagina; Tools klikt niets aan. De WebView bewaart de
  * cookies, en {@link Nieuws#beelden} stuurt die van de site zelf mee als hij een artikelpagina ophaalt. Alleen https en
- * alleen de hosts van de bron ({@link Nieuws#cookieAdres}); al het andere wordt niet geladen. Het venster sluit vanzelf als
- * de site de keuze bewaard heeft ({@link Nieuws#cookieStap} "bewaar") en de pagina weer op de site zelf staat.
+ * alleen de hosts van de bron ({@link Nieuws#cookieAdres}); als pagina alleen die voor de keuze ({@link Nieuws#cookieStap}),
+ * zodat inloggen of rondkijken op de site hier niet kan. Het venster sluit vanzelf als {@link Nieuws#cookieVenster} "klaar" zegt.
  */
 public class NieuwsCookiesActivity extends Activity {
 
     private final Handler h = new Handler(Looper.getMainLooper());
     WebView wv;
     private TextView status;
-    String bron = "";
+    String bron = "", start = "";
     /** Origins die geladen zijn: bij het sluiten gaan hun websitegegevens weg (de cookies blijven). */
     final Set<String> origins = Collections.synchronizedSet(new HashSet<>());
-    volatile boolean keuzeGezien = false, bewaard = false, laadFout = false, klaar = false;
+    volatile boolean keuzeGezien = false, bewaard = false, klaar = false;
+    /** De pagina die niet laadde (de foutmelding komt soms vóór onPageStarted van die pagina). */
+    volatile String foutAdres = null;
+    /** De cookies van de site toen het venster openging: pas als die veranderd zijn, is de keuze echt bewaard. */
+    private String koekjesVoor = null;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -60,6 +65,8 @@ public class NieuwsCookiesActivity extends Activity {
         String[] cfg = id == null ? null : Nieuws.paginaBron(id);
         if (cfg == null) { finish(); return; }
         bron = id;
+        start = cfg[2];
+        koekjesVoor = koekjes();
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -80,7 +87,7 @@ public class NieuwsCookiesActivity extends Activity {
         titel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         status = new TextView(this);
         status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        status.setText(Taal.t(this, "Kies op de pagina welke cookies je toestaat. Daarna sluit dit venster vanzelf."));
+        status.setText(Taal.t(this, "Kies op de pagina welke cookies je toestaat. Log hier niet in. Daarna sluit dit venster vanzelf."));
         status.setAccessibilityLiveRegion(android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE);
         tekst.addView(titel);
         tekst.addView(status);
@@ -141,25 +148,40 @@ public class NieuwsCookiesActivity extends Activity {
         else if (stap.equals("bewaar")) bewaard = true;
     }
 
-    /** De pagina is geladen: terug op de site na het bewaren = klaar. */
-    void geladen(String url) {
-        if (klaar || url == null || laadFout) return;
+    /** Een nieuwe pagina wordt aangevraagd: een eerdere fout telt niet meer. */
+    void nieuwePagina(String url) {
+        foutAdres = null;
         onderweg(url);
-        String stap = Nieuws.cookieStap(bron, url);
-        if (stap.equals("keuze")) zet(Taal.t(this, "Kies op de pagina welke cookies je toestaat. Daarna sluit dit venster vanzelf."));
-        if (!stap.equals("site")) return;
-        if (bewaard) {
-            klaar = true;
-            zet(Taal.t(this, "Je keuze is bewaard."));
-            h.postDelayed(this::sluit, 1500);
-        } else if (keuzeGezien) zet(Taal.t(this, "Klaar met kiezen? Tik dan op Klaar."));
-        else zet(Taal.t(this, "Je cookiekeuze is al gemaakt. Tik op Klaar."));
     }
 
-    void laadFout() {
-        laadFout = true;
+    String koekjes() {
+        try { return CookieManager.getInstance().getCookie(start); } catch (Throwable e) { return null; }
+    }
+
+    /** De pagina is geladen: wat het venster nu zegt, en of het klaar is. */
+    void geladen(String url) {
+        if (klaar || url == null) return;
+        boolean fout = url.equals(foutAdres);
+        if (!fout) onderweg(url);
+        switch (Nieuws.cookieVenster(bron, url, keuzeGezien, bewaard, fout, !Objects.equals(koekjes(), koekjesVoor))) {
+            case "kiezen": zet(Taal.t(this, "Kies op de pagina welke cookies je toestaat. Log hier niet in. Daarna sluit dit venster vanzelf.")); break;
+            case "klaar":
+                klaar = true;
+                zet(Taal.t(this, "Je keuze is bewaard."));
+                h.postDelayed(this::sluit, 1500);
+                break;
+            case "nagaan": zet(Taal.t(this, "Klaar met kiezen? Tik dan op Klaar.")); break;
+            case "al": zet(Taal.t(this, "Je cookiekeuze is al gemaakt. Tik op Klaar.")); break;
+            default: break;
+        }
+    }
+
+    void laadFout(String url) {
+        foutAdres = url;
         zet(Taal.t(this, "De pagina laden lukte niet. Controleer de verbinding en probeer het opnieuw."));
     }
+
+    void geblokkeerd() { zet(Taal.t(this, "Dit venster opent alleen de pagina's voor de cookiekeuze.")); }
 
     @Override
     public void onBackPressed() { terug(); }
@@ -187,30 +209,34 @@ public class NieuwsCookiesActivity extends Activity {
         @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest req) {
             try {
                 String u = req.getUrl().toString();
-                if (Nieuws.cookieAdres(bron, u)) {
+                if (req.isForMainFrame() ? !Nieuws.cookieStap(bron, u).isEmpty() : Nieuws.cookieAdres(bron, u)) {
                     a.geladenVan(u);
-                    if (req.isForMainFrame()) a.onderweg(u);
+                    if (req.isForMainFrame()) a.nieuwePagina(u);
                     return null;
                 }
+                if (req.isForMainFrame()) a.geblokkeerd();
             } catch (Throwable ignored) { }
             return new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream(new byte[0]));
         }
         @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
             String u = req.getUrl().toString();
-            if (Nieuws.cookieAdres(bron, u)) { a.onderweg(u); return false; }
-            a.zet(Taal.t(a, "Een andere website is geblokkeerd"));
+            if (req.isForMainFrame() ? !Nieuws.cookieStap(bron, u).isEmpty() : Nieuws.cookieAdres(bron, u)) {
+                if (req.isForMainFrame()) a.nieuwePagina(u);
+                return false;
+            }
+            if (req.isForMainFrame()) a.geblokkeerd();
+            else a.zet(Taal.t(a, "Een andere website is geblokkeerd"));
             return true;
         }
         @Override public void onPageStarted(WebView v, String url, Bitmap fav) {
-            a.laadFout = false;
-            if (url != null) a.onderweg(url);
+            if (url != null && !url.equals(a.foutAdres)) a.onderweg(url);
         }
         @Override public void onPageFinished(WebView v, String url) { a.geladen(url); }
         @Override public void onReceivedError(WebView v, WebResourceRequest req, WebResourceError err) {
-            if (req.isForMainFrame()) a.laadFout();
+            if (req.isForMainFrame()) a.laadFout(req.getUrl().toString());
         }
         @Override public void onReceivedHttpError(WebView v, WebResourceRequest req, WebResourceResponse res) {
-            if (req.isForMainFrame() && res != null && res.getStatusCode() >= 400) a.laadFout();
+            if (req.isForMainFrame() && res != null && res.getStatusCode() >= 400) a.laadFout(req.getUrl().toString());
         }
         @Override public boolean onRenderProcessGone(WebView v, RenderProcessGoneDetail d) {
             a.zet(Taal.t(a, "De website liep vast. Probeer het opnieuw."));

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Android-cloudbackup (Android 7–11). Gevoelige gegevens blijven alleen op de telefoon: meldingsgeschiedenis, Check-in, Apparaten,
      WhatsApp-database en -sleutel, opnames, transcripties, routes, contactbackups, de AudD-sleutel en sleutelmateriaal.
-     Die gaan alleen mee in Alles back-uppen (versleuteld als je dat kiest). De cookies en websitegegevens van de WebView
-     (app_webview/: inlog bij leveranciers, cookiekeuze voor Nieuws) gaan nergens mee. "Alle appgegevens" (alles terugzetten na
+     Die gaan alleen mee in Alles back-uppen (versleuteld als je dat kiest). De cookies van de WebView (inlog bij
+     leveranciers, cookiekeuze voor Nieuws) gaan nergens mee; de rest van app_webview/ (de instellingen van de interface) wel.
+     Oudere WebView-versies bewaren de cookies in app_webview/, nieuwere in Default/ (of Default/Network/). "Alle appgegevens" (alles terugzetten na
      herinstallatie, ook VPN-sleutels en wachtwoorden) gaat alleen in het versleutelde archief in je eigen backup-map,
      nooit hier: deze lijst blijft even streng. Wat het terugzetten zelf bijhoudt staat in no_backup/ (nooit in een backup). -->
 <full-backup-content>
@@ -36,7 +37,11 @@
     <exclude domain="file" path="toiletten/" />
     <exclude domain="file" path="toiletten-cache/" />
     <exclude domain="file" path="nieuws/" />
-    <exclude domain="root" path="app_webview/" />
+    <exclude domain="root" path="app_webview/Cookies" />
+    <exclude domain="root" path="app_webview/Cookies-journal" />
+    <exclude domain="root" path="app_webview/Default/Cookies" />
+    <exclude domain="root" path="app_webview/Default/Cookies-journal" />
+    <exclude domain="root" path="app_webview/Default/Network/" />
     <exclude domain="file" path="whisper/" />
     <exclude domain="file" path="contacts/" />
     <exclude domain="file" path="crash.log" />

@@ -1,1 +1,2 @@
 Nieuws: Tweakers heeft nu ook afbeeldingen. Tweakers zet ze niet in de feed; Tools haalt ze van de artikelpagina (alleen als Afbeeldingen tonen aan staat). Tweakers vraagt daarvoor eerst een cookiekeuze: die maak je één keer zelf, bij Nieuws → Instellingen → Eenmalig instellen.
+Privacy: de cookies van de vensters in de app (de inlog bij leveranciers in Facturen, de cookiekeuze voor Nieuws) gaan niet meer mee in de Android-backup of bij het overzetten naar een nieuwe telefoon.
