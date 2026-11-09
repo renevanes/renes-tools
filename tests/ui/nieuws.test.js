@@ -165,11 +165,18 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     await page.click('#nws-cookie-knop');
     ok((await nwCalls()).join() === 'cookies:tweakers', 'cookiekeuze maken: het venster gaat open');
     await page.evaluate(() => { Android._nw.cookie = true; onResumeApp(); });
+    ok((await page.locator('#nws-cookie-st').innerText()) === 'Nakijken…', 'tijdens het bijwerken: nakijken');
     await page.waitForTimeout(500);
     ok((await nwCalls()).join() === 'cookies:tweakers,verversen:true' && (await page.locator('#nws-cookie-st').innerText()) === 'Klaar'
       && await page.evaluate(() => { const d = document.querySelector('#nws-cookie'); return !d.hidden && !d.open && d.classList.contains('done'); }), 'terug uit het venster: alles bijwerken, eenmalig instellen klapt in');
     await page.evaluate(() => onResumeApp()); await page.waitForTimeout(300);
     ok((await nwCalls()).join() === 'cookies:tweakers,verversen:true', 'later terug in de app: niet nog eens');
+    const zetStand = s => page.evaluate(s => { Android._nw.stand.tweakers.beeldStand = s; nwLaad(); nwSetRender(); }, s);
+    await zetStand('fout');
+    ok(await page.evaluate(() => !document.querySelector('#nws-cookie').open) && (await page.locator('#nws-cookie-st').innerText()) === 'Ophalen lukte niet', 'een gewone fout: de kaart blijft dicht, de stand zegt het');
+    await zetStand('cookiekeuze');
+    ok(await cookieOpen() && (await page.locator('#nws-cookie-st').innerText()) === 'Nog niet klaar', 'de site vraagt weer een keuze: de kaart gaat open');
+    await zetStand('ok');
     await page.evaluate(() => { Android._nw.bronnen.find(b => b.id === 'tweakers').aan = false; nwLaad(); nwSetRender(); });
     ok(await page.evaluate(() => document.querySelector('#nws-cookie').hidden), 'Tweakers uit: geen cookiekeuze');
     await page.evaluate(() => { Android._nw.bronnen.find(b => b.id === 'tweakers').aan = true; nwLaad(); nwSetRender(); });

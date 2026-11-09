@@ -103,11 +103,13 @@ final class Nieuws {
 
     /**
      * Bronnen waarvan de feed geen afbeeldingen heeft: die komen dan van de artikelpagina zelf ({@link #beelden}). Per bron:
-     * id, naam, waar Rene zijn cookiekeuze maakt (de site vraagt die eerst) en de domeinen die daarbij mogen (de rest is
-     * geblokkeerd). Het eerste domein is de site zelf; de andere zijn van de toestemmingspagina.
+     * id, naam, waar Rene zijn cookiekeuze maakt (de site vraagt die eerst) en de hosts die daarbij mogen (de rest is
+     * geblokkeerd; "*." = alle subdomeinen). De eerste host is de site zelf; van de toestemmingspagina alleen precies de
+     * hosts die ze nodig heeft, zodat de meetdiensten van DPG Media er niet bij zitten.
      */
     static final String[][] BEELD_VAN_PAGINA = {
-        {"tweakers", "Tweakers", "https://tweakers.net/nieuws/", "tweakers.net tweakimg.net dpgmedia.nl dpgmedia.net"},
+        {"tweakers", "Tweakers", "https://tweakers.net/nieuws/",
+            "tweakers.net *.tweakers.net tweakimg.net *.tweakimg.net myprivacy.dpgmedia.nl myprivacy-static.dpgmedia.net pg.dpgmedia.nl"},
     };
     static final int MAX_PAGINA = 64 * 1024, MAX_PAGINAS = 20;
     static final long MAX_PER_PAGINA = 10_000L;
@@ -117,25 +119,29 @@ final class Nieuws {
         return null;
     }
 
-    /** Mag het venster voor de cookiekeuze van deze bron dit adres laden? Alleen https naar de domeinen van de bron (ook subdomeinen). */
+    /** Mag het venster voor de cookiekeuze van deze bron dit adres laden? Alleen https naar de hosts van de bron. */
     static boolean cookieAdres(String id, String url) {
         String[] b = paginaBron(id);
         if (b == null || url == null || !https(url)) return false;
         String h;
         try { h = new URL(url).getHost().toLowerCase(Locale.ROOT); } catch (Exception e) { return false; }
-        for (String d : b[3].split(" ")) if (h.equals(d) || h.endsWith("." + d)) return true;
+        for (String d : b[3].split(" ")) if (d.startsWith("*.") ? h.endsWith(d.substring(1)) : h.equals(d)) return true;
         return false;
     }
 
-    /** Is dit adres de site zelf (niet de toestemmingspagina en ook niet de bevestiging daarvan)? Dan is de keuze gemaakt. */
-    static boolean cookieKlaar(String id, String url) {
+    /**
+     * Waar het venster voor de cookiekeuze is (alleen voor de pagina zelf, niet voor wat ze laadt): "" (geblokkeerd), "keuze"
+     * (de toestemmingspagina), "bewaar" (de site bewaart de keuze: /privacy-gate/…) of "site" (de site zelf).
+     */
+    static String cookieStap(String id, String url) {
         String[] b = paginaBron(id);
-        if (b == null || !cookieAdres(id, url)) return false;
+        if (b == null || !cookieAdres(id, url)) return "";
         try {
             URL u = new URL(url);
-            String h = u.getHost().toLowerCase(Locale.ROOT), d = b[3].split(" ")[0];
-            return (h.equals(d) || h.equals("www." + d)) && !u.getPath().toLowerCase(Locale.ROOT).startsWith("/privacygate");
-        } catch (Exception e) { return false; }
+            String h = u.getHost().toLowerCase(Locale.ROOT), d = b[3].split(" ")[0], p = u.getPath().toLowerCase(Locale.ROOT);
+            if (!h.equals(d) && !h.equals("www." + d)) return "keuze";
+            return p.startsWith("/privacy-gate") || p.startsWith("/privacygate") ? "bewaar" : "site";
+        } catch (Exception e) { return ""; }
     }
 
     /** Het begin van een artikelpagina ophalen (in de test zonder internet). */
@@ -151,14 +157,12 @@ final class Nieuws {
         };
     }
 
-    private static final Pattern OG = Pattern.compile("(?i)\\b(og|twitter):");
-
     /**
      * Afbeeldingen van de artikelpagina's bij een bron uit {@link #BEELD_VAN_PAGINA}. Wat de vorige ronde al vond (ook dat een
      * pagina er geen heeft) komt uit de cache; daarna hooguit MAX_PAGINAS pagina's van de site zelf, in de volgorde van de
-     * feed. Alleen een pagina die wel og:-gegevens heeft maar geen afbeelding, of die er niet meer is (404/410), telt als
-     * "zonder afbeelding". Bij elke andere fout wacht de rest op de volgende ronde. Zonder {@code p} alleen de cache.
-     * De stand staat in {@code f.beeldStand}: "ok", "cookiekeuze" (de site stuurt naar een toestemmingspagina) of "fout".
+     * feed. Alleen een hele kop met og:-gegevens maar zonder afbeelding telt als "zonder afbeelding". Een pagina die er (nog)
+     * niet is (404/410) wordt overgeslagen; bij elke andere fout wacht de rest op de volgende ronde. Zonder {@code p} alleen
+     * de cache. De stand staat in {@code f.beeldStand}: "ok", "cookiekeuze" (de site stuurt naar een toestemmingspagina) of "fout".
      */
     static void beelden(String bron, String basis, NieuwsFeed.Feed f, JSONObject oud, long tot, Pagina p) {
         if (paginaBron(bron) == null) return;
@@ -181,14 +185,15 @@ final class Nieuws {
             gehaald++;
             try {
                 String html = p.haal(l, Math.min(tot, System.currentTimeMillis() + MAX_PER_PAGINA));
-                if (!OG.matcher(html).find()) { f.beeldStand = "fout"; stop = true; continue; } // geen artikelpagina (een muur?)
-                a.beeld = paginaBeeld(html, l);
-                a.zonderBeeld = a.beeld.isEmpty();
+                String u = paginaBeeld(html, l);
+                // geen afbeelding en geen hele kop met og:-gegevens: een muur, of een kop langer dan MAX_PAGINA
+                if (u.isEmpty() && !artikelKop(html)) { f.beeldStand = "fout"; stop = true; continue; }
+                a.beeld = u;
+                a.zonderBeeld = u.isEmpty();
                 f.beeldStand = "ok";
             } catch (Doorverwezen e) { f.beeldStand = "cookiekeuze"; stop = true; }
             catch (HttpFout e) {
-                if (e.code == 404 || e.code == 410) a.zonderBeeld = true;
-                else { f.beeldStand = "fout"; stop = true; }
+                if (e.code != 404 && e.code != 410) { f.beeldStand = "fout"; stop = true; }
             } catch (Throwable e) { f.beeldStand = "fout"; stop = true; }
             if (a.zonderBeeld || !a.beeld.isEmpty()) bekend.put(id, a.beeld);
         }
@@ -196,6 +201,24 @@ final class Nieuws {
 
     private static final Pattern META = Pattern.compile("(?i)<meta\\b[^<>]{0,2000}>");
     private static final Pattern META_ATTR = Pattern.compile("(?i)(?<![\\w-])(property|name|content)\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>\"']+)");
+
+    private static final Pattern KOP_EIND = Pattern.compile("(?i)</head\\s*>|<body\\b");
+
+    /** Staat de hele kop van een artikelpagina in {@code html} (tot &lt;/head&gt; of &lt;body&gt;), met echte og:- of twitter:-gegevens? */
+    static boolean artikelKop(String html) {
+        String s = html.length() > MAX_PAGINA ? html.substring(0, MAX_PAGINA) : html;
+        if (!KOP_EIND.matcher(s).find()) return false;
+        Matcher m = META.matcher(s);
+        while (m.find()) {
+            Matcher a = META_ATTR.matcher(m.group());
+            while (a.find()) {
+                if (a.group(1).equalsIgnoreCase("content")) continue;
+                String v = a.group(2).replaceAll("^[\"']", "").toLowerCase(Locale.ROOT);
+                if (v.startsWith("og:") || v.startsWith("twitter:")) return true;
+            }
+        }
+        return false;
+    }
 
     /** De afbeelding die een artikelpagina zelf noemt (og:image, anders twitter:image): alleen https naar een openbare site, anders "". */
     static String paginaBeeld(String html, String basis) {
@@ -685,6 +708,22 @@ final class Nieuws {
     /** Een adres ophalen: alleen https naar openbare sites, ook bij doorverwijzingen; hooguit MAX_FEED bytes, klaar vóór {@code tot}. */
     static Antwoord haal(String adres, long tot) throws Exception { return haal(adres, tot, false, null); }
 
+    /** Waar een doorverwijzing ({@code loc}) heen gaat: alleen https, en bij een artikelpagina alleen binnen de eigen site. */
+    static String volgende(String adres, String huidig, String loc, boolean pagina) throws Exception {
+        String u = new URL(new URL(huidig), loc.trim()).toString();
+        if (pagina && !host(u).equals(host(adres))) throw new Doorverwezen();
+        if (!https(u)) throw new Fout(Taal.T("Alleen https-adressen"));
+        return u;
+    }
+
+    /** Stuurt een artikelpagina door naar een pagina erboven (de voorpagina, /nieuws/)? Dan is het artikel er niet meer. */
+    static boolean weg(String adres, String eind) {
+        try {
+            String a = new URL(adres).getPath().replaceAll("/+$", ""), e = new URL(eind).getPath().replaceAll("/+$", "");
+            return e.length() < a.length() && a.startsWith(e + "/");
+        } catch (Exception x) { return false; }
+    }
+
     /**
      * Zo ook een artikelpagina ({@code pagina}): daarvan alleen de eerste MAX_PAGINA bytes (de kop met de afbeelding), met de
      * cookies van de site zelf ({@code k}) en nooit naar een andere site.
@@ -715,11 +754,11 @@ final class Nieuws {
                 if (code >= 300 && code < 400) {
                     String loc = h.getHeaderField("Location");
                     if (loc == null || loc.trim().isEmpty()) throw antwoord(code);
-                    u = new URL(new URL(u), loc.trim()).toString();
-                    if (pagina && !host(u).equals(host(adres))) throw new Doorverwezen();
+                    u = volgende(adres, u, loc, pagina);
                     continue;
                 }
                 if (code != 200) throw antwoord(code);
+                if (pagina && weg(adres, u)) throw new HttpFout(404);
                 long lengte = h.getContentLengthLong();
                 if (!pagina && lengte > MAX_FEED) throw new Fout(Taal.T("Feed is te groot"));
                 Antwoord a = new Antwoord();

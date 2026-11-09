@@ -135,13 +135,35 @@ public class NieuwsTest {
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", muur, null, System.currentTimeMillis() + 60_000, (url, tot) -> {
             gehaald.add(url); return "<html><body><h1>Kies je cookies</h1></body></html>"; });
         check(gehaald.size() == 1 && "fout".equals(muur.beeldStand) && !muur.artikelen.get(0).zonderBeeld, "een pagina zonder og:-gegevens (een muur): stoppen, niet als zonder afbeelding onthouden");
+        for (String[] pg : new String[][]{
+                {"<html><head><script>var x = 'twitter:card';</script></head><body>Kies je cookies</body></html>", "og: alleen als tekst in een script"},
+                {"<html><head><meta property=\"og:title\" content=\"x\"><link rel=\"stylesheet\" href=\"/a.css\">", "kop niet helemaal gelezen"}}) {
+            gehaald.clear();
+            NieuwsFeed.Feed half = tweakers();
+            Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", half, null, System.currentTimeMillis() + 60_000, (url, tot) -> { gehaald.add(url); return pg[0]; });
+            check(gehaald.size() == 1 && "fout".equals(half.beeldStand) && !half.artikelen.get(0).zonderBeeld, pg[1] + ": stoppen, niet als zonder afbeelding onthouden");
+        }
+        check(Nieuws.artikelKop("<head><meta name='twitter:card' content='x'></head>") && Nieuws.artikelKop("<meta property=og:title content=x><body>")
+                && !Nieuws.artikelKop("<head><meta name=\"description\" content=\"og: twitter:\"></head>") && !Nieuws.artikelKop("<meta property=\"og:title\" content=\"x\">"), "artikelKop: echte og:-gegevens en een hele kop");
         gehaald.clear();
         NieuwsFeed.Feed weg = tweakers();
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", weg, null, System.currentTimeMillis() + 60_000, (url, tot) -> {
             if (url.contains("/1/")) { gehaald.add(url); throw new Nieuws.HttpFout(404); }
             return site.haal(url, tot);
         });
-        check(gehaald.size() == 2 && weg.artikelen.get(0).zonderBeeld && weg.artikelen.get(1).zonderBeeld && "".equals(weg.artikelen.get(0).beeld), "404: die pagina zonder afbeelding onthouden en verder");
+        check(gehaald.size() == 2 && !weg.artikelen.get(0).zonderBeeld && "".equals(weg.artikelen.get(0).beeld) && weg.artikelen.get(1).zonderBeeld && "ok".equals(weg.beeldStand),
+                "404 (misschien net gepubliceerd): overslaan zonder iets te onthouden, en verder");
+
+        // Doorverwijzingen bij het ophalen: een artikelpagina blijft op de eigen site en op https
+        check("https://tweakers.net/nieuws/1/b.html".equals(Nieuws.volgende(pag, pag, "/nieuws/1/b.html", true))
+                && "https://www.tweakers.net/nieuws/1/een.html".equals(Nieuws.volgende(pag, pag, "https://www.tweakers.net/nieuws/1/een.html", true))
+                && "https://cdn.example.org/feed.xml".equals(Nieuws.volgende("https://x.example.org/rss", "https://x.example.org/rss", "https://cdn.example.org/feed.xml", false)), "doorverwijzing: relatief, www en (bij een feed) een andere site");
+        String dv = "";
+        try { Nieuws.volgende(pag, pag, "https://myprivacy.dpgmedia.nl/consent?siteKey=kzz6o4y8ybwvpkea&callbackUrl=https://tweakers.net/privacy-gate/store/", true); } catch (Nieuws.Doorverwezen e) { dv = "doorverwezen"; }
+        check("doorverwezen".equals(dv) && geeftFout(() -> Nieuws.volgende(pag, pag, "http://tweakers.net/nieuws/1/een.html", true))
+                && geeftFout(() -> Nieuws.volgende("https://x.example.org/rss", "https://x.example.org/rss", "http://x.example.org/rss", false)), "artikelpagina naar een andere site: doorverwezen; naar http: fout");
+        check(Nieuws.weg(pag, "https://tweakers.net/nieuws/") && Nieuws.weg(pag, "https://tweakers.net/") && !Nieuws.weg(pag, pag) && !Nieuws.weg(pag, "https://tweakers.net/nieuws/1/een-nieuwe-titel.html")
+                && !Nieuws.weg(pag, pag + "?x=1") && !Nieuws.weg("https://tweakers.net/nieuws/1/een", "https://tweakers.net/nieuws/1/een/"), "naar een pagina erboven = het artikel is weg; een nieuwe titel niet");
         gehaald.clear();
         NieuwsFeed.Feed dubbel = tweakers();
         NieuwsFeed.Artikel kopie = new NieuwsFeed.Artikel();
@@ -150,16 +172,22 @@ public class NieuwsTest {
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", dubbel, null, System.currentTimeMillis() + 60_000, site);
         check(gehaald.size() == 2 && "https://tweakers.net/i/1.jpg".equals(dubbel.artikelen.get(1).beeld), "hetzelfde artikel twee keer in de feed: één keer ophalen: " + gehaald);
 
-        // Het venster voor de cookiekeuze: alleen https en alleen de domeinen van de bron
+        // Het venster voor de cookiekeuze: alleen https en alleen de hosts van de bron
         check(Nieuws.cookieAdres("tweakers", "https://tweakers.net/nieuws/") && Nieuws.cookieAdres("tweakers", "https://pg.tweakers.net/api/x")
                 && Nieuws.cookieAdres("tweakers", "https://myprivacy.dpgmedia.nl/consent?siteKey=a") && Nieuws.cookieAdres("tweakers", "https://myprivacy-static.dpgmedia.net/consent.js")
-                && Nieuws.cookieAdres("tweakers", "https://tweakimg.net/g/x.png"), "toegestaan: Tweakers en DPG Media");
+                && Nieuws.cookieAdres("tweakers", "https://pg.dpgmedia.nl/api/x") && Nieuws.cookieAdres("tweakers", "https://tweakimg.net/g/x.png") && Nieuws.cookieAdres("tweakers", "https://ic.tweakimg.net/a.jpg"),
+                "toegestaan: Tweakers en de toestemmingspagina van DPG Media");
         check(!Nieuws.cookieAdres("tweakers", "http://tweakers.net/") && !Nieuws.cookieAdres("tweakers", "https://eviltweakers.net/") && !Nieuws.cookieAdres("tweakers", "https://tweakers.net.example.org/")
                 && !Nieuws.cookieAdres("tweakers", "https://www.google-analytics.com/a.js") && !Nieuws.cookieAdres("nos", "https://nos.nl/") && !Nieuws.cookieAdres("tweakers", null)
                 && !Nieuws.cookieAdres("tweakers", "javascript:alert(1)") && !Nieuws.cookieAdres("tweakers", "intent://tweakers.net/#Intent;end"), "geblokkeerd: andere sites, http en andere soorten adressen");
-        check(Nieuws.cookieKlaar("tweakers", "https://tweakers.net/nieuws/") && Nieuws.cookieKlaar("tweakers", "https://www.tweakers.net/")
-                && !Nieuws.cookieKlaar("tweakers", "https://tweakers.net/privacygate-confirm?redirectUri=x") && !Nieuws.cookieKlaar("tweakers", "https://myprivacy.dpgmedia.nl/consent")
-                && !Nieuws.cookieKlaar("tweakers", "https://pg.tweakers.net/api/") && !Nieuws.cookieKlaar("nos", "https://nos.nl/"), "klaar = terug op de site zelf");
+        check(!Nieuws.cookieAdres("tweakers", "https://sp.dpgmedia.net/sp.js") && !Nieuws.cookieAdres("tweakers", "https://c.dpgmedia.net/a/b") && !Nieuws.cookieAdres("tweakers", "https://pg.dpgmedia.net/api/metrics")
+                && !Nieuws.cookieAdres("tweakers", "https://account.dpgmedia.nl/login") && !Nieuws.cookieAdres("tweakers", "https://dpgmedia.nl/"), "geblokkeerd: de meetdiensten en het inloggen van DPG Media");
+        // De echte stroom: tweakers.net → myprivacy.dpgmedia.nl → tweakers.net/privacy-gate/store/ (bewaart) → tweakers.net
+        String keuze = "https://myprivacy.dpgmedia.nl/consent?siteKey=kzz6o4y8ybwvpkea&callbackUrl=https://tweakers.net/privacy-gate/store/?returnUrl=https%3A%2F%2Ftweakers.net%2Fnieuws%2F";
+        check("site".equals(Nieuws.cookieStap("tweakers", "https://tweakers.net/nieuws/")) && "keuze".equals(Nieuws.cookieStap("tweakers", keuze))
+                && "bewaar".equals(Nieuws.cookieStap("tweakers", "https://tweakers.net/privacy-gate/store/?returnUrl=https%3A%2F%2Ftweakers.net%2Fnieuws%2F"))
+                && "bewaar".equals(Nieuws.cookieStap("tweakers", "https://tweakers.net/privacygate-confirm?redirectUri=x")) && "site".equals(Nieuws.cookieStap("tweakers", "https://www.tweakers.net/"))
+                && "".equals(Nieuws.cookieStap("tweakers", "https://www.google.com/")) && "".equals(Nieuws.cookieStap("nos", "https://nos.nl/")), "stappen van het venster: site, keuze, bewaar");
         gehaald.clear();
         NieuwsFeed.Feed tf3 = tweakers();
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf3, tcache, System.currentTimeMillis() + 60_000, null);
@@ -396,6 +424,8 @@ public class NieuwsTest {
         String ex = "<exclude domain=\"file\" path=\"nieuws/\" />";
         int cb = dr.indexOf("<cloud-backup>"), dt = dr.indexOf("<device-transfer>");
         check(br.contains(ex) && cb >= 0 && dt > cb && dr.substring(cb, dt).contains(ex) && dr.substring(dt).contains(ex), "Android-backup en overzetten: nieuws/ uitgesloten");
+        String wv = "<exclude domain=\"root\" path=\"app_webview/\" />";
+        check(br.contains(wv) && dr.substring(cb, dt).contains(wv) && dr.substring(dt).contains(wv), "Android-backup en overzetten: cookies van de WebView (cookiekeuze) uitgesloten");
 
         System.out.println(fails == 0 ? "alles goed" : fails + " fout(en)");
         System.exit(fails == 0 ? 0 : 1);

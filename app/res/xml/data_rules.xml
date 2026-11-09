@@ -33,6 +33,7 @@
         <exclude domain="file" path="toiletten/" />
         <exclude domain="file" path="toiletten-cache/" />
         <exclude domain="file" path="nieuws/" />
+        <exclude domain="root" path="app_webview/" />
         <exclude domain="file" path="whisper/" />
         <exclude domain="file" path="contacts/" />
         <exclude domain="file" path="crash.log" />
@@ -83,6 +84,7 @@
         <exclude domain="file" path="toiletten/" />
         <exclude domain="file" path="toiletten-cache/" />
         <exclude domain="file" path="nieuws/" />
+        <exclude domain="root" path="app_webview/" />
         <exclude domain="file" path="whisper/" />
         <exclude domain="file" path="contacts/" />
         <exclude domain="file" path="crash.log" />

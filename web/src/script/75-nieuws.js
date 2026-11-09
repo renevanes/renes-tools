@@ -114,6 +114,7 @@ function nwVerversen(alles){
   if (alles && !nwBronnen().some(b => b.aan)) { toast(t('Zet eerst een bron aan')); show('nieuwsset'); return; }
   nw.bezig = true;
   if (current === 'nieuws') nwRender();
+  if (current === 'nieuwsset' && nw.data) nwCookieRender();
   Android.nieuwsVerversen(!!alles, nwBeeldenAan());
 }
 window.onNieuws = function(r){
@@ -231,8 +232,10 @@ function nwCookieRender(){
   el.hidden = !b;
   if (!b) return;
   const stand = b.beeldStand || '';
-  uiSetup(el, stand === 'ok');
-  const st = stand === 'ok' ? t('Klaar') : stand === 'cookiekeuze' ? t('Nog niet klaar') : stand === 'fout' ? t('Ophalen lukte niet') : t('Nog niet nagekeken');
+  // alleen een toestemmingspagina (of nog niets geprobeerd) vraagt om de keuze; een gewone fout klapt de kaart niet open
+  uiSetup(el, stand === 'ok' || stand === 'fout');
+  const st = nw.bezig ? t('Nakijken…') : stand === 'ok' ? tc('status', 'Klaar') : stand === 'cookiekeuze' ? t('Nog niet klaar')
+    : stand === 'fout' ? t('Ophalen lukte niet') : t('Nog niet nagekeken');
   const uitleg = t('{naam} laat de artikelpagina met de afbeelding pas zien na een cookiekeuze. Die maak je één keer zelf, op de pagina van de site.', { naam: b.naam });
   const privacy = t('Tools stuurt daarna de cookies van deze site mee als het de afbeeldingen ophaalt, dus de site herkent je.');
   [['#nws-cookie-st', st], ['#nws-cookie-uitleg', uitleg], ['#nws-cookie-privacy', privacy]].forEach(([s, v]) => { if ($(s).textContent !== v) $(s).textContent = v; });
