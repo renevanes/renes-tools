@@ -1,0 +1,2 @@
+Nieuws: Tweakers laat alleen nog het nieuws zien (zonder downloads, reviews en aanbiedingen) en heet nu Tweakers Nieuws.
+Telefoon-skin: zet Nieuws met het krantenicoon tussen je snelkoppelingen (Look aanpassen → Snelkoppelingen naar tools).
