@@ -25,7 +25,7 @@ const CM_BLOKKEN={persoon:[['persoon','Persoon',['roepnaam','voornamen','naam','
   organisatie:[['gegevens','Organisatie',['naam','registratienummer']],['contact','Contact',['adres','postcode','plaats','land','telefoon','email']]],
   identiteit:[['document','Document',['persoon','documentsoort','document','geldig','categorieen']],['afgifte','Afgifte',['afgifte','afgifteplaats','uitgifteland','afgegevenDoor']],['fotos','Foto’s',[]]],
   reis:[['reis','Reis',['van','tot','reisgegevens','alleen','tweedeBegeleider','tweedeGever']],['verblijf','Verblijf',['accommodatie','postcode','plaats','land','telefoon']]],
-  formulier:[['kind','Kind',['formulier','kind','kindDocument','alleen','bsnInvullen']],['begeleiders','Begeleiders',['begeleider1','begeleider1Document','begeleider1Relatie','begeleider2','begeleider2Document','begeleider2Relatie']],['toestemming','Toestemming',['gever1','gever1Document','gever1Instelling','gever2','gever2Document','gever2Instelling']]],
+  formulier:[['kind','Het kind',['formulier','kind','kindDocument','alleen','bsnInvullen']],['begeleiders','Begeleiders',['begeleider1','begeleider1Document','begeleider1Relatie','begeleider2','begeleider2Document','begeleider2Relatie']],['toestemming','Toestemming',['gever1','gever1Document','gever1Instelling','gever2','gever2Document','gever2Instelling']]],
   profiel:[['profiel','App-profiel',['persoon','delen']]]};
 // Een nieuwe persoon begint kort; de rest vul je daarna per blok op het visitekaartje in.
 const CM_NIEUW={persoon:['nieuw','Persoon',['roepnaam','voornamen','naam','geboortedatum']]};
