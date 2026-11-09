@@ -1,8 +1,8 @@
 /* Visitekaartje: één stamgegeven om te lezen, in blokken met elk een potlood (alleen dat blok bewerken). Bij een persoon
  * bovenaan wat die voor jou is (tik om te wijzigen) en of de assistent hem kent; met een gekoppeld contact Bellen, Bericht en
- * Contacten. Nummers (BSN, documentnummer) staan afgeschermd; een kaartfoto laadt pas als je erop tikt (dat staat in
- * Activiteiten als Kaartfoto bekeken). */
-const cmc={rec:null,epoch:0,reveal:false,photoEpoch:0};
+ * Contacten. Nummers (BSN, documentnummer) staan afgeschermd; kaartfoto's staan er meteen (dat staat in Activiteiten als
+ * Kaartfoto bekeken) en zijn groot te bekijken met zoomen. */
+const cmc={rec:null,epoch:0,reveal:false,photoEpoch:0,fotos:{},laden:new Set(),kijker:''};
 const cmct={request:'',done:null};
 // taal-vast: korte veldnamen op het kaartje worden met t() vertaald
 const CMC_KORT={roepnaam:'Roepnaam',voornamen:'Voornamen',naam:'Achternaam',initialen:'Initialen',geslacht:'Geslacht',geboortedatum:'Geboren',geboorteplaats:'Geboorteplaats',nationaliteit:'Nationaliteit',bsn:'BSN',
@@ -16,7 +16,9 @@ function cmKaartLoad(id,note=''){
   if(!cmOpen())return;const epoch=++cmc.epoch;
   cmRequest('masterRead',[id,'masterdata',''],r=>{
     if(epoch!==cmc.epoch||!cmOpen())return;
-    cmc.rec=r.record;cmc.reveal=false;cmc.photoEpoch++;if(r.record&&(r.record.type==='formulier'||r.record.id===cmkMe()))sigLoad();
+    const zelfde=cmc.rec&&r.record&&cmc.rec.id===r.record.id&&cmc.rec.revision===r.record.revision;
+    if(!zelfde){cmcPhotoViewerClose();cmc.photoEpoch++;cmc.fotos={};cmc.laden.clear();}
+    cmc.rec=r.record;cmc.reveal=false;if(r.record&&(r.record.type==='formulier'||r.record.id===cmkMe()))sigLoad();
     if(current!=='cmkaart')show('cmkaart');
     cmKaartRender();$('#cm-kaart-status').textContent='';cmNavDone();if(note)cmNote(note);
   },false,()=>{if(epoch===cmc.epoch)cmNavDone();});
@@ -186,26 +188,45 @@ sigWatch(()=>{
   const ed=$('#cmi-form-sig');if(ed)ed.replaceWith(cmSigStand('cmi-form-sig',false));
 });
 
-/* Kaartfoto's op het documentkaartje: tik om te tonen (gelogd), nog eens tikken vergroot. */
+/* Kaartfoto's op het documentkaartje: meteen getoond (elke keer lezen staat in Activiteiten als Kaartfoto bekeken); tikken
+ * opent de foto groot, met in- en uitzoomen (knijpen, dubbeltikken of + en −). Eén keer laden per geopend kaartje. */
+function cmcPhotoAlt(side){return side==='front'?t('Voorzijde van het identiteitsdocument'):t('Achterzijde van het identiteitsdocument');}
 function cmcPhotos(box,r,blok){
   const sec=cmcBlok(box,r,blok,[],{empty:false}),grid=cmEl('div',undefined,'cmc-fotos');
   for(const side of ['front','back']){
     const has=!!r.images?.[side],tile=cmEl('button',undefined,'cmc-foto');tile.classList.toggle('leeg',!has);tile.type='button';tile.id='cmc-foto-'+side;
-    if(has){const img=cmEl('img');img.alt=side==='front'?t('Voorzijde van het identiteitsdocument'):t('Achterzijde van het identiteitsdocument');img.hidden=true;tile.append(img,cmEl('span',side==='front'?t('Voorkant tonen'):t('Achterkant tonen')));tile.onclick=()=>cmcPhotoShow(side);}
+    if(has){const img=cmEl('img');img.alt=cmcPhotoAlt(side);img.hidden=true;tile.classList.add('vol');tile.append(img,cmEl('span',t('Foto laden…')));tile.onclick=()=>cmcPhotoZoom(side);}
     else{tile.innerHTML=uiIcon('camera');tile.append(cmEl('span',side==='front'?t('Voorkant toevoegen'):t('Achterkant toevoegen')));tile.onclick=()=>cmcPhotoPick(side);}
     grid.append(tile);
   }
   sec.append(grid);
+  if(r.images?.front||r.images?.back)sec.append(cmEl('p',t('Tik op een foto om hem groot te bekijken en in te zoomen.'),'hint'));
+  for(const side of ['front','back'])if(r.images?.[side])cmcPhotoLoad(side);
 }
-function cmcPhotoShow(side){
-  const r=cmc.rec,tile=$('#cmc-foto-'+side);if(!cmOpen()||!r?.images?.[side]||!tile)return;
-  const img=tile.querySelector('img');if(img.getAttribute('src')){tile.classList.toggle('zoom');cmTouch();return;}
-  const epoch=cmc.photoEpoch;
+function cmcPhotoPut(side){
+  const tile=$('#cmc-foto-'+side),src=cmc.fotos[side];if(!tile||!src)return;
+  const img=tile.querySelector('img');img.src=src;img.hidden=false;tile.querySelector('span').textContent=side==='front'?t('Voorkant'):t('Achterkant');tile.classList.add('open');
+  tile.setAttribute('aria-label',side==='front'?t('Voorkant vergroten'):t('Achterkant vergroten'));
+}
+function cmcPhotoLoad(side){
+  const r=cmc.rec;if(!cmOpen()||!r?.images?.[side])return;
+  if(cmc.fotos[side]){cmcPhotoPut(side);return;}
+  if(cmc.laden.has(side))return;
+  const epoch=cmc.photoEpoch;cmc.laden.add(side);
+  const mislukt=()=>{if(epoch!==cmc.photoEpoch)return;cmc.laden.delete(side);const span=$('#cmc-foto-'+side+' span');if(span)span.textContent=t('Foto niet geladen. Tik om het opnieuw te proberen.');};
   cmRequest('masterPhotoRead',[r.id,r.revision,side],out=>{
-    if(epoch!==cmc.photoEpoch||cmc.rec!==r||!cmOpen())return;
-    if(typeof out.image==='string'&&out.image.length<=350000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(out.image)){img.src=out.image;img.hidden=false;tile.querySelector('span').hidden=true;tile.classList.add('open');tile.setAttribute('aria-label',t('Foto vergroten of verkleinen'));}
-  });
+    if(epoch!==cmc.photoEpoch||!cmOpen())return;
+    if(typeof out.image==='string'&&out.image.length<=350000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(out.image)){cmc.laden.delete(side);cmc.fotos[side]=out.image;cmcPhotoPut(side);}
+    else mislukt();
+  },false,mislukt);
 }
+/* Groot bekijken in de gedeelde afbeeldingskijker (ook van de e-reader): zoomen met knijpen, dubbeltikken, + en −. */
+function cmcPhotoZoom(side){
+  if(!cmOpen())return;const src=cmc.fotos[side];
+  if(!src){cmcPhotoLoad(side);return;}
+  cmc.kijker=src;erImageOpen(src,cmcPhotoAlt(side));cmTouch();
+}
+function cmcPhotoViewerClose(){if(cmc.kijker&&$('#er-image').classList.contains('on')&&$('#er-image-picture').getAttribute('src')===cmc.kijker)erImageClose();cmc.kijker='';}
 function cmcPhotoPick(side){
   const r=cmc.rec;if(!cmOpen()||cm.mutating||!r||r.type!=='identiteit'||cmi.photoRequest)return;
   cmi.photoRequest=cmRequest('masterPhotoPick',[r.id,r.revision,side],()=>{},false,()=>cmiPhotoCancel());
@@ -289,4 +310,4 @@ window.onMasterContactPicked=function(r){
   if(r.error){cmNote(t(r.error));return;}
   cmNote('');if(r.contact&&done)done(r.contact);
 };
-const cmcClear=cmClearCentral;cmClearCentral=function(){cmc.rec=null;cmc.epoch++;cmc.photoEpoch++;cmc.reveal=false;cmct.request='';cmct.done=null;cmcClear();};
+const cmcClear=cmClearCentral;cmClearCentral=function(){cmcPhotoViewerClose();cmc.rec=null;cmc.epoch++;cmc.photoEpoch++;cmc.fotos={};cmc.laden.clear();cmc.reveal=false;cmct.request='';cmct.done=null;cmcClear();};

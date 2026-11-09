@@ -117,6 +117,7 @@ function erBoundary(node,offset,end){
   for(const n of erNodes){const range=document.createRange();range.selectNodeContents(n.node);if(point.compareBoundaryPoints(Range.START_TO_START,range)<=0)return n.start;}
   return erText.length;
 }
+/* De afbeeldingskijker (#er-image) is gedeeld: ook de kaartfoto's van Stamgegevens openen hierin. */
 let erZoom={scale:1,x:0,y:0},erPointers=new Map(),erGesture=null;
 function erImageOpen(src,alt){const el=$('#er-image');$('#er-image-picture').src=src;$('#er-image-picture').alt=alt||t('Afbeelding');$('#er-image-label').textContent=alt||t('Afbeelding');el.classList.add('on');erZoom={scale:1,x:0,y:0};erPointers.clear();erImageTransform();dialogFocus.sync($('#er-image-close'));}
 function erImageClose(){$('#er-image').classList.remove('on');$('#er-image-picture').removeAttribute('src');erPointers.clear();erGesture=null;dialogFocus.sync();}

@@ -160,7 +160,7 @@ function cmiEditor(){
   if(r.type==='identiteit')for(const side of ['front','back']){$('#cmi-'+side+'-status').textContent=r.images?.[side]?t('foto opgeslagen'):t('nog geen foto');$('#cmi-'+side+'-delete').disabled=!r.images?.[side];}
   $('#cmi-photo-show').disabled=!r.images?.front&&!r.images?.back;
 }
-function cmiPhotoClear(){cmi.photoEpoch++;cmi.show=false;for(const side of ['front','back']){$('#cmi-'+side+'-image').removeAttribute('src');$('#cmi-'+side+'-paper').hidden=true;$('#cmi-'+side+'-paper').classList.remove('zoom');$('#cmi-'+side+'-zoom').hidden=true;}$('#cmi-photo-show').hidden=false;}
+function cmiPhotoClear(){cmi.photoEpoch++;cmi.show=false;const groot=$('#er-image').classList.contains('on')&&$('#er-image-picture').getAttribute('src');if(groot&&['front','back'].some(x=>$('#cmi-'+x+'-image').getAttribute('src')===groot))erImageClose();for(const side of ['front','back']){$('#cmi-'+side+'-image').removeAttribute('src');$('#cmi-'+side+'-paper').hidden=true;$('#cmi-'+side+'-zoom').hidden=true;}$('#cmi-photo-show').hidden=false;}
 function cmiPhotoCanChange(){if(!cmOpen()||cm.mutating||!cm.edit?.id||cm.dirty){cmNote(t('Sla je wijzigingen eerst op.'));return false;}return true;}
 function cmiPhotoPick(side){
   if(!cmiPhotoCanChange()||cmi.photoRequest)return;
@@ -184,7 +184,13 @@ function cmiPhotoShow(){
     cmRequest('masterPhotoRead',[record.id,record.revision,side],r=>{if(epoch!==cmi.photoEpoch||!cmOpen()||cm.edit!==record)return;if(typeof r.image==='string'&&r.image.length<=350000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(r.image)){$('#cmi-'+side+'-image').src=r.image;$('#cmi-'+side+'-paper').hidden=false;$('#cmi-'+side+'-zoom').hidden=false;}next();});
   }next();
 }
-function cmiPhotoZoom(side){if(cmOpen()&&cmi.show)$('#cmi-'+side+'-paper').classList.toggle('zoom');}
+function cmiPhotoZoom(side){const src=$('#cmi-'+side+'-image').getAttribute('src');if(cmOpen()&&cmi.show&&src){erImageOpen(src,cmcPhotoAlt(side));cmTouch();}}
+/* In het blok Foto's staan de kaartfoto's meteen (net als op het kaartje); niet terwijl er iets wordt bewaard. */
+function cmiPhotoAuto(){
+  const r=cm.edit,box=$('#cmi-photos');if(!cmOpen()||!r?.id||r.type!=='identiteit'||cmi.show||cm.mutating||!(r.images?.front||r.images?.back))return;
+  if(box.hidden||box.classList.contains('cm-off'))return;cmiPhotoShow();
+}
+const cmiTabRender=cmTabRender;cmTabRender=function(){cmiTabRender();cmiPhotoAuto();};
 function cmiPhotoDelete(side){
   if(!cmiPhotoCanChange()||!cm.edit.images?.[side])return;const r=cm.edit;
   askConfirm('Kaartfoto verwijderen?','De versleutelde kopie van deze zijde wordt verwijderd.','Verwijderen',()=>{if(!cmOpen()||cm.edit!==r||cm.mutating)return;cmBusy(true);cmRequest('masterPhotoDelete',[r.id,r.revision,side],out=>{cmBusy(false);r.revision=out.revision;r.images[side]=false;cmiEditor();cmNote(t('Kaartfoto verwijderd.'));});});

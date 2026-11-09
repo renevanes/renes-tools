@@ -296,6 +296,24 @@ public class FeatureBridge {
         try { PdfSignature.delete(ctx);return ""; }
         catch (Exception e) { return "Handtekening verwijderen lukt niet"; }
     }
+    /**
+     * Een foto of scan van je handtekening kiezen; het antwoord komt in onSignatureImage ({image} als verkleinde JPEG,
+     * {cancelled} of {error}). masterToken: is Stamgegevens open, dan blijft die tijdens het kiezen open (zoals bij een kaartfoto).
+     */
+    @JavascriptInterface public void pdfSignaturePick(String masterToken) {
+        a.h.post(() -> {
+            if (masterToken != null && !masterToken.isEmpty() && a.masterForeground && a.masterSession.accepts(masterToken)) {
+                a.masterPickReturned = false; a.masterPickKind = "sig"; a.masterPickUntil = android.os.SystemClock.elapsedRealtime() + MainActivity.MASTER_PICK_MS;
+                a.h.postDelayed(a::masterPickExpired, MainActivity.MASTER_PICK_MS + 500);
+            }
+            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*");
+            try { a.startActivityForResult(i, MainActivity.REQ_SIG_IMG); }
+            catch (Throwable e) {
+                if ("sig".equals(a.masterPickKind)) { a.masterPickUntil = 0; a.masterPickKind = ""; }
+                a.js("onSignatureImage", "{\"error\":" + JSONObject.quote(Taal.T("Bestandskiezer niet beschikbaar")) + "}");
+            }
+        });
+    }
     /** Openen in de eigen viewer. */
     @JavascriptInterface public void pdfOpen(String name) {
         try {

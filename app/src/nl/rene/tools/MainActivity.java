@@ -91,6 +91,7 @@ public class MainActivity extends Activity {
     }
     static final int REQ_PDF_IMG = 28, REQ_PDF_FILE = 29, REQ_PDF_SAVE = 30, REQ_PDF_DOC = 31, REQ_PDF_VIEW = 32;
     static final int REQ_ID_COPY = 65;
+    static final int REQ_SIG_IMG = 33;
     volatile IdCopy idCopy = new IdCopy();
     volatile IdCopy idPickStore;
     volatile String idSession = "", idPickSession = "";
@@ -110,7 +111,7 @@ public class MainActivity extends Activity {
      * Tijdens het kiezen weigert de brug alles (masterForeground is dan false).
      */
     volatile long masterPickUntil;volatile boolean masterPickReturned;
-    /** Wat er gekozen wordt: "photo" (kaartfoto), "contact" (contact koppelen) of "perm" (toegang tot Contacten vragen). */
+    /** Wat er gekozen wordt: "photo" (kaartfoto), "contact" (contact koppelen), "perm" (toegang tot Contacten vragen) of "sig" (handtekening uit een foto). */
     volatile String masterPickKind="";
     final MasterContacts.Pick masterContacts=new MasterContacts.Pick(this);
     static final long MASTER_PICK_MS=120_000L;
@@ -650,7 +651,7 @@ public class MainActivity extends Activity {
             boolean back=masterPickReturned&&masterPicking();String kind=masterPickKind;masterPickUntil=0;masterPickReturned=false;masterPickKind="";
             if(!back){masterContacts.cancel();suspendMaster(false);}
             else if("contact".equals(kind)||"perm".equals(kind))masterContacts.continueAfterPick();
-            else masterPhotos.continueAfterPick();
+            else if(!"sig".equals(kind))masterPhotos.continueAfterPick();
         }
         runMasterAfterAuth();bankAuth.resume();runBankAfterAuth();
         js("onResumeApp", "");
@@ -905,6 +906,19 @@ public class MainActivity extends Activity {
         super.onActivityResult(req, res, data);
         if(req==MasterPhotos.REQUEST){masterPickReturned=masterPickUntil!=0&&res==RESULT_OK&&data!=null&&data.getData()!=null;masterPhotos.result(res,data);return;}
         if(req==MasterContacts.REQUEST){masterPickReturned=masterPickUntil!=0&&"contact".equals(masterPickKind)&&masterContacts.result(res,data);return;}
+        if (req == REQ_SIG_IMG) {
+            // Terug uit de eigen kiezer (ook bij annuleren): Stamgegevens hoeft dan niet op slot.
+            if ("sig".equals(masterPickKind)) masterPickReturned = masterPickUntil != 0;
+            final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
+            if (u == null) { js("onSignatureImage", "{\"cancelled\":true}"); return; }
+            new Thread(() -> {
+                String r;
+                try (Voortgang v = Voortgang.van(this, "handtekening", 1)) { r = new JSONObject().put("image", PdfSignatureImage.load(this, u, v)).toString(); }
+                catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(e instanceof PdfSignatureImage.Fout ? e.getMessage() : "Deze afbeelding kan niet worden geopend") + "}"; }
+                js("onSignatureImage", r);
+            }, "sig-image").start();
+            return;
+        }
         if (req == REQ_FACT_PDF) {
             final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
             if (u == null) { js("onFacturenToegevoegd", "{\"error\":\"\"}"); return; }
