@@ -238,7 +238,7 @@ function nwCookieRender(){
   const st = nw.bezig ? t('Nakijken…') : stand === 'ok' ? tc('status', 'Klaar') : stand === 'cookiekeuze' ? t('Nog niet klaar')
     : stand === 'fout' ? t('Ophalen lukte niet') : t('Nog niet nagekeken');
   const uitleg = t('{naam} laat de artikelpagina met de afbeelding pas zien na een cookiekeuze. Die maak je één keer zelf, op de pagina van de site.', { naam: b.naam });
-  const privacy = t('Tools stuurt daarna de cookies van deze site mee als het de afbeeldingen ophaalt, dus de site herkent je.');
+  const privacy = t('Tools stuurt daarna de cookies van deze site mee als het de afbeeldingen ophaalt, net als een browser: de site herkent je en ziet welk soort telefoon je hebt.');
   const reden = stand === 'fout' && !nw.bezig ? nwBeeldReden(b) : '';
   [['#nws-cookie-st', st], ['#nws-cookie-uitleg', uitleg], ['#nws-cookie-privacy', privacy], ['#nws-cookie-reden', reden]].forEach(([s, v]) => { if ($(s).textContent !== v) $(s).textContent = v; });
   $('#nws-cookie-reden').hidden = !reden;
@@ -247,18 +247,29 @@ function nwCookieRender(){
 function nwBeeldReden(b){
   const r = (b && b.beeldReden) || '';
   if (/^\d{3}$/.test(r)) return t('De site antwoordde met code {code}.', { code: r });
-  return { geenkop: t('De site gaf geen artikelpagina terug, maar bijvoorbeeld een cookiemuur.'), traag: t('De site reageerde te traag.'),
+  return { geenkop: t('De site gaf iets anders terug dan de artikelpagina, bijvoorbeeld een cookiemuur.'), traag: t('De site reageerde te traag.'),
     verbinding: t('Er was geen verbinding.'), beveiliging: t('Er was geen veilige verbinding met de site.') }[r] || '';
 }
-/* Op het nieuwsscherm zelf: de afbeeldingen van een bron wachten op de cookiekeuze, of het ophalen lukte niet. */
+/*
+ * Op het nieuwsscherm zelf: de afbeeldingen van een bron wachten op de cookiekeuze, of het ophalen lukte niet. Niet bij
+ * iets wat vanzelf overgaat (te traag, geen verbinding); tijdens het bijwerken blijft de balk staan, zodat de lijst niet verspringt.
+ */
 function nwBeeldBalk(){
   const el = $('#nw-beeldbalk'), b = nwCookieBron(), stand = b ? b.beeldStand || '' : '';
-  const toon = !!b && !nw.bezig && (stand === 'cookiekeuze' || stand === 'fout');
+  const toon = !!b && (stand === 'cookiekeuze' || (stand === 'fout' && !['traag', 'verbinding'].includes(b.beeldReden || '')));
   el.style.display = toon ? '' : 'none';
   if (!toon) return;
   const titel = stand === 'cookiekeuze' ? t('Afbeeldingen van {naam}: eerst een cookiekeuze', { naam: b.naam }) : t('Afbeeldingen van {naam} ophalen lukte niet', { naam: b.naam });
-  const sub = stand === 'cookiekeuze' ? t('Die maak je één keer zelf. Tik om te regelen.') : (nwBeeldReden(b) || t('Tik voor meer.'));
+  const sub = nw.bezig ? t('Nakijken…') : stand === 'cookiekeuze' ? t('Die maak je één keer zelf. Tik om te regelen.') : (nwBeeldReden(b) || t('Tik voor meer.'));
   [['#nw-beeldbalk-t', titel], ['#nw-beeldbalk-s', sub]].forEach(([s, v]) => { if ($(s).textContent !== v) $(s).textContent = v; });
+}
+/* De balk: naar de instellingen, met de kaart van de cookiekeuze open en in beeld (ook bij een fout, waar hij anders dicht blijft). */
+function nwBeeldBalkOpen(){
+  show('nieuwsset');
+  const el = $('#nws-cookie');
+  if (el.hidden) return;
+  uiOpenTo(el);
+  el.scrollIntoView({ block: 'start' });
 }
 function nwCookies(){
   const b = nwCookieBron(); if (!b) return;

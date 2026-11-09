@@ -160,7 +160,7 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     const cookieOpen = () => page.evaluate(() => { const d = document.querySelector('#nws-cookie'); return !d.hidden && d.open; });
     ok(await cookieOpen() && (await page.locator('#nws-cookie-st').innerText()) === 'Nog niet klaar'
       && (await page.locator('#nws-cookie-uitleg').innerText()).startsWith('Tweakers Nieuws laat de artikelpagina met de afbeelding pas zien')
-      && (await page.locator('#nws-cookie-privacy').innerText()).includes('de site herkent je'), 'Tweakers vraagt een cookiekeuze: eenmalig instellen staat open, met wat de site dan ziet');
+      && (await page.locator('#nws-cookie-privacy').innerText()).includes('de site herkent je en ziet welk soort telefoon je hebt'), 'Tweakers vraagt een cookiekeuze: eenmalig instellen staat open, met wat de site dan ziet');
     await page.evaluate(() => { Android._nw.calls.length = 0; });
     await page.click('#nws-cookie-knop');
     ok((await nwCalls()).join() === 'cookies:tweakers', 'cookiekeuze maken: het venster gaat open');
@@ -182,6 +182,24 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     await page.evaluate(() => show('nieuws')); await page.waitForTimeout(300);
     ok(await page.locator('#nw-beeldbalk').isVisible() && (await page.locator('#nw-beeldbalk-t').innerText()) === 'Afbeeldingen van Tweakers Nieuws ophalen lukte niet'
       && (await page.locator('#nw-beeldbalk-s').innerText()) === 'De site antwoordde met code 403.', 'nieuwsscherm: balk met de reden als ophalen niet lukte');
+    await page.click('#nw-beeldbalk'); await page.waitForTimeout(300);
+    ok(await page.evaluate(() => {
+      const d = document.querySelector('#nws-cookie'), r = document.querySelector('#nws-cookie-reden').getBoundingClientRect();
+      return current === 'nieuwsset' && d.open && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight;
+    }), 'balk bij een fout: de kaart gaat open en de reden staat in beeld');
+    await page.evaluate(() => show('nieuws')); await page.waitForTimeout(200);
+    // Bijwerken: de balk blijft staan (de lijst verspringt niet) en zegt dat hij nakijkt; de reden komt van de brug
+    const boven = () => page.evaluate(() => document.querySelector('#nw-lijst').getBoundingClientRect().top);
+    const lijstTop = await boven();
+    await page.evaluate(() => { Android._nw.beeldFout = '503'; Android._nw.wacht = 400; nwVerversen(true); });
+    await page.waitForTimeout(100);
+    ok(await page.locator('#nw-beeldbalk').isVisible() && (await page.locator('#nw-beeldbalk-s').innerText()) === 'Nakijken…' && await boven() === lijstTop, 'tijdens het bijwerken: de balk blijft staan, met nakijken');
+    await page.waitForTimeout(600);
+    ok((await page.locator('#nw-beeldbalk-s').innerText()) === 'De site antwoordde met code 503.' && await boven() === lijstTop, 'na het bijwerken: de nieuwe reden van de brug');
+    await page.evaluate(() => { Android._nw.beeldFout = 'traag'; nwVerversen(true); });
+    await page.waitForTimeout(700);
+    ok(await page.evaluate(() => document.querySelector('#nw-beeldbalk').style.display === 'none' && Android._nw.stand.tweakers.beeldReden === 'traag'), 'te traag (gaat vanzelf over): geen balk');
+    await page.evaluate(() => { delete Android._nw.beeldFout; Android._nw.wacht = 200; });
     await page.evaluate(() => { Android._nw.stand.tweakers.beeldStand = 'cookiekeuze'; delete Android._nw.stand.tweakers.beeldReden; nwLaad(); nwRender(); });
     ok((await page.locator('#nw-beeldbalk-t').innerText()) === 'Afbeeldingen van Tweakers Nieuws: eerst een cookiekeuze', 'nieuwsscherm: balk als de cookiekeuze nog moet');
     const balk = await page.locator('#nw-beeldbalk').boundingBox();
@@ -245,6 +263,13 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     ok((await page.locator('#nwa-meta').innerText()).includes('by Redactie Binnenland') && await page.locator('#nwa-web').innerText() === 'Read on the website' && await page.locator('#nwa-titel').innerText() === 'Instellingen', 'Engels: artikel');
     await page.evaluate(() => show('nieuwsset'));
     ok(await page.locator('#s-nieuwsset h1').innerText() === 'News: settings' && (await page.locator('#nws-bronnen .srow:has-text("NOS Nieuws") small').innerText()).match(/^\d+ articles · updated /), 'Engels: instellingen');
+    await page.evaluate(() => {
+      const s = Android._nw; s.bronnen.find(b => b.id === 'tweakers').aan = true; s.beeldFout = 'geenkop';
+      s.stand.tweakers = Object.assign(s.stand.tweakers || {}, { beeldStand: 'fout', beeldReden: 'geenkop' }); nwLaad(); show('nieuws');
+    });
+    await page.waitForTimeout(600);
+    ok(await page.locator('#nw-beeldbalk-t').innerText() === "Fetching images from Tweakers Nieuws didn't work" && await page.locator('#nw-beeldbalk-s').innerText() === 'The site returned something other than the article page, such as a cookie wall.', 'Engels: balk (de naam van de bron blijft)');
+    await page.evaluate(() => { delete Android._nw.beeldFout; Android._nw.stand.tweakers.beeldStand = 'ok'; delete Android._nw.stand.tweakers.beeldReden; nwLaad(); });
     await page.evaluate(() => { show('setregio'); }); await page.selectOption('#rg-lang', 'nl');
     await page.close();
   }

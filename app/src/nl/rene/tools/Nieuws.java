@@ -200,16 +200,23 @@ final class Nieuws {
      * Artikelpagina's ophalen met de cookies {@code k} en als {@code ua}: de User-Agent van de WebView waarin Rene de
      * cookiekeuze maakte. De firewall van de site kan die cookies aan die browser koppelen; met een andere naam ziet hij een robot.
      */
-    static Pagina web(Koekjes k, String ua) { return web((url, tot, naam) -> haal(url, tot, true, k, naam), ua); }
+    static WebPagina web(Koekjes k, String ua) { return new WebPagina((url, tot, naam) -> haal(url, tot, true, k, naam), ua); }
 
     /**
      * Weigert de site (403) de User-Agent van de WebView, dan die pagina nog één keer als {@link #UA}; lukt dat, dan de
      * rest van deze ronde ook zo. Welke naam een firewall accepteert, verschilt per site en is van buitenaf niet te zien.
      */
-    static Pagina web(Haler h, String ua) {
-        String eerst = paginaUa(ua);
-        AtomicReference<String> naam = new AtomicReference<>(eerst);
-        return (url, tot) -> {
+    static final class WebPagina implements Pagina {
+        private final Haler h;
+        private final String eerst;
+        private final AtomicReference<String> naam;
+
+        WebPagina(Haler h, String ua) { this.h = h; eerst = paginaUa(ua); naam = new AtomicReference<>(eerst); }
+
+        /** Weigerde de site de User-Agent van de WebView en lukte het daarna als {@link #UA}? (Voor het logboek.) */
+        boolean alsTools() { return !UA.equals(eerst) && UA.equals(naam.get()); }
+
+        @Override public String haal(String url, long tot) throws Exception {
             String n = naam.get();
             Antwoord a;
             try {
@@ -220,7 +227,39 @@ final class Nieuws {
                 naam.set(UA);
             }
             return new String(a.data, 0, a.data.length, PodcastFeed.charset(a.data, a.data.length, a.charset));
-        };
+        }
+    }
+
+    /** De logregel over de afbeeldingen van de artikelpagina's: alleen vaste woorden en codes; "" als er niets te melden is. */
+    static String beeldLog(String stand, String reden, boolean alsTools) {
+        if (stand == null || stand.isEmpty()) return "";
+        String extra = stand.equals("fout") && reden != null && !reden.isEmpty() ? " (" + reden + ")" : stand.equals("ok") && alsTools ? " (als Tools)" : "";
+        return "afbeeldingen van de pagina: " + stand + extra;
+    }
+
+    /**
+     * De kop Accept-Language zoals de WebView hem maakt uit de talen van de telefoon ({@code tags}, zoals "nl-NL,en-US"):
+     * "nl-NL,nl;q=0.9,en-US;q=0.8,en;q=0.7". Alleen geldige taalcodes; zonder bruikbare taal Nederlands en Engels.
+     */
+    static String talen(String tags) {
+        List<String> uit = new ArrayList<>();
+        if (tags != null) for (String t : tags.split(",")) {
+            String s = t.trim();
+            if (!s.matches("[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8}){0,3}")) continue;
+            String basis = s.contains("-") ? s.substring(0, s.indexOf('-')) : null;
+            if (!uit.contains(s)) uit.add(s);
+            if (basis != null && !uit.contains(basis)) uit.add(basis);
+            if (uit.size() >= 8) break;
+        }
+        if (uit.isEmpty()) return "nl-NL,nl;q=0.9,en;q=0.8";
+        StringBuilder b = new StringBuilder(uit.get(0));
+        for (int i = 1; i < uit.size() && i < 9; i++) b.append(',').append(uit.get(i)).append(";q=0.").append(10 - i);
+        return b.toString();
+    }
+
+    /** De talen van de telefoon (zoals de WebView ze meestuurt), of null. */
+    private static String telefoonTalen() {
+        try { return android.os.LocaleList.getDefault().toLanguageTags(); } catch (Throwable e) { return null; }
     }
 
     /** De User-Agent voor artikelpagina's: die van de WebView, of {@link #UA} als die er niet is of niet in een kopregel past. */
@@ -261,8 +300,9 @@ final class Nieuws {
             String l = link(a.link, basis);
             if (stop || gehaald >= MAX_PAGINAS || System.currentTimeMillis() >= tot || !https(l) || !host(l).equals(site)) continue;
             gehaald++;
+            long paginaTot = Math.min(tot, System.currentTimeMillis() + MAX_PER_PAGINA);
             try {
-                String html = p.haal(l, Math.min(tot, System.currentTimeMillis() + MAX_PER_PAGINA));
+                String html = p.haal(l, paginaTot);
                 String u = paginaBeeld(html, l);
                 // geen afbeelding en geen hele kop met og:-gegevens: een muur, of een kop langer dan MAX_PAGINA
                 if (u.isEmpty() && !artikelKop(html)) { stand(f, "fout", "geenkop"); stop = true; continue; }
@@ -274,7 +314,12 @@ final class Nieuws {
             catch (HttpFout e) {
                 if (e.code == 410) a.zonderBeeld = true;
                 else if (e.code != 404) { stand(f, "fout", String.valueOf(e.code)); stop = true; }
-            } catch (Throwable e) { stand(f, "fout", reden(e)); stop = true; }
+            } catch (Throwable e) {
+                String r = reden(e);
+                // de tijd voor de hele bron was op, niet die voor de pagina: dat zegt niets over de site
+                if (!(r.equals("traag") && paginaTot == tot)) stand(f, "fout", r);
+                stop = true;
+            }
             if (a.zonderBeeld || !a.beeld.isEmpty()) bekend.put(id, a.beeld);
         }
     }
@@ -283,7 +328,7 @@ final class Nieuws {
 
     /** Waarom een artikelpagina niet lukte, als vast woord (voor het scherm en het logboek; nooit de fouttekst zelf). */
     static String reden(Throwable e) {
-        if (e instanceof java.net.SocketTimeoutException || (e instanceof Fout && Taal.T("De nieuwssite reageert te traag").equals(e.getMessage()))) return "traag";
+        if (e instanceof java.net.SocketTimeoutException || e instanceof TeTraag) return "traag";
         if (e instanceof java.net.UnknownHostException || e instanceof java.net.ConnectException || e instanceof java.net.NoRouteToHostException) return "verbinding";
         if (e instanceof javax.net.ssl.SSLException) return "beveiliging";
         return "anders";
@@ -340,6 +385,9 @@ final class Nieuws {
 
     /** Een fout met een Nederlandse tekst voor Rene (de brug vertaalt hem). */
     static class Fout extends Exception { Fout(String nl) { super(nl); } }
+
+    /** De site is niet klaar vóór de afgesproken tijd. */
+    static final class TeTraag extends Fout { TeTraag() { super(Taal.T("De nieuwssite reageert te traag")); } }
 
     /** De site antwoordt met een andere code dan 200. */
     static final class HttpFout extends Fout {
@@ -796,7 +844,7 @@ final class Nieuws {
     /** Hoeveel tijd er nog is tot {@code tot}; voorbij = de site is te traag. */
     private static int rest(long tot) throws Fout {
         long r = tot - System.currentTimeMillis();
-        if (r <= 0) throw new Fout(Taal.T("De nieuwssite reageert te traag"));
+        if (r <= 0) throw new TeTraag();
         return (int) Math.max(1000, Math.min(r, 20_000));
     }
 
@@ -861,7 +909,7 @@ final class Nieuws {
                 h.setReadTimeout(rest(tot));
                 h.setUseCaches(false);
                 h.setRequestProperty("User-Agent", ua);
-                if (pagina) h.setRequestProperty("Accept-Language", "nl-NL,nl;q=0.9,en;q=0.8");
+                if (pagina) h.setRequestProperty("Accept-Language", talen(telefoonTalen()));
                 h.setRequestProperty("Accept", pagina ? "text/html, application/xhtml+xml;q=0.9, */*;q=0.2"
                         : "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.9, text/html;q=0.5, */*;q=0.2");
                 String ck = pagina && k != null && koekjesNaar(u) ? k.voor(u) : null;
@@ -896,7 +944,7 @@ final class Nieuws {
                 a.data = out.toByteArray();
                 return a;
             } catch (IOException e) {
-                if (teLaat.get() || System.currentTimeMillis() >= tot) throw new Fout(Taal.T("De nieuwssite reageert te traag"));
+                if (teLaat.get() || System.currentTimeMillis() >= tot) throw new TeTraag();
                 throw e;
             } finally { wacht.cancel(false); h.disconnect(); }
         }
@@ -1037,7 +1085,7 @@ final class Nieuws {
             if (!todo.isEmpty()) {
                 ExecutorService ex = Executors.newFixedThreadPool(Math.min(4, todo.size()));
                 List<Future<Integer>> fs = new ArrayList<>();
-                Pagina pagina = beelden ? web(Nieuws::koekjes, webUa(c)) : null;
+                WebPagina pagina = beelden ? web(Nieuws::koekjes, webUa(c)) : null;
                 long eind = start + MAX_DUUR - 5_000L;
                 for (String[] b : todo) fs.add(ex.submit(() -> haalBron(dir, cache, b[0], b[1], pagina, eind)));
                 ex.shutdown();
@@ -1052,8 +1100,8 @@ final class Nieuws {
                 if (beelden) for (String[] b : todo) if (paginaBron(b[0]) != null) {
                     JSONObject cb;
                     synchronized (LOCK) { cb = leesObject(cacheBestand(cache, b[0])); }
-                    String stand = cb == null ? "" : cb.optString("beeldStand"), reden = cb == null ? "" : cb.optString("beeldReden");
-                    if (!stand.isEmpty()) App.log(c, "NIEUWS", "afbeeldingen van de pagina: " + stand + (stand.equals("fout") && !reden.isEmpty() ? " (" + reden + ")" : ""));
+                    String regel = cb == null ? "" : beeldLog(cb.optString("beeldStand"), cb.optString("beeldReden"), pagina != null && pagina.alsTools());
+                    if (!regel.isEmpty()) App.log(c, "NIEUWS", regel);
                 }
             }
             ruimOp(dir, cache);
