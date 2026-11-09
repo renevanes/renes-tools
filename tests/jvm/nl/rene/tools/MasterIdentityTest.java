@@ -32,8 +32,13 @@ public final class MasterIdentityTest {
         check(MasterIdentity.between(rel,kid,me).equals("ouder"),"omgekeerde relatie zonder geslacht aan te nemen");
         check(MasterIdentity.inverse("noodcontact").isEmpty()&&MasterIdentity.inverse("anders").isEmpty(),"geen omgekeerde betekenis raden");
         rel.getJSONObject("fields").put("delen","nee");check(MasterIdentity.app(records).getJSONArray("people").length()==0,"oude indeling: ongedeelde relatie blijft binnen de kluis");
+        records.put(r("rel2","relatie",new JSONObject().put("vanPersoon",me).put("naarPersoon",kid).put("relatie","noodcontact").put("delen","ja")));
+        JSONObject via=MasterIdentity.app(records).getJSONArray("people").getJSONObject(0);
+        check(via.getJSONArray("relations").length()==1&&via.getJSONArray("relations").getString(0).equals("noodcontact")&&!via.toString().contains("Woont bij mij"),"oude indeling: relatie met nee blijft verborgen, ook als de persoon via een andere relatie bekend is");
+        records.remove(records.length()-1);
         // Nieuwe indeling: Bekend bij de assistent staat bij de persoon en gaat voor
         child.getJSONObject("fields").put("delen","ja");check(MasterIdentity.app(records).getJSONArray("people").length()==1&&MasterIdentity.known(records).contains(kid),"persoon bekend bij de assistent");
+        check(MasterIdentity.app(records).getJSONArray("people").getJSONObject(0).getJSONArray("relations").getString(0).equals("dochter"),"zelf aangezet: dan ook de relatie die vroeger nee was");
         rel.getJSONObject("fields").put("delen","ja");child.getJSONObject("fields").put("delen","nee");check(MasterIdentity.app(records).getJSONArray("people").length()==0&&MasterIdentity.known(records).isEmpty(),"persoon niet bekend, ook met een oude gedeelde relatie");
         child.getJSONObject("fields").remove("delen");check(!MasterIdentity.known(records).contains(me),"jijzelf telt niet als bekende persoon");
         profile.getJSONObject("fields").put("persoon",kid);check(MasterIdentity.app(records).getJSONArray("people").getJSONObject(0).getJSONArray("relations").getString(0).equals("ouder"),"eigen identiteit wijzigen keert perspectief om");

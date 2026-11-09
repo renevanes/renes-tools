@@ -249,7 +249,11 @@ function cmAfterEdit(saved,savedId){
   cm.navigating=true;cm.navNote='';
   cmListLoad(()=>{
     if(target&&cm.records.some(r=>r.id===target)){if(from&&!(from.scr==='cmkaart'&&from.id===target))cm.nav.push(from);cmKaartOpen(target,false);return;}
-    if(from){cmGo(from,false);return;}
+    // Na verwijderen: niet terug naar het kaartje van wat er niet meer is
+    const gone=x=>x?.scr==='cmkaart'&&!cm.records.some(r=>r.id===x.id);
+    if(from&&!gone(from)){cmGo(from,false);return;}
+    while(cm.nav.length&&gone(cm.nav[cm.nav.length-1]))cm.nav.pop();
+    const prev=cm.nav.pop();if(prev){cmGo(prev,false);return;}
     if(current!=='masterdata')show('masterdata');cmNavDone();
   });
 }

@@ -69,6 +69,18 @@ final class MasterIdentity {
         }
         return out;
     }
+    /**
+     * Een relatie waarbij Rene vroeger bewust "Delen: nee" koos, blijft voor de assistent verborgen tot hij elke andere persoon
+     * in die relatie zelf aanzet (Bekend bij de assistent). Nieuwe relaties krijgen "ja".
+     */
+    static boolean shared(JSONObject relation,JSONArray records,String me)throws Exception{
+        JSONObject f=relation.getJSONObject("fields");if(!"nee".equals(f.optString("delen")))return true;
+        for(String k:new String[]{"vanPersoon","naarPersoon"}){
+            String id=f.optString(k);if(id.equals(me))continue;
+            JSONObject x=find(records,id);if(x==null||!"ja".equals(x.getJSONObject("fields").optString("delen")))return false;
+        }
+        return true;
+    }
     static JSONObject app(JSONArray records)throws Exception {
         JSONObject profile=profile(records);
         if(profile==null)return new JSONObject();JSONObject p=profile.getJSONObject("fields");
@@ -84,7 +96,7 @@ final class MasterIdentity {
             JSONObject person=records.getJSONObject(i);if(!person.getString("type").equals("persoon")||!shared.contains(person.getString("id")))continue;
             Set<String> roles=new LinkedHashSet<>(),states=new LinkedHashSet<>(),details=new LinkedHashSet<>();
             for(int j=0;j<records.length();j++){
-                JSONObject r=records.getJSONObject(j);if(!r.getString("type").equals("relatie"))continue;
+                JSONObject r=records.getJSONObject(j);if(!r.getString("type").equals("relatie")||!shared(r,records,mine))continue;
                 String role=between(r,mine,person.getString("id"));if(role.isEmpty())continue;
                 JSONObject f=r.getJSONObject("fields");roles.add(role);
                 if(!f.optString("status").isEmpty())states.add(f.getString("status"));if(!f.optString("toelichting").isEmpty())details.add(f.getString("toelichting"));
@@ -98,7 +110,7 @@ final class MasterIdentity {
         // Relaties tussen twee anderen die allebei bekend zijn bij de assistent ("Anna is de dochter van Piet").
         JSONArray links=new JSONArray();
         for(int j=0;j<records.length();j++){
-            JSONObject r=records.getJSONObject(j);if(!r.getString("type").equals("relatie"))continue;JSONObject f=r.getJSONObject("fields");
+            JSONObject r=records.getJSONObject(j);if(!r.getString("type").equals("relatie")||!shared(r,records,mine))continue;JSONObject f=r.getJSONObject("fields");
             String van=f.optString("vanPersoon"),naar=f.optString("naarPersoon");if(!shared.contains(van)||!shared.contains(naar))continue;
             JSONObject a=find(records,van),b=find(records,naar);if(a==null||b==null)continue;
             JSONObject link=new JSONObject().put("naam",callname(b)).put("relatie",f.optString("relatie")).put("van",callname(a));

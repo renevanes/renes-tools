@@ -140,6 +140,16 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  assert.equal(await p.evaluate(()=>$('#modal').classList.contains('on')),false,'vraag gesloten bij vergrendelen');
  assert.equal(await p.textContent('#cm-status'),L('Stamgegevens zijn vergrendeld. Niet-bewaarde gegevens zijn gewist.','Master data is locked. Unsaved data has been cleared.'));
  for(const s of ['#s-masterdata','#s-cmedit','#s-cmlog','#s-cmlijst','#s-cmkaart'])assert.equal(await p.evaluate(s=>/Rene|Anna|Paspoort Rene|123456782|Gemeente|Coolsingel/.test($(s).innerHTML),s),false,tag+': geen gegevens meer in '+s);
+ // Verwijderen vanuit het bewerken (potlood, dan ⋯): terug naar de lijst, niet naar het kaartje van wat weg is
+ await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+ const weg=await T.maak('organisatie','Weg BV',{naam:'Weg BV'});
+ await p.click('#cm-row-organisaties');await p.waitForFunction(()=>current==='cmlijst'&&!cm.navigating);
+ await T.kaart(weg);await T.blok(weg,'gegevens');
+ await p.click('#cm-edit-menu');await p.waitForSelector('#sheet.on');await p.click('#sheet-acts button:first-child');await p.waitForSelector('#modal.on');await p.click('#modal-ok');
+ await p.waitForFunction(()=>current==='cmlijst'&&!cm.navigating&&!cm.mutating&&!cm.pending.size);
+ assert.equal(await p.textContent('#cm-lijst-status'),L('Stamgegeven verwijderd.','Master data deleted.'),tag+': verwijderd, terug in de lijst');
+ assert.equal(await p.evaluate(()=>cm.nav.some(x=>x.scr==='cmkaart')),false,tag+': geen kaartje van wat weg is om naar terug te gaan');
+ await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>current==='masterdata'&&!cm.token);
  // Een subscherm openen zonder ontgrendelen kan niet
  for(const s of ['cmedit','cmlijst','cmkaart']){await p.evaluate(s=>show(s),s);await p.waitForFunction(()=>current==='masterdata');}
  // De zone verlaten vergrendelt; Overal zoeken neemt de schermen niet op

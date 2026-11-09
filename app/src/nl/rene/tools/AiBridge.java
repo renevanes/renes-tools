@@ -190,8 +190,12 @@ public class AiBridge extends SleepBridge {
     }
     /** Nummers van de mensen die de assistent kent met die naam of relatie; null zonder toegang tot je contacten. */
     private JSONArray knownNumbers(String name) throws Exception {
-        java.util.List<JSONObject> people = AiCommands.people(MasterAppContext.read(ctx), name);
+        JSONObject app = MasterAppContext.read(ctx);
         JSONArray out = new JSONArray();
+        // Vinkje "Bellen en berichten via Contacten" uit: dan zoekt de assistent alleen op naam in je contacten
+        JSONObject weet = app.optJSONObject("weet");
+        if (weet != null && !weet.optBoolean("aiContact", true)) return out;
+        java.util.List<JSONObject> people = AiCommands.people(app, name);
         java.util.Set<String> seen = new java.util.HashSet<>();
         for (JSONObject p : people) {
             String who = p.optString("callname", p.optString("name")), key = p.optString("contact");

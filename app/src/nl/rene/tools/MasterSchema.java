@@ -15,7 +15,7 @@ final class MasterSchema {
     static final String[] ADDRESS={"naam","adres","postcode","plaats","land","telefoon"};
     static final String[] IDENTITY={"persoon","documentsoort","document","geldig","afgifte","afgifteplaats","uitgifteland","afgegevenDoor","categorieen"};
     static final String[] TRIP={"van","tot","alleen","tweedeBegeleider","tweedeGever","accommodatie","postcode","plaats","land","telefoon","reisgegevens"};
-    /** Wat de assistent weet (Wat weet de assistent?): leeg = de standaard uit MasterIdentity.AI_DEFAULT. */
+    /** Wat de assistent weet (Wat weet de assistent?): leeg = de standaard uit MasterIdentity.ai (aan, behalve woonplaats). */
     static final String[] PROFILE={"persoon","delen","context","aiStatus","aiGeboorte","aiDocumenten","aiWoonplaats","aiContact"};
     static final java.util.List<String> YES_NO=Arrays.asList("alleen","tweedeBegeleider","tweedeGever","delen","aiStatus","aiGeboorte","aiDocumenten","aiWoonplaats","aiContact");
     static final String[] RELATION={"vanPersoon","naarPersoon","relatie","status","toelichting","delen"};

@@ -141,9 +141,10 @@ function cmcContact(what){const r=cmc.rec;if(!cmOpen()||!r||r.type!=='persoon'||
 /* Tekst over jou uit de oude indeling (in je persoon of het app-profiel): naar Over mij van de assistent, of weg. */
 function cmcAboutOld(box,text){
   const sec=cmEl('section',undefined,'card cmc-blok');sec.id='cmc-over-oud';
-  sec.append(cmEl('h2',t('Tekst over jou')),cmEl('p',t('Er staat nog een tekst over jou in Stamgegevens. Die hoort voortaan bij Over mij van de assistent, zodat je hem op één plek bijhoudt.'),'hint'));
+  const play=typeof isPlay==='function'&&isPlay();
+  sec.append(cmEl('h2',t('Tekst over jou')),cmEl('p',play?t('Er staat nog een tekst over jou in Stamgegevens. Deze versie heeft geen assistent die hem gebruikt; je kunt hem weghalen.'):t('Er staat nog een tekst over jou in Stamgegevens. Die hoort voortaan bij Over mij van de assistent, zodat je hem op één plek bijhoudt.'),'hint'));
   if(text)sec.append(cmEl('p',text,'cmc-tekst'));
-  const acts=cmEl('div',undefined,'row cmc-acts');acts.append(cmcKnop(t('Naar Over mij'),()=>cmcAboutMove('verplaats'),'check','cmc-over-naar'),cmcKnop(t('Weghalen'),()=>cmcAboutMove('wis'),'trash','cmc-over-weg'));
+  const acts=cmEl('div',undefined,'row cmc-acts');if(!play)acts.append(cmcKnop(t('Naar Over mij'),()=>cmcAboutMove('verplaats'),'check','cmc-over-naar'));acts.append(cmcKnop(t('Weghalen'),()=>cmcAboutMove('wis'),'trash','cmc-over-weg'));
   sec.append(acts);box.append(sec);
 }
 function cmcAboutMove(mode){

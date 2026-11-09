@@ -55,7 +55,9 @@ public class MasterBridge extends BankBridge {
                                 token=a.masterSession.open();
                             }
                             MasterStore.unlock(ctx,key,a.masterSession,token);a.masterSession.require(token);MasterKeys.markReady();
-                            try{MasterStore.aboutMove(ctx,key,a.masterSession,token,"vanzelf");}catch(MasterError later){ } // blijft staan; de Ik-kaart biedt het aan
+                            // Lukt het niet, dan blijft de tekst staan en biedt Aandacht nodig het aan; ontgrendelen gaat gewoon door.
+                            // De Play-versie heeft geen assistent: daar blijft de tekst in Stamgegevens.
+                            if(PlayPolicy.allows(ctx,"ai"))try{MasterStore.aboutMove(ctx,key,a.masterSession,token,"vanzelf");}catch(Throwable later){ }
                             MasterStore.refreshContext(ctx,key,a.masterSession,token);
                         }
                         a.masterSession.require(token);if(!a.masterForeground||auth!=a.masterAuthSerial.get())throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
@@ -186,7 +188,7 @@ public class MasterBridge extends BankBridge {
     }
     /** Tekst over jezelf naar Over mij bij de assistent ("verplaats") of weghalen ("wis"). */
     @JavascriptInterface public void masterAboutMove(String token,String mode,String request){
-        work(token,request,key->{JSONObject r=MasterStore.aboutMove(ctx,key,a.masterSession,token,mode);if(r.optBoolean("moved"))refreshIdentity(key,token,r);return r;});
+        work(token,request,key->{if(!"wis".equals(mode)&&!PlayPolicy.allows(ctx,"ai"))throw new MasterError(PlayPolicy.UNAVAILABLE);JSONObject r=MasterStore.aboutMove(ctx,key,a.masterSession,token,mode);if(r.optBoolean("moved"))refreshIdentity(key,token,r);return r;});
     }
     @JavascriptInterface public void masterAudit(String token,long before,String request){work(token,request,key->MasterStore.audit(ctx,key,a.masterSession,token,before));}
     @JavascriptInterface public void masterReleaseForm(){a.masterFormBound=false;}

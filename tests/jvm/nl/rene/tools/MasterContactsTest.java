@@ -42,6 +42,8 @@ public final class MasterContactsTest {
         check(MasterSchema.clean(new JSONObject().put("type","persoon").put("label","x").put("fields",new JSONObject().put("contact","0r1-AB").put("delen","ja"))).getJSONObject("fields").getString("delen").equals("ja"),"persoon met contact en delen");
         failed=false;try{MasterSchema.clean(new JSONObject().put("type","profiel").put("label","x").put("fields",new JSONObject().put("persoon","11111111-1111-1111-1111-111111111111").put("aiStatus","misschien")));}catch(MasterError e){failed=true;}check(failed,"vinkje alleen ja of nee");
         check(MasterContacts.ACTIONS.contains("bel")&&MasterContacts.ACTIONS.contains("bericht")&&MasterContacts.ACTIONS.contains("contact")&&MasterContacts.ACTIONS.size()==3,"alleen bellen, bericht en Contacten openen");
+        check(MasterContacts.dialable("+31 6 12345678").equals("+31612345678")&&MasterContacts.dialable("0031 (6) 123-45678").equals("+31612345678")&&MasterContacts.dialable("14010").equals("14010"),"nummer om te bellen: cijfers met + vooraan");
+        check(MasterContacts.dialable("*#06#").equals("06")&&MasterContacts.dialable("06 1234+5678").equals("0612345678")&&MasterContacts.dialable("geen").isEmpty()&&MasterContacts.dialable(null).isEmpty(),"geen codes of tekens in de telefoon-app");
         System.out.println("Contact koppelen, actuele telefoon en e-mail en vinkjes van de assistent gecontroleerd");
     }
 }

@@ -111,8 +111,15 @@ final class MasterContacts {
     static Intent intent(Context c,String key,String stored,String what){
         if("contact".equals(what))return validKey(key)?new Intent(Intent.ACTION_VIEW,Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_LOOKUP_URI,key)):null;
         String number=key==null||key.isEmpty()?"":live(c,key).optString("telefoon");if(number.isEmpty())number=stored==null?"":stored;
-        number=number.replaceAll("[^0-9+*#]","");if(number.isEmpty())return null;
+        number=dialable(number);if(number.isEmpty())return null;
         return "bel".equals(what)?new Intent(Intent.ACTION_DIAL,Uri.fromParts("tel",number,null)):new Intent(Intent.ACTION_SENDTO,Uri.fromParts("smsto",number,null));
+    }
+
+    /** Alleen cijfers met hooguit een + vooraan: geen codes (*#…#) of andere tekens uit een opgeslagen nummer in de telefoon-app. */
+    static String dialable(String s){
+        String t=s==null?"":s.trim(),d=t.replaceAll("[^0-9]","");
+        if(t.startsWith("00")&&d.length()>2)d="+"+d.substring(2);else if(t.startsWith("+")&&!d.isEmpty())d="+"+d;
+        return d.length()>16?"":d;
     }
 
     /**

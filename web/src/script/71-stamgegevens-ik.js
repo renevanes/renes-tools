@@ -111,7 +111,8 @@ function cmkHub(){
 /* Aandacht nodig: tekst over jou die nog naar Over mij moet, documenten die (bijna) verlopen en vaste gegevens die niet af zijn. */
 function cmkAandacht(me){
   const out=[];
-  if(me){const p=cm.records.find(r=>r.id===me),prof=cm.records.find(r=>r.type==='profiel');if(p?.tekst||prof?.tekst)out.push(cmRow(null,t('Zet hem bij Over mij van de assistent, of haal hem weg'),true,()=>cmKaartOpen(me,true,'',true),'user',t('Tekst over jou')));}
+  // De Play-versie heeft geen assistent en dus geen Over mij: daar blijft de tekst gewoon in Stamgegevens
+  if(me&&!(typeof isPlay==='function'&&isPlay())){const p=cm.records.find(r=>r.id===me),prof=cm.records.find(r=>r.type==='profiel');if(p?.tekst||prof?.tekst)out.push(cmRow(null,t('Zet hem bij Over mij van de assistent, of haal hem weg'),true,()=>cmKaartOpen(me),'user',t('Tekst over jou')));}
   const docs=cm.records.filter(r=>r.type==='identiteit'&&cmiDocLate(r)).sort((a,b)=>(a.geldig||'').localeCompare(b.geldig||''));
   for(const d of docs)out.push(cmRow(d,cmkSmall(d,me),true,()=>cmKaartOpen(d.id)));
   for(const f of cm.records.filter(r=>r.type==='formulier'&&cmkFormMissing(r).length))out.push(cmRow(f,cmkSmall(f,me),true,()=>cmKaartOpen(f.id)));
