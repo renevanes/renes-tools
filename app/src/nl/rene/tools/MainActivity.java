@@ -151,6 +151,11 @@ public class MainActivity extends Activity {
 
     /** Bankzaken staat in beeld (schermbeveiliging aan) / de gekozen afschriften na inlezen verwijderen. */
     volatile boolean bankScreen = false, bankWis = false;
+    /** Een tool met extra ontgrendelen staat in beeld (ToolSlot). */
+    volatile boolean toolScreen = false;
+    /** Extra ontgrendelen: de app opende zelf een scherm (kiezer, PDF-viewer); weg = tijdstip van uit beeld gaan. */
+    private boolean eigenScherm, wegIntern;
+    private long wegOp;
     boolean isSoloKluis() { return isSolo() && "kluis".equals(solo); }
     /** Losse app (zonder app-slot): de kluis telt alleen als open als dit venster hem zelf met vingerafdruk opende. */
     boolean kluisMine() { return !isSolo() || kluisGen == Kluis.gen; }
@@ -474,6 +479,8 @@ public class MainActivity extends Activity {
         if (isSoloKluis() && Kluis.isOpen() && !kluisMine()) Kluis.close(this);
         applySecure();
         if (web == null) return;
+        if (ToolSlot.teLang(wegIntern, wegOp, android.os.SystemClock.elapsedRealtime())) js("onToolSlotWeg", "");
+        wegIntern = false; eigenScherm = false;
         boolean lock = !isSolo() && Lock.onShown(this); // losse app: geen app-slot (en het slot van de app blijft zoals het was)
         Notes.applyRepeats(this); // terugkerende lijstjes die weer leeg moeten
         if (uiReady) js("onNotesMaybeChanged", ""); // misschien afgestreept in de widget
@@ -484,6 +491,10 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onStop() {
+        // Extra ontgrendelen: uit beeld = tools weer op slot, behalve voor een eigen scherm of de vraag om te ontgrendelen
+        wegIntern = eigenScherm || Lock.busy();
+        wegOp = android.os.SystemClock.elapsedRealtime();
+        if (!wegIntern) js("onToolSlotWeg", "");
         if (!isSolo()) {
             Lock.onHidden();
             // Met app-slot de inhoud alvast verbergen; bij terugkomen beslist onStart of hij op slot moet.
@@ -514,7 +525,10 @@ public class MainActivity extends Activity {
                 && PdfViewActivity.class.getName().equals(intent.getComponent().getClassName());
         if (viewer) intent.putExtra(PdfViewActivity.EXTRA_IN_APP, PdfViewActivity.TOKEN);
         if (!external && (requestCode >= 0 || viewer) && !isSolo()) Lock.internalNav = true; // startActivity naar een andere app (delen) heeft -1: dat is weggaan
-        super.startActivityForResult(intent, requestCode, options);
+        boolean wasEigen = eigenScherm;
+        if (!external && (requestCode >= 0 || viewer)) eigenScherm = true;
+        try { super.startActivityForResult(intent, requestCode, options); }
+        catch (RuntimeException e) { eigenScherm = wasEigen; throw e; }
     }
 
     /** Bankzaken in beeld: geen automatisch invullen (Autofill-diensten) en het toetsenbord leert niets van wat je typt. */
@@ -590,7 +604,7 @@ public class MainActivity extends Activity {
     /** Met app-slot of een gevoelige pagina: inhoud niet tonen in recente apps of schermafdrukken. */
     void applySecure() {
         // losse app: zonder slot, dus ook zichtbaar in "recente apps"; behalve de losse kluis (documentnamen)
-        boolean on = isSolo() ? isSoloKluis() : Lock.enabled(this);
+        boolean on = (isSolo() ? isSoloKluis() : Lock.enabled(this)) || toolScreen;
         // Bankzaken in beeld: ook geen schermafdrukken of schermopnames (FLAG_SECURE), op elke Android-versie
         boolean block = bankScreen || idScreen || masterScreen || (Build.VERSION.SDK_INT < 33 && on);
         if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!on && !bankScreen && !idScreen && !masterScreen);
@@ -621,7 +635,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        visible = true; masterForeground=true;
+        visible = true; masterForeground=true; eigenScherm = false; // een doorzichtig eigen scherm (zonder onStop) telt daarna niet meer
         if(masterPickUntil!=0){
             boolean back=masterPickReturned&&masterPicking();String kind=masterPickKind;masterPickUntil=0;masterPickReturned=false;masterPickKind="";
             if(!back){masterContacts.cancel();suspendMaster(false);}
@@ -2401,6 +2415,54 @@ public class MainActivity extends Activity {
             try {
                 long v = Long.parseLong(ms);
                 if (v >= 0 && v <= 3_600_000L) Lock.prefs(ctx).edit().putLong("timeout", v).apply();
+            } catch (Exception ignored) { }
+        }
+
+        // ----- Extra ontgrendelen per tool -----
+
+        /** Welke tools extra ontgrendelen vragen, en of de telefoon een schermvergrendeling heeft (zonder werkt het niet). */
+        @JavascriptInterface public String toolSlotState() {
+            try { return new JSONObject().put("aan", new JSONArray(ToolSlot.aan(ctx))).put("secure", Lock.deviceSecure(ctx)).toString(); }
+            catch (Exception e) { return "{\"aan\":[],\"secure\":false}"; }
+        }
+
+        /** Aanzetten kan meteen (met schermvergrendeling); uitzetten pas na bevestigen. Antwoord via onToolSlot. */
+        @JavascriptInterface public void toolSlotSet(String tool, boolean on, String naam) {
+            final String id = tool == null ? "" : tool;
+            if (!Solo.known(id)) { toolSlotAntwoord(id, on ? "aan" : "uit", false, "Onbekende tool"); return; }
+            if (on) {
+                if (!Lock.deviceSecure(ctx)) { toolSlotAntwoord(id, "aan", false, "Stel eerst een schermvergrendeling in op je telefoon (pincode, patroon of vingerafdruk)"); return; }
+                ToolSlot.zet(ctx, id, true);
+                toolSlotAntwoord(id, "aan", true, null);
+                return;
+            }
+            if (!ToolSlot.aan(ctx).contains(id)) { toolSlotAntwoord(id, "uit", true, null); return; }
+            if (!Lock.deviceSecure(ctx)) { ToolSlot.zet(ctx, id, false); toolSlotAntwoord(id, "uit", true, null); return; } // zonder schermvergrendeling werkt het slot toch niet
+            final String titel = Taal.t(ctx, "{naam}: extra ontgrendelen uitzetten", "naam", ToolSlot.naam(naam));
+            a.h.post(() -> Lock.prompt(a, titel, (ok, msg) -> {
+                if (ok) ToolSlot.zet(ctx, id, false);
+                toolSlotAntwoord(id, "uit", ok, ok ? null : msg == null ? "Niet bevestigd" : msg);
+            }));
+        }
+
+        /** Een tool ontgrendelen met de schermvergrendeling van de telefoon. Antwoord via onToolSlot. */
+        @JavascriptInterface public void toolSlotUnlock(String tool, String naam) {
+            final String id = tool == null ? "" : tool;
+            if (!Solo.known(id)) return;
+            final String titel = Taal.t(ctx, "{naam} ontgrendelen", "naam", ToolSlot.naam(naam));
+            a.h.post(() -> Lock.prompt(a, titel, (ok, msg) -> toolSlotAntwoord(id, "open", ok, ok ? null : msg == null ? "Niet ontgrendeld" : msg)));
+        }
+
+        /** Een tool met extra ontgrendelen in beeld: geen voorbeeld in "recente apps" (onder Android 13 ook geen schermafdrukken). */
+        @JavascriptInterface public void toolSlotScherm(boolean on) {
+            a.h.post(() -> { if (a.toolScreen != on) { a.toolScreen = on; a.applySecure(); } });
+        }
+
+        private void toolSlotAntwoord(String tool, String soort, boolean ok, String msg) {
+            try {
+                JSONObject o = new JSONObject().put("tool", tool).put("soort", soort).put("ok", ok);
+                if (msg != null) o.put("msg", msg);
+                a.js("onToolSlot", o.toString());
             } catch (Exception ignored) { }
         }
 

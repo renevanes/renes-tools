@@ -102,6 +102,7 @@ script/23-zelftest.js
 script/24-overzicht-op-het-startscherm.js
 script/25-instellingen.js
 script/26-app-slot.js
+script/26b-extra-ontgrendelen.js
 script/27-wat-is-er-nieuw-foutmelding-na-vastlopen.js
 script/28-versie-updates.js
 script/28-veilig-herladen.js

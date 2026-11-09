@@ -16,7 +16,7 @@ function toolMenu(tool){
     ['Naar een andere groep…', () => heMoveSheet(tool)],
     ['Verbergen van het startscherm', () => { const wasFav = isFav(tool); heToggle(tool, false); undoToast(t('{naam} verborgen', { naam: t(TOOLS[tool][0]) }), () => { heToggle(tool, true); if (wasFav) toggleFav(tool); }); }],
     ['Snelkoppeling op startscherm', () => pinTool(tool)],
-  ].concat(SOLO_TOOLS.includes(tool) ? [['Als losse app op startscherm…', () => soloMake(tool)]] : []));
+  ].concat(SOLO_TOOLS.includes(tool) ? [['Als losse app op startscherm…', () => soloMake(tool)]] : []).concat(typeof tsMenu === 'function' ? tsMenu(tool) : []));
 }
 // Lang indrukken van een tegel (of een knop bij Recent gebruikt) opent het menu; de gewone tik opent de tool.
 function toolPress(el, tool){

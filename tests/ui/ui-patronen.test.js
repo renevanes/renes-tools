@@ -11,7 +11,7 @@ const BACK_D = 'M15 18l-6-6 6-6'; // de SVG-chevron van de terugknop
 // Detailschermen (geopend vanuit een ander scherm): kleine kop
 const DETAIL = ['erbook', 'ercontents', 'erset', 'cversions', 'cversion', 'vpnedit', 'autoed', 'chats', 'ralarm', 'herstel', 'chat', 'smschat', 'track', 'txd', 'contact', 'note',
   'podcast', 'podlijst', 'podspotify', 'models', 'carset', 'gebruikset', 'gebruikontgr', 'apset', 'apdev', 'aiset', 'aisetvoice', 'aisetdata', 'aichats',
-  'sleepset', 'sleepnight', 'checkined', 'checkinq', 'checkincmp', 'setnotif', 'setlook', 'setregio', 'setcrash', 'facstuk', 'facgoogle', 'idcopy', 'formulieren',
+  'sleepset', 'sleepnight', 'checkined', 'checkinq', 'checkincmp', 'setnotif', 'setlook', 'setregio', 'setcrash', 'setslot', 'facstuk', 'facgoogle', 'idcopy', 'formulieren',
   'pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade', 'bkparts', 'bkset', 'bkrestore', 'bkmap', 'wasel', 'waauto', 'warestore',
   'wcplek', 'wcbewerk', 'wcdeel', 'wcset', 'wcbronnen', 'wcbron', 'wceigen', 'wcgedeeld', 'cmedit', 'cmlog', 'cmwis', 'cmlijst', 'cmkaart', 'cmai',
   'nieuwsart', 'nieuwsset'];

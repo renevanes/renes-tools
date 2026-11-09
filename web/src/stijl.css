@@ -381,6 +381,25 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .lockscr.on{display:flex}.lockscr>svg{color:var(--primary)}.lockscr h2{margin:6px 0 0;font-size:24px;font-weight:400;color:var(--ink)}
 .lockscr button{margin-top:10px;padding:14px 28px;border-radius:28px;background:var(--primary);color:var(--on-primary);font-weight:600;font-size:17px}
 .lockscr p{margin:0;opacity:.85;min-height:20px}
+/* Extra ontgrendelen: de tool op slot (boven vensters en de speler, onder het app-slot) */
+.toolslot{position:fixed;inset:0;z-index:2500;background:var(--bg);color:var(--ink);display:none;overflow:auto;padding-top:env(safe-area-inset-top)}
+.toolslot.on{display:block}
+.ts-kaart{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;margin-top:8px}
+.ts-kaart h2{margin:6px 0 0}
+.ts-kaart .note{margin:0}
+.ts-kaart #ts-msg:empty{display:none}
+.ts-kaart .big{margin-top:8px}
+.ts-kaart .help{align-self:stretch;text-align:left}
+.ts-ic{position:relative;display:grid;place-items:center;width:72px;height:72px;border-radius:24px;background:var(--tonal);color:var(--primary)}
+.ts-ic .ui-icon{width:34px;height:34px}
+.ts-ic .ts-slot{position:absolute;right:-6px;bottom:-6px;width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:grid;place-items:center}
+.ts-ic .ts-slot .ui-icon{width:18px;height:18px}
+body .toolslot .hdr .back{display:grid}
+body.solo .toolslot .hdr .back{display:none}
+.tile.ts-dicht small{visibility:hidden}
+.tile.ts-dicht .ic{position:relative}
+.ts-tegel{position:absolute;right:-5px;bottom:-5px;width:20px;height:20px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:grid;place-items:center}
+.ts-tegel .ui-icon{width:13px;height:13px}
 .foot{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .mubox{display:flex;flex-direction:column;align-items:center;padding:18px 0 22px;gap:8px}
 .mubtn{width:150px;height:150px;border-radius:50%;background:linear-gradient(145deg,var(--primary),color-mix(in srgb,var(--primary) 45%,#8E44AD));color:var(--on-primary);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(30,90,168,.35)}

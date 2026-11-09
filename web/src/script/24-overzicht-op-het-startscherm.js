@@ -2,6 +2,7 @@
 /* Vastgezette notities (bijv. de boodschappenlijst) bovenaan het startscherm van de app. */
 function renderNotePins(){
   const wrap = $('#home-notes'); if (!wrap) return;
+  if (typeof tsVerborgen === 'function' && tsVerborgen('notes')) { wrap.style.display = 'none'; $('#home-notes-tiles').innerHTML = ''; return; } // extra ontgrendelen
   let ids = []; try { ids = JSON.parse(Android.notePins('app')) || []; } catch(e){}
   const list = ids.map(id => noteById(id)).filter(Boolean);
   wrap.style.display = list.length ? 'block' : 'none';
@@ -24,11 +25,17 @@ function renderNight(){
   for (const a of (o.auto || [])) rows.push(['automation', (a.name ? a.name + ': ' : '') + t(a.what) + ' (' + hm(a.t) + ')', 'auto', '']);
   if (o.battery) rows.push(['battery', t('Android beperkt de app: {wat}', { wat: t(o.battery) }), 'selftest', 'badc']);
   if (o.checkBad) rows.push(['shield', t('Backup-controle: {wat}', { wat: t(o.checkBad) }), 'backup', 'badc']);
+  homeDicht(rows);
   if (!rows.length) { box.style.display = 'none'; homeOvSync(); return; }
   box.style.display = 'block';
   box.innerHTML = '<div class="ovhead"><b>Sinds gisteravond</b><button onclick="Android.overnightSeen();renderNight()">Gezien</button></div>' +
     rows.map(r => '<button data-t="' + r[2] + '" onclick="jumpTo(this.dataset.t)"><span class=di>' + uiIcon(r[0]) + '</span><span class="dt ' + r[3] + '">' + esc(r[1]) + '</span><span aria-hidden=true>›</span></button>').join('');
   homeOvSync();
+}
+/* Regels over een tool met extra ontgrendelen (op slot) weglaten */
+function homeDicht(rows){
+  if (typeof tsVerborgen !== 'function') return;
+  for (let i = rows.length - 1; i >= 0; i--) if (tsVerborgen(tsTool(rows[i][2]))) rows.splice(i, 1);
 }
 /* Sinds gisteravond en het overzicht staan samen in één kaart; die kaart alleen als er iets in staat. */
 function homeOvSync(){
@@ -74,6 +81,7 @@ function renderDash(){
     const bad = (st.items || []).filter(i => i.status === 'fail').length;
     if (bad) rows.push(['shield', tn(bad, 'Zelftest: {n} probleem', 'Zelftest: {n} problemen'), 'selftest', 'badc']);
   } catch(e){}
+  homeDicht(rows);
   box.style.display = rows.length ? 'block' : 'none';
   homeOvSync();
   box.innerHTML = rows.map(r => '<button data-t="' + r[2] + '" onclick="jumpTo(this.dataset.t)"><span class=di>' + uiIcon(r[0]) + '</span><span class="dt ' + r[3] + '">' + esc(r[1]) + '</span><span aria-hidden=true>›</span></button>').join('');

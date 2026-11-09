@@ -1,7 +1,8 @@
 /* ---------- Losse apps: een tool als eigen app op het startscherm ----------
  * In een losse app (SoloActivity) is SOLO de naam van de tool. Dan zijn alleen de schermen van die tool bereikbaar,
  * staan er geen knoppen of menu-keuzes naar andere tools, geen tabbalk, en sluit "terug" op het eerste scherm de app.
- * Welke tools een losse app mogen zijn, kies je in Instellingen (of via lang indrukken van een tegel). */
+ * Welke tools een losse app mogen zijn, kies je in Instellingen (of via lang indrukken van een tegel).
+ * Extra ontgrendelen (26b-extra-ontgrendelen.js) geldt ook in een losse app. */
 const SOLO = (typeof Android.soloTool === 'function' && Android.soloTool()) || '';
 const SOLO_ROOT = SOLO === 'player' ? 'radio' : SOLO;
 function soloRoot(name){ return name === SOLO_ROOT || (SOLO === 'player' && name === 'podcasts'); }
@@ -52,6 +53,7 @@ if (SOLO) {
   };
   const _back = window.goBack;
   window.goBack = function(){
+    if (typeof tsZichtbaar === 'function' && tsZichtbaar()) return false; // de tool staat op slot: de losse app sluiten
     // Op het eerste scherm en niets open (venster, menu, speler): de losse app sluiten
     const open = document.querySelector('#modal.on, #sigdlg.on, #voice.on, #sleepdlg.on, #vp-scan.on, #sheet.on, #ci-ans.on, #ci-rem.on, #gb-light, #ai-talk:not([hidden])') || (typeof plIsOpen !== 'undefined' && plIsOpen) ||
       (typeof cm !== 'undefined' && cm.picker) || (typeof fmq !== 'undefined' && fmq.open);

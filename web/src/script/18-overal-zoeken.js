@@ -82,6 +82,8 @@ function gsHistory(q){
   if (!d || !d.rows || !d.count) return null;
   return {items: d.rows.map(r => ({app: r.app || r.package, title: r.title, text: r.text, t: r.time})), total: d.count};
 }
+/* Een tool met extra ontgrendelen (op slot) laat in zoeken niets zien */
+function gsDicht(k){ return !!GS[k] && typeof tsVerborgen === 'function' && tsVerborgen(tsTool(GS[k][2])); }
 let gsTmr = null, gsId = 0, gsQ = '', gsData = {};
 function gsInput(){
   const q = $('#gs-q').value.trim();
@@ -91,7 +93,7 @@ function gsInput(){
   $('#gs-hint').style.display = on ? 'none' : '';
   if (!on) { if (gsQ) Android.searchAll(''); gsQ = ''; gsData = {}; return; }
   // Vorige treffers blijven (gedimd) staan tot de nieuwe binnen zijn: geen verspringende pagina.
-  const prev = gsData; gsQ = q; gsData = { app: gsApp(q), notes: gsNotes(q), history: gsHistory(q), pending: !isPlay(), stale: {} };
+  const prev = gsData; gsQ = q; gsData = { app: gsApp(q), notes: gsDicht('notes') ? null : gsNotes(q), history: gsDicht('history') ? null : gsHistory(q), pending: !isPlay(), stale: {} };
   for (const k of Object.keys(GS)) if (!['notes', 'app', 'history'].includes(k) && prev[k]) gsData.stale[k] = prev[k];
   gsRender();
   if (isPlay()) return;
@@ -141,7 +143,7 @@ function gsItem(kind, x, ql){
 function gsRender(){
   const ql = gsQ.toLowerCase();
   const st = gsData.stale || {};
-  const html = Object.keys(GS).filter(k => (gsData[k] || st[k]) && (gsData[k] || st[k]).total).map(k => {
+  const html = Object.keys(GS).filter(k => !gsDicht(k) && (gsData[k] || st[k]) && (gsData[k] || st[k]).total).map(k => {
     const g = gsData[k] || st[k], d = GS[k], tot = g.total + (g.capped ? '+' : '');
     return '<div class="card gsg' + (gsData[k] ? '' : ' stale') + '"><h3>'+uiToolIcon(k) + d[1] + ' <span class=n>' + tot + '</span>' +
       (g.total > g.items.length ? '<button class=more data-k="' + k + '" onclick="gsMore(this.dataset.k)">' + t('Alle {n} ›', { n: tot }) + '</button>' : '') + '</h3>' +

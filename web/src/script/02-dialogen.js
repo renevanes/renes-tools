@@ -1,6 +1,6 @@
 /* Focus en achtergrondbediening voor alle algemene vensters, met het app-slot als hoogste laag. */
 const dialogFocus = (() => {
-  const selector = '#modal, #sigdlg, #sheet, #voice, #ci-ans, #ci-rem, #sleepdlg, #er-image, #er-quick, #er-tts-panel, #lockscr';
+  const selector = '#modal, #sigdlg, #sheet, #voice, #ci-ans, #ci-rem, #sleepdlg, #er-image, #er-quick, #er-tts-panel, #toolslot, #lockscr';
   const opened = new Map(), background = new Map();
   let serial = 0, top = null;
   const controls = root => [...root.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')]
