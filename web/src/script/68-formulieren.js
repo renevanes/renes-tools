@@ -290,7 +290,7 @@ function fmHandtekeningVeld(f){return (f.pdf||[]).some(target=>target.signature)
 /* De handtekening die je zelf bewaarde (PDF → Bewerken en ondertekenen), niet vervormd, onderaan op de lijn van het vak. */
 function fmHandtekening(){
   let r;try{r=JSON.parse(Android.pdfSignatureLoad());}catch(e){r={error:'Handtekening laden lukt niet'};}
-  if(r.error)throw new Error(t(r.error));
+  if(r.error)throw new Error(typeof r.error==='string'&&r.error!=='null'?t(r.error):t('Handtekening laden lukt niet'));
   if(!r.signature||!pdfSignatureValid(r.signature))throw new Error(t('Er is nog geen handtekening bewaard. Bewaar hem bij PDF → Bewerken en ondertekenen, of kies bij Je bewaarde handtekening plaatsen Nee.'));
   return r.signature;
 }

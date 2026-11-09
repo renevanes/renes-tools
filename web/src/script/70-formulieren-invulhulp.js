@@ -109,7 +109,7 @@ window.onPdfFormAi=function(r){
   fmHelpShow(r.fields||[]);
 };
 function fmHelpShow(rows){
-  const fields=fmHelpFields();fmh.rows=[];fmh.snapshot=fmHelpSnapshot();
+  const fields=fmHelpFields().filter(f=>!fmHandtekeningVeld(f));fmh.rows=[];fmh.snapshot=fmHelpSnapshot();
   const box=$('#pff-hulp-voorstellen');box.replaceChildren();const seen=new Set();
   for(const row of rows){
     const field=fields.find(f=>f.id===row.id);if(!field||seen.has(row.id)||!fmHelpValueOK(field,row.value)||fm.values[row.id]===row.value)continue;seen.add(row.id);fmh.rows.push(row);

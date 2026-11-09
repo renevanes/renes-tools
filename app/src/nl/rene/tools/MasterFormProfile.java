@@ -72,7 +72,7 @@ final class MasterFormProfile {
     /** Je bewaarde handtekening hoort bij jou: staat er een app-profiel, dan alleen bij de begeleider die jij bent. */
     static void ownSignature(JSONObject f,String self)throws Exception{
         String role=signer(f);
-        if(!role.isEmpty()&&!self.isEmpty()&&!self.equals(f.optString(role)))throw new MasterError(Taal.T("Je bewaarde handtekening is van jou: zet hem bij de begeleider die jij bent"));
+        if(!role.isEmpty()&&!self.isEmpty()&&!self.equals(f.optString(role)))throw new MasterError(Taal.T("Je bewaarde handtekening is van jou: kies bij Vaste gegevens → Ondertekenen de begeleider die jij bent"));
     }
     /** De persoon uit het app-profiel ("Dit ben ik"), of "". */
     static String self(JSONArray all)throws Exception{
