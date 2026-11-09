@@ -25,6 +25,17 @@ public class BankTest {
         check(BankImport.date("20261003").equals("2026-10-03") && BankImport.date("03-10-2026").equals("2026-10-03") && BankImport.date("2026-10-03T08:00:00").equals("2026-10-03"), "datumvormen");
         check(BankImport.date("31-02-2026").isEmpty() && BankImport.date("29-02-2028").equals("2028-02-29") && BankImport.date("morgen").isEmpty(), "ongeldige datum geweigerd, schrikkeljaar klopt");
         check(BankImport.iban("nl91 abna 0417 1643 00").equals("NL91ABNA0417164300") && BankImport.iban("<script>").isEmpty(), "rekeningnummer netjes, rommel geweigerd");
+        check(BankImport.zonderSlash("Bakker//").equals("Bakker") && BankImport.zonderSlash("a/b").equals("a/b") && BankImport.zonderSlash("///").isEmpty() && BankImport.zonderSlash("").isEmpty(), "schuine strepen aan het eind weg");
+        {
+            // Een :86:-veld vol schuine strepen: lineair (met "/+$" duurde dit minuten)
+            StringBuilder lang = new StringBuilder("/NAME/");
+            for (int i = 0; i < 400_000; i++) lang.append('/');
+            lang.append("x/TRTP/SEPA/REMI/USTD//Huur/");
+            BankImport.Tx tl = new BankImport.Tx();
+            long t0 = System.nanoTime();
+            BankImport.mt86(tl, lang.toString());
+            check((System.nanoTime() - t0) / 1_000_000 < 5_000 && tl.ds.equals("Huur") && tl.ty.equals("SEPA"), "lang :86:-veld met strepen: snel klaar");
+        }
 
         // ---------- ING (CSV, puntkomma, met saldo) ----------
         String ing = "\"Datum\";\"Naam / Omschrijving\";\"Rekening\";\"Tegenrekening\";\"Code\";\"Af Bij\";\"Bedrag (EUR)\";\"Mutatiesoort\";\"Mededelingen\";\"Saldo na mutatie\";\"Tag\"\n"
@@ -106,6 +117,12 @@ public class BankTest {
         // Geen XXE: een bestand met DOCTYPE/entiteit wordt niet gelezen
         String xxe = "<?xml version=\"1.0\"?><!DOCTYPE d [<!ENTITY x SYSTEM \"file:///etc/passwd\">]><Document><Stmt><Ntry><Amt>1.00</Amt></Ntry></Stmt></Document>";
         check(err(xxe, "x.xml").contains("veiligheidsredenen"), "XML met DOCTYPE/entiteit geweigerd (XXE)");
+        {
+            StringBuilder laat = new StringBuilder("<?xml version=\"1.0\"?><!--");
+            for (int i = 0; i < 250_000; i++) laat.append(' ');
+            laat.append("--><!DOCTYPE d [<!ENTITY x \"y\">]><Document><Stmt><Ntry><Amt>1.00</Amt></Ntry></Stmt></Document>");
+            check(err(laat.toString(), "x.xml").contains("veiligheidsredenen"), "XML met DOCTYPE na lang commentaar ook geweigerd");
+        }
 
         // CAMT in ISO-8859-1 (oude export): accenten goed
         byte[] latin = ("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><Document><BkToCstmrStmt><Stmt><Acct><Id><IBAN>NL02RABO0123456789</IBAN></Id></Acct>"

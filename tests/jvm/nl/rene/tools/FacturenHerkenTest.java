@@ -14,6 +14,7 @@ public class FacturenHerkenTest {
     static int fails = 0;
     static void check(boolean ok, String what) { System.out.println((ok ? "✓ " : "✗ ") + what); if (!ok) fails++; }
     static String fout(JSONObject o) { try { FacturenHerken.herkenNormaal(o); return ""; } catch (Exception e) { return e.getMessage(); } }
+    static String rep(String s, int n) { StringBuilder b = new StringBuilder(); for (int i = 0; i < n; i++) b.append(s); return b.toString(); }
     static String eigenFout(JSONObject o) { try { FacturenHerken.eigenNormaal(o); return ""; } catch (Exception e) { return e.getMessage(); } }
     static JSONObject bron(String van) throws Exception { return new JSONObject().put("afzender", van).put("onderwerp", "Uw factuur"); }
     static JSONObject uitmail(String id, String naam, JSONObject herken) throws Exception {
@@ -47,6 +48,15 @@ public class FacturenHerkenTest {
         check(FacturenHerken.doorgestuurdVan("Van: iemand@x.nl\nGewoon een mail").isEmpty() && FacturenHerken.doorgestuurdVan(null).isEmpty(), "geen doorgestuurde mail: niets");
         String html = "<div>Zie bijlage</div><div>---------- Forwarded message ---------<br>From: <strong>KPN</strong> &lt;<a href=\"mailto:noreply@kpn.com\">noreply@kpn.com</a>&gt;<br>Date: ma</div>";
         check(FacturenHerken.adres(FacturenHerken.doorgestuurdVan(FacturenGmail.html(html))).equals("noreply@kpn.com"), "doorgestuurd in een html-mail (Gmail)");
+
+        // ---------- vreemde, lange invoer van buiten (mailkop, mailtekst): snel en zonder stack-overflow ----------
+        long t0 = System.currentTimeMillis();
+        check(FacturenHerken.adres("<" + rep("a@", 30_000)).isEmpty() && FacturenHerken.adres(rep("x", 60_000)).isEmpty() && FacturenHerken.adres("a@" + rep("a.", 30_000)).isEmpty()
+                && FacturenHerken.adres(rep(" ", 50_000) + "KPN <noreply@kpn.com>").equals("noreply@kpn.com"), "lange afzender: adres achteraan gevonden, onzin leeg");
+        check(FacturenHerken.schoneNaam(rep("via ", 12_500) + ")x").length() <= 60 && FacturenHerken.doorgestuurdVan(rep("-", 20_000)).isEmpty()
+                && FacturenGmail.html(rep("<", 50_000)).length() == 50_000, "lange naam, streepjes en '<': begrensd");
+        check(!fout(new JSONObject().put("domeinen", rep("a.", 5_000) + "nl")).isEmpty() && !fout(new JSONObject().put("afzenders", "x@" + rep("a.", 5_000) + "nl")).isEmpty(), "te lang domein of adres: geweigerd");
+        check(System.currentTimeMillis() - t0 < 3000, "lange invoer: binnen 3 seconden");
 
         // ---------- nummers ----------
         check(FacturenHerken.btw("Btw-nummer: NL 0092.92.056.B01").equals(Collections.singletonList("NL009292056B01")), "btw-nummer NL met spaties en punten");

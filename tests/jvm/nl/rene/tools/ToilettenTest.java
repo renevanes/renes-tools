@@ -207,10 +207,12 @@ public class ToilettenTest {
                 && err(() -> Toiletten.normaal(new JSONObject().put("naam", "x").put("licentie", "CC0"))).equals("Vul het adres van de gegevens in"), "meldingen als hele zinnen (vertaalbaar)");
 
         // Een zoekpatroon dat eindeloos kan duren, wordt niet bewaard (Android kan een zoekopdracht niet afbreken)
-        for (String p : new String[]{"(a+)+$", "(.*a){20}$", "(a|aa)*$", "(\\w+\\s?)*$", "((ab)*c)+", "a*b*c*d*", "(x+)*", "(a?){25}a{25}"})
+        for (String p : new String[]{"(a+)+$", "(.*a){20}$", "(a|aa)*$", "(\\w+\\s?)*$", "((ab)*c)+", "a*b*c*d*", "(x+)*", "(a?){25}a{25}",
+                "a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?!", ".{0,9}.{0,9}.{0,9}.{0,9}.{0,9}.{0,9}.{0,9}.{0,9}!", ".{3,}.{3,}.{3,}.{3,}!"})
             check(Toiletten.riskant(p) && err(() -> Toiletten.normaal(new JSONObject().put("naam", "x").put("soort", "geojson").put("url", "https://a.nl").put("licentie", "CC0")
                     .put("regels", new JSONArray().put(new JSONObject().put("veld", "naam").put("patroon", p).put("zet", "klanten"))))).contains("traag"), "riskant zoekpatroon geweigerd: " + p);
-        for (String p : new String[]{"^ja$", "^(heren|dames)$", "gratis|free", "\\d+[.,]\\d+", "(ja)?", "[(+*]+", "\\(a+\\)+", "^(a|b)c{2}$", "(wc|toilet)s?", "(heren|dames)?", "^(\\d{1,2}):(\\d{2})", "(?:wc)+"})
+        for (String p : new String[]{"^ja$", "^(heren|dames)$", "gratis|free", "\\d+[.,]\\d+", "(ja)?", "[(+*]+", "\\(a+\\)+", "^(a|b)c{2}$", "(wc|toilet)s?", "(heren|dames)?", "^(\\d{1,2}):(\\d{2})", "(?:wc)+",
+                "(?i)colou?r", "^[0-9]{4} ?[a-z]{2}$", "a+?b*?c+?", "x{0,99999999999999999999}"})
             check(!Toiletten.riskant(p), "gewoon zoekpatroon mag: " + p);
         check(ToilettenScan.past("^ja$", "JA") && !ToilettenScan.past("^ja$", "nee"), "gewoon zoekpatroon werkt (hoofdletters maken niet uit)");
 

@@ -78,12 +78,12 @@ final class FacturenGmail implements FacturenMail.Bron {
     /** De tekst van de mail zelf (text/plain, anders html zonder opmaak), hooguit 20.000 tekens: om een doorgestuurde afzender te vinden. */
     static String tekst(JSONObject payload) {
         String t = deelTekst(payload, "text/plain");
-        if (t.isEmpty()) t = html(deelTekst(payload, "text/html"));
+        if (t.isEmpty()) { String h = deelTekst(payload, "text/html"); t = html(h.length() > 100_000 ? h.substring(0, 100_000) : h); } // begrensd: de patronen in html() zijn op vreemde html anders traag
         return t.length() > 20_000 ? t.substring(0, 20_000) : t;
     }
 
     static String html(String h) {
-        return h.replaceAll("(?is)<(script|style)[^>]*>.*?</\\1>", " ").replaceAll("(?i)<br\\s*/?>|</p>|</div>|</tr>", "\n").replaceAll("<[^>]+>", " ")
+        return h.replaceAll("(?is)<(script|style)[^>]*>.*?</\\1>", " ").replaceAll("(?i)<br\\s*/?>|</p>|</div>|</tr>", "\n").replaceAll("<[^<>]+>", " ")
                 .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&nbsp;", " ").replace("&amp;", "&");
     }
 

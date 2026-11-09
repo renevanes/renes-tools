@@ -47,6 +47,7 @@ final class ToolData {
             "webstore", "allbackup", "radio", "alarm", "auto", "redialplan", "reminders", "notifcenter", "mockloc",
             "podcast", "player", "podcast_dl", // hebben al een eigen plek in Instellingen/instellingen.json
             "pinned_shortcuts", // vastgezette snelkoppelingen moet je na een herinstallatie opnieuw plaatsen
+            "solo",             // welke losse apps aan staan (zonder app-slot): Rene zet ze zelf weer aan
             "checkin",          // privé: gaat alleen mee met het eigen vinkje Check-in
             "txdur", "txmeta"   // hoort bij Uitgeschreven gesprekken (namen en nummers van bellers): eigen onderdeel
     ));

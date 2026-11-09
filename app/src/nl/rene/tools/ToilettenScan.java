@@ -56,7 +56,7 @@ final class ToilettenScan {
             if (PATRONEN.size() > 200) PATRONEN.clear();
             PATRONEN.put(patroon, p);
         }
-        return p.matcher(w.length() > 120 ? w.substring(0, 120) : w).find();
+        return p.matcher(w.length() > Toiletten.VELD_MAX ? w.substring(0, Toiletten.VELD_MAX) : w).find();
     }
 
     // ================= lezen (zonder Android: getest in ToilettenTest) =================

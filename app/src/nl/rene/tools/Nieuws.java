@@ -90,6 +90,12 @@ final class Nieuws {
     static File dir(Context c) { return new File(c.getFilesDir(), "nieuws"); }
     static File cache(Context c) { return new File(c.getCacheDir(), "nieuws"); }
 
+    /** Het cachebestand van een bron. Een id dat geen bron-id kan zijn, komt nooit buiten de map (ook niet als de lijst ooit anders gevuld wordt). */
+    static File cacheBestand(File cache, String id) {
+        if (id == null || !BRON_ID.matcher(id).matches()) throw new IllegalArgumentException("ongeldige bron");
+        return new File(cache, id + ".json");
+    }
+
     // ---------------------------------------------------------------- bestanden
 
     private static JSONObject leesObject(File f) {
@@ -175,7 +181,7 @@ final class Nieuws {
             }
             if (!weg) throw new Fout(Taal.T("Deze bron bestaat niet meer"));
             bewaarBronnen(dir, rest);
-            new File(cache, id + ".json").delete();
+            cacheBestand(cache, id).delete();
         }
     }
 
@@ -284,7 +290,7 @@ final class Nieuws {
      */
     static int bewaarFeed(File cache, String bron, String basis, NieuwsFeed.Feed f, long nu) throws Exception {
         synchronized (LOCK) {
-            File cf = new File(cache, bron + ".json");
+            File cf = cacheBestand(cache, bron);
             JSONObject oud = leesObject(cf);
             if (oud != null && later(oud, nu)) return 0;
             Map<String, Long> bekend = new HashMap<>();
@@ -320,7 +326,7 @@ final class Nieuws {
     static void bewaarFout(File cache, String bron, String fout, long nu) {
         synchronized (LOCK) {
             try {
-                File cf = new File(cache, bron + ".json");
+                File cf = cacheBestand(cache, bron);
                 JSONObject o = leesObject(cf);
                 if (o == null) o = new JSONObject();
                 if (later(o, nu)) return;
@@ -354,7 +360,7 @@ final class Nieuws {
             List<JSONObject> items = new ArrayList<>();
             for (int i = 0; i < bs.length(); i++) {
                 JSONObject b = bs.getJSONObject(i);
-                JSONObject c = leesObject(new File(cache, b.getString("id") + ".json"));
+                JSONObject c = leesObject(cacheBestand(cache, b.getString("id")));
                 int n = 0;
                 if (c != null) {
                     b.put("t", c.optLong("t")).put("poging", c.optLong("poging"));
@@ -389,7 +395,7 @@ final class Nieuws {
         JSONArray bs = bronnen(dir);
         for (int i = 0; i < bs.length(); i++) {
             JSONObject b = bs.getJSONObject(i);
-            JSONObject c = leesObject(new File(cache, b.getString("id") + ".json"));
+            JSONObject c = leesObject(cacheBestand(cache, b.getString("id")));
             JSONArray as = c == null ? null : c.optJSONArray("artikelen");
             if (as != null) for (int j = 0; j < as.length(); j++) {
                 JSONObject a = as.optJSONObject(j);
@@ -654,7 +660,7 @@ final class Nieuws {
             for (int i = 0; i < bs.length(); i++) {
                 JSONObject b = bs.getJSONObject(i);
                 if (!b.optBoolean("aan")) continue;
-                JSONObject c = leesObject(new File(cache, b.getString("id") + ".json"));
+                JSONObject c = leesObject(cacheBestand(cache, b.getString("id")));
                 long t = c == null ? 0 : c.optLong("t"), p = c == null ? 0 : c.optLong("poging");
                 boolean vers = c != null && t <= nu && nu - t < VERS; // een tijd in de toekomst: klok teruggezet
                 boolean netMis = c != null && c.has("fout") && p <= nu && nu - p < OPNIEUW_NA_FOUT;

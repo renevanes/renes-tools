@@ -637,7 +637,7 @@ final class FacturenRun {
                 Facturen.logRun(c, id, new JSONObject().put("t", nu).put("ok", uit.optBoolean("ok")).put("msg", uit.optString("msg"))
                         .put("nieuw", uit.optInt("nieuw")).put("namen", uit.optJSONArray("namen") == null ? new JSONArray() : uit.optJSONArray("namen"))
                         .put("auto", !zichtbaar && klaarAuto).put("diagnose", spoor.json()));
-                if (!uit.optBoolean("ok")) App.log(c, "FACTUREN", lev.optString("naam") + ": " + uit.optString("msg"));
+                if (!uit.optBoolean("ok")) App.log(c, "FACTUREN", "ophalen mislukt (" + lev.optString("soort", "website") + ")"); // geen namen of websitetekst
             } catch (Throwable e) {
                 log(FacturenLog.Stap.FOUT, 0);
                 try { uit = fout("Bewaren mislukt: " + Facturen.kort(e), false).put("id", id).put("naam", lev.optString("naam")); } catch (Exception ignored) { }
@@ -704,6 +704,8 @@ final class FacturenRun {
             WebView kind = new WebView(r.c);
             r.kinderen.add(kind);
             kind.getSettings().setJavaScriptEnabled(false);
+            kind.getSettings().setAllowFileAccess(false);    // het venster vangt alleen het adres op: geen bestanden of content:-adressen
+            kind.getSettings().setAllowContentAccess(false);
             kind.setWebViewClient(new Kind(r));
             kind.setDownloadListener((url, agent, cd, mime, len) -> { r.opDownload(url, cd); r.h.post(kind::destroy); });
             ((WebView.WebViewTransport) msg.obj).setWebView(kind);

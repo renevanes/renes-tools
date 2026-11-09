@@ -129,11 +129,13 @@ final class FacturenHerken {
     /** Het mailadres uit "Naam <adres>" (of alleen een adres), in kleine letters; "" als er geen is. */
     static String adres(String van) {
         if (van == null) return "";
+        // De kop komt van buiten (elke afzender): begrensd, zodat HOEK/LOS niet traag worden of de stack opmaken. Het adres staat achteraan.
+        if (van.length() > 1000) van = van.substring(van.length() - 1000);
         Matcher m = HOEK.matcher(van);
         String a = m.find() ? m.group(1) : null;
         if (a == null) { Matcher l = LOS.matcher(van); a = l.find() ? l.group(1) : ""; }
         a = a.trim().toLowerCase(Locale.ROOT).replaceAll("^mailto:", "");
-        return a.matches("[^\\s@<>\"]+@[a-z0-9-]+(\\.[a-z0-9-]+)*\\.[a-z]{2,}") ? a : "";
+        return a.length() <= 254 && a.matches("[^\\s@<>\"]+@[a-z0-9-]+(\\.[a-z0-9-]+)*\\.[a-z]{2,}") ? a : "";
     }
 
     /** De naam uit "Naam <adres>"; "" als er geen naam staat (of de naam zelf een adres is). */
@@ -155,6 +157,7 @@ final class FacturenHerken {
     /** Een nette naam van de afzender: zonder "via Moneybird", zonder "- Facturen", en leeg als het alleen "noreply" of "Facturen" is. */
     static String schoneNaam(String n) {
         if (n == null) return "";
+        if (n.length() > 1000) n = n.substring(0, 1000); // naam uit de mailkop (van buiten): begrensd, anders worden VIA/STAART traag; er blijven er hooguit 60 over
         String s = n.replaceAll("\\s+", " ").trim();
         for (int i = 0; i < 3; i++) {
             String v = KOP.matcher(STAART.matcher(VIA.matcher(s).replaceAll("")).replaceAll("")).replaceAll("").trim();
@@ -172,7 +175,7 @@ final class FacturenHerken {
         return at < 0 ? "" : Facturen.domein("https://" + adres.substring(at + 1));
     }
 
-    private static final Pattern DOOR = Pattern.compile("(?im)(?:-{2,}\\s*(?:forwarded message|doorgestuurd bericht|oorspronkelijk bericht|original message|weitergeleitete nachricht|message transf[ée]r[ée])\\s*-{2,}"
+    private static final Pattern DOOR = Pattern.compile("(?im)(?:(?<!-)-{2,}\\s*(?:forwarded message|doorgestuurd bericht|oorspronkelijk bericht|original message|weitergeleitete nachricht|message transf[ée]r[ée])\\s*-{2,}"
             + "|begin forwarded message:|begin doorgestuurd bericht:|^[ \\t]*_{8,}[ \\t]*$)");
     private static final Pattern VAN = Pattern.compile("(?im)^[\\s>*]*(?:from|van|von|de)\\s*\\*?\\s*:\\s*\\*?\\s*(.+)$");
     private static final Pattern DOORGESTUURD = Pattern.compile("(?i)^\\s*(?:fwd?|doorst|tr|wg|fw)\\s*:");
@@ -535,6 +538,9 @@ final class FacturenHerken {
 
     private static final String DOMEIN = "[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\\.[a-z]{2,}";
 
+    /** Een geldige domeinnaam (hooguit 253 tekens, zoals DNS: langer maakt het patroon traag en de stack vol). */
+    private static boolean domeinOk(String v) { return v.length() <= 253 && v.matches(DOMEIN); }
+
     /** Herkenning van een leverancier, zoals Rene hem kan aanpassen. Fout = Nederlandse uitleg. */
     static JSONObject herkenNormaal(JSONObject in) throws Exception {
         JSONObject o = new JSONObject();
@@ -542,13 +548,13 @@ final class FacturenHerken {
         JSONArray afz = new JSONArray(), dom = new JSONArray(), nm = new JSONArray(), btw = new JSONArray(), kvk = new JSONArray(), iban = new JSONArray();
         for (String x : delen(in.opt("afzenders"))) {
             String v = x.toLowerCase(Locale.ROOT).replaceAll("^mailto:|^@", "");
-            boolean ok = v.contains("@") ? adres("<" + v + ">").equals(v) : v.matches(DOMEIN);
+            boolean ok = v.contains("@") ? adres("<" + v + ">").equals(v) : domeinOk(v);
             if (!ok) throw new Exception("Geen geldig mailadres of domein: " + kort(x));
             if (!lijst(afz).contains(v)) afz.put(v);
         }
         for (String x : delen(in.opt("domeinen"))) {
             String v = x.toLowerCase(Locale.ROOT).replaceAll("^https?://", "").replaceAll("/.*$", "").replaceAll("^\\*?\\.|^@", "");
-            if (!v.matches(DOMEIN)) throw new Exception("Geen geldig domein: " + kort(x) + " (bijv. kpn.com)");
+            if (!domeinOk(v)) throw new Exception("Geen geldig domein: " + kort(x) + " (bijv. kpn.com)");
             v = Facturen.domein("https://" + v);
             if (!lijst(dom).contains(v)) dom.put(v);
         }

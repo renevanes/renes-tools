@@ -392,6 +392,8 @@ public class BankLinkActivity extends Activity {
             if (a.klaar) return false;
             WebView kind = new WebView(a);
             kind.getSettings().setJavaScriptEnabled(false);
+            kind.getSettings().setAllowFileAccess(false); // net als het hoofdvenster: geen file:// of content://
+            kind.getSettings().setAllowContentAccess(false);
             kind.setWebViewClient(new Kind(a));
             kind.setDownloadListener((url, agent, cd, mime, len) -> { a.opDownload(url, cd); a.h.post(kind::destroy); });
             ((WebView.WebViewTransport) msg.obj).setWebView(kind);

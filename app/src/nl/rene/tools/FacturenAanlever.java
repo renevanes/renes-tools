@@ -424,7 +424,7 @@ final class FacturenAanlever {
             if (ok) t.put("lastOk", nu);
             werkBij(c, id, t);
         }
-        if (!ok) App.log(c, "FACTUREN", "aanleveren: " + msg);
+        if (!ok) App.log(c, "FACTUREN", proef ? "aanleveren: proef mislukt" : "aanleveren mislukt (" + aantal + " gelukt)"); // geen namen of adressen
         return r;
     }
 

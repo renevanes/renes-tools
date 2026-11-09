@@ -329,6 +329,7 @@ final class Facturen {
     /** De inlogcode uit een sms of mail. Met een eigen patroon: groep 1 (of de hele treffer). */
     static String vindCode(String tekst, String patroon) {
         if (tekst == null) return null;
+        if (tekst.length() > 50_000) tekst = tekst.substring(0, 50_000); // een code staat bovenin; zo blijft een eigen patroon snel op lange mails
         if (patroon != null && !patroon.isEmpty()) {
             try {
                 Matcher m = Pattern.compile(patroon).matcher(tekst);
@@ -1020,7 +1021,7 @@ final class Facturen {
             if (m.optLong("date") < sinds - 60_000L || !gezien.add("m" + m.optLong("id"))) continue;
             if (!komtVan(m.optString("from_addr") + " " + m.optString("from_name"), m.optString("subject"), afz)) continue;
             JSONObject v = ec.vraag("GET", "/api/mail/messages/" + m.optLong("id"), null, null);
-            String code = vindCode(v.optString("subject") + "\n" + v.optString("body_text") + "\n" + v.optString("body_html").replaceAll("<[^>]+>", " "), pat);
+            String code = vindCode(v.optString("subject") + "\n" + v.optString("body_text") + "\n" + v.optString("body_html").replaceAll("<[^<>]+>", " "), pat);
             if (code != null) return code;
         }
         return null;

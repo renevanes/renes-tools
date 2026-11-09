@@ -520,21 +520,28 @@ final class BankImport {
                 if (p.length > 0) t.ci = iban(p[0]);
                 if (p.length > 2) t.cp = clean(p[2]);
             }
-            if (t.cp.isEmpty() && f.containsKey("NAME")) t.cp = clean(f.get("NAME").replaceAll("/+$", ""));
-            if (t.ci.isEmpty() && f.containsKey("IBAN")) t.ci = iban(f.get("IBAN").replaceAll("/+$", ""));
+            if (t.cp.isEmpty() && f.containsKey("NAME")) t.cp = clean(zonderSlash(f.get("NAME")));
+            if (t.ci.isEmpty() && f.containsKey("IBAN")) t.ci = iban(zonderSlash(f.get("IBAN")));
             for (String k : new String[]{"ORDP", "BENM"}) if (t.cp.isEmpty() && f.containsKey(k)) {
                 Matcher n = Pattern.compile("NAME/([^/]+)").matcher(f.get(k));
                 if (n.find()) t.cp = clean(n.group(1));
             }
             if (f.containsKey("REMI")) {
-                String rm = f.get("REMI").replaceFirst("^USTD//", "").replaceFirst("^STRD/CUR/", "").replaceAll("/+$", "");
+                String rm = zonderSlash(f.get("REMI").replaceFirst("^USTD//", "").replaceFirst("^STRD/CUR/", ""));
                 t.ds = clean(rm);
             }
-            if (f.containsKey("TRTP")) t.ty = clean(f.get("TRTP").replaceAll("/+$", ""));
+            if (f.containsKey("TRTP")) t.ty = clean(zonderSlash(f.get("TRTP")));
         } else {
             abnLike(t, s);
         }
         if (t.cp.isEmpty()) t.cp = nameFrom(t.ds);
+    }
+
+    /** Zonder schuine strepen aan het eind. Zonder zoekpatroon: "/+$" kost kwadratisch veel tijd bij een lang veld vol strepen. */
+    static String zonderSlash(String s) {
+        int e = s.length();
+        while (e > 0 && s.charAt(e - 1) == '/') e--;
+        return s.substring(0, e);
     }
 
     static void abnLike(Tx t, String s) {
@@ -548,7 +555,7 @@ final class BankImport {
 
     static Result camt(String text) throws Exception {
         // Geen DOCTYPE/entiteiten: zo kan een bestand geen andere bestanden of het netwerk laten lezen (XXE)
-        String up = text.substring(0, Math.min(text.length(), 200_000)).toUpperCase(Locale.ROOT);
+        String up = text.toUpperCase(Locale.ROOT); // het hele bestand: een DOCTYPE na lang commentaar telt ook
         if (up.contains("<!DOCTYPE") || up.contains("<!ENTITY")) throw new Exception("Dit XML-bestand wordt om veiligheidsredenen niet gelezen");
         javax.xml.parsers.DocumentBuilderFactory dbf = javax.xml.parsers.DocumentBuilderFactory.newInstance();
         dbf.setNamespaceAware(true);

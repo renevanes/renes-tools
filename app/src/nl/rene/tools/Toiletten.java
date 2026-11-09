@@ -163,18 +163,23 @@ final class Toiletten {
 
     /**
      * Een zoekpatroon dat eindeloos kan duren (Android kan een zoekopdracht niet afbreken): een herhaling van een groep
-     * die zelf herhaalt of kiest ((a+)+, (.*a){20}, (a|aa)*, (a?){25}), of meer dan drie keer + of *.
+     * die zelf herhaalt of kiest ((a+)+, (.*a){20}, (a|aa)*, (a?){25}), of meer dan drie keer + of *. Ook ? en {m,n}
+     * tellen mee: samen niet meer manieren om een veld (hooguit {@link #VELD_MAX} tekens) te verdelen dan drie keer + of *
+     * (a?a?a?…a? of .{0,9}.{0,9}… zonder groep kan anders ook eindeloos duren).
      */
     static boolean riskant(String p) {
         java.util.ArrayDeque<boolean[]> stapel = new java.util.ArrayDeque<>();
         boolean[] groep = {false};
-        boolean naGroep = false, groepHerhaalt = false;
+        boolean naGroep = false, groepHerhaalt = false, naOpen = false, naHerhaling = false;
         int open = 0;
+        double kost = 1;
         for (int i = 0; i < p.length(); i++) {
             char c = p.charAt(i);
             boolean herhaal = c == '+' || c == '*' || c == '{';
             if (herhaal && naGroep && groepHerhaalt) return true;
             naGroep = false;
+            boolean wasOpen = naOpen, wasHerhaling = naHerhaling;
+            naOpen = false; naHerhaling = false;
             if (c == '\\') { i++; continue; }
             if (c == '[') {
                 int j = i + 1;
@@ -184,18 +189,34 @@ final class Toiletten {
                 i = j;
                 continue;
             }
-            if (c == '(') { stapel.push(groep); groep = new boolean[]{false}; continue; }
+            if (c == '(') { stapel.push(groep); groep = new boolean[]{false}; naOpen = true; continue; }
             if (c == ')') {
                 naGroep = true; groepHerhaalt = groep[0];
                 groep = stapel.isEmpty() ? new boolean[]{false} : stapel.pop();
                 if (groepHerhaalt) groep[0] = true;
                 continue;
             }
-            if (c == '+' || c == '*') open++;
+            if (c == '+' || c == '*') { open++; if (!wasHerhaling) kost *= VELD_MAX; naHerhaling = true; }
+            else if (c == '?' && !wasOpen) { if (!wasHerhaling) kost *= 2; naHerhaling = true; } // na een herhaling: zuinig (a+?), telt niet
+            else if (c == '{') { int j = p.indexOf('}', i); if (j > i) { kost *= bereik(p.substring(i + 1, j)); i = j; naHerhaling = true; } }
             boolean keuze = c == '|' || (c == '?' && i > 0 && p.charAt(i - 1) != '(');
             if (herhaal || keuze) groep[0] = true;
         }
-        return open > 3;
+        return open > 3 || kost > (double) VELD_MAX * VELD_MAX * VELD_MAX;
+    }
+
+    /** Zoveel tekens van een veld bekijkt een regel (ToilettenScan.past). */
+    static final int VELD_MAX = 120;
+
+    /** Hoeveel keuzes {m}, {m,} of {m,n} geeft (hooguit VELD_MAX). */
+    private static double bereik(String s) {
+        int k = s.indexOf(',');
+        if (k < 0) return 1;
+        try {
+            String hi = s.substring(k + 1).trim();
+            if (hi.isEmpty()) return VELD_MAX;
+            return Math.max(1, Math.min(VELD_MAX, Long.parseLong(hi) - Long.parseLong(s.substring(0, k).trim()) + 1));
+        } catch (NumberFormatException e) { return VELD_MAX; }
     }
 
     static JSONArray checkLijst(JSONArray a) throws Exception {
