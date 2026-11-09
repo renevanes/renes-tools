@@ -136,8 +136,8 @@ public class AiBridge extends SleepBridge {
         // App op de achtergrond (bijv. net weggeschakeld terwijl het antwoord nog kwam): niet gaan praten
         if (!MainActivity.visible) { try { a.js("onAiSpeak", new JSONObject().put("state", "stop").put("id", id == null ? "" : id).toString()); } catch (Exception ignored) { } return; }
         if(text.length()>30000){try{a.js("onAiSpeak",new JSONObject().put("state","error").put("id",id).put("error",Taal.t(ctx,"Deze tekst is te lang om in één keer voor te lezen")).toString());}catch(Throwable ignored){ }return;}
-        // Nog geen lokale stem: de stem van Android die zonder internet werkt (terugval, alleen voor de assistent)
-        if(VoiceModels.active(ctx)==null&&!ReadAloud.wedged){ReadAloud.Job j=ReadAloud.current;if(j!=null)ReadAloud.stop(a.speechOwner,j.request);SystemSpeech.speak(ctx,AiSpeech.plain(text),id,o->a.js("onAiSpeak",o.toString()));return;}
+        // Nog geen lokale stem (of de lokale motor hangt tot een herstart): de stem van Android die zonder internet werkt (terugval, alleen voor de assistent)
+        if(VoiceModels.active(ctx)==null||ReadAloud.wedged){ReadAloud.Job j=ReadAloud.current;if(j!=null)ReadAloud.stop(a.speechOwner,j.request);SystemSpeech.speak(ctx,AiSpeech.plain(text),id,o->a.js("onAiSpeak",o.toString()));return;}
         SystemSpeech.stop();
         ReadAloud.start(a,id,"ai",AiSpeech.plain(text),"",0,0,false,ReadAloudBridge.aiSink(a));
     }

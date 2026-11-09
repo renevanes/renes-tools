@@ -16,7 +16,9 @@ for(const colorScheme of ['light','dark']){
  const note=()=>p.evaluate(()=>$('#cm-edit-status').textContent);
  const zin=()=>p.evaluate(()=>$('#cmi-relation-zin').hidden?'':$('#cmi-relation-zin').textContent);
  const options=id=>p.evaluate(id=>$('#'+id)?[...$('#'+id).options].map(o=>o.value):null,id);
- const add=async(code,naam)=>{await T.click(`button[onclick="cmiRelationNew('${code}')"]`);await p.waitForFunction(()=>cm.edit?.type==='relatie'&&!cm.edit.id);if(naam)await T.select('#cm-field-naarPersoon',naam);};
+ // Relaties van deze persoon (kind, ouder, partner, andere) staan in het keuzemenu achter "Relatie toevoegen…"
+ const kies=async code=>{await T.click('#cmk-anderen');if(!await p.evaluate(()=>$('#sheet').classList.contains('on')))return;await p.click('#sheet-acts button:nth-child('+({kind:1,ouder:2,partner:3,'':4}[code])+')');};
+ const add=async(code,naam)=>{await kies(code);await p.waitForFunction(()=>cm.edit?.type==='relatie'&&!cm.edit.id);if(naam)await T.select('#cm-field-naarPersoon',naam);};
  // Opslaan vanaf een persoon: daarna weer bij die persoon (eindtoestand afwachten, niet het korte moment ertussen)
  const save=async()=>{const n=await p.evaluate(()=>cm.records.length);const from=await p.evaluate(()=>cm.back?.id);await p.click('#cm-save');await p.waitForFunction(([n,from])=>!cm.mutating&&cm.recordsReady&&cm.records.length>n&&current==='cmedit'&&cm.edit?.id===from&&!cm.pending.size,[n,from]);};
 
@@ -24,12 +26,12 @@ for(const colorScheme of ['light','dark']){
  const rene=await person('Rene','van Es');await open(rene);
  assert.equal(await p.isVisible('#cmi-person-relations'),true,'relaties bij een opgeslagen persoon');
  assert.deepEqual(await list(),['Nog geen relaties.']);
- for(const name of ['Kind toevoegen','Ouder toevoegen','Partner toevoegen','Andere relatie toevoegen'])assert.equal(await p.getByRole('button',{name,exact:true}).isVisible(),true,name);
- await T.click(`button[onclick="cmiRelationNew('kind')"]`);assert.equal(await note(),'Voeg eerst de andere persoon toe als stamgegeven (soort Persoon).');assert.equal(await p.evaluate(()=>cm.edit.type),'persoon');
+ await T.click('#cmk-anderen');await p.waitForSelector('#sheet.on');assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),['Kind van Rene','Ouder van Rene','Partner van Rene','Andere relatie met Rene']);await p.evaluate(()=>closeSheet());
+ await kies('kind');assert.equal(await note(),'Voeg eerst de andere persoon toe als stamgegeven (soort Persoon).');assert.equal(await p.evaluate(()=>cm.edit.type),'persoon');
  await p.evaluate(()=>cmCancelEdit());
  const anna=await person('Anna','van Es'),sam=await person('Sam','de Vries'),kees=await person('Kees','Jansen');
  await p.evaluate(()=>cmNew());assert.equal(await p.isVisible('#cmi-person-relations'),false,'niet bij een nieuwe, nog niet opgeslagen persoon');await p.evaluate(()=>cmCancelEdit());
- await open(rene);await T.fill('#cm-field-roepnaam','Rene');await T.click(`button[onclick="cmiRelationNew('kind')"]`);assert.equal(await note(),'Sla je wijzigingen eerst op.');assert.equal(await p.evaluate(()=>cm.edit.type),'persoon');
+ await open(rene);await T.fill('#cm-field-roepnaam','Rene');await kies('kind');assert.equal(await note(),'Sla je wijzigingen eerst op.');assert.equal(await p.evaluate(()=>cm.edit.type),'persoon');
 
  // Kind toevoegen: de eerste persoon staat vast, je kiest het kind; naam in het overzicht en zin vullen zich in
  await open(rene);await add('kind');
@@ -79,12 +81,14 @@ for(const colorScheme of ['light','dark']){
 
  // Engels: zinnen, knoppen en keuzes vertaald
  await p.evaluate(()=>rgSave({lang:'en'}));await p.waitForFunction(()=>TAAL.on);await open(rene);
- assert.deepEqual(await list(),['Anna is the child of Rene.','Kees is the friend of Rene.','Sam is the partner of Rene.']);
- await p.waitForFunction(()=>$('#cm-tab-relaties').textContent==='Relations');assert.equal(await p.getByRole('button',{name:'Add child',exact:true}).isVisible(),true);
- await add('partner',sam);assert.equal(await p.inputValue('#cm-label'),'Sam (partner of Rene)');
+ // Rene is nu "ik" (app-profiel): de zinnen gaan vanuit jou
+ assert.deepEqual(await list(),['Anna is your child.','Kees is your friend.','Sam is your partner.']);
+ assert.match(await p.textContent('#cmk-ik-acts'),/Add person/,'bij jezelf: persoon toevoegen vanuit jou');
+ await p.waitForFunction(()=>$('#cm-tab-relaties').textContent==='Relations');await T.click('#cmk-anderen');await p.waitForSelector('#sheet.on');assert.equal(await p.textContent('#sheet-acts button:first-child'),'Child of Rene');await p.evaluate(()=>closeSheet());
+ await add('partner',sam);assert.equal(await p.inputValue('#cm-label'),'Sam (my partner)');
  assert.equal(await p.evaluate(()=>$('#cm-field-relatie optgroup').label),'Immediate family');
  assert.equal(await p.evaluate(()=>$('#cm-field-status option[value="latrelatie"]').textContent),'Living apart together');
- await T.select('#cm-field-status','gehuwd');assert.equal(await zin(),'Sam is the partner of Rene (married).');
+ await T.select('#cm-field-status','gehuwd');assert.equal(await zin(),'Sam is your partner (married).');
 
  // Vergrendelen wist ook de relatiezin en de relatielijst (alleen vluchtig schermgeheugen)
  assert.equal(await p.evaluate(()=>!$('#cmi-relation-zin').hidden&&$('#cmi-person-relation-list').children.length>0&&!!cmi.labelFor),true);
