@@ -222,7 +222,8 @@ final class Nieuws {
 
     static final Object LOCK = new Object();
     static final AtomicBoolean BEZIG = new AtomicBoolean();
-    private static final Pattern BRON_ID = Pattern.compile("[a-z0-9-]{1,40}"), ART_ID = Pattern.compile("n[0-9a-f]{1,16}");
+    private static final String BRON_ID_PATROON = "[a-z0-9-]{1,40}";
+    private static final Pattern BRON_ID = Pattern.compile(BRON_ID_PATROON), ART_ID = Pattern.compile("n[0-9a-f]{1,16}");
 
     /** Een fout met een Nederlandse tekst voor Rene (de brug vertaalt hem). */
     static class Fout extends Exception { Fout(String nl) { super(nl); } }
@@ -241,7 +242,8 @@ final class Nieuws {
 
     /** Het cachebestand van een bron. Een id dat geen bron-id kan zijn, komt nooit buiten de map (ook niet als de lijst ooit anders gevuld wordt). */
     static File cacheBestand(File cache, String id) {
-        if (id == null || !BRON_ID.matcher(id).matches()) throw new IllegalArgumentException("ongeldige bron");
+        // String.matches met een vast patroon: alleen zo ziet de beveiligingsscan (CodeQL) dat er geen / of .. in kan staan
+        if (id == null || !id.matches(BRON_ID_PATROON)) throw new IllegalArgumentException("ongeldige bron");
         return new File(cache, id + ".json");
     }
 
