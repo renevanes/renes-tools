@@ -30,7 +30,7 @@ function pdfOutside(r){
   const lost = !!(r && r.kind === 'pdf' && pdfEd.revision && pdfEd.revision !== r.revision && pdfEditDirty()), old = pdfIn.name || '';
   show(to);
   if (!r) return;
-  tsDaarna(() => {
+  tsDaarna(tsTool(to), () => {
     if (r.kind === 'pdf' && current === 'pdfedit') pdfEd.want = true; // meteen bewerken
     pdfJobScr = current; // een resultaat van buiten hoort bij het scherm waar het landt
     onPdf(r); // ook als het scherm niet open mocht: dan staat het resultaat klaar

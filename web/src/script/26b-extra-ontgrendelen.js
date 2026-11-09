@@ -36,14 +36,16 @@ function tsVoor(name){
   if (!ts) return false;
   const tool = tsTool(name);
   if (!tsVerborgen(tool) || tsTool(current) === tool) return false;
-  if (!ts.doel || ts.tool !== tool) { ts.daarna = null; ts.lagen = tsLagen(); }
+  if (!ts.doel || ts.tool !== tool) ts.lagen = tsLagen();
   ts.tool = tool; ts.doel = name; ts.van = current; ts.sprong = !!jumpTo.busy;
   tsToon();
   return true;
 }
-/** Wat bij het openen van een tool hoort (een vraag, een zoekactie): wacht de tool nog op ontgrendelen, dan pas daarna. */
-function tsDaarna(fn){
-  if (ts && ts.doel && tsZichtbaar()) ts.daarna = fn;
+/** Staat het slotscherm van deze tool nu in beeld (voor het openen, of over de tool heen)? */
+function tsWacht(tool){ return !!ts && !!tool && tsZichtbaar() && ts.tool === tool; }
+/** Wat bij het openen van een tool hoort (een vraag, een zoekactie): staat die tool op slot, dan pas na ontgrendelen. */
+function tsDaarna(tool, fn){
+  if (tsWacht(tool)) ts.daarna = fn;
   else fn();
 }
 /* Vensters die terug sluit. Wat onder het slotscherm openging (of openstond in de tool die je verlaat), mag na terug
@@ -55,7 +57,7 @@ const TS_LAGEN = [
   ['sigdlg', () => $('#sigdlg').classList.contains('on'), () => sigClose()],
   ['voice', () => !!$('#voice') && $('#voice').classList.contains('on'), () => voiceClose()],
   ['ci-ans', () => !!$('#ci-ans') && $('#ci-ans').classList.contains('on'), () => ciAnsClose()],
-  ['ci-rem', () => !!$('#ci-rem') && $('#ci-rem').classList.contains('on'), () => ciRemClose()],
+  ['ci-rem', () => !!$('#ci-rem') && $('#ci-rem').classList.contains('on'), () => ciRemPark()], // wat je schreef blijft als concept
   ['sleepdlg', () => $('#sleepdlg').classList.contains('on'), () => sleepClose()],
   ['vp-scan', () => !!$('#vp-scan') && $('#vp-scan').classList.contains('on'), () => vpScanClose()],
   ['sheet', () => $('#sheet').classList.contains('on'), () => closeSheet()],
@@ -78,7 +80,7 @@ function tsNa(){
   if (!ts) return;
   const tool = tsTool(current);
   if (ts.open && ts.open !== tool) ts.open = '';
-  if (ts.doel && ts.tool !== tool && current !== ts.van) { ts.doel = ''; ts.daarna = null; } // ergens anders heen gegaan: het slotscherm van die tool is niet meer nodig
+  if (ts.doel && ts.tool !== tool && current !== ts.van) ts.doel = ''; // ergens anders heen gegaan: het slotscherm van die tool is niet meer nodig
   tsToon();
   if (current === 'home') tsTegels();
 }
@@ -95,6 +97,7 @@ function tsToon(){
     $('#ts-ic').innerHTML = uiToolIcon(tool) + '<span class="ts-slot">' + uiIcon('lock') + '</span>';
     $('#ts-msg').textContent = ''; $('#ts-open').disabled = false; // een vraag voor een andere tool telt hier niet
   }
+  if (tool !== ts.getoond) ts.daarna = null; // wat wachtte, hoort bij het slotscherm van een andere tool
   ts.getoond = tool;
   if (on !== el.classList.contains('on')) {
     if (on && typeof gbCloseLight === 'function') gbCloseLight();
@@ -113,7 +116,8 @@ function tsOntgrendel(){
 /** Terug op het slotscherm: niet openen (bleef je nog waar je was), of de tool verlaten. */
 function tsTerug(){
   if (!ts || !tsZichtbaar()) return false;
-  if (ts.doel) { ts.doel = ''; ts.daarna = null; tsLagenDicht(ts.lagen); tsToon(); return true; }
+  ts.daarna = null;
+  if (ts.doel) { ts.doel = ''; tsLagenDicht(ts.lagen); tsToon(); return true; }
   tsLagenDicht();
   const tool = tsTool(current), j = jumpStack[jumpStack.length - 1];
   if (j && j.to === current && tsTool(j.from) !== tool) { jumpStack.pop(); show(j.from); return true; }
@@ -138,9 +142,9 @@ window.onToolSlot = function(r){
       jumpTo.busy = sprong; // een sprong (zoeken, startscherm) houdt zijn filter in de tool
       try { show(doel); } finally { jumpTo.busy = false; }
       if (sprong && current !== van) jumpStack.push({ from: van, to: current });
-      if (daarna && tsTool(current) === r.tool) daarna();
     }
     else tsToon();
+    if (daarna && tsTool(current) === r.tool && !tsZichtbaar()) daarna();
     return;
   }
   tsLaad();

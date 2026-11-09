@@ -536,7 +536,7 @@ public class MainActivity extends Activity {
         if (viewer) intent.putExtra(PdfViewActivity.EXTRA_IN_APP, PdfViewActivity.TOKEN);
         if (!external && (requestCode >= 0 || viewer) && !isSolo()) Lock.internalNav = true; // startActivity naar een andere app (delen) heeft -1: dat is weggaan
         boolean wasEigen = eigenScherm;
-        if (!external && (requestCode >= 0 || viewer)) eigenScherm = true;
+        if (!external && (requestCode >= 0 || viewer) && requestCode != Lock.REQ_CONFIRM) eigenScherm = true; // de vraag om te ontgrendelen: zie onStop
         try { super.startActivityForResult(intent, requestCode, options); }
         catch (RuntimeException e) { eigenScherm = wasEigen; throw e; }
     }

@@ -44,10 +44,10 @@ window.onSpeech=function(e){
 function spSync(){if(typeof Android.speechState!=='function')return;try{const e=JSON.parse(Android.speechState());if(e.active&&!['done','stopped','error'].includes(e.state)){sp.active=e;onSpeech(e);}else{sp.active=null;spSpeechRender();}}catch(_){ }}
 function spSettings(){
   if(typeof Android.speechModels!=='function'){toast(t('Installeer de nieuwste APK voor lokaal voorlezen'));return;}
-  if(!sp.settings){sp.origin=current;sp.focus=document.activeElement;$('#s-'+current).inert=true;sp.settings=true;$('#speech-settings').hidden=false;$('#speech-heading').focus();}
+  if(!sp.settings){sp.origin=current;sp.focus=document.activeElement;dialogFocus.base($('#s-'+current),true);sp.settings=true;$('#speech-settings').hidden=false;$('#speech-heading').focus();}
   spModelsRender();clearInterval(sp.timer);sp.timer=setInterval(spModelsRender,1000);
 }
-function spSettingsClose(){if(!sp.settings)return;sp.settings=false;clearInterval(sp.timer);$('#speech-settings').hidden=true;const origin=$('#s-'+sp.origin);if(origin)origin.inert=false;if(sp.focus&&sp.focus.isConnected)sp.focus.focus();}
+function spSettingsClose(){if(!sp.settings)return;sp.settings=false;clearInterval(sp.timer);$('#speech-settings').hidden=true;const origin=$('#s-'+sp.origin);if(origin)dialogFocus.base(origin,false);if(sp.focus&&sp.focus.isConnected)sp.focus.focus();}
 function spModelsRender(){
   if(!sp.settings)return;sp.models=spReadModels();const model=sp.models,box=$('#speech-voices'),focus=box.contains(document.activeElement)?document.activeElement.dataset.speechAction:null;box.replaceChildren();
   for(const voice of model.voices||[]){

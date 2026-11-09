@@ -53,5 +53,10 @@ const dialogFocus = (() => {
   new MutationObserver(records => {
     if (records.some(r => r.target.matches && r.target.matches(selector))) sync();
   }).observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
-  return { sync };
+  /** inert van iets onder de vensters (speler, kiezer) zelf zetten: ligt er een venster over, dan pas als dat dichtgaat */
+  function base(el, on){
+    if (!el) return;
+    if (background.has(el)) background.set(el, !!on); else el.inert = !!on;
+  }
+  return { sync, base };
 })();

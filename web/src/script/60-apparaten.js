@@ -65,7 +65,7 @@ function apOpenFrom(n){
   const m = /^apparaten:(tracker|zoek):([0-9A-F:]{17})$/.exec(n || '');
   if (current !== 'apparaten') show('apparaten');
   if (!m) return;
-  tsDaarna(() => {
+  tsDaarna('apparaten', () => {
     apTab('tr');
     apDev = { src: 'tr', key: 'a:' + m[2], id: m[2] };
     show('apdev');

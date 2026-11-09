@@ -154,7 +154,25 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(80);
     await pg.evaluate(() => { window.plModel = window.__plModel; });
     ok(!(await stand(pg)).slot && !(await pg.evaluate(() => plIsOpen)), 'terug: geen speler');
-    await pg.evaluate(() => Android.toolSlotSet('radio', false, 'Radio')); await pg.waitForTimeout(250);
+    // de speler stond open toen de app uit beeld ging: terug verlaat de tool en daarna is alles weer te bedienen
+    await pg.evaluate(() => openTool('radio')); await pg.waitForTimeout(100); await pg.click('#ts-open'); await pg.waitForTimeout(400);
+    await pg.click('#rd-list .srow:nth-child(2) .sbtn'); await pg.waitForTimeout(1300);
+    await pg.click('#plbar-open'); await pg.waitForTimeout(400);
+    ok(await pg.evaluate(() => plIsOpen), 'Radio ontgrendeld: de speler gaat open');
+    await pg.evaluate(() => onToolSlotWeg()); await pg.waitForTimeout(100);
+    s = await stand(pg);
+    ok(s.slot && s.naam === 'Radio', 'uit beeld met de speler open: slotscherm erover');
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(200);
+    const vrij = await pg.evaluate(() => ({ cur: current, pl: plIsOpen, inert: [...document.querySelectorAll('.screen, #plbar')].filter(e => e.inert).map(e => e.id) }));
+    ok(vrij.cur === 'home' && !vrij.pl && !vrij.inert.length, 'terug: speler dicht, niets blijft onbedienbaar (' + JSON.stringify(vrij) + ')');
+    await pg.evaluate(() => { Android.radioStop && Android.radioStop(); Android.toolSlotSet('radio', false, 'Radio'); }); await pg.waitForTimeout(250);
+    // ligt het slotscherm over de tool zelf (app was uit beeld), dan wacht een vraag uit een melding ook
+    await pg.evaluate(() => openTool('facturen')); await pg.waitForTimeout(80); await pg.click('#ts-open'); await pg.waitForTimeout(250);
+    await pg.evaluate(() => { onToolSlotWeg(); openTool('facturen-meekijken:x'); }); await pg.waitForTimeout(550);
+    ok(await pg.evaluate(() => $('#toolslot').classList.contains('on') && !$('#modal').classList.contains('on')), 'slotscherm over Facturen: de vraag wacht');
+    await pg.click('#ts-open'); await pg.waitForTimeout(700);
+    ok(await pg.evaluate(() => current === 'facturen' && $('#modal').classList.contains('on')), 'ontgrendeld: dan de vraag');
+    await pg.evaluate(() => { closeModal(null); show('home'); }); await pg.waitForTimeout(80);
 
     // 9. Zonder schermvergrendeling werkt het niet (anders zit je vast): tools open, waarschuwing
     await pg.evaluate(() => { Android._st.secure = false; onResumeApp(); show('home'); }); await pg.waitForTimeout(100);

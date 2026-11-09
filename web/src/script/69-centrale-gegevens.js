@@ -281,7 +281,7 @@ function cmPick(source,role,mapping,apply){
   if(cm.picker)return;cm.picker={source,role,mapping,apply,record:null,fields:{},origin:current,focus:document.activeElement};
   $('#cm-picker').hidden=false;$('#cm-pick-target').textContent=t('Onderdeel: {naam}',{naam:source==='formulieren'?t('Formulieren invullen'):t('ID-kopie anonimiseren')});
   $('#cm-pick-search').value='';$('#cm-pick-list').replaceChildren();$('#cm-pick-fields').replaceChildren();$('#cm-sensitive-row').hidden=true;$('#cm-apply').disabled=true;
-  $('#s-'+current).inert=true;cmPrivacy(true);$('#cm-pick-title').focus();
+  dialogFocus.base($('#s-'+current),true);cmPrivacy(true);$('#cm-pick-title').focus();
 }
 function cmPickerLoad(){if(!cm.picker||!cmOpen())return;const pick=cm.picker;cmRequest('masterList',[pick.source,pick.role],r=>{if(cm.picker!==pick)return;cm.records=r.records;cmRenderPicker();});}
 function cmRenderPicker(){
@@ -313,7 +313,7 @@ function cmApply(){
   },false,()=>{if(cm.picker===pick){pick.applying=false;cmConsentReady();}});
 }
 function cmClosePicker(){
-  const pick=cm.picker;if(!pick)return;cm.picker=null;$('#cm-picker').hidden=true;$('#s-'+pick.origin).inert=false;
+  const pick=cm.picker;if(!pick)return;cm.picker=null;$('#cm-picker').hidden=true;dialogFocus.base($('#s-'+pick.origin),false);
   cm.records=[];$('#cm-pick-list').replaceChildren();$('#cm-pick-fields').replaceChildren();$('#cm-pick-search').value='';$('#cm-sensitive').checked=false;cmPrivacy(current==='formulieren'&&!!fm.masterSensitive||current==='idcopy'&&!!idc.masterSensitive);
   if(pick.focus&&pick.focus.isConnected)pick.focus.focus();
 }

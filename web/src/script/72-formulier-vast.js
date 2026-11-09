@@ -25,12 +25,12 @@ function fmqOpen(){
   if(fmq.open||fm.busy||cm.picker||!FM_VAST[fm.id])return;
   const open=()=>{
     fmq.open=true;fmq.ask=true;fmq.epoch++;fmq.focus=document.activeElement;fmqClearInput();
-    $('#fmq').hidden=false;$('#s-'+current).inert=true;fmqRenderState();cmPrivacy(true);$('#fmq-titel').focus();
+    $('#fmq').hidden=false;dialogFocus.base($('#s-'+current),true);fmqRenderState();cmPrivacy(true);$('#fmq-titel').focus();
   };
   if(fmDirty())askConfirm('Nieuwe reis invullen?','Je huidige invoer in dit formulier wordt vervangen, ook het opgeslagen concept. Een al gemaakte PDF blijft onder PDF → Gemaakt staan.','Doorgaan',open);else open();
 }
 function fmqClose(){
-  if(!fmq.open)return;fmq.open=false;fmq.busy=false;fmq.ask=false;fmq.epoch++;fmqClearInput();$('#fmq').hidden=true;$('#s-formulieren').inert=false;
+  if(!fmq.open)return;fmq.open=false;fmq.busy=false;fmq.ask=false;fmq.epoch++;fmqClearInput();$('#fmq').hidden=true;dialogFocus.base($('#s-formulieren'),false);
   cmPrivacy(current==='formulieren'&&!!fm.masterSensitive);
   if(fmq.focus&&fmq.focus.isConnected)fmq.focus.focus();fmq.focus=null;
 }

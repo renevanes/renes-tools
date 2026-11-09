@@ -289,5 +289,5 @@ function ciPreview(id){
 function ciOpenFrom(s){
   const m = /^checkin:([A-Za-z0-9_-]{1,40}):([0-9TW:-]{7,16})$/.exec(s || '');
   show('checkin');
-  if (m) tsDaarna(() => setTimeout(() => ciAsk(m[1], m[2], {}), 60));
+  if (m) tsDaarna('checkin', () => setTimeout(() => ciAsk(m[1], m[2], {}), 60));
 }

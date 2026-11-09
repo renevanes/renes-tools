@@ -273,7 +273,7 @@ window.openTool = function(n){
   // E-reader (ook de voorleesmelding) terwijl er een boek wordt voorgelezen: naar dat boek
   if (n === 'ereader' && typeof spSync === 'function') spSync(); // koude start vanuit de melding: eerst de lopende sessie kennen
   if (n === 'ereader' && typeof erSpeakNow === 'function' && erSpeakNow()) { erSpeakOpen(); return; }
-  if (typeof n === 'string' && n.startsWith('facturen-meekijken:')) { show('facturen'); tsDaarna(() => setTimeout(() => askConfirm('Inloggen nodig', 'De app kon niet vanzelf inloggen. Kijk mee om zelf in te loggen; daarna gaat de app verder.', 'Meekijken', () => faNu(n.slice(19), true)), 400)); return; }
+  if (typeof n === 'string' && n.startsWith('facturen-meekijken:')) { show('facturen'); tsDaarna('facturen', () => setTimeout(() => askConfirm('Inloggen nodig', 'De app kon niet vanzelf inloggen. Kijk mee om zelf in te loggen; daarna gaat de app verder.', 'Meekijken', () => faNu(n.slice(19), true)), 400)); return; }
   if (n === 'bkmap') { show('backup'); jumpTo('bkmap'); return; }
   // Nieuwe tools openen vanzelf via het register; systeembestemmingen blijven expliciet.
   if ((Object.prototype.hasOwnProperty.call(TOOLS, n) || ['settings', 'herstel', 'selftest', 'models'].includes(n)) && document.getElementById('s-' + n)) show(n);

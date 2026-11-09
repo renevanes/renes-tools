@@ -382,7 +382,11 @@ function plSeekDone(){
 function plOpen(){
   const m = plModel(); if (!m) return;
   const tool = m.src === 'podcast' ? 'podcasts' : 'radio';
-  if (typeof tsVerborgen === 'function' && tsVerborgen(tool)) { if (tsTool(current) !== tool) { show(tool); tsDaarna(plOpen); } return; } // extra ontgrendelen: eerst de tool
+  if (typeof tsVerborgen === 'function' && tsVerborgen(tool)) { // extra ontgrendelen: eerst de tool, dan de speler
+    if (tsTool(current) !== tool) show(tool);
+    if (tsWacht(tool)) ts.daarna = plOpen;
+    return;
+  }
   plIsOpen = true; plQueueSig = '';
   rdFavs = rdJson(Android.radioFavorites(), []); // ook als het radioscherm nog niet open was (bijv. gestart vanaf de widget)
   const p = $('#player');
@@ -401,13 +405,12 @@ function plClose(){
   p.classList.remove('on'); p.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('pl-open');
   plInert(false);
-  if (typeof dialogFocus !== 'undefined') dialogFocus.sync(); // ligt er nog een slotscherm, dan blijft wat eronder ligt onbereikbaar
   plRender(); bars();
   const b = $('#plbar-open'); if (b && $('#plbar').style.display !== 'none') b.focus({ preventScroll: true });
 }
 
 /* Wat achter de speler ligt is niet bereikbaar (TalkBack, toetsenbord) zolang hij open is. */
-function plInert(on){ document.querySelectorAll('.screen, #plbar').forEach(el => { if (on) el.setAttribute('inert', ''); else el.removeAttribute('inert'); }); }
+function plInert(on){ document.querySelectorAll('.screen, #plbar').forEach(el => dialogFocus.base(el, on)); }
 
 /* ---------- vegen ---------- */
 function plCoverIn(dir){
