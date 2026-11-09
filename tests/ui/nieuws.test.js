@@ -167,11 +167,14 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     ok(await page.evaluate(() => store.get('nwBeelden') === false) && await page.getAttribute('#nws-img', 'aria-checked') === 'false', 'afbeeldingen uit');
     await page.evaluate(() => goBack());
     ok(await page.evaluate(() => current === 'nieuws') && await page.locator('#nw-lijst img').count() === 0, 'lijst zonder afbeeldingen');
+    await page.waitForTimeout(500);
+    await page.evaluate(() => nwVerversen(true)); await page.waitForTimeout(500);
+    ok(await page.evaluate(() => Android._nw.beelden === false && !nw.bezig), 'afbeeldingen uit: bijwerken zonder artikelpagina\'s');
     await page.evaluate(() => show('nieuwsset')); await page.click('#nws-img'); await page.evaluate(() => goBack());
 
     // Ophalen als het oud is, lege toestanden, zonder APK
     await page.evaluate(() => { const s = Android._nw; s.calls.length = 0; s.mislukt = {}; Object.keys(s.stand).forEach(k => { s.stand[k] = { t: Date.now() - 3600000, poging: Date.now() - 3600000 }; }); show('home'); show('nieuws'); });
-    ok((await nwCalls()).join() === 'verversen:false', 'na een uur: vanzelf bijwerken bij openen');
+    ok((await nwCalls()).join() === 'verversen:false' && await page.evaluate(() => Android._nw.beelden === true), 'na een uur: vanzelf bijwerken bij openen (met afbeeldingen)');
     await page.waitForTimeout(400);
     await page.evaluate(() => { Android._nw.bronnen.forEach(b => { b.aan = false; }); enterNieuws(); });
     ok((await page.locator('#nw-lijst').innerText()).includes('Er staat geen bron aan.') && await page.locator('#nw-lijst .empty button').innerText() === 'Bronnen kiezen', 'geen bron aan: naar de bronnen');

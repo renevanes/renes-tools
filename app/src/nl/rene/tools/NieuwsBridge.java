@@ -37,11 +37,14 @@ public class NieuwsBridge extends EreaderBridge {
         catch (Throwable e) { return foutJson(e, Taal.T("Dit artikel is niet meer beschikbaar")); }
     }
 
-    /** Bijwerken: alles = ook bronnen die net bijgewerkt zijn. Antwoord via onNieuws({ok, totaal, nieuw} of {bezig} of {error}). */
-    @JavascriptInterface public void nieuwsVerversen(boolean alles) {
+    /**
+     * Bijwerken: alles = ook bronnen die net bijgewerkt zijn; beelden = Rene wil afbeeldingen zien (anders geen artikelpagina's
+     * ophalen). Antwoord via onNieuws({ok, totaal, nieuw} of {bezig} of {error}).
+     */
+    @JavascriptInterface public void nieuwsVerversen(boolean alles, boolean beelden) {
         new Thread(() -> {
             String r;
-            try { r = Nieuws.ververs(ctx, alles).toString(); }
+            try { r = Nieuws.ververs(ctx, alles, beelden).toString(); }
             catch (Throwable e) { r = foutJson(e, Taal.T("Bijwerken lukt niet")); }
             a.js("onNieuws", r);
         }, "nieuws-bijwerken").start();

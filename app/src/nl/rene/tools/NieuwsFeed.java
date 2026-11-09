@@ -38,6 +38,8 @@ final class NieuwsFeed {
         long datum;
         List<Blok> blokken = new ArrayList<>();
         boolean ingekort;
+        /** De artikelpagina is nagekeken en heeft geen afbeelding ({@link Nieuws#beelden}). */
+        boolean zonderBeeld;
     }
 
     static final class Feed {

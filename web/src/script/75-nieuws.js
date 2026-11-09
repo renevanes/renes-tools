@@ -114,7 +114,7 @@ function nwVerversen(alles){
   if (alles && !nwBronnen().some(b => b.aan)) { toast(t('Zet eerst een bron aan')); show('nieuwsset'); return; }
   nw.bezig = true;
   if (current === 'nieuws') nwRender();
-  Android.nieuwsVerversen(!!alles);
+  Android.nieuwsVerversen(!!alles, nwBeeldenAan());
 }
 window.onNieuws = function(r){
   r = r || {};

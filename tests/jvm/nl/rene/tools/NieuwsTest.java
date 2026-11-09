@@ -23,6 +23,14 @@ public class NieuwsTest {
     static JSONObject art(JSONArray as, String titel) { for (int i = 0; i < as.length(); i++) if (as.optJSONObject(i).optString("titel").startsWith(titel)) return as.optJSONObject(i); return null; }
     interface Doe { void doe() throws Exception; }
     static boolean geeftFout(Doe d) { try { d.doe(); return false; } catch (Nieuws.Fout e) { return true; } catch (Exception e) { return false; } }
+    /** Vier artikelen zoals bij Tweakers: twee gewone, een met een afbeelding in de feed en een met een link naar een andere site. */
+    static NieuwsFeed.Feed tweakers() {
+        NieuwsFeed.Feed f = new NieuwsFeed.Feed();
+        String[][] as = {{"een", "https://tweakers.net/nieuws/1/een.html", ""}, {"twee", "/nieuws/2/twee.html", ""},
+                {"drie", "https://tweakers.net/nieuws/3/drie.html", "https://tweakers.net/i/al.jpg"}, {"vier", "https://ander.example.org/nieuws/4/vier.html", ""}};
+        for (String[] s : as) { NieuwsFeed.Artikel x = new NieuwsFeed.Artikel(); x.titel = s[0]; x.link = s[1]; x.sleutel = s[1]; x.beeld = s[2]; f.artikelen.add(x); }
+        return f;
+    }
     static boolean bevat(JSONArray a, String s) { for (int i = 0; i < a.length(); i++) if (a.optString(i).equals(s)) return true; return false; }
 
     public static void main(String[] a) throws Exception {
@@ -66,6 +74,66 @@ public class NieuwsTest {
         NieuwsFeed.Feed leeg = new NieuwsFeed.Feed();
         Nieuws.filter("tweakers", "https://tweakers.net/feeds/mixed.xml", leeg);
         check(leeg.artikelen.isEmpty(), "lege feed: geen extra melding");
+
+        // Tweakers zet geen afbeeldingen in de feed: die komt van de artikelpagina (og:image)
+        String pag = "https://tweakers.net/nieuws/1/een.html";
+        check("https://tweakers.net/i/abc=/1280x400/i/1.jpeg?f=fpa".equals(Nieuws.paginaBeeld("<html><head><meta property=\"og:title\" content=\"x\">"
+                + "<meta property=\"og:image\" content=\"https://tweakers.net/i/abc=/1280x400/i/1.jpeg?f=fpa\"></head>", pag)), "og:image van de pagina");
+        check("https://cdn.example.org/a.jpg?b=1&c=2".equals(Nieuws.paginaBeeld("<meta content='https://cdn.example.org/a.jpg?b=1&amp;c=2' property='og:image'>", pag)), "content eerst, enkele aanhalingstekens, &amp;");
+        check("https://tweakers.net/i/2.jpg".equals(Nieuws.paginaBeeld("<meta property=\"og:image\" content=\"/i/2.jpg\">", pag)), "relatief: tegen de pagina");
+        check("".equals(Nieuws.paginaBeeld("<meta property=\"og:image\" content=\"http://tweakers.net/i/3.jpg\">", pag))
+                && "".equals(Nieuws.paginaBeeld("<meta property=\"og:image\" content=\"https://127.0.0.1/i/4.jpg\">", pag))
+                && "".equals(Nieuws.paginaBeeld("<meta property=\"og:image\" content=\"https://localhost/i/5.jpg\">", pag)), "alleen https naar een openbare site");
+        check("https://x.example.org/tw.jpg".equals(Nieuws.paginaBeeld("<meta name=\"twitter:image\" content=\"https://x.example.org/tw.jpg\">", pag))
+                && "https://x.example.org/og.jpg".equals(Nieuws.paginaBeeld("<meta name=\"twitter:image\" content=\"https://x.example.org/tw.jpg\"><meta property=\"og:image\" content=\"https://x.example.org/og.jpg\">", pag)), "twitter:image alleen als er geen og:image is");
+        check("https://x.example.org/b.jpg".equals(Nieuws.paginaBeeld("<meta property=\"og:image\" data-content=\"https://x.example.org/a.jpg\" content=\"https://x.example.org/b.jpg\">", pag)), "data-content telt niet als content");
+        StringBuilder lang = new StringBuilder("<html><head>");
+        while (lang.length() < Nieuws.MAX_PAGINA) lang.append("<!-- vulling -->");
+        check("".equals(Nieuws.paginaBeeld(lang + "<meta property=\"og:image\" content=\"https://x.example.org/laat.jpg\">", pag)) && "".equals(Nieuws.paginaBeeld("<p>geen kop</p>", pag)), "alleen het begin van de pagina; geen afbeelding = leeg");
+
+        java.util.List<String> gehaald = new java.util.ArrayList<>();
+        Nieuws.Pagina site = (url, tot) -> {
+            gehaald.add(url);
+            return url.contains("/2/") ? "<head><title>zonder</title></head>" : "<meta property=\"og:image\" content=\"https://tweakers.net/i/" + url.replaceAll("\\D", "") + ".jpg\">";
+        };
+        NieuwsFeed.Feed tf = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf, null, System.currentTimeMillis() + 60_000, site);
+        check(gehaald.size() == 2 && gehaald.get(0).endsWith("/nieuws/1/een.html") && gehaald.get(1).endsWith("/nieuws/2/twee.html"), "alleen pagina's van de site zelf, niet als de feed al een afbeelding heeft: " + gehaald);
+        check("https://tweakers.net/i/1.jpg".equals(tf.artikelen.get(0).beeld) && tf.artikelen.get(1).beeld.isEmpty() && tf.artikelen.get(1).zonderBeeld
+                && "https://tweakers.net/i/al.jpg".equals(tf.artikelen.get(2).beeld) && tf.artikelen.get(3).beeld.isEmpty() && !tf.artikelen.get(3).zonderBeeld, "afbeelding gevonden, pagina zonder afbeelding onthouden, andere site overgeslagen");
+        File tc = tmp("tweakers");
+        Nieuws.bewaarFeed(tc, "tweakers", "https://tweakers.net/feeds/mixed.xml", tf, nu);
+        JSONObject tcache = new JSONObject(new String(Files.readAllBytes(Nieuws.cacheBestand(tc, "tweakers").toPath()), StandardCharsets.UTF_8));
+        check(art(tcache.getJSONArray("artikelen"), "een").optString("beeld").endsWith("/i/1.jpg") && art(tcache.getJSONArray("artikelen"), "twee").optBoolean("zonderBeeld")
+                && !Nieuws.kort(art(tcache.getJSONArray("artikelen"), "twee")).has("zonderBeeld"), "in de cache: afbeelding en zonderBeeld (niet in de lijst)");
+        gehaald.clear();
+        NieuwsFeed.Feed tf2 = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf2, tcache, System.currentTimeMillis() + 60_000, site);
+        check(gehaald.isEmpty() && "https://tweakers.net/i/1.jpg".equals(tf2.artikelen.get(0).beeld) && tf2.artikelen.get(1).zonderBeeld, "volgende ronde: uit de cache, geen pagina's opnieuw");
+        NieuwsFeed.Feed tf3 = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf3, tcache, System.currentTimeMillis() + 60_000, null);
+        NieuwsFeed.Feed tf4 = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf4, null, System.currentTimeMillis() + 60_000, null);
+        check("https://tweakers.net/i/1.jpg".equals(tf3.artikelen.get(0).beeld) && tf4.artikelen.get(0).beeld.isEmpty() && !tf4.artikelen.get(0).zonderBeeld && gehaald.isEmpty(), "afbeeldingen uit: geen pagina's, wel wat de cache al had");
+        Nieuws.Pagina weigert = (url, tot) -> { gehaald.add(url); throw new Nieuws.Fout("De nieuwssite antwoordt met 403"); };
+        NieuwsFeed.Feed tf5 = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf5, null, System.currentTimeMillis() + 60_000, weigert);
+        check(gehaald.size() == 1 && !tf5.artikelen.get(0).zonderBeeld && !tf5.artikelen.get(1).zonderBeeld, "de site weigert: na één pagina stoppen, niets als zonder afbeelding onthouden");
+        gehaald.clear();
+        NieuwsFeed.Feed nosf = tweakers();
+        Nieuws.beelden("nos", "https://feeds.nos.nl/nosnieuwsalgemeen", nosf, null, System.currentTimeMillis() + 60_000, site);
+        NieuwsFeed.Feed veel = new NieuwsFeed.Feed();
+        for (int i = 0; i < 30; i++) { NieuwsFeed.Artikel x = new NieuwsFeed.Artikel(); x.link = "https://tweakers.net/nieuws/" + (100 + i) + "/x.html"; x.sleutel = x.link; x.titel = "x" + i; veel.artikelen.add(x); }
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", veel, null, System.currentTimeMillis() + 60_000, site);
+        check(gehaald.size() == Nieuws.MAX_PAGINAS && veel.artikelen.get(0).beeld.endsWith("/i/100.jpg") && veel.artikelen.get(29).beeld.isEmpty(), "andere bronnen niet; hooguit " + Nieuws.MAX_PAGINAS + " pagina's per ronde: " + gehaald.size());
+        gehaald.clear();
+        NieuwsFeed.Feed traag = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", traag, null, System.currentTimeMillis() - 1, (url, tot) -> {
+            gehaald.add(url);
+            if (System.currentTimeMillis() >= tot) throw new Nieuws.Fout("De nieuwssite reageert te traag");
+            return "";
+        });
+        check(gehaald.isEmpty() && traag.artikelen.get(0).beeld.isEmpty() && !traag.artikelen.get(0).zonderBeeld, "geen tijd meer: geen pagina's, niets onthouden");
         Nieuws.zetAan(dir, "nu", true);
         Nieuws.zetAan(dir, "rijnmond", false);
         bs = Nieuws.bronnen(dir);

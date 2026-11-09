@@ -101,6 +101,78 @@ final class Nieuws {
         if (f.artikelen.isEmpty()) throw new Fout(Taal.T("In deze feed staat nu geen nieuws"));
     }
 
+    /** Bronnen waarvan de feed geen afbeeldingen heeft: die komen dan van de artikelpagina zelf ({@link #beelden}). */
+    static final Set<String> BEELD_VAN_PAGINA = new HashSet<>(Collections.singletonList("tweakers"));
+    static final int MAX_PAGINA = 64 * 1024, MAX_PAGINAS = 20;
+    static final long MAX_PER_PAGINA = 10_000L;
+
+    /** Het begin van een artikelpagina ophalen (in de test zonder internet). */
+    interface Pagina { String haal(String url, long tot) throws Exception; }
+
+    /** Een doorverwijzing naar een andere site (een toestemmingspagina) telt als fout: dan niet de afbeelding van die pagina. */
+    static final Pagina WEB = (url, tot) -> {
+        Antwoord a = haal(url, tot, true);
+        if (!host(a.url).equals(host(url))) throw new Fout(Taal.T("Bijwerken lukt niet"));
+        return new String(a.data, 0, a.data.length, PodcastFeed.charset(a.data, a.data.length, a.charset));
+    };
+
+    /**
+     * Afbeeldingen van de artikelpagina's bij een bron uit {@link #BEELD_VAN_PAGINA}. Wat de vorige ronde al vond (ook dat een
+     * pagina er geen heeft) komt uit de cache; daarna hooguit MAX_PAGINAS pagina's van de site zelf, in de volgorde van de
+     * feed. Na een fout (de site weigert of is traag) wacht de rest op de volgende ronde. Zonder {@code p} alleen de cache.
+     */
+    static void beelden(String bron, String basis, NieuwsFeed.Feed f, JSONObject oud, long tot, Pagina p) {
+        if (!BEELD_VAN_PAGINA.contains(bron)) return;
+        Map<String, String> bekend = new HashMap<>();
+        JSONArray oa = oud == null ? null : oud.optJSONArray("artikelen");
+        if (oa != null) for (int i = 0; i < oa.length(); i++) {
+            JSONObject a = oa.optJSONObject(i);
+            if (a != null && (a.has("beeld") || a.optBoolean("zonderBeeld"))) bekend.put(a.optString("id"), a.optString("beeld"));
+        }
+        String site = host(basis);
+        int gehaald = 0;
+        boolean stop = p == null;
+        for (NieuwsFeed.Artikel a : f.artikelen) {
+            if (!a.beeld.isEmpty()) continue;
+            String b = bekend.get(artikelId(bron, a.sleutel));
+            if (b != null) { a.beeld = b; a.zonderBeeld = b.isEmpty(); continue; }
+            String l = link(a.link, basis);
+            if (stop || gehaald >= MAX_PAGINAS || System.currentTimeMillis() >= tot || !https(l) || !host(l).equals(site)) continue;
+            gehaald++;
+            try {
+                String u = paginaBeeld(p.haal(l, Math.min(tot, System.currentTimeMillis() + MAX_PER_PAGINA)), l);
+                a.beeld = u;
+                a.zonderBeeld = u.isEmpty();
+            } catch (Throwable e) { stop = true; }
+        }
+    }
+
+    private static final Pattern META = Pattern.compile("(?i)<meta\\b[^<>]{0,2000}>");
+    private static final Pattern META_ATTR = Pattern.compile("(?i)(?<![\\w-])(property|name|content)\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)");
+
+    /** De afbeelding die een artikelpagina zelf noemt (og:image, anders twitter:image): alleen https naar een openbare site, anders "". */
+    static String paginaBeeld(String html, String basis) {
+        String og = "", tw = "";
+        Matcher m = META.matcher(html.length() > MAX_PAGINA ? html.substring(0, MAX_PAGINA) : html);
+        while (m.find() && og.isEmpty()) {
+            String soort = "", inhoud = "";
+            Matcher a = META_ATTR.matcher(m.group());
+            while (a.find()) {
+                String v = a.group(2);
+                if (v.startsWith("\"") || v.startsWith("'")) v = v.substring(1, v.length() - 1);
+                v = NieuwsFeed.ontsnap(v).trim();
+                if (a.group(1).equalsIgnoreCase("content")) inhoud = v; else soort = v.toLowerCase(Locale.ROOT);
+            }
+            boolean isOg = soort.equals("og:image") || soort.equals("og:image:url") || soort.equals("og:image:secure_url");
+            if (inhoud.isEmpty() || !(isOg || (tw.isEmpty() && (soort.equals("twitter:image") || soort.equals("twitter:image:src"))))) continue;
+            String u;
+            try { u = new URL(new URL(basis), inhoud).toString(); } catch (Exception e) { continue; }
+            if (u.length() >= 1000 || !https(u)) continue;
+            if (isOg) og = u; else tw = u;
+        }
+        return og.isEmpty() ? tw : og;
+    }
+
     static final Object LOCK = new Object();
     static final AtomicBoolean BEZIG = new AtomicBoolean();
     private static final Pattern BRON_ID = Pattern.compile("[a-z0-9-]{1,40}"), ART_ID = Pattern.compile("n[0-9a-f]{1,16}");
@@ -297,6 +369,7 @@ final class Nieuws {
                 .put("link", link(a.link, basis)).put("datum", datum).put("blokken", bl);
         if (!a.auteur.isEmpty()) o.put("auteur", a.auteur);
         if (!a.beeld.isEmpty()) o.put("beeld", a.beeld);
+        else if (a.zonderBeeld) o.put("zonderBeeld", true);
         if (a.ingekort) o.put("ingekort", true);
         return o;
     }
@@ -548,8 +621,12 @@ final class Nieuws {
     }
 
     /** Een adres ophalen: alleen https naar openbare sites, ook bij doorverwijzingen; hooguit MAX_FEED bytes, klaar vóór {@code tot}. */
-    static Antwoord haal(String adres, long tot) throws Exception {
+    static Antwoord haal(String adres, long tot) throws Exception { return haal(adres, tot, false); }
+
+    /** Zo ook een artikelpagina ({@code pagina}): daarvan alleen de eerste MAX_PAGINA bytes (de kop met de afbeelding). */
+    static Antwoord haal(String adres, long tot, boolean pagina) throws Exception {
         String u = adres;
+        int max = pagina ? MAX_PAGINA : MAX_FEED;
         for (int hop = 0; hop < MAX_HOPS; hop++) {
             if (!https(u)) throw new Fout(Taal.T("Alleen https-adressen"));
             for (InetAddress ia : InetAddress.getAllByName(IDN.toASCII(new URL(u).getHost()))) if (intern(ia)) throw new Fout(Taal.T("Dit adres is niet van een site op internet"));
@@ -565,7 +642,8 @@ final class Nieuws {
                 h.setReadTimeout(rest(tot));
                 h.setUseCaches(false);
                 h.setRequestProperty("User-Agent", UA);
-                h.setRequestProperty("Accept", "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.9, text/html;q=0.5, */*;q=0.2");
+                h.setRequestProperty("Accept", pagina ? "text/html, application/xhtml+xml;q=0.9, */*;q=0.2"
+                        : "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.9, text/html;q=0.5, */*;q=0.2");
                 int code = h.getResponseCode();
                 if (code >= 300 && code < 400) {
                     String loc = h.getHeaderField("Location");
@@ -575,17 +653,17 @@ final class Nieuws {
                 }
                 if (code != 200) throw antwoord(code);
                 long lengte = h.getContentLengthLong();
-                if (lengte > MAX_FEED) throw new Fout(Taal.T("Feed is te groot"));
+                if (!pagina && lengte > MAX_FEED) throw new Fout(Taal.T("Feed is te groot"));
                 Antwoord a = new Antwoord();
                 a.url = u;
                 String ct = h.getContentType();
                 Matcher m = CHARSET.matcher(ct == null ? "" : ct);
                 if (m.find()) a.charset = m.group(1);
-                ByteArrayOutputStream out = new ByteArrayOutputStream(lengte > 0 ? (int) lengte : 65536);
-                try (InputStream in = new PodcastFeed.Limited(h.getInputStream(), MAX_FEED)) {
+                ByteArrayOutputStream out = new ByteArrayOutputStream(lengte > 0 ? (int) Math.min(lengte, max) : 65536);
+                try (InputStream in = new PodcastFeed.Limited(h.getInputStream(), max)) {
                     byte[] buf = new byte[16384];
                     int n;
-                    while ((n = in.read(buf)) > 0) { out.write(buf, 0, n); rest(tot); }
+                    while ((!pagina || out.size() < max) && (n = in.read(buf)) > 0) { out.write(buf, 0, n); rest(tot); }
                 }
                 a.data = out.toByteArray();
                 return a;
@@ -659,12 +737,18 @@ final class Nieuws {
         return anders;
     }
 
-    /** Eén bron ophalen en bewaren; -1 = mislukt (de fout staat dan bij de bron). Een bron die intussen weg is, komt niet terug. */
-    static int haalBron(File dir, File cache, String id, String url) {
+    /**
+     * Eén bron ophalen en bewaren; -1 = mislukt (de fout staat dan bij de bron). Een bron die intussen weg is, komt niet terug.
+     * Zonder {@code beelden} (Rene wil geen afbeeldingen zien) worden er geen artikelpagina's opgehaald.
+     */
+    static int haalBron(File dir, File cache, String id, String url, boolean beelden) {
         long nu = System.currentTimeMillis();
         try {
             Gelezen g = lees(url, nu + MAX_HAAL);
             filter(id, g.url, g.feed);
+            JSONObject oud;
+            synchronized (LOCK) { oud = leesObject(cacheBestand(cache, id)); }
+            beelden(id, g.url, g.feed, oud, nu + MAX_HAAL, beelden ? WEB : null);
             synchronized (LOCK) { return zoekBron(bronnen(dir), id) != null ? bewaarFeed(cache, id, g.url, g.feed, nu) : -1; }
         } catch (Throwable e) {
             synchronized (LOCK) {
@@ -704,7 +788,7 @@ final class Nieuws {
     }
 
     /** Bijwerken (op een achtergrondthread aanroepen): de bronnen tegelijk, hooguit vier, hooguit MAX_DUUR. */
-    static JSONObject ververs(Context c, boolean alles) throws Exception {
+    static JSONObject ververs(Context c, boolean alles, boolean beelden) throws Exception {
         if (!BEZIG.compareAndSet(false, true)) return new JSONObject().put("bezig", true);
         try {
             File dir = dir(c), cache = cache(c);
@@ -714,7 +798,7 @@ final class Nieuws {
             if (!todo.isEmpty()) {
                 ExecutorService ex = Executors.newFixedThreadPool(Math.min(4, todo.size()));
                 List<Future<Integer>> fs = new ArrayList<>();
-                for (String[] b : todo) fs.add(ex.submit(() -> haalBron(dir, cache, b[0], b[1])));
+                for (String[] b : todo) fs.add(ex.submit(() -> haalBron(dir, cache, b[0], b[1], beelden)));
                 ex.shutdown();
                 for (Future<Integer> f : fs) {
                     try {

@@ -84,8 +84,8 @@ if (!window.Android) window.Android = (function(){
       if (!a) return JSON.stringify({ error: 'Dit artikel is niet meer beschikbaar' });
       return JSON.stringify(Object.assign({ bronnaam: (s.bronnen.find(x => x.id === a.bron) || {}).naam }, a, { isBewaard: !!b, gelezen: s.gelezen.has(id) }));
     },
-    nieuwsVerversen(alles){
-      const s = this._nwInit(); s.calls.push(['verversen', !!alles]); s.bezig = true;
+    nieuwsVerversen(alles, beelden){
+      const s = this._nwInit(); s.calls.push(['verversen', !!alles]); s.beelden = !!beelden; s.bezig = true;
       setTimeout(() => {
         const nu = Date.now(); let ok = 0, totaal = 0;
         s.bronnen.filter(b => b.aan).forEach(b => {
