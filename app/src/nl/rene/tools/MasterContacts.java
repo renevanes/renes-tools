@@ -115,11 +115,16 @@ final class MasterContacts {
         return "bel".equals(what)?new Intent(Intent.ACTION_DIAL,Uri.fromParts("tel",number,null)):new Intent(Intent.ACTION_SENDTO,Uri.fromParts("smsto",number,null));
     }
 
-    /** Alleen cijfers met hooguit een + vooraan: geen codes (*#…#) of andere tekens uit een opgeslagen nummer in de telefoon-app. */
+    /**
+     * Alleen cijfers met hooguit een + vooraan, zonder voorvoegsel als "Tel:" en zonder (0) na de landcode. Een code met * of #
+     * gaat nooit naar de telefoon-app: dan geen nummer.
+     */
     static String dialable(String s){
-        String t=s==null?"":s.trim(),d=t.replaceAll("[^0-9]","");
+        if(s==null||s.indexOf('*')>=0||s.indexOf('#')>=0)return "";
+        String t=s.trim().replaceFirst("^[^0-9+]+","").replace("(0)",""),d=t.replaceAll("[^0-9]","");
         if(t.startsWith("00")&&d.length()>2)d="+"+d.substring(2);else if(t.startsWith("+")&&!d.isEmpty())d="+"+d;
-        return d.length()>16?"":d;
+        int n=d.replace("+","").length();
+        return n<3||n>15?"":d;
     }
 
     /**

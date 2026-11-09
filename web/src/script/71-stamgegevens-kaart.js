@@ -154,7 +154,7 @@ function cmcAboutMove(mode){
     const note=out.moved?(mode==='wis'?t('De tekst over jou is weggehaald.'):t('De tekst staat nu bij Over mij van de assistent.')):out.teLang?t('Over mij is te lang om de tekst erbij te zetten. Maak Over mij korter, of haal de tekst hier weg.'):'';
     cmListLoad(()=>{const id=cmc.rec?.id||cmkMe();if(current==='cmkaart'&&id)cmKaartLoad(id,note);else cmNote(note);});
   },false,()=>cmBusy(false));};
-  if(mode==='wis')askConfirm(t('Tekst over jou weghalen?'),t('De tekst wordt uit Stamgegevens verwijderd. Over mij bij de assistent blijft zoals het is.'),t('Weghalen'),go);else go();
+  if(mode==='wis')askConfirm(t('Tekst over jou weghalen?'),typeof isPlay==='function'&&isPlay()?t('De tekst wordt uit Stamgegevens verwijderd.'):t('De tekst wordt uit Stamgegevens verwijderd. Over mij bij de assistent blijft zoals het is.'),t('Weghalen'),go);else go();
 }
 
 /* Kaartfoto's op het documentkaartje: tik om te tonen (gelogd), nog eens tikken vergroot. */

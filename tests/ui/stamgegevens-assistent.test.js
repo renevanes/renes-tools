@@ -87,6 +87,11 @@ for(const colorScheme of ['light','dark']){
   await p.click(card+' .cmdgo');await p.waitForFunction(()=>(Android._aiDone||[]).length===1);
   assert.deepEqual((await done())[0],{type:'bel',number:'0611112222'});assert.match(await p.textContent(card),/Nummer van Anna van Es klaargezet/);
   await ask('bel mama');assert.match(await p.textContent(card),/Ria Jansen/);assert.match(await p.textContent(card),/0633334444/);
+  // Vinkje Bellen en berichten via Contacten uit: geen nummer via het gekoppelde contact, alleen op naam in je contacten
+  await p.evaluate(()=>{Android._cm.records.find(r=>r.type==='profiel').fields.aiContact='nee';Android._cmContextRefresh();});
+  assert.equal(await p.evaluate(()=>Android.aiContact('mijn dochter')),'[]');
+  await ask('bel mijn dochter');assert.doesNotMatch(await p.textContent(last),/0611112222/);
+  await p.evaluate(()=>{delete Android._cm.records.find(r=>r.type==='profiel').fields.aiContact;Android._cmContextRefresh();});
   // Engels: "call mum"
   await p.evaluate(()=>rgSave({lang:'en'}));await p.waitForFunction(()=>TAAL.on);
   await ask('call mum');assert.match(await p.textContent(card),/Ria Jansen/);assert.match(await p.textContent(card),/0633334444/);

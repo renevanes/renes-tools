@@ -43,7 +43,9 @@ public final class MasterContactsTest {
         failed=false;try{MasterSchema.clean(new JSONObject().put("type","profiel").put("label","x").put("fields",new JSONObject().put("persoon","11111111-1111-1111-1111-111111111111").put("aiStatus","misschien")));}catch(MasterError e){failed=true;}check(failed,"vinkje alleen ja of nee");
         check(MasterContacts.ACTIONS.contains("bel")&&MasterContacts.ACTIONS.contains("bericht")&&MasterContacts.ACTIONS.contains("contact")&&MasterContacts.ACTIONS.size()==3,"alleen bellen, bericht en Contacten openen");
         check(MasterContacts.dialable("+31 6 12345678").equals("+31612345678")&&MasterContacts.dialable("0031 (6) 123-45678").equals("+31612345678")&&MasterContacts.dialable("14010").equals("14010"),"nummer om te bellen: cijfers met + vooraan");
-        check(MasterContacts.dialable("*#06#").equals("06")&&MasterContacts.dialable("06 1234+5678").equals("0612345678")&&MasterContacts.dialable("geen").isEmpty()&&MasterContacts.dialable(null).isEmpty(),"geen codes of tekens in de telefoon-app");
+        check(MasterContacts.dialable("Tel: +31 (0)6 12345678").equals("+31612345678")&&MasterContacts.dialable("112").equals("112")&&MasterContacts.dialable("06 1234+5678").equals("0612345678"),"nummer om te bellen: voorvoegsel en (0) eraf");
+        check(MasterContacts.dialable("*#06#").isEmpty()&&MasterContacts.dialable("*31#0612345678").isEmpty()&&MasterContacts.dialable("00").isEmpty()&&MasterContacts.dialable("000").isEmpty()&&MasterContacts.dialable("+").isEmpty()
+                &&MasterContacts.dialable("geen").isEmpty()&&MasterContacts.dialable(null).isEmpty()&&MasterContacts.dialable("1234567890123456").isEmpty(),"geen codes, te korte of te lange nummers in de telefoon-app");
         System.out.println("Contact koppelen, actuele telefoon en e-mail en vinkjes van de assistent gecontroleerd");
     }
 }

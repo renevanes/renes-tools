@@ -91,13 +91,13 @@ final class MasterIdentity {
         JSONObject self=new JSONObject().put("id",me.getString("id")).put("name",name(me)).put("callname",callname(me)).put("context",me.getJSONObject("fields").optString("context"));
         extra(self,me,records,p);
         JSONObject result=new JSONObject().put("self",self).put("context",p.optString("context")).put("people",new JSONArray()).put("weet",weet);
-        JSONArray people=result.getJSONArray("people");Set<String> shared=known(records);String mine=me.getString("id");
+        JSONArray people=result.getJSONArray("people");Set<String> knownIds=known(records);String mine=me.getString("id");
         for(int i=0;i<records.length();i++){
-            JSONObject person=records.getJSONObject(i);if(!person.getString("type").equals("persoon")||!shared.contains(person.getString("id")))continue;
+            JSONObject person=records.getJSONObject(i);if(!person.getString("type").equals("persoon")||!knownIds.contains(person.getString("id")))continue;
             Set<String> roles=new LinkedHashSet<>(),states=new LinkedHashSet<>(),details=new LinkedHashSet<>();
             for(int j=0;j<records.length();j++){
-                JSONObject r=records.getJSONObject(j);if(!r.getString("type").equals("relatie")||!shared(r,records,mine))continue;
-                String role=between(r,mine,person.getString("id"));if(role.isEmpty())continue;
+                JSONObject r=records.getJSONObject(j);if(!r.getString("type").equals("relatie"))continue;
+                String role=between(r,mine,person.getString("id"));if(role.isEmpty()||!shared(r,records,mine))continue;
                 JSONObject f=r.getJSONObject("fields");roles.add(role);
                 if(!f.optString("status").isEmpty())states.add(f.getString("status"));if(!f.optString("toelichting").isEmpty())details.add(f.getString("toelichting"));
             }
@@ -110,8 +110,8 @@ final class MasterIdentity {
         // Relaties tussen twee anderen die allebei bekend zijn bij de assistent ("Anna is de dochter van Piet").
         JSONArray links=new JSONArray();
         for(int j=0;j<records.length();j++){
-            JSONObject r=records.getJSONObject(j);if(!r.getString("type").equals("relatie")||!shared(r,records,mine))continue;JSONObject f=r.getJSONObject("fields");
-            String van=f.optString("vanPersoon"),naar=f.optString("naarPersoon");if(!shared.contains(van)||!shared.contains(naar))continue;
+            JSONObject r=records.getJSONObject(j);if(!r.getString("type").equals("relatie"))continue;JSONObject f=r.getJSONObject("fields");
+            String van=f.optString("vanPersoon"),naar=f.optString("naarPersoon");if(!knownIds.contains(van)||!knownIds.contains(naar)||!shared(r,records,mine))continue;
             JSONObject a=find(records,van),b=find(records,naar);if(a==null||b==null)continue;
             JSONObject link=new JSONObject().put("naam",callname(b)).put("relatie",f.optString("relatie")).put("van",callname(a));
             if(status&&!f.optString("status").isEmpty())link.put("status",f.getString("status"));links.put(link);
