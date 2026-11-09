@@ -37,14 +37,21 @@ for(const colorScheme of ['light','dark']){
  assert.equal(await p.textContent('#cm-kaart-status'),'Kaartfoto opgeslagen.');
  await p.evaluate(()=>Android._cm.slowPick=false);await p.click('#cmc-foto-back');await p.waitForFunction(doc=>cmOpen()&&current==='cmkaart'&&cmc.rec?.id===doc&&!!cmc.rec.images?.back,doc);assert.equal(await p.isVisible('#cmi-photo-pending'),false,'achterzijde zonder opnieuw ontgrendelen');
  assert.equal(await p.textContent('#cm-kaart-status'),'Kaartfoto opgeslagen.','terug op het kaartje met bevestiging');
- // Tonen op het kaartje (pas na tikken), nog eens tikken vergroot
- assert.equal(await p.getAttribute('#cmc-foto-front img','src'),null,'foto pas na tikken');await p.click('#cmc-foto-front');await p.waitForFunction(()=>!!$('#cmc-foto-front img').getAttribute('src'));
- await p.click('#cmc-foto-front');assert.ok((await p.getAttribute('#cmc-foto-front','class')).includes('zoom'));
+ // Op het kaartje meteen getoond; tikken opent de kijker met zoomen, terug sluit hem en op slot ook
+ await p.waitForFunction(()=>!!$('#cmc-foto-front img').getAttribute('src')&&!!$('#cmc-foto-back img').getAttribute('src'));
+ assert.equal(await p.evaluate(()=>Android._cm.events.filter(e=>e.action==='photo_view').length>0),true,'bekijken staat in het logboek');
+ await p.click('#cmc-foto-front');await p.waitForFunction(()=>$('#er-image').classList.contains('on'));
+ assert.equal(await p.getAttribute('#er-image-picture','src'),await p.getAttribute('#cmc-foto-front img','src'));
+ await p.click('#er-image-more');assert.match(await p.getAttribute('#er-image-picture','style'),/scale\(1\.5\)/,'inzoomen');
+ await p.evaluate(()=>goBack());assert.equal(await p.evaluate(()=>$('#er-image').classList.contains('on')),false);assert.equal(await p.evaluate(()=>current),'cmkaart','terug sluit alleen de kijker');
+ const lezen=await p.evaluate(()=>Android._cm.events.filter(e=>e.action==='photo_view').length);await p.click('#cmc-foto-back');await p.waitForFunction(()=>$('#er-image').classList.contains('on'));
+ assert.equal(await p.evaluate(()=>Android._cm.events.filter(e=>e.action==='photo_view').length),lezen,'vergroten leest de foto niet opnieuw');await p.evaluate(()=>erImageClose());
  await T.blok(doc,'afgifte');await T.fill('#cm-field-afgegevenDoor','Testgemeente');await T.opslaan();await openDoc();
  assert.equal(await p.evaluate(()=>cm.edit.images.front&&cm.edit.images.back),true,'tekst opslaan behoudt beide kaartzijden');assert.equal(await p.evaluate(()=>JSON.stringify(cm.edit).includes('base64')),false,'geen grote of leesbare kaartdata in de editorstructuur');
- await T.click('#cmi-photo-show');await p.waitForFunction(()=>!!$('#cmi-front-image').getAttribute('src')&&!!$('#cmi-back-image').getAttribute('src'));await T.click('#cmi-front-zoom');assert.ok((await p.getAttribute('#cmi-front-paper','class')).includes('zoom'));
+ await p.waitForFunction(()=>!!$('#cmi-front-image').getAttribute('src')&&!!$('#cmi-back-image').getAttribute('src'));await T.click('#cmi-front-image');await p.waitForFunction(()=>$('#er-image').classList.contains('on'));
+ assert.equal(await p.getAttribute('#er-image-picture','src'),await p.getAttribute('#cmi-front-image','src'),'Foto\'s-tab: meteen getoond, tikken vergroot');
  // Leesantwoord dat na vergrendeling aankomt mag een kaartfoto niet opnieuw tonen.
- await p.evaluate(()=>{Android._cm.replyDelay=100;cmiPhotoShow();cmLock();});await p.waitForFunction(()=>!cm.token);await p.waitForTimeout(140);assert.equal(await p.getAttribute('#cmi-front-image','src'),null);await p.evaluate(()=>Android._cm.replyDelay=10);
+ await p.evaluate(()=>{Android._cm.replyDelay=100;cmiPhotoShow();cmLock();});await p.waitForFunction(()=>!cm.token);await p.waitForTimeout(140);assert.equal(await p.getAttribute('#cmi-front-image','src'),null);assert.equal(await p.evaluate(()=>$('#er-image').classList.contains('on')),false,'op slot sluit de kijker');await p.evaluate(()=>Android._cm.replyDelay=10);
  await p.evaluate(()=>show('home'));assert.equal(await p.locator('#cmi-home-name').innerText(),'Hallo Rene');await p.evaluate(()=>show('aisetpers'));assert.equal(await p.locator('#cmi-ai-summary').innerText(),'De assistent kent jou (Rene) en één persoon.');
  // De echte bronkeuze bepaalt welke personen de formulierrelatie mogen leveren.
  await p.evaluate(()=>{show('formulieren');fmStart();fm.step=fmSecties().findIndex(s=>s.fields.some(f=>f.id==='kind-naam'));fmRender();fmHelpToon(true);});

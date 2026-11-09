@@ -1227,14 +1227,15 @@ button.mini.cmc-knop{float:none;display:inline-flex;align-items:center;gap:6px;m
 .cmc-fotos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cmc-foto{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:96px;padding:8px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font-size:14px;text-align:center;overflow:hidden}
 .cmc-foto.leeg{border-style:dashed;color:var(--muted)}.cmc-foto .ui-icon{width:22px;height:22px}
-.cmc-foto img{display:block;width:100%;height:auto;border-radius:8px}.cmc-foto.zoom{grid-column:1/-1}
+.cmc-foto img{display:block;width:100%;height:auto;border-radius:8px}.cmc-foto.vol{grid-column:1/-1;cursor:zoom-in}
+.cmc-foto.vol span{color:var(--muted);font-size:13px}
 .cm-off{display:none!important}
 #cm-editor-card>:first-child .f:first-child{margin-top:0}
 #cm-editor-card .search{margin-bottom:10px}#cm-editor-card .hint{margin-top:-4px}
 .cm-savebar{position:sticky;bottom:0;z-index:12;display:flex;gap:8px;margin:0 -16px -24px;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line)}
 .cm-savebar[hidden]{display:none}.cm-savebar .big{flex:1;margin:0}
 .cmi-photo-paper{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
-.cmi-photo-paper img{display:block;max-width:100%;height:auto}.cmi-photo-paper.zoom img{max-width:none;width:auto}
+.cmi-photo-paper img{display:block;max-width:100%;height:auto;cursor:zoom-in}
 #cmi-shared p{overflow-wrap:anywhere}#cm-fields textarea{resize:vertical}
 /* Toiletten en douches */
 .wc-chips button{min-height:44px}

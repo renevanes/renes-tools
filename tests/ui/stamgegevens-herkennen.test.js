@@ -36,12 +36,12 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>cm.dirty),false,'geen tweede opslagstap nodig');
   assert.equal(await p.evaluate(doc=>{const r=Android._cm.records.find(r=>r.id===doc);return r.fields.document==='NX7P41KD9'&&!!r.images.back;},doc),true,'document met nummer en foto');
   assert.ok(await p.evaluate(()=>Android._cm.events.some(e=>e.action==='scan')),'start in het logboek');
-  assert.equal((await p.textContent('#cmc-foto-back')).trim(),'Achterkant tonen');assert.match(await p.textContent('#cmc-foto-front'),/Voorkant toevoegen/);
+  await p.waitForFunction(()=>$('#cmc-foto-back').textContent.trim()==='Achterkant'&&!!$('#cmc-foto-back img').getAttribute('src'));assert.match(await p.textContent('#cmc-foto-front'),/Voorkant toevoegen/);
   assert.equal(await p.evaluate(()=>/NX7P41KD9/.test($('#cm-kaart').textContent)),false,'nummer afgeschermd op het kaartje');
   // Een gewone kaartfoto vanaf het kaartje: bewaard, terug op het kaartje
   await p.evaluate(()=>{Android._cm.herkend=null;});await p.click('#cmc-foto-front');
   await p.waitForFunction(doc=>current==='cmkaart'&&cmc.rec?.id===doc&&!!Android._cm.records.find(r=>r.id===doc).images.front&&$('#cm-kaart-status').textContent==='Kaartfoto opgeslagen.'&&!cm.busy,doc);
-  assert.equal((await p.textContent('#cmc-foto-front')).trim(),'Voorkant tonen');
+  await p.waitForFunction(()=>$('#cmc-foto-front').textContent.trim()==='Voorkant'&&!!$('#cmc-foto-front img').getAttribute('src'));
   // 3. Vanaf de bewaarde foto opnieuw herkennen, zonder de app te verlaten; daarna de foto verwijderen.
   await p.evaluate(()=>{Android._cm.herkend={document:{documentsoort:'identiteitskaart',document:'NX7P41KD9',geldig:'2031-06-11',uitgifteland:'Nederland'},persoon:{naam:'Jansen',voornamen:'Zoe Anna',geboortedatum:'2015-02-03',geslacht:'V',nationaliteit:'Nederlandse'},soort:'TD1',zeker:true};});
   await T.blok(doc,'fotos');assert.equal(await p.isDisabled('#cmh-photo-scan'),false);
