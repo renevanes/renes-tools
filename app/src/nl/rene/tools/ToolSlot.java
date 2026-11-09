@@ -41,7 +41,7 @@ final class ToolSlot {
         return s;
     }
 
-    static void zet(Context c, String tool, boolean on) {
+    static synchronized void zet(Context c, String tool, boolean on) {
         prefs(c).edit().putStringSet("tools", met(aan(c), tool, on)).apply();
     }
 

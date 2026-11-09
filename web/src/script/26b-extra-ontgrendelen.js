@@ -1,14 +1,17 @@
 /* ---------- Extra ontgrendelen per tool ----------
  * Net als bij Stamgegevens: een tool waarvoor dit aan staat, vraagt bij het openen eerst de schermvergrendeling van de
  * telefoon (vingerafdruk, gezicht of pincode). Het scherm van de tool opent pas daarna. Hij gaat weer op slot zodra je
- * de tool verlaat of de app uit beeld gaat (ook als het scherm uitgaat); een eigen scherm van de app (kiezer, PDF-viewer)
- * telt hooguit twee minuten niet als weggaan (MainActivity.onStop/onStart, ToolSlot.KIES_MS).
+ * de tool verlaat of de app uit beeld gaat (ook als het scherm uitgaat); een scherm dat de app zelf opent en waarvan hij
+ * een antwoord verwacht (kiezer, camera, PDF-viewer, instellingen van Android) telt hooguit twee minuten niet als
+ * weggaan, net als bij het app-slot (MainActivity.onStop/onStart, ToolSlot.KIES_MS).
+ * Wat bij het openen hoort (een vraag uit een melding, de speler): via tsDaarna, pas na ontgrendelen.
  * Aan of uit per tool: Instellingen → Extra ontgrendelen, of lang indrukken van een tegel. Uitzetten vraagt de
  * schermvergrendeling (in Java, ToolSlot). Kluis, Bankzaken en Stamgegevens hebben hun eigen ontgrendeling (hun
  * sleutels werken pas daarna): die staan altijd aan. Nieuwe tools doen vanzelf mee: via TOOLS en de BACK-volgorde
- * naar het eerste scherm van de tool. Zolang een tool op slot is, tonen Overal zoeken en het startscherm er niets uit. */
+ * naar het eerste scherm van de tool. Zolang een tool op slot is, tonen Overal zoeken en het startscherm er niets uit;
+ * alleen wat er speelt (spelerbalk, net als de melding van Android) blijft zichtbaar. */
 // var: show() kan al tijdens het laden lopen; dan bestaat dit nog niet (en is er nog niets op slot)
-var ts = { aan: [], secure: false, open: '', tool: '', doel: '', van: '', sprong: false, scherm: null, eigen: ['masterdata', 'kluis', 'bank'] };
+var ts = { aan: [], secure: false, open: '', tool: '', doel: '', van: '', sprong: false, daarna: null, lagen: [], getoond: '', scherm: null, eigen: ['masterdata', 'kluis', 'bank'] };
 function tsLaad(){
   let s = {}; try { s = JSON.parse(Android.toolSlotState()) || {}; } catch (e) { }
   ts.aan = (Array.isArray(s.aan) ? s.aan : []).filter(k => Object.prototype.hasOwnProperty.call(TOOLS, k));
@@ -33,16 +36,49 @@ function tsVoor(name){
   if (!ts) return false;
   const tool = tsTool(name);
   if (!tsVerborgen(tool) || tsTool(current) === tool) return false;
+  if (!ts.doel || ts.tool !== tool) { ts.daarna = null; ts.lagen = tsLagen(); }
   ts.tool = tool; ts.doel = name; ts.van = current; ts.sprong = !!jumpTo.busy;
   tsToon();
   return true;
+}
+/** Wat bij het openen van een tool hoort (een vraag, een zoekactie): wacht de tool nog op ontgrendelen, dan pas daarna. */
+function tsDaarna(fn){
+  if (ts && ts.doel && tsZichtbaar()) ts.daarna = fn;
+  else fn();
+}
+/* Vensters die terug sluit. Wat onder het slotscherm openging (of openstond in de tool die je verlaat), mag na terug
+ * niet zichtbaar worden zonder ontgrendelen. */
+const TS_LAGEN = [
+  ['picker', () => typeof cm !== 'undefined' && cm.picker, () => cmClosePicker()],
+  ['fmq', () => typeof fmq !== 'undefined' && fmq.open, () => fmqClose()],
+  ['modal', () => $('#modal').classList.contains('on'), () => closeModal(null)],
+  ['sigdlg', () => $('#sigdlg').classList.contains('on'), () => sigClose()],
+  ['voice', () => !!$('#voice') && $('#voice').classList.contains('on'), () => voiceClose()],
+  ['ci-ans', () => !!$('#ci-ans') && $('#ci-ans').classList.contains('on'), () => ciAnsClose()],
+  ['ci-rem', () => !!$('#ci-rem') && $('#ci-rem').classList.contains('on'), () => ciRemClose()],
+  ['sleepdlg', () => $('#sleepdlg').classList.contains('on'), () => sleepClose()],
+  ['vp-scan', () => !!$('#vp-scan') && $('#vp-scan').classList.contains('on'), () => vpScanClose()],
+  ['sheet', () => $('#sheet').classList.contains('on'), () => closeSheet()],
+  ['er-image', () => $('#er-image').classList.contains('on'), () => erImageClose()],
+  ['player', () => typeof plIsOpen !== 'undefined' && plIsOpen, () => plClose()]
+];
+function tsLagen(){ return TS_LAGEN.filter(l => { try { return l[1](); } catch (e) { return false; } }).map(l => l[0]); }
+function tsLagenDicht(behalve){
+  for (let i = 0; i < 3; i++) { // een venster kan bij sluiten een volgend openen (annuleren met een vraag)
+    let dicht = false;
+    for (const l of TS_LAGEN) {
+      if (behalve && behalve.includes(l[0])) continue;
+      try { if (l[1]()) { l[2](); dicht = true; } } catch (e) { }
+    }
+    if (!dicht) return;
+  }
 }
 /** Na het wisselen van scherm: de tool verlaten = weer op slot */
 function tsNa(){
   if (!ts) return;
   const tool = tsTool(current);
   if (ts.open && ts.open !== tool) ts.open = '';
-  if (ts.doel && ts.tool !== tool && current !== ts.van) ts.doel = ''; // ergens anders heen gegaan: het slotscherm van die tool is niet meer nodig
+  if (ts.doel && ts.tool !== tool && current !== ts.van) { ts.doel = ''; ts.daarna = null; } // ergens anders heen gegaan: het slotscherm van die tool is niet meer nodig
   tsToon();
   if (current === 'home') tsTegels();
 }
@@ -52,14 +88,16 @@ function tsToon(){
   const tool = ts.doel ? ts.tool : tsVerborgen(hier) ? hier : '';
   ts.tool = tool;
   const el = $('#toolslot'), on = !!tool;
-  if (on) {
+  if (on && (tool !== ts.getoond || !el.classList.contains('on'))) {
     const naam = t(TOOLS[tool][0]);
     $('#ts-naam').textContent = naam;
     $('#ts-titel').textContent = t('{naam} is vergrendeld', { naam });
     $('#ts-ic').innerHTML = uiToolIcon(tool) + '<span class="ts-slot">' + uiIcon('lock') + '</span>';
+    $('#ts-msg').textContent = ''; $('#ts-open').disabled = false; // een vraag voor een andere tool telt hier niet
   }
+  ts.getoond = tool;
   if (on !== el.classList.contains('on')) {
-    if (on) { $('#ts-msg').textContent = ''; $('#ts-open').disabled = false; if (typeof gbCloseLight === 'function') gbCloseLight(); }
+    if (on && typeof gbCloseLight === 'function') gbCloseLight();
     el.classList.toggle('on', on);
     if (on) dialogFocus.sync($('#ts-open'));
   }
@@ -75,7 +113,8 @@ function tsOntgrendel(){
 /** Terug op het slotscherm: niet openen (bleef je nog waar je was), of de tool verlaten. */
 function tsTerug(){
   if (!ts || !tsZichtbaar()) return false;
-  if (ts.doel) { ts.doel = ''; tsToon(); return true; }
+  if (ts.doel) { ts.doel = ''; ts.daarna = null; tsLagenDicht(ts.lagen); tsToon(); return true; }
+  tsLagenDicht();
   const tool = tsTool(current), j = jumpStack[jumpStack.length - 1];
   if (j && j.to === current && tsTool(j.from) !== tool) { jumpStack.pop(); show(j.from); return true; }
   let n = current;
@@ -93,9 +132,14 @@ window.onToolSlot = function(r){
     $('#ts-open').disabled = false;
     if (!r.ok) { $('#ts-msg').textContent = r.msg ? t(r.msg) : t('Niet ontgrendeld'); return; }
     ts.open = r.tool;
-    const doel = ts.doel, van = ts.van, sprong = ts.sprong;
-    ts.doel = '';
-    if (doel) { show(doel); if (sprong && current !== van) jumpStack.push({ from: van, to: current }); }
+    const doel = ts.doel, van = ts.van, sprong = ts.sprong, daarna = ts.daarna;
+    ts.doel = ''; ts.daarna = null;
+    if (doel) {
+      jumpTo.busy = sprong; // een sprong (zoeken, startscherm) houdt zijn filter in de tool
+      try { show(doel); } finally { jumpTo.busy = false; }
+      if (sprong && current !== van) jumpStack.push({ from: van, to: current });
+      if (daarna && tsTool(current) === r.tool) daarna();
+    }
     else tsToon();
     return;
   }
@@ -106,8 +150,12 @@ window.onToolSlot = function(r){
   if (current === 'settings') stSum('slot', tsStand());
   tsToon(); tsTegels();
 };
-/** De app ging uit beeld (Android): alles weer op slot */
-window.onToolSlotWeg = function(){ if (!ts) return; ts.open = ''; tsToon(); };
+/** De app ging uit beeld (Android): alles weer op slot. Tijdens een vraag om te ontgrendelen (soort 'vraag') alleen als
+ * die vraag voor een andere tool is: een vraag binnen de open tool (bijv. iets tonen) laat hem open. */
+window.onToolSlotWeg = function(soort){
+  if (!ts || (soort === 'vraag' && !ts.doel)) return;
+  ts.open = ''; tsToon();
+};
 (function(){
   const prev = window.onResumeApp;
   window.onResumeApp = function(){ if (prev) prev.apply(this, arguments); tsLaad(); tsToon(); tsTegels(); }; // schermvergrendeling kan intussen veranderd zijn

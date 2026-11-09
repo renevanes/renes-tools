@@ -154,7 +154,7 @@ public class MainActivity extends Activity {
     /** Een tool met extra ontgrendelen staat in beeld (ToolSlot). */
     volatile boolean toolScreen = false;
     /** Extra ontgrendelen: de app opende zelf een scherm (kiezer, PDF-viewer); weg = tijdstip van uit beeld gaan. */
-    private boolean eigenScherm, wegIntern;
+    private boolean eigenScherm, wegIntern, slotCover;
     private long wegOp;
     boolean isSoloKluis() { return isSolo() && "kluis".equals(solo); }
     /** Losse app (zonder app-slot): de kluis telt alleen als open als dit venster hem zelf met vingerafdruk opende. */
@@ -202,12 +202,14 @@ public class MainActivity extends Activity {
      * Afdekking weg: eerst (als het moet) het slotscherm tonen, en pas als de WebView dat echt getekend heeft
      * de laag weghalen. Zo is er nooit een flits van de inhoud. Vangnet: na 1,5 s in elk geval weg.
      */
-    void coverOff(boolean lock) {
+    void coverOff(boolean lock) { coverOff(lock, false); }
+    /** wachten: geen app-slot, maar wel eerst laten tekenen (een tool met extra ontgrendelen ging net op slot). */
+    void coverOff(boolean lock, boolean wachten) {
         if (cover == null || web == null || masterCover) return;
         final long seq = ++coverSeq;
         Runnable off = () -> { if (seq == coverSeq && cover != null && !masterCover) cover.setVisibility(View.GONE); };
-        if (!lock) { cover.setVisibility(View.GONE); return; }
-        web.evaluateJavascript("window.onLock&&window.onLock();true", v -> {
+        if (!lock && !wachten) { cover.setVisibility(View.GONE); return; }
+        web.evaluateJavascript(lock ? "window.onLock&&window.onLock();true" : "true", v -> {
             if (web == null) return;
             try { web.postVisualStateCallback(seq, new Drawn(off)); } catch (Throwable t) { off.run(); }
         });
@@ -479,22 +481,30 @@ public class MainActivity extends Activity {
         if (isSoloKluis() && Kluis.isOpen() && !kluisMine()) Kluis.close(this);
         applySecure();
         if (web == null) return;
-        if (ToolSlot.teLang(wegIntern, wegOp, android.os.SystemClock.elapsedRealtime())) js("onToolSlotWeg", "");
-        wegIntern = false; eigenScherm = false;
+        boolean slot = slotCover;
+        if (ToolSlot.teLang(wegIntern, wegOp, android.os.SystemClock.elapsedRealtime())) {
+            js("onToolSlotWeg", "");
+            if (toolScreen) { coverOn(); slot = true; }
+        }
+        wegIntern = false; eigenScherm = false; slotCover = false;
         boolean lock = !isSolo() && Lock.onShown(this); // losse app: geen app-slot (en het slot van de app blijft zoals het was)
         Notes.applyRepeats(this); // terugkerende lijstjes die weer leeg moeten
         if (uiReady) js("onNotesMaybeChanged", ""); // misschien afgestreept in de widget
         themeChanged(); // automatisch thema kan intussen gewisseld zijn: afdeklaag en achtergrond in de kleur van nu
         if (!uiReady && !isSolo() && Lock.active(this)) return; // eerste keer: showUi() toont hem zodra de pagina (met slotscherm) klaar is
-        coverOff(lock); // eerst het slotscherm tekenen, dan pas de afdekking weg (geen flits van de inhoud)
+        coverOff(lock, slot); // eerst het slotscherm tekenen, dan pas de afdekking weg (geen flits van de inhoud)
     }
 
     @Override
     protected void onStop() {
         // Extra ontgrendelen: uit beeld = tools weer op slot, behalve voor een eigen scherm of de vraag om te ontgrendelen
-        wegIntern = eigenScherm || Lock.busy();
+        // (die laatste alleen met het scherm aan; de interface beslist of die vraag de open tool openhoudt)
+        android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+        boolean vraag = !eigenScherm && Lock.busy() && (pm == null || pm.isInteractive());
+        wegIntern = eigenScherm || vraag;
         wegOp = android.os.SystemClock.elapsedRealtime();
-        if (!wegIntern) js("onToolSlotWeg", "");
+        if (!eigenScherm) js("onToolSlotWeg", vraag ? "'vraag'" : "");
+        if (!wegIntern && toolScreen && web != null) { themeChanged(); coverOn(); slotCover = true; } // bij terugkomen geen flits van de tool
         if (!isSolo()) {
             Lock.onHidden();
             // Met app-slot de inhoud alvast verbergen; bij terugkomen beslist onStart of hij op slot moet.

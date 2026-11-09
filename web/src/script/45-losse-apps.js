@@ -53,7 +53,9 @@ if (SOLO) {
   };
   const _back = window.goBack;
   window.goBack = function(){
-    if (typeof tsZichtbaar === 'function' && tsZichtbaar()) return false; // de tool staat op slot: de losse app sluiten
+    // De tool staat op slot: de losse app sluiten. Wacht een tweede tool van dezelfde losse app (radio en podcasts) op
+    // ontgrendelen terwijl je in de eerste bent, dan alleen dat slotscherm weg.
+    if (typeof tsZichtbaar === 'function' && tsZichtbaar() && !(ts.doel && tsTool(current))) return false;
     // Op het eerste scherm en niets open (venster, menu, speler): de losse app sluiten
     const open = document.querySelector('#modal.on, #sigdlg.on, #voice.on, #sleepdlg.on, #vp-scan.on, #sheet.on, #ci-ans.on, #ci-rem.on, #gb-light, #ai-talk:not([hidden])') || (typeof plIsOpen !== 'undefined' && plIsOpen) ||
       (typeof cm !== 'undefined' && cm.picker) || (typeof fmq !== 'undefined' && fmq.open);
