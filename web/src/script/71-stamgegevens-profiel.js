@@ -21,6 +21,7 @@ function cmiChoices(key){
     if(key==='formulier')return [['reistoestemming',t('Toestemming reizen met minderjarige')]];
     if(key==='alleen'||key==='bsnInvullen')return [['nee',t('Nee')],['ja',t('Ja')]];
     if(/^begeleider[12]Relatie$/.test(key))return [['',t('Automatisch uit je relaties')],...cmiRelationOptions()];
+    if(key==='handtekening')return [['',t('Nergens')],['begeleider1',t('Begeleider 1')],['begeleider2',t('Begeleider 2')]];
   }
   if(['alleen','tweedeBegeleider','tweedeGever','delen'].includes(key))return [['',t('Niet ingevuld')],['ja',t('Ja')],['nee',t('Nee')]];
   if(key==='relatie')return [['',t('Kies een relatie')],...cmiRelationOptions()];
@@ -148,7 +149,7 @@ function cmiRelationNew(relatie){
   cmiNew('relatie');if(!cm.edit||cm.edit.id)return;cm.edit.fields={vanPersoon:me,naarPersoon:'',relatie,delen:'ja'};cm.back={id:me,tab:'relaties'};cmEditor();$('#cm-field-naarPersoon').focus();
 }
 function cmiEditor(){
-  const r=cm.edit;$('#cmi-profile-note').hidden=r.type!=='profiel';$('#cmi-form-note').hidden=r.type!=='formulier';$('#cmi-relation-note').hidden=r.type!=='relatie';$('#cmi-person-actions').hidden=r.type!=='persoon'||!r.id;
+  const r=cm.edit;$('#cmi-profile-note').hidden=r.type!=='profiel';$('#cmi-form-note').hidden=r.type!=='formulier';$('#cmi-form-sign').hidden=r.type!=='formulier';$('#cmi-relation-note').hidden=r.type!=='relatie';$('#cmi-person-actions').hidden=r.type!=='persoon'||!r.id;
   $('#cmi-person-relations').hidden=r.type!=='persoon'||!r.id;if(r.type==='persoon'&&r.id)cmiPersonRelations();
   $('#cmi-person-docs').hidden=r.type!=='persoon'||!r.id;if(r.type==='persoon'&&r.id)cmiPersonDocs();
   if(r.type==='identiteit'&&!r.id)cmiDocLabel();

@@ -270,6 +270,7 @@ function fmTeken(canvas,page){
   const ctx=canvas.getContext('2d');ctx.scale(canvas.width/size.width,canvas.height/size.height);ctx.fillStyle='#000000';ctx.textBaseline='middle';
   for(const s of fmSecties())for(const f of fmVelden(s))for(const target of f.pdf||[]){
     if(target.page!==page)continue;
+    if(target.signature){if(fm.values[f.id]==='ja')fmTekenHandtekening(ctx,target);continue;}
     let value=fmPdfWaarde(f);if(!value)continue;
     if(target.choice!==undefined)value=fm.values[f.id]===target.choice?'X':'';
     if(target.part)value=value.slice(target.part[0],target.part[1]);if(!value)continue;
@@ -279,6 +280,19 @@ function fmTeken(canvas,page){
     ctx.fillText(value,target.x+1,target.y+target.h/2);
   }
   return canvas;
+}
+/* De handtekening die je zelf bewaarde (PDF → Bewerken en ondertekenen), niet vervormd, onderaan op de lijn van het vak. */
+function fmHandtekening(){
+  let r;try{r=JSON.parse(Android.pdfSignatureLoad());}catch(e){r={error:'Handtekening laden lukt niet'};}
+  if(r.error)throw new Error(t(r.error));
+  if(!r.signature||!pdfSignatureValid(r.signature))throw new Error(t('Er is nog geen handtekening bewaard. Bewaar hem bij PDF → Bewerken en ondertekenen, of kies bij Je bewaarde handtekening plaatsen Nee.'));
+  return r.signature;
+}
+function fmTekenHandtekening(ctx,target){
+  const s=fmHandtekening(),w=Math.min(target.w,target.h/s.ratio),h=w*s.ratio,x=target.x,y=target.y+target.h-h;
+  ctx.save();ctx.strokeStyle=s.color;ctx.lineWidth=Math.max(.6,w*.008);ctx.lineCap=ctx.lineJoin='round';
+  for(const path of s.paths){ctx.beginPath();path.forEach((p,i)=>{if(i)ctx.lineTo(x+p[0]*w,y+p[1]*h);else ctx.moveTo(x+p[0]*w,y+p[1]*h);});ctx.stroke();}
+  ctx.restore();
 }
 function fmMaak(){
   if(fm.busy)return;

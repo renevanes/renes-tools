@@ -18,10 +18,12 @@ final class MasterFormProfile {
     private MasterFormProfile(){ }
     static final String[] FIELDS={"formulier","kind","kindDocument","alleen","begeleider1","begeleider1Document","begeleider1Relatie",
             "begeleider2","begeleider2Document","begeleider2Relatie","gever1","gever1Document","gever1Instelling",
-            "gever2","gever2Document","gever2Instelling","bsnInvullen"};
+            "gever2","gever2Document","gever2Instelling","bsnInvullen","tekenplaats","handtekening"};
     static final Set<String> FORMS=Collections.unmodifiableSet(new LinkedHashSet<>(Collections.singletonList("reistoestemming")));
     static final List<String> ROLES=Arrays.asList("kind","begeleider1","begeleider2","gever1","gever2");
     static final List<String> CHOICES=Arrays.asList("alleen","bsnInvullen");
+    /** Bij welke begeleider de eigen bewaarde handtekening (PdfSignature) komt; nooit bij een toestemminggever. */
+    static final List<String> SIGNATURE=Arrays.asList("nee","begeleider1","begeleider2");
     interface Lookup{JSONObject get(String id)throws Exception;}
     interface Use{void used(JSONObject record,String role,JSONArray fields)throws Exception;}
     /** Logboek: een gelezen relatie heet net als bij MasterStore.formRelation "relation_use". */
@@ -56,8 +58,16 @@ final class MasterFormProfile {
         if(!fields.optString("begeleider2").isEmpty()&&fields.optString("begeleider2").equals(fields.optString("begeleider1")))throw new MasterError(Taal.T("Kies twee verschillende begeleiders"));
         if(!fields.optString("gever2").isEmpty()&&fields.optString("gever2").equals(fields.optString("gever1")))throw new MasterError(Taal.T("Kies twee verschillende toestemmingsgevers"));
         for(String g:new String[]{"gever1","gever2"})for(String b:new String[]{"begeleider1","begeleider2"}){
-            String id=fields.optString(g);if(!id.isEmpty()&&id.equals(fields.optString(b)))throw new MasterError(Taal.T("Een toestemminggever reist niet mee; kies een andere begeleider"));
+            String id=fields.optString(g);            if(!id.isEmpty()&&id.equals(fields.optString(b)))throw new MasterError(Taal.T("Een toestemminggever reist niet mee; kies een andere begeleider"));
         }
+        String sign=fields.optString("handtekening");
+        if(!sign.isEmpty()&&!"nee".equals(sign)&&signer(fields).isEmpty())throw new MasterError(Taal.T("Kies voor je handtekening een begeleider die meereist"));
+    }
+    /** De begeleider bij wie de handtekening komt, of "" als er geen handtekening komt of die begeleider niet meereist. */
+    static String signer(JSONObject f){
+        String role=f.optString("handtekening");
+        if(!role.startsWith("begeleider")||"ja".equals(f.optString("alleen"))||f.optString(role).isEmpty())return "";
+        return role;
     }
 
     /** "jjjj-mm-dd" plus een aantal maanden; de dag schuift terug naar het einde van een kortere maand. */
@@ -124,7 +134,11 @@ final class MasterFormProfile {
         values.put("alleen",alone?"ja":"nee");
         values.put("tweedeBegeleider",!alone&&!f.optString("begeleider2").isEmpty()?"ja":"nee");
         values.put("tweedeGever",f.optString("gever2").isEmpty()?"nee":"ja");
-        use.used(profile,"vast",new JSONArray().put("formulier"));
+        JSONArray vast=new JSONArray().put("formulier");
+        String place=f.optString("tekenplaats"),signer=signer(f);
+        if(!place.isEmpty()&&!alone)vast.put("tekenplaats");
+        if(!signer.isEmpty()){vast.put("handtekening");values.put(signer+"-handtekening","ja");}
+        use.used(profile,"vast",vast);
         String child=f.getString("kind");
         for(String role:ROLES){
             if(alone&&role.startsWith("begeleider"))continue;
@@ -154,6 +168,7 @@ final class MasterFormProfile {
                 if(!name.isEmpty()){values.put(role+"-instelling",name);use.used(org,role,new JSONArray().put("instelling"));}
             }
             if(role.startsWith("begeleider")){
+                if(!place.isEmpty())values.put(role+"-tekenplaats",place);
                 String code=f.optString(role+"Relatie");
                 if(code.isEmpty()){
                     Set<String> found=new LinkedHashSet<>();

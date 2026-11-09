@@ -42,6 +42,7 @@ final class MasterSchema {
             if(Arrays.asList("persoon","vanPersoon","naarPersoon").contains(k)&&!s.isEmpty()&&!s.matches("[a-f0-9-]{36}"))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
             if("formulier".equals(type)&&MasterFormProfile.reference(k)!=null&&!s.isEmpty()&&!s.matches("[a-f0-9-]{36}"))throw new MasterError(Taal.T("Ongeldige gegevensverwijzing"));
             if("formulier".equals(type)&&MasterFormProfile.CHOICES.contains(k)&&!s.isEmpty()&&!s.equals("ja")&&!s.equals("nee"))throw new MasterError(Taal.T("Kies Ja of Nee"));
+            if("formulier".equals(type)&&"handtekening".equals(k)&&!s.isEmpty()&&!MasterFormProfile.SIGNATURE.contains(s))throw new MasterError(Taal.T("Kies bij welke begeleider je handtekening komt"));
             if(("relatie".equals(k)||"formulier".equals(type)&&MasterFormProfile.relationField(k))&&!s.isEmpty()&&!MasterIdentity.RELATIONS.contains(s))throw new MasterError(Taal.T("Kies een geldige relatie"));
             if(!s.isEmpty())out.put(k,s);
         }

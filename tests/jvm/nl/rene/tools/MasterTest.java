@@ -83,6 +83,21 @@ public class MasterTest {
         gw=MasterFormProfile.expiry(profile,lookup,"2030-07-01","2030-08-01",true,checked);check(gw.toString().contains("\"verlopen\"")&&gw.toString().contains("gever1"),"toestemminggever met verlopen document");
         fields.put("gever1Document",uid(11));check(MasterFormProfile.expiry(profile,lookup,"2030-07-01","2030-08-01",true,checked).length()==2,"verdwenen document wordt overgeslagen");fields.remove("gever1Document");
         fields.put("alleen","ja");check(MasterFormProfile.expiry(profile,lookup,"2030-07-01","2030-08-01",true,checked).length()==1,"alleen reizen: begeleider niet gecontroleerd");fields.put("alleen","nee");
+        // Plaats van ondertekening en de eigen handtekening: alleen bij de begeleiders, nooit bij een toestemminggever.
+        check(!v.has("begeleider1-tekenplaats")&&!v.has("begeleider1-handtekening"),"zonder instelling geen plaats of handtekening");
+        fields.put("tekenplaats","Rotterdam").put("handtekening","begeleider1");MasterFormProfile.validate(fields,lookup);
+        check(MasterSchema.clean(new JSONObject().put("type","formulier").put("label","x").put("fields",fields)).getJSONObject("fields").getString("handtekening").equals("begeleider1"),"handtekening opslaan");
+        log.clear();v=MasterFormProfile.resolve(profile,lookup,all,false,use,rel2).getJSONObject("values");
+        check("Rotterdam".equals(v.getString("begeleider1-tekenplaats"))&&"ja".equals(v.getString("begeleider1-handtekening")),"plaats en handtekening bij begeleider 1");
+        check(!v.has("gever1-tekenplaats")&&!v.has("gever1-handtekening")&&!v.has("begeleider2-handtekening"),"niet bij de toestemminggever");
+        check(log.contains("vast:Reistoestemming Zoë:[\"formulier\",\"tekenplaats\",\"handtekening\"]"),"plaats en handtekening in het logboek");
+        rejects(()->MasterSchema.clean(new JSONObject().put("type","formulier").put("label","x").put("fields",new JSONObject(fields.toString()).put("handtekening","gever1"))));
+        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("handtekening","begeleider2"),lookup));
+        rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("alleen","ja"),lookup));
+        MasterFormProfile.validate(new JSONObject(fields.toString()).put("alleen","ja").put("handtekening","nee"),lookup);
+        fields.put("alleen","ja");v=MasterFormProfile.resolve(profile,lookup,all,false,use,rel2).getJSONObject("values");
+        check(!v.has("begeleider1-tekenplaats")&&!v.has("begeleider1-handtekening"),"alleen reizen: geen plaats of handtekening");
+        fields.put("alleen","nee");fields.remove("tekenplaats");fields.remove("handtekening");
         // Geslacht zoals op het identiteitsbewijs
         JSONObject p2=new JSONObject().put("type","persoon").put("label","P").put("fields",new JSONObject().put("naam","P").put("geslacht","X"));
         check("X".equals(MasterSchema.clean(p2).getJSONObject("fields").getString("geslacht")),"geslacht X");
