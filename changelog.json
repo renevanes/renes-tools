@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.180",
+    "date": "2026-11-09",
+    "changes": [
+      "Je handtekening staat nu ook op je eigen kaartje in Stamgegevens: tekenen, bekijken en verwijderen op één plek",
+      "Eén handtekening voor de hele app: PDF ondertekenen, Formulieren en Stamgegevens gebruiken dezelfde, met hetzelfde tekenvenster (zwart of blauw)",
+      "Formulieren: bij de begeleider zie je welke handtekening er in de PDF komt, en teken je hem meteen als er nog geen is"
+    ]
+  },
+  {
     "version": "1.179",
     "date": "2026-11-09",
     "changes": [
