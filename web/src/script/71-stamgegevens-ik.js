@@ -301,5 +301,6 @@ function cmiRelationNew(relatie,id){
   if(!cmOpen()||cm.mutating)return;
   if(!cm.records.some(r=>r.type==='persoon'&&r.id!==id)){cmNote(t('Voeg eerst de andere persoon toe.'));return;}
   cmiNew('relatie');if(!cm.edit||cm.edit.id)return;cm.edit.fields={vanPersoon:id,naarPersoon:'',relatie,delen:'ja'};cm.back={id};cmEditor();
-  const f=$('#cm-field-naarPersoon');if(f)f.focus();
+  // Na het eigen focussen van cmEditor: meteen de tweede persoon kiezen
+  setTimeout(()=>{const f=$('#cm-field-naarPersoon');if(f&&cm.edit?.type==='relatie')f.focus();},0);
 }
