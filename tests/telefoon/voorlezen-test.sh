@@ -10,7 +10,7 @@ BT="$T/bt/build-tools/$(cat "$T/bt/VERSION")"
 VOICE_TEST_FILE="$T/voorlezen/voice-ci.tar.bz2"
 VOICE_SHA=eb16022c9c8ee48b75dc833e8a8b04e08730929ea68cde9b67e2dc712f988978
 if ! [ -f "$VOICE_TEST_FILE" ] || ! echo "$VOICE_SHA  $VOICE_TEST_FILE" | sha256sum -c --quiet; then
- curl -fsSL --proto =https --proto-redir =https --retry 2 --max-time 180 'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-nl_NL-ronnie-medium-int8.tar.bz2' -o "$VOICE_TEST_FILE.part"
+ curl -fsSL --proto =https --proto-redir =https --retry 5 --retry-delay 20 --max-time 180 'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-nl_NL-ronnie-medium-int8.tar.bz2' -o "$VOICE_TEST_FILE.part"
  echo "$VOICE_SHA  $VOICE_TEST_FILE.part" | sha256sum -c --quiet
  mv "$VOICE_TEST_FILE.part" "$VOICE_TEST_FILE"
 fi

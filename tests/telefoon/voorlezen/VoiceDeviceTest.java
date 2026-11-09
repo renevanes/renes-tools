@@ -96,7 +96,9 @@ public final class VoiceDeviceTest extends Instrumentation {
                 long t0=android.os.SystemClock.elapsedRealtime();
                 call(core,null,"start",new Class<?>[]{a.getClass(),String.class,String.class,String.class,String.class,int.class,int.class,boolean.class,sinkType},a,c[0],"note",c[1],"",0,0,false,sink);
                 long limit=Long.parseLong(c[2]);while(last.get().isEmpty()&&android.os.SystemClock.elapsedRealtime()-t0<limit)Thread.sleep(40);
-                check(last.get().equals("done:")&&heard.get()>0&&current.get(null)==null,"\""+c[1]+"\" reaches done within "+limit+" ms: "+last.get()+" after "+(android.os.SystemClock.elapsedRealtime()-t0)+" ms");
+                long took=android.os.SystemClock.elapsedRealtime()-t0;
+                check(last.get().equals("done:")&&heard.get()>0,"\""+c[1]+"\" is heard and reaches done within "+limit+" ms: "+last.get()+", playing events "+heard.get()+", after "+took+" ms");
+                await(()->current.get(null)==null,"session cleared after done"); // done komt vlak vóór het opruimen in finally
             }
         }finally{call(core,null,"stop",new Class<?>[]{String.class,String.class},owner,null);((java.util.concurrent.ExecutorService)field(core,"WORK").get(null)).submit(()->{}).get(15,TimeUnit.SECONDS);runOnMainSync(a::finish);}
     }
