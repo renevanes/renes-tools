@@ -207,11 +207,14 @@ const { chromium } = require('playwright');
       const [dl] = await Promise.all([pg.waitForEvent('download', { timeout: 120000 }), pg.click('#go')]);
       const out = await dl.path();
       const r = cp.execFileSync('python3', ['-I', '-c', 'import zipfile,sys\nz=zipfile.ZipFile(sys.argv[1])\nprint(z.testzip())\nn=z.namelist()\nprint(len(n))\nprint("|".join(x for x in n if not x.startswith("Vul/")))\nprint(z.read("Notities/notities.json").decode())', out]).toString().split('\n');
-      return { bad: r[0], count: +r[1], names: r[2].split('|'), notes: r[3], msg: await pg.textContent('#msg') };
+      // bestandsnamen staan ook leesbaar in de kopregels: zo valt een geheim dat toch meekomt direct op
+      const lek = fs.readFileSync(out).includes('Appgegevens/geheim/');
+      return { bad: r[0], count: +r[1], names: r[2].split('|'), notes: r[3], msg: await pg.textContent('#msg'), lek };
     };
     const z = await list(false);
     ok(z.bad === 'None', f + ': geldige zip');
     ok(!z.names.some(n => n.startsWith('Appgegevens/geheim/')) && !z.names.includes('Appgegevens/instellingen.json'), f + ': geen geheimen ' + z.names);
+    ok(!z.lek, f + ': ook in de bytes geen spoor van Appgegevens/geheim/');
     ok(z.names.includes('Notities/notities.json') && z.names.includes('Appgegevens/bestanden/notes.json') && z.notes === '[]', f + ': de rest is er nog');
     ok(/3 bestanden met wachtwoorden en sleutels weggelaten/.test(z.msg), f + ': melding ' + z.msg);
     const all = await list(true);

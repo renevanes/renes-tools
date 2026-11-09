@@ -125,7 +125,7 @@ async function withoutSecrets(blob){
     if (e.off === 0xFFFFFFFF) {
       for (let q = p + 46 + nl, end = q + xl; q + 4 <= end; ) {
         const id = C.getUint16(q, true), sz = C.getUint16(q + 2, true);
-        if (id === 1) { let r = q + 4; if (C.getUint32(p + 24, true) === 0xFFFFFFFF) r += 8; if (C.getUint32(p + 20, true) === 0xFFFFFFFF) r += 8; e.off = Number(C.getBigUint64(r, true)); e.offPos = r; e.wide = true; break; }
+        if (id === 1) { let r = q + 4; if (C.getUint32(p + 24, true) === 0xFFFFFFFF) r += 8; if (C.getUint32(p + 20, true) === 0xFFFFFFFF) r += 8; if (r + 8 > Math.min(q + 4 + sz, end)) throw new Error('zip64'); e.off = Number(C.getBigUint64(r, true)); e.offPos = r; e.wide = true; break; }
         q += 4 + sz;
       }
       if (!e.wide) throw new Error('zip64');
@@ -136,15 +136,19 @@ async function withoutSecrets(blob){
   byOff.forEach((e, i) => { e.end = i + 1 < byOff.length ? byOff[i + 1].off : cdOff; });
   const keep = byOff.filter(e => !SECRET(e.name)), removed = byOff.length - keep.length;
   if (!removed) return {blob, removed: 0};
-  const out = [], cds = [];
-  let pos = 0;
+  // Aaneengesloten bestanden als één stuk en de inhoudsopgave in één buffer: een Blob van tienduizenden stukjes is erg traag
+  const out = [], newCd = new Uint8Array(keep.reduce((n, e) => n + e.len, 0)), V = new DataView(newCd.buffer);
+  let pos = 0, at = 0, from = -1, to = -1;
   for (const e of keep) {
-    out.push(blob.slice(e.off, e.end));
-    const rec = cd.slice(e.start, e.start + e.len), V = new DataView(rec.buffer), at = e.offPos - e.start;
-    if (e.wide) V.setBigUint64(at, BigInt(pos), true); else V.setUint32(at, pos, true);
-    cds.push(rec); pos += e.end - e.off;
+    if (e.off !== to) { if (from >= 0) out.push(blob.slice(from, to)); from = e.off; }
+    to = e.end;
+    newCd.set(cd.subarray(e.start, e.start + e.len), at);
+    const o = at + e.offPos - e.start;
+    if (e.wide) V.setBigUint64(o, BigInt(pos), true); else V.setUint32(o, pos, true);
+    at += e.len; pos += e.end - e.off;
   }
-  const newCdSize = cds.reduce((n, r) => n + r.length, 0), n = keep.length, tailParts = [];
+  if (from >= 0) out.push(blob.slice(from, to));
+  const newCdSize = newCd.length, n = keep.length, tailParts = [];
   if (z64) {
     const r = new DataView(new ArrayBuffer(56));
     r.setUint32(0, 0x06064b50, true); r.setBigUint64(4, 44n, true); r.setUint16(12, 45, true); r.setUint16(14, 45, true);
@@ -158,7 +162,7 @@ async function withoutSecrets(blob){
   e.setUint16(8, z64 ? 0xFFFF : n, true); e.setUint16(10, z64 ? 0xFFFF : n, true);
   e.setUint32(12, z64 ? 0xFFFFFFFF : newCdSize, true); e.setUint32(16, z64 ? 0xFFFFFFFF : pos, true);
   tailParts.push(e.buffer);
-  return {blob: new Blob([...out, ...cds, ...tailParts], {type: 'application/zip'}), removed};
+  return {blob: new Blob([...out, newCd, ...tailParts], {type: 'application/zip'}), removed};
 }
 $('#go').onclick = run;
 $('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
