@@ -204,7 +204,7 @@ function cmiDocNew(person,soort){
 function cmcMenu(){
   const r=cmc.rec;if(!cmOpen()||!r||cm.mutating)return;const acts=[];
   if(r.type==='persoon'){
-    if(r.fields.contact)acts.push([t('Loskoppelen van contact'),cmcUnlink,'close']);else if(typeof Android.masterContactPick==='function')acts.push([t('Koppelen aan contact'),cmcLink,'user']);
+    if(r.fields.contact)acts.push([t('Loskoppelen van contact'),cmcUnlink,'close']);else if(cmContactKan())acts.push([t('Koppelen aan contact'),cmcLink,'user']);
     if(!cmkMe())acts.push([t('Dit ben ik'),()=>cmkSelfSet(r.id),'user']);
   }
   acts.push([t('Andere naam in het overzicht'),()=>cmcEdit('naam'),'edit'],[t('Verwijderen'),cmcDelete,'trash']);
@@ -240,13 +240,15 @@ function cmcUnlink(){
 /* Een contact kiezen (Android: de contactkiezer, binnen het keuzevenster zonder opnieuw ontgrendelen). */
 // Uit Contacten overnemen: alleen lege velden; BSN, documenten en notities nooit
 const CM_UIT_CONTACT=['roepnaam','voornamen','naam','geboortedatum','telefoon','email','adres','postcode','plaats','land'];
+// De Play-versie heeft geen toegang tot Contacten (play/basis.json)
+function cmContactKan(){return typeof Android.masterContactPick==='function'&&!(typeof isPlay==='function'&&isPlay());}
 function cmContactFill(fields,c){
   const f=c.fields||{};for(const k of CM_UIT_CONTACT)if(typeof f[k]==='string'&&f[k]&&!fields[k])fields[k]=f[k].slice(0,240);
   if(!fields.roepnaam&&!fields.voornamen&&!fields.naam&&typeof f.weergave==='string'&&f.weergave)fields.roepnaam=f.weergave.slice(0,120);
   if(c.contact)fields.contact=c.contact;
 }
 function cmContactPick(done){
-  if(!cmOpen()||cm.mutating||cmct.request||typeof Android.masterContactPick!=='function')return;
+  if(!cmOpen()||cm.mutating||cmct.request||!cmContactKan())return;
   cmct.done=done;cmct.request='cm-contact-'+(++cm.seq);cmNote(t('Kies een contact…'));
   Android.masterContactPick(cm.token,cmct.request);
 }

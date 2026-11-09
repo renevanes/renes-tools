@@ -37,6 +37,7 @@ const TEGEL = Object.fromEntries(WEG.map(t => [t, 'tile-' + t]));
     await pg.evaluate(() => show('info')); await pg.waitForTimeout(150);
     assert((await zichtbaar('chk-btn')) === !play, naam + ': knop "Controleren op updates" ' + (play ? 'weg' : 'er'));
     assert(!!(await pg.$('#play-upd')) === play, naam + ': uitleg over Google Play ' + (play ? 'er' : 'niet'));
+    assert((await pg.evaluate(() => cmContactKan())) === !play, naam + ': Stamgegevens ' + (play ? 'zonder' : 'met') + ' Kies uit Contacten');
     if (play) {
       for (const tool of ['notes', 'pdf', 'radio', 'podcasts']) {
         await pg.evaluate(n => show(n), tool);

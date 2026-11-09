@@ -94,7 +94,7 @@ function cmkHub(){
     const wrap=cmEl('div',undefined,'cmk-start'),acts=cmEl('div',undefined,'row cmi-actions');
     wrap.append(cmEl('h2',t('Begin met jezelf'),'cm-kop'),cmEl('p',t('Jij staat centraal: je eigen gegevens en documenten, en iedereen anders met wat die voor jou is (je kind, partner, ouder …).'),'hint'));
     const add=(id,text,fn)=>{const b=cmEl('button',text,'mini');b.type='button';b.id=id;b.onclick=fn;acts.append(b);};
-    if(typeof Android.masterContactPick==='function')add('cmk-self-contact',t('Kies uit Contacten'),cmkSelfContact);
+    if(cmContactKan())add('cmk-self-contact',t('Kies uit Contacten'),cmkSelfContact);
     add('cmk-self-new',t('Zelf invullen'),cmkSelfNew);
     if(cm.records.some(r=>r.type==='persoon'))add('cmk-self-pick',t('Ik sta er al tussen'),cmkSelfPick);
     wrap.append(acts);ik.append(wrap);
@@ -224,7 +224,7 @@ function cmkMeer(pick,title){
 }
 /* Uit Contacten (naam, telefoon, e-mail, adres en verjaardag) of zelf invullen. */
 function cmkSource(code){
-  if(typeof Android.masterContactPick!=='function'){cmkPersonFor(code,null);return;}
+  if(!cmContactKan()){cmkPersonFor(code,null);return;}
   openSheet(code&&code!=='-'&&code!=='anders'?t('Mijn {relatie} toevoegen',{relatie:cmkRelName(code)}):t('Persoon toevoegen'),t('Uit Contacten neem je naam, telefoon, e-mail, adres en verjaardag over; telefoon en e-mail blijven daarna actueel.'),
     [[t('Kies uit Contacten'),()=>cmContactPick(c=>cmkPersonFor(code,c)),'user'],[t('Zelf invullen'),()=>cmkPersonFor(code,null),'edit']]);
 }

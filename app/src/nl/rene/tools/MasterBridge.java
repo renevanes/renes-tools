@@ -168,6 +168,7 @@ public class MasterBridge extends BankBridge {
         if(request==null||request.length()>100)return;
         a.h.post(()->{
             try{
+                if(Updater.isPlayPackage(ctx.getPackageName()))throw new MasterError(PlayPolicy.UNAVAILABLE);
                 if(!a.masterForeground||!a.masterSession.accepts(token))throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
                 a.masterContacts.start(token,request);
             }catch(Throwable e){try{a.js("onMasterContactPicked",new JSONObject().put("request",request).put("token",token).put("error",why(e)).toString());}catch(Exception ignored){ }}
