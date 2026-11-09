@@ -125,7 +125,7 @@ async function withoutSecrets(blob){
     if (e.off === 0xFFFFFFFF) {
       for (let q = p + 46 + nl, end = q + xl; q + 4 <= end; ) {
         const id = C.getUint16(q, true), sz = C.getUint16(q + 2, true);
-        if (id === 1) { let r = q + 4; if (C.getUint32(p + 24, true) === 0xFFFFFFFF) r += 8; if (C.getUint32(p + 20, true) === 0xFFFFFFFF) r += 8; e.off = Number(C.getBigUint64(r, true)); e.offPos = r; e.wide = true; break; }
+        if (id === 1) { let r = q + 4; if (C.getUint32(p + 24, true) === 0xFFFFFFFF) r += 8; if (C.getUint32(p + 20, true) === 0xFFFFFFFF) r += 8; if (r + 8 > Math.min(q + 4 + sz, end)) throw new Error('zip64'); e.off = Number(C.getBigUint64(r, true)); e.offPos = r; e.wide = true; break; }
         q += 4 + sz;
       }
       if (!e.wide) throw new Error('zip64');
@@ -143,7 +143,8 @@ async function withoutSecrets(blob){
     if (e.off !== to) { if (from >= 0) out.push(blob.slice(from, to)); from = e.off; }
     to = e.end;
     newCd.set(cd.subarray(e.start, e.start + e.len), at);
-    if (e.wide) V.setBigUint64(at + e.offPos - e.start, BigInt(pos), true); else V.setUint32(at + e.offPos - e.start, pos, true);
+    const o = at + e.offPos - e.start;
+    if (e.wide) V.setBigUint64(o, BigInt(pos), true); else V.setUint32(o, pos, true);
     at += e.len; pos += e.end - e.off;
   }
   if (from >= 0) out.push(blob.slice(from, to));
