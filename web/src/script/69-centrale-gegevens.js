@@ -85,6 +85,8 @@ function cmClearCentral(){
   if(typeof cmi!=='undefined'){cmi.gevEdit=null;cmi.gevers=null;}
   ['cm-list','cm-ik','cm-aandacht-list','cm-lijst','cm-kaart','cm-ai-mensen','cm-fields','cm-audit','cm-pick-list','cm-pick-fields'].forEach(id=>$('#'+id).replaceChildren());
   ['cm-label','cm-search','cm-log-search','cm-pick-search','cm-reset-word'].forEach(id=>$('#'+id).value='');$('#cm-label').placeholder='';
+  // Meldingen kunnen namen bevatten ("Anna is toegevoegd"): bij vergrendelen weg, ook op de schermen die niet in beeld zijn
+  for(const id of Object.values(CM_NOTE))$('#'+id).textContent='';
   ['cm-kaart-title','cm-contact-hint','cmi-form-gezag'].forEach(id=>$('#'+id).textContent='');$('#cm-contact-hint').hidden=true;$('#cmi-form-gezag').hidden=true;
   for(const id of ['mensen','documenten','adressen','organisaties','assistent'])$('#cm-stand-'+id).textContent='';$('#cm-aandacht').hidden=true;$('#cm-zoek').hidden=true;$('#cm-hub').hidden=false;
   $('#cm-show-secret').checked=false;$('#cm-editor').hidden=true;$('#cm-savebar').hidden=true;$('#cm-reset').disabled=true;cmEditorTitle('');

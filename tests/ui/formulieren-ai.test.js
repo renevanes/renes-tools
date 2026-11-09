@@ -9,9 +9,10 @@ const path=require('path');
   // De vaste dataset is de bestaande beveiligde centrale opslag, inclusief herbruikbare reizen.
   await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen());
   await p.waitForFunction(()=>cm.recordsReady);await p.evaluate(()=>cmiNew('reis'));
-  await T.fill('#cm-label','Zomerreis België');await T.fill('#cm-field-van','2027-07-12');await T.fill('#cm-field-tot','2027-07-30');
+  await T.fill('#cm-field-van','2027-07-12');await T.fill('#cm-field-tot','2027-07-30');
   await T.fill('#cm-field-land','België');await T.fill('#cm-field-accommodatie','Familie');await T.select('#cm-field-alleen','ja');
-  await p.click('#cm-save');await p.waitForFunction(()=>cm.records.length===1&&!cm.mutating);
+  await p.click('#cm-save');await p.waitForFunction(()=>cm.records.length===1&&!cm.mutating&&current==='cmkaart'&&!cm.navigating);
+  await T.blok(await p.evaluate(()=>cm.records[0].id),'naam');await p.fill('#cm-label','Zomerreis België');await T.opslaan();
   await p.evaluate(()=>{const person=crypto.randomUUID();Android._cm.records.push({id:person,type:'persoon',label:'Kind <b>Zoë</b>',revision:1,fields:{naam:'Voorbeeld',voornamen:'Zoë',geboortedatum:'2015-02-03',bsn:'123456782'}},{id:crypto.randomUUID(),type:'identiteit',label:'Paspoort Zoë',revision:1,fields:{persoon:person,document:'DOC123456',geldig:'2030-06-30'}});});
   // De invulhulp staat niet standaard in beeld: openen via het menu van een stap.
   await p.evaluate(()=>show('formulieren'));await p.click('#pff-zelf');assert.equal(await p.isVisible('#pff-hulp'),false);
