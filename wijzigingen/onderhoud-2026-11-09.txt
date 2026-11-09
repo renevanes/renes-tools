@@ -1,2 +1,0 @@
-Facturen, Bankzaken en Toiletten: bestanden, mails en zoekpatronen met extreem lange of vreemde inhoud maken het inlezen niet meer traag.
-Onderhoud: kleine beveiligingsverbeteringen (o.a. geen namen of adressen meer in het logboek van Facturen); je merkt er verder niets van.

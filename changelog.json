@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.175",
+    "date": "2026-11-09",
+    "changes": [
+      "Facturen, Bankzaken en Toiletten: bestanden, mails en zoekpatronen met extreem lange of vreemde inhoud maken het inlezen niet meer traag.",
+      "Onderhoud: kleine beveiligingsverbeteringen (o.a. geen namen of adressen meer in het logboek van Facturen); je merkt er verder niets van."
+    ]
+  },
+  {
     "version": "1.174",
     "date": "2026-11-09",
     "changes": [

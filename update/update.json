@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.174",
-  "versionCode": 175,
-  "nativeLevel": 155,
+  "versionName": "1.175",
+  "versionCode": 176,
+  "nativeLevel": 156,
   "web": "index.html",
-  "webSha256": "5b330790c0aec62a6a637f2dc39e9802b6991b5b401c1f9e39787c308e0c3582",
+  "webSha256": "b5a93d136810f7da80fbe66ccac258948ef8132e06c1371374b5b1b6f0e5e0a8",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "6b6401a27bc226797f9d7c4c0221be16b5837857cb88dea1ec0d7024eae420bb",
+  "apkSha256": "7f38e6f69518e463c3d7ddde160bc3efbdc811e20c40edc655284e581a2e1eb6",
   "changelog": [
+    {
+      "version": "1.175",
+      "date": "2026-11-09",
+      "changes": [
+        "Facturen, Bankzaken en Toiletten: bestanden, mails en zoekpatronen met extreem lange of vreemde inhoud maken het inlezen niet meer traag.",
+        "Onderhoud: kleine beveiligingsverbeteringen (o.a. geen namen of adressen meer in het logboek van Facturen); je merkt er verder niets van."
+      ]
+    },
     {
       "version": "1.174",
       "date": "2026-11-09",
@@ -1540,5 +1548,5 @@
       ]
     }
   ],
-  "webSig2": "T7zE5LUdfS83O8wmLFtHCq/VxFuJgDSqZRXmFAitjId68cpH1t+yx2lCtRZNcSKdrTMRbJYs7TXpQiCkUEPf+RMWkLYxTI5BHr9g6rlKzll9C5+MnC0vMQeTYLAbyaMkh3Xa/6lwQcbiPMbnxZVZG3fn7XMl3Sr+UWxJs045nlj6Y75FgwBIXaKm12/q2Z7Nidpvy11L/nE37Lt60X/1SkF+96jXU4ZzW0BxB5fxKoyHH+UscIlfvP1ZuKA9Qde102bSpTd5F2kshUN+KAl1xKWslizHiFrLdjvFOuBbBphxeYz7ITphxLJJy2wGUzWkhJ0sOKbl5HZr5ryYl96e4b1hveaI8ftiVETyOwQNO7ZSkNo5U1ZItsFS8uLdum4JMUA8Jw1ewXJIdYs0fAHUOcX4DADTvdkLspPw7r6cSR1aAdUVm8qbAJYhWv8qvI9GuLrnwMuBPovDA1QQKu4JMtXebmQslKvjdxpm0D4W5ykBP0jrJYIbLXI2q28Aet0f"
+  "webSig2": "Y0JmLwqU6laFRCeMBBQAnOg3fB0t7+89hJI9x2oB1AsTtUxPw0vcxEFtKsUZWpkKezyqHqZhFnv8ecBxlwGgrCjO/Ictu7BcP0bbOgWUjbM00ZSh6dhV0uW3Mr6LjASxo2/HfJc7Rvu9OcgXUoLVLceHlkTtJNuuzvpyYfjzUNy4dTU0tM2/I5GYzbB6s+y5y8PFXWzwWpwdCXILPrFBN/0hjTmvwR5jQYafOKCop4nw6cJriQpFj8VrUr55PL7gYb7At1FgNW/YXigNMhhkRziF/7HnZrCoQFh9+C8pFTYrZe30eNWRJBd1alj3fNroDGJVbSHVM9wJcr4UaeNQ/uGKZYIGhitCvDa0VCB9/aQQEDlHDZpj3GqJtPWhLD+iB6orMWstlveARKfgsAQI/Jk3m/U0kIA1iU+5a1xi/Yn3aCQxUfDgU2LNGcR9yNt37EJk08vHuLUw09WSef4KN5Vt7SfH8LIU+ZnS8llIkI7scRdZ1fbHEP6D0cmAOLRD"
 }
