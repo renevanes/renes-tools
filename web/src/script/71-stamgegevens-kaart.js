@@ -220,7 +220,6 @@ function cmcPhotoLoad(side){
     else mislukt();
   },false,mislukt);
 }
-/* Groot bekijken in de gedeelde afbeeldingskijker (ook van de e-reader): zoomen met knijpen, dubbeltikken, + en −. */
 function cmcPhotoZoom(side){
   if(!cmOpen())return;const src=cmc.fotos[side];
   if(!src){cmcPhotoLoad(side);return;}
