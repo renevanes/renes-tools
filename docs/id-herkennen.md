@@ -1,8 +1,10 @@
 # Identiteitsgegevens uit een foto
 
-Stamgegevens → persoon → ID → **Foto herkennen**. Kies de voorkant van een rijbewijs, de achterkant van een ID-kaart
-(met de strook `<<<`) of de fotopagina van een paspoort. Na het kiezen bewaart Tools de foto
-als versleutelde documentbijlage, zonder fotometadata. Verwijderen kan bij Foto’s. Handmatig toevoegen: **Zelf invullen**.
+Stamgegevens → kaartje van de persoon → **Document toevoegen** → soort → **Foto kiezen**. Kies de voorkant van een rijbewijs,
+de achterkant van een ID-kaart of verblijfsdocument (met de strook `<<<`) of de fotopagina van een paspoort. Na het kiezen
+bewaart Tools de foto als versleutelde documentbijlage, zonder fotometadata, op de kant die bij de soort hoort (wat de app
+herkent gaat voor: een strook van drie regels is de achterkant). Een bestaand document: tik op het documentkaartje op een
+lege tegel, of op het potlood bij Foto's voor **Foto herkennen**. Handmatig toevoegen: **Zelf invullen**.
 
 Kom je binnen twee minuten terug uit de Android-fotokiezer en is de kluis nog open, dan gaat de verwerking direct verder.
 Anders ontgrendel je eerst opnieuw. Tijdens het kiezen weigert de brug andere acties; bij verlaten of vergrendelen
@@ -10,7 +12,7 @@ vervallen lopende resultaten. Herkenning gebruikt de oorspronkelijke foto vóór
 
 ## Controleren en bewaren
 
-Het document heeft twee tabbladen: Gegevens en Foto’s. Afgifte en extra gegevens staan ingeklapt.
+Herkende gegevens verschijnen in het blok Document, met het voorstel erboven; na bewaren opent het documentkaartje.
 Herkenning toont eerst een voorstel. Vergelijk elk veld met het document; afwijkende bestaande waarden en onzeker
 gelezen velden staan uit. Gelijke waarden worden als bestaand getoond. BSN staat altijd uit.
 **Bewaar gekozen gegevens** bewaart de gekozen document- en persoonsgegevens in één transactie. Een gewijzigde revisie,
@@ -81,7 +83,7 @@ leest ze en controleert ook de voorbeelden uit ICAO 9303.
 - **Lezen** (`RijbewijsOcr`): gewoon in vier draaiingen; ontbreekt nummer, einddatum of geboortedatum, dan nog eens op een
   zwart-wit-versie (drempel per buurt, tegen het achtergrondpatroon). *Grondiger proberen* (`masterPhotoRescan`, tot ±70 s):
   ook vergroot met opgerekt contrast en als één tekstblok. Lezingen worden samengevoegd (`Rijbewijs.merge`).
-- **Hulp bij mislukken** (tabblad Foto's, `#cmh-hulp`): wat er gebeurde (geen tekst, tekst maar geen document, rijbewijs zonder
+- **Hulp bij mislukken** (blok Foto's, `#cmh-hulp`): wat er gebeurde (geen tekst, tekst maar geen document, rijbewijs zonder
   leesbare velden), tips die bij de foto passen (onscherp, donker, schittering, de regel D1NLD niet op de foto, te lang) en
   knoppen *Opnieuw proberen*, *Grondiger proberen*, *Andere foto kiezen* en *Zelf invullen*. Bij een gedeeltelijk resultaat
   staat onder de voorstellen wat niet gevonden is. De hint over de foto (`diag`) bevat alleen ja/nee en aantallen, nooit tekst.
