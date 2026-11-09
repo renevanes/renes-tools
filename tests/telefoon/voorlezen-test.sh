@@ -27,9 +27,16 @@ java -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 --release --min-api 24 --lib "
 "$BT/zipalign" -f 4 "$B/unsigned.apk" "$B/aligned.apk"
 "$BT/apksigner" sign --ks keys/release.p12 --ks-key-alias release --ks-pass file:keys/keystore.pass --out "$B/test.apk" "$B/aligned.apk"
 if [ "${VOICE_BUILD_ONLY:-0}" = 1 ]; then exit 0; fi
-adb install -r "$B/test.apk"
+# adb kan in de emulator blijven hangen zonder fout: met een eindtijd en één herkansing, niet tot de taak afloopt.
+for poging in 1 2; do
+ if timeout 180 adb install -r "$B/test.apk"; then break; fi
+ [ "$poging" = 2 ] && { echo 'Voorleestest installeren lukt niet (adb hing of faalde)'; exit 1; }
+ echo 'adb install hing of faalde; opnieuw'
+ adb reconnect offline || true
+ timeout 120 adb wait-for-device || true
+done
 adb logcat -c || true
-adb shell am instrument -w "$TARGET_PACKAGE.voicetest/nl.rene.tools.test.VoiceDeviceTest" | tee "$B/result.txt"
+{ timeout 900 adb shell am instrument -w "$TARGET_PACKAGE.voicetest/nl.rene.tools.test.VoiceDeviceTest" || true; } | tee "$B/result.txt"
 adb logcat -d -v threadtime > "$B/logcat.txt" 2>&1 || true
 if ! grep -q 'voorlezen=ok' "$B/result.txt"; then
  # Soort fout en plek (ReadAloud.where), native crashes en audiomeldingen; nooit voorgelezen tekst.
