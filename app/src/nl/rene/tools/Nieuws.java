@@ -32,6 +32,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -192,14 +193,32 @@ final class Nieuws {
     /** De cookies die bij een adres horen (de cookiekeuze die Rene in het venster maakte), of null. */
     interface Koekjes { String voor(String url); }
 
+    /** Eén artikelpagina ophalen als {@code ua} (in de test zonder internet). */
+    interface Haler { Antwoord haal(String url, long tot, String ua) throws Exception; }
+
     /**
      * Artikelpagina's ophalen met de cookies {@code k} en als {@code ua}: de User-Agent van de WebView waarin Rene de
-     * cookiekeuze maakte. De firewall van de site koppelt die cookies aan die browser; met een andere naam ziet hij een robot.
+     * cookiekeuze maakte. De firewall van de site kan die cookies aan die browser koppelen; met een andere naam ziet hij een robot.
      */
-    static Pagina web(Koekjes k, String ua) {
-        String naam = paginaUa(ua);
+    static Pagina web(Koekjes k, String ua) { return web((url, tot, naam) -> haal(url, tot, true, k, naam), ua); }
+
+    /**
+     * Weigert de site (403) de User-Agent van de WebView, dan die pagina nog één keer als {@link #UA}; lukt dat, dan de
+     * rest van deze ronde ook zo. Welke naam een firewall accepteert, verschilt per site en is van buitenaf niet te zien.
+     */
+    static Pagina web(Haler h, String ua) {
+        String eerst = paginaUa(ua);
+        AtomicReference<String> naam = new AtomicReference<>(eerst);
         return (url, tot) -> {
-            Antwoord a = haal(url, tot, true, k, naam);
+            String n = naam.get();
+            Antwoord a;
+            try {
+                a = h.haal(url, tot, n);
+            } catch (HttpFout e) {
+                if (e.code != 403 || UA.equals(n)) throw e;
+                a = h.haal(url, tot, UA);
+                naam.set(UA);
+            }
             return new String(a.data, 0, a.data.length, PodcastFeed.charset(a.data, a.data.length, a.charset));
         };
     }

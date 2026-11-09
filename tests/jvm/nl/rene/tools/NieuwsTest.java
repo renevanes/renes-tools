@@ -11,6 +11,9 @@ import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /** Nieuws: bronnen, cache, gelezen en bewaard (in tijdelijke mappen), adressen en de backupregels. Zonder netwerk. */
 public class NieuwsTest {
@@ -263,6 +266,29 @@ public class NieuwsTest {
         check(wvUa.equals(Nieuws.paginaUa(wvUa)) && wvUa.equals(Nieuws.paginaUa(" " + wvUa + " ")) && Nieuws.UA.equals(Nieuws.paginaUa(null)) && Nieuws.UA.equals(Nieuws.paginaUa(""))
                 && Nieuws.UA.equals(Nieuws.paginaUa("Mozilla\r\nCookie: x=1")) && Nieuws.UA.equals(Nieuws.paginaUa("Mozilla/5.0 (Linux; Android 14; Ünïcode)"))
                 && Nieuws.UA.equals(Nieuws.paginaUa(new String(new char[600]).replace('\0', 'a'))), "User-Agent van de WebView, anders de eigen naam (en nooit iets wat de kopregel breekt)");
+        List<String> namen = new ArrayList<>();
+        Nieuws.Pagina alsTools = Nieuws.web((url, tot, ua) -> { namen.add(ua); if (!Nieuws.UA.equals(ua)) throw new Nieuws.HttpFout(403); Nieuws.Antwoord ant = new Nieuws.Antwoord(); ant.data = "<head></head>".getBytes(StandardCharsets.UTF_8); return ant; }, wvUa);
+        alsTools.haal("https://tweakers.net/nieuws/1/een.html", nu + 60_000);
+        alsTools.haal("https://tweakers.net/nieuws/2/twee.html", nu + 60_000);
+        check(namen.equals(Arrays.asList(wvUa, Nieuws.UA, Nieuws.UA)), "weigert de site de WebView-naam: die pagina nog eens als Tools, de rest van de ronde ook: " + namen);
+        namen.clear();
+        Nieuws.Pagina alsWv = Nieuws.web((url, tot, ua) -> { namen.add(ua); Nieuws.Antwoord ant = new Nieuws.Antwoord(); ant.data = "<head></head>".getBytes(StandardCharsets.UTF_8); return ant; }, wvUa);
+        alsWv.haal("https://tweakers.net/nieuws/1/een.html", nu + 60_000);
+        alsWv.haal("https://tweakers.net/nieuws/2/twee.html", nu + 60_000);
+        check(namen.equals(Arrays.asList(wvUa, wvUa)), "lukt het met de WebView-naam: geen tweede poging");
+        for (int code : new int[]{403, 404, 503}) {
+            namen.clear();
+            String fout = null;
+            try {
+                Nieuws.web((url, tot, ua) -> { namen.add(ua); throw new Nieuws.HttpFout(code); }, code == 403 ? null : wvUa).haal("https://tweakers.net/nieuws/1/een.html", nu + 60_000);
+            } catch (Nieuws.HttpFout e) { fout = String.valueOf(e.code); }
+            check(String.valueOf(code).equals(fout) && namen.size() == 1, code + ": geen tweede poging (403 als het al de eigen naam was), de fout gaat door");
+        }
+        namen.clear();
+        try {
+            Nieuws.web((url, tot, ua) -> { namen.add(ua); throw new Nieuws.HttpFout(403); }, wvUa).haal("https://tweakers.net/nieuws/1/een.html", nu + 60_000);
+            check(false, "beide namen geweigerd: een fout");
+        } catch (Nieuws.HttpFout e) { check(e.code == 403 && namen.size() == 2, "beide namen geweigerd: 403, twee pogingen"); }
         gehaald.clear();
         NieuwsFeed.Feed nosf = tweakers();
         Nieuws.beelden("nos", "https://feeds.nos.nl/nosnieuwsalgemeen", nosf, null, System.currentTimeMillis() + 60_000, site);
