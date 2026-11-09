@@ -54,6 +54,19 @@ public class RijbewijsTest {
         r=read("AM 01.03.1997 01.03.2027","B 12.05.2001 12.05.2031",line);
         check(r!=null&&!r.getJSONObject("persoon").has("geboortedatum")&&!r.getJSONObject("document").has("geldig"),"achterkant (geen titel): geen datums per categorie als geboorte of geldig");
         check(Rijbewijs.term("2014-11-01","2024-11-01")&&Rijbewijs.term("2014-11-01","2024-10-31")&&Rijbewijs.term("2020-02-29","2030-02-28")&&!Rijbewijs.term("2014-11-01","2021-11-01"),"looptijd 5/10/15 jaar, ook een dag eerder");
+        // Afgiftedatum zonder leesbaar "4a." (echte foto): de datum die precies 10 jaar voor veld 4b ligt, als twijfel
+        r=read("RIJBEWIJS","1. DE VRIES","2. ANNA","3. 17.02.1981 AMSTERDAM","01.11.2014 4c. BURG. VAN AMSTERDAM","4b. 01.11.2024","5. 5094962111");
+        d=r.getJSONObject("document");
+        check(d.getString("afgifte").equals("2014-11-01")&&d.getString("geldig").equals("2024-11-01")&&d.getString("afgegevenDoor").equals("BURG. VAN AMSTERDAM"),"afgifte uit de datum 10 jaar voor geldig tot");
+        check(r.getJSONArray("twijfel").toString().contains("afgifte")&&!r.getJSONArray("twijfel").toString().contains("geldig"),"afgeleide afgifte als twijfel, gelezen veld 4b niet");
+        r=read("1. DE VRIES","2. ANNA","3. 17.02.1981","4a. O1.11.2014","01.11.2014","4b. 31.10.2024","5. 5094962111");
+        check(r!=null&&r.getJSONObject("document").getString("afgifte").equals("2014-11-01"),"zonder titel, veld 4a onleesbaar: afgifte een dag voor 10 jaar terug");
+        r=read("RIJBEWIJS","1. DE VRIES","3. 17.02.1981","4a, 01.11.2014","5. 5094962111");
+        check(r.getJSONObject("document").getString("afgifte").equals("2014-11-01")&&!r.getJSONArray("twijfel").toString().contains("afgifte"),"veldnummer met een komma (zo leest de herkenning de punt soms)");
+        r=read("RIJBEWIJS","1. DE VRIES","3. 17.02.1981","4a. 01.11.2014","01.11.2024","5. 5094962111");
+        check(r.getJSONObject("document").getString("geldig").equals("2024-11-01")&&r.getJSONArray("twijfel").toString().contains("geldig"),"en andersom: geldig tot uit de afgifte");
+        r=read("RIJBEWIJS","1. DE VRIES","3. 17.02.1981","4b. 01.11.2024","01.11.2017","5. 5094962111");
+        check(!r.getJSONObject("document").has("afgifte"),"een datum die geen 5, 10 of 15 jaar ervoor ligt, wordt geen afgifte");
         Rijbewijs.Stand st=new Rijbewijs.Stand();Rijbewijs.read(card("WINKELBON","TOTAAL 12,50"),"2026-11-08",st);check(st.regels==2&&!st.rijbewijs&&!st.onderregel,"stand: tekst gelezen, geen rijbewijs");
         // Samenvoegen van twee lezingen: wat ontbreekt aanvullen, zeker gaat voor twijfel
         JSONObject a1=read("RIJBEWIJS","1. DE VRIES","3. 17.02.1981","5. 5094962111"),b1=read("RIJBEWIJS","4b. 01.11.2024","3. 17.02.1981","D1NLD150949621115M2Z6KC47X2W71");

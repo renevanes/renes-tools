@@ -78,10 +78,12 @@ leest ze en controleert ook de voorbeelden uit ICAO 9303.
   worden op cijferplekken als cijfer gelezen; het controlecijfer beslist.
 - **Zonder veldnummers** (de kleine "4a.", "4b.", "5." worden op foto's vaak niet gelezen): de afgifte- en einddatum liggen 5,
   10 of 15 jaar uit elkaar (dezelfde dag of een dag eerder), de geboortedatum ligt minstens 16 jaar daarvoor; een los nummer
-  van 10 cijfers is het rijbewijsnummer. Alleen als het een rijbewijs is (titel of leesregel; datums alleen met de titel, want
-  op de achterkant staan datums per categorie), en altijd als twijfel (uitgevinkt).
-- **Lezen** (`RijbewijsOcr`): gewoon in vier draaiingen; ontbreekt nummer, einddatum of geboortedatum, dan nog eens op een
-  zwart-wit-versie (drempel per buurt, tegen het achtergrondpatroon). *Grondiger proberen* (`masterPhotoRescan`, tot ±70 s):
+  van 10 cijfers is het rijbewijsnummer. Alleen als het een rijbewijs is (titel of leesregel; datums alleen met de titel of
+  een gelezen "4a."/"4b.", want op de achterkant staan datums per categorie), en altijd als twijfel (uitgevinkt).
+  Is maar één van de twee datumvelden gelezen (vaak 4b wel en 4a niet), dan is de datum die er precies 5, 10 of 15 jaar
+  vandaan ligt de andere (ook als twijfel). Een veldnummer met een komma ("4a,") telt ook.
+- **Lezen** (`RijbewijsOcr`): gewoon in vier draaiingen; ontbreekt nummer, einddatum, geboortedatum of afgiftedatum, dan nog
+  eens op een zwart-wit-versie (drempel per buurt, tegen het achtergrondpatroon). *Grondiger proberen* (`masterPhotoRescan`, tot ±70 s):
   ook vergroot met opgerekt contrast en als één tekstblok. Lezingen worden samengevoegd (`Rijbewijs.merge`).
 - **Hulp bij mislukken** (blok Foto's, `#cmh-hulp`): wat er gebeurde (geen tekst, tekst maar geen document, rijbewijs zonder
   leesbare velden), tips die bij de foto passen (onscherp, donker, schittering, de regel D1NLD niet op de foto, te lang) en

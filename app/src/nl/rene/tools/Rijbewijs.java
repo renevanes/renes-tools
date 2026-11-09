@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 /** Gewone gedrukte velden van een Europees rijbewijs. Geen afleiding van BSN of correctie van persoonsnamen. */
 final class Rijbewijs {
     private Rijbewijs() { }
-    static final Pattern LABEL = Pattern.compile("(?i)(?<![A-Za-z0-9.,])(4\\s*[abc]|[12359])(?:\\s*[.:)]\\s*|\\s+)");
+    static final Pattern LABEL = Pattern.compile("(?i)(?<![A-Za-z0-9.,])(4\\s*[abc]|[12359])(?:\\s*[.:),]\\s*|\\s+)");
     static final Pattern DATE = Pattern.compile("(?<![A-Za-z0-9])([0-3]?[0-9])[. /-]([01]?[0-9])[. /-]((?:19|20)[0-9]{2})(?![A-Za-z0-9])");
     static final class Line {
         final String text; final float confidence; final int left, top, right, bottom;
@@ -100,6 +100,11 @@ final class Rijbewijs {
         String[] bottom=bottomLine(texts);
         boolean title=header.matches(".*(?:RIJBEW[IJ1L]{1,2}[JS]|DRIVINGLICEN[CS]E|FUHRERSCHEIN|PERMISDECONDUIRE).*"),licence=bottom!=null||title;
         if(stand!=null){stand.rijbewijs=licence;stand.onderregel=bottom!=null;}
+        // Datums van de voorkant (titel of veld 4a/4b gelezen): op de achterkant staan datums per categorie, die zijn geen
+        // afgifte, einddatum of geboorte.
+        List<String> dates=new ArrayList<>();
+        if(title||labels.contains("4a")||labels.contains("4b"))for(String text:texts){Matcher m=DATE.matcher(text);while(m.find()){String d=date(m.group());if(!d.isEmpty()&&!dates.contains(d))dates.add(d);}}
+        java.util.Collections.sort(dates);
         JSONObject doc=new JSONObject().put("documentsoort","rijbewijs"),person=new JSONObject(),confidence=new JSONObject();Set<String> doubtful=new LinkedHashSet<>();int count=0;
         for(Map.Entry<String,Field> entry:fields.entrySet()) {
             String label=entry.getKey(),key="",value="";boolean personal=false;Field f=entry.getValue();
@@ -134,9 +139,6 @@ final class Rijbewijs {
                 if(numbers.size()==1){doc.put("document",numbers.iterator().next());confidence.put("document",50);doubtful.add("document");count++;}
             }
             // Datums zonder (leesbaar) veldnummer: afgifte en geldig tot liggen 5 of 10 jaar uit elkaar; de geboortedatum ruim ervoor.
-            // Alleen met de titel (voorkant): op de achterkant staan datums per categorie, die zijn geen afgifte of geboorte.
-            List<String> dates=new ArrayList<>();if(title)for(String text:texts){Matcher m=DATE.matcher(text);while(m.find()){String d=date(m.group());if(!d.isEmpty()&&!dates.contains(d))dates.add(d);}}
-            java.util.Collections.sort(dates);
             if(!doc.has("geldig")&&!labels.contains("4b")) {
                 String[] pair=null;
                 for(int a=0;a<dates.size();a++)for(int b=a+1;b<dates.size();b++)if(term(dates.get(a),dates.get(b))&&(pair==null||dates.get(b).compareTo(pair[1])>0))pair=new String[]{dates.get(a),dates.get(b)};
@@ -149,6 +151,17 @@ final class Rijbewijs {
                 String first=doc.optString("afgifte",doc.optString("geldig",today));
                 for(String d:dates)if(d.compareTo(today)<0&&yearsBetween(d,first)>=16){person.put("geboortedatum",d);confidence.put("geboortedatum",50);doubtful.add("geboortedatum");count++;break;}
             }
+        }
+        // Eén van de twee datums wel gelezen, de andere niet (bijv. "4a." onleesbaar): de datum die er precies 5, 10 of 15 jaar
+        // vandaan ligt, als twijfel.
+        if(!doc.has("afgifte")&&doc.has("geldig")) {
+            String to=doc.getString("geldig"),found=null;
+            for(String d:dates)if(d.compareTo(to)<0&&term(d,to))found=d;
+            if(found!=null){doc.put("afgifte",found);confidence.put("afgifte",50);doubtful.add("afgifte");count++;}
+        }
+        if(!doc.has("geldig")&&doc.has("afgifte")) {
+            String from=doc.getString("afgifte");
+            for(String d:dates)if(d.compareTo(from)>0&&term(from,d)){doc.put("geldig",d);confidence.put("geldig",50);doubtful.add("geldig");count++;break;}
         }
         if(!licence&&!(labels.contains("1")&&labels.contains("2")&&labels.contains("3")&&labels.contains("4b")&&labels.contains("5")&&doc.has("document")&&person.has("geboortedatum")))return null;
         boolean sureNumber=bottom!=null&&"ok".equals(bottom[1]);

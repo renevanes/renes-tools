@@ -91,20 +91,20 @@ final class RijbewijsOcr {
             // 2. Zwart-wit (drempel per buurt), in de beste draaiing; grondig: ook vergroot en als één tekstblok
             List<Bitmap> extra=new ArrayList<>();
             // Alleen als het (vermoedelijk) een rijbewijs is, of op verzoek grondig: een ID-kaart zonder strook hoeft dit niet.
-            if(!complete(best)&&running.getAsBoolean()&&(licence||best!=null||thorough)) {
+            if(!full(best)&&running.getAsBoolean()&&(licence||best!=null||thorough)) {
                 int[] turns=thorough&&bestScore<50?new int[]{0,1,2,3}:new int[]{Math.max(0,bestTurn)};
                 for(int turn:turns) {
-                    if(complete(best)||!running.getAsBoolean())break;
+                    if(full(best)||!running.getAsBoolean())break;
                     Bitmap page=turned(image,turn);
                     try {
                         Bitmap bw=binary(page,2000);
                         try{best=pass(api,bw,TessBaseAPI.PageSegMode.PSM_SPARSE_TEXT,today,stand,best);}finally{bw.recycle();}
                         lines=Math.max(lines,stand.regels);licence|=stand.rijbewijs;bottom|=stand.onderregel;
-                        if(thorough&&!complete(best)&&running.getAsBoolean()) {
+                        if(thorough&&!full(best)&&running.getAsBoolean()) {
                             Bitmap big=stretched(page,3200);
                             try{
                                 best=pass(api,big,TessBaseAPI.PageSegMode.PSM_AUTO,today,stand,best);lines=Math.max(lines,stand.regels);licence|=stand.rijbewijs;bottom|=stand.onderregel;
-                                if(!complete(best)&&running.getAsBoolean()){Bitmap bw2=binary(big,3200);try{best=pass(api,bw2,TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK,today,stand,best);}finally{bw2.recycle();}lines=Math.max(lines,stand.regels);licence|=stand.rijbewijs;bottom|=stand.onderregel;}
+                                if(!full(best)&&running.getAsBoolean()){Bitmap bw2=binary(big,3200);try{best=pass(api,bw2,TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK,today,stand,best);}finally{bw2.recycle();}lines=Math.max(lines,stand.regels);licence|=stand.rijbewijs;bottom|=stand.onderregel;}
                             }finally{big.recycle();}
                         }
                     }finally{if(page!=image)page.recycle();}
@@ -122,6 +122,8 @@ final class RijbewijsOcr {
         org.json.JSONArray t=r.optJSONArray("twijfel");
         return d!=null&&p!=null&&d.has("document")&&d.has("geldig")&&p.has("geboortedatum")&&(t==null||!t.toString().contains("\"document\""));
     }
+    /** Ook de afgiftedatum: de kleine "4a." mist vaak in de gewone lezing, de zwart-witversie leest hem dan nog wel eens. */
+    static boolean full(JSONObject r) { return complete(r)&&r.optJSONObject("document").has("afgifte"); }
     private static JSONObject pass(TessBaseAPI api,Bitmap page,int mode,String today,Rijbewijs.Stand stand,JSONObject best)throws Exception {
         List<Rijbewijs.Line> found=ocr(api,page,mode);if(found==null)return best;
         return Rijbewijs.merge(best,Rijbewijs.read(found,today,stand));
