@@ -14,12 +14,33 @@ public final class MasterIdentityTest {
         JSONObject doc=r("doc","identiteit",new JSONObject().put("persoon",me).put("document","SECRET_DOCUMENT")).put("images",new JSONObject().put("front","PRIVATE_IMAGE"));
         JSONArray records=new JSONArray().put(self).put(child).put(rel).put(profile).put(doc);
         check(!MasterIdentity.app(records).has("self"),"zonder toestemming geen gedeelde context");profile.getJSONObject("fields").put("delen","ja");
+        JSONObject pf=profile.getJSONObject("fields");
+        for(String k:new String[]{"aiStatus","aiGeboorte","aiDocumenten","aiWoonplaats","aiContact"})pf.put(k,"nee");
         JSONObject app=MasterIdentity.app(records);String json=app.toString();
         check(app.getJSONObject("self").getString("callname").equals("Aad"),"roepnaam");check(app.getJSONArray("people").getJSONObject(0).getJSONArray("relations").getString(0).equals("dochter"),"gerichte relatie");
-        for(String secret:new String[]{"123456782","1980-01-01","SECRET_DOCUMENT","PRIVATE_IMAGE","document","images","geboortedatum","bsn"})check(!json.contains(secret),"geen identiteit- of geboortedata in app-context: "+secret);
+        for(String secret:new String[]{"123456782","1980-01-01","SECRET_DOCUMENT","PRIVATE_IMAGE","documents","images","geboortedatum","bsn"})check(!json.contains(secret),"vinkjes uit: geen identiteit- of geboortedata in app-context: "+secret);
+        // Standaard (vinkjes leeg): status, geboortedatum, documenten (soort en geldig) en contact wel, woonplaats niet; nooit nummer, BSN of foto
+        for(String k:new String[]{"aiStatus","aiGeboorte","aiDocumenten","aiWoonplaats","aiContact"})pf.remove(k);
+        self.getJSONObject("fields").put("plaats","Rotterdam").put("contact","0r1-ABC");doc.getJSONObject("fields").put("documentsoort","paspoort").put("geldig","2031-05-01");
+        json=MasterIdentity.app(records).toString();
+        check(json.contains("1980-01-01")&&json.contains("paspoort")&&json.contains("2031-05-01")&&json.contains("0r1-ABC")&&!json.contains("Rotterdam"),"standaard: geboortedatum, document en contact, geen woonplaats");
+        for(String secret:new String[]{"123456782","SECRET_DOCUMENT","PRIVATE_IMAGE","images","bsn"})check(!json.contains(secret),"nooit in app-context: "+secret);
+        pf.put("aiWoonplaats","ja");check(MasterIdentity.app(records).toString().contains("Rotterdam"),"woonplaats met vinkje");pf.remove("aiWoonplaats");
+        String withAge=MasterIdentity.prompt(MasterIdentity.app(records),1800,"2026-11-09");
+        check(withAge.contains("\"leeftijd\":46")&&withAge.contains("geldig_tot")&&!withAge.contains("0r1-ABC"),"leeftijd op de dag zelf, documenten, geen contactsleutel in de prompt");
+        check(MasterIdentity.age("1980-11-10","2026-11-09")==45&&MasterIdentity.age("1980-11-09","2026-11-09")==46&&MasterIdentity.age("2000-02-29","2025-02-28")==24&&MasterIdentity.age("x","2026-01-01")==-1,"leeftijd");
         check(MasterIdentity.between(rel,kid,me).equals("ouder"),"omgekeerde relatie zonder geslacht aan te nemen");
         check(MasterIdentity.inverse("noodcontact").isEmpty()&&MasterIdentity.inverse("anders").isEmpty(),"geen omgekeerde betekenis raden");
-        rel.getJSONObject("fields").put("delen","nee");check(MasterIdentity.app(records).getJSONArray("people").length()==0,"ongedeelde relaties blijven binnen de kluis");rel.getJSONObject("fields").put("delen","ja");
+        rel.getJSONObject("fields").put("delen","nee");check(MasterIdentity.app(records).getJSONArray("people").length()==0,"oude indeling: ongedeelde relatie blijft binnen de kluis");
+        records.put(r("rel2","relatie",new JSONObject().put("vanPersoon",me).put("naarPersoon",kid).put("relatie","noodcontact").put("delen","ja")));
+        JSONObject via=MasterIdentity.app(records).getJSONArray("people").getJSONObject(0);
+        check(via.getJSONArray("relations").length()==1&&via.getJSONArray("relations").getString(0).equals("noodcontact")&&!via.toString().contains("Woont bij mij"),"oude indeling: relatie met nee blijft verborgen, ook als de persoon via een andere relatie bekend is");
+        records.remove(records.length()-1);
+        // Nieuwe indeling: Bekend bij de assistent staat bij de persoon en gaat voor
+        child.getJSONObject("fields").put("delen","ja");check(MasterIdentity.app(records).getJSONArray("people").length()==1&&MasterIdentity.known(records).contains(kid),"persoon bekend bij de assistent");
+        check(MasterIdentity.app(records).getJSONArray("people").getJSONObject(0).getJSONArray("relations").getString(0).equals("dochter"),"zelf aangezet: dan ook de relatie die vroeger nee was");
+        rel.getJSONObject("fields").put("delen","ja");child.getJSONObject("fields").put("delen","nee");check(MasterIdentity.app(records).getJSONArray("people").length()==0&&MasterIdentity.known(records).isEmpty(),"persoon niet bekend, ook met een oude gedeelde relatie");
+        child.getJSONObject("fields").remove("delen");check(!MasterIdentity.known(records).contains(me),"jijzelf telt niet als bekende persoon");
         profile.getJSONObject("fields").put("persoon",kid);check(MasterIdentity.app(records).getJSONArray("people").getJSONObject(0).getJSONArray("relations").getString(0).equals("ouder"),"eigen identiteit wijzigen keert perspectief om");
         profile.getJSONObject("fields").put("persoon",me);String prompt=MasterIdentity.prompt(MasterIdentity.app(records),1800);check(prompt.contains("Aad")&&prompt.contains("dochter")&&prompt.contains("geen gezag")&&!prompt.contains("PRIVATE_IMAGE"),"AI-context begrensd en zonder kaartfoto's");
         check(MasterIdentity.prompt(app,20).isEmpty(),"te klein budget deelt geen onvolledige JSON");
@@ -49,15 +70,29 @@ public final class MasterIdentityTest {
             boolean geweigerd=false;try{MasterSchema.clean(new JSONObject().put("type","relatie").put("label","x").put("fields",new JSONObject(rel.getJSONObject("fields").toString()).put("relatie",fout[0]).put("status",fout[1])));}catch(MasterError e){geweigerd=true;}
             check(geweigerd,"status "+fout[1]+" past niet bij "+fout[0]);
         }
-        // De status blijft in de kluis: niet in de gedeelde app-context of de AI-context
+        // De status: met het vinkje Status in de gedeelde app-context en de AI-context (als woorden), zonder vinkje niet
         rel.getJSONObject("fields").put("relatie","partner").put("status","samenwonend");
-        String gedeeld=MasterIdentity.app(records).toString();check(gedeeld.contains("partner")&&!gedeeld.contains("samenwonend"),"status niet in de gedeelde app-context");
-        check(!MasterIdentity.prompt(MasterIdentity.app(records),4000).contains("samenwonend"),"status niet in de AI-context");
-        // Overzicht van Stamgegevens: bij een relatie wie met wie en welke relatie, niet de status of toelichting; andere onderdelen zien dat niet
+        String gedeeld=MasterIdentity.app(records).toString();check(gedeeld.contains("partner")&&gedeeld.contains("samenwonend"),"status in de gedeelde app-context");
+        check(MasterIdentity.prompt(MasterIdentity.app(records),4000).contains("samenwonend"),"status in de AI-context");
+        rel.getJSONObject("fields").put("relatie","kind").put("status","geengezag");check(MasterIdentity.prompt(MasterIdentity.app(records),4000).contains("de ouder heeft geen ouderlijk gezag"),"gezag in woorden");
+        rel.getJSONObject("fields").put("relatie","partner").put("status","samenwonend");
+        pf.put("aiStatus","nee");gedeeld=MasterIdentity.app(records).toString();check(gedeeld.contains("partner")&&!gedeeld.contains("samenwonend"),"vinkje Status uit: niet in de app-context");pf.remove("aiStatus");
+        // Relaties tussen twee anderen die allebei bekend zijn
+        String opa="33333333-3333-3333-3333-333333333333";JSONObject grandpa=r(opa,"persoon",new JSONObject().put("naam","Opa").put("roepnaam","Piet").put("delen","ja"));
+        JSONObject link=r("link","relatie",new JSONObject().put("vanPersoon",opa).put("naarPersoon",kid).put("relatie","kleindochter"));
+        child.getJSONObject("fields").put("delen","ja");JSONArray more=new JSONArray(records.toString()).put(grandpa).put(link);
+        JSONObject linked=MasterIdentity.app(more);check(linked.getJSONArray("links").getJSONObject(0).getString("van").equals("Piet")&&linked.getJSONArray("links").getJSONObject(0).getString("relatie").equals("kleindochter"),"relatie tussen anderen");
+        check(MasterIdentity.prompt(linked,4000).contains("kleindochter"),"relatie tussen anderen in de prompt");
+        grandpa.getJSONObject("fields").put("delen","nee");check(!MasterIdentity.app(new JSONArray(records.toString()).put(grandpa).put(link)).has("links"),"niet bekend: geen relatie tussen anderen");
+        child.getJSONObject("fields").remove("delen");
+        // Overzicht van Stamgegevens: bij een relatie wie met wie, welke relatie en de status, niet de toelichting; andere onderdelen zien dat niet
         JSONObject sum=MasterStore.listed(rel.put("revision",3),"masterdata");
-        check(sum.getString("van").equals(me)&&sum.getString("naar").equals(kid)&&sum.getString("relatie").equals("partner")&&!sum.toString().contains("samenwonend")&&!sum.toString().contains("Woont bij mij"),"relatie in het overzicht zonder status en toelichting");
+        check(sum.getString("van").equals(me)&&sum.getString("naar").equals(kid)&&sum.getString("relatie").equals("partner")&&sum.getString("status").equals("samenwonend")&&!sum.toString().contains("Woont bij mij"),"relatie in het overzicht met status, zonder toelichting");
         check(!MasterStore.listed(rel,"formulieren").has("van")&&!MasterStore.summary(rel).has("relatie"),"relatievelden alleen in het overzicht van Stamgegevens, niet bij lezen of in andere onderdelen");
-        check(!MasterStore.listed(self.put("revision",1),"masterdata").has("van"),"persoon in het overzicht zonder relatievelden");
+        JSONObject listedSelf=MasterStore.listed(self.put("revision",1),"masterdata",MasterIdentity.known(records));
+        check(!listedSelf.has("van")&&listedSelf.getBoolean("contact")&&!listedSelf.toString().contains("0r1-ABC")&&!listedSelf.getBoolean("bekend"),"persoon in het overzicht: gekoppeld ja/nee, niet de sleutel");
+        JSONObject listedDoc=MasterStore.listed(doc.put("revision",1),"masterdata");check(listedDoc.getInt("fotos")==1&&!listedDoc.toString().contains("SECRET_DOCUMENT")&&!listedDoc.toString().contains("PRIVATE_IMAGE"),"document in het overzicht: aantal foto's, geen nummer of foto");
+        check(!MasterStore.listed(doc,"formulieren").has("fotos")&&!MasterStore.listed(self,"formulieren").has("contact"),"extra overzichtsgegevens alleen in Stamgegevens");
         System.out.println("Profiel, delen, gerichte relaties en veilige AI-context gecontroleerd");
     }
 }

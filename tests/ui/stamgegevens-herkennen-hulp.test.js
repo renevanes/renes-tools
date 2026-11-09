@@ -4,16 +4,18 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
 (async()=>{const b=await chromium.launch(),errors=[];
 for(const colorScheme of ['light','dark']){
   const p=await b.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));
-  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);
+  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);const T=require('./_stamtabs')(p);
   await p.evaluate(()=>{
     Android._cm.records=[{id:'owner',type:'persoon',label:'Rene',revision:1,fields:{naam:'van Es',voornamen:'Rene'}}];
     Android._cm.herkend=null;Android._cm.diag={regels:14,rijbewijs:true,onderregel:false,onscherp:true};
     show('masterdata');
   });
   await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
-  await p.evaluate(()=>cmEdit('owner','documenten'));await p.waitForFunction(()=>cm.edit?.id==='owner');
-  // 1. Foto herkennen, niets gevonden: naar Foto's, met uitleg en tips (onscherp, de regel onderaan, grondiger proberen).
-  await p.click('#cmh-scan');
+  // 1. Rijbewijs toevoegen met een foto, niets gevonden: naar Foto's, met uitleg en tips (onscherp, de regel onderaan, grondiger proberen).
+  await T.kaart('owner');await p.click('#cmc-doc-add');await p.waitForSelector('#sheet.on');
+  await p.getByRole('button',{name:'Rijbewijs',exact:true}).click();await p.waitForFunction(()=>$('#sheet.on')&&$('#sheet-title').textContent==='Rijbewijs');
+  assert.match(await p.textContent('#sheet-sub'),/voorkant/,'zegt welke kant');
+  await p.getByRole('button',{name:'Foto kiezen',exact:true}).click();
   await p.waitForFunction(()=>cm.edit?.type==='identiteit'&&cm.tab==='fotos'&&!$('#cmh-hulp').hidden);
   assert.match(await p.textContent('#cmh-hulp-tekst'),/rijbewijs is herkend/);
   const tips=await p.textContent('#cmh-hulp-tips');
@@ -39,11 +41,13 @@ for(const colorScheme of ['light','dark']){
   await p.waitForFunction(()=>document.activeElement?.id==='cm-field-document');
   assert.equal(await p.isVisible('#cmh-hulp'),false);
   // 4. Een gewone kaartfoto zonder strook (geen rijbewijs) geeft geen foutmelding.
+  const doc=await p.evaluate(()=>cm.edit.id);
   await p.evaluate(()=>{Android._cm.diag={regels:5,rijbewijs:false};cmTab('fotos');cmiPhotoPick('back');});
-  await p.waitForFunction(()=>/Kaartfoto opgeslagen/.test($('#cm-edit-status').textContent));
-  assert.equal(await p.isVisible('#cmh-hulp'),false,'geen hulp bij een gewone kaartfoto');
+  await p.waitForFunction(doc=>current==='cmkaart'&&cmc.rec?.id===doc&&/Kaartfoto opgeslagen/.test($('#cm-kaart-status').textContent),doc);
+  assert.equal(await p.evaluate(()=>cmh.hulp),null,'geen hulp bij een gewone kaartfoto');
   // 5. Vergrendelen wist de hulp.
-  await p.evaluate(()=>{cmh.hulp={doc:cm.edit.id,diag:{}};cmhHulpRender();Android.masterLock();});await p.waitForFunction(()=>!cmOpen());
+  await T.blok(doc,'fotos');await p.evaluate(()=>{cmh.hulp={doc:cm.edit.id,diag:{}};cmhHulpRender();});assert.equal(await p.isVisible('#cmh-hulp'),true);
+  await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!cmOpen());
   assert.equal(await p.evaluate(()=>cmh.hulp===null&&$('#cmh-hulp').hidden),true);
   await p.close();
 }

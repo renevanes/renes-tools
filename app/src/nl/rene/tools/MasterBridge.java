@@ -55,6 +55,9 @@ public class MasterBridge extends BankBridge {
                                 token=a.masterSession.open();
                             }
                             MasterStore.unlock(ctx,key,a.masterSession,token);a.masterSession.require(token);MasterKeys.markReady();
+                            // Lukt het niet, dan blijft de tekst staan en biedt Aandacht nodig het aan; ontgrendelen gaat gewoon door.
+                            // De Play-versie heeft geen assistent: daar blijft de tekst in Stamgegevens.
+                            if(PlayPolicy.allows(ctx,"ai"))try{MasterStore.aboutMove(ctx,key,a.masterSession,token,"vanzelf");}catch(Throwable later){ }
                             MasterStore.refreshContext(ctx,key,a.masterSession,token);
                         }
                         a.masterSession.require(token);if(!a.masterForeground||auth!=a.masterAuthSerial.get())throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
@@ -105,14 +108,17 @@ public class MasterBridge extends BankBridge {
             a.masterPhotos.pick(token,id,revision,side,request);result.put("picking",true);
         }catch(Throwable e){try{result.put("error",why(e)).put("locked",!a.masterSession.accepts(token));}catch(Exception ignored){ }}reply(request,token,result);},"master-photo-pick").start();
     }
-    /** Herkennen uit foto, voor een bestaande persoon: kiezen; na ontgrendelen een nieuw document met de foto als bijlage en voorstellen. */
-    @JavascriptInterface public void masterScanPick(String token,String person,String request){
+    /**
+     * Document toevoegen begint met een foto, voor een bestaande persoon: kiezen; daarna een nieuw document (soort zoals gekozen,
+     * of zoals herkend uit de strook) met de foto als bijlage en voorstellen.
+     */
+    @JavascriptInterface public void masterScanPick(String token,String person,String soort,String request){
         if(request==null||request.length()>100)return;
         new Thread(()->{JSONObject result=new JSONObject();try{
             if(!a.masterForeground)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
             a.masterSession.require(token);SecretKey key=MasterKeys.authenticated(ctx);
             MasterStore.scanStart(ctx,key,a.masterSession,token,person);a.masterSession.require(token);
-            a.masterPhotos.pick(token,person,0,"scan",request);result.put("picking",true);
+            a.masterPhotos.pick(token,person,0,"scan",request,soort==null?"":soort);result.put("picking",true);
         }catch(Throwable e){try{result.put("error",why(e)).put("locked",!a.masterSession.accepts(token));}catch(Exception ignored){ }}reply(request,token,result);},"master-scan-pick").start();
     }
     /** Gegevens herkennen vanaf de bewaarde kaartfoto van een document (op de telefoon, niets gaat weg). */
@@ -158,6 +164,31 @@ public class MasterBridge extends BankBridge {
             if(value.equals(token+"\nidcopy")){a.masterIdBound=true;return true;}
             return false;
         }
+    }
+    /** Een contact kiezen om aan een persoon te koppelen; het antwoord komt via onMasterContactPicked (zie MasterContacts.Pick). */
+    @JavascriptInterface public void masterContactPick(String token,String request){
+        if(request==null||request.length()>100)return;
+        a.h.post(()->{
+            try{
+                if(Updater.isPlayPackage(ctx.getPackageName()))throw new MasterError(PlayPolicy.UNAVAILABLE);
+                if(!a.masterForeground||!a.masterSession.accepts(token))throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
+                a.masterContacts.start(token,request);
+            }catch(Throwable e){try{a.js("onMasterContactPicked",new JSONObject().put("request",request).put("token",token).put("error",why(e)).toString());}catch(Exception ignored){ }}
+        });
+    }
+    /** Vanaf het visitekaartje: bel (kiesscherm, Tools belt zelf niet), bericht of contact (Contacten openen). */
+    @JavascriptInterface public void masterContactAction(String token,String id,String what,String request){
+        work(token,request,key->{
+            JSONObject r=MasterStore.contactUse(ctx,key,a.masterSession,token,id,what);
+            android.content.Intent i=MasterContacts.intent(ctx,r.optString("contact"),r.optString("telefoon"),what);
+            if(i==null)throw new MasterError("contact".equals(what)?Taal.T("Deze persoon is niet aan een contact gekoppeld"):Taal.T("Geen telefoonnummer bekend"));
+            a.h.post(()->{try{a.startActivity(i);}catch(Throwable e){android.widget.Toast.makeText(a,Taal.tx(a,"Geen app gevonden om dit te openen"),android.widget.Toast.LENGTH_SHORT).show();}});
+            return new JSONObject().put("ok",true);
+        });
+    }
+    /** Tekst over jezelf naar Over mij bij de assistent ("verplaats") of weghalen ("wis"). */
+    @JavascriptInterface public void masterAboutMove(String token,String mode,String request){
+        work(token,request,key->{if(!"wis".equals(mode)&&!PlayPolicy.allows(ctx,"ai"))throw new MasterError(PlayPolicy.UNAVAILABLE);JSONObject r=MasterStore.aboutMove(ctx,key,a.masterSession,token,mode);if(r.optBoolean("moved"))refreshIdentity(key,token,r);return r;});
     }
     @JavascriptInterface public void masterAudit(String token,long before,String request){work(token,request,key->MasterStore.audit(ctx,key,a.masterSession,token,before));}
     @JavascriptInterface public void masterReleaseForm(){a.masterFormBound=false;}

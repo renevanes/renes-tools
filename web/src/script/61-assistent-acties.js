@@ -31,7 +31,8 @@ const AI_CMD = {
   slaap: { icon: 'moon', title: 'Slaappraat starten?', btn: 'Starten' },
   open: { icon: 'external', title: 'Openen?', btn: 'Openen' },
   sms: { icon: 'message', title: 'Sms klaarzetten?', btn: 'Klaarzetten in Berichten' },
-  wa: { icon: 'message', title: 'WhatsApp-bericht klaarzetten?', btn: 'Klaarzetten in WhatsApp' }
+  wa: { icon: 'message', title: 'WhatsApp-bericht klaarzetten?', btn: 'Klaarzetten in WhatsApp' },
+  bel: { icon: 'phone', title: 'Bellen?', btn: 'Nummer klaarzetten' }
 };
 function aiDur(s){
   s = Math.round(+s || 0); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
@@ -124,6 +125,7 @@ function aiCmdFor(q){
       return { text: t('Zal ik **{naam}** openen?', { naam: t(tt) }), cmd: a };
     }
     case 'sms': case 'wa': return aiCmdMsg(a);
+    case 'bel': return aiCmdCall(a);
   }
   return null;
 }
@@ -137,14 +139,26 @@ function aiCmdRadioAlarm(min, noTime){
   if (!items.length) return { text: z ? t('De **Radiowekker** staat al aan om {tijd}, met {zender}.', { tijd: fmtHm(setGet(tijd)), zender: z }) : t('De **Radiowekker** staat al aan om {tijd}.', { tijd: fmtHm(setGet(tijd)) }), set: { open: ['wekker.tijd'] } };
   return { text: (z ? t('Met de radio wakker worden doet de **Radiowekker** van Tools (zender: {zender}).', { zender: z }) : t('Met de radio wakker worden doet de **Radiowekker** van Tools.')) + ' ' + (noTime ? t('Welke tijd? Zeg bijvoorbeeld "zet de wekker op 07:30".') : t('Bevestig hieronder met Toepassen.')), set: noTime ? { open: ['wekker.tijd'] } : { items } };
 }
-/* Een bericht: aan wie (alleen uit je eigen contacten, met het nummer erbij) en welke tekst */
-function aiCmdMsg(a){
+/* Aan wie: wie de assistent uit Stamgegevens kent ("mama", "mijn dochter") of je eigen contacten, met het nummer erbij */
+function aiCmdWho(a){
   if (!a.number && a.to) {
     const r = rdJson(Android.aiContact(a.to), []);
     if (r && r.perm === false) a.noPerm = true;
     else if (Array.isArray(r) && r.length) { a.choices = r.slice(0, 6); a.number = r[0].number; a.toName = r[0].name; a.pick = 0; }
   }
   if (!a.toName) a.toName = a.to || a.number || '';
+}
+/* Bellen: de telefoon-app opent met het nummer; bellen doe je daar zelf */
+function aiCmdCall(a){
+  aiCmdWho(a);
+  let tt = a.to ? t('Ik kan de telefoon-app openen met het nummer van **{naam}**. Bellen doe je daar zelf.', { naam: a.toName }) : t('Ik kan de telefoon-app openen met **{nummer}**. Bellen doe je daar zelf.', { nummer: a.number });
+  if (a.noPerm) tt += ' ' + t('Om {naam} in je contacten op te zoeken, heb ik toegang tot je contacten nodig; of vul hieronder een nummer in.', { naam: a.to });
+  else if (!a.number && a.to) tt += ' ' + t('Ik vind {naam} niet in je contacten: vul hieronder een nummer in.', { naam: a.to });
+  return { text: tt, cmd: a };
+}
+/* Een bericht: aan wie (alleen uit je eigen contacten, met het nummer erbij) en welke tekst */
+function aiCmdMsg(a){
+  aiCmdWho(a);
   const app = a.type === 'wa' ? 'WhatsApp' : 'Berichten';
   let tt = a.toName ? t(a.type === 'wa' ? 'Ik kan een WhatsApp-bericht aan **{naam}** klaarzetten in {app}. Versturen doe je daar zelf.' : 'Ik kan een sms aan **{naam}** klaarzetten in {app}. Versturen doe je daar zelf.', { naam: a.toName, app: t(app) }) : t(a.type === 'wa' ? 'Ik kan een WhatsApp-bericht klaarzetten in {app}. Versturen doe je daar zelf.' : 'Ik kan een sms klaarzetten in {app}. Versturen doe je daar zelf.', { app: t(app) });
   if (a.noPerm) tt += ' ' + t('Om {naam} in je contacten op te zoeken, heb ik toegang tot je contacten nodig; of vul hieronder een nummer in.', { naam: a.to });
@@ -163,6 +177,7 @@ function aiCmdWhat(a){
     case 'slaap': return t(a.stop ? 'Slaappraat stoppen' : 'Slaappraat starten');
     case 'open': return t(a.name || a.tool);
     case 'sms': case 'wa': return (a.type === 'wa' ? 'WhatsApp' : t('Sms')) + (a.toName ? ' ' + t('aan {naam}', { naam: a.toName }) : '');
+    case 'bel': return a.toName ? t('{naam} bellen', { naam: a.toName }) : tc('actie', 'Bellen');
   }
   return '';
 }
@@ -189,11 +204,13 @@ function aiCmdHtml(m, i){
     if (a.radioOk) extra = '<button class="mini" onclick="aiCmdToRadio(' + i + ')">Met de radio</button>';
   }
   if (a.type === 'slaap' && !a.stop) body += '<p class="note setwarn setinfo">' + uiIcon('info') + esc('Een gesprek met de assistent stopt dan: Slaappraat gebruikt de microfoon.') + '</p>';
-  if (a.type === 'sms' || a.type === 'wa') {
+  if (a.type === 'sms' || a.type === 'wa' || a.type === 'bel') {
     if (a.choices && a.choices.length > 1) body += '<div class="aiactb" role="radiogroup" aria-label="Welk nummer?">' + a.choices.map((c, j) => '<button class="mini' + (j === a.pick ? ' on' : '') + '" role="radio" aria-checked="' + (j === a.pick) + '" onclick="aiCmdPick(' + i + ',' + j + ')">' + esc(c.name + ' · ' + c.number + (c.label ? ' (' + c.label + ')' : '')) + '</button>').join('') + '</div>';
     else if (a.number) body += '<div class="aiactw">' + uiIcon('phone') + '<span>' + esc(a.number) + (a.choices && a.choices[0] && a.choices[0].label ? ' (' + esc(a.choices[0].label) + ')' : '') + '</span></div>';
     if (!a.choices || !a.choices.length) body += '<label class="aiactw"><span>Nummer</span><input type="tel" inputmode="tel" id="aicmd-nr-' + i + '" value="' + esc(a.number || '') + '" placeholder="06…" oninput="aiCmdSet(' + i + ', \'number\', this.value)" autocomplete="off"></label>';
     if (a.noPerm) extra += '<button class="mini" onclick="Android.permRequest(\'contactsread\')">Toegang tot contacten</button>';
+  }
+  if (a.type === 'sms' || a.type === 'wa') {
     body += '<label class="aiactw aimsgtx"><span>Tekst</span><textarea id="aicmd-tx-' + i + '" rows="2" maxlength="1000" oninput="aiCmdSet(' + i + ', \'text\', this.value)">' + esc(a.text || '') + '</textarea></label>';
     extra += '<button class="mini" onclick="aiCmdSwap(' + i + ')">' + (a.type === 'wa' ? 'Via sms' : 'Via WhatsApp') + '</button>';
   }
@@ -302,6 +319,15 @@ function aiCmdDo(i){
       if (!go()) return;
       a.st = 'gedaan'; a.done = '{naam} geopend'; a.doneV = { naam: a.name || a.tool }; a.doneT = ['naam']; a.doneNote = ''; aiCmdRedraw(i); aiSaveChat(aiChat);
       jumpTo(a.tool); return;
+    }
+    case 'bel': {
+      const nr = String(a.number || '').trim();
+      if (!nr) { fail('Vul eerst een telefoonnummer in'); const tt = $('#aicmd-nr-' + i); if (tt) tt.focus(); return; }
+      if (!/^\+?[0-9 ()./-]{4,30}$/.test(nr)) { fail('Dat is geen geldig telefoonnummer'); return; }
+      if (!go()) return;
+      const e = Android.aiDo(JSON.stringify({ type: 'bel', number: nr })); if (e) { fail(e); return; }
+      a.done = a.to ? 'Nummer van {naam} klaargezet' : 'Nummer klaargezet'; a.doneV = { naam: a.toName || '' };
+      a.doneNote = 'Bellen doe je zelf in de telefoon-app.'; a.undo = null; break;
     }
     case 'sms': case 'wa': {
       const text = String(a.text || '').trim();

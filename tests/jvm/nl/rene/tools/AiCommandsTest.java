@@ -133,6 +133,38 @@ public class AiCommandsTest {
         check("Ik ben het niet vergeten".equals(AiCommands.mainClause("ik het niet vergeten ben")) && "Het gaat goed".equals(AiCommands.mainClause("het goed gaat"))
                 && "Morgen kan niet".equals(AiCommands.mainClause("morgen kan niet")), "dat-zin naar een gewone zin");
 
+        // Bellen: alleen de kiezer met het nummer
+        c = p("bel Jos");
+        check(c != null && "bel".equals(c.type) && "Jos".equals(c.to) && c.number.isEmpty(), "bel Jos");
+        c = p("bel even met mijn dochter");
+        check(c != null && "bel".equals(c.type) && "Mijn dochter".equals(c.to), "bel even met mijn dochter");
+        c = p("bel 06-12345678");
+        check(c != null && "bel".equals(c.type) && "0612345678".equals(c.number) && c.to.isEmpty(), "bel een nummer");
+        c = p("Kun je Piet bellen?");
+        check(c != null && "bel".equals(c.type) && "Piet".equals(c.to), "kun je Piet bellen");
+        check(p("Onbekende bellen") == null && p("ik ga mama bellen") == null, "X bellen: alleen met een bekende naam, niet over jezelf");
+        check(p("bel me over 5 minuten") == null && p("bel me terug") == null && p("bel 112") == null && p("wie moet ik bellen") == null, "geen opdracht: bel me, alarmnummer, vraag");
+        c = p("bel mama");
+        check(c != null && "bel".equals(c.type) && "Mama".equals(c.to), "bel mama (de naam zoekt AiBridge)");
+
+        // Wie de assistent kent: op naam, roepnaam of voornaam, dan op relatie
+        try {
+            org.json.JSONObject app = new org.json.JSONObject("{\"people\":["
+                    + "{\"name\":\"Zoë Anna van Es\",\"callname\":\"Zoë\",\"relations\":[\"dochter\"],\"contact\":\"k1\"},"
+                    + "{\"name\":\"Ria Jansen\",\"callname\":\"Ria Jansen\",\"relations\":[\"ouder\"]},"
+                    + "{\"name\":\"Piet de Boer\",\"callname\":\"Piet de Boer\",\"relations\":[\"vriend\"]},"
+                    + "{\"name\":\"Kees\",\"callname\":\"Kees\",\"relations\":[\"partner\"]}]}");
+            java.util.function.Function<String, String> who = q -> { StringBuilder b = new StringBuilder(); for (org.json.JSONObject x : AiCommands.people(app, q)) b.append(b.length() > 0 ? "," : "").append(x.optString("callname")); return b.toString(); };
+            check("Zoë".equals(who.apply("zoe")) && "Zoë".equals(who.apply("Zoë")) && "Zoë".equals(who.apply("Zoë Anna van Es")), "op roepnaam en naam, zonder accenten");
+            check("Zoë".equals(who.apply("mijn dochter")) && "Zoë".equals(who.apply("m'n dochtertje")) && "Zoë".equals(who.apply("kind")), "mijn dochter, kind");
+            check("Ria Jansen".equals(who.apply("mama")) && "Ria Jansen".equals(who.apply("papa")) && "Ria Jansen".equals(who.apply("ouders")), "mama/papa: anders de ouder");
+            check("Kees".equals(who.apply("mijn man")) && "Piet de Boer".equals(who.apply("mijn vriend")) && "Piet de Boer".equals(who.apply("piet")), "partner, vriend, voornaam");
+            check(who.apply("zoon").isEmpty() && who.apply("oma").isEmpty() && who.apply("").isEmpty() && who.apply(null).isEmpty(), "geen treffer: niet gokken");
+            check(AiCommands.people(null, "mama").isEmpty() && AiCommands.people(new org.json.JSONObject(), "mama").isEmpty(), "zonder gedeelde gegevens: niemand");
+            org.json.JSONObject twee = new org.json.JSONObject("{\"people\":[{\"name\":\"Ria\",\"relations\":[\"moeder\"]},{\"name\":\"Ans\",\"relations\":[\"ouder\"]}]}");
+            check(AiCommands.people(twee, "mama").size() == 1 && "Ria".equals(AiCommands.people(twee, "mama").get(0).optString("name")), "mama: eerst moeder, pas daarna ouder");
+        } catch (Exception e) { check(false, "personen: " + e); }
+
         // Gewone vragen en andere functies blijven ongemoeid
         check(p("Wat is de hoofdstad van Frankrijk?") == null && p("Herinner me morgen om 9 uur aan de vuilnis") == null && p("Onthoud dat ik in Rotterdam woon") == null, "gewone vraag, herinnering, onthouden: geen opdracht");
         check(p("zet de nachtelijke backup aan") == null && p("Vat deze tekst samen") == null, "instelling of tekstopdracht: geen opdracht");

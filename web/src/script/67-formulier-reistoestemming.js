@@ -68,6 +68,9 @@ const FM_REIS_POS = {
   "begeleider1-tekenplaats": [{"page":1,"x":59.528,"y":570.189,"w":158.74,"h":11.339}],
   "begeleider2-datum": [{"page":1,"x":306.508,"y":556.129,"w":56.693,"h":11.339}],
   "begeleider2-tekenplaats": [{"page":1,"x":306.508,"y":570.189,"w":158.74,"h":11.339}],
+  // Boven de handtekeninglijn (y 508); de kop "Handtekening van de begeleider/begeleiders" eindigt op y 455.
+  "begeleider1-handtekening": [{"page":1,"x":59.528,"y":462,"w":141,"h":44,"signature":true}],
+  "begeleider2-handtekening": [{"page":1,"x":306.508,"y":462,"w":148,"h":44,"signature":true}],
 };
 
 function fmReisVeld(id, label, type, required, more){
@@ -90,6 +93,9 @@ function fmReisPersoon(prefix, gever){
   else fields.push(v('relatie',t('Relatie tot het kind')));
   fields.push(v('bsn',t('BSN (optioneel)'),'bsn',false,true),
     v('datum',t('Datum ondertekening'),'date',false,true), v('tekenplaats',t('Plaats ondertekening'),'',false,true));
+  // Alleen je eigen bewaarde handtekening, en alleen bij een begeleider: een toestemminggever tekent zelf.
+  if (!gever) fields.push(Object.assign(v('handtekening',t('Je bewaarde handtekening plaatsen'),'select',false,true),
+    {value:'nee',options:[['nee',t('Nee')],['ja',t('Ja')]],sources:[]}));
   return fields;
 }
 function fmReistoestemming(){

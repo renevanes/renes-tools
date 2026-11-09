@@ -18,10 +18,12 @@ final class MasterFormProfile {
     private MasterFormProfile(){ }
     static final String[] FIELDS={"formulier","kind","kindDocument","alleen","begeleider1","begeleider1Document","begeleider1Relatie",
             "begeleider2","begeleider2Document","begeleider2Relatie","gever1","gever1Document","gever1Instelling",
-            "gever2","gever2Document","gever2Instelling","bsnInvullen"};
+            "gever2","gever2Document","gever2Instelling","bsnInvullen","tekenplaats","handtekening"};
     static final Set<String> FORMS=Collections.unmodifiableSet(new LinkedHashSet<>(Collections.singletonList("reistoestemming")));
     static final List<String> ROLES=Arrays.asList("kind","begeleider1","begeleider2","gever1","gever2");
     static final List<String> CHOICES=Arrays.asList("alleen","bsnInvullen");
+    /** Bij welke begeleider de eigen bewaarde handtekening (PdfSignature) komt; nooit bij een toestemminggever. */
+    static final List<String> SIGNATURE=Arrays.asList("nee","begeleider1","begeleider2");
     interface Lookup{JSONObject get(String id)throws Exception;}
     interface Use{void used(JSONObject record,String role,JSONArray fields)throws Exception;}
     /** Logboek: een gelezen relatie heet net als bij MasterStore.formRelation "relation_use". */
@@ -36,8 +38,11 @@ final class MasterFormProfile {
     }
     static boolean relationField(String key){return "begeleider1Relatie".equals(key)||"begeleider2Relatie".equals(key);}
 
-    /** Controle bij opslaan: verwijzingen bestaan, hebben de juiste soort en documenten horen bij de gekozen persoon. */
-    static void validate(JSONObject fields,Lookup lookup)throws Exception{
+    /**
+     * Controle bij opslaan: verwijzingen bestaan, hebben de juiste soort en documenten horen bij de gekozen persoon.
+     * self = de persoon uit het app-profiel ("Dit ben ik", leeg als die er niet is): de bewaarde handtekening is van hem.
+     */
+    static void validate(JSONObject fields,Lookup lookup,String self)throws Exception{
         if(!FORMS.contains(fields.optString("formulier")))throw new MasterError(Taal.T("Kies voor welk formulier deze vaste gegevens zijn"));
         required(fields);
         for(String key:FIELDS){
@@ -58,6 +63,27 @@ final class MasterFormProfile {
         for(String g:new String[]{"gever1","gever2"})for(String b:new String[]{"begeleider1","begeleider2"}){
             String id=fields.optString(g);if(!id.isEmpty()&&id.equals(fields.optString(b)))throw new MasterError(Taal.T("Een toestemminggever reist niet mee; kies een andere begeleider"));
         }
+        String sign=fields.optString("handtekening");
+        if(sign.isEmpty()||"nee".equals(sign))return;
+        if("ja".equals(fields.optString("alleen")))throw new MasterError(Taal.T("Het kind reist alleen: kies bij je handtekening Nergens"));
+        if(signer(fields).isEmpty())throw new MasterError(Taal.T("Kies voor je handtekening een begeleider die meereist"));
+        ownSignature(fields,self);
+    }
+    /** Je bewaarde handtekening hoort bij jou: staat er een app-profiel, dan alleen bij de begeleider die jij bent. */
+    static void ownSignature(JSONObject f,String self)throws Exception{
+        String role=signer(f);
+        if(!role.isEmpty()&&!self.isEmpty()&&!self.equals(f.optString(role)))throw new MasterError(Taal.T("Je bewaarde handtekening is van jou: kies bij Vaste gegevens → Ondertekenen de begeleider die jij bent"));
+    }
+    /** De persoon uit het app-profiel ("Dit ben ik"), of "". */
+    static String self(JSONArray all)throws Exception{
+        for(int i=0;i<all.length();i++){JSONObject r=all.getJSONObject(i);if("profiel".equals(r.getString("type")))return r.getJSONObject("fields").optString("persoon");}
+        return "";
+    }
+    /** De begeleider bij wie de handtekening komt, of "" als er geen handtekening komt of die begeleider niet meereist. */
+    static String signer(JSONObject f){
+        String role=f.optString("handtekening");
+        if(!role.startsWith("begeleider")||"ja".equals(f.optString("alleen"))||f.optString(role).isEmpty())return "";
+        return role;
     }
 
     /** "jjjj-mm-dd" plus een aantal maanden; de dag schuift terug naar het einde van een kortere maand. */
@@ -124,7 +150,11 @@ final class MasterFormProfile {
         values.put("alleen",alone?"ja":"nee");
         values.put("tweedeBegeleider",!alone&&!f.optString("begeleider2").isEmpty()?"ja":"nee");
         values.put("tweedeGever",f.optString("gever2").isEmpty()?"nee":"ja");
-        use.used(profile,"vast",new JSONArray().put("formulier"));
+        JSONArray vast=new JSONArray().put("formulier");
+        String place=f.optString("tekenplaats"),signer=signer(f);ownSignature(f,self(all));
+        if(!place.isEmpty()&&!alone)vast.put("tekenplaats");
+        if(!signer.isEmpty()){vast.put("handtekening");values.put(signer+"-handtekening","ja");}
+        use.used(profile,"vast",vast);
         String child=f.getString("kind");
         for(String role:ROLES){
             if(alone&&role.startsWith("begeleider"))continue;
@@ -154,12 +184,13 @@ final class MasterFormProfile {
                 if(!name.isEmpty()){values.put(role+"-instelling",name);use.used(org,role,new JSONArray().put("instelling"));}
             }
             if(role.startsWith("begeleider")){
+                if(!place.isEmpty())values.put(role+"-tekenplaats",place);
                 String code=f.optString(role+"Relatie");
                 if(code.isEmpty()){
                     Set<String> found=new LinkedHashSet<>();
                     for(int i=0;i<all.length();i++){
                         JSONObject r=all.getJSONObject(i);
-                        if(!"relatie".equals(r.getString("type"))||!"ja".equals(r.getJSONObject("fields").optString("delen")))continue;
+                        if(!"relatie".equals(r.getString("type")))continue;
                         String c=MasterIdentity.between(r,child,id);if(!c.isEmpty()){found.add(c);relation.read(r,role);}
                     }
                     // Tegenstrijdige relaties: leeg laten, nooit raden.

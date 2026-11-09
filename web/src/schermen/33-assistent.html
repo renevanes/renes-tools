@@ -134,7 +134,6 @@
     <h1 tabindex="-1">Persoonlijk</h1>
   </div>
   <main>
-    <div class="card"><h2>Gedeeld app-profiel</h2><p class="note">De assistent gebruikt ook de namen, relaties en context die je in Stamgegevens deelt.</p><p id="cmi-ai-summary" class="note" translate="no"></p><button class="big ghost" onclick="show('masterdata')">App-profiel en relaties beheren</button></div>
     <div class="card">
       <h2><span class="ui-icon" data-icon="user" aria-hidden="true"></span>Persoonlijk</h2>
       <p class="note">Wat je hier invult, krijgt de assistent bij elke vraag mee. Het blijft op je telefoon. Houd het kort: hoe langer, hoe minder ruimte voor het gesprek.</p>
@@ -145,6 +144,8 @@
       <small class="note" id="aic-count"></small>
       <button class="big" id="aic-save" style="margin-top:10px" onclick="aicSaveText()" disabled>Opslaan</button>
     </div>
+    <p class="hint">Uit Stamgegevens kent de assistent alleen wat je daar kiest: jij, je mensen en hoe jullie bij elkaar horen.</p>
+    <div class="card stlist"><button class="strow" id="aic-stam" onclick="jumpTo('cmai')"><span class="stic"><span class="ui-icon" data-icon="smile" aria-hidden="true"></span></span><span class="sttxt"><b>Wat weet de assistent?</b><small id="cmi-ai-summary" translate="no"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button></div>
   </main>
 </section>
 

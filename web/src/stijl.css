@@ -1174,7 +1174,7 @@ body.talk-on #s-ai main{padding-bottom:200px}
 #cm-picker, #fmq { position:fixed; inset:0; z-index:1900; background:var(--bg); padding:16px; overflow:auto; }
 .cm-pick-box { max-width:680px; margin:auto; }
 #cm-picker[hidden], #fmq[hidden] { display:none; }
-#fmq [hidden], #cm-picker [hidden], #s-masterdata [hidden], #s-cmedit [hidden], #s-cmlog [hidden], #s-cmwis [hidden] { display:none !important; }
+#fmq [hidden], #cm-picker [hidden], #s-masterdata [hidden], #s-cmedit [hidden], #s-cmlog [hidden], #s-cmwis [hidden], #s-cmlijst [hidden], #s-cmkaart [hidden], #s-cmai [hidden] { display:none !important; }
 #fmq .fmq-meer { margin:12px 0; }
 #fmq .fmq-meer summary { min-height:44px; display:flex; align-items:center; color:var(--primary); font-weight:600; cursor:pointer; }
 .cm-event { padding:12px 0; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
@@ -1184,12 +1184,13 @@ body.talk-on #s-ai main{padding-bottom:200px}
 /* Stamgegevens: kaartfoto's blijven binnen het beveiligde scherm. */
 .cmi-actions{flex-wrap:wrap;gap:8px}.cmi-actions .big{flex:1;min-width:130px}
 .cmi-sides{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-.cmi-warn{color:var(--warn);font-weight:600}
+.cmi-warn{color:var(--warn);font-weight:600}#cmi-form-gezag{white-space:pre-line}
 .cmi-side-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.cmi-side-h h4{margin-bottom:4px}.cmi-photo-stand{color:var(--muted);font-size:13px}
 .cmh-panel{background:var(--card);border:1.5px solid var(--primary)}.cmh-panel[hidden]{display:none}.cmh-row{align-items:flex-start;min-height:44px}.cmh-row small{display:block;color:var(--muted)}.cmh-panel h4{margin:12px 0 4px}
 .cmi-zin{margin:12px 0;padding:10px 14px;border-radius:12px;background:var(--tonal);color:var(--on-tonal)}.cmi-zin[hidden]{display:none}
-/* Stamgegevens op de telefoon: korte schermen. Overzicht met filter en Toevoegen-knop, bewerken met tabbladen en een vaste opslaanbalk. */
-#s-masterdata .cm-status:empty,#s-cmedit .cm-status:empty,#s-cmlog .cm-status:empty,#s-cmwis .cm-status:empty{display:none}
+/* Stamgegevens op de telefoon: een beginscherm met rijen, lijsten per soort, visitekaartjes in blokken en bewerken per blok
+ * (één blok per scherm, met een vaste opslaanbalk). */
+#s-masterdata .cm-status:empty,#s-cmedit .cm-status:empty,#s-cmlog .cm-status:empty,#s-cmwis .cm-status:empty,#s-cmlijst .cm-status:empty,#s-cmkaart .cm-status:empty,#s-cmai .cm-status:empty{display:none}
 details.cm-fold>summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;margin:-4px 0}
 details.cm-fold>summary::-webkit-details-marker{display:none}
 .cm-fold-h{flex:1;min-width:0;font-size:16px;font-weight:600}
@@ -1197,23 +1198,43 @@ details.cm-fold>summary small{flex:0 1 auto;max-width:55%;color:var(--muted);fon
 .cm-fold-chev{width:20px;height:20px;flex:none;color:var(--muted);transition:transform .15s}details.cm-fold[open] .cm-fold-chev{transform:rotate(180deg)}
 details.cm-fold[open]>summary{margin-bottom:8px}
 #cm-search{margin-bottom:10px}
-.cm-filter{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}.cm-filter::-webkit-scrollbar{display:none}
-.cm-filter button{flex:none;min-height:44px;white-space:nowrap}
-#cm-list .strow{border-top:1px solid var(--line)}#cm-list .strow:first-child{border-top:0}
-#cm-list .note,#cm-list .empty{margin:0;padding:16px}
-#s-masterdata main{padding-bottom:96px}
-.fab.cm-add{width:auto;min-width:150px;padding:0 20px;font-size:17px;font-weight:700}
-.cm-tabs{position:sticky;top:64px;z-index:12;display:flex;gap:3px;overflow-x:auto;scrollbar-width:none;background:var(--bg);padding:6px 0 10px}
-.cm-tabs::-webkit-scrollbar{display:none}
-.cm-tabs button{flex:1 0 auto;min-height:44px;padding:8px 2px;border-radius:16px;background:var(--hi);color:var(--muted);font-size:14px;font-weight:600;white-space:nowrap}
-.cm-tabs button[aria-selected=true]{background:var(--primary);color:var(--on-primary)}
+#cm-list .note,#cm-lijst .empty{margin:0;padding:16px}
+#cm-add{margin:0 0 16px}
+.cm-kop{font-size:15px;font-weight:600;margin:6px 16px 4px;color:var(--ink)}
+.card:not(.stlist)>.cm-kop{margin:0 0 6px}#cm-aandacht>.cm-kop{margin:12px 16px 0}
+.cm-groep{font-size:13px;font-weight:600;color:var(--muted);margin:12px 16px 2px}.cm-groep+.strow{border-top:0}
+.cm-sw{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 0}
+.cm-sw+.cm-sw,.cm-sw+#cm-ai-soorten{border-top:1px solid var(--line)}
+.cm-sw-t{flex:1;min-width:0}.cm-sw-t b{display:block;font-weight:600;overflow-wrap:anywhere}.cm-sw-t small{display:block;color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+#cm-ai-soorten .cm-kop{margin:12px 0 0}
+.cm-blok-h{font-size:17px;margin:0 0 12px}
+.cmk-start{padding:12px 16px}.cmk-start .cm-kop{margin:0 0 4px}.cmk-start .cmi-actions{margin-top:8px}
+/* Visitekaartje */
+.cmc-top>*{margin:0}.cmc-top>*+*{margin-top:12px}
+.cmc-ik{font-weight:600}
+.cmc-chip{display:inline-flex;align-items:center;gap:8px;max-width:100%;min-height:44px;padding:8px 16px;border-radius:22px;background:var(--chip);color:var(--on-chip);font-size:15px;font-weight:600;text-align:left}
+.cmc-chip span{overflow-wrap:anywhere}.cmc-chip .ui-icon{width:18px;height:18px;flex:none}
+.cmc-acts{flex-wrap:wrap;gap:8px}
+button.mini.cmc-knop{float:none;display:inline-flex;align-items:center;gap:6px;min-height:44px}.cmc-knop .ui-icon{width:18px;height:18px;flex:none}
+.cmc-kop{display:flex;align-items:center;gap:8px;margin:-6px 0 8px}
+.cmc-kop h2{flex:1;min-width:0;margin:0;font-size:17px}
+.cmc-pen{flex:none;width:44px;height:44px;min-width:44px;margin-right:-8px}
+.cmc-rijen{display:grid;grid-template-columns:minmax(92px,max-content) 1fr;gap:8px 14px;margin:0}
+.cmc-rijen dt{color:var(--muted);font-size:14px;padding-top:1px}
+.cmc-rijen dd{margin:0;min-width:0;overflow-wrap:anywhere}.cmc-rijen dd small{display:block;color:var(--muted);font-size:12px}
+.cmc-rijen dd p{margin:0;white-space:pre-wrap}
+.cmc-blok>.hint{margin:0}.cmc-blok>.cmc-knop{margin-top:10px}
+.cmc-blok>.stlist{margin:0 -18px}.cmc-blok>.stlist .strow{min-height:56px;padding:8px 18px}
+.cmc-tekst{margin:8px 0;padding:10px 12px;border-radius:12px;background:var(--bg);white-space:pre-wrap;overflow-wrap:anywhere}
+.cmc-fotos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cmc-foto{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:96px;padding:8px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font-size:14px;text-align:center;overflow:hidden}
+.cmc-foto.leeg{border-style:dashed;color:var(--muted)}.cmc-foto .ui-icon{width:22px;height:22px}
+.cmc-foto img{display:block;width:100%;height:auto;border-radius:8px}.cmc-foto.zoom{grid-column:1/-1}
 .cm-off{display:none!important}
 #cm-editor-card>:first-child .f:first-child{margin-top:0}
 #cm-editor-card .search{margin-bottom:10px}#cm-editor-card .hint{margin-top:-4px}
 .cm-savebar{position:sticky;bottom:0;z-index:12;display:flex;gap:8px;margin:0 -16px -24px;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line)}
 .cm-savebar[hidden]{display:none}.cm-savebar .big{flex:1;margin:0}
-#cmi-person-relation-list{border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden}#cmi-person-relation-list .note{margin:0;padding:14px 16px}
-#cmi-person-relation-list .strow{min-height:56px;padding:8px 12px}#cmi-person-relation-list .sttxt{font-size:15px}
 .cmi-photo-paper{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
 .cmi-photo-paper img{display:block;max-width:100%;height:auto}.cmi-photo-paper.zoom img{max-width:none;width:auto}
 #cmi-shared p{overflow-wrap:anywhere}#cm-fields textarea{resize:vertical}
@@ -1247,6 +1268,3 @@ body.er-reading .speech-player,body.solo .speech-player{bottom:calc(12px + env(s
 
 /* Stamgegevens: hulp als herkennen niet (helemaal) lukt */
 .cmh-hulp{border:1px solid var(--outline);margin:12px 0}.cmh-hulp h3{margin:0 0 6px}.cmh-tips{margin:6px 0 8px;padding-left:20px}.cmh-tips li{margin:4px 0}.cmh-tips:empty{display:none}
-/* Stamgegevens vanuit jou: Ik, Mijn mensen (per groep), Overig */
-.cmk-h{font-size:15px;margin:14px 4px 4px;color:var(--ink)}.cmk-h:first-child{margin-top:4px}.cmk-g{font-size:13px;font-weight:600;color:var(--muted);margin:10px 4px 2px}
-.cmk-start{padding:4px 4px 8px}.cmk-add{padding:6px 4px 2px}

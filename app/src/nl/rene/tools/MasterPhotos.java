@@ -22,19 +22,23 @@ final class MasterPhotos {
     final MainActivity activity;
     private Pending pending;
     MasterPhotos(MainActivity activity){this.activity=activity;}
+    static final java.util.List<String> SOORTEN=java.util.Arrays.asList("","paspoort","identiteitskaart","rijbewijs","verblijfsdocument");
     static final class Pending {
-        final String id,side,request,view;final long revision,dataset;Uri uri;
-        Pending(String id,long revision,String side,String request,String view){this.id=id;this.revision=revision;this.side=side;this.request=request;this.view=view;this.dataset=MasterSession.datasetEpoch();}
+        final String id,side,request,view,soort;final long revision,dataset;Uri uri;
+        Pending(String id,long revision,String side,String request,String view,String soort){this.id=id;this.revision=revision;this.side=side;this.request=request;this.view=view;this.soort=soort;this.dataset=MasterSession.datasetEpoch();}
     }
-    synchronized void pick(String token,String id,long revision,String side,String request)throws Exception {
+    synchronized void pick(String token,String id,long revision,String side,String request)throws Exception {pick(token,id,revision,side,request,"");}
+    /** soort: bij een nieuw document (side "scan") de soort die Rene koos; wat uit de strook herkend wordt, gaat voor. */
+    synchronized void pick(String token,String id,long revision,String side,String request,String soort)throws Exception {
         if(pending!=null)throw new MasterError(Taal.T("Er staat al een kaartfoto klaar; ontgrendel om die op te slaan"));
         if(!side.equals("front")&&!side.equals("back")&&!side.equals("scan"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
-        Pending job=new Pending(id,revision,side,request,activity.masterView);pending=job;
+        if(soort==null||!SOORTEN.contains(soort))throw new MasterError(Taal.T("Kies wat voor document het is"));
+        Pending job=new Pending(id,revision,side,request,activity.masterView,soort);pending=job;
         activity.h.post(()->{
             synchronized(MasterPhotos.this){if(pending!=job)return;}
             if(!activity.masterForeground||!activity.masterSession.accepts(token)||!job.view.equals(activity.masterView)){clear(job);notify(job,false,Taal.T("Ontgrendel de stamgegevens opnieuw"));return;}
             // Zolang de kiezer open is (hooguit 2 minuten) niet op slot: zie MainActivity.masterPickUntil.
-            if(activity.masterSession.accepts(token)){activity.masterPickReturned=false;activity.masterPickUntil=android.os.SystemClock.elapsedRealtime()+MainActivity.MASTER_PICK_MS;activity.h.postDelayed(activity::masterPickExpired,MainActivity.MASTER_PICK_MS+500);}
+            if(activity.masterSession.accepts(token)){activity.masterPickReturned=false;activity.masterPickKind="photo";activity.masterPickUntil=android.os.SystemClock.elapsedRealtime()+MainActivity.MASTER_PICK_MS;activity.h.postDelayed(activity::masterPickExpired,MainActivity.MASTER_PICK_MS+500);}
             Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             try{activity.startActivityForResult(intent,REQUEST);}catch(Throwable e){activity.masterPickUntil=0;clear(job);notify(job,false,Taal.T("Bestandskiezer niet beschikbaar"));}
         });
@@ -82,12 +86,12 @@ final class MasterPhotos {
     }
     /**
      * Nieuw identiteitsdocument bij de persoon, met de foto als bijlage: de strook van een ID-kaart staat op de achterkant,
-     * die van een paspoort op de fotopagina (voorkant). Niets herkend: soort leeg en de foto als voorzijde ("Document …").
+     * die van een paspoort op de fotopagina (voorkant). Niets herkend: de soort die Rene koos en de kant waar de app om vroeg.
      * Herkende gegevens worden niet vanzelf ingevuld; die zijn een voorstel.
      */
     JSONObject scanDocument(SecretKey key,MasterSession session,String token,Pending job,String image,JSONObject found)throws Exception{
-        String soort=found==null?"":found.getJSONObject("document").optString("documentsoort","");
-        String side=found!=null&&"TD1".equals(found.optString("soort"))?"back":"front";
+        String soort=found==null?job.soort:found.getJSONObject("document").optString("documentsoort",job.soort);
+        String side=MasterSchema.scanSide(soort,found);
         JSONObject out=MasterStore.scanCreate(activity,key,session,token,job.id,soort,side,image,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});
         try{MasterStore.refreshContext(activity,key,session,token);}catch(Throwable e){out.put("contextError",Taal.T("Gegevens opgeslagen; de gedeelde app-context kon niet worden ververst"));}
         MainActivity.appIdentityChanged(MasterAppContext.read(activity).toString());

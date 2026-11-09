@@ -675,7 +675,7 @@ final class LocalAi {
         todayF.setTimeZone(Regio.zone(c)); // vandaag in de app-zone (Regio en taal); in de taal van de opdracht
         String today = todayF.format(new java.util.Date());
         String[] p = persFit(cfg(c, "about"), cfg(c, "instr"), ctx);
-        String identity="";try{identity=MasterIdentity.prompt(appIdentity,Math.min(1800,Math.max(400,ctx/3)));}catch(Exception ignored){ }
+        String identity="";try{identity=MasterIdentity.prompt(appIdentity,Math.min(1800,Math.max(400,ctx/3)),Regio.dayKey(c,System.currentTimeMillis()));}catch(Exception ignored){ }
         // App in het Engels (Regio en taal): de opdracht aan het model en de antwoorden in het Engels
         if (en) return buildSystemEn(today, cfg(c, "style"), cfg(c, "lang"), p[0], p[1], mem, note)+identity;
         return buildSystem(today, cfg(c, "style"), cfg(c, "lang"), p[0], p[1], mem, note)+identity;

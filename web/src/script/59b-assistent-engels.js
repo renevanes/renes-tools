@@ -8,6 +8,8 @@
  * Nederlands blijft altijd werken. Getest in tests/ui/ai-engels.test.js (ook zinnen die géén opdracht zijn). */
 /* taal-vast-begin: hier worden Engelse zinnen omgezet naar de Nederlandse opdrachten die de assistent kent */
 const AI_EN_NUM = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, fifteen: 15, twenty: 20, thirty: 30, forty: 40, 'forty-five': 45, sixty: 60, ninety: 90 };
+/* Wat iemand voor je is: "mum" → "mama" (zoals AiCommands.people het kent) */
+const AI_EN_REL = { mum: 'mama', mom: 'mama', mummy: 'mama', mommy: 'mama', mother: 'moeder', dad: 'papa', daddy: 'papa', father: 'vader', parents: 'ouders', parent: 'ouder', daughter: 'dochter', son: 'zoon', child: 'kind', kid: 'kind', wife: 'vrouw', husband: 'man', partner: 'partner', girlfriend: 'vriendin', boyfriend: 'vriend', brother: 'broer', sister: 'zus', grandma: 'oma', granny: 'oma', grandmother: 'oma', grandpa: 'opa', grandfather: 'opa', aunt: 'tante', uncle: 'oom', neighbour: 'buurman', neighbor: 'buurman', colleague: 'collega' };
 /* Engelse namen van tools die niet letterlijk in TOOLS staan */
 const AI_EN_TOOL = { settings: 'instellingen', 'the settings': 'instellingen', assistant: 'assistent', home: 'startscherm', 'home screen': 'startscherm', 'radio alarm': 'radiowekker', 'screen time': 'gebruik', 'sleep talk': 'slaappraat', banking: 'bankzaken', invoices: 'facturen', notes: 'notities', contacts: 'contacten', calls: 'oproepen', devices: 'apparaten', usage: 'gebruik' };
 function aiEnNum(w){ w = String(w || '').trim(); return /^\d+([.,]\d+)?$/.test(w) ? w.replace(',', '.') : AI_EN_NUM[w] != null ? String(AI_EN_NUM[w]) : null; }
@@ -69,6 +71,12 @@ function aiEn(q){
   if ((m = /^play (?:the )?(.+)$/.exec(s))) return 'speel ' + it(m[1]).replace(/ podcast$/, '');
   if (/^(?:start|turn on) sleep talk$/.test(s)) return 'start slaappraat';
   if (/^(?:stop|turn off) sleep talk$/.test(s)) return 'stop slaappraat';
+  // Bellen: "call mum", "ring my daughter", "give Jos a call", "call 0612345678" (de kiezer opent met het nummer)
+  if ((m = /^(?:call|ring|dial) (.+?)(?: up)?$/.exec(s)) || (m = /^give (.+?) a (?:call|ring)$/.exec(s))) {
+    const who = m[1].trim(), rel = AI_EN_REL[who.replace(/^(?:my|our) /, '')];
+    if (/\b(?:me|it|that|this|him|her|them|us|you|back|off|someone|somebody|anyone|a day)\b/.test(who)) return null;
+    return 'bel ' + (rel ? (/^(?:my|our) /.test(who) ? 'mijn ' : '') + rel : who);
+  }
   // Openen
   if ((m = /^(?:open|go to|show(?: me)?|take me to|launch) (?:the |my )?(.+?)(?: screen| tool| app)?$/.exec(s)) && !/\b(that|this|it)\b/.test(m[1])) return 'open ' + aiEnName(m[1]);
   // De tijd ergens anders (alleen antwoorden): "what time is it in Tokyo", "time difference with New York"

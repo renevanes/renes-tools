@@ -22,36 +22,41 @@ for(const colorScheme of ['light','dark']){
   await p.locator('#fmq-geen button',{hasText:'Zelf invullen'}).click();
   assert.equal(await p.evaluate(()=>!fmq.open&&fm.view+' '+fm.step),'stap 0','Zelf invullen opent de eerste stap');
   await p.evaluate(()=>{goBack();Android.masterLock();});await p.waitForFunction(()=>!cmOpen());
-  // 1. Eenmalig instellen vanuit Formulieren: naar Stamgegevens, nieuwe vaste gegevens.
+  // 1. Eenmalig instellen vanuit Formulieren: de lijst Vaste gegevens in Stamgegevens, daar toevoegen.
   await p.evaluate(()=>{openTool('pdf');});await p.getByRole('button',{name:'Formulieren invullen',exact:true}).click();
   assert.equal(await p.isVisible('#fmq-start'),true,'Nieuwe reis invullen is de hoofdknop');assert.equal(await p.isVisible('#pff-start-knop'),false);
   assert.equal(await p.isVisible('#fmq-instellen'),true,'rij Vaste gegevens');assert.equal(await p.isVisible('#pff-werk'),false,'stappen pas na een keuze');
   await p.click('#fmq-instellen');assert.equal(await p.evaluate(()=>current),'masterdata');
-  await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.edit&&cm.edit.type==='formulier');
+  await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&current==='cmlijst'&&cmLijstNu()==='vast');
+  assert.equal(await p.textContent('#cm-lijst-title'),'Vaste gegevens reistoestemming');assert.match(await p.textContent('#cm-lijst'),/Nog geen vaste gegevens/);
+  await p.click('#cm-lijst-add');await p.waitForFunction(()=>cm.edit&&cm.edit.type==='formulier'&&current==='cmedit');
   assert.equal(await p.isVisible('#cmi-form-note'),true);
   assert.equal(await p.evaluate(()=>cm.edit.fields.formulier),'reistoestemming');assert.equal(await p.locator('#cm-field-formulier').count(),0,'één soort formulier: geen keuze in beeld');
   // Opslaan vanaf een ander tabblad terwijl er nog iets ontbreekt: terug naar het tabblad met het veld
-  await p.click('#cm-tab-toestemming');await p.click('#cm-save');await p.waitForFunction(()=>!cm.mutating&&cm.tab==='kind'&&['cm-field-kind','cm-label'].includes(document.activeElement.id));
+  await p.focus('#cm-field-gever1');await p.click('#cm-save');await p.waitForFunction(()=>!cm.mutating&&document.activeElement.id==='cm-field-kind');
   // Alleen personen in de persoonkeuze, alleen documenten van de gekozen persoon.
   assert.deepEqual(await p.$$eval('#cm-field-kind option',o=>o.map(x=>x.textContent)),['Kies een persoon','Zoë <b>','Mama','Papa']);
   await T.select('#cm-field-kind',{label:'Zoë <b>'});
   assert.equal(await p.inputValue('#cm-field-kindDocument'),'00000000-0000-0000-0000-000000000004','enige document vanzelf gekozen');
-  assert.equal(await p.inputValue('#cm-label'),'Reistoestemming Zoë <b>','naam vanzelf ingevuld');
+  assert.equal(await p.evaluate(()=>cmLabel(cm.edit)),'Reistoestemming Zoë <b>','naam vanzelf ingevuld');
   assert.deepEqual(await p.$$eval('#cm-field-kindDocument option',o=>o.map(x=>x.textContent)),['Kies een document','Paspoort Zoë']);
   await T.select('#cm-field-begeleider1',{label:'Papa'});assert.equal(await p.inputValue('#cm-field-begeleider1Document'),'00000000-0000-0000-0000-000000000005');
   await T.select('#cm-field-gever1',{label:'Mama'});assert.equal(await p.inputValue('#cm-field-gever1Document'),'','geen document voor mama');
   await T.select('#cm-field-gever1Instelling',{label:'Instelling'});
   assert.equal(await p.locator('#cm-fields b').count(),0,'namen blijven tekst');
-  await p.click('#cm-save');await p.waitForFunction(()=>$('#cm-editor').hidden&&Android._cm.records.some(r=>r.type==='formulier'));
+  await p.click('#cm-save');await p.waitForFunction(()=>$('#cm-editor').hidden&&Android._cm.records.some(r=>r.type==='formulier')&&current==='cmkaart'&&!cm.navigating);
+  assert.equal(await p.textContent('#cm-kaart-title'),'Reistoestemming Zoë <b>','na opslaan het kaartje');assert.equal(await p.locator('#cm-kaart b b').count(),0);
   // Een gebruikt stamgegeven kun je niet zomaar verwijderen.
   await p.evaluate(()=>{const r=Android._cm.records.find(r=>r.label==='Mama');cmRequest('masterDelete',[r.id,r.revision],()=>{});});
-  await p.waitForFunction(()=>$('#cm-status').textContent.includes('vaste formuliergegevens'));
+  await p.waitForFunction(()=>$('#cm-kaart-status').textContent.includes('vaste formuliergegevens'));
   // 2. Nieuwe reis: alleen reisdagen en bestemming. Na het verlaten van Stamgegevens is alles vergrendeld;
   // het venster vraagt direct om te ontgrendelen (vingerafdruk), zonder extra tik.
+  assert.equal(await p.evaluate(()=>goBack()&&current),'cmlijst','van het kaartje terug naar de lijst');
+  assert.deepEqual(await p.$$eval('#cm-lijst .strow b',x=>x.map(e=>e.textContent)),['Reistoestemming Zoë <b>']);assert.match(await p.textContent('#cm-lijst'),/Nog in te vullen: identiteitsbewijs van de toestemminggever/,'wat nog ontbreekt (mama heeft geen document)');
   assert.equal(await p.evaluate(()=>goBack()&&current),'formulieren','terug uit Stamgegevens gaat naar Formulieren');
   // Nog eens Vaste gegevens openen en zonder wijzigen terug: in één keer terug in Formulieren
-  await p.click('#fmq-instellen');await p.click('#cm-unlock');await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='formulier'&&!!cm.edit.id);
-  assert.equal(await p.evaluate(()=>goBack()&&current),'formulieren','terug vanuit het bewerkscherm meteen naar Formulieren');assert.equal(await p.evaluate(()=>!cm.token),true,'Stamgegevens verlaten vergrendelt');
+  await p.click('#fmq-instellen');await p.click('#cm-unlock');await p.waitForFunction(()=>current==='cmlijst'&&cmOpen()&&document.querySelectorAll('#cm-lijst .strow').length===1);
+  assert.equal(await p.evaluate(()=>goBack()&&current),'formulieren','terug vanuit de lijst meteen naar Formulieren');assert.equal(await p.evaluate(()=>!cm.token),true,'Stamgegevens verlaten vergrendelt');
   await p.click('#fmq-start');await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden&&fmq.records.length===1);
   assert.equal(await p.evaluate(()=>$('#s-formulieren').inert),true,'scherm eronder niet bedienbaar');
   assert.equal(await p.evaluate(()=>getComputedStyle($('#fmq')).position),'fixed','venster over het hele scherm');

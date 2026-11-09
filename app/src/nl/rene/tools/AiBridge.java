@@ -170,19 +170,54 @@ public class AiBridge extends SleepBridge {
     @JavascriptInterface public String aiCmd(String q) {
         if (!PlayPolicy.allows(ctx, "ai")) return "{\"type\":\"none\"}";
         try {
-            // "app Jos dat …" is alleen een opdracht als Jos in je contacten staat (anders: "vertel eens dat verhaal")
-            AiCommands.Cmd c = AiCommands.parse(q, name -> { try { JSONArray r = contactsNamed(name); return r != null && r.length() > 0; } catch (Throwable t) { return false; } });
+            // "app Jos dat …" is alleen een opdracht als Jos in je contacten staat of de assistent hem kent (anders: "vertel eens dat verhaal")
+            final JSONObject app = a.isSolo() ? new JSONObject() : MasterAppContext.read(ctx);
+            AiCommands.Cmd c = AiCommands.parse(q, name -> { try { if (!AiCommands.people(app, name).isEmpty()) return true; JSONArray r = contactsNamed(name); return r != null && r.length() > 0; } catch (Throwable t) { return false; } });
             return c == null ? "" : AiCommands.json(c).toString();
         } catch (Throwable t) { return ""; }
     }
 
-    /** Telefoonnummers van een contact uit je eigen contacten (voor een bericht): [{name, number, label}] of {perm:false}. */
+    /** Telefoonnummers voor een bericht of om te bellen: [{name, number, label}] of {perm:false}. Eerst wie de assistent uit
+     *  Stamgegevens kent ("mama", "mijn dochter", de roepnaam) met het gekoppelde contact, dan op naam in je contacten. */
     @JavascriptInterface public String aiContact(String name) {
         try {
             if (a.isSolo()) return "[]";
+            JSONArray known = knownNumbers(name);
+            if (known != null && known.length() > 0) return known.toString();
             JSONArray r = contactsNamed(name);
             return r == null ? "{\"perm\":false}" : r.toString();
         } catch (Throwable t) { return "[]"; }
+    }
+    /** Nummers van de mensen die de assistent kent met die naam of relatie; null zonder toegang tot je contacten. */
+    private JSONArray knownNumbers(String name) throws Exception {
+        JSONObject app = MasterAppContext.read(ctx);
+        JSONArray out = new JSONArray();
+        // Vinkje "Bellen en berichten via Contacten" uit: dan zoekt de assistent alleen op naam in je contacten
+        JSONObject weet = app.optJSONObject("weet");
+        if (weet != null && !weet.optBoolean("aiContact", true)) return out;
+        java.util.List<JSONObject> people = AiCommands.people(app, name);
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (JSONObject p : people) {
+            String who = p.optString("callname", p.optString("name")), key = p.optString("contact");
+            JSONArray nums = new JSONArray();
+            if (!key.isEmpty()) {
+                if (!MasterContacts.allowed(ctx)) return null;
+                JSONObject live = MasterContacts.live(ctx, key);
+                if (!live.optString("telefoon").isEmpty()) nums.put(live.getString("telefoon"));
+                JSONArray all = live.optJSONArray("telefoons");
+                for (int i = 0; all != null && i < all.length(); i++) nums.put(all.get(i));
+            } else {
+                JSONArray r = contactsNamed(p.optString("name"));
+                if (r == null) return null;
+                for (int i = 0; i < r.length(); i++) nums.put(r.getJSONObject(i).getString("number"));
+            }
+            for (int i = 0; i < nums.length() && out.length() < 6; i++) {
+                String num = AiCommands.number(nums.optString(i));
+                if (num.isEmpty() || !seen.add(num)) continue;
+                out.put(new JSONObject().put("name", who).put("number", num).put("label", ""));
+            }
+        }
+        return out;
     }
     /** Contacten met die naam (met een geldig nummer), of null zonder toegang tot je contacten. */
     private JSONArray contactsNamed(String name) throws Exception {
@@ -210,7 +245,7 @@ public class AiBridge extends SleepBridge {
 
     /** Een opdracht uitvoeren na de tik: timer of wekker (Klok-app, die je ziet), de Klok-app openen, of een sms of
      *  WhatsApp-bericht klaarzetten (de app opent met de tekst; versturen doe je zelf). Alles opnieuw nagekeken.
-     *  json = {type: timer|wekker|klok|sms|wa, …}. Geeft "" of een melding. */
+     *  Bellen opent alleen de kiezer met het nummer. json = {type: timer|wekker|klok|sms|wa|bel, …}. Geeft "" of een melding. */
     @JavascriptInterface public String aiDo(String json) {
         if (!PlayPolicy.allows(ctx, "ai")) return PlayPolicy.unavailable(ctx);
         final android.content.Intent[] tries;
@@ -256,6 +291,14 @@ public class AiBridge extends SleepBridge {
                     tries = new android.content.Intent[]{new android.content.Intent(android.content.Intent.ACTION_SENDTO, android.net.Uri.parse("smsto:" + android.net.Uri.encode(num)))
                             .putExtra("sms_body", AiCommands.cleanText(o.optString("text"), AiCommands.MAX_TEXT))};
                     none = "Er is geen app voor sms'jes";
+                    break;
+                }
+                case "bel": {
+                    String num = AiCommands.number(o.optString("number"));
+                    if (num.isEmpty()) return "Dat is geen geldig telefoonnummer";
+                    // Alleen de kiezer met het nummer: bellen doe je daar zelf
+                    tries = new android.content.Intent[]{new android.content.Intent(android.content.Intent.ACTION_DIAL, android.net.Uri.fromParts("tel", num, null))};
+                    none = "Er is geen app om te bellen";
                     break;
                 }
                 case "wa": {

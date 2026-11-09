@@ -9,13 +9,22 @@ import java.util.Set;
 /** Centrale velddefinities en expliciete contracten: consumenten krijgen alleen passende, gekozen velden. */
 final class MasterSchema {
     private MasterSchema(){ }
-    static final String[] PERSON={"naam","voornamen","roepnaam","initialen","geboortedatum","geboorteplaats","geslacht","nationaliteit","bsn","adres","postcode","plaats","land","telefoon","email","context"};
+    /** contact = opzoeksleutel van een contact (telefoon en e-mail komen dan uit Contacten); delen = bekend bij de assistent. */
+    static final String[] PERSON={"naam","voornamen","roepnaam","initialen","geboortedatum","geboorteplaats","geslacht","nationaliteit","bsn","adres","postcode","plaats","land","telefoon","email","context","contact","delen"};
     static final String[] ORGANISATION={"naam","registratienummer","adres","postcode","plaats","land","telefoon","email"};
     static final String[] ADDRESS={"naam","adres","postcode","plaats","land","telefoon"};
     static final String[] IDENTITY={"persoon","documentsoort","document","geldig","afgifte","afgifteplaats","uitgifteland","afgegevenDoor","categorieen"};
     static final String[] TRIP={"van","tot","alleen","tweedeBegeleider","tweedeGever","accommodatie","postcode","plaats","land","telefoon","reisgegevens"};
-    static final String[] PROFILE={"persoon","delen","context"};
+    /** Wat de assistent weet (Wat weet de assistent?): leeg = de standaard uit MasterIdentity.ai (aan, behalve woonplaats). */
+    static final String[] PROFILE={"persoon","delen","context","aiStatus","aiGeboorte","aiDocumenten","aiWoonplaats","aiContact"};
+    static final java.util.List<String> YES_NO=Arrays.asList("alleen","tweedeBegeleider","tweedeGever","delen","aiStatus","aiGeboorte","aiDocumenten","aiWoonplaats","aiContact");
     static final String[] RELATION={"vanPersoon","naarPersoon","relatie","status","toelichting","delen"};
+    /** Zijde van de eerste foto bij een nieuw document: een herkende strook van een kaart (TD1) staat op de achterkant;
+     *  niets herkend: de kant waar de app om vroeg (ID-kaart en verblijfsdocument: achterkant, anders voorkant). */
+    static String scanSide(String soort,JSONObject found){
+        if(found!=null)return "TD1".equals(found.optString("soort"))?"back":"front";
+        return "identiteitskaart".equals(soort)||"verblijfsdocument".equals(soort)?"back":"front";
+    }
     static boolean sensitive(String key){return "bsn".equals(key)||"document".equals(key)||"geldig".equals(key)||"afgifte".equals(key);}
     static String[] fields(String type)throws Exception{
         if("persoon".equals(type))return PERSON;if("organisatie".equals(type))return ORGANISATION;if("adres".equals(type))return ADDRESS;if("identiteit".equals(type))return IDENTITY;if("reis".equals(type))return TRIP;if("profiel".equals(type))return PROFILE;if("relatie".equals(type))return RELATION;if("formulier".equals(type))return MasterFormProfile.FIELDS;
@@ -35,13 +44,15 @@ final class MasterSchema {
             String s=((String)value).trim();if(s.length()>240||s.matches("(?s).*[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f].*"))throw new MasterError(Taal.T("Een gegevensveld is te lang of ongeldig"));
             s=s.replace('\n',' ').replace('\r',' ');
             if(("geboortedatum".equals(k)||"geldig".equals(k)||"afgifte".equals(k)||"van".equals(k)||"tot".equals(k))&&!s.isEmpty()&&!validDate(s))throw new MasterError(Taal.T("Vul een geldige datum in"));
-            if(Arrays.asList("alleen","tweedeBegeleider","tweedeGever","delen").contains(k)&&!s.isEmpty()&&!s.equals("ja")&&!s.equals("nee"))throw new MasterError(Taal.T("Kies Ja of Nee"));
+            if(YES_NO.contains(k)&&!s.isEmpty()&&!s.equals("ja")&&!s.equals("nee"))throw new MasterError(Taal.T("Kies Ja of Nee"));
+            if("contact".equals(k)&&!s.isEmpty()&&!MasterContacts.validKey(s))throw new MasterError(Taal.T("Kies het contact opnieuw"));
             // Geslacht zoals op het Nederlandse identiteitsbewijs (M, V of X). Gaat alleen mee naar een formulier dat erom vraagt.
             if("geslacht".equals(k)&&!s.isEmpty()&&!s.equals("M")&&!s.equals("V")&&!s.equals("X"))throw new MasterError(Taal.T("Kies Man, Vrouw of X"));
             if("bsn".equals(k)&&!s.isEmpty()&&!s.matches("[0-9]{8,9}"))throw new MasterError(Taal.T("Vul een geldig BSN in"));
             if(Arrays.asList("persoon","vanPersoon","naarPersoon").contains(k)&&!s.isEmpty()&&!s.matches("[a-f0-9-]{36}"))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
             if("formulier".equals(type)&&MasterFormProfile.reference(k)!=null&&!s.isEmpty()&&!s.matches("[a-f0-9-]{36}"))throw new MasterError(Taal.T("Ongeldige gegevensverwijzing"));
             if("formulier".equals(type)&&MasterFormProfile.CHOICES.contains(k)&&!s.isEmpty()&&!s.equals("ja")&&!s.equals("nee"))throw new MasterError(Taal.T("Kies Ja of Nee"));
+            if("formulier".equals(type)&&"handtekening".equals(k)&&!s.isEmpty()&&!MasterFormProfile.SIGNATURE.contains(s))throw new MasterError(Taal.T("Kies bij welke begeleider je handtekening komt"));
             if(("relatie".equals(k)||"formulier".equals(type)&&MasterFormProfile.relationField(k))&&!s.isEmpty()&&!MasterIdentity.RELATIONS.contains(s))throw new MasterError(Taal.T("Kies een geldige relatie"));
             if(!s.isEmpty())out.put(k,s);
         }

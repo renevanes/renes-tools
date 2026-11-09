@@ -1,10 +1,11 @@
 /* Stamgegevens: uitsluitend vluchtig schermgeheugen; opslag, toegang en audit blijven native. */
-const cm={tab:'',back:null,filter:'',keepNote:false,token:'',seq:0,pending:new Map(),records:[],recordsReady:false,edit:null,dirty:false,events:[],before:0,picker:null,view:'',generation:0,privateReady:false,unlocking:false,resetting:false,mutating:false,editorEpoch:0};
+const cm={tab:'',back:null,keepNote:false,token:'',seq:0,pending:new Map(),records:[],recordsReady:false,edit:null,dirty:false,events:[],before:0,picker:null,view:'',generation:0,privateReady:false,unlocking:false,resetting:false,mutating:false,editorEpoch:0,
+  nav:[],here:null,from:null,orig:null,lastId:'',navigating:false,navNote:'',jumpBack:false};
 // taal-vast: veldnamen worden bij het tekenen met t() vertaald
 const CM_TYPES={persoon:'Persoon',organisatie:'Organisatie',adres:'Adres',identiteit:'Identiteitsdocument',reis:'Reis',relatie:'Relatie',profiel:'App-profiel',formulier:'Vaste formuliergegevens'};
 // taal-vast: veldnamen worden bij het tekenen met t() vertaald
-const CM_FIELDS={categorieen:'Rijbewijscategorieën',geslacht:'Geslacht (zoals op het identiteitsbewijs)',roepnaam:'Roepnaam',context:'Context voor app en AI',vanPersoon:'Eerste persoon',naarPersoon:'Tweede persoon',relatie:'Relatie van de tweede persoon',status:'Status van de relatie',toelichting:'Toelichting bij de relatie',delen:'Delen met app en lokale AI?',uitgifteland:'Land van afgifte',afgegevenDoor:'Afgegeven door',front:'Voorzijde',back:'Achterzijde',naam:'Achternaam of naam',voornamen:'Voornamen',initialen:'Initialen',geboortedatum:'Geboortedatum',geboorteplaats:'Geboorteplaats',nationaliteit:'Nationaliteit',bsn:'BSN',adres:'Straat en huisnummer',postcode:'Postcode',plaats:'Plaats',land:'Land',telefoon:'Telefoonnummer',email:'E-mailadres',registratienummer:'Registratienummer',persoon:'Gekoppelde persoon',documentsoort:'Documentsoort',document:'Documentnummer',geldig:'Geldig tot',afgifte:'Afgiftedatum',afgifteplaats:'Plaats van afgifte',ontvanger:'Ontvanger',instelling:'Instelling',accommodatie:'Naam familie of accommodatie',label:'Naam in het overzicht',van:'Eerste reisdag',tot:'Laatste reisdag',alleen:'Reist het kind alleen?',tweedeBegeleider:'Een tweede begeleider invullen?',tweedeGever:'Een tweede toestemminggever invullen?',reisgegevens:'Reisgegevens (bijvoorbeeld vluchtnummer)',formulier:'Formulier',kind:'Kind dat reist',kindDocument:'Reisdocument van het kind',begeleider1:'Begeleider 1 (reist mee)',begeleider1Document:'Reisdocument van begeleider 1',begeleider1Relatie:'Relatie van begeleider 1 tot het kind',begeleider2:'Begeleider 2 (optioneel)',begeleider2Document:'Reisdocument van begeleider 2',begeleider2Relatie:'Relatie van begeleider 2 tot het kind',gever1:'Toestemminggever 1 (reist niet mee)',gever1Document:'Identiteitsbewijs van toestemminggever 1',gever1Instelling:'Instelling van toestemminggever 1 (optioneel)',gever2:'Toestemminggever 2 (optioneel)',gever2Document:'Identiteitsbewijs van toestemminggever 2',gever2Instelling:'Instelling van toestemminggever 2 (optioneel)',bsnInvullen:'BSN op het formulier zetten?'};
-const CM_SCHEMA={persoon:['naam','voornamen','roepnaam','initialen','geboortedatum','geboorteplaats','geslacht','nationaliteit','bsn','adres','postcode','plaats','land','telefoon','email','context'],organisatie:['naam','registratienummer','adres','postcode','plaats','land','telefoon','email'],adres:['naam','adres','postcode','plaats','land','telefoon'],identiteit:['persoon','documentsoort','document','geldig','categorieen','afgifte','afgifteplaats','uitgifteland','afgegevenDoor'],profiel:['persoon','delen','context'],relatie:['vanPersoon','naarPersoon','relatie','status','toelichting','delen'],reis:['van','tot','alleen','tweedeBegeleider','tweedeGever','accommodatie','postcode','plaats','land','telefoon','reisgegevens'],formulier:['formulier','kind','kindDocument','alleen','begeleider1','begeleider1Document','begeleider1Relatie','begeleider2','begeleider2Document','begeleider2Relatie','gever1','gever1Document','gever1Instelling','gever2','gever2Document','gever2Instelling','bsnInvullen']};
+const CM_FIELDS={categorieen:'Rijbewijscategorieën',geslacht:'Geslacht (zoals op het identiteitsbewijs)',roepnaam:'Roepnaam',context:'Notitie voor de assistent',contact:'Gekoppeld contact',tekenplaats:'Plaats van ondertekening (begeleiders)',handtekening:'Je bewaarde handtekening zetten bij',vanPersoon:'Eerste persoon',naarPersoon:'Tweede persoon',relatie:'Relatie van de tweede persoon',status:'Status van de relatie',toelichting:'Toelichting bij de relatie',delen:'Delen met app en lokale AI?',uitgifteland:'Land van afgifte',afgegevenDoor:'Afgegeven door',front:'Voorzijde',back:'Achterzijde',naam:'Achternaam of naam',voornamen:'Voornamen',initialen:'Initialen',geboortedatum:'Geboortedatum',geboorteplaats:'Geboorteplaats',nationaliteit:'Nationaliteit',bsn:'BSN',adres:'Straat en huisnummer',postcode:'Postcode',plaats:'Plaats',land:'Land',telefoon:'Telefoonnummer',email:'E-mailadres',registratienummer:'Registratienummer',persoon:'Gekoppelde persoon',documentsoort:'Documentsoort',document:'Documentnummer',geldig:'Geldig tot',afgifte:'Afgiftedatum',afgifteplaats:'Plaats van afgifte',ontvanger:'Ontvanger',instelling:'Instelling',accommodatie:'Naam familie of accommodatie',label:'Naam in het overzicht',van:'Eerste reisdag',tot:'Laatste reisdag',alleen:'Reist het kind alleen?',tweedeBegeleider:'Een tweede begeleider invullen?',tweedeGever:'Een tweede toestemminggever invullen?',reisgegevens:'Reisgegevens (bijvoorbeeld vluchtnummer)',formulier:'Formulier',kind:'Kind dat reist',kindDocument:'Reisdocument van het kind',begeleider1:'Begeleider 1 (reist mee)',begeleider1Document:'Reisdocument van begeleider 1',begeleider1Relatie:'Relatie van begeleider 1 tot het kind',begeleider2:'Begeleider 2 (optioneel)',begeleider2Document:'Reisdocument van begeleider 2',begeleider2Relatie:'Relatie van begeleider 2 tot het kind',gever1:'Toestemminggever 1 (reist niet mee)',gever1Document:'Identiteitsbewijs van toestemminggever 1',gever1Instelling:'Instelling van toestemminggever 1 (optioneel)',gever2:'Toestemminggever 2 (optioneel)',gever2Document:'Identiteitsbewijs van toestemminggever 2',gever2Instelling:'Instelling van toestemminggever 2 (optioneel)',bsnInvullen:'BSN op het formulier zetten?'};
+const CM_SCHEMA={persoon:['naam','voornamen','roepnaam','initialen','geboortedatum','geboorteplaats','geslacht','nationaliteit','bsn','adres','postcode','plaats','land','telefoon','email','context','contact','delen'],organisatie:['naam','registratienummer','adres','postcode','plaats','land','telefoon','email'],adres:['naam','adres','postcode','plaats','land','telefoon'],identiteit:['persoon','documentsoort','document','geldig','categorieen','afgifte','afgifteplaats','uitgifteland','afgegevenDoor'],profiel:['persoon','delen','context','aiStatus','aiGeboorte','aiDocumenten','aiWoonplaats','aiContact'],relatie:['vanPersoon','naarPersoon','relatie','status','toelichting','delen'],reis:['van','tot','alleen','tweedeBegeleider','tweedeGever','accommodatie','postcode','plaats','land','telefoon','reisgegevens'],formulier:['formulier','kind','kindDocument','alleen','begeleider1','begeleider1Document','begeleider1Relatie','begeleider2','begeleider2Document','begeleider2Relatie','gever1','gever1Document','gever1Instelling','gever2','gever2Document','gever2Instelling','bsnInvullen','tekenplaats','handtekening']};
 // Verwijzingen in vaste formuliergegevens: veld → soort stamgegeven (zelfde regels als MasterFormProfile.reference).
 function cmRefType(type,key){if(['persoon','vanPersoon','naarPersoon'].includes(key))return 'persoon';if(type!=='formulier')return '';if(['kind','begeleider1','begeleider2','gever1','gever2'].includes(key))return 'persoon';if(/^(kind|begeleider[12]|gever[12])Document$/.test(key))return 'identiteit';if(/^gever[12]Instelling$/.test(key))return 'organisatie';return '';}
 // Extra toestemming nodig bij overnemen naar een onderdeel (zelfde lijst als MasterSchema.sensitive).
@@ -12,26 +13,34 @@ const CM_SECRET=new Set(['bsn','document','geldig','afgifte']);
 // Afgeschermd op het scherm (wachtwoordveld, tonen met het vinkje): alleen de nummers. Datums zijn gewone datumvelden.
 const CM_MASK=new Set(['bsn','document']);
 /* Stamgegevens is één zone van schermen: binnen de zone blijft de kluis open, wie de zone verlaat vergrendelt. */
-const CM_SCR=['masterdata','cmedit','cmlog','cmwis'];
+const CM_SCR=['masterdata','cmedit','cmlog','cmwis','cmlijst','cmkaart','cmai'];
 function cmZone(name){return CM_SCR.includes(name);}
-// taal-vast: tabnamen worden bij het tekenen met tc('tab', …) vertaald
-const CM_TABS={persoon:[['naam','Naam',['naam','voornamen','roepnaam','initialen']],['geboorte','Geboorte',['geboortedatum','geboorteplaats','geslacht','nationaliteit','bsn']],['contact','Contact',['adres','postcode','plaats','land','telefoon','email']],['documenten','ID',[]],['relaties','Relaties',[]],['meer','Meer',['context']]],
-  relatie:[['relatie','Relatie',['vanPersoon','naarPersoon','relatie','status','delen']],['meer','Naam en toelichting',['toelichting']]],
-  adres:[['adres','Adres',['naam','adres','postcode','plaats']],['meer','Land en telefoon',['land','telefoon']]],
-  organisatie:[['gegevens','Gegevens',['naam','registratienummer']],['contact','Contact',['adres','postcode','plaats','land','telefoon','email']]],
-  identiteit:[['document','Gegevens',['persoon','documentsoort','document','geldig','categorieen','afgifte','afgifteplaats','uitgifteland','afgegevenDoor']],['fotos','Foto’s',[]]],
-  reis:[['reis','Reis',['van','tot','reisgegevens']],['begeleiding','Begeleiding',['alleen','tweedeBegeleider','tweedeGever']],['verblijf','Verblijf',['accommodatie','postcode','plaats','land','telefoon']]],
-  formulier:[['kind','Kind',['formulier','kind','kindDocument','alleen','bsnInvullen']],['begeleiders','Begeleiders',['begeleider1','begeleider1Document','begeleider1Relatie','begeleider2','begeleider2Document','begeleider2Relatie']],['toestemming','Toestemming',['gever1','gever1Document','gever1Instelling','gever2','gever2Document','gever2Instelling']]]};
-// Waar de naam in het overzicht staat als dat niet het eerste tabblad is (bij een relatie vult hij zich vanzelf)
-const CM_LABEL_TAB={relatie:'meer'};
-// taal-vast: filternamen worden bij het tekenen met t() vertaald
-const CM_FILTERS=[['persoon','Personen',['persoon']],['relatie','Relaties',['relatie']],['identiteit','Documenten',['identiteit']],['overig','Overig',['organisatie','adres','reis','profiel','formulier']]];
+// Schermen met gegevens: alleen ontgrendeld (Wat weet de assistent? toont op slot de gedeelde momentopname)
+const CM_PRIVE=['cmedit','cmlog','cmlijst','cmkaart'];
+/* Een visitekaartje bestaat uit blokken; het potlood bij een blok opent alleen die velden. Elk blok past op één scherm.
+ * taal-vast: bloknamen worden bij het tekenen met t() vertaald */
+const CM_BLOKKEN={persoon:[['persoon','Persoon',['roepnaam','voornamen','naam','initialen','geslacht']],['geboorte','Geboorte en nationaliteit',['geboortedatum','geboorteplaats','nationaliteit','bsn']],['contact','Contact',['telefoon','email','adres','postcode','plaats','land']],['over','Over {naam}',['context']]],
+  relatie:[['relatie','Relatie',['vanPersoon','naarPersoon','relatie','status','toelichting']]],
+  adres:[['adres','Adres',['naam','adres','postcode','plaats','land','telefoon']]],
+  organisatie:[['gegevens','Organisatie',['naam','registratienummer']],['contact','Contact',['adres','postcode','plaats','land','telefoon','email']]],
+  identiteit:[['document','Document',['persoon','documentsoort','document','geldig','categorieen']],['afgifte','Afgifte',['afgifte','afgifteplaats','uitgifteland','afgegevenDoor']],['fotos','Foto’s',[]]],
+  reis:[['reis','Reis',['van','tot','reisgegevens','alleen','tweedeBegeleider','tweedeGever']],['verblijf','Verblijf',['accommodatie','postcode','plaats','land','telefoon']]],
+  formulier:[['kind','Het kind',['formulier','kind','kindDocument','alleen','bsnInvullen']],['begeleiders','Begeleiders',['begeleider1','begeleider1Document','begeleider1Relatie','begeleider2','begeleider2Document','begeleider2Relatie']],['ondertekenen','Ondertekenen',['tekenplaats','handtekening']],['toestemming','Toestemming',['gever1','gever1Document','gever1Instelling','gever2','gever2Document','gever2Instelling']]],
+  profiel:[['profiel','App-profiel',['persoon','delen']]]};
+// Een nieuwe persoon begint kort; de rest vul je daarna per blok op het visitekaartje in.
+const CM_NIEUW={persoon:['nieuw','Persoon',['roepnaam','voornamen','naam','geboortedatum']]};
+// Andere naam in het overzicht (menu ⋯): een eigen blok met alleen die naam
+const CM_NAAM=['naam','Naam in het overzicht',[]];
+// Vaste formuliergegevens en een reis vul je in één keer in (ze horen samen)
+const CM_ALLES=['formulier','reis'];
 const CM_NEW={persoon:'Persoon toevoegen',organisatie:'Organisatie toevoegen',adres:'Adres toevoegen',identiteit:'Document toevoegen',reis:'Reis toevoegen',relatie:'Relatie toevoegen',profiel:'App-profiel toevoegen',formulier:'Vaste formuliergegevens toevoegen'};
 const CM_ICONS={persoon:'user',relatie:'share',identiteit:'document',organisatie:'shop',adres:'pin',reis:'route',profiel:'smile',formulier:'clipboard'};
 function cmState(){try{return JSON.parse(Android.masterState());}catch(_){return {open:false};}}
 function cmOpen(){return !!cm.token&&cmState().open&&cm.privateReady;}
-const CM_NOTE={masterdata:'cm-status',cmedit:'cm-edit-status',cmlog:'cm-log-status',cmwis:'cm-wis-status'};
-function cmNote(message){for(const e of [CM_NOTE[current]&&$('#'+CM_NOTE[current]),$('#cm-pick-status')])if(e)e.textContent=message;}
+const CM_NOTE={masterdata:'cm-status',cmedit:'cm-edit-status',cmlog:'cm-log-status',cmwis:'cm-wis-status',cmlijst:'cm-lijst-status',cmkaart:'cm-kaart-status',cmai:'cm-ai-status'};
+// Tijdens het teruggaan na opslaan komt een melding op het scherm waar je uitkomt (cmNavDone).
+function cmNote(message){if(cm.navigating)cm.navNote=message;for(const e of [CM_NOTE[current]&&$('#'+CM_NOTE[current]),$('#cm-pick-status')])if(e)e.textContent=message;}
+function cmNavDone(){if(!cm.navigating)return;cm.navigating=false;const n=cm.navNote;cm.navNote='';if(n)cmNote(n);}
 function cmEl(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;}
 function cmData(e){e.setAttribute('translate','no');return e;}
 function cmRequest(method,args,done,publicRequest=false,fail=null){
@@ -55,24 +64,32 @@ window.onMasterPrivacy=function(r){
   cmRenderState();Android.masterSafeFrame(cm.view,cm.generation);
 };
 function cmRenderState(){
-  const open=cmOpen();$('#cm-locked').hidden=open;$('#cm-open').hidden=!open;$('#cm-add').hidden=!open;$('#cm-lock-btn').hidden=!open;$('#cmi-profile-btn').hidden=!open;
+  const open=cmOpen();$('#cm-locked').hidden=open;$('#cm-locked-ai').hidden=open;$('#cm-open').hidden=!open;$('#cm-lock-btn').hidden=!open;
   $('#cm-pick-unlock').hidden=open;$('#cm-pick-search').hidden=!open;
-  // Op slot tijdens bewerken of het logboek: terug naar het overzicht (na een lopende schermwissel)
-  if(!open&&['cmedit','cmlog'].includes(current))setTimeout(()=>{if(['cmedit','cmlog'].includes(current)&&!cmOpen()){const note=$('#'+CM_NOTE[current]).textContent;show('masterdata');cmNote(note);}},0);
+  if(typeof cmaiRender==='function'&&current==='cmai')cmaiRender();
+  // Op slot tijdens bewerken, een lijst, een visitekaartje of het logboek: terug naar het overzicht (na een lopende schermwissel)
+  if(!open&&CM_PRIVE.includes(current))setTimeout(()=>{if(CM_PRIVE.includes(current)&&!cmOpen()){const note=$('#'+CM_NOTE[current]).textContent;show('masterdata');cmNote(note);}},0);
 }
 function enterMasterdata(name='masterdata',prev=''){
   if(!cmZone(prev)){cmClearCentral();cmPrivacy(true);cmNote(t('Niet-bewaarde wijzigingen en overgenomen concepten worden bij vergrendelen gewist.'));}
   if(cmZone(prev)&&name!=='cmedit')cm.editorEpoch++;
-  if(['cmedit','cmlog'].includes(name)&&!cmOpen()){cmRenderState();return;}
+  if(name==='masterdata'){cm.nav=[];cm.here=null;}
+  if(CM_PRIVE.includes(name)&&!cmOpen()){cmRenderState();return;}
   if(name==='masterdata'&&cmZone(prev)&&prev!=='masterdata'&&cmOpen())cmListLoad();
   if(name==='cmwis'){$('#cm-reset-word').value='';cmResetReady();}
 }
-function cmLeave(){if(typeof cmi!=='undefined'){cmi.newType='';cmi.reopen='';}cmClearCentral();Android.masterLock();cmPrivacy(false);}
+function cmLeave(){if(typeof cmi!=='undefined'){cmi.newType='';cmi.newLijst='';cmi.reopen='';}cmClearCentral();Android.masterLock();cmPrivacy(false);}
 function cmClearCentral(){
-  cm.records=[];cm.recordsReady=false;cm.events=[];cm.edit=null;cm.dirty=false;cm.before=0;cm.editorEpoch++;cm.back=null;cm.tab='';cm.filter='';cmBusy(false);
-  ['cm-list','cm-filter','cm-tabs','cm-fields','cm-audit','cm-pick-list','cm-pick-fields'].forEach(id=>$('#'+id).replaceChildren());
-  ['cm-label','cm-search','cm-log-search','cm-pick-search','cm-reset-word'].forEach(id=>$('#'+id).value='');
-  $('#cm-show-secret').checked=false;$('#cm-editor').hidden=true;$('#cm-savebar').hidden=true;$('#cm-filter').hidden=true;$('#cm-reset').disabled=true;cmEditorTitle('');
+  cm.records=[];cm.recordsReady=false;cm.events=[];cm.edit=null;cm.dirty=false;cm.before=0;cm.editorEpoch++;cm.back=null;cm.tab='';cmBusy(false);
+  cm.nav=[];cm.here=null;cm.from=null;cm.orig=null;cm.lastId='';cm.navigating=false;cm.navNote='';cm.jumpBack=false;
+  if(typeof cmi!=='undefined'){cmi.gevEdit=null;cmi.gevers=null;}
+  ['cm-list','cm-ik','cm-aandacht-list','cm-lijst','cm-kaart','cm-ai-mensen','cm-fields','cm-audit','cm-pick-list','cm-pick-fields'].forEach(id=>$('#'+id).replaceChildren());
+  ['cm-label','cm-search','cm-log-search','cm-pick-search','cm-reset-word'].forEach(id=>$('#'+id).value='');$('#cm-label').placeholder='';
+  // Meldingen kunnen namen bevatten ("Anna is toegevoegd"): bij vergrendelen weg, ook op de schermen die niet in beeld zijn
+  for(const id of Object.values(CM_NOTE))$('#'+id).textContent='';
+  ['cm-kaart-title','cm-contact-hint','cmi-form-gezag'].forEach(id=>$('#'+id).textContent='');$('#cm-contact-hint').hidden=true;$('#cmi-form-gezag').hidden=true;
+  for(const id of ['mensen','documenten','adressen','organisaties','assistent'])$('#cm-stand-'+id).textContent='';$('#cm-aandacht').hidden=true;$('#cm-zoek').hidden=true;$('#cm-hub').hidden=false;
+  $('#cm-show-secret').checked=false;$('#cm-editor').hidden=true;$('#cm-savebar').hidden=true;$('#cm-reset').disabled=true;cmEditorTitle('');
   document.querySelectorAll(CM_SCR.map(n=>'#s-'+n+' [data-ui-edited]').join(',')+',#cm-picker [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);
 }
 function cmClearFormDOM(){
@@ -101,121 +118,154 @@ function cmDirty(){cm.dirty=true;cmTouch();}
 /* Naar het overzicht en de lijst opnieuw laden (na opslaan, verwijderen of sluiten). */
 function cmListOpen(){
   if(!cmOpen()||cm.mutating)return;
+  if(current==='cmai'){cmListLoad(()=>{if(typeof cmaiRender==='function')cmaiRender();});return;}
   if(current!=='masterdata'){show('masterdata');return;}
   cmListLoad();
 }
 function cmListLoad(after,fail=null){
-  if(!cmOpen())return;cm.recordsReady=false;document.querySelectorAll('#cm-open button,#cm-add').forEach(b=>b.disabled=true);const epoch=++cm.editorEpoch;
-  cmRequest('masterList',['masterdata',''],r=>{cm.records=r.records;cm.recordsReady=true;cmRenderList();document.querySelectorAll('#cm-open button,#cm-add').forEach(b=>b.disabled=false);if(epoch!==cm.editorEpoch)return;if(after)after();else cmiAfterList();},false,fail);
+  if(!cmOpen())return;cm.recordsReady=false;document.querySelectorAll('#cm-open button').forEach(b=>b.disabled=true);const epoch=++cm.editorEpoch;
+  cmRequest('masterList',['masterdata',''],r=>{cm.records=r.records;cm.recordsReady=true;cmRenderList();document.querySelectorAll('#cm-open button').forEach(b=>b.disabled=false);if(epoch!==cm.editorEpoch){cmNavDone();return;}if(after)after();else cmiAfterList();},false,r=>{cmNavDone();if(fail)fail(r);});
 }
-function cmRenderList(){
-  const box=$('#cm-list'),chips=$('#cm-filter');box.replaceChildren();chips.replaceChildren();if(!cmOpen())return;const q=$('#cm-search').value.toLowerCase();
-  const present=CM_FILTERS.filter(f=>cm.records.some(r=>f[2].includes(r.type)));if(!present.some(f=>f[0]===cm.filter))cm.filter='';
-  chips.hidden=present.length<2;
-  if(present.length>1)for(const [id,name] of [['','Alles'],...present]){const b=cmEl('button',t(name));b.type='button';b.classList.toggle('on',id===cm.filter);b.setAttribute('aria-pressed',String(id===cm.filter));b.onclick=()=>{cm.filter=id;cmRenderList();cmTouch();};chips.append(b);}
-  const types=(CM_FILTERS.find(f=>f[0]===cm.filter)||[0,0,null])[2];
-  // Documenten horen bij een persoon (tabblad Documenten); in Alles zonder zoekwoord staan ze niet los in de lijst.
-  cm.records.filter(r=>(!types||types.includes(r.type))&&(types||q||r.type!=='identiteit'||!cm.records.some(p=>p.id===r.person))&&r.label.toLowerCase().includes(q)).sort((a,b)=>a.label.localeCompare(b.label)).forEach(r=>{
-    const b=cmData(cmEl('button',undefined,'strow')),ic=cmEl('span',undefined,'stic'),txt=cmEl('span',undefined,'sttxt'),chev=cmEl('span',undefined,'ui-icon stchev');
-    b.type='button';ic.innerHTML=uiIcon(CM_ICONS[r.type]||'document');chev.dataset.icon='chevron-right';chev.setAttribute('aria-hidden','true');
-    const owner=r.type==='identiteit'&&cm.records.find(p=>p.id===r.person);
-    const stand=r.type==='persoon'?cmiPersonStand(r):r.type==='identiteit'?cmiDocStand(r,owner):t(CM_TYPES[r.type]);
-    const small=cmEl('small',stand);if(r.type==='persoon'&&cmiPersonLate(r).length||r.type==='identiteit'&&cmiDocLate(r))small.classList.add('cmi-warn');txt.append(cmEl('b',r.label),small);b.append(ic,txt,chev);
-    b.onclick=()=>owner?cmEdit(r.id,'',{id:owner.id,tab:'documenten'}):cmEdit(r.id);box.append(b);
-  });
-  if(!box.children.length){if(cm.records.length)box.append(cmEl('p',t('Nog geen passende stamgegevens.'),'note cm-leeg'));else box.innerHTML=uiEmpty('shield',t('Nog geen stamgegevens. Begin met jezelf: Toevoegen → Persoon.'));}
+/* Het beginscherm (Ik, Aandacht nodig, rijen) tekent 71-stamgegevens-ik.js; zoeken toont één lijst met alles. */
+function cmRenderList(){}
+function cmRow(r,small,warn,onclick,icon,title){
+  const b=cmData(cmEl('button',undefined,'strow')),ic=cmEl('span',undefined,'stic'),txt=cmEl('span',undefined,'sttxt'),chev=cmEl('span',undefined,'ui-icon stchev');
+  b.type='button';ic.innerHTML=uiIcon(icon||CM_ICONS[r?.type]||'document');chev.dataset.icon='chevron-right';chev.setAttribute('aria-hidden','true');
+  const s=cmEl('small',small);if(warn)s.classList.add('cmi-warn');txt.append(cmEl('b',title||r.label),s);b.append(ic,txt,chev);b.onclick=onclick;return b;
 }
-function cmNew(){if(!cmOpen()||cm.mutating||!cm.recordsReady)return;cm.editorEpoch++;cm.edit={type:'persoon',label:'',fields:{},revision:0};cmEditor();}
-function cmEdit(id,tab,back,note,ready=null){if(cm.mutating&&!ready)return;const epoch=++cm.editorEpoch;cmRequest('masterRead',[id,'masterdata',''],r=>{if(epoch!==cm.editorEpoch)return;if(ready)ready();cm.edit=r.record;cm.back=back||null;cmEditor(tab);if(note)cmNote(note);},false,ready);}
+/* Waar je vandaan kwam (lijst of visitekaartje): daar ga je na opslaan of annuleren weer heen. */
+function cmHere(){return ['cmlijst','cmkaart'].includes(current)&&cm.here?{...cm.here}:current==='cmedit'?cm.from:null;}
+function cmNew(){if(!cmOpen()||cm.mutating||!cm.recordsReady)return;cm.editorEpoch++;cm.from=cmHere();cm.back=null;cm.edit={type:'persoon',label:'',fields:{},revision:0};cmEditor();}
+function cmEdit(id,tab,back,note,ready=null){if(cm.mutating&&!ready)return;const epoch=++cm.editorEpoch,from=cmHere();cmRequest('masterRead',[id,'masterdata',''],r=>{if(epoch!==cm.editorEpoch)return;if(ready)ready();cm.edit=r.record;cm.back=back||null;cm.from=from;cmEditor(tab);if(note)cmNote(note);},false,ready);}
 function cmEditorTitle(r){const h=$('#cm-editor-title');if(r&&r.id){h.textContent=r.label;h.setAttribute('translate','no');}else{h.removeAttribute('translate');h.textContent=r?t(CM_NEW[r.type]||'Stamgegeven toevoegen'):t('Stamgegeven bewerken');}}
 function cmEditor(tab){
   const r=cm.edit;$('#cm-editor').hidden=false;$('#cm-savebar').hidden=false;if(!cm.keepNote)$('#cm-edit-status').textContent='';cm.keepNote=false;$('#cm-edit-menu').hidden=!r.id;cmEditorTitle(r);
-  $('#cm-label').value=r.label;$('#cm-show-secret').checked=false;cm.dirty=false;cm.tab=tab||'';cmTabsBuild();cmEditorFields();
-  const focus=()=>{if(!r.id&&cm.edit===r)$('#cm-label').focus();};
+  cm.orig=JSON.parse(JSON.stringify(r.fields||{}));cm.lastId=r.id||'';
+  const hint=$('#cm-contact-hint');hint.hidden=!!r.id||!r.fields?.contact;hint.textContent=hint.hidden?'':t('Overgenomen uit Contacten. Telefoon en e-mail blijven daarna actueel uit Contacten; de rest vul je aan op het kaartje.');
+  $('#cm-label').value=r.id&&!cmLabelAuto(r)?r.label:'';$('#cm-label').placeholder=cmAutoLabel(r.type,r.fields);$('#cm-show-secret').checked=false;cm.dirty=false;cm.tab=tab||'';cmTabsBuild();cmEditorFields();
+  const focus=()=>{if(r.id||cm.edit!==r)return;const f=[...document.querySelectorAll('#cm-fields input,#cm-fields select,#cm-fields textarea')].find(x=>!x.closest('.cm-off'));if(f)f.focus();};
   if(current!=='cmedit'){show('cmedit');setTimeout(focus,0);}else focus();
 }
-function cmTabs(r){return (CM_TABS[r.type]||[]).filter(([id])=>!['relaties','documenten'].includes(id)||!!r.id);}
+/* Blokken van dit stamgegeven: een nieuwe persoon kort, een nieuw ander gegeven het eerste blok, reizen en vaste gegevens alles. */
+function cmTabs(r){
+  if(!r)return [];if(!r.id&&CM_NIEUW[r.type])return [CM_NIEUW[r.type]];
+  const blocks=CM_BLOKKEN[r.type]||[];
+  if(!r.id)return CM_ALLES.includes(r.type)?blocks:blocks.filter(b=>b[2].length).slice(0,1);
+  return [...blocks,CM_NAAM];
+}
+function cmBlokTitle(b,r){return b[1]==='Over {naam}'?t('Over {naam}',{naam:r?.fields?.roepnaam||(r?.fields?.voornamen||'').split(/\s+/)[0]||r?.label||''}):t(b[1]);}
 function cmTabsBuild(){
-  const bar=$('#cm-tabs'),tabs=cmTabs(cm.edit);bar.replaceChildren();bar.hidden=tabs.length<2;
+  const r=cm.edit,tabs=cmTabs(r);
+  if(CM_ALLES.includes(r.type)&&(cm.tab==='*'||!r.id)){cm.tab='*';return;}
   if(!tabs.some(x=>x[0]===cm.tab))cm.tab=tabs[0]?tabs[0][0]:'';
-  for(const [id,name] of tabs){const b=cmEl('button',tc('tab',name));b.type='button';b.id='cm-tab-'+id;b.dataset.tab=id;b.setAttribute('role','tab');b.setAttribute('aria-controls','cm-editor-card');b.onclick=()=>cmTab(id);bar.append(b);}
 }
 function cmTab(id){if(!cm.edit||!cmTabs(cm.edit).some(x=>x[0]===id))return;cm.tab=id;cmTabRender();cmTouch();}
 function cmTabRender(){
-  const tabs=cmTabs(cm.edit),many=tabs.length>1;$('#cm-label-box').dataset.cmTab=CM_LABEL_TAB[cm.edit.type]||(tabs[0]?tabs[0][0]:'');
-  document.querySelectorAll('#cm-tabs [role=tab]').forEach(b=>{const on=b.dataset.tab===cm.tab;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;});
-  const card=$('#cm-editor-card');if(many){card.setAttribute('role','tabpanel');card.setAttribute('aria-labelledby','cm-tab-'+cm.tab);}else{card.removeAttribute('role');card.removeAttribute('aria-labelledby');}
-  document.querySelectorAll('#cm-editor [data-cm-tab]').forEach(e=>e.classList.toggle('cm-off',many&&e.dataset.cmTab!==cm.tab));
+  const r=cm.edit,all=cm.tab==='*',blok=cmTabs(r).find(x=>x[0]===cm.tab),h=$('#cm-blok-title');
+  h.hidden=all||!r.id||!blok;h.textContent=blok&&r.id?cmBlokTitle(blok,r):'';
+  document.querySelectorAll('#cm-editor [data-cm-tab]').forEach(e=>e.classList.toggle('cm-off',e.id==='cm-label-box'?cm.tab!=='naam':!all&&e.dataset.cmTab!==cm.tab));
   $('#cm-secret-row').classList.toggle('cm-off',![...CM_MASK].some(k=>{const i=$('#cm-field-'+k);return i&&!i.closest('.cm-off');}));
 }
-$('#cm-tabs').addEventListener('keydown',e=>{
-  if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
-  const tabs=[...e.currentTarget.querySelectorAll('[role=tab]')],at=tabs.indexOf(document.activeElement);if(at<0)return;
-  e.preventDefault();const i=e.key==='Home'?0:e.key==='End'?tabs.length-1:(at+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
-  cmTab(tabs[i].dataset.tab);tabs[i].focus({preventScroll:true});
-});
 function cmEditorFields(){
-  const box=$('#cm-fields');box.replaceChildren();const tabs=cmTabs(cm.edit),groups={};
-  for(const key of CM_SCHEMA[cm.edit.type]){
-    if(cmiSkip(key)||key==='categorieen'&&cm.edit.fields.documentsoort!=='rijbewijs')continue;
-    const label=cmEl('label',t(cm.edit.type==='profiel'&&key==='persoon'?'Dit ben ik':CM_FIELDS[key]),'f');label.htmlFor='cm-field-'+key;
-    const ref=cmRefType(cm.edit.type,key),person=!!ref,choices=cmiChoices(key),area=['context','toelichting'].includes(key);
-    const input=cmData(cmEl(person||choices?'select':area?'textarea':'input',undefined,'search'));input.id=label.htmlFor;input.name=key;
-    if(person){
-      const empty=cmEl('option',t(ref==='identiteit'?'Kies een document':ref==='organisatie'?'Geen instelling':'Kies een persoon'));empty.value='';input.append(empty);
-      const owner=ref==='identiteit'?cm.edit.fields[key.slice(0,-8)]||'':'';
-      cm.records.filter(r=>r.type===ref&&(ref!=='identiteit'||!!owner&&r.person===owner)).forEach(r=>{const o=cmData(cmEl('option',r.label));o.value=r.id;input.append(o);});
-    }else if(choices){
-      let group=null;
-      for(const [value,text,name] of choices){const o=cmEl('option',text);o.value=value;if(name&&group?.label!==name){group=cmEl('optgroup');group.label=name;input.append(group);}(name?group:input).append(o);}
-      const old=cm.edit.fields[key];if(old&&!choices.some(c=>c[0]===old)){const o=cmData(cmEl('option',old));o.value=old;input.append(o);}
-    }else{input.autocomplete='off';input.maxLength=key==='bsn'?9:240;if(!area)input.type=CM_MASK.has(key)?'password':['geboortedatum','van','tot','geldig','afgifte'].includes(key)?'date':key==='email'?'email':key==='telefoon'?'tel':'text';else input.rows=3;if(key==='bsn')input.inputMode='numeric';}
-    input.value=cm.edit.fields[key]||'';input.addEventListener(person||choices?'change':'input',()=>{cm.edit.fields[key]=input.value;cmDirty();if(cm.edit.type==='formulier'&&ref==='persoon')cmiFormPerson(key);if(cm.edit.type==='relatie')cmiRelationChange(key);if(key==='documentsoort')cmEditorFields();});
-    const tab=(tabs.find(x=>x[2].includes(key))||tabs[0]||[''])[0];let group=groups[tab];
-    if(!group){group=groups[tab]=cmEl('div',undefined,'cm-group');group.dataset.cmTab=tab;box.append(group);}
-    if(cm.edit.type==='identiteit'&&['afgifte','afgifteplaats','uitgifteland','afgegevenDoor'].includes(key)){
-      if(!groups.extra){const more=cmEl('details',undefined,'help in'),summary=cmEl('summary',t('Afgifte en extra gegevens')),body=cmEl('div',undefined,'help-body');more.dataset.k='document-extra';summary.dataset.icon='info';more.append(summary,body);group.append(more);groups.extra=body;}
-      group=groups.extra;
+  const box=$('#cm-fields');box.replaceChildren();const tabs=cmTabs(cm.edit),all=cm.tab==='*',schema=CM_SCHEMA[cm.edit.type]||[];
+  for(const blok of tabs){
+    let group=null;
+    for(const key of blok[2]){
+      if(!schema.includes(key)||cmiSkip(key)||key==='categorieen'&&cm.edit.fields.documentsoort!=='rijbewijs')continue;
+      const label=cmEl('label',t(cm.edit.type==='profiel'&&key==='persoon'?'Dit ben ik':CM_FIELDS[key]),'f');label.htmlFor='cm-field-'+key;
+      const ref=cmRefType(cm.edit.type,key),person=!!ref,choices=cmiChoices(key),area=['context','toelichting'].includes(key);
+      const input=cmData(cmEl(person||choices?'select':area?'textarea':'input',undefined,'search'));input.id=label.htmlFor;input.name=key;
+      if(person){
+        const empty=cmEl('option',t(ref==='identiteit'?'Kies een document':ref==='organisatie'?'Geen instelling':'Kies een persoon'));empty.value='';input.append(empty);
+        const owner=ref==='identiteit'?cm.edit.fields[key.slice(0,-8)]||'':'';
+        cm.records.filter(r=>r.type===ref&&(ref!=='identiteit'||!!owner&&r.person===owner)).forEach(r=>{const o=cmData(cmEl('option',r.label));o.value=r.id;input.append(o);});
+      }else if(choices){
+        let og=null;
+        for(const [value,text,name] of choices){const o=cmEl('option',text);o.value=value;if(name&&og?.label!==name){og=cmEl('optgroup');og.label=name;input.append(og);}(name?og:input).append(o);}
+        const old=cm.edit.fields[key];if(old&&!choices.some(c=>c[0]===old)){const o=cmData(cmEl('option',old));o.value=old;input.append(o);}
+      }else{input.autocomplete='off';input.maxLength=key==='bsn'?9:240;if(!area)input.type=CM_MASK.has(key)?'password':['geboortedatum','van','tot','geldig','afgifte'].includes(key)?'date':key==='email'?'email':key==='telefoon'?'tel':'text';else input.rows=key==='context'?4:3;if(key==='bsn')input.inputMode='numeric';}
+      input.value=cm.edit.fields[key]||'';input.addEventListener(person||choices?'change':'input',()=>{cm.edit.fields[key]=input.value;cmDirty();if(cm.edit.type==='formulier'&&ref==='persoon')cmiFormPerson(key);if(cm.edit.type==='relatie')cmiRelationChange(key);if(key==='documentsoort')cmEditorFields();});
+      if(!group){group=cmEl('div',undefined,'cm-group');group.dataset.cmTab=blok[0];if(all&&tabs.length>1)group.append(cmEl('h3',cmBlokTitle(blok,cm.edit),'cm-blok-h'));box.append(group);}
+      group.append(label,input);
     }
-    group.append(label,input);
   }cmiEditor();cmTabRender();
 }
 function cmShowSecret(show){CM_MASK.forEach(key=>{const input=$('#cm-field-'+key);if(input)input.type=show?'text':'password';});cmTouch();}
-function cmBusy(busy){cm.mutating=busy;$('#cm-save').disabled=busy;$('#cm-edit-menu').disabled=busy;document.querySelectorAll('#cm-fields input,#cm-fields select,#cm-fields textarea,#cmh-panel button,#cmh-list input:not([data-same]),#cmi-photos button,#cmi-person-actions button,#cmi-person-relations button,#cmi-person-docs button').forEach(e=>e.disabled=busy);$('#cm-label').disabled=busy;}
-const CM_ERR_FIELD={'Vul een naam voor het overzicht in':'cm-label','Kies een gekoppelde persoon':'cm-field-persoon','Kies een geldige relatie':'cm-field-relatie','Een relatie hoort bij twee verschillende personen':'cm-field-naarPersoon','Kies een status die bij deze relatie past':'cm-field-status','Vul een geldig BSN in':'cm-field-bsn',
+function cmBusy(busy){cm.mutating=busy;$('#cm-save').disabled=busy;$('#cm-edit-menu').disabled=busy;document.querySelectorAll('#cm-fields input,#cm-fields select,#cm-fields textarea,#cmh-panel button,#cmh-list input:not([data-same]),#cmi-photos button,#cm-kaart button,#cm-ai-set button,#cm-ai-mensen button').forEach(e=>e.disabled=busy);$('#cm-label').disabled=busy;}
+const CM_ERR_FIELD={'Vul een naam voor het overzicht in':'cm-label','Kies bij welke begeleider je handtekening komt':'cm-field-handtekening','Kies voor je handtekening een begeleider die meereist':'cm-field-handtekening','Het kind reist alleen: kies bij je handtekening Nergens':'cm-field-handtekening','Je bewaarde handtekening is van jou: kies bij Vaste gegevens → Ondertekenen de begeleider die jij bent':'cm-field-handtekening','Kies een gekoppelde persoon':'cm-field-persoon','Kies een geldige relatie':'cm-field-relatie','Een relatie hoort bij twee verschillende personen':'cm-field-naarPersoon','Kies een status die bij deze relatie past':'cm-field-status','Vul een geldig BSN in':'cm-field-bsn',
   'Kies in de vaste gegevens het kind dat reist':'cm-field-kind','Kies in de vaste gegevens wie toestemming geeft':'cm-field-gever1','Kies in de vaste gegevens wie meereist, of kies dat het kind alleen reist':'cm-field-begeleider1',
   'Kies twee verschillende begeleiders':'cm-field-begeleider2','Kies twee verschillende toestemmingsgevers':'cm-field-gever2','Kies voor welk formulier deze vaste gegevens zijn':'cm-field-formulier'};
 function cmShowField(id){const e=$('#'+id);if(!e)return;const box=e.closest('[data-cm-tab]');if(box&&box.classList.contains('cm-off'))cmTab(box.dataset.cmTab);for(const d of [...e.closest('#cm-editor').querySelectorAll('details')])if(d.contains(e))d.open=true;e.focus();}
+/* Namen in het overzicht ontstaan vanzelf: een persoon roepnaam (of eerste voornaam) en achternaam, een document "Paspoort Anna",
+ * een adres of organisatie hun naam. Een naam die nu een van de naamvarianten is, telt als automatisch en gaat mee met de
+ * gegevens; alleen een echt afwijkende naam (zoals "Mama", via Andere naam in het overzicht) blijft staan. */
+function cmAutoLabel(type,f){
+  f=f||{};const v=s=>(s||'').trim();
+  if(type==='persoon'){const first=v(f.voornamen).split(/\s+/)[0];return [v(f.roepnaam)||first,v(f.naam)].filter(Boolean).join(' ').slice(0,120);}
+  if(type==='identiteit'){const owner=cm.records.find(p=>p.id===f.persoon);return (owner?t('{soort} {naam}',{soort:cmiDocSoort({soort:f.documentsoort}),naam:owner.label}):cmiDocSoort({soort:f.documentsoort})).slice(0,120);}
+  if(type==='adres')return (v(f.naam)||v(f.adres)).slice(0,120);
+  if(type==='organisatie')return v(f.naam).slice(0,120);
+  if(type==='reis')return f.van?t('Reis van {datum}',{datum:fmtDate(f.van)}):'';
+  if(type==='formulier'){const kid=cm.records.find(p=>p.id===f.kind);return kid?t('Reistoestemming {naam}',{naam:kid.label}).slice(0,120):'';}
+  if(type==='relatie')return cmiRelationText(f,'label');
+  if(type==='profiel')return t('Mijn app-profiel');
+  return '';
+}
+function cmAutoLabels(type,f){
+  f=f||{};const v=s=>(s||'').trim(),out=new Set([cmAutoLabel(type,f)]);
+  if(type==='persoon'){const first=v(f.voornamen).split(/\s+/)[0];for(const a of [v(f.roepnaam),v(f.voornamen),first,v(f.initialen)])if(a){out.add(a);if(v(f.naam))out.add(a+' '+v(f.naam));}if(v(f.naam))out.add(v(f.naam));}
+  if(type==='relatie')for(const x of cmiRelationLabels(f))out.add(x);
+  if(type==='formulier'){const kid=cm.records.find(p=>p.id===f.kind);if(kid)out.add(t('Reistoestemming {naam}',{naam:kid.label}));}
+  out.delete('');return out;
+}
+function cmLabelAuto(r){return !r.label||cmAutoLabels(r.type,r.id?cm.orig||r.fields:r.fields).has(r.label);}
+function cmLabel(r){
+  if(cm.tab==='naam')return $('#cm-label').value.trim()||cmAutoLabel(r.type,r.fields)||r.label;
+  return ((!r.id||cmLabelAuto(r))&&cmAutoLabel(r.type,r.fields))||r.label||t(CM_TYPES[r.type]);
+}
+/* Zonder naam kan een persoon, adres of organisatie niet in het overzicht staan. */
+function cmNeedName(r){
+  if(cm.tab==='naam'||!['persoon','adres','organisatie'].includes(r.type)||cmAutoLabel(r.type,r.fields)||r.id&&!cmLabelAuto(r))return null;
+  const field=['roepnaam','voornamen','naam'].map(k=>'cm-field-'+k).find(id=>$('#'+id)&&!$('#'+id).closest('.cm-off'))||'cm-field-naam';
+  return [field,r.type==='persoon'?t('Vul een naam in'):r.type==='adres'?t('Vul een naam of adres in'):t('Vul de naam in')];
+}
 function cmSave(){
-  if(!cmOpen()||!cm.edit||cm.mutating)return;cm.edit.label=$('#cm-label').value;
+  if(!cmOpen()||!cm.edit||cm.mutating)return;
   if(cm.edit.type==='relatie'){const empty=['vanPersoon','naarPersoon','relatie'].find(k=>!cm.edit.fields[k]);if(empty){cmShowField('cm-field-'+empty);cmNote(t('Kies beide personen en hun relatie'));return;}}
-  cmBusy(true);cmRequest('masterSave',[JSON.stringify(cm.edit)],r=>{cmBusy(false);cm.edit=null;cm.dirty=false;cmClearEdited();cmAfterEdit(true);cmNote(r.contextError?t(r.contextError):t('Stamgegeven opgeslagen.'));appIdentityRefresh();},false,r=>{cmBusy(false);if(cm.edit&&CM_ERR_FIELD[r.error])cmShowField(CM_ERR_FIELD[r.error]);});
+  const need=cmNeedName(cm.edit);if(need){cmShowField(need[0]);cmNote(need[1]);return;}
+  cm.edit.label=cmLabel(cm.edit);
+  cmBusy(true);cmRequest('masterSave',[JSON.stringify(cm.edit)],r=>{cmBusy(false);cm.edit=null;cm.dirty=false;cmClearEdited();cmAfterEdit(true,r.record&&r.record.id);cmNote(r.contextError?t(r.contextError):t('Opgeslagen.'));appIdentityRefresh();},false,r=>{cmBusy(false);if(cm.edit&&CM_ERR_FIELD[r.error])cmShowField(CM_ERR_FIELD[r.error]);});
 }
 function cmClearEdited(){document.querySelectorAll(CM_SCR.map(n=>'#s-'+n+' [data-ui-edited]').join(',')).forEach(e=>delete e.dataset.uiEdited);}
-/* Na opslaan, verwijderen of sluiten: terug naar de persoon waar je vandaan kwam (relatie), anders naar het overzicht. */
-function cmAfterEdit(saved){
-  const back=cm.back;cm.back=null;$('#cm-editor').hidden=true;$('#cm-savebar').hidden=true;$('#cm-fields').replaceChildren();$('#cm-label').value='';cmEditorTitle('');$('#cm-status').textContent='';
+/* Na opslaan, verwijderen of sluiten: naar het visitekaartje (van de persoon waar je vandaan kwam, of van wat je bewerkte),
+ * anders terug naar de lijst of het beginscherm. Een melding komt op het scherm waar je uitkomt. */
+function cmAfterEdit(saved,savedId){
+  const back=cm.back,from=cm.from,target=back?.id||savedId||cm.lastId||'';cm.back=null;cm.from=null;cm.orig=null;cm.lastId='';
+  $('#cm-editor').hidden=true;$('#cm-savebar').hidden=true;$('#cm-fields').replaceChildren();$('#cm-label').value='';$('#cm-label').placeholder='';cmEditorTitle('');$('#cm-status').textContent='';
   if(typeof cmiRelationsClear==='function'){cmiRelationsClear();cmiPhotoClear();}
-  if(back?.id&&cmOpen()){cmListLoad(()=>{if(cm.records.some(r=>r.id===back.id)){cm.keepNote=true;cmEdit(back.id,back.tab);}else cmListOpen();});return;}
   // Vanuit Formulieren (Vaste gegevens) en zonder opslaan terug: meteen terug naar Formulieren
   const jump=jumpStack[jumpStack.length-1];if(back?.jump&&!saved&&current==='cmedit'&&jump?.to==='masterdata'){jumpStack.pop();show(jump.from);return;}
-  if(current==='cmedit')show('masterdata');else cmListOpen();
+  if(!cmOpen()){if(current==='cmedit')show('masterdata');return;}
+  cm.navigating=true;cm.navNote='';
+  cmListLoad(()=>{
+    if(target&&cm.records.some(r=>r.id===target)){if(from&&!(from.scr==='cmkaart'&&from.id===target))cm.nav.push(from);cmKaartOpen(target,false);return;}
+    // Na verwijderen: niet terug naar het kaartje van wat er niet meer is
+    const gone=x=>x?.scr==='cmkaart'&&!cm.records.some(r=>r.id===x.id);
+    if(from&&!gone(from)){cmGo(from,false);return;}
+    while(cm.nav.length&&gone(cm.nav[cm.nav.length-1]))cm.nav.pop();
+    const prev=cm.nav.pop();if(prev){cmGo(prev,false);return;}
+    if(current!=='masterdata')show('masterdata');cmNavDone();
+  });
 }
 function cmEditBack(){if(!cm.mutating)cmCancelEdit();return true;}
 function cmCancelEdit(){if(cm.mutating)return;cm.editorEpoch++;const close=()=>{cm.edit=null;cm.dirty=false;cmClearEdited();cmAfterEdit();};if(cm.dirty){askConfirm('Bewerking sluiten?','Niet-bewaarde wijzigingen gaan verloren.','Sluiten',close);return;}close();}
-function cmDelete(){if(!cmOpen()||!cm.edit||!cm.edit.id||cm.mutating)return;const r=cm.edit;askConfirm('Stamgegeven verwijderen?','De gegevens worden verwijderd. De weergavenaam en activiteiten blijven in het logboek staan.','Verwijderen',()=>{if(cmOpen()&&!cm.mutating){cmBusy(true);cmRequest('masterDelete',[r.id,r.revision],()=>{cmBusy(false);cm.edit=null;cm.dirty=false;cmClearEdited();cmAfterEdit(true);cmNote(t('Stamgegeven verwijderd.'));});}});}
+function cmDelete(){if(!cmOpen()||!cm.edit||!cm.edit.id||cm.mutating)return;const r=cm.edit;askConfirm('Stamgegeven verwijderen?','De gegevens worden verwijderd. De weergavenaam en activiteiten blijven in het logboek staan.','Verwijderen',()=>{if(cmOpen()&&!cm.mutating){cmBusy(true);cmRequest('masterDelete',[r.id,r.revision],()=>{cmBusy(false);cm.edit=null;cm.dirty=false;cmClearEdited();cmAfterEdit(true);cmNote(t('Stamgegeven verwijderd.'));appIdentityRefresh();});}});}
 function cmEditMenu(){if(!cmOpen()||!cm.edit?.id||cm.mutating)return;openSheet(t(CM_TYPES[cm.edit.type]),'',[[t('Stamgegeven verwijderen'),cmDelete,'trash']]);}
 function cmMenu(){const acts=[];if(cmOpen())acts.push([t('Activiteiten'),cmAuditOpen,'clock']);acts.push([t('Opnieuw beginnen'),()=>show('cmwis'),'trash']);openSheet(t('Stamgegevens'),'',acts);}
-function cmAddMenu(){
-  if(!cmOpen()||cm.mutating||!cm.recordsReady)return;
-  const acts=['persoon','relatie','identiteit','organisatie','adres','reis'].map(type=>[t(CM_TYPES[type]),()=>cmiNew(type),CM_ICONS[type]]);
-  if(typeof Android.masterFormProfile==='function')acts.push([t('Vaste gegevens reistoestemming'),()=>cmiNew('formulier'),CM_ICONS.formulier]);
-  openSheet(t('Wat wil je toevoegen?'),'',acts);
-}
 function cmAuditOpen(){if(!cmOpen()||cm.mutating)return;cm.editorEpoch++;cm.events=[];cm.before=0;$('#cm-audit').replaceChildren();$('#cm-log-search').value='';$('#cm-more').hidden=true;if(current!=='cmlog')show('cmlog');cmAuditMore();}
 function cmAuditMore(){if(!cmOpen())return;cmRequest('masterAudit',[cm.before],r=>{cm.events.unshift(...r.events);cm.before=r.before;$('#cm-more').hidden=!r.more;cmRenderAudit();});}
 function cmRenderAudit(){
-  const names={unlock:t('Ontgrendeld'),list:t('Overzicht bekeken'),view:t('Gegevens bekeken'),create:t('Toegevoegd'),update:t('Gewijzigd'),delete:t('Verwijderd'),use:t('Velden overgenomen'),audit:t('Logboek bekeken'),export_release:t('Bestand vrijgegeven'),export_attempt:t('Bestand maken gestart'),export:t('Bestand gemaakt'),app_context:t('App-context vernieuwd'),photo_view:t('Kaartfoto bekeken'),photo_add:t('Kaartfoto toegevoegd'),photo_delete:t('Kaartfoto verwijderd'),relation_use:t('Relatie voor formulier bekeken'),expiry_check:t('Geldigheid gecontroleerd'),scan:t('Foto herkennen gestart'),photo_scan:t('Gegevens herkend uit kaartfoto')};
+  const names={unlock:t('Ontgrendeld'),list:t('Overzicht bekeken'),view:t('Gegevens bekeken'),create:t('Toegevoegd'),update:t('Gewijzigd'),delete:t('Verwijderd'),use:t('Velden overgenomen'),audit:t('Logboek bekeken'),export_release:t('Bestand vrijgegeven'),export_attempt:t('Bestand maken gestart'),export:t('Bestand gemaakt'),app_context:t('App-context vernieuwd'),photo_view:t('Kaartfoto bekeken'),photo_add:t('Kaartfoto toegevoegd'),photo_delete:t('Kaartfoto verwijderd'),relation_use:t('Relatie voor formulier bekeken'),expiry_check:t('Geldigheid gecontroleerd'),scan:t('Foto herkennen gestart'),photo_scan:t('Gegevens herkend uit kaartfoto'),contact_use:t('Bellen, bericht of Contacten geopend'),about_move:t('Bijgewerkt naar de nieuwe indeling: tekst over jou naar Over mij'),about_clear:t('Tekst over jou weggehaald')};
   const roles={reis:t('Reis'),kind:tc('formulier','Kind'),begeleider1:t('Begeleider 1'),begeleider2:t('Begeleider 2'),gever1:t('Toestemminggever 1'),gever2:t('Toestemminggever 2'),bestemming:t('Bestemming'),ontvanger:t('Ontvanger'),vast:t('Vaste formuliergegevens')};
   const source={masterdata:t('Stamgegevens'),formulieren:t('Formulieren invullen'),idcopy:t('ID-kopie afschermen')};
   const box=$('#cm-audit');box.replaceChildren();if(!cmOpen())return;const q=$('#cm-log-search').value.toLowerCase();
@@ -277,7 +327,7 @@ function cmNavigation(name){if(cm.picker)cmClosePicker();if(cmZone(current)&&!cm
 const cmFmInit=fmInit;fmInit=function(id){cmFmInit(id);fm.masterSensitive=false;Android.masterReleaseForm();};
 const cmIdReset=idCopyReset;idCopyReset=function(secure=true){idc.masterSensitive=false;cmIdReset(secure);};
 const cmFmRender=fmRender;fmRender=function(){if(fm.masterSensitive&&!cmState().open){cmLockedUI();return;}cmFmRender();const s=fmSecties()[fm.step];$('#cm-form-pick').hidden=!s||!s.fields.some(f=>/^(kind|begeleider[12]|gever[12])-/.test(f.id)||f.id==='accommodatie');$('#cm-form-pick').disabled=fm.busy;};
-const cmOnPrivacy=window.onMasterPrivacy;window.onMasterPrivacy=function(r){cmOnPrivacy(r);if(cm.picker&&cmOpen())cmPickerLoad();else if(current==='masterdata'&&cmOpen())cmListOpen();};
+const cmOnPrivacy=window.onMasterPrivacy;window.onMasterPrivacy=function(r){cmOnPrivacy(r);if(cm.picker&&cmOpen())cmPickerLoad();else if(['masterdata','cmai'].includes(current)&&cmOpen())cmListOpen();};
 $('#cm-picker').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();cmClosePicker();}if(e.key==='Tab'){const nodes=[...$('#cm-picker').querySelectorAll('button,input,select,[tabindex="0"]')].filter(n=>!n.disabled&&n.getClientRects().length);if(!nodes.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
 document.addEventListener('input',e=>{if(e.target.closest(CM_SCR.map(n=>'#s-'+n).join(',')+',#cm-picker')||fm.masterSensitive&&e.target.closest('#s-formulieren')||idc.masterSensitive&&e.target.closest('#s-idcopy'))cmTouch();});
 window.addEventListener('pagehide',()=>{Android.masterLock();cmLockedUI();});
