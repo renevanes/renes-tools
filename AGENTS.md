@@ -538,7 +538,7 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   Afbeeldingen alleen via https, zonder referrer, uit te zetten (Instellingen van Nieuws).
 - **Bronnen**: vaste lijst in `Nieuws.STANDAARD` (id, naam, feed, standaard aan, sites en eventueel hoe de link van een
   artikel moet beginnen: `Nieuws.filter`, zoals Tweakers alleen `tweakers.net/nieuws/` uit de gemengde feed; de andere
-  feeds van Tweakers weigert de firewall van DPG vanaf servers, en dus ook in de controle); een eigen bron (id `e…`) is een
+  feeds van Tweakers weigert de firewall van DPG vanaf servers, dus ook als een agent een feed controleert); een eigen bron (id `e…`) is een
   https-feed of een pagina met `<link rel="alternate">`. Een bekende site (bijv. nos.nl) zet de bekende bron aan.
   Nieuwe vaste bron = een regel in `STANDAARD` én in de testbrug (`_nwInit`); controleer dat de feed echt leest.
 - **Opslag**: `nieuws/` (bronnen, gelezen, bewaard) gaat mee in "Alle appgegevens", niet in de Android-backup; de opgehaalde

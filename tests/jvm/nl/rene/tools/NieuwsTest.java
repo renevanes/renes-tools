@@ -42,9 +42,10 @@ public class NieuwsTest {
         }
         // Tweakers mengt nieuws met downloads, reviews en aanbiedingen: alleen het nieuws blijft
         check("tweakers.net/nieuws/".equals(Nieuws.alleen("tweakers")) && Nieuws.alleen("nos").isEmpty() && Nieuws.alleen("e1234").isEmpty(), "alleen nieuws bij Tweakers");
+        check("tweakers".equals(Nieuws.bekendeSite("https://tweakers.net/nieuws/")) && "tweakers".equals(Nieuws.bekendeSite("tweakers.net")), "tweakers.net/nieuws intikken: de bekende bron");
         NieuwsFeed.Feed gemengd = new NieuwsFeed.Feed();
         for (String l : new String[]{"https://tweakers.net/nieuws/1/een.html", "https://tweakers.net/downloads/2/twee.html", "https://tweakers.net/reviews/3/drie.html",
-                "/nieuws/4/vier.html", "https://www.tweakers.net/nieuws/5/vijf.html", "https://tweakers.net/nieuws", "https://ander.example.org/tweakers.net/nieuws/6", "https://tweakers.net/plan/7/zeven.html", ""}) {
+                "/nieuws/4/vier.html", "https://www.tweakers.net/nieuws/5/vijf.html", "https://tweakers.net/nieuws", "https://ander.example.org/tweakers.net/nieuws/6", "https://tweakers.net/plan/7/zeven.html", "", "https://tweakers.net/nieuws/../downloads/8/acht.html"}) {
             NieuwsFeed.Artikel x = new NieuwsFeed.Artikel();
             x.link = l; x.titel = l;
             gemengd.artikelen.add(x);

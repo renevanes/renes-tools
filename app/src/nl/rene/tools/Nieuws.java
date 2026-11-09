@@ -70,7 +70,7 @@ final class Nieuws {
         {"volkskrant", "de Volkskrant", "https://www.volkskrant.nl/voorpagina/rss.xml", "", "volkskrant.nl"},
         {"ad", "AD", "https://www.ad.nl/home/rss.xml", "", "ad.nl"},
         // De gemengde feed is de enige die ook vanaf servers werkt; downloads, reviews en aanbiedingen eruit
-        {"tweakers", "Tweakers Nieuws", "https://tweakers.net/feeds/mixed.xml", "", "tweakers.net", "tweakers.net/nieuws/"},
+        {"tweakers", "Tweakers Nieuws", "https://tweakers.net/feeds/mixed.xml", "", "tweakers.net tweakers.net/nieuws", "tweakers.net/nieuws/"},
         {"bbc", "BBC News", "https://feeds.bbci.co.uk/news/rss.xml", "", "bbc.co.uk bbc.com bbc.co.uk/news bbc.com/news"},
         {"guardian", "The Guardian", "https://www.theguardian.com/world/rss", "", "theguardian.com theguardian.com/world"},
     };
@@ -95,7 +95,7 @@ final class Nieuws {
         for (Iterator<NieuwsFeed.Artikel> it = f.artikelen.iterator(); it.hasNext(); ) {
             NieuwsFeed.Artikel a = it.next();
             String l;
-            try { l = norm(new URL(new URL(basis), a.link).toString()); } catch (Exception e) { l = ""; }
+            try { l = norm(new URL(new URL(basis), a.link).toURI().normalize().toString()); } catch (Exception e) { l = ""; }
             if (!l.startsWith(alleen)) it.remove();
         }
         if (f.artikelen.isEmpty()) throw new Fout(Taal.T("In deze feed staat nu geen nieuws"));
@@ -746,7 +746,10 @@ final class Nieuws {
         Gelezen g = lees(u, System.currentTimeMillis() + MAX_HAAL);
         if (g.feed.artikelen.isEmpty()) throw new Fout(Taal.T("Deze feed heeft geen artikelen"));
         JSONObject b = voegToe(dir(c), g.url, g.feed.titel);
-        bewaarFeed(cache(c), b.getString("id"), g.url, g.feed, System.currentTimeMillis());
+        try {
+            filter(b.getString("id"), g.url, g.feed);
+            bewaarFeed(cache(c), b.getString("id"), g.url, g.feed, System.currentTimeMillis());
+        } catch (Fout geenNieuws) { } // de bron staat aan; bijwerken haalt hem later
         App.log(c, "NIEUWS", "bron toegevoegd");
         return b;
     }
