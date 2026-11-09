@@ -54,10 +54,13 @@ const { chromium } = require('playwright');
 
     // Onderbreken door te praten (barge-in)
     await pg.evaluate(() => { Android._ai.reply = 'Dit is een heel lang antwoord. Met nog een zin. En nog een. '; Android._tts.ms = 3000; });
-    ok(await waitSt('spreekt', 3000), 'tweede vraag: spreekt');
+    // wachten tot hij het lange antwoord voorleest (op een trage machine kan de vorige ronde nog het korte antwoord geven)
+    const leestLang = async ms => { for (let t = 0; t < ms; t += 50) { if (await pg.evaluate(() => !!aiTk && aiTk.st === 'spreekt' && window.__spk.length > 0 && window.__spk[window.__spk.length - 1].t.includes('heel lang antwoord'))) return true; await pg.waitForTimeout(50); } return false; };
+    ok(await leestLang(8000), 'tweede vraag: spreekt');
     const stops = await pg.evaluate(() => Android._tts.stops);
-    await pg.evaluate(() => { Android._barge.hit = true; }); await pg.waitForTimeout(250);
-    ok(await st() === 'luistert' && await pg.evaluate(n => Android._tts.stops > n, stops), 'praten door het voorlezen heen: hij stopt en luistert');
+    await pg.evaluate(() => { Android._barge.hit = true; });
+    ok(await waitSt('luistert', 2000), 'praten door het voorlezen heen: hij luistert');
+    ok(await pg.evaluate(n => Android._tts.stops > n, stops), 'praten door het voorlezen heen: hij stopt met voorlezen');
     // Onderbreken met de knop
     ok(await waitSt('spreekt', 3000), 'nog een vraag: spreekt');
     ok((await pg.textContent('#ai-talk-go')) === 'Onderbreken', 'knop Onderbreken tijdens het voorlezen');
