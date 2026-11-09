@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.176",
+    "date": "2026-11-09",
+    "changes": [
+      "Nieuws: Tweakers laat alleen nog het nieuws zien (zonder downloads, reviews en aanbiedingen) en heet nu Tweakers Nieuws.",
+      "Telefoon-skin: zet Nieuws met het krantenicoon tussen je snelkoppelingen (Look aanpassen → Snelkoppelingen naar tools).",
+      "Backup ontsleutelen op de computer (ontsleutelen.html): een backup met heel veel bestanden is nu in een paar tellen klaar in plaats van bijna een minuut."
+    ]
+  },
+  {
     "version": "1.175",
     "date": "2026-11-09",
     "changes": [
