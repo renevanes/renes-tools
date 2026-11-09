@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.178",
-  "versionCode": 179,
-  "nativeLevel": 159,
+  "versionName": "1.179",
+  "versionCode": 180,
+  "nativeLevel": 160,
   "web": "index.html",
-  "webSha256": "676d5fd5bb3049d49d0830b6b84d9daef76281271b6bb32eaccebe0a6a8f8adc",
+  "webSha256": "1699fd459d0f9d05c4426b9d897db292a7d5e2b131df6c17326db2bd3241920d",
   "start": "start.html",
   "startSha256": "eb96929e99cefd1937525b8c0c5d0ed8979828dcbe88a9789da523294b6331be",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "979ec19761c546844e819cad19647326818c9eda9aabd159bae908925ab7d66e",
+  "apkSha256": "e70d0891a8418d7eb7fa279bd6bbcbf1a4a4c192e9c17dd0f8d618f12952df4a",
   "changelog": [
+    {
+      "version": "1.179",
+      "date": "2026-11-09",
+      "changes": [
+        "Nieuws: Tweakers heeft nu ook afbeeldingen. Tweakers zet ze niet in de feed; Tools haalt ze van de artikelpagina (alleen als Afbeeldingen tonen aan staat). Tweakers vraagt daarvoor eerst een cookiekeuze: die maak je één keer zelf, bij Nieuws → Instellingen → Eenmalig instellen.",
+        "Privacy: de cookies van de vensters in de app (de inlog bij leveranciers in Facturen, de cookiekeuze voor Nieuws) gaan niet meer mee in de Android-backup of bij het overzetten naar een nieuwe telefoon."
+      ]
+    },
     {
       "version": "1.178",
       "date": "2026-11-09",
@@ -1580,5 +1588,5 @@
       ]
     }
   ],
-  "webSig2": "kLahmZW2VcWurK6TKEAXabUhRDV1QDCjGb4/k7eXut+FjoVv6Lomi4P/bnTmADQAZssVISySfKlWUj1u8Y8C9rHI0a8EIy081FfiCwZVAtCTFTb2ZqQSd58I60DQ7LY0z0YFGBqKNZOnaQMiYyub/D0/pvvH+CCszNr5nsTuc4YIPdtHaemVzbVQ3OdwqKzpItxxO0rBogGTCDcXMk3pKrU9OkwPPHt8x6E4119mbdtAX319RWCgWaix+unLv1RRF4b75MDR+3JkRM4I8RgfXUczGZmakwE1kGRjgf4Cb0kuDwCzyKFluFs0wZNjuUTXQjYkNotmjHT6GsHXSEYNz48ezSJr9Q7h9CeepXA03925rgjpBNa3vgT8+VqyN1iqCeZRpnPa63S7uzGWtcgABZesLaIUVCS82iXyljMlgL5ha37ou8plQmLr38qWJwY+gxKeQjQ6GPd5dFsFXAEH82b1tM0mqUFPUxMdxNN/yhd4JjK/rL5rFTGz8ewffMRF"
+  "webSig2": "fFtsbrm/W/nrmHnM+5GTnoDcwE+mvHoztkbMgLy3BhUbHiMw4BQOwBVf74t5L3IUzzlHQh6A23H/uZn84mALPgB7lKH/+c6gKvUrzpMfAUoVYqgMRZ/oMp4pYO8sCideSuHVcEwsdve0OtRe2FcqlF39W2t4ueirhu+GYLnldxy8TPC8QK20Fz4pTpmc0dtoOShGDBLx66h05qgi4qOsZndXtOIBKNkOanAnxGwQhKCfWj1WRSrUNDeIb2UligbLHLOQDY8mVjx4pgZcQVnnAfoI532Ad49iXDbq4deNQLs9MizfyTpzTchmJrcFz2FadQ646lpXE00kM0eBa/n1U3JoQ1cIr1nYwv4/CmffxOBhpz8clA4V1tZvhWbs/hOWO1kvayc5Pqhq05+MjtRVglB/hzpQXhZcu3sEfILq/boJsZfP9QD67x3hWiDu0CjCc0obrMjaX3BwZfEDoBoowRygLazRDs5ShvPbeBIcXdQX+M07gljWK1XjWMc0tgLu"
 }
