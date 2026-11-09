@@ -105,9 +105,11 @@ function erChapter(index,anchor){
 function erOffset(){const e=$('#er-text');return e.scrollHeight>e.clientHeight?e.scrollTop/(e.scrollHeight-e.clientHeight):0;}
 function erStep(){const e=$('#er-text'),line=parseFloat(getComputedStyle($('#er-content')).lineHeight)||36;return Math.max(line,Math.floor((e.clientHeight-32)/line)*line);}
 function erTurn(direction){
-  if(!erBook)return;erPendingLocation=null;erPendingFragment='';const e=$('#er-text'),max=Math.max(0,e.scrollHeight-e.clientHeight);
-  if(direction>0&&e.scrollTop>=max-2){const next=erNeighbor(1);if(next>=0)erChapter(next);return;}
-  if(direction<0&&e.scrollTop<2){const prev=erNeighbor(-1);if(prev>=0&&erChapter(prev)){$('#er-text').scrollTop=$('#er-text').scrollHeight;erScroll();}return;}
+  if(!erBook)return;erPendingLocation=null;erPendingFragment='';erUserAt=Date.now();const e=$('#er-text'),max=Math.max(0,e.scrollHeight-e.clientHeight);
+  // Bladeren naar het volgende of vorige hoofdstuk is bladeren, geen sprong: het voorlezen gaat door (erPaging)
+  const chapter=index=>{erPaging=true;try{return erChapter(index);}finally{erPaging=false;}};
+  if(direction>0&&e.scrollTop>=max-2){const next=erNeighbor(1);if(next>=0)chapter(next);return;}
+  if(direction<0&&e.scrollTop<2){const prev=erNeighbor(-1);if(prev>=0&&chapter(prev)){$('#er-text').scrollTop=$('#er-text').scrollHeight;erScroll();}return;}
   e.scrollTop=Math.max(0,Math.min(max,e.scrollTop+direction*erStep()));erProgress();erScroll();
 }
 function erProgress(){

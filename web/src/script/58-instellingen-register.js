@@ -394,7 +394,7 @@ const SET_REG = [
     syn: 'voorlezen achtergrond scherm uit doorgaan boek e-reader', synEn: 'read aloud background screen off keep reading book e-reader', need: /voorle|achtergrond|background|read aloud|boek|book/,
     avail: () => typeof Android.speechModels === 'function' ? '' : 'Installeer de nieuwste APK voor lokaal voorlezen',
     get: () => { try { return setB(JSON.parse(Android.speechModels()).background !== false); } catch (e) { return 'uit'; } },
-    set: v => { const m = JSON.parse(Android.speechModels()); const e = Android.speechConfigure(m.voice || '', m.speed || 1, setOnV(v)); if (typeof spModelsRender === 'function') spModelsRender(); if (typeof erSpeakRender === 'function') erSpeakRender(); return e || ''; } }
+    set: v => { const m = JSON.parse(Android.speechModels()); const e = Android.speechConfigure(m.voice || '', m.speed || 1, setOnV(v)); if (!e && setOnV(v) && typeof Android.speechNotifAsk === 'function') Android.speechNotifAsk(); /* zoals spBackground: zonder meldingen geen pauzeknop */ if (typeof spModelsRender === 'function') spModelsRender(); if (typeof erSpeakRender === 'function') erSpeakRender(); return e || ''; } }
 ];
 
 const SET_SRC_PRIV = ['sms', 'wa', 'calls', 'contacts', 'tx', 'sleep', 'checkin', 'gebruik', 'apparaten'];

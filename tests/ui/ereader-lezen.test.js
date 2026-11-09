@@ -155,6 +155,45 @@ const SHOTS=process.env.ER_SHOTS||path.join(__dirname,'shots');
   await page.evaluate(()=>erChapter(1,0));ok(await page.evaluate(()=>!erSpeakActive()),'naar een ander hoofdstuk springen stopt het voorlezen');
   await page.evaluate(()=>erLezenSet('keys',false));
 
+  // ---------- zinnen zoals de motor, slaaptimer, stem, volumeknoppen, koude start (eindreview) ----------
+  const fx=path.join(__dirname,'../../build/test-data/readaloud-segments.json');
+  if(fs.existsSync(fx)){const cases=JSON.parse(fs.readFileSync(fx,'utf8'));ok(await page.evaluate(cs=>cs.every(c=>JSON.stringify(erSegments(c.text,0))===JSON.stringify(c.segs)&&JSON.stringify(erSegments(c.text,c.from))===JSON.stringify(c.mid)),cases),'zinnen gelijk aan ReadAloud.segments in Java ('+cases.length+' teksten, ook aanhalingstekens, haakjes, harde spaties en knippen)');}
+  else if(process.env.CI)ok(false,'ReadAloudSegmentsParityTest moet eerst draaien');else console.log('Java-zinnen ontbreken; eerst tests/run-jvm.sh draaien');
+  await page.evaluate(()=>{Android._erBooks.push({id:'q',title:'Dialoog',author:'',language:'nl',chapters:['Een','Twee'],chapter:0,offset:0,last:1,format:'EPUB',edition:3},{id:'en',title:'English book',author:'',language:'en',chapters:['One'],chapter:0,offset:0,last:0,format:'EPUB',edition:3});
+    Android._erTexts.q=["'Waar ga je heen?' vroeg ze. 'Naar de haven.' Hij zei: \"Kom.\" Toen ging hij. Dit klopt (zie boven.) Daarna verder.",'Tweede hoofdstuk. Nog een zin.'];Android._erTexts.en=['It was late. She left the house.'];show('ereader');erOpen('q');});
+  ok(await page.evaluate(()=>{const t=erText,at=x=>t.indexOf(x);return erSentenceStart(t,at('ging'))===at('Toen')&&erSentenceStart(t,at('haven'))===at("'Naar")&&erSentenceStart(t,at('boven'))===at('Dit klopt')&&erSentenceStep(t,at('Toen'),-1)===at('Hij zei')&&erSentenceStep(t,at('Hij zei'),-1)===at("'Naar")&&erSentenceStep(t,at('Dit klopt'),1)===at('Daarna')&&erSentenceStep(t,at('Daarna'),1)===-1;}),'zinsbegin, vorige en volgende zin met aanhalingstekens en haakjes zoals de motor');
+  await page.evaluate(()=>erSpeakFrom(0,erText.indexOf('Toen')));await page.waitForFunction(()=>sp.active&&sp.active.state==='playing');
+  await page.evaluate(()=>erControls(true));await page.click('#er-tts-prev');await page.waitForFunction(()=>sp.active&&sp.active.state==='playing');
+  ok(await page.evaluate(()=>Android._speech.said.slice(-1)[0].offset===erText.indexOf('Hij zei')),'vorige zin slaat geen dialoog over');
+  await page.evaluate(()=>{erSpeakFrom(0,erText.indexOf("'Naar"));erSpeakStep(1);});await page.waitForFunction(()=>sp.active&&sp.active.state==='playing');
+  ok(await page.evaluate(()=>Android._speech.said.slice(-1)[0].offset===erText.indexOf('Hij zei')),'volgende zin tijdens het laden: de echte volgende zin, niet één teken verder');
+  await page.click('#er-speak');await page.waitForFunction(()=>sp.active.state==='paused');await page.click('#er-speak');await page.waitForFunction(()=>sp.active.state==='playing');
+  ok(true,'de luidspreker tijdens het voorlezen pauzeert en gaat verder');
+  await page.evaluate(()=>{const e=$('#er-text');e.scrollTop=e.scrollHeight;erTurn(1);});await tick(page);await page.waitForTimeout(60);
+  ok(await page.evaluate(()=>erIndex===1&&sp.active&&sp.active.state==='playing'&&sp.active.chapter===0),'naar het volgende hoofdstuk bladeren stopt het voorlezen niet en springt niet meteen terug');
+  await page.evaluate(()=>erPanel('tts'));await page.click('#er-tts-sleep [data-v=chapter]');await page.evaluate(()=>erPanel(''));
+  await page.evaluate(()=>erChapter(0,0));ok(await page.evaluate(()=>!erSpeakActive()&&!erSleep.chapter&&!erSleep.at),'naar een hoofdstuk springen stopt het voorlezen én de slaaptimer');
+  await page.evaluate(()=>erControls(true));await page.click('#er-speak');await page.waitForFunction(()=>sp.active&&sp.active.state==='playing');
+  ok(!(await page.locator('#er-tts-status').innerText()).includes('hoofdstuk'),'een nieuwe sessie begint zonder de oude slaaptimer');
+  await page.evaluate(()=>erPanel('tts'));await page.click('#er-tts-sleep [data-v=chapter]');await page.evaluate(()=>{erPanel('');goBack();});
+  await page.evaluate(()=>{const a=Android._speech.active;a.seg=a.segs.length-1;[a.offset,a.end]=a.segs[a.seg];});await tick(page);await page.waitForTimeout(60);
+  ok(await page.evaluate(()=>current==='ereader'&&!sp.active&&!erSleep.chapter),'slaaptimer "einde hoofdstuk" werkt ook buiten het boek');
+  await page.evaluate(()=>{erOpen('q');erSpeakFrom(0,0);});await page.waitForFunction(()=>sp.active&&sp.active.state==='playing');
+  await page.evaluate(()=>{show('home');sp.active=null;spSpeechRender();openTool('ereader');});await page.waitForTimeout(60);
+  ok(await page.evaluate(()=>current==='erbook'&&erBook.id==='q'&&sp.active&&sp.active.book==='q'),'koude start vanuit de melding: meteen naar het boek dat wordt voorgelezen');
+  await page.evaluate(()=>{erSpeakStop();Android._speech.voices[1].state='ready';Android._speech.voice='tts-nl-ronnie';show('ereader');erOpen('en');erControls(true);});
+  await page.click('#er-speak');await page.waitForFunction(()=>sp.active&&sp.active.state==='playing');
+  ok(await page.evaluate(()=>Android._speech.said.slice(-1)[0].voice==='tts-en-ljspeech'&&Android._speech.voice==='tts-nl-ronnie'),'Engels boek met de Engelse stem; de gekozen stem blijft Nederlands');
+  await page.evaluate(()=>{erSpeakStop();spText('Hallo daar.','note');});await page.waitForFunction(()=>sp.active&&sp.active.source==='note');
+  ok(await page.evaluate(()=>Android._speech.said.slice(-1)[0].voice==='tts-nl-ronnie'),'daarna lezen notities en de assistent weer met de gekozen stem');
+  await page.evaluate(()=>erLezenSet('keys',true));ok(await page.evaluate(()=>Android._erWin.keys===false),'ook een notitie die klinkt houdt de volumeknoppen voor het volume');
+  await page.evaluate(()=>spStop(true));await page.waitForFunction(()=>Android._erWin.keys===true);
+  await page.evaluate(()=>spSettings());await page.waitForFunction(()=>Android._erWin.keys===false);await page.evaluate(()=>spSettingsClose());await page.waitForFunction(()=>Android._erWin.keys===true);
+  ok(true,'stemkiezer open: volumeknoppen voor het volume, daarna weer bladeren');
+  await page.evaluate(()=>{erPanel('tts');erSpeakVoices();spSettingsClose();});
+  ok(await page.evaluate(()=>{const a=document.activeElement;return !!a&&a!==document.body&&a.getClientRects().length>0&&!a.closest('#er-tts-panel');}),'na de stemkiezer staat de focus op iets zichtbaars');
+  await page.evaluate(()=>{erLezenSet('keys',false);Android._speech.voices[1].state='none';show('ereader');erOpen('z');});
+
   // ---------- buiten een boek blijft het venster ongemoeid ----------
   await page.evaluate(()=>{goBack();show('ai');Android.aiTalkScreen(true);});const nWin=await page.evaluate(()=>Android._erWinLog.length);
   await page.evaluate(()=>{erLezenSet('bright',.4);erLezenSet('awake',false);erLezenSet('awake',true);setEntry('ereader.helderheid').set('telefoon');setEntry('ereader.volscherm').set('aan');});

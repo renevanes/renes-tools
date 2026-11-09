@@ -1,10 +1,12 @@
 /* Gedeelde voorleesclient. Alleen native stemmen, één actieve aanvraag en geen opslag van tekst/audio.
-   Gebruik: spText(tekst, bron, markdown) of spBook() (vanaf de leesplek, door de hoofdstukken heen); spPause/spStop; spSettings.
+   Gebruik: spText(tekst, bron, markdown) of spBook(offset, hoofdstuk) (standaard de leesplek; door de hoofdstukken heen);
+   spPause/spStop; spSettings. De e-reader (74c-ereader-lezen.js: erSpeakStart, erSpeakEvent) kiest het begin van de zin,
+   markeert, bladert mee, bewaart de leesplek en heeft in het boek een eigen balk; onSpeech geeft boekevents aan erSpeakEvent.
    onSpeech(e): {request, source, state, book, chapter, offset, end}. 'playing' = [offset, end) van de tekst of het
    hoofdstuk is nu hoorbaar (één zin: om te markeren en de pagina te volgen); 'progress' = tot offset uitgesproken
    (boek: leesplek bewaard); 'chapter' = volgend hoofdstuk; 'paused' (met error als verder niet lukte), 'done',
    'stopped', 'error'. Snelheid: speechConfigure (geldt vanaf de volgende zin of de zin daarna). Zie docs/voorlezen.md. */
-const sp={active:null,seq:0,settings:false,models:{voices:[]},focus:null,origin:'',timer:null,following:false,readerLocation:null};
+const sp={active:null,seq:0,settings:false,models:{voices:[]},focus:null,origin:'',timer:null};
 function spReadModels(){try{return JSON.parse(Android.speechModels());}catch(_){return {voices:[],supported:false};}}
 function spAvailable(){if(typeof Android.speechStart!=='function'){toast(t('Installeer de nieuwste APK voor lokaal voorlezen'));return false;}sp.models=spReadModels();if(!sp.models.voice){spSettings();return false;}return true;}
 function spText(text,source='text',markdown=false){if(!spAvailable())return;if(typeof text!=='string'||!text.trim()){toast(t('Er is geen tekst om voor te lezen'));return;}if(text.length>120000){toast(t('Deze tekst is te lang om in één keer voor te lezen'));return;}const request='lees-'+Date.now()+'-'+(++sp.seq);sp.active={request,source,state:'loading'};spSpeechRender();Android.speechStart(text,request,source,markdown);}
@@ -33,9 +35,8 @@ window.onSpeech=function(e){
   if(e.source==='ai'&&e.state==='loading'&&(!sp.active||sp.active.source==='ai'))sp.active={...e};
   if(!sp.active||e.request!==sp.active.request)return;
   sp.active={...sp.active,...e};
-  if(e.source==='reader'&&erBook&&e.book===erBook.id&&Number.isInteger(e.chapter)&&Number.isInteger(e.offset)&&['playing','progress','chapter','paused','done','stopped'].includes(e.state)){
-    if(typeof erSpeakEvent==='function')erSpeakEvent(e); // markeren, meebladeren en leesplek: 74c-ereader-lezen.js
-  }
+  // Alle boekevents, ook buiten het boek (slaaptimer, plek om naar terug te keren): 74c-ereader-lezen.js
+  if(e.source==='reader'&&typeof erSpeakEvent==='function')erSpeakEvent(e);
   if(['done','stopped','error'].includes(e.state)){sp.active=null;spSpeechRender();if(e.state==='error'&&e.source!=='ai'){if(!spReadModels().voice)spSettings();toast(e.error||t('Lokaal voorlezen lukt niet; probeer een korter stuk tekst'));}return;}
   if(e.state==='paused'&&e.error)toast(e.error); // verder lukte niet: een andere app (bijv. een gesprek) heeft het geluid
   spSpeechRender();
