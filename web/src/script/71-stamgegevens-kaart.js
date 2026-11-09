@@ -16,7 +16,7 @@ function cmKaartLoad(id,note=''){
   if(!cmOpen())return;const epoch=++cmc.epoch;
   cmRequest('masterRead',[id,'masterdata',''],r=>{
     if(epoch!==cmc.epoch||!cmOpen())return;
-    cmc.rec=r.record;cmc.reveal=false;cmc.photoEpoch++;sigLoad();
+    cmc.rec=r.record;cmc.reveal=false;cmc.photoEpoch++;if(r.record&&(r.record.type==='formulier'||r.record.id===cmkMe()))sigLoad();
     if(current!=='cmkaart')show('cmkaart');
     cmKaartRender();$('#cm-kaart-status').textContent='';cmNavDone();if(note)cmNote(note);
   },false,()=>{if(epoch===cmc.epoch)cmNavDone();});
@@ -177,7 +177,7 @@ function cmSigStand(id,op){
   const s=sigHuidig(),box=cmEl('div',undefined,'sig-stand');box.id=id;
   if(s&&op)box.append(sigCanvas());
   const tekst=sig.error||(op?(s?t('Je bewaarde handtekening komt bij die begeleider.'):t('Nog geen handtekening bewaard. Teken hem één keer; dan zet Formulieren hem bij die begeleider.')):(s?t('Je hebt een handtekening bewaard.'):t('Nog geen handtekening bewaard.')));
-  box.append(cmEl('p',tekst,s&&!sig.error?'hint':'hint cmi-warn'),cmcSigKnop(s,`${id}-teken`));return box;
+  box.append(cmEl('p',tekst,sig.error||(op&&!s)?'hint cmi-warn':'hint'),cmcSigKnop(s,`${id}-teken`));return box;
 }
 sigWatch(()=>{
   if(!cmOpen())return;

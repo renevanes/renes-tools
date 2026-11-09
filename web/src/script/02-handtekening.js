@@ -15,20 +15,22 @@ function sigValid(s){
   }
   return moved;
 }
-/* Meldingen uit Java (PdfSignature, Kluis) komen Nederlands binnen; hier staan ze met t(), zodat ze een vertaling hebben. */
-function sigFout(m){
-  switch(typeof m==='string'&&m!=='null'?m:''){
-    case '':return t('Handtekening laden lukt niet');
+/* Meldingen uit Java (PdfSignature, Kluis) komen Nederlands binnen; alleen deze bekende tonen we (vertaald), voor de
+ * rest (technische fouten) de algemene melding anders. */
+function sigFout(m,anders){
+  switch(m){
     case 'Ongeldige handtekening':return t('Ongeldige handtekening');
     case 'Ongeldige kleur':return t('Ongeldige kleur');
+    case 'Teken eerst je handtekening':return t('Teken eerst je handtekening');
     case 'Handtekening is te groot':return t('Handtekening is te groot');
     case 'Handtekening heeft te veel lijnen':return t('Handtekening heeft te veel lijnen');
     case 'Bewaarde handtekening is te groot':return t('Bewaarde handtekening is te groot');
+    case 'Handtekening verwijderen lukt niet':return t('Handtekening verwijderen lukt niet');
     case 'Geen kluisbestand':return t('Geen kluisbestand');
     case 'Kluisbestand is beschadigd':return t('Kluisbestand is beschadigd');
     case 'Opslaan kon niet worden gecontroleerd':return t('Opslaan kon niet worden gecontroleerd');
     case 'Opslaan lukt niet; het eerdere bestand blijft behouden':return t('Opslaan lukt niet; het eerdere bestand blijft behouden');
-    default:return t(m);
+    default:return anders;
   }
 }
 function sigWatch(fn){sig.watch.push(fn);}
@@ -36,7 +38,7 @@ function sigChanged(){for(const fn of sig.watch)try{fn(sig.value,sig.error);}cat
 /* Opnieuw uit de opslag lezen; geeft de handtekening of null (de reden staat dan in sig.error). Watchers alleen bij een verandering. */
 function sigLoad(){
   const was=sig.loaded?JSON.stringify([sig.value,sig.error]):'';
-  try{const r=JSON.parse(Android.pdfSignatureLoad());if(r.error)throw Error(sigFout(r.error));if(r.signature&&!sigValid(r.signature))throw Error(t('Bewaarde handtekening is niet te lezen'));sig.value=r.signature||null;sig.error='';}
+  try{const r=JSON.parse(Android.pdfSignatureLoad());if(r.error)throw Error(sigFout(r.error,t('Handtekening laden lukt niet')));if(r.signature&&!sigValid(r.signature))throw Error(t('Bewaarde handtekening is niet te lezen'));sig.value=r.signature||null;sig.error='';}
   catch(e){sig.value=null;sig.error=e.message||t('Handtekening laden lukt niet');}
   sig.loaded=true;if(JSON.stringify([sig.value,sig.error])!==was)sigChanged();return sig.value;
 }
@@ -44,15 +46,15 @@ function sigHuidig(){return sig.loaded?sig.value:sigLoad();}
 /* Bewaren; '' als het lukte, anders de reden (de vorige blijft dan staan). */
 function sigSave(s){
   if(!sigValid(s))return t('Teken een handtekening met maximaal 10.000 punten en 200 lijnen');
-  let err;try{err=Android.pdfSignatureSave(JSON.stringify(s));}catch(e){err='Handtekening bewaren lukt niet';}
-  if(err)return sigFout(err);
+  let err;try{err=Android.pdfSignatureSave(JSON.stringify(s));}catch(e){err='?';}
+  if(err)return sigFout(err,t('Handtekening bewaren lukt niet'));
   sig.value=JSON.parse(JSON.stringify(s));sig.error='';sig.loaded=true;sigChanged();return '';
 }
 /* Vragen en verwijderen; wat al in een PDF staat, blijft staan. focusId: waar de focus daarna heen gaat (de knop Verwijderen verdwijnt). */
 function sigVraagWeg(focusId){
   askConfirm(t('Bewaarde handtekening verwijderen?'),t('Je kunt haar daarna niet meer opnieuw gebruiken. Handtekeningen die al in een PDF staan blijven staan.'),t('Verwijderen'),()=>{
-    let err;try{err=Android.pdfSignatureDelete();}catch(e){err='Handtekening verwijderen lukt niet';}
-    if(err){toast(sigFout(err));return;}
+    let err;try{err=Android.pdfSignatureDelete();}catch(e){err='?';}
+    if(err){toast(sigFout(err,t('Handtekening verwijderen lukt niet')));return;}
     sig.value=null;sig.error='';sig.loaded=true;sigChanged();toast(t('Bewaarde handtekening verwijderd'));
     const el=focusId&&$('#'+focusId);if(el)el.focus();
   });
@@ -117,7 +119,7 @@ function sigClose(){
   if(sig.pad)sig.pad.clear();sig.dlg=null;$('#sig-fout').textContent='';$('#sigdlg').classList.remove('on');dialogFocus.sync();
   const terug=sig.terug;sig.terug='';
   const weg=!document.activeElement||document.activeElement===document.body||$('#sigdlg').contains(document.activeElement);
-  if(terug&&weg){const el=$('#'+terug);if(el&&!el.closest('[inert]'))el.focus();}
+  if(terug&&weg){const el=document.getElementById(terug);if(el&&!el.closest('[inert]'))el.focus();}
 }
 function sigWis(){if(sig.pad)sig.pad.clear();$('#sig-fout').textContent='';}
 function sigOk(){

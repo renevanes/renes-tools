@@ -31,6 +31,7 @@ function pdfEditTeken(){
   sigTeken({plaatsen:(s,bewaard)=>{
     if(pdfEd.revision!==rev||pdfEd.page!==page){toast(bewaard?t('Handtekening bewaard, maar niet geplaatst: de PDF of pagina is intussen veranderd.'):t('Handtekening niet geplaatst: de PDF of pagina is intussen veranderd.'));return;}
     if(pdfSignaturePut(s)){pdfSignaturePlaced();toast(bewaard?t('Handtekening bewaard en geplaatst. Sleep haar naar de juiste plek.'):t('Handtekening geplaatst. Sleep haar naar de juiste plek.'));}
+    else if(pdfEd.items.length<100)toast(bewaard?t('Handtekening bewaard, maar plaatsen lukt nu niet. Probeer het zo opnieuw.'):t('Plaatsen lukt nu niet. Probeer het zo opnieuw.'));
   }});
 }
 function pdfSignatureDraw(){if(!pdfBusy)sigTeken();}

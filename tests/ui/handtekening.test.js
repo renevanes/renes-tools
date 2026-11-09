@@ -70,9 +70,9 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>{show('pdfedit');return $('#pdf-signature-preview').hidden;}),true,'PDF: weg');
 
   // 5. Een fout bij het lezen staat op het kaartje; verwijderen blijft mogelijk
-  await p.evaluate(()=>{Android._signatureReadError='Handtekening is niet te lezen';sigLoad();});await p.waitForFunction(()=>!cmOpen());await unlock();
-  assert.match(await p.textContent('#cmc-sig'),/niet te lezen/);assert.equal(await p.isVisible('#cmc-sig-weg'),true);
-  await p.evaluate(()=>{Android._signatureReadError='null';sigLoad();});assert.equal(await p.textContent('#cmc-sig .hint'),'Handtekening laden lukt niet','geen "null"');
+  await p.evaluate(()=>{Android._signatureReadError='Kluisbestand is beschadigd';sigLoad();});await p.waitForFunction(()=>!cmOpen());await unlock();
+  assert.match(await p.textContent('#cmc-sig'),/Kluisbestand is beschadigd/);assert.equal(await p.isVisible('#cmc-sig-weg'),true);
+  for(const fout of ['null','javax.crypto.AEADBadTagException: Tag mismatch'])assert.equal(await p.evaluate(f=>{Android._signatureReadError=f;sigLoad();return $('#cmc-sig .hint').textContent;},fout),'Handtekening laden lukt niet','geen technische tekst: '+fout);
   await p.evaluate(()=>{Android._signatureReadError='';sigLoad();});
 
   // 6. Smal scherm en Engels

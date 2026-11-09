@@ -36,7 +36,7 @@ const assert=require('node:assert/strict');
     await draw(10);await p.click('#sig-ok');assert.equal(await p.evaluate(()=>pdfEd.items.length),2);assert.deepEqual(await p.evaluate(()=>Android._signature),signature);
     // Een opslagfout behoudt de bestaande handtekening en de tekening; Annuleren verandert niets.
     await p.click('#pdf-signature-draw');assert.equal(await p.textContent('#sig-title'),'Handtekening vervangen');await draw(10);
-    await p.evaluate(()=>Android._signatureError='Geen opslagruimte');await p.click('#sig-ok');assert.equal(await p.textContent('#sig-fout'),'Geen opslagruimte');
+    await p.evaluate(()=>Android._signatureError='Geen opslagruimte');await p.click('#sig-ok');assert.equal(await p.textContent('#sig-fout'),'Handtekening bewaren lukt niet','onbekende fout: de algemene melding');
     assert.equal(await p.isVisible('#sigdlg'),true);assert.ok(await p.evaluate(()=>sig.pad.strokes.length),'tekening blijft staan');
     assert.deepEqual(await p.evaluate(()=>Android._signature),signature);assert.deepEqual(await p.evaluate(()=>sig.value),signature);
     await p.click('#sig-cancel');assert.equal(await p.isVisible('#sigdlg'),false);assert.deepEqual(await p.evaluate(()=>Android._signature),signature);
