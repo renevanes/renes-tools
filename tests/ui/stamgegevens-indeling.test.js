@@ -1,126 +1,151 @@
-// Stamgegevens op de telefoon: korte schermen zonder scrollen (390×844), één zone van schermen en de kluis blijft dicht erbuiten.
-// Overzicht (zoeken, filter, Toevoegen), bewerken met tabbladen en een vaste opslaanbalk, Activiteiten en Opnieuw beginnen apart.
+// Stamgegevens op de telefoon (390×844): korte schermen, één zone van schermen en de kluis blijft dicht erbuiten.
+// Beginscherm (jij, Aandacht nodig, Persoon toevoegen, een rij per soort), lijsten per soort, een visitekaartje met blokken,
+// één blok bewerken met een vaste opslaanbalk; Activiteiten en Opnieuw beginnen onder ⋯.
 const {chromium}=require('playwright');const assert=require('node:assert/strict');const path=require('path');
 const W=+process.env.UI_WACHT||1;
 (async()=>{const browser=await chromium.launch(),errors=[];
 for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
- const tag=colorScheme+(en?' (Engels)':'');
+ const tag=colorScheme+(en?' (Engels)':''),L=(nl,eng)=>en?eng:nl;
  const p=await browser.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));
- await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300*W);
+ await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300*W);const T=require('./_stamtabs')(p);
  if(en){await p.evaluate(()=>rgSave({lang:'en'}));await p.waitForFunction(()=>TAAL.on);}
  const past=async wat=>{const m=await p.evaluate(()=>({h:document.documentElement.scrollHeight,v:innerHeight}));assert.ok(m.h<=m.v+1,tag+': '+wat+' past zonder scrollen ('+m.h+' > '+m.v+')');};
+ const inBeeld=s=>p.evaluate(s=>{const r=$(s).getBoundingClientRect();return r.height>0&&r.top>=0&&r.bottom<=innerHeight;},s);
+ const minTik=s=>p.$$eval(s,b=>Math.min(...b.filter(x=>x.offsetParent).map(x=>Math.min(x.getBoundingClientRect().height,x.getBoundingClientRect().width))));
+ const blokken=()=>p.$$eval('#cm-kaart .cmc-blok',s=>s.map(x=>x.dataset.blok));
+ const opKaart=id=>p.waitForFunction(id=>current==='cmkaart'&&cmc.rec?.id===id&&!cm.pending.size&&!cm.mutating&&!cm.navigating,id);
 
- // Vergrendeld: korte kaart, uitleg ingeklapt, wat er gedeeld is in één regel
+ // Vergrendeld: korte kaart, uitleg ingeklapt, wat de assistent weet in één regel
  await p.evaluate(()=>show('masterdata'));await p.waitForTimeout(120*W);
- await past('vergrendeld overzicht');
- assert.equal(await p.isVisible('#cm-add'),false,tag+': geen Toevoegen zolang het slot dicht is');
- assert.equal(await p.isVisible('#cmi-shared-stand'),true);assert.equal(await p.textContent('#cmi-shared-stand'),en?'Nothing shared':'Niets gedeeld');
- // Opnieuw beginnen kan ook vergrendeld (⋯), op een eigen scherm; terug naar het overzicht
+ await past('vergrendeld beginscherm');
+ assert.equal(await p.isVisible('#cm-add'),false,tag+': geen Persoon toevoegen zolang het slot dicht is');
+ assert.equal(await p.textContent('#cmi-shared-stand'),L('Weet niets uit Stamgegevens','Knows nothing from Master data'));
+ // Opnieuw beginnen kan ook vergrendeld (⋯), op een eigen scherm; terug naar het beginscherm
  await p.click('#cm-menu');await p.waitForSelector('#sheet.on');
- assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),[en?'Start over':'Opnieuw beginnen'],tag+': vergrendeld alleen opnieuw beginnen');
+ assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),[L('Opnieuw beginnen','Start over')],tag+': vergrendeld alleen opnieuw beginnen');
  await p.click('#sheet-acts button');await p.waitForFunction(()=>current==='cmwis');assert.equal(await p.isDisabled('#cm-reset'),true);await past('opnieuw beginnen');
  await p.evaluate(()=>goBack());await p.waitForFunction(()=>current==='masterdata');
 
+ // Leeg: Begin met jezelf, rijen met hun stand
  await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
- assert.equal(await p.isVisible('#cm-list .empty'),true,tag+': lege lijst met uitleg');
- // Een paar stamgegevens, zoals Rene ze aanmaakt
- const save=async()=>{await p.click('#cm-save');await p.waitForFunction(()=>!cm.mutating&&!cm.edit&&cm.recordsReady&&current==='masterdata');};
- const nieuw=async(type,label,velden={})=>{await p.evaluate(type=>cmiNew(type),type);await p.waitForFunction(()=>current==='cmedit'&&!!cm.edit);
-  if(label!==undefined){if(await p.evaluate(()=>!!$('#cm-label').closest('.cm-off')))await p.click('#cm-tab-'+await p.evaluate(()=>$('#cm-label-box').dataset.cmTab));await p.fill('#cm-label',label);}
-  for(const [k,v] of Object.entries(velden)){const tab=await p.evaluate(k=>$('#cm-field-'+k).closest('[data-cm-tab]').dataset.cmTab,k);if(await p.evaluate(()=>!$('#cm-tabs').hidden))await p.click('#cm-tab-'+tab);if(await p.evaluate(k=>$('#cm-field-'+k).tagName==='SELECT',k))await p.selectOption('#cm-field-'+k,v);else await p.fill('#cm-field-'+k,v);}};
- await nieuw('persoon','Rene',{naam:'van Es',voornamen:'Rene',geboortedatum:'1980-01-01',bsn:'123456782',plaats:'Rotterdam',context:'Houdt van treinen'});await save();
- await nieuw('persoon','Anna',{naam:'van Es'});await save();
- const rene=await p.evaluate(()=>cm.records.find(r=>r.label==='Rene').id),anna=await p.evaluate(()=>cm.records.find(r=>r.label==='Anna').id);
- await nieuw('identiteit','Paspoort Rene',{persoon:rene,document:'DOC123',geldig:'2030-01-01'});await save();
- await nieuw('relatie',undefined,{vanPersoon:rene,naarPersoon:anna,relatie:'kind'});await save();
- await nieuw('organisatie','Gemeente',{naam:'Gemeente Rotterdam'});await save();
- await nieuw('adres','Huis',{adres:'Coolsingel 1'});await save();
- await nieuw('reis','Zomer',{van:'2027-07-01',tot:'2027-07-20'});await save();
- assert.equal(await p.evaluate(()=>cm.records.length),7);
- assert.equal(await p.evaluate(()=>cm.records.find(r=>r.type==='relatie').label),en?'Anna (child of Rene)':'Anna (kind van Rene)','naam van de relatie vult zich vanzelf, ook op een ander tabblad');
+ assert.equal(await p.isVisible('#cm-ik .cmk-start'),true,tag+': Begin met jezelf');
+ assert.deepEqual(await p.$$eval('#cm-ik .cmk-start button',b=>b.map(x=>x.id)),['cmk-self-contact','cmk-self-new'],'nog niemand om uit te kiezen');
+ assert.equal(await p.textContent('#cm-stand-mensen'),L('Nog niemand','Nobody yet'));assert.equal(await p.textContent('#cm-stand-documenten'),L('Nog geen documenten','No documents yet'));
+ assert.equal(await p.isVisible('#cm-aandacht'),false,'niets vraagt aandacht');
+ await past('leeg beginscherm');
 
- // Overzicht: lijst met soort, filter, zoeken; Toevoegen kiest eerst de soort
- // Een lange lijst mag schuiven, maar de lijst begint bovenin en Toevoegen blijft in beeld
- assert.ok(await p.evaluate(()=>$('#cm-list').getBoundingClientRect().top<innerHeight/2),tag+': lijst begint in de bovenste helft');
- assert.ok(await p.evaluate(()=>{const r=$('#cm-add').getBoundingClientRect();return r.bottom<=innerHeight&&r.top>innerHeight/2;}),tag+': Toevoegen onderin in beeld');
- assert.deepEqual(await p.$$eval('#cm-filter button',b=>b.map(x=>x.textContent)),en?['All','People','Relationships','Documents','Other']:['Alles','Personen','Relaties','Documenten','Overig']);
- await p.click('#cm-filter button:nth-child(2)');assert.deepEqual(await p.$$eval('#cm-list .strow b',b=>b.map(x=>x.textContent)),['Anna','Rene'],'filter op personen');
- assert.equal(await p.getAttribute('#cm-filter button:nth-child(2)','aria-pressed'),'true');
- await p.fill('#cm-search','ren');assert.deepEqual(await p.$$eval('#cm-list .strow b',b=>b.map(x=>x.textContent)),['Rene'],'zoeken binnen het filter');
- await p.fill('#cm-search','');await p.click('#cm-filter button:nth-child(1)');assert.equal(await p.locator('#cm-list .strow').count(),5,'documenten en relaties staan bij hun persoon, niet los in Alles');assert.equal(await p.isVisible('#cm-list .cmk-start'),true,'zonder jou: Begin met jezelf');
- await p.click('#cm-filter button:nth-child(4)');assert.equal(await p.locator('#cm-list .strow').count(),1,'filter Documenten toont ze wel');await p.click('#cm-filter button:nth-child(1)');
- const minTik=await p.$$eval('#cm-filter button,#cm-list .strow,#cm-add,#cm-menu,#cm-lock-btn',b=>Math.min(...b.map(x=>Math.min(x.getBoundingClientRect().height,x.getBoundingClientRect().width))));assert.ok(minTik>=44,tag+': tikvlakken minstens 44 px ('+minTik+')');
- await p.click('#cm-add');await p.waitForSelector('#sheet.on');
- assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),en?['Myself','Person','Relationship','Identity document','Organisation','Address','Trip','Saved travel consent details']:['Mijzelf','Persoon','Relatie','Identiteitsdocument','Organisatie','Adres','Reis','Vaste gegevens reistoestemming']);
- await p.click('#sheet-acts button:nth-child(3)');await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='relatie'&&!cm.edit.id);
- assert.equal(await p.textContent('#cm-editor-title'),en?'Add relationship':'Relatie toevoegen');
- // Opslaan zonder personen: blijft op het tabblad Relatie, bij de lege keuze
- await p.click('#cm-tab-meer');await p.click('#cm-save');assert.equal(await p.evaluate(()=>cm.tab+' '+document.activeElement.id),'relatie cm-field-vanPersoon');
- assert.equal(await p.textContent('#cm-edit-status'),en?'Choose both people and their relationship':'Kies beide personen en hun relatie');assert.equal(await p.evaluate(()=>/personen|people/.test($('#cm-status').textContent)),false,'melding alleen op het bewerkscherm');
- assert.equal(await p.isVisible('#cm-edit-menu'),false,'nog niets te verwijderen');
- await p.evaluate(()=>goBack());await p.waitForFunction(()=>current==='masterdata');
+ // Mijzelf toevoegen: een kort blok (namen en geboortedatum); na opslaan je eigen visitekaartje
+ await p.click('#cmk-self-new');await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='persoon'&&!cm.edit.id);
+ assert.equal(await p.textContent('#cm-editor-title'),L('Mijzelf toevoegen','Add myself'));
+ assert.deepEqual(await p.$$eval('#cm-fields [id^=cm-field-]',x=>x.map(e=>e.id.slice(9))),['roepnaam','voornamen','naam','geboortedatum'],'nieuwe persoon begint kort');
+ assert.equal(await p.isVisible('#cm-label'),false,'naam in het overzicht vult zich vanzelf');
+ await past('nieuwe persoon');assert.ok(await inBeeld('#cm-save'),tag+': opslaan in beeld');
+ await p.fill('#cm-field-voornamen','Rene');await p.fill('#cm-field-naam','van Es');await p.fill('#cm-field-geboortedatum','1980-01-01');
+ await p.click('#cm-save');await p.waitForFunction(()=>current==='cmkaart'&&cm.records.some(r=>r.type==='profiel')&&!cm.mutating&&!cm.navigating);
+ const me=await p.evaluate(()=>cmkMe());assert.ok(me,'profiel wijst jou aan');await opKaart(me);
+ assert.equal(await p.textContent('#cm-kaart-title'),'Rene van Es','naam in het overzicht vanzelf');
+ assert.equal(await p.getAttribute('#cm-kaart-title','translate'),'no','titel is de naam (gegevens)');
+ assert.equal(await p.textContent('#cm-kaart-status'),L('Welkom! Dit ben jij. Voeg nu je documenten en je mensen toe.','Welcome! This is you. Now add your documents and your people.'));
+ assert.equal(await p.textContent('#cm-kaart .cmc-ik'),L('Dit ben jij','This is you'));
+ assert.deepEqual(await blokken(),['persoon','geboorte','contact','documenten','relaties'],'blokken op je eigen kaartje');
+ assert.equal(await p.isVisible('#cmc-over-mij'),true,'Over mij staat bij de assistent');
+ assert.ok((await p.locator('#cm-kaart [data-blok=geboorte]').innerText()).includes(await p.evaluate(()=>fmtDate('1980-01-01'))),'datum in de regio-notatie');
 
- // Elk tabblad van elke soort past op het scherm, met de opslaanknop in beeld
- for(const label of ['Rene','Paspoort Rene','Anna (kind van Rene)','Gemeente','Huis','Zomer']){
-  const id=await p.evaluate(l=>(cm.records.find(r=>r.label===l)||cm.records.find(r=>r.type==='relatie'&&l.includes('kind'))).id,label);
-  await p.evaluate(id=>cmEdit(id),id);await p.waitForFunction(id=>current==='cmedit'&&cm.edit?.id===id,id);await p.waitForTimeout(60*W);
-  assert.equal(await p.getAttribute('#cm-editor-title','translate'),'no','titel is de naam (gegevens)');
-  const tabs=await p.$$eval('#cm-tabs [role=tab]',b=>b.map(x=>x.dataset.tab));
-  for(const tab of tabs.length?tabs:['']){
-   if(tab)await p.click('#cm-tab-'+tab);await p.waitForTimeout(30*W);
-   await past(label+(tab?' → '+tab:''));
-   const bar=await p.evaluate(()=>{const r=$('#cm-save').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;});assert.ok(bar,tag+': opslaan in beeld bij '+label+' '+tab);
-   if(tab)assert.equal(await p.getAttribute('#cm-tab-'+tab,'aria-selected'),'true');
-  }
-  await p.evaluate(()=>cmCancelEdit());await p.waitForFunction(()=>current==='masterdata'&&cm.recordsReady);
- }
- // Persoon: zes tabbladen passen naast elkaar; identiteitsgegevens tonen alleen waar ze staan
- await p.evaluate(id=>cmEdit(id),rene);await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.id);
- assert.deepEqual(await p.$$eval('#cm-tabs [role=tab]',b=>b.map(x=>x.textContent)),en?['Name','Birth','Contact','ID','Relations','More']:['Naam','Geboorte','Contact','ID','Relaties','Meer']);
- assert.equal(await p.evaluate(()=>$('#cm-tabs').scrollWidth<=$('#cm-tabs').clientWidth+1),true,tag+': tabbladen naast elkaar zonder schuiven');
- assert.equal(await p.isVisible('#cm-secret-row'),false,'niet op Naam');await p.click('#cm-tab-geboorte');assert.equal(await p.isVisible('#cm-secret-row'),true,'wel bij het BSN');
- assert.equal(await p.getAttribute('#cm-field-bsn','type'),'password');
- // Toetsenbord: pijltjes wisselen van tabblad
- await p.focus('#cm-tab-geboorte');await p.keyboard.press('ArrowRight');assert.equal(await p.evaluate(()=>document.activeElement.id+' '+cm.tab),'cm-tab-contact contact');
- await p.keyboard.press('End');assert.equal(await p.evaluate(()=>cm.tab),'meer');await p.keyboard.press('Home');assert.equal(await p.evaluate(()=>cm.tab),'naam');
- // Terug met niet-bewaarde wijziging: eerst vragen
+ // Eén blok bewerken: alleen die velden, met de kop van het blok; BSN afgeschermd
+ await p.click('#cm-kaart [data-blok=geboorte] .cmc-pen');await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.id&&cm.tab==='geboorte'&&!cm.pending.size);
+ assert.equal(await p.textContent('#cm-blok-title'),L('Geboorte en nationaliteit','Birth and nationality'));
+ assert.deepEqual(await p.$$eval('#cm-fields [id^=cm-field-]',x=>x.filter(e=>!e.closest('.cm-off')).map(e=>e.id.slice(9))),['geboortedatum','geboorteplaats','nationaliteit','bsn']);
+ assert.equal(await p.getAttribute('#cm-field-bsn','type'),'password');assert.equal(await p.isVisible('#cm-secret-row'),true,'wel bij het BSN');
+ await past('blok Geboorte');assert.ok(await inBeeld('#cm-save'));
+ await p.fill('#cm-field-bsn','123456782');await p.fill('#cm-field-geboorteplaats','Rotterdam');await p.click('#cm-save');await opKaart(me);
+ assert.equal(await p.textContent('#cm-kaart-status'),L('Opgeslagen.','Saved.'),'terug op het kaartje met bevestiging');
+ const geb=()=>p.locator('#cm-kaart [data-blok=geboorte]').innerText();
+ assert.match(await geb(),/••••782/);assert.doesNotMatch(await geb(),/123456782/,'BSN afgeschermd op het kaartje');
+ await p.click('#cm-kaart [data-blok=geboorte] button[aria-pressed]');assert.match(await geb(),/123456782/,'Nummers tonen');
+ await p.click('#cm-kaart [data-blok=geboorte] button[aria-pressed]');assert.doesNotMatch(await geb(),/123456782/);
+ // Terug met een niet-bewaarde wijziging: eerst vragen
+ await p.click('#cm-kaart [data-blok=persoon] .cmc-pen');await p.waitForFunction(()=>cm.tab==='persoon'&&!cm.pending.size);
+ assert.equal(await p.isVisible('#cm-secret-row'),false,'geen BSN in dit blok');
  await p.fill('#cm-field-roepnaam','Reen');await p.evaluate(()=>goBack());await p.waitForSelector('#modal.on');assert.equal(await p.evaluate(()=>current),'cmedit','blijft staan tot je kiest');
  await p.evaluate(()=>closeModal(null));await p.waitForTimeout(60*W);assert.equal(await p.evaluate(()=>current+' '+cm.edit?.fields.roepnaam),'cmedit Reen','annuleren laat de wijziging staan');
- // Laat leesantwoord na wisselen naar Opnieuw beginnen: blijft daar
- await p.evaluate(()=>{cm.dirty=false;cmCancelEdit();});await p.waitForFunction(()=>current==='masterdata'&&cm.recordsReady);
- await p.evaluate(id=>{Android._cm.replyDelay=150;cmEdit(id);show('cmwis');},rene);await p.waitForTimeout(300*W);assert.equal(await p.evaluate(()=>current+' '+!!cm.edit),'cmwis false','geen sprong terug naar bewerken');
- await p.evaluate(()=>{Android._cm.replyDelay=10;goBack();});await p.waitForFunction(()=>current==='masterdata'&&cm.recordsReady);
- await p.evaluate(id=>cmEdit(id),rene);await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.id&&!cm.pending.size);
- // Partner toevoegen vanaf de persoon: na opslaan terug bij de persoon, op Relaties
- await p.evaluate(()=>{cm.dirty=false;});await p.click('#cm-tab-relaties');await p.click('#cmk-anderen');await p.waitForSelector('#sheet.on');await p.click('#sheet-acts button:nth-child(3)');await p.waitForFunction(()=>cm.edit?.type==='relatie'&&!cm.edit.id);
- await p.selectOption('#cm-field-naarPersoon',anna);await p.click('#cm-save');await p.waitForFunction(id=>current==='cmedit'&&cm.edit?.id===id&&cm.recordsReady,rene);
- assert.equal(await p.evaluate(()=>cm.tab),'relaties','terug op Relaties');assert.equal(await p.locator('#cmi-person-relation-list .strow').count(),2);
- await past('persoon met twee relaties');
- // Relatie openen vanaf de persoon en terug: weer bij de persoon
- await p.locator('#cmi-person-relation-list .strow').first().click();await p.waitForFunction(()=>cm.edit?.type==='relatie'&&!!cm.edit.id);
- await p.evaluate(()=>goBack());await p.waitForFunction(id=>cm.edit?.id===id&&cm.tab==='relaties',rene);
- // Verwijderen staat in het menu ⋯ van het bewerkscherm
- await p.click('#cm-edit-menu');await p.waitForSelector('#sheet.on');assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),[en?'Delete master data':'Stamgegeven verwijderen']);await p.evaluate(()=>closeSheet());
+ await p.evaluate(()=>{cm.dirty=false;goBack();});await opKaart(me);
+ // Andere naam in het overzicht (⋯): een eigen blok met alleen die naam
+ await p.click('#cm-kaart-menu');await p.waitForSelector('#sheet.on');
+ assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),[L('Koppelen aan contact','Link to contact'),L('Andere naam in het overzicht','Different name in the overview'),L('Verwijderen','Delete')]);
+ await p.click('#sheet-acts button:nth-child(2)');await p.waitForFunction(()=>cm.tab==='naam'&&!cm.pending.size);
+ assert.equal(await p.isVisible('#cm-label'),true);assert.equal(await p.$$eval('#cm-fields [id^=cm-field-]',x=>x.filter(e=>!e.closest('.cm-off')).length),0);
+ await p.evaluate(()=>{cm.dirty=false;goBack();});await opKaart(me);
+ await p.evaluate(()=>goBack());await p.waitForFunction(()=>current==='masterdata');
+
+ // Persoon toevoegen vanaf het beginscherm: eerst wie het voor jou is, dan zelf invullen; daarna het kaartje
+ assert.equal(await p.textContent('#cm-add'),L('Persoon toevoegen','Add person'));
+ await p.click('#cm-add');await p.waitForSelector('#sheet.on');assert.equal(await p.textContent('#sheet-title'),L('Wie is het voor jou?','Who is this to you?'));
+ await p.click('#sheet-acts button:first-child');await p.waitForFunction(()=>$('#sheet-title').textContent.length&&$('#sheet').classList.contains('on')&&$('#sheet-acts').textContent.includes(t('Zelf invullen')));
+ await p.click('#sheet-acts button:nth-child(2)');await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='persoon'&&!cm.edit.id);
+ assert.equal(await p.textContent('#cm-editor-title'),L('Mijn kind toevoegen','Add my child'));
+ await p.fill('#cm-field-voornamen','Anna');await p.fill('#cm-field-naam','van Es');await p.click('#cm-save');
+ await p.waitForFunction(()=>current==='cmkaart'&&cmc.rec?.label==='Anna van Es'&&!cm.mutating&&!cm.navigating);const anna=await p.evaluate(()=>cmc.rec.id);await opKaart(anna);
+ assert.match(await p.textContent('#cm-kaart-status'),en?/Anna van Es has been added as your child/:/Anna van Es is toegevoegd als je kind/);
+ assert.equal(await p.textContent('#cmc-wie'),L('Mijn kind','My child'),'wat Anna voor jou is, bovenaan');
+ assert.deepEqual(await blokken(),['persoon','geboorte','contact','documenten','relaties','over']);
+ await p.evaluate(()=>goBack());await p.waitForFunction(()=>current==='masterdata');
+
+ // Wat er verder is: een document, een adres, een organisatie
+ const pas=await T.maak('identiteit','Paspoort Rene',{persoon:me,documentsoort:'paspoort',document:'DOC123',geldig:'2034-01-01'});
+ const huis=await T.maak('adres','Huis',{adres:'Coolsingel 1',plaats:'Rotterdam'}),gem=await T.maak('organisatie','Gemeente',{naam:'Gemeente Rotterdam'});
+ await p.waitForFunction(()=>cm.recordsReady&&current==='masterdata');
+ assert.deepEqual(await p.$$eval('#cm-rows .strow small',x=>x.map(e=>e.textContent)).then(x=>x.slice(0,4)),en?['One person','One document','One address','One organisation']:['Eén persoon','Eén document','Eén adres','Eén organisatie']);
+ assert.match(await p.textContent('#cm-ik'),en?/This is you · one document/:/Dit ben jij · één document/);
+ await past('beginscherm');
+ assert.ok(await p.evaluate(()=>$('#cm-ik').getBoundingClientRect().top<innerHeight/3),tag+': jij bovenaan');
+ assert.ok(await minTik('#cm-ik .strow,#cm-add,#cm-rows .strow,#cm-menu,#cm-lock-btn')>=44,tag+': tikvlakken minstens 44 px');
+
+ // Lijst Mijn mensen, gegroepeerd naar wat ze voor jou zijn; heen en terug over kaartjes
+ await p.click('#cm-row-mensen');await p.waitForFunction(()=>current==='cmlijst');
+ assert.equal(await p.textContent('#cm-lijst-title'),L('Mijn mensen','My people'));
+ assert.deepEqual(await p.$$eval('#cm-lijst > *',x=>x.map(e=>e.tagName==='H3'?'# '+e.textContent:e.querySelector('b').textContent+' | '+e.querySelector('small').textContent)),[L('# Gezin','# Immediate family'),L('Anna van Es | Mijn kind','Anna van Es | My child')]);
+ assert.equal(await p.getAttribute('#cm-lijst-add','class'),'big tonal','één gevulde knop per scherm');await past('lijst Mijn mensen');
+ await p.locator('#cm-lijst .strow').click();await opKaart(anna);
+ await p.evaluate(()=>goBack());await p.waitForFunction(()=>current==='cmlijst'&&cmLijstNu()==='mensen');
+ await p.evaluate(()=>goBack());await p.waitForFunction(()=>current==='masterdata');
+ // Documenten: het documentkaartje met afgeschermd nummer en de kaartfoto's
+ await p.click('#cm-row-documenten');await p.waitForFunction(()=>current==='cmlijst'&&cmLijstNu()==='documenten');
+ assert.equal(await p.textContent('#cm-lijst-add'),L('Document toevoegen','Add document'));
+ await p.locator('#cm-lijst .strow',{hasText:'Paspoort Rene'}).click();await opKaart(pas);
+ assert.deepEqual(await blokken(),['document','afgifte','fotos']);
+ assert.match(await p.locator('#cm-kaart [data-blok=document]').innerText(),/••••123/);assert.doesNotMatch(await p.textContent('#cm-kaart'),/DOC123/);
+ assert.equal((await p.textContent('#cmc-foto-front')).trim(),L('Voorkant toevoegen','Add front'));
+ // Elk blok van elk soort past op het scherm, met de opslaanknop in beeld
+ for(const id of [me,anna,pas,huis,gem]){
+  const tabs=await p.evaluate(id=>{const r=cm.records.find(x=>x.id===id);return cmTabs({...r,fields:{}}).map(b=>b[0]).filter(b=>b!=='fotos');},id);
+  for(const b of tabs){await T.blok(id,b);await p.waitForTimeout(30*W);await past(id.slice(0,4)+' → '+b);assert.ok(await inBeeld('#cm-save'),tag+': opslaan in beeld bij '+b);}
+  await p.evaluate(()=>cmCancelEdit());await p.waitForFunction(()=>current!=='cmedit'&&!cm.navigating);
+ }
+ await p.evaluate(()=>show('masterdata'));await p.waitForFunction(()=>current==='masterdata'&&cmOpen());
+
+ // Zoeken: één lijst met alles wat past
+ await p.fill('#cm-search','ren');assert.equal(await p.isVisible('#cm-hub'),false);
+ assert.deepEqual(await p.$$eval('#cm-list .strow b',b=>b.map(x=>x.textContent)),['Paspoort Rene','Rene van Es']);
+ await p.fill('#cm-search','');assert.equal(await p.isVisible('#cm-hub'),true);
 
  // Binnen de zone blijft het slot open; ontgrendeld zijn Activiteiten via ⋯
- await p.evaluate(()=>cmCancelEdit());await p.waitForFunction(()=>current==='masterdata');
  await p.click('#cm-menu');await p.waitForSelector('#sheet.on');await p.click('#sheet-acts button:first-child');await p.waitForFunction(()=>current==='cmlog'&&cm.events.length>0);
- assert.equal(await p.evaluate(()=>cmOpen()),true,'slot blijft open binnen Stamgegevens');assert.equal(await p.locator('#cm-audit .cm-event').count()>0,true);
- assert.equal(await p.evaluate(()=>/123456782|DOC123/.test($('#cm-audit').textContent)),false);
+ assert.equal(await p.evaluate(()=>cmOpen()),true,'slot blijft open binnen Stamgegevens');
+ assert.equal(await p.evaluate(()=>/123456782|DOC123/.test($('#cm-audit').textContent)),false,'geen nummers in het logboek');
  await p.evaluate(()=>goBack());await p.waitForFunction(()=>current==='masterdata'&&cmOpen());
- // Vergrendelen tijdens bewerken (met de vraag "Bewerking sluiten?" open): vraag weg, terug naar het overzicht, niets meer in de schermen
- await p.evaluate(id=>cmEdit(id),rene);await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.id&&!cm.pending.size);
+ // Vergrendelen tijdens bewerken (met de vraag "Bewerking sluiten?" open): vraag weg, terug naar het beginscherm, niets meer in de schermen
+ await T.kaart(me);await p.click('#cm-kaart [data-blok=persoon] .cmc-pen');await p.waitForFunction(()=>cm.tab==='persoon'&&!cm.pending.size);
  await p.fill('#cm-field-roepnaam','Reen');await p.evaluate(()=>goBack());await p.waitForSelector('#modal.on');
  await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>current==='masterdata'&&!cm.token);
  assert.equal(await p.evaluate(()=>$('#modal').classList.contains('on')),false,'vraag gesloten bij vergrendelen');
- assert.equal(await p.textContent('#cm-status'),en?'Master data is locked. Unsaved data has been cleared.':'Stamgegevens zijn vergrendeld. Niet-bewaarde gegevens zijn gewist.');
- for(const s of ['#s-masterdata','#s-cmedit','#s-cmlog'])assert.equal(await p.evaluate(s=>/Rene|Anna|Paspoort Rene|123456782|Gemeente/.test($(s).innerHTML),s),false,tag+': geen gegevens meer in '+s);
+ assert.equal(await p.textContent('#cm-status'),L('Stamgegevens zijn vergrendeld. Niet-bewaarde gegevens zijn gewist.','Master data is locked. Unsaved data has been cleared.'));
+ for(const s of ['#s-masterdata','#s-cmedit','#s-cmlog','#s-cmlijst','#s-cmkaart'])assert.equal(await p.evaluate(s=>/Rene|Anna|Paspoort Rene|123456782|Gemeente|Coolsingel/.test($(s).innerHTML),s),false,tag+': geen gegevens meer in '+s);
  // Een subscherm openen zonder ontgrendelen kan niet
- await p.evaluate(()=>show('cmedit'));await p.waitForFunction(()=>current==='masterdata');
+ for(const s of ['cmedit','cmlijst','cmkaart']){await p.evaluate(s=>show(s),s);await p.waitForFunction(()=>current==='masterdata');}
  // De zone verlaten vergrendelt; Overal zoeken neemt de schermen niet op
- await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);await p.evaluate(()=>show('cmlog'));await p.waitForTimeout(80*W);
+ await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);await p.click('#cm-row-adressen');await p.waitForFunction(()=>current==='cmlijst');
  await p.evaluate(()=>show('home'));await p.waitForFunction(()=>!cm.token);
- assert.equal(await p.evaluate(()=>{gsIndex=null;gsBuildIndex();return gsIndex.some(x=>['masterdata','cmedit','cmlog','cmwis'].includes(x.scr));}),false,'niet in Overal zoeken');
+ assert.equal(await p.evaluate(()=>{gsIndex=null;gsBuildIndex();return gsIndex.some(x=>CM_SCR.includes(x.scr));}),false,'niet in Overal zoeken');
  assert.equal(await p.evaluate(()=>Object.keys(localStorage).some(k=>/stam|identity|profiel|relati/.test(k))),false);
  await p.close();
 }

@@ -91,7 +91,7 @@ function cmcPerson(box,r){
   const tel=live.gevonden&&live.telefoon||f.telefoon||'';
   if(tel||f.contact){
     const acts=cmEl('div',undefined,'row cmc-acts');
-    if(tel&&!self)acts.append(cmcKnop(t('Bellen'),()=>cmcContact('bel'),'phone','cmc-bel'),cmcKnop(t('Bericht'),()=>cmcContact('bericht'),'message','cmc-bericht'));
+    if(tel&&!self)acts.append(cmcKnop(tc('actie','Bellen'),()=>cmcContact('bel'),'phone','cmc-bel'),cmcKnop(t('Bericht'),()=>cmcContact('bericht'),'message','cmc-bericht'));
     if(f.contact)acts.append(cmcKnop(t('Contacten'),()=>cmcContact('contact'),'external','cmc-contact'));
     if(acts.childElementCount)top.append(acts);
   }
@@ -122,7 +122,7 @@ function cmcPerson(box,r){
     const prof=cm.records.find(x=>x.type==='profiel');
     if(f.context||prof?.tekst)cmcAboutOld(box,f.context);
     const l=cmEl('div',undefined,'card stlist'),over=cmRow(null,t('Staat bij de assistent'),false,null,'user',t('Over mij'));
-    over.id='cmc-over-mij';over.setAttribute('onclick','cmaiOverMij()');
+    over.id='cmc-over-mij';over.setAttribute('onclick','cmaiOverMij()');if(isPlay())over.classList.add('play-weg');
     l.append(over,cmRow(null,cmiAiStand(),false,cmaiOpen,'smile',t('Wat weet de assistent?')));box.append(l);
   }else cmcBlok(box,r,blok('over'),cmcRows(r,['context']),{empty:t('Iets wat de assistent over {naam} mag weten, zoals school of werk.',{naam})});
 }
@@ -159,7 +159,7 @@ function cmcAboutMove(mode){
 function cmcPhotos(box,r,blok){
   const sec=cmcBlok(box,r,blok,[],{empty:false}),grid=cmEl('div',undefined,'cmc-fotos');
   for(const side of ['front','back']){
-    const has=!!r.images?.[side],tile=cmEl('button',undefined,'cmc-foto'+(has?'':' leeg'));tile.type='button';tile.id='cmc-foto-'+side;
+    const has=!!r.images?.[side],tile=cmEl('button',undefined,'cmc-foto');tile.classList.toggle('leeg',!has);tile.type='button';tile.id='cmc-foto-'+side;
     if(has){const img=cmEl('img');img.alt=side==='front'?t('Voorzijde van het identiteitsdocument'):t('Achterzijde van het identiteitsdocument');img.hidden=true;tile.append(img,cmEl('span',side==='front'?t('Voorkant tonen'):t('Achterkant tonen')));tile.onclick=()=>cmcPhotoShow(side);}
     else{tile.innerHTML=uiIcon('camera');tile.append(cmEl('span',side==='front'?t('Voorkant toevoegen'):t('Achterkant toevoegen')));tile.onclick=()=>cmcPhotoPick(side);}
     grid.append(tile);

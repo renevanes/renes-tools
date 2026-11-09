@@ -177,7 +177,7 @@ function aiCmdWhat(a){
     case 'slaap': return t(a.stop ? 'Slaappraat stoppen' : 'Slaappraat starten');
     case 'open': return t(a.name || a.tool);
     case 'sms': case 'wa': return (a.type === 'wa' ? 'WhatsApp' : t('Sms')) + (a.toName ? ' ' + t('aan {naam}', { naam: a.toName }) : '');
-    case 'bel': return a.toName ? t('{naam} bellen', { naam: a.toName }) : t('Bellen');
+    case 'bel': return a.toName ? t('{naam} bellen', { naam: a.toName }) : tc('actie', 'Bellen');
   }
   return '';
 }

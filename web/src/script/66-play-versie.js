@@ -10,7 +10,7 @@ function isPlay(){ return PLAY; }
 /** Alleen bekende schermen van de behouden functies; nieuwe subschermen worden bewust beoordeeld. */
 function playWeg(name){
   if (!PLAY) return false;
-  const children = {idcopy: 'pdf', pdfedit: 'pdf', pdfimg: 'pdf', pdfsplit: 'pdf', pdftext: 'pdf', pdfmade: 'pdf', note: 'notes', ralarm: 'radio', podcast: 'podcasts', podlijst: 'podcasts', cmedit: 'masterdata', cmlog: 'masterdata', cmwis: 'masterdata'};
+  const children = {idcopy: 'pdf', pdfedit: 'pdf', pdfimg: 'pdf', pdfsplit: 'pdf', pdftext: 'pdf', pdfmade: 'pdf', note: 'notes', ralarm: 'radio', podcast: 'podcasts', podlijst: 'podcasts', cmedit: 'masterdata', cmlog: 'masterdata', cmwis: 'masterdata', cmlijst: 'masterdata', cmkaart: 'masterdata', cmai: 'masterdata'};
   return !PLAY_NAV.has(name) && !PLAY_TOOLS.has(name) && !PLAY_TOOLS.has(children[name]);
 }
 function openPrivacy(){ Android.openUrl('https://github.com/renevanes/renes-tools/blob/main/docs/' + (PLAY ? 'privacybeleid-play.md' : 'privacybeleid.md')); }
@@ -34,7 +34,7 @@ function openPrivacy(){ Android.openUrl('https://github.com/renevanes/renes-tool
     });
     for (let i = SET_REG.length - 1; i >= 0; i--) if (playWeg(SET_REG[i].scr)) SET_REG.splice(i, 1);
     for (let i = SOLO_TOOLS.length - 1; i >= 0; i--) if (playWeg(SOLO_TOOLS[i])) SOLO_TOOLS.splice(i, 1);
-    document.querySelectorAll('[onclick*="voiceOpen"], [onclick*="pspOpen"]').forEach(el => el.classList.add('play-weg'));
+    document.querySelectorAll('[onclick*="voiceOpen"], [onclick*="pspOpen"], [onclick*="cmaiOverMij"]').forEach(el => el.classList.add('play-weg'));
     const homePlace = document.getElementById('rg-home-btn');
     if (homePlace) homePlace.closest('.card').classList.add('play-weg');
     // Updates: geen eigen controle, dat doet Google Play
