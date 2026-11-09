@@ -719,9 +719,15 @@ final class Nieuws {
     /** Stuurt een artikelpagina door naar een pagina erboven (de voorpagina, /nieuws/)? Dan is het artikel er niet meer. */
     static boolean weg(String adres, String eind) {
         try {
-            String a = new URL(adres).getPath().replaceAll("/+$", ""), e = new URL(eind).getPath().replaceAll("/+$", "");
+            String a = zonderSlash(new URL(adres).getPath()), e = zonderSlash(new URL(eind).getPath());
             return e.length() < a.length() && a.startsWith(e + "/");
         } catch (Exception x) { return false; }
+    }
+
+    private static String zonderSlash(String pad) {
+        int n = pad.length();
+        while (n > 0 && pad.charAt(n - 1) == '/') n--;
+        return pad.substring(0, n);
     }
 
     /**
