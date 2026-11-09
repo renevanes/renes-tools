@@ -92,8 +92,10 @@ if (!window.Android) window.Android = (function(){
         s.bronnen.filter(b => b.aan).forEach(b => {
           totaal++;
           if (s.mislukt[b.id]) { s.stand[b.id] = Object.assign({}, s.stand[b.id], { poging: nu, fout: s.mislukt[b.id] }); return; }
-          ok++; s.stand[b.id] = Object.assign({ t: nu, poging: nu }, b.id === 'tweakers' && s.beelden ? { beeldStand: s.cookie ? 'ok' : 'cookiekeuze' }
-            : b.id === 'tweakers' && s.stand[b.id] && s.stand[b.id].beeldStand ? { beeldStand: s.stand[b.id].beeldStand } : {});
+          const was = s.stand[b.id] || {};
+          ok++; s.stand[b.id] = Object.assign({ t: nu, poging: nu }, b.id === 'tweakers' && s.beelden
+            ? (s.beeldFout ? { beeldStand: 'fout', beeldReden: s.beeldFout } : { beeldStand: s.cookie ? 'ok' : 'cookiekeuze' })
+            : b.id === 'tweakers' && was.beeldStand ? { beeldStand: was.beeldStand, beeldReden: was.beeldReden } : {});
         });
         const nieuw = s.erbij.splice(0).map(a => s.artikelen.push(a)).length;
         s.bezig = false; onNieuws({ ok, totaal, nieuw });

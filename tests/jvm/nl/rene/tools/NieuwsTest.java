@@ -134,7 +134,7 @@ public class NieuwsTest {
         NieuwsFeed.Feed muur = tweakers();
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", muur, null, System.currentTimeMillis() + 60_000, (url, tot) -> {
             gehaald.add(url); return "<html><body><h1>Kies je cookies</h1></body></html>"; });
-        check(gehaald.size() == 1 && "fout".equals(muur.beeldStand) && !muur.artikelen.get(0).zonderBeeld, "een pagina zonder og:-gegevens (een muur): stoppen, niet als zonder afbeelding onthouden");
+        check(gehaald.size() == 1 && "fout".equals(muur.beeldStand) && "geenkop".equals(muur.beeldReden) && !muur.artikelen.get(0).zonderBeeld, "een pagina zonder og:-gegevens (een muur): stoppen, niet als zonder afbeelding onthouden");
         for (String[] pg : new String[][]{
                 {"<html><head><script>var x = 'twitter:card';</script></head><body>Kies je cookies</body></html>", "og: alleen als tekst in een script"},
                 {"<html><head><meta property=\"og:title\" content=\"x\"><link rel=\"stylesheet\" href=\"/a.css\">", "kop niet helemaal gelezen"}}) {
@@ -243,6 +243,26 @@ public class NieuwsTest {
         NieuwsFeed.Feed tf5 = tweakers();
         Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf5, null, System.currentTimeMillis() + 60_000, weigert);
         check(gehaald.size() == 1 && !tf5.artikelen.get(0).zonderBeeld && !tf5.artikelen.get(1).zonderBeeld && "fout".equals(tf5.beeldStand), "de site weigert: na één pagina stoppen, niets als zonder afbeelding onthouden");
+        check("403".equals(tf5.beeldReden), "de reden: de HTTP-code");
+        File tc5 = tmp("tweakers-reden");
+        Nieuws.bewaarFeed(tc5, "tweakers", "https://tweakers.net/feeds/mixed.xml", tf5, nu);
+        JSONObject c5 = new JSONObject(new String(Files.readAllBytes(Nieuws.cacheBestand(tc5, "tweakers").toPath()), StandardCharsets.UTF_8));
+        File td5 = tmp("tweakers-reden-dir");
+        Nieuws.zetAan(td5, "tweakers", true);
+        check("403".equals(c5.optString("beeldReden")) && "403".equals(bron(Nieuws.lijst(td5, tc5).getJSONArray("bronnen"), "tweakers").optString("beeldReden")), "de reden in de cache en in de lijst");
+        gehaald.clear();
+        NieuwsFeed.Feed tf6 = tweakers();
+        Nieuws.beelden("tweakers", "https://tweakers.net/feeds/mixed.xml", tf6, c5, System.currentTimeMillis() + 60_000, site);
+        check("ok".equals(tf6.beeldStand) && "".equals(tf6.beeldReden), "daarna lukt het: de reden is weg");
+        check("traag".equals(Nieuws.reden(new java.net.SocketTimeoutException())) && "traag".equals(Nieuws.reden(new Nieuws.Fout("De nieuwssite reageert te traag")))
+                && "verbinding".equals(Nieuws.reden(new java.net.UnknownHostException("x"))) && "verbinding".equals(Nieuws.reden(new java.net.ConnectException()))
+                && "beveiliging".equals(Nieuws.reden(new javax.net.ssl.SSLHandshakeException("x"))) && "anders".equals(Nieuws.reden(new RuntimeException("geheim: tweakers.net/nieuws/1"))),
+                "reden: alleen vaste woorden, nooit de fouttekst");
+        // Artikelpagina's met de User-Agent van de WebView (de cookies horen bij die browser)
+        String wvUa = "Mozilla/5.0 (Linux; Android 14; Pixel 7 Build/AP2A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.0.0 Mobile Safari/537.36";
+        check(wvUa.equals(Nieuws.paginaUa(wvUa)) && wvUa.equals(Nieuws.paginaUa(" " + wvUa + " ")) && Nieuws.UA.equals(Nieuws.paginaUa(null)) && Nieuws.UA.equals(Nieuws.paginaUa(""))
+                && Nieuws.UA.equals(Nieuws.paginaUa("Mozilla\r\nCookie: x=1")) && Nieuws.UA.equals(Nieuws.paginaUa("Mozilla/5.0 (Linux; Android 14; Ünïcode)"))
+                && Nieuws.UA.equals(Nieuws.paginaUa(new String(new char[600]).replace('\0', 'a'))), "User-Agent van de WebView, anders de eigen naam (en nooit iets wat de kopregel breekt)");
         gehaald.clear();
         NieuwsFeed.Feed nosf = tweakers();
         Nieuws.beelden("nos", "https://feeds.nos.nl/nosnieuwsalgemeen", nosf, null, System.currentTimeMillis() + 60_000, site);

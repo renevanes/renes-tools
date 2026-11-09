@@ -174,8 +174,25 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     const zetStand = s => page.evaluate(s => { Android._nw.stand.tweakers.beeldStand = s; nwLaad(); nwSetRender(); }, s);
     await zetStand('fout');
     ok(await page.evaluate(() => !document.querySelector('#nws-cookie').open) && (await page.locator('#nws-cookie-st').innerText()) === 'Ophalen lukte niet', 'een gewone fout: de kaart blijft dicht, de stand zegt het');
-    await zetStand('cookiekeuze');
-    ok(await cookieOpen() && (await page.locator('#nws-cookie-st').innerText()) === 'Nog niet klaar', 'de site vraagt weer een keuze: de kaart gaat open');
+    ok(await page.locator('#nws-cookie-reden').isHidden(), 'fout zonder bekende reden: geen extra regel');
+    await page.evaluate(() => { Android._nw.stand.tweakers.beeldReden = '403'; });
+    await zetStand('fout');
+    ok((await page.locator('#nws-cookie-reden').innerText()) === 'De site antwoordde met code 403.', 'een gewone fout: de reden staat erbij');
+    // Op het nieuwsscherm zelf: een balk naar de instellingen
+    await page.evaluate(() => show('nieuws')); await page.waitForTimeout(300);
+    ok(await page.locator('#nw-beeldbalk').isVisible() && (await page.locator('#nw-beeldbalk-t').innerText()) === 'Afbeeldingen van Tweakers Nieuws ophalen lukte niet'
+      && (await page.locator('#nw-beeldbalk-s').innerText()) === 'De site antwoordde met code 403.', 'nieuwsscherm: balk met de reden als ophalen niet lukte');
+    await page.evaluate(() => { Android._nw.stand.tweakers.beeldStand = 'cookiekeuze'; delete Android._nw.stand.tweakers.beeldReden; nwLaad(); nwRender(); });
+    ok((await page.locator('#nw-beeldbalk-t').innerText()) === 'Afbeeldingen van Tweakers Nieuws: eerst een cookiekeuze', 'nieuwsscherm: balk als de cookiekeuze nog moet');
+    const balk = await page.locator('#nw-beeldbalk').boundingBox();
+    ok(balk && balk.height >= 44, 'balk: tikvlak minstens 44 px');
+    await page.click('#nw-beeldbalk'); await page.waitForTimeout(300);
+    ok(await page.evaluate(() => current === 'nieuwsset') && await cookieOpen(), 'balk: naar de instellingen, eenmalig instellen staat open');
+    await zetStand('ok');
+    await page.evaluate(() => nwRender());
+    ok(await page.evaluate(() => document.querySelector('#nw-beeldbalk').style.display === 'none'), 'afbeeldingen lukken: geen balk');
+    await page.evaluate(() => { Android._nw.stand.tweakers.beeldStand = 'cookiekeuze'; store.set('nwBeelden', false); nwLaad(); nwRender(); store.set('nwBeelden', true); });
+    ok(await page.evaluate(() => document.querySelector('#nw-beeldbalk').style.display === 'none'), 'afbeeldingen uit: geen balk');
     await zetStand('ok');
     await page.evaluate(() => { Android._nw.bronnen.find(b => b.id === 'tweakers').aan = false; nwLaad(); nwSetRender(); });
     ok(await page.evaluate(() => document.querySelector('#nws-cookie').hidden), 'Tweakers uit: geen cookiekeuze');
