@@ -50,7 +50,7 @@ if (!window.Android) window.Android = (function(){
       const bronnen = [['nos', 'NOS Nieuws', 'https://feeds.nos.nl/nosnieuwsalgemeen', true], ['rijnmond', 'Rijnmond', 'https://www.rijnmond.nl/rss/index.xml', true],
         ['nos-sport', 'NOS Sport', 'https://feeds.nos.nl/nossportalgemeen'], ['nu', 'NU.nl', 'https://www.nu.nl/rss/Algemeen'], ['rtl', 'RTL Nieuws', 'https://www.rtl.nl/rss.xml'],
         ['nrc', 'NRC', 'https://www.nrc.nl/rss/'], ['volkskrant', 'de Volkskrant', 'https://www.volkskrant.nl/voorpagina/rss.xml'], ['ad', 'AD', 'https://www.ad.nl/home/rss.xml'],
-        ['tweakers', 'Tweakers', 'https://tweakers.net/feeds/mixed.xml'], ['bbc', 'BBC News', 'https://feeds.bbci.co.uk/news/rss.xml'], ['guardian', 'The Guardian', 'https://www.theguardian.com/world/rss']]
+        ['tweakers', 'Tweakers Nieuws', 'https://tweakers.net/feeds/mixed.xml'], ['bbc', 'BBC News', 'https://feeds.bbci.co.uk/news/rss.xml'], ['guardian', 'The Guardian', 'https://www.theguardian.com/world/rss']]
         .map(([id, naam, url, aan]) => ({ id, naam, url, aan: !!aan, eigen: false }));
       let n = 0;
       const art = (bron, titel, wanneer, blokken, extra) => Object.assign({ id: 'n' + (0xa000 + ++n).toString(16).padStart(16, '0'), bron, titel,

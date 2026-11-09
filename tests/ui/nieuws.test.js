@@ -147,7 +147,7 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     await page.evaluate(() => { Android._nw.bronnen.find(b => b.id === 'tweakers').aan = false; });
     await page.fill('#nws-url', 'tweakers.net');
     await page.press('#nws-url', 'Enter'); await page.waitForTimeout(250);
-    ok((await page.locator('#nws-status').innerText()) === 'Tweakers stond er al en staat nu aan.', 'bekende site: die bron gaat aan');
+    ok((await page.locator('#nws-status').innerText()) === 'Tweakers Nieuws stond er al en staat nu aan.', 'bekende site: die bron gaat aan');
     await page.waitForTimeout(400);
     await page.fill('#nws-url', 'https://blog.example.org/rss');
     await page.click('#nws-add'); await page.waitForTimeout(250);

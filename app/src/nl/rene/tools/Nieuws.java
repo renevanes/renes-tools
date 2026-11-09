@@ -57,7 +57,8 @@ final class Nieuws {
 
     /**
      * Bronnen die de app kent: id, naam, adres, standaard aan ("1"), de sites ervan (wie zo'n site intikt, zet de bron aan:
-     * veel sites noemen hun feed niet of tonen eerst een toestemmingspagina). Naam en adres komen altijd uit deze lijst.
+     * veel sites noemen hun feed niet of tonen eerst een toestemmingspagina) en eventueel hoe de link van een artikel moet
+     * beginnen (een feed die nieuws mengt met andere dingen). Naam en adres komen altijd uit deze lijst.
      */
     static final String[][] STANDAARD = {
         {"nos", "NOS Nieuws", "https://feeds.nos.nl/nosnieuwsalgemeen", "1", "nos.nl"},
@@ -68,7 +69,8 @@ final class Nieuws {
         {"nrc", "NRC", "https://www.nrc.nl/rss/", "", "nrc.nl"},
         {"volkskrant", "de Volkskrant", "https://www.volkskrant.nl/voorpagina/rss.xml", "", "volkskrant.nl"},
         {"ad", "AD", "https://www.ad.nl/home/rss.xml", "", "ad.nl"},
-        {"tweakers", "Tweakers", "https://tweakers.net/feeds/mixed.xml", "", "tweakers.net"},
+        // De gemengde feed is de enige die ook vanaf servers werkt; downloads, reviews en aanbiedingen eruit
+        {"tweakers", "Tweakers Nieuws", "https://tweakers.net/feeds/mixed.xml", "", "tweakers.net", "tweakers.net/nieuws/"},
         {"bbc", "BBC News", "https://feeds.bbci.co.uk/news/rss.xml", "", "bbc.co.uk bbc.com bbc.co.uk/news bbc.com/news"},
         {"guardian", "The Guardian", "https://www.theguardian.com/world/rss", "", "theguardian.com theguardian.com/world"},
     };
@@ -78,6 +80,25 @@ final class Nieuws {
         String s = norm(adres);
         for (String[] b : STANDAARD) for (String site : b[4].split(" ")) if (s.equals(site)) return b[0];
         return null;
+    }
+
+    /** Hoe de link van een artikel van deze bron moet beginnen (zonder https:// en www.), of "" als alles mag. */
+    static String alleen(String id) {
+        for (String[] b : STANDAARD) if (b[0].equals(id)) return b.length > 5 ? b[5] : "";
+        return "";
+    }
+
+    /** Alleen de artikelen die bij de bron horen ({@link #alleen}). Blijft er niets over, dan is dat een fout: de vorige artikelen blijven. */
+    static void filter(String id, String basis, NieuwsFeed.Feed f) throws Fout {
+        String alleen = alleen(id);
+        if (alleen.isEmpty() || f.artikelen.isEmpty()) return;
+        for (Iterator<NieuwsFeed.Artikel> it = f.artikelen.iterator(); it.hasNext(); ) {
+            NieuwsFeed.Artikel a = it.next();
+            String l;
+            try { l = norm(new URL(new URL(basis), a.link).toString()); } catch (Exception e) { l = ""; }
+            if (!l.startsWith(alleen)) it.remove();
+        }
+        if (f.artikelen.isEmpty()) throw new Fout(Taal.T("In deze feed staat nu geen nieuws"));
     }
 
     static final Object LOCK = new Object();
@@ -643,6 +664,7 @@ final class Nieuws {
         long nu = System.currentTimeMillis();
         try {
             Gelezen g = lees(url, nu + MAX_HAAL);
+            filter(id, g.url, g.feed);
             synchronized (LOCK) { return zoekBron(bronnen(dir), id) != null ? bewaarFeed(cache, id, g.url, g.feed, nu) : -1; }
         } catch (Throwable e) {
             synchronized (LOCK) {
