@@ -1,1 +1,0 @@
-Nieuw: extra ontgrendelen per tool. Bij Instellingen → Extra ontgrendelen (of door een tegel lang in te drukken) zet je voor elke tool apart aan dat hij pas opent na je vingerafdruk, gezicht of pincode, net als Stamgegevens; hij gaat weer op slot zodra je de tool of de app verlaat. Uitzetten vraagt ook je schermvergrendeling.

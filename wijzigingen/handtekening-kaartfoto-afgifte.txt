@@ -1,3 +1,0 @@
-Handtekening: je kunt hem nu ook uit een foto of bestand halen (Uit foto of bestand, in het venster Handtekening tekenen); de foto blijft op je telefoon en wordt niet bewaard.
-Stamgegevens: de foto's van je identiteitsbewijs staan meteen op het kaartje en bij Foto's; tik erop om hem groot te bekijken en in te zoomen.
-Rijbewijs: de afgiftedatum (veld 4a) wordt nu ook herkend als het veldnummer slecht leesbaar is.

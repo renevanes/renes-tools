@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.181",
-  "versionCode": 182,
-  "nativeLevel": 161,
+  "versionName": "1.182",
+  "versionCode": 183,
+  "nativeLevel": 162,
   "web": "index.html",
-  "webSha256": "c08418170218796853847196ecc6fb9718a84a1ab4a997c42b6962ebb202b064",
+  "webSha256": "7f0c7262eef2fb82a5e984c4edd9ced1d621085b36b4c1af51f47a9fcfbbf406",
   "start": "start.html",
   "startSha256": "eb96929e99cefd1937525b8c0c5d0ed8979828dcbe88a9789da523294b6331be",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "18be086fb93777cef785c7d9234179cb5cf7a8f79e6a131561209ccae3392d04",
+  "apkSha256": "964711d2cd2c032e6c2b3b392ccc82cc8ce2966e6d26be38e216fc4793ed29c5",
   "changelog": [
+    {
+      "version": "1.182",
+      "date": "2026-11-09",
+      "changes": [
+        "Nieuw: extra ontgrendelen per tool. Bij Instellingen → Extra ontgrendelen (of door een tegel lang in te drukken) zet je voor elke tool apart aan dat hij pas opent na je vingerafdruk, gezicht of pincode, net als Stamgegevens; hij gaat weer op slot zodra je de tool of de app verlaat. Uitzetten vraagt ook je schermvergrendeling.",
+        "Handtekening: je kunt hem nu ook uit een foto of bestand halen (Uit foto of bestand, in het venster Handtekening tekenen); de foto blijft op je telefoon en wordt niet bewaard.",
+        "Stamgegevens: de foto's van je identiteitsbewijs staan meteen op het kaartje en bij Foto's; tik erop om hem groot te bekijken en in te zoomen.",
+        "Rijbewijs: de afgiftedatum (veld 4a) wordt nu ook herkend als het veldnummer slecht leesbaar is."
+      ]
+    },
     {
       "version": "1.181",
       "date": "2026-11-09",
@@ -1605,5 +1615,5 @@
       ]
     }
   ],
-  "webSig2": "WIdwIZk6z747kWY2vA/YUxv9xXgxTn5YOrrrsCINmmNPyLl9PT4PhclawM5MJYc+R07q7d+RN6+8f6gSZvV6RYYtLQoTvoez2DX4ocotQZPyKPgWbkycf9kRIP3srVj8PMR9Sr1B/ybXyj+FqCoFJcOVW1FxWE2xtSQ25vppp9N/kMTiUh7V7/zt7mZ/wMIjywOApF3pvpSxR95JMxlnBLiKanhe/cGMeWdl8/XV1LplolYdBRhucbEllo9cnSmx9BJ6lRPfe4Z5HZb75dGfFF8vTgGeTxIgB4qzdoh1XdlHLgIfQxUEuWmSoVWz5g6HHyQenye1hQKYpfqXiHR/SO3Q4sUSNKPMAq1/tE7RY5cs1qkWLtcDmRXvIVFg4tY/lQfxlH09/L9QOmRbxOrsPXnI82nxInpeyGGeyP/BHfA3j/OR8Ca9TioolWvc43qt17LBF7U5zxRdwg74NN+Q/mRFQfVsmZW5UmWtM2mUcGPvQsWHWFyWKf3Q6wux2d+1"
+  "webSig2": "NZQwxl1zwLDRYNUfEqubjOjO/we7ndqdlxflzKE9RzYGvp2+y32nFm+Wr+CUq5Pje8adAsFEyOZ3evVnvZqYxb1YOY0Y7VkjkhuxkErNIy3uAeXrcSUkGpltkqOzRV9W6SGD+lXP3fEMaRhe+MzDKJU6vAuZDdo3nMpJHbi8yofypc3S4Ma4w3ez4GXwWp4xenXJtSSH1vrXIreiAgRk1PTNpsz+ZvjmpwoYlPf8BF0tCh+E9EV7MvpNd+wKe4+ow6mUge5a6Np62l3roaF5RnwRqRSsUKDgBSRBPuKW1fYAJI6/o4GOq1rLP1bPf709RobwsviMYKfT4DZXl8oPcVUl29Jia4YV/JTbBCvnWBw62zpr82S3Mm16zUW/2Gtcx1b9eM/dMJvAGffVMjzYwfz3sH41+A1fm6sjH6FKlJb4x50Jlk1GTjBkaF0hOwsiwEiv7txtEyETsu0sCR7q7dmPZcOGzoA27qd3PsZJrzhWnOQDhqWyiRrwfXi1qJy1"
 }

@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.182",
+    "date": "2026-11-09",
+    "changes": [
+      "Nieuw: extra ontgrendelen per tool. Bij Instellingen → Extra ontgrendelen (of door een tegel lang in te drukken) zet je voor elke tool apart aan dat hij pas opent na je vingerafdruk, gezicht of pincode, net als Stamgegevens; hij gaat weer op slot zodra je de tool of de app verlaat. Uitzetten vraagt ook je schermvergrendeling.",
+      "Handtekening: je kunt hem nu ook uit een foto of bestand halen (Uit foto of bestand, in het venster Handtekening tekenen); de foto blijft op je telefoon en wordt niet bewaard.",
+      "Stamgegevens: de foto's van je identiteitsbewijs staan meteen op het kaartje en bij Foto's; tik erop om hem groot te bekijken en in te zoomen.",
+      "Rijbewijs: de afgiftedatum (veld 4a) wordt nu ook herkend als het veldnummer slecht leesbaar is."
+    ]
+  },
+  {
     "version": "1.181",
     "date": "2026-11-09",
     "changes": [
