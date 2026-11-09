@@ -104,6 +104,7 @@ function cmLockedUI(){
   if(fm.masterSensitive){fm.busy=false;if(typeof fmConceptVanzelf==='function')fmConceptVanzelf();cmClearFormDOM();fm.exportToken='';fm.masterSensitive=false;fmInit(fm.id);if(typeof fmConceptLaad==='function')fmConceptLaad();if(current==='formulieren')fmRender();} // eigen invoer blijft als concept; gegevens uit Stamgegevens niet
   if(idc.masterSensitive){idc.masterSensitive=false;idc.busy=false;idc.loading=false;idCopyReset(current==='idcopy');idCopyControls();}
   if(cmZone(current)&&$('#modal').classList.contains('on'))closeModal(null);
+  if(cmZone(current)&&sigOpen())sigClose();
   cmRenderState();cmNote(t('Stamgegevens zijn vergrendeld. Niet-bewaarde gegevens zijn gewist.'));
 }
 window.onMasterLocked=function(generation){cm.generation=generation;cmLockedUI();Android.masterSafeFrame(cm.view,generation);};

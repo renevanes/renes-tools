@@ -74,13 +74,8 @@
           <button class="mini" id="pdf-edit-add-text" onclick="pdfEditText()">Tekst plaatsen</button>
           <button class="mini" onclick="pdfEditDate()">Datum plaatsen</button>
           <button class="mini" onclick="pdfEditSelect(-1)">Nieuwe toevoeging</button>
-          <button class="mini" onclick="pdfEditSignShow()">Handtekening tekenen</button>
+          <button class="mini" onclick="pdfEditTeken()">Handtekening tekenen</button>
           <button class="mini" id="pdf-signature-use" onclick="pdfSignatureUse()">Bewaarde handtekening plaatsen</button>
-        </div>
-        <div id="pdf-edit-sign-box" style="display:none;margin-top:12px">
-          <p class="note">Teken met je vinger of muis. Met Handtekening bewaren kun je haar later opnieuw gebruiken.</p>
-          <canvas id="pdf-edit-sign" width="900" height="300" tabindex="0" aria-label="Teken hier je handtekening"></canvas>
-          <div class="row" style="flex-wrap:wrap"><button class="mini" id="pdf-signature-save" onclick="pdfSignatureSaveDraw()">Handtekening bewaren</button><button class="mini" onclick="pdfEditSignClear()">Tekening wissen</button><button class="mini" onclick="pdfEditSignAdd()">Handtekening plaatsen</button><button class="mini" onclick="pdfEditSignHide()">Annuleren</button></div>
         </div>
         <label class="f" for="pdf-edit-width">Breedte van de geselecteerde toevoeging</label>
         <input type="range" id="pdf-edit-width" min="10" max="90" value="45" aria-label="Breedte van de toevoeging" onchange="pdfEditWidth(this.value)">
@@ -95,9 +90,9 @@
     </div>
     <div class="card pdf-signature-library" id="pdf-sig-card">
       <h2>Mijn handtekening</h2>
-      <canvas id="pdf-signature-preview" width="600" height="180" hidden aria-label="Voorbeeld van je bewaarde handtekening"></canvas>
+      <canvas id="pdf-signature-preview" class="sig-papier" width="600" height="180" hidden role="img" aria-label="Voorbeeld van je bewaarde handtekening"></canvas>
       <p class="note" id="pdf-signature-status" role="status" aria-live="polite"></p>
-      <div class="row" id="pdf-signature-acts" style="flex-wrap:wrap"><button class="mini" id="pdf-signature-delete" onclick="pdfSignatureDelete()">Bewaarde handtekening verwijderen</button></div>
+      <div class="row" style="flex-wrap:wrap"><button class="mini" id="pdf-signature-draw" onclick="pdfSignatureDraw()">Tekenen en bewaren</button><span id="pdf-signature-acts"><button class="mini" id="pdf-signature-delete" onclick="pdfSignatureDelete()">Bewaarde handtekening verwijderen</button></span></div>
     </div>
     <p class="note pdfbusy" role="status" aria-live="polite"></p>
     <p class="note pdfkeep" role="status" aria-live="polite"></p>

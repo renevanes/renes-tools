@@ -17,6 +17,7 @@ function fmInit(id){
   $('#pff-resultaat').hidden=true;$('#pff-melding').textContent='';$('#pff-alles').open=false;$('#pff-samenvatting').replaceChildren();
 }
 function enterFormulieren(){
+  sigLoad();
   if (!fm.id) { fmInit(Object.keys(PDF_FORMULIEREN)[0]); fmConceptLaad(); }
   const select=$('#pff-keuze');select.replaceChildren();
   Object.entries(PDF_FORMULIEREN).forEach(([id,make]) => { const o=document.createElement('option');o.value=id;o.textContent=make().title;select.appendChild(o); });
@@ -75,8 +76,18 @@ function fmInvoer(f){
     if(fm.fout&&fm.fout.id===f.id){fm.fout=null;input.removeAttribute('aria-invalid');input.removeAttribute('aria-describedby');const e=$('#pff-fout');if(e)e.remove();}
     if(f.type==='select'){fmRender();const el=$('#pff-v-'+f.id);if(el)el.focus();}
   });
-  if(fm.fout&&fm.fout.id===f.id){const e=document.createElement('p');e.className='note warn pff-fout';e.id='pff-fout';e.textContent=fm.fout.text;return [label,input,e];}
-  return [label,input];
+  const out=[label,input];if(fmHandtekeningVeld(f)&&input.value==='ja')out.push(fmSigStand());
+  if(fm.fout&&fm.fout.id===f.id){const e=document.createElement('p');e.className='note warn pff-fout';e.id='pff-fout';e.textContent=fm.fout.text;out.push(e);}
+  return out;
+}
+/* Onder "Je bewaarde handtekening plaatsen": welke handtekening (dezelfde als in PDF en Stamgegevens), of tekenen. */
+function fmSigStand(){
+  const s=sigHuidig(),box=document.createElement('div'),p=document.createElement('p'),b=document.createElement('button');box.className='sig-stand';box.id='pff-sig';
+  if(s)box.append(sigCanvas());
+  p.className=s&&!sig.error?'note':'note warn';p.textContent=sig.error||(s?t('Deze handtekening komt in de PDF.'):t('Er is nog geen handtekening bewaard. Teken hem hier één keer; je gebruikt hem daarna ook in PDF en Stamgegevens.'));
+  b.type='button';b.className='mini';b.id='pff-sig-teken';b.textContent=s?t('Opnieuw tekenen'):t('Handtekening tekenen');
+  b.onclick=()=>{if(!fm.busy)sigTeken({bewaard:()=>{fmWijzig();fmRender();const el=$('#pff-sig-teken');if(el)el.focus();}});};
+  box.append(p,b);return box;
 }
 function fmMeerSleutel(s){return s.fields[0].id;}
 /* Iets ingevuld: een keuze die nog op de standaardwaarde staat telt niet. */
@@ -287,19 +298,14 @@ function fmTeken(canvas,page){
   return canvas;
 }
 function fmHandtekeningVeld(f){return (f.pdf||[]).some(target=>target.signature);}
-/* De handtekening die je zelf bewaarde (PDF → Bewerken en ondertekenen), niet vervormd, onderaan op de lijn van het vak. */
+/* Je eigen bewaarde handtekening (02-handtekening.js: dezelfde als in PDF en Stamgegevens), vers gelezen bij het tekenen
+ * van de laag, niet vervormd, onderaan op de lijn van het vak. */
 function fmHandtekening(){
-  let r;try{r=JSON.parse(Android.pdfSignatureLoad());}catch(e){r={error:'Handtekening laden lukt niet'};}
-  if(r.error)throw new Error(typeof r.error==='string'&&r.error!=='null'?t(r.error):t('Handtekening laden lukt niet'));
-  if(!r.signature||!pdfSignatureValid(r.signature))throw new Error(t('Er is nog geen handtekening bewaard. Bewaar hem bij PDF → Bewerken en ondertekenen, of kies bij Je bewaarde handtekening plaatsen Nee.'));
-  return r.signature;
+  const s=sigLoad();if(sig.error)throw new Error(sig.error);
+  if(!s)throw new Error(t('Er is nog geen handtekening bewaard. Teken hem bij de begeleider (Handtekening tekenen), of kies bij Je bewaarde handtekening plaatsen Nee.'));
+  return s;
 }
-function fmTekenHandtekening(ctx,target){
-  const s=fmHandtekening(),w=Math.min(target.w,target.h/s.ratio),h=w*s.ratio,x=target.x,y=target.y+target.h-h;
-  ctx.save();ctx.strokeStyle=s.color;ctx.lineWidth=Math.max(.6,w*.008);ctx.lineCap=ctx.lineJoin='round';
-  for(const path of s.paths){ctx.beginPath();path.forEach((p,i)=>{if(i)ctx.lineTo(x+p[0]*w,y+p[1]*h);else ctx.moveTo(x+p[0]*w,y+p[1]*h);});ctx.stroke();}
-  ctx.restore();
-}
+function fmTekenHandtekening(ctx,target){sigPaint(ctx,fmHandtekening(),target,{onder:true});}
 function fmMaak(){
   if(fm.busy)return;
   const leeg=fmOntbreekt();

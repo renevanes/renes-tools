@@ -16,7 +16,7 @@ function cmKaartLoad(id,note=''){
   if(!cmOpen())return;const epoch=++cmc.epoch;
   cmRequest('masterRead',[id,'masterdata',''],r=>{
     if(epoch!==cmc.epoch||!cmOpen())return;
-    cmc.rec=r.record;cmc.reveal=false;cmc.photoEpoch++;
+    cmc.rec=r.record;cmc.reveal=false;cmc.photoEpoch++;if(r.record&&(r.record.type==='formulier'||r.record.id===cmkMe()))sigLoad();
     if(current!=='cmkaart')show('cmkaart');
     cmKaartRender();$('#cm-kaart-status').textContent='';cmNavDone();if(note)cmNote(note);
   },false,()=>{if(epoch===cmc.epoch)cmNavDone();});
@@ -32,7 +32,8 @@ function cmKaartRender(){
   if(r.type==='formulier'){const listed=cm.records.find(x=>x.id===r.id),miss=listed?cmkFormMissing(listed):[];if(miss.length){const c=cmEl('div',undefined,'card cmc-top');c.append(cmEl('p',cmkSmall(listed,cmkMe()),'cmi-warn'));box.append(c);}}
   for(const blok of CM_BLOKKEN[r.type]||[]){
     if(blok[0]==='fotos'){cmcPhotos(box,r,blok);continue;}
-    cmcBlok(box,r,blok,cmcRows(r,blok[2]),{mask:blok[2].some(k=>CM_MASK.has(k))});
+    const sec=cmcBlok(box,r,blok,cmcRows(r,blok[2]),{mask:blok[2].some(k=>CM_MASK.has(k))});
+    if(r.type==='formulier'&&blok[0]==='ondertekenen'&&r.fields?.handtekening)sec.append(cmSigStand('cmc-sig-stand',true));
   }
 }
 /* Een blok: kop met potlood en de ingevulde velden. */
@@ -112,6 +113,7 @@ function cmcPerson(box,r){
   if(docs.length){const l=cmEl('div',undefined,'stlist');for(const d of docs)l.append(cmRow(d,cmiDocStand(d,null),cmiDocLate(d),()=>cmKaartOpen(d.id)));ds.append(l);}
   else ds.append(cmEl('p',t('Nog geen documenten.'),'hint'));
   ds.append(cmcKnop(t('Document toevoegen'),()=>cmcDocAdd(r.id),'plus','cmc-doc-add'));
+  if(self)box.append(cmcSigBlok());
   // Relaties als zinnen; die met jou staat bij een ander al bovenaan
   const rels=cm.records.filter(x=>x.type==='relatie'&&(x.van===r.id||x.naar===r.id)&&(self||!me||![x.van,x.naar].includes(me)));
   const rs=cmcBlok(box,r,['relaties','Relaties',[]],[],{edit:false,empty:false});
@@ -156,6 +158,33 @@ function cmcAboutMove(mode){
   },false,()=>cmBusy(false));};
   if(mode==='wis')askConfirm(t('Tekst over jou weghalen?'),typeof isPlay==='function'&&isPlay()?t('De tekst wordt uit Stamgegevens verwijderd.'):t('De tekst wordt uit Stamgegevens verwijderd. Over mij bij de assistent blijft zoals het is.'),t('Weghalen'),go);else go();
 }
+
+/* Je handtekening (02-handtekening.js, dezelfde als in PDF en Formulieren) op je eigen kaartje. Hij staat niet in de kluis
+ * van Stamgegevens maar versleuteld bij de app, zodat PDF hem ook zonder ontgrendelen kan plaatsen. */
+function cmcSigBlok(){
+  const s=sigHuidig(),sec=cmEl('section',undefined,'card cmc-blok'),head=cmEl('div',undefined,'cmc-kop');sec.dataset.blok='handtekening';sec.id='cmc-sig';
+  head.append(cmEl('h2',t('Handtekening')));sec.append(head);
+  if(s)sec.append(sigCanvas('cmc-sig-voorbeeld'));
+  sec.append(cmEl('p',sig.error||(s?t('Voor Formulieren en PDF → Bewerken en ondertekenen. Versleuteld op deze telefoon.'):t('Nog geen handtekening. Teken hem één keer; Formulieren en PDF gebruiken hem daarna.')),sig.error?'hint cmi-warn':'hint'));
+  const acts=cmEl('div',undefined,'row cmc-acts');acts.append(cmcSigKnop(s,'cmc-sig-teken'));
+  if(s||sig.error)acts.append(cmcKnop(t('Verwijderen'),()=>{if(cmOpen())sigVraagWeg('cmc-sig-teken');},'trash','cmc-sig-weg'));
+  sec.append(acts);return sec;
+}
+function cmcSigKnop(s,id){return cmcKnop(s?t('Opnieuw tekenen'):t('Handtekening tekenen'),()=>{if(cmOpen()&&!cm.mutating)sigTeken();},'sign',id);}
+/* Bij Ondertekenen van vaste formuliergegevens: of je handtekening er is, en tekenen. Op het kaartje (op: true) met
+ * voorbeeld en alleen als hij bij een begeleider komt; bij het bewerken altijd, kort. */
+function cmSigStand(id,op){
+  const s=sigHuidig(),box=cmEl('div',undefined,'sig-stand');box.id=id;
+  if(s&&op)box.append(sigCanvas());
+  const tekst=sig.error||(op?(s?t('Je bewaarde handtekening komt bij die begeleider.'):t('Nog geen handtekening bewaard. Teken hem één keer; dan zet Formulieren hem bij die begeleider.')):(s?t('Je hebt een handtekening bewaard.'):t('Nog geen handtekening bewaard.')));
+  box.append(cmEl('p',tekst,sig.error||(op&&!s)?'hint cmi-warn':'hint'),cmcSigKnop(s,`${id}-teken`));return box;
+}
+sigWatch(()=>{
+  if(!cmOpen())return;
+  const blok=$('#cmc-sig');if(blok)blok.replaceWith(cmcSigBlok());
+  const st=$('#cmc-sig-stand');if(st)st.replaceWith(cmSigStand('cmc-sig-stand',true));
+  const ed=$('#cmi-form-sig');if(ed)ed.replaceWith(cmSigStand('cmi-form-sig',false));
+});
 
 /* Kaartfoto's op het documentkaartje: tik om te tonen (gelogd), nog eens tikken vergroot. */
 function cmcPhotos(box,r,blok){

@@ -245,7 +245,6 @@ textarea.key:focus{outline:2px solid var(--primary);outline-offset:-1px;border-c
 .pdf-signature-library h3{margin:0 0 8px}
 #pdf-signature-acts[hidden]{display:none}
 .card.pdf-signature-library{margin:0 0 12px;padding:18px;border:0}.card.pdf-signature-library .note{margin:0 2px 8px}
-#pdf-signature-preview{display:block;width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:12px}
 #pdf-signature-preview[hidden]{display:none}
 .pdf-signature-library .mini{float:none;white-space:normal;max-width:100%}
 .kl-filters{flex-wrap:wrap;gap:10px;margin-top:12px}.kl-filters .chk{flex:1;min-width:150px;margin:0}
@@ -756,7 +755,6 @@ body.tab-root .hs{padding-left:16px}
 .pdfeditpaper img,.pdfeditpaper canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .pdfeditpaper canvas{touch-action:none;cursor:grab}
 .pdfeditpaper:focus{outline:3px solid var(--primary)}
-#pdf-edit-sign{display:block;width:100%;height:auto;background:white;border:1px solid var(--outline);border-radius:8px;touch-action:none}
 .pdfedititems{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .pdfedititems [aria-pressed=true]{background:var(--tonal);outline:2px solid var(--primary)}
 /* Losse app: geen tabbalk, geen terugknop op het eerste scherm, geen speler van andere tools */

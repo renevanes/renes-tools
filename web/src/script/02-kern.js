@@ -134,6 +134,7 @@ function show(name){
   if (name==='home') jumpStack.length = 0;
   if (name==='search' && gsQ) setTimeout(gsInput, 0); // terug van een treffer: opnieuw zoeken (er kan iets veranderd zijn)
   closeSheet();
+  if (name !== current_prev && typeof sigOpen === 'function' && sigOpen()) sigClose(); // getekend voor het vorige scherm
   current = name; window.scrollTo(0,0);
   if (current_prev==='podspotify' && name!=='podspotify') pspPause();
   if (name==='podspotify') enterPodSpotify();
@@ -143,7 +144,7 @@ function show(name){
   if (current_prev==='ai' && name!=='ai' && typeof aiVoiceAbort === 'function') aiVoiceAbort();
   if (current_prev==='ai' && name!=='ai' && typeof aiSpeakStop === 'function') aiSpeakStop(); // weg uit de assistent: niet doorpraten
   // Focus op de titel van het scherm; een scherm kan een zichtbare titel aanwijzen (.titelfocus) als de kleine titel in de balk nog verborgen is
-  if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' .titelfocus') || document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #voice.on, #ci-ans.on, #ci-rem.on, #lockscr.on, #sheet.on, #sleepdlg.on, #player.on')) h.focus({ preventScroll: true }); }, 0);
+  if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' .titelfocus') || document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #sigdlg.on, #voice.on, #ci-ans.on, #ci-rem.on, #lockscr.on, #sheet.on, #sleepdlg.on, #player.on')) h.focus({ preventScroll: true }); }, 0);
   if (name==='podcasts') enterPodcasts(); else if (name!=='podcast' && typeof pcStopPoll === 'function') pcStopPoll();
   if (name==='redial') enterRedial(); else stopPoll();
   if (WA_SCR.includes(name)) enterWa(name); else stopWaPoll();
@@ -209,6 +210,7 @@ window.goBack = function(){
   if(typeof cm!=='undefined'&&cm.picker){cmClosePicker();return true;}
   if(typeof fmq!=='undefined'&&fmq.open){fmqClose();return true;}
   if ($('#modal').classList.contains('on')) { closeModal(null); return true; }
+  if ($('#sigdlg').classList.contains('on')) { sigClose(); return true; }
   if (typeof gbBack === 'function' && gbBack()) return true;
   if (typeof aiTalkBack === 'function' && aiTalkBack()) return true; // eerst het gesprek met de assistent stoppen
   if ($('#voice') && $('#voice').classList.contains('on')) { voiceClose(); return true; }
