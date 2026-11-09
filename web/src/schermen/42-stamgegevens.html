@@ -80,10 +80,10 @@
         <div id="cm-label-box" data-cm-tab="naam"><label class="f" for="cm-label">Naam in het overzicht</label><input class="search" id="cm-label" maxlength="120" autocomplete="off" oninput="cmDirty()">
         <p class="hint">Laat leeg voor een naam die vanzelf meegaat met de gegevens. Blijft in het logboek staan, ook na verwijderen.</p></div>
         <p class="hint" id="cm-contact-hint" translate="no" hidden></p>
+        <p class="hint cmi-warn" id="cmi-form-gezag" translate="no" role="status" aria-live="polite" hidden></p>
         <form id="cm-fields" autocomplete="off" novalidate onsubmit="event.preventDefault();cmSave()"></form>
         <label class="chk cm-off" id="cm-secret-row"><input type="checkbox" id="cm-show-secret" onchange="cmShowSecret(this.checked)">Identiteitsgegevens tonen</label>
         <details class="help in" id="cmi-form-note" data-cm-tab="kind" hidden><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>Kies één keer wie er reist, wie meegaat en wie toestemming geeft. Namen, geboortegegevens, adressen en documentnummers komen bij het invullen steeds uit de actuele stamgegevens van die personen. Laat je de relatie op Automatisch staan, dan gebruikt het formulier je opgeslagen relaties. Per reis vul je onder PDF → Formulieren invullen alleen de reisdagen en de bestemming in.</p></div></details>
-        <p class="hint cmi-warn" id="cmi-form-gezag" translate="no" hidden></p>
         <p class="cmi-zin" id="cmi-relation-zin" data-cm-tab="relatie" translate="no" role="status" aria-live="polite" hidden></p>
         <details class="help in" id="cmi-relation-note" data-cm-tab="relatie" hidden><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>De tweede persoon heeft de gekozen relatie met de eerste persoon. Bijvoorbeeld: van jezelf naar je kind kies je Kind. Een status zoals ouderlijk gezag vul je zelf in; de app leidt die nergens uit af. De assistent krijgt de status alleen als je dat aanzet bij Wat weet de assistent?. Een relatie is geen bewijs van gezag of toestemming.</p></div></details>
         <div class="card cmh-panel" id="cmh-panel" data-cm-tab="document" hidden>

@@ -78,10 +78,11 @@ function enterMasterdata(name='masterdata',prev=''){
   if(name==='masterdata'&&cmZone(prev)&&prev!=='masterdata'&&cmOpen())cmListLoad();
   if(name==='cmwis'){$('#cm-reset-word').value='';cmResetReady();}
 }
-function cmLeave(){if(typeof cmi!=='undefined'){cmi.newType='';cmi.reopen='';}cmClearCentral();Android.masterLock();cmPrivacy(false);}
+function cmLeave(){if(typeof cmi!=='undefined'){cmi.newType='';cmi.newLijst='';cmi.reopen='';}cmClearCentral();Android.masterLock();cmPrivacy(false);}
 function cmClearCentral(){
   cm.records=[];cm.recordsReady=false;cm.events=[];cm.edit=null;cm.dirty=false;cm.before=0;cm.editorEpoch++;cm.back=null;cm.tab='';cmBusy(false);
   cm.nav=[];cm.here=null;cm.from=null;cm.orig=null;cm.lastId='';cm.navigating=false;cm.navNote='';cm.jumpBack=false;
+  if(typeof cmi!=='undefined'){cmi.gevEdit=null;cmi.gevers=null;}
   ['cm-list','cm-ik','cm-aandacht-list','cm-lijst','cm-kaart','cm-ai-mensen','cm-fields','cm-audit','cm-pick-list','cm-pick-fields'].forEach(id=>$('#'+id).replaceChildren());
   ['cm-label','cm-search','cm-log-search','cm-pick-search','cm-reset-word'].forEach(id=>$('#'+id).value='');
   ['cm-kaart-title','cm-contact-hint','cmi-form-gezag'].forEach(id=>$('#'+id).textContent='');$('#cm-contact-hint').hidden=true;$('#cmi-form-gezag').hidden=true;

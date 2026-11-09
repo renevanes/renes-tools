@@ -91,9 +91,9 @@ function cmcPerson(box,r){
   const tel=live.gevonden&&live.telefoon||f.telefoon||'';
   if(tel||f.contact){
     const acts=cmEl('div',undefined,'row cmc-acts');
-    if(tel)acts.append(cmcKnop(t('Bellen'),()=>cmcContact('bel'),'phone','cmc-bel'),cmcKnop(t('Bericht'),()=>cmcContact('bericht'),'message','cmc-bericht'));
+    if(tel&&!self)acts.append(cmcKnop(t('Bellen'),()=>cmcContact('bel'),'phone','cmc-bel'),cmcKnop(t('Bericht'),()=>cmcContact('bericht'),'message','cmc-bericht'));
     if(f.contact)acts.append(cmcKnop(t('Contacten'),()=>cmcContact('contact'),'external','cmc-contact'));
-    top.append(acts);
+    if(acts.childElementCount)top.append(acts);
   }
   if(f.contact&&live.toegang===false)top.append(cmEl('p',t('Geen toegang tot Contacten: telefoon en e-mail komen nu uit Stamgegevens.'),'hint'));
   else if(f.contact&&live.gevonden===false)top.append(cmEl('p',t('Het gekoppelde contact is niet meer gevonden. Koppel opnieuw via ⋯.'),'hint'));

@@ -10,7 +10,7 @@ function fmqNote(text){$('#fmq-status').textContent=text;}
 function fmqKaart(){
   const vast=!!FM_VAST[fm.id]&&typeof Android.masterFormProfile==='function';
   $('#fmq-start').hidden=!vast;$('#pff-start-knop').hidden=vast;$('#pff-start-rijen').hidden=!vast;$('#fmq-uitleg').hidden=!vast;
-  $('#fmq-start').disabled=fm.busy;$('#fmq-instellen').disabled=fm.busy;
+  $('#fmq-start').disabled=fm.busy;$('#fmq-instellen').disabled=fm.busy;$('#fm-reizen').disabled=fm.busy;
 }
 function fmqRenderState(){
   if(!fmq.open)return;const open=cmOpen();
@@ -97,6 +97,8 @@ function fmqVerloop(warnings){
 function fmqSetup(){
   if(fm.busy)return;fmqClose();cmi.newType='formulier';jumpTo('masterdata');
 }
+/* Vaste gegevens en Reizen beheer je vanuit Formulieren: de lijst in Stamgegevens, terug komt weer hier. */
+function fmVast(l){if(fm.busy)return;fmqClose();cmi.newLijst=l;jumpTo('masterdata');}
 function fmqZelf(){fmqClose();fmStart();}
 // Koppelingen met de bestaande stamgegevens- en formulierlogica.
 const fmqBaseInit=fmInit;fmInit=function(id){const box=$('#pff-verloop');if(box){box.hidden=true;box.textContent='';}fmqBaseInit(id);};

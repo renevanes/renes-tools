@@ -280,7 +280,7 @@ function cmkWieSave(id,code,status){
   const label=cmiRelationText(fields,'label'),naam=cmiPersonName(id);
   const fail=()=>cmBusy(false),save=rec=>cmRequest('masterSave',[JSON.stringify(rec)],()=>{cmBusy(false);appIdentityRefresh();cmListLoad(()=>cmKaartLoad(id,t('Vastgelegd: {wie}.',{wie:cmkWieText({code,status},naam)})));},false,fail);
   cmBusy(true);
-  if(cur)cmRequest('masterRead',[cur.rel,'masterdata',''],r=>{const rec=r.record,old=rec.fields;rec.fields={...old,...fields,delen:old.delen||'ja'};if(!status)delete rec.fields.status;if(cmLabelAuto({...rec,id:rec.id})||!rec.label)rec.label=label||rec.label;save(rec);},false,fail);
+  if(cur)cmRequest('masterRead',[cur.rel,'masterdata',''],r=>{const rec=r.record,old=rec.fields;rec.fields={...old,...fields,delen:old.delen||'ja'};if(!status)delete rec.fields.status;if(label&&(!rec.label||cmAutoLabels('relatie',old).has(rec.label)))rec.label=label;save(rec);},false,fail);
   else save({type:'relatie',label:label||t('Relatie'),fields:{...fields,delen:'ja'},revision:0});
 }
 function cmkWieWeg(id){

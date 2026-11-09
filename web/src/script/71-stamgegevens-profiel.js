@@ -1,6 +1,6 @@
 /* Gedeelde identiteit is een expliciete, beperkte native momentopname. Geen opslag in webstore. */
 let appIdentity={};
-const cmi={photoRequest:'',photoEpoch:0,reopen:'',show:false,newType:'',newLijst:''};
+const cmi={photoRequest:'',photoEpoch:0,reopen:'',show:false,newType:'',newLijst:'',gevers:null,gevEdit:null};
 // taal-vast: vaste keuzelabels worden met t() vertaald (ook de waarde voor het Nederlandse formulier, zie cmiFormRelationsLoad)
 const CMI_RELATIONS={kind:'Kind',zoon:'Zoon',dochter:'Dochter',ouder:'Ouder',vader:'Vader',moeder:'Moeder',partner:'Partner',expartner:'Ex-partner',broerzus:'Broer of zus',broer:'Broer',zus:'Zus',grootouder:'Grootouder',opa:'Opa',oma:'Oma',kleinkind:'Kleinkind',kleinzoon:'Kleinzoon',kleindochter:'Kleindochter',oomtante:'Oom of tante',neefnicht:'Neef of nicht',schoonouder:'Schoonouder',schoonkind:'Schoonkind',zwagerschoonzus:'Zwager of schoonzus',familie:'Familie',vriend:'Vriend of vriendin',collega:'Collega',buur:'Buurman of buurvrouw',huisgenoot:'Huisgenoot',noodcontact:'Noodcontact',voogd:'Voogd',pupil:'Pupil',pleegouder:'Pleegouder',pleegkind:'Pleegkind',stiefouder:'Stiefouder',stiefkind:'Stiefkind',anders:'Anders'};
 // taal-vast: groepsnamen worden met t() vertaald
@@ -37,7 +37,36 @@ function cmiFormPerson(key){
     const docs=cm.records.filter(r=>r.type==='identiteit'&&f[key]&&r.person===f[key]);
     if(!docs.some(r=>r.id===f[docKey]))f[docKey]=docs.length===1?docs[0].id:'';
   }
+  if(['kind','begeleider1','begeleider2'].includes(key))cmiFormGevers();
   const focus=document.activeElement?.id;cmEditorFields();if(focus&&$('#'+focus))$('#'+focus).focus();
+  cmiFormGezag();
+}
+/* Ouders van een kind met de status die Rene zelf bij de relatie vastlegde (gezag of geengezag); niets afgeleid. */
+const CMI_OUDERS=['ouder','vader','moeder','stiefouder','pleegouder'],CMI_KINDEREN=['kind','zoon','dochter','stiefkind','pleegkind'];
+function cmiParents(kid){
+  const out=new Map();if(!kid)return out;
+  for(const r of cm.records.filter(x=>x.type==='relatie')){
+    const p=r.van===kid&&CMI_OUDERS.includes(r.relatie)?r.naar:r.naar===kid&&CMI_KINDEREN.includes(r.relatie)?r.van:'';
+    if(p&&p!==kid&&(!out.get(p)||r.status))out.set(p,r.status||'');
+  }
+  return out;
+}
+/* Toestemming geven de ouders met gezag die niet meereizen: die stelt de app voor zolang Rene zelf niets anders koos. */
+function cmiFormGevers(){
+  const f=cm.edit.fields,was=cmi.gevers||['',''];
+  if((f.gever1||'')!==was[0]||(f.gever2||'')!==was[1])return;
+  const reist=new Set([f.begeleider1,f.begeleider2].filter(Boolean)),label=id=>cmiPersonName(id);
+  const ids=[...cmiParents(f.kind)].filter(([id,st])=>st==='gezag'&&!reist.has(id)).map(([id])=>id).sort((a,b)=>label(a).localeCompare(label(b))).slice(0,2);
+  f.gever1=ids[0]||'';f.gever2=ids[1]||'';cmi.gevers=[f.gever1,f.gever2];
+  for(const k of ['gever1','gever2']){const docs=cm.records.filter(r=>r.type==='identiteit'&&f[k]&&r.person===f[k]);if(!docs.some(r=>r.id===f[k+'Document']))f[k+'Document']=docs.length===1?docs[0].id:'';}
+  if(ids.length)cmNote(tn(ids.length,'De ouder met ouderlijk gezag staat voorgesteld bij Toestemming. Kijk na of dat klopt.','De ouders met ouderlijk gezag staan voorgesteld bij Toestemming. Kijk na of dat klopt.'));
+}
+/* Waarschuwing: toestemming van iemand die volgens je relaties geen ouderlijk gezag heeft. */
+function cmiFormGezag(){
+  const box=$('#cmi-form-gezag'),f=cm.edit?.type==='formulier'?cm.edit.fields:null;
+  const ouders=f?cmiParents(f.kind):new Map(),kind=f?cmiPersonName(f.kind):'';
+  const lines=f?['gever1','gever2'].filter(k=>f[k]&&ouders.get(f[k])==='geengezag').map(k=>t('Volgens je relaties heeft {naam} geen ouderlijk gezag over {kind}. Alleen een ouder met gezag kan toestemming geven.',{naam:cmiPersonName(f[k]),kind})):[];
+  box.textContent=lines.join('\n');box.hidden=!lines.length;
 }
 function appIdentityRefresh(){try{appIdentity=JSON.parse(Android.appIdentity())||{};}catch(_){appIdentity={};}cmiSharedRender();}
 window.onAppIdentity=function(){appIdentityRefresh();};
@@ -123,6 +152,7 @@ function cmiPersonStand(p){
 }
 function cmiEditor(){
   const r=cm.edit;$('#cmi-form-note').hidden=r.type!=='formulier';$('#cmi-relation-note').hidden=r.type!=='relatie';
+  if(cmi.gevEdit!==r){cmi.gevEdit=r;cmi.gevers=null;}cmiFormGezag();
   cmiRelationSentence();
   cmiPhotoClear();$('#cmi-photos').hidden=r.type!=='identiteit';
   if(r.type==='identiteit')for(const side of ['front','back']){$('#cmi-'+side+'-status').textContent=r.images?.[side]?t('foto opgeslagen'):t('nog geen foto');$('#cmi-'+side+'-delete').disabled=!r.images?.[side];}

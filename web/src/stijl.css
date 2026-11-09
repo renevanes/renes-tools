@@ -1184,7 +1184,7 @@ body.talk-on #s-ai main{padding-bottom:200px}
 /* Stamgegevens: kaartfoto's blijven binnen het beveiligde scherm. */
 .cmi-actions{flex-wrap:wrap;gap:8px}.cmi-actions .big{flex:1;min-width:130px}
 .cmi-sides{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-.cmi-warn{color:var(--warn);font-weight:600}
+.cmi-warn{color:var(--warn);font-weight:600}#cmi-form-gezag{white-space:pre-line}
 .cmi-side-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.cmi-side-h h4{margin-bottom:4px}.cmi-photo-stand{color:var(--muted);font-size:13px}
 .cmh-panel{background:var(--card);border:1.5px solid var(--primary)}.cmh-panel[hidden]{display:none}.cmh-row{align-items:flex-start;min-height:44px}.cmh-row small{display:block;color:var(--muted)}.cmh-panel h4{margin:12px 0 4px}
 .cmi-zin{margin:12px 0;padding:10px 14px;border-radius:12px;background:var(--tonal);color:var(--on-tonal)}.cmi-zin[hidden]{display:none}
