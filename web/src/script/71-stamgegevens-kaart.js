@@ -16,7 +16,7 @@ function cmKaartLoad(id,note=''){
   if(!cmOpen())return;const epoch=++cmc.epoch;
   cmRequest('masterRead',[id,'masterdata',''],r=>{
     if(epoch!==cmc.epoch||!cmOpen())return;
-    cmc.rec=r.record;cmc.reveal=false;cmc.photoEpoch++;
+    cmc.rec=r.record;cmc.reveal=false;cmc.photoEpoch++;sigLoad();
     if(current!=='cmkaart')show('cmkaart');
     cmKaartRender();$('#cm-kaart-status').textContent='';cmNavDone();if(note)cmNote(note);
   },false,()=>{if(epoch===cmc.epoch)cmNavDone();});
@@ -166,17 +166,18 @@ function cmcSigBlok(){
   head.append(cmEl('h2',t('Handtekening')));sec.append(head);
   if(s)sec.append(sigCanvas('cmc-sig-voorbeeld'));
   sec.append(cmEl('p',sig.error||(s?t('Voor Formulieren en PDF → Bewerken en ondertekenen. Versleuteld op deze telefoon.'):t('Nog geen handtekening. Teken hem één keer; Formulieren en PDF gebruiken hem daarna.')),sig.error?'hint cmi-warn':'hint'));
-  const acts=cmEl('div',undefined,'row cmc-acts');acts.append(cmcSigKnop(s));
-  if(s||sig.error)acts.append(cmcKnop(t('Verwijderen'),()=>{if(cmOpen())sigVraagWeg();},'trash','cmc-sig-weg'));
+  const acts=cmEl('div',undefined,'row cmc-acts');acts.append(cmcSigKnop(s,'cmc-sig-teken'));
+  if(s||sig.error)acts.append(cmcKnop(t('Verwijderen'),()=>{if(cmOpen())sigVraagWeg('cmc-sig-teken');},'trash','cmc-sig-weg'));
   sec.append(acts);return sec;
 }
-function cmcSigKnop(s){return cmcKnop(s?t('Opnieuw tekenen'):t('Handtekening tekenen'),()=>{if(cmOpen()&&!cm.mutating)sigTeken();},'sign','cmc-sig-teken');}
-/* Bij Ondertekenen van vaste formuliergegevens: of je handtekening er is (met voorbeeld op het kaartje), en tekenen. */
-function cmSigStand(id,voorbeeld){
+function cmcSigKnop(s,id){return cmcKnop(s?t('Opnieuw tekenen'):t('Handtekening tekenen'),()=>{if(cmOpen()&&!cm.mutating)sigTeken();},'sign',id);}
+/* Bij Ondertekenen van vaste formuliergegevens: of je handtekening er is, en tekenen. Op het kaartje (op: true) met
+ * voorbeeld en alleen als hij bij een begeleider komt; bij het bewerken altijd, kort. */
+function cmSigStand(id,op){
   const s=sigHuidig(),box=cmEl('div',undefined,'sig-stand');box.id=id;
-  if(s&&voorbeeld)box.append(sigCanvas());
-  box.append(cmEl('p',sig.error||(s?t('Je bewaarde handtekening komt bij die begeleider.'):t('Nog geen handtekening bewaard. Teken hem één keer; dan zet Formulieren hem bij die begeleider.')),s&&!sig.error?'hint':'hint cmi-warn'));
-  box.append(cmcSigKnop(s));return box;
+  if(s&&op)box.append(sigCanvas());
+  const tekst=sig.error||(op?(s?t('Je bewaarde handtekening komt bij die begeleider.'):t('Nog geen handtekening bewaard. Teken hem één keer; dan zet Formulieren hem bij die begeleider.')):(s?t('Je hebt een handtekening bewaard.'):t('Nog geen handtekening bewaard.')));
+  box.append(cmEl('p',tekst,s&&!sig.error?'hint':'hint cmi-warn'),cmcSigKnop(s,`${id}-teken`));return box;
 }
 sigWatch(()=>{
   if(!cmOpen())return;

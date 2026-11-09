@@ -37,6 +37,7 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.textContent('#toast'),'Handtekening bewaard');
   assert.equal(await p.isVisible('#cmc-sig-voorbeeld'),true);assert.ok(await inkt('#cmc-sig-voorbeeld')>50,'voorbeeld toont de handtekening');
   assert.equal(await p.textContent('#cmc-sig-teken'),'Opnieuw tekenen');assert.equal(await p.isVisible('#cmc-sig-weg'),true);
+  assert.equal(await p.evaluate(()=>document.activeElement.id),'cmc-sig-teken','focus terug op de (nieuwe) knop');
   assert.equal(await p.evaluate(()=>Android._cm.events.length),events,'niet in de kluis van Stamgegevens');
   assert.doesNotMatch(await p.evaluate(()=>JSON.stringify(Android._cm.records)),/paths/);
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
@@ -65,11 +66,13 @@ for(const colorScheme of ['light','dark']){
   await p.click('#modal-cancel');assert.ok(await p.evaluate(()=>Android._signature));
   await p.click('#cmc-sig-weg');await p.click('#modal-ok');await p.waitForFunction(()=>!Android._signature);
   assert.match(await p.textContent('#cmc-sig'),/Nog geen handtekening/);assert.equal(await p.textContent('#cmc-sig-teken'),'Handtekening tekenen');
+  assert.equal(await p.evaluate(()=>document.activeElement.id),'cmc-sig-teken','focus na verwijderen');
   assert.equal(await p.evaluate(()=>{show('pdfedit');return $('#pdf-signature-preview').hidden;}),true,'PDF: weg');
 
   // 5. Een fout bij het lezen staat op het kaartje; verwijderen blijft mogelijk
   await p.evaluate(()=>{Android._signatureReadError='Handtekening is niet te lezen';sigLoad();});await p.waitForFunction(()=>!cmOpen());await unlock();
   assert.match(await p.textContent('#cmc-sig'),/niet te lezen/);assert.equal(await p.isVisible('#cmc-sig-weg'),true);
+  await p.evaluate(()=>{Android._signatureReadError='null';sigLoad();});assert.equal(await p.textContent('#cmc-sig .hint'),'Handtekening laden lukt niet','geen "null"');
   await p.evaluate(()=>{Android._signatureReadError='';sigLoad();});
 
   // 6. Smal scherm en Engels
@@ -77,6 +80,11 @@ for(const colorScheme of ['light','dark']){
   const pad=await p.locator('#sig-pad').boundingBox(),box=await p.locator('.sig-box').boundingBox();
   assert.ok(pad.height>=100&&box.x>=0&&box.x+box.width<=320,'venster past op 320 px');
   await p.screenshot({path:__dirname+'/shots/handtekening-venster-'+colorScheme+'.png'});await p.evaluate(()=>goBack());assert.equal(await p.evaluate(()=>sigOpen()||current),'cmkaart');
+  // Liggend: het venster past (schuift zelf), Bewaren is bereikbaar
+  await p.setViewportSize({width:844,height:390});await p.click('#cmc-sig-teken');await p.waitForSelector('#sigdlg.on');await p.waitForTimeout(250);
+  const lig=await p.locator('.sig-box').boundingBox();assert.ok(lig.y>=0&&lig.y+lig.height<=390+1,'venster binnen het scherm: '+JSON.stringify(lig));
+  await p.locator('#sig-ok').scrollIntoViewIfNeeded();const ok=await p.locator('#sig-ok').boundingBox();assert.ok(ok.y>=0&&ok.y+ok.height<=391,'Bewaren bereikbaar');
+  await p.click('#sig-cancel');await p.setViewportSize({width:320,height:740});
   await p.evaluate(()=>rgSave({lang:'en'}));await p.waitForTimeout(150);await T.kaart(me);
   assert.equal(await p.textContent('#cmc-sig h2'),'Signature');assert.equal(await p.textContent('#cmc-sig-teken'),'Draw signature');
   await p.click('#cmc-sig-teken');await p.waitForSelector('#sigdlg.on');

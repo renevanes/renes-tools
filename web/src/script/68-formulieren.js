@@ -17,6 +17,7 @@ function fmInit(id){
   $('#pff-resultaat').hidden=true;$('#pff-melding').textContent='';$('#pff-alles').open=false;$('#pff-samenvatting').replaceChildren();
 }
 function enterFormulieren(){
+  sigLoad();
   if (!fm.id) { fmInit(Object.keys(PDF_FORMULIEREN)[0]); fmConceptLaad(); }
   const select=$('#pff-keuze');select.replaceChildren();
   Object.entries(PDF_FORMULIEREN).forEach(([id,make]) => { const o=document.createElement('option');o.value=id;o.textContent=make().title;select.appendChild(o); });

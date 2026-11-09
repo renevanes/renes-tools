@@ -27,10 +27,14 @@ function pdfSignatureUse(){if(sig.value&&pdfSignaturePut(sig.value)){pdfSignatur
 /* Tekenen en meteen plaatsen (bewaren mag); zonder geopende PDF alleen bewaren. */
 function pdfEditTeken(){
   if(pdfBusy||pdfEd.loading||!pdfEd.meta[pdfEd.page])return;
-  sigTeken({plaatsen:(s,bewaard)=>{if(pdfSignaturePut(s)){pdfSignaturePlaced();toast(bewaard?t('Handtekening bewaard en geplaatst. Sleep haar naar de juiste plek.'):t('Handtekening geplaatst. Sleep haar naar de juiste plek.'));}}});
+  const rev=pdfEd.revision,page=pdfEd.page;
+  sigTeken({plaatsen:(s,bewaard)=>{
+    if(pdfEd.revision!==rev||pdfEd.page!==page){toast(bewaard?t('Handtekening bewaard, maar niet geplaatst: de PDF of pagina is intussen veranderd.'):t('Handtekening niet geplaatst: de PDF of pagina is intussen veranderd.'));return;}
+    if(pdfSignaturePut(s)){pdfSignaturePlaced();toast(bewaard?t('Handtekening bewaard en geplaatst. Sleep haar naar de juiste plek.'):t('Handtekening geplaatst. Sleep haar naar de juiste plek.'));}
+  }});
 }
 function pdfSignatureDraw(){if(!pdfBusy)sigTeken();}
-function pdfSignatureDelete(){if(!pdfBusy)sigVraagWeg();}
+function pdfSignatureDelete(){if(!pdfBusy)sigVraagWeg('pdf-signature-draw');}
 function pdfKeep(name){
   if (isPlay()) { toast(t('Deze tool zit niet in de Play-versie')); return; }
   if(pdfKeepPending||pdfBusy)return;

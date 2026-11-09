@@ -44,9 +44,14 @@ const assert=require('node:assert/strict');
     await p.getByRole('button',{name:'Handtekening tekenen',exact:true}).click();await draw(10);await p.locator('#sig-bewaar').check();await p.click('#sig-ok');
     const replacement=await p.evaluate(()=>Android._signature);assert.notDeepEqual(replacement.paths,signature.paths);
     assert.equal(await p.evaluate(()=>pdfEd.items.length),3);assert.match(await p.textContent('#toast'),/bewaard en geplaatst/);
-    // De terugknop sluit eerst het venster
+    // De terugknop sluit eerst het venster; een ander scherm ook
     await p.click('#pdf-signature-draw');await p.waitForSelector('#sigdlg.on');await p.evaluate(()=>goBack());
     assert.equal(await p.isVisible('#sigdlg'),false);assert.equal(await p.evaluate(()=>current),'pdfedit');
+    await p.click('#pdf-signature-draw');await p.waitForSelector('#sigdlg.on');await p.evaluate(()=>{show('pdf');show('pdfedit');});assert.equal(await p.isVisible('#sigdlg'),false,'ander scherm: dicht');
+    // Is de PDF intussen veranderd, dan wordt er niets geplaatst (en dat staat in beeld)
+    await p.getByRole('button',{name:'Handtekening tekenen',exact:true}).click();await draw();
+    const n=await p.evaluate(()=>{const n=pdfEd.items.length;window._rev=pdfEd.revision;pdfEd.revision='anders';return n;});await p.click('#sig-ok');
+    assert.equal(await p.evaluate(()=>{pdfEd.revision=window._rev;return pdfEd.items.length;}),n);assert.match(await p.textContent('#toast'),/niet geplaatst/);
     // Een gemaakte PDF direct bewaren: eerst ontgrendelen, geen verwijdering uit de uitvoerlijst.
     await p.click('#pdf-edit-save');await p.waitForFunction(()=>!pdfBusy);
     const name=await p.evaluate(()=>Android._pdf.outs[0].name),before=await p.evaluate(()=>Android._kl.docs.length);

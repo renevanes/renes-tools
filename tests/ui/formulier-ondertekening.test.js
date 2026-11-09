@@ -20,8 +20,8 @@ for(const colorScheme of ['light','dark']){
   assert.deepEqual(await p.$$eval('#cm-field-handtekening option',o=>o.map(x=>x.value)),['','begeleider1','begeleider2'],'nooit bij een toestemminggever');
   await T.select('#cm-field-kind',{label:'Zoë'});await T.select('#cm-field-gever1',{label:'Mama'});
   await T.fill('#cm-field-tekenplaats','Rotterdam');assert.equal(await p.isVisible('#cmi-form-sign'),true,'uitleg bij ondertekenen');
-  assert.match(await p.textContent('#cmi-form-sig'),/Je bewaarde handtekening komt bij die begeleider/,'stand van de handtekening (02-handtekening.js)');
-  assert.equal(await p.textContent('#cmi-form-sig #cmc-sig-teken'),'Opnieuw tekenen');
+  assert.match(await p.textContent('#cmi-form-sig'),/Je hebt een handtekening bewaard/,'stand van de handtekening (02-handtekening.js)');
+  assert.equal(await p.textContent('#cmi-form-sig-teken'),'Opnieuw tekenen');
   // Handtekening bij begeleider 2 terwijl er geen is: weigeren.
   await T.select('#cm-field-begeleider1',{label:'Papa'});await T.select('#cm-field-handtekening','begeleider2');
   await p.click('#cm-save');await p.waitForFunction(()=>!cm.mutating&&/meereist/.test($('#cm-edit-status').textContent));
@@ -73,6 +73,7 @@ for(const colorScheme of ['light','dark']){
   // Tekenen kan meteen bij de begeleider, met het gedeelde venster; daarna maakt Formulieren de PDF wel.
   await p.evaluate(()=>{fm.step=fmSecties().findIndex(s=>s.fields.some(f=>f.id==='begeleider1-handtekening'));fmRender();});
   assert.match(await p.textContent('#pff-sig'),/Er is nog geen handtekening bewaard/);assert.equal(await p.locator('#pff-sig canvas').count(),0);
+  assert.equal(await p.evaluate(()=>getComputedStyle($('#pff-sig-teken')).float),'none','knop in de stroom, niet zwevend');
   await p.click('#pff-sig-teken');await p.waitForSelector('#sigdlg.on');assert.equal(await p.textContent('#sig-ok'),'Bewaren');
   const pad=await p.locator('#sig-pad').boundingBox();
   await p.mouse.move(pad.x+20,pad.y+40);await p.mouse.down();await p.mouse.move(pad.x+80,pad.y+70,{steps:5});await p.mouse.move(pad.x+150,pad.y+25,{steps:5});await p.mouse.up();

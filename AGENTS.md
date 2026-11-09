@@ -178,8 +178,9 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   Alleen stappen en aantallen, nooit namen. Test: `tests/ui/voortgang.test.js`, `VoortgangTest`.
 - **Handtekening**: er is één handtekening voor de hele app (Stamgegevens, PDF, Formulieren). Gebruik altijd
  `web/src/script/02-handtekening.js`: `sigTeken({plaatsen, bewaard})` (het gedeelde tekenvenster), `sigLoad`/`sigHuidig`,
- `sigPaint`/`sigPreview`/`sigCanvas` en `sigWatch`; nooit een eigen tekenvlak of rechtstreeks `Android.pdfSignature*`
- (`tests/ui/handtekening.test.js` bewaakt dat). Opslag: `PdfSignature` (versleuteld, gaat mee in Alle appgegevens).
+ `sigSave`, `sigVraagWeg`, `sigPaint`/`sigPreview`/`sigCanvas` en `sigWatch`; nooit een eigen tekenvlak of rechtstreeks
+ `Android.pdfSignature*` (dat laatste bewaakt `tests/ui/handtekening.test.js`). Opslag: `PdfSignature` (versleuteld, gaat
+ mee in Alle appgegevens).
 - **Lege lijst**: `uiEmpty('mic', t('Nog geen opnames.'), t('Knoptekst'), 'actie()')`: pictogram, één regel en hooguit één (tonale) knop.
 - **Eenmalig instellen**: een kaart `class="card setup"` die weg gaat als het klaar is (`<div … hidden>`), of inklapt als er
   ook later nog iets in staat (`<details class="card setup"><summary><span class="setup-h" role="heading" aria-level="2">Eenmalig instellen</span><small id="…">stand</small></summary>…</details>`;
