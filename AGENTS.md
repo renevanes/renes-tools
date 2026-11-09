@@ -27,7 +27,10 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   naar hun eigen tool. `solo-alle-tools.test.js` en `SoloTest` bewaken dit; behoud de eigen ontgrendeling en privacy.
  Zo doet hij ook vanzelf mee met **Extra ontgrendelen** (per tool aan of uit, `26b-extra-ontgrendelen.js`, `ToolSlot`):
  elk scherm hoort via `BACK` bij zijn tool. Toont een ander scherm (zoeken, het startscherm) gegevens uit een tool, verberg
- ze dan met `tsVerborgen(tool)` zolang die tool op slot is.
+ ze dan met `tsVerborgen(tool)` zolang die tool op slot is. Opent code na `show(tool)` meteen iets in die tool (een vraag
+ uit een melding, een zoekactie), zet dat in `tsDaarna(tool, () => …)`: dan wacht het tot na ontgrendelen. Een nieuw
+ venster dat over een tool kan liggen, hoort in `TS_LAGEN` (terug op het slotscherm sluit het); inert onder een venster
+ zet je met `dialogFocus.base(el, aan)`.
   Alleen de telefoon-skin gebruikt zijn bestaande `HomeActivity`. Zie `docs/startscherm-en-automatiseringen.md`.
 - **Iedere tool doet standaard mee in de backup** (nu en later): zie "Backups: elke tool doet mee" hieronder.
 
