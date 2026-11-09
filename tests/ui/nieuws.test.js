@@ -177,7 +177,7 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     ok(await page.locator('#nws-cookie-reden').isHidden(), 'fout zonder bekende reden: geen extra regel');
     await page.evaluate(() => { Android._nw.stand.tweakers.beeldReden = '403'; });
     await zetStand('fout');
-    ok((await page.locator('#nws-cookie-reden').innerText()) === 'De site antwoordde met code 403.', 'een gewone fout: de reden staat erbij');
+    ok(await page.evaluate(() => { const r = document.querySelector('#nws-cookie-reden'); return !r.hidden && r.textContent === 'De site antwoordde met code 403.'; }), 'een gewone fout: de reden staat erbij');
     // Op het nieuwsscherm zelf: een balk naar de instellingen
     await page.evaluate(() => show('nieuws')); await page.waitForTimeout(300);
     ok(await page.locator('#nw-beeldbalk').isVisible() && (await page.locator('#nw-beeldbalk-t').innerText()) === 'Afbeeldingen van Tweakers Nieuws ophalen lukte niet'

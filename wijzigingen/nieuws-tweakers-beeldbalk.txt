@@ -1,0 +1,2 @@
+Nieuws: wacht Tweakers nog op je cookiekeuze, of lukte het ophalen van de afbeeldingen niet, dan staat dat nu als balk bovenaan het nieuws, met de reden erbij. Tik erop om het te regelen.
+Nieuws: Tools haalt de artikelpagina's van Tweakers nu op als dezelfde browser waarin je de cookiekeuze maakte, zodat Tweakers je keuze herkent.
