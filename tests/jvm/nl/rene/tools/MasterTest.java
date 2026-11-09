@@ -53,6 +53,9 @@ public class MasterTest {
         check("A.M.".equals(v.getString("gever1-initialen"))&&"J.".equals(v.getString("begeleider1-initialen")),"initialen uit voornamen, opgeslagen initialen gaan voor");
         check("Straat 1".equals(v.getString("gever1-adres"))&&"Jeugdzorg BV".equals(v.getString("gever1-instelling"))&&!v.has("gever1-telefoon"),"toestemminggever met adres en instelling");
         check("ouder".equals(out.getJSONObject("relations").getString("begeleider1")),"relatie afgeleid uit gedeelde relatie");
+        db.get(rel).getJSONObject("fields").put("delen","nee");
+        check("ouder".equals(MasterFormProfile.resolve(profile,lookup,all,false,(r,role,f)->{},(r,role)->{}).getJSONObject("relations").getString("begeleider1")),"formulieren gebruiken ook relaties die de assistent niet kent");
+        db.get(rel).getJSONObject("fields").put("delen","ja");
         check("nee".equals(v.getString("tweedeBegeleider"))&&"nee".equals(v.getString("tweedeGever"))&&"nee".equals(v.getString("alleen")),"keuzes");
         check(log.contains("vast:Reistoestemming Zoë:[\"formulier\"]")&&log.stream().noneMatch(x->x.startsWith("kind:Paspoort"))&&log.contains("relatie:begeleider1:Vader → Zoë"),"logboek per gebruikt stamgegeven");
         out=MasterFormProfile.resolve(profile,lookup,all,true,use,rel2);v=out.getJSONObject("values");

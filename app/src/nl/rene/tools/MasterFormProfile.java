@@ -159,7 +159,7 @@ final class MasterFormProfile {
                     Set<String> found=new LinkedHashSet<>();
                     for(int i=0;i<all.length();i++){
                         JSONObject r=all.getJSONObject(i);
-                        if(!"relatie".equals(r.getString("type"))||!"ja".equals(r.getJSONObject("fields").optString("delen")))continue;
+                        if(!"relatie".equals(r.getString("type")))continue;
                         String c=MasterIdentity.between(r,child,id);if(!c.isEmpty()){found.add(c);relation.read(r,role);}
                     }
                     // Tegenstrijdige relaties: leeg laten, nooit raden.

@@ -110,6 +110,9 @@ public class MainActivity extends Activity {
      * Tijdens het kiezen weigert de brug alles (masterForeground is dan false).
      */
     volatile long masterPickUntil;volatile boolean masterPickReturned;
+    /** Wat er gekozen wordt: "photo" (kaartfoto), "contact" (contact koppelen) of "perm" (toegang tot Contacten vragen). */
+    volatile String masterPickKind="";
+    final MasterContacts.Pick masterContacts=new MasterContacts.Pick(this);
     static final long MASTER_PICK_MS=120_000L;
     boolean masterPicking(){return masterPickUntil!=0&&android.os.SystemClock.elapsedRealtime()<=masterPickUntil&&masterSession.isOpen();}
     /** De 2 minuten zijn om terwijl de app nog uit beeld is (kiezer open gelaten, andere app, scherm uit): nu op slot. */
@@ -535,6 +538,7 @@ public class MainActivity extends Activity {
     void scheduleMasterExpiry(){h.removeCallbacks(masterExpiry);long left=masterSession.remaining();if(left>0)h.postDelayed(masterExpiry,left);}
     void suspendMaster(boolean explicit){
         if(explicit)masterPhotos.cancel();
+        masterContacts.cancel();
         pdfFormAi.cancel(null);
         synchronized(masterSession){masterSession.close();masterGrants.clear();if(explicit||!masterAuthPending)masterAuthSerial.incrementAndGet();}
         h.removeCallbacks(masterExpiry);
@@ -618,7 +622,12 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         visible = true; masterForeground=true;
-        if(masterPickUntil!=0){boolean back=masterPickReturned&&masterPicking();masterPickUntil=0;masterPickReturned=false;if(back)masterPhotos.continueAfterPick();else suspendMaster(false);}
+        if(masterPickUntil!=0){
+            boolean back=masterPickReturned&&masterPicking();String kind=masterPickKind;masterPickUntil=0;masterPickReturned=false;masterPickKind="";
+            if(!back){masterContacts.cancel();suspendMaster(false);}
+            else if("contact".equals(kind)||"perm".equals(kind))masterContacts.continueAfterPick();
+            else masterPhotos.continueAfterPick();
+        }
         runMasterAfterAuth();bankAuth.resume();runBankAfterAuth();
         js("onResumeApp", "");
         try { GebruikLive.start(getApplicationContext()); } catch (Throwable ignored) { }
@@ -830,6 +839,7 @@ public class MainActivity extends Activity {
 
     @Override
     public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
+        if (req == MasterContacts.PERMISSION) { masterPickReturned = masterPickUntil != 0 && "perm".equals(masterPickKind); masterContacts.permissionResult(res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED); return; }
         if (req == REQ_STORAGE || req == REQ_CONTACTS) js("onWaChanged", "");
         if (req == REQ_SMS) js("onSmsChanged", "");
         if (req == REQ_CALLS) js("onCallsChanged", "");
@@ -870,6 +880,7 @@ public class MainActivity extends Activity {
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
         if(req==MasterPhotos.REQUEST){masterPickReturned=masterPickUntil!=0&&res==RESULT_OK&&data!=null&&data.getData()!=null;masterPhotos.result(res,data);return;}
+        if(req==MasterContacts.REQUEST){masterPickReturned=masterPickUntil!=0&&"contact".equals(masterPickKind)&&masterContacts.result(res,data);return;}
         if (req == REQ_FACT_PDF) {
             final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
             if (u == null) { js("onFacturenToegevoegd", "{\"error\":\"\"}"); return; }

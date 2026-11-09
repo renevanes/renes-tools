@@ -11,6 +11,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /** Versleutelde centrale repository. Gegevensactie, auditregel en geauthenticeerd controlepunt vormen één transactie. */
 final class MasterStore {
@@ -99,12 +100,24 @@ final class MasterStore {
     }
     static JSONArray names(JSONObject fields){JSONArray a=new JSONArray();java.util.Iterator<String> it=fields.keys();while(it.hasNext())a.put(it.next());return a;}
     static JSONObject summary(JSONObject r)throws Exception{return new JSONObject().put("id",r.getString("id")).put("label",r.getString("label")).put("type",r.getString("type")).put("revision",r.getLong("revision")).put("person",r.getJSONObject("fields").optString("persoon"));}
-    /** Alleen in het overzicht van Stamgegevens zelf staat bij een relatie wie met wie en welke relatie; status en toelichting pas bij openen. */
-    static JSONObject listed(JSONObject r,String source)throws Exception{
-        JSONObject out=summary(r),f=r.getJSONObject("fields");
-        if("masterdata".equals(source)&&"relatie".equals(r.getString("type")))out.put("van",f.optString("vanPersoon")).put("naar",f.optString("naarPersoon")).put("relatie",f.optString("relatie"));
-        // Bij een document in Stamgegevens zelf: soort en geldig tot, voor het tabblad Documenten en verloopmeldingen (nooit het nummer).
-        if("masterdata".equals(source)&&"identiteit".equals(r.getString("type")))out.put("soort",f.optString("documentsoort")).put("geldig",f.optString("geldig"));
+    static JSONObject listed(JSONObject r,String source)throws Exception{return listed(r,source,null);}
+    /**
+     * Alleen in het overzicht van Stamgegevens zelf: bij een relatie wie met wie, welke relatie en de status (de toelichting pas
+     * bij openen); bij een document soort, geldig tot en het aantal foto's (nooit het nummer); bij een persoon of hij bekend is
+     * bij de assistent, of hij aan een contact gekoppeld is en of er een notitie bij staat (niet welke); bij vaste formuliergegevens welke stamgegevens erin gekozen zijn.
+     */
+    static JSONObject listed(JSONObject r,String source,Set<String> known)throws Exception{
+        JSONObject out=summary(r),f=r.getJSONObject("fields");String type=r.getString("type");
+        if(!"masterdata".equals(source))return out;
+        if("relatie".equals(type))out.put("van",f.optString("vanPersoon")).put("naar",f.optString("naarPersoon")).put("relatie",f.optString("relatie")).put("status",f.optString("status"));
+        if("identiteit".equals(type)){JSONObject images=r.optJSONObject("images");out.put("soort",f.optString("documentsoort")).put("geldig",f.optString("geldig")).put("fotos",images==null?0:images.length());}
+        if("persoon".equals(type))out.put("bekend",known!=null&&known.contains(r.getString("id"))).put("delen",f.optString("delen")).put("contact",!f.optString("contact").isEmpty()).put("roepnaam",f.optString("roepnaam")).put("tekst",!f.optString("context").isEmpty());
+        if("reis".equals(type))out.put("van",f.optString("van")).put("tot",f.optString("tot"));
+        if("formulier".equals(type)){
+            JSONObject refs=new JSONObject();for(String k:MasterFormProfile.FIELDS)if(MasterFormProfile.reference(k)!=null&&!f.optString(k).isEmpty())refs.put(k,f.getString(k));
+            out.put("formulier",f.optString("formulier")).put("alleen",f.optString("alleen")).put("refs",refs);
+        }
+        if("profiel".equals(type)){for(String k:MasterSchema.PROFILE)if(!"persoon".equals(k)&&!"context".equals(k))out.put(k,f.optString(k));out.put("tekst",!f.optString("context").isEmpty());}
         return out;
     }
     static JSONArray records(SQLiteDatabase db,SecretKey key)throws Exception{JSONArray out=new JSONArray();try(Cursor c=db.rawQuery("SELECT id FROM records ORDER BY id",null)){while(c.moveToNext()){JSONObject r=record(db,key,c.getString(0));r.remove("images");out.put(r);}}return out;}
@@ -115,26 +128,78 @@ final class MasterStore {
         },()->MasterAppContext.publish(c,app[0]));return app[0];
     }
 
+    /**
+     * Tekst over jezelf staat voortaan op één plek: Over mij bij de assistent. Wat nog in je eigen persoon of het app-profiel
+     * staat, gaat daarheen (bij ontgrendelen vanzelf als het al gedeeld werd en past, anders als Rene erom vraagt) of weg.
+     * Past het niet (meer dan LocalAi.TEXT_MAX tekens samen), dan blijft het staan.
+     */
+    static JSONObject aboutMove(Context c,SecretKey key,MasterSession session,String token,String mode)throws Exception{
+        if(!"vanzelf".equals(mode)&&!"verplaats".equals(mode)&&!"wis".equals(mode))throw new MasterError(Taal.T("Ongeldige stamgegevens"));
+        final String[] about={null};
+        JSONObject result=transaction(c,key,session,token,(db,k,h)->{
+            JSONArray all=records(db,k);JSONObject profile=null;
+            for(int i=0;i<all.length();i++)if("profiel".equals(all.getJSONObject(i).getString("type")))profile=record(db,k,all.getJSONObject(i).getString("id"));
+            if(profile==null)return new JSONObject().put("moved",false);
+            JSONObject me=null;String self=profile.getJSONObject("fields").optString("persoon");
+            if(!self.isEmpty())try{me=record(db,k,self);}catch(MasterError gone){me=null;}
+            java.util.List<JSONObject> holders=new ArrayList<>();java.util.LinkedHashSet<String> texts=new java.util.LinkedHashSet<>();
+            for(JSONObject r:new JSONObject[]{me,profile}){if(r==null)continue;String t=r.getJSONObject("fields").optString("context").trim();if(!t.isEmpty()){holders.add(r);texts.add(t);}}
+            if(holders.isEmpty())return new JSONObject().put("moved",false);
+            if("vanzelf".equals(mode)&&!"ja".equals(profile.getJSONObject("fields").optString("delen")))return new JSONObject().put("moved",false).put("wacht",true);
+            if(!"wis".equals(mode)){
+                String now=LocalAi.cfg(c,"about").trim();StringBuilder joined=new StringBuilder(now);
+                for(String t:texts)if(!now.contains(t)){if(joined.length()>0)joined.append('\n');joined.append(t);}
+                if(joined.length()>LocalAi.TEXT_MAX)return new JSONObject().put("moved",false).put("wacht",true).put("teLang",true);
+                about[0]=joined.toString();
+            }
+            for(JSONObject r:holders){r.getJSONObject("fields").remove("context");rewrite(c,db,k,h,r,"wis".equals(mode)?"about_clear":"about_move",new JSONArray().put("context"));}
+            return new JSONObject().put("moved",true);
+        },()->{if(about[0]!=null&&!LocalAi.cfgSet(c,"about",about[0]).isEmpty())throw new MasterError(Taal.T("Over mij bijwerken lukt niet"));});
+        return result;
+    }
+    private static void rewrite(Context c,SQLiteDatabase db,SecretKey k,JSONObject h,JSONObject r,String action,JSONArray fields)throws Exception{
+        String id=r.getString("id");long rev=r.getLong("revision")+1;r.put("revision",rev).put("updated",System.currentTimeMillis());
+        ContentValues values=new ContentValues();values.put("rev",rev);values.put("body",MasterCipher.encrypt(k,"record/"+id+"/"+rev,bytes(r)));
+        MasterAppContext.invalidate(c);db.update("records",values,"id=?",new String[]{id});append(db,k,h,action,"masterdata","",r,fields);
+    }
+
     static JSONObject unlock(Context c,SecretKey key,MasterSession session,String token)throws Exception{
         return transaction(c,key,session,token,(db,k,h)->{append(db,k,h,"unlock","masterdata","",null,null);return new JSONObject().put("ok",true);});
     }
     static JSONObject list(Context c,SecretKey key,MasterSession session,String token,String source,String role)throws Exception{
         return transaction(c,key,session,token,(db,k,h)->{
-            MasterSchema.context(source,role);JSONArray result=new JSONArray();
+            MasterSchema.context(source,role);JSONArray result=new JSONArray(),all=new JSONArray();
             try(Cursor cursor=db.rawQuery("SELECT id FROM records ORDER BY id",null)){
                 while(cursor.moveToNext()){
                     JSONObject r=record(db,k,cursor.getString(0));
                     if(!"masterdata".equals(source))try{if(MasterSchema.permitted(source,role,r.getString("type")).isEmpty())continue;}catch(Exception denied){continue;}
-                    result.put(listed(r,source));
+                    JSONObject images=r.optJSONObject("images");
+                    if(images!=null){JSONObject sides=new JSONObject();for(java.util.Iterator<String> it=images.keys();it.hasNext();)sides.put(it.next(),true);r.put("images",sides);}
+                    all.put(r);
                 }
             }
+            Set<String> known="masterdata".equals(source)?MasterIdentity.known(all):null;
+            for(int i=0;i<all.length();i++)result.put(listed(all.getJSONObject(i),source,known));
             append(db,k,h,"list",source,role,null,null);return new JSONObject().put("records",result);
         });
     }
     static JSONObject read(Context c,SecretKey key,MasterSession session,String token,String id,String source,String role)throws Exception{
-        return transaction(c,key,session,token,(db,k,h)->{
-            MasterSchema.context(source,role);JSONObject r=record(db,k,id),f="masterdata".equals(source)?r.getJSONObject("fields"):MasterSchema.projection(r,source,role);
+        JSONObject result=transaction(c,key,session,token,(db,k,h)->{
+            MasterSchema.context(source,role);JSONObject r=record(db,k,id),f="masterdata".equals(source)?r.getJSONObject("fields"):MasterSchema.projection(MasterContacts.withLive(c,r),source,role);
             append(db,k,h,"view",source,role,r,names(f));JSONObject out=summary(r);out.put("fields",f);if("masterdata".equals(source)&&r.has("images")){JSONObject images=r.getJSONObject("images");out.put("images",new JSONObject().put("front",images.has("front")).put("back",images.has("back")));}return new JSONObject().put("record",out);
+        });
+        // Op het visitekaartje: telefoon en e-mail zoals ze nu in Contacten staan (de bewaarde waarden blijven de terugval).
+        JSONObject out=result.getJSONObject("record");String contact=out.getJSONObject("fields").optString("contact");
+        if("masterdata".equals(source)&&"persoon".equals(out.getString("type"))&&!contact.isEmpty())out.put("live",MasterContacts.live(c,contact));
+        return result;
+    }
+    /** Bellen, een bericht of Contacten openen vanaf het visitekaartje: alleen de opzoeksleutel en het bewaarde nummer, met een regel in het logboek. */
+    static JSONObject contactUse(Context c,SecretKey key,MasterSession session,String token,String id,String what)throws Exception{
+        if(!MasterContacts.ACTIONS.contains(what))throw new MasterError(Taal.T("Ongeldige stamgegevens"));
+        return transaction(c,key,session,token,(db,k,h)->{
+            JSONObject r=record(db,k,id);if(!"persoon".equals(r.getString("type")))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
+            JSONObject f=r.getJSONObject("fields");append(db,k,h,"contact_use","masterdata","",r,new JSONArray().put("contact".equals(what)?"contact":"telefoon"));
+            return new JSONObject().put("contact",f.optString("contact")).put("telefoon",f.optString("telefoon"));
         });
     }
     static JSONObject save(Context c,SecretKey key,MasterSession session,String token,JSONObject input)throws Exception{
@@ -194,7 +259,7 @@ final class MasterStore {
         if("masterdata".equals(source))throw new MasterError(Taal.T("Kies een toepassingsonderdeel voor het overnemen"));
         return transaction(c,key,session,token,(db,k,h)->{
             JSONObject r=record(db,k,id);if(revision!=r.getLong("revision"))throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
-            JSONObject projected=MasterSchema.selected(r,source,role,wanted);
+            JSONObject projected=MasterSchema.selected(MasterContacts.withLive(c,r),source,role,wanted);
             for(int i=0;i<wanted.length();i++)if(MasterSchema.sensitive(wanted.getString(i))&&!consent)throw new MasterError(Taal.T("Bevestig het overnemen van identiteitsgegevens"));
             append(db,k,h,"use",source,role,r,names(projected));return new JSONObject().put("fields",projected).put("source",source).put("role",role).put("record",summary(r));
         });
@@ -202,7 +267,7 @@ final class MasterStore {
     static JSONObject formProfile(Context c,SecretKey key,MasterSession session,String token,String id,long revision,boolean consent)throws Exception{
         return transaction(c,key,session,token,(db,k,h)->{
             JSONObject r=record(db,k,id);if(revision!=r.getLong("revision"))throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
-            JSONObject out=MasterFormProfile.resolve(r,ref->record(db,k,ref),records(db,k),consent,
+            JSONObject out=MasterFormProfile.resolve(r,ref->MasterContacts.withLive(c,record(db,k,ref)),records(db,k),consent,
                     (rec,role,fields)->append(db,k,h,"use","formulieren",role,rec,fields),
                     (rec,role)->append(db,k,h,"relation_use","formulieren",role,rec,new JSONArray().put("relatie")));
             return out.put("record",summary(r));
@@ -279,7 +344,7 @@ final class MasterStore {
         MasterSchema.context("formulieren",role);if(!role.startsWith("begeleider"))throw new MasterError(Taal.T("Deze gegevens passen niet bij dit onderdeel"));
         return transaction(c,key,session,token,(db,k,h)->{
             person(db,k,child);person(db,k,companion);java.util.Set<String> matches=new java.util.LinkedHashSet<>();JSONArray all=records(db,k);
-            for(int i=0;i<all.length();i++){JSONObject r=all.getJSONObject(i);if(!r.getString("type").equals("relatie")||!r.getJSONObject("fields").optString("delen").equals("ja"))continue;String code=MasterIdentity.between(r,child,companion);if(!code.isEmpty()){matches.add(code);append(db,k,h,"relation_use","formulieren",role,r,new JSONArray().put("relatie"));}}
+            for(int i=0;i<all.length();i++){JSONObject r=all.getJSONObject(i);if(!r.getString("type").equals("relatie"))continue;String code=MasterIdentity.between(r,child,companion);if(!code.isEmpty()){matches.add(code);append(db,k,h,"relation_use","formulieren",role,r,new JSONArray().put("relatie"));}}
             return new JSONObject().put("relation",matches.size()==1?matches.iterator().next():"");
         });
     }

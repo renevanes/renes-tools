@@ -9,12 +9,15 @@ import java.util.Set;
 /** Centrale velddefinities en expliciete contracten: consumenten krijgen alleen passende, gekozen velden. */
 final class MasterSchema {
     private MasterSchema(){ }
-    static final String[] PERSON={"naam","voornamen","roepnaam","initialen","geboortedatum","geboorteplaats","geslacht","nationaliteit","bsn","adres","postcode","plaats","land","telefoon","email","context"};
+    /** contact = opzoeksleutel van een contact (telefoon en e-mail komen dan uit Contacten); delen = bekend bij de assistent. */
+    static final String[] PERSON={"naam","voornamen","roepnaam","initialen","geboortedatum","geboorteplaats","geslacht","nationaliteit","bsn","adres","postcode","plaats","land","telefoon","email","context","contact","delen"};
     static final String[] ORGANISATION={"naam","registratienummer","adres","postcode","plaats","land","telefoon","email"};
     static final String[] ADDRESS={"naam","adres","postcode","plaats","land","telefoon"};
     static final String[] IDENTITY={"persoon","documentsoort","document","geldig","afgifte","afgifteplaats","uitgifteland","afgegevenDoor","categorieen"};
     static final String[] TRIP={"van","tot","alleen","tweedeBegeleider","tweedeGever","accommodatie","postcode","plaats","land","telefoon","reisgegevens"};
-    static final String[] PROFILE={"persoon","delen","context"};
+    /** Wat de assistent weet (Wat weet de assistent?): leeg = de standaard uit MasterIdentity.AI_DEFAULT. */
+    static final String[] PROFILE={"persoon","delen","context","aiStatus","aiGeboorte","aiDocumenten","aiWoonplaats","aiContact"};
+    static final java.util.List<String> YES_NO=Arrays.asList("alleen","tweedeBegeleider","tweedeGever","delen","aiStatus","aiGeboorte","aiDocumenten","aiWoonplaats","aiContact");
     static final String[] RELATION={"vanPersoon","naarPersoon","relatie","status","toelichting","delen"};
     static boolean sensitive(String key){return "bsn".equals(key)||"document".equals(key)||"geldig".equals(key)||"afgifte".equals(key);}
     static String[] fields(String type)throws Exception{
@@ -35,7 +38,8 @@ final class MasterSchema {
             String s=((String)value).trim();if(s.length()>240||s.matches("(?s).*[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f].*"))throw new MasterError(Taal.T("Een gegevensveld is te lang of ongeldig"));
             s=s.replace('\n',' ').replace('\r',' ');
             if(("geboortedatum".equals(k)||"geldig".equals(k)||"afgifte".equals(k)||"van".equals(k)||"tot".equals(k))&&!s.isEmpty()&&!validDate(s))throw new MasterError(Taal.T("Vul een geldige datum in"));
-            if(Arrays.asList("alleen","tweedeBegeleider","tweedeGever","delen").contains(k)&&!s.isEmpty()&&!s.equals("ja")&&!s.equals("nee"))throw new MasterError(Taal.T("Kies Ja of Nee"));
+            if(YES_NO.contains(k)&&!s.isEmpty()&&!s.equals("ja")&&!s.equals("nee"))throw new MasterError(Taal.T("Kies Ja of Nee"));
+            if("contact".equals(k)&&!s.isEmpty()&&!MasterContacts.validKey(s))throw new MasterError(Taal.T("Kies het contact opnieuw"));
             // Geslacht zoals op het Nederlandse identiteitsbewijs (M, V of X). Gaat alleen mee naar een formulier dat erom vraagt.
             if("geslacht".equals(k)&&!s.isEmpty()&&!s.equals("M")&&!s.equals("V")&&!s.equals("X"))throw new MasterError(Taal.T("Kies Man, Vrouw of X"));
             if("bsn".equals(k)&&!s.isEmpty()&&!s.matches("[0-9]{8,9}"))throw new MasterError(Taal.T("Vul een geldig BSN in"));
