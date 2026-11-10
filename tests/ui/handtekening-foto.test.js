@@ -18,8 +18,17 @@ for(const colorScheme of ['light','dark']){
   await p.click('#cmc-sig-teken');await p.waitForSelector('#sigdlg.on');
   assert.equal(await p.isVisible('#sig-foto'),true);assert.equal(await p.textContent('#sig-foto'),'Uit foto of bestand');
   const maat=await p.evaluate(()=>[$('#sig-foto').offsetWidth,$('#sig-foto').offsetHeight]);assert.ok(maat[0]>=44&&maat[1]>=44,'tikvlak '+maat);
+  // Tijdens lezen en zoeken een balk in het venster (niet onderin), knoppen even uit; daarna weg
+  await p.evaluate(()=>{window.__wacht=[];window.__vg=false;new MutationObserver(()=>{const w=$('#sig-wacht');if(!w.hidden)__wacht.push([w.textContent,w.querySelector('.upd-prog').getAttribute('aria-valuenow'),$('#sig-ok').disabled&&$('#sig-foto').disabled]);if(!$('#vg').hidden)__vg=true;}).observe(document.body,{subtree:true,childList:true,attributes:true,characterData:true});});
   await p.click('#sig-foto');
   await p.waitForFunction(()=>/Zo ziet je handtekening eruit/.test($('#sig-status').textContent));
+  const wacht=await p.evaluate(()=>__wacht);
+  assert.ok(wacht.some(w=>w[0]==='Foto lezen…'),'eerst Foto lezen…');
+  const zoek=wacht.filter(w=>w[0]==='Handtekening zoeken op de foto…').map(w=>+w[1]);
+  assert.ok(zoek.length>3&&zoek.every((v,i)=>!i||v>=zoek[i-1])&&zoek.at(-1)>=90,'zoeken met oplopend percentage: '+zoek);
+  assert.ok(wacht.every(w=>w[2]),'bewaren en nog een foto kiezen kan niet tijdens het wachten');
+  assert.equal(await p.isVisible('#sig-wacht'),false,'balk weg als het klaar is');assert.equal(await p.isDisabled('#sig-ok'),false);
+  assert.equal(await p.evaluate(()=>__vg),false,'geen tweede balk onderin');
   assert.equal(await p.evaluate(()=>Android._sigPicks.at(-1)===cm.token&&!!cm.token),true,'kiezen houdt Stamgegevens open');
   assert.ok(await inkt()>300,'handtekening op het tekenvlak');assert.equal(await p.textContent('#sig-fout'),'');
   const blauw=await p.evaluate(()=>{$('#sig-kleur').value='#1649b8';$('#sig-kleur').dispatchEvent(new Event('change'));const c=$('#sig-pad'),d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
@@ -46,24 +55,24 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.textContent('#cmc-sig-teken'),'Opnieuw tekenen');
 
   // 3. De herkenning zelf: een dikke ring wordt één gesloten lijn, alleen ruis is geen handtekening
-  const ring=await p.evaluate(()=>{const w=300,h=200,g=new Uint8Array(w*h).fill(235);
+  const ring=await p.evaluate(async()=>{const w=300,h=200,g=new Uint8Array(w*h).fill(235);
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){const d=Math.hypot(x-150,y-100);if(Math.abs(d-60)<6)g[y*w+x]=30;}
-    const s=sigLijnen(g,w,h);const l=s.paths.reduce((a,c)=>c.length>a.length?c:a);return {n:s.paths.length,ratio:s.ratio,dicht:Math.hypot(l[0][0]-l.at(-1)[0],l[0][1]-l.at(-1)[1])};});
+    const s=await sigLijnen(g,w,h);const l=s.paths.reduce((a,c)=>c.length>a.length?c:a);return {n:s.paths.length,ratio:s.ratio,dicht:Math.hypot(l[0][0]-l.at(-1)[0],l[0][1]-l.at(-1)[1])};});
   assert.equal(ring.n,1,'één lijn');assert.ok(Math.abs(ring.ratio-1)<.05,'rond '+ring.ratio);assert.ok(ring.dicht<.08,'gesloten '+ring.dicht);
-  const rand=await p.evaluate(()=>{const w=300,h=200,g=new Uint8Array(w*h).fill(235);
+  const rand=await p.evaluate(async()=>{const w=300,h=200,g=new Uint8Array(w*h).fill(235);
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(y>=95&&y<105&&x>=60&&x<240)g[y*w+x]=30;if(x<4&&y>20&&y<60)g[y*w+x]=40;if(y>h-8&&x>100&&x<200)g[y*w+x]=20;}
-    const s=sigLijnen(g,w,h);return {n:s.paths.length,ratio:s.ratio};});
+    const s=await sigLijnen(g,w,h);return {n:s.paths.length,ratio:s.ratio};});
   assert.equal(rand.n,1,'kleine stukken aan de rand (tafel, schaduw) vallen weg');assert.ok(rand.ratio<.2,'alleen de streep: '+rand.ratio);
-  const dik=await p.evaluate(()=>{const w=300,h=200,g=new Uint8Array(w*h).fill(235);
+  const dik=await p.evaluate(async()=>{const w=300,h=200,g=new Uint8Array(w*h).fill(235);
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){const d=Math.hypot(x-150,y-100);if(Math.abs(d-60)<12)g[y*w+x]=30;}
-    const s=sigLijnen(g,w,h);return s.paths.length;});
+    const s=await sigLijnen(g,w,h);return s.paths.length;});
   assert.equal(dik,1,'een dikke lijn (viltstift) wordt één lijn, niet twee');
-  const strak=await p.evaluate(()=>{const w=300,h=200,g=new Uint8Array(w*h).fill(235);
+  const strak=await p.evaluate(async()=>{const w=300,h=200,g=new Uint8Array(w*h).fill(235);
     for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(Math.abs(y-100-60*Math.sin(x/30))<8)g[y*w+x]=30;
-    const s=sigLijnen(g,w,h),xs=s.paths.flat().map(q=>q[0]);return Math.max(...xs)-Math.min(...xs);});
+    const s=await sigLijnen(g,w,h),xs=s.paths.flat().map(q=>q[0]);return Math.max(...xs)-Math.min(...xs);});
   assert.ok(strak>.9,'strak bijgesneden (raakt de rand) blijft staan: '+strak);
-  const ruis=await p.evaluate(()=>{const w=200,h=120,g=new Uint8Array(w*h);for(let i=0;i<g.length;i++)g[i]=Math.imul(i+1,2654435761)>>>24;
-    try{sigLijnen(g,w,h);return 'ok';}catch(e){return e.message;}});
+  const ruis=await p.evaluate(async()=>{const w=200,h=120,g=new Uint8Array(w*h);for(let i=0;i<g.length;i++)g[i]=Math.imul(i+1,2654435761)>>>24;
+    try{await sigLijnen(g,w,h);return 'ok';}catch(e){return e.message;}});
   assert.match(ruis,/Geen (duidelijke )?handtekening gevonden/);
 
   // 4. Engels, en een oudere APK zonder de brugfunctie

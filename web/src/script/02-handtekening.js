@@ -4,7 +4,7 @@
  * (sigTeken) en tonen of in een PDF zetten met sigPaint/sigPreview. Wie wil weten dat hij veranderde: sigWatch.
  * Tekenen kan ook vanuit een foto of scan (sigFoto, sigLijnen). Gebruikt door Stamgegevens (je eigen kaartje, Ondertekenen),
  * PDF → Bewerken en ondertekenen en Formulieren. */
-const sig={value:null,error:'',loaded:false,watch:[],dlg:null,pad:null,terug:'',kiezen:null};
+const sig={value:null,error:'',loaded:false,watch:[],dlg:null,pad:null,terug:'',kiezen:null,bezig:false};
 const SIG_MAX_POINTS=10000,SIG_MAX_PATHS=200;
 function sigValid(s){
   if(!s||!Number.isFinite(s.ratio)||s.ratio<.01||s.ratio>10||!/^#[0-9a-f]{6}$/i.test(s.color||'')||!Array.isArray(s.paths)||!s.paths.length||s.paths.length>SIG_MAX_PATHS)return false;
@@ -88,8 +88,15 @@ function sigFromStrokes(strokes,color,aspect){
 /* ---------- Handtekening uit een foto of scan ----------
  * Donkere inkt op licht papier wordt lijnen, zodat hij overal net zo werkt als een getekende (PDF, Formulieren): inkt
  * scheiden van papier met een drempel per buurt (schaduw, ongelijk licht), stipjes en grote vlekken aan de rand weg,
- * bijsnijden, uitdunnen tot middenlijnen (Zhang-Suen) en die volgen en vereenvoudigen. gray: 0 = zwart … 255 = wit. */
-function sigLijnen(gray,w,h){
+ * bijsnijden, uitdunnen tot middenlijnen (Zhang-Suen) en die volgen en vereenvoudigen. gray: 0 = zwart … 255 = wit.
+ * Tussen de stappen even ruimte voor het scherm; meld(deel 0–1) laat zien hoe ver het is, geeft meld false, dan stopt het (null). */
+async function sigLijnen(gray,w,h,meld=()=>true){
+  const adem=async deel=>{if(meld(deel)===false)throw sigGestopt;await new Promise(r=>setTimeout(r,0));if(meld(deel)===false)throw sigGestopt;};
+  try{return await sigLijnenStappen(gray,w,h,adem);}catch(e){if(e===sigGestopt)return null;throw e;}
+}
+const sigGestopt={};
+async function sigLijnenStappen(gray,w,h,adem){
+  await adem(0);
   const n=w*h,W=w+1,I=new Float64Array(W*(h+1)),r=Math.max(8,Math.round(Math.max(w,h)/40));
   for(let y=0;y<h;y++){let rij=0;for(let x=0;x<w;x++){rij+=gray[y*w+x];I[(y+1)*W+x+1]=I[y*W+x+1]+rij;}}
   const gem=(x,y,r)=>{const x0=Math.max(0,x-r),x1=Math.min(w,x+r+1),y0=Math.max(0,y-r),y1=Math.min(h,y+r+1);return (I[y1*W+x1]-I[y0*W+x1]-I[y1*W+x0]+I[y0*W+x0])/((x1-x0)*(y1-y0));};
@@ -98,6 +105,7 @@ function sigLijnen(gray,w,h){
   let inkt=new Uint8Array(n),aantal=0;
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){const v=gray[y*w+x];if(donker(v,gem(x,y,r))||donker(v,gem(x,y,3*r))){inkt[y*w+x]=1;aantal++;}}
   if(aantal>n*.25)throw Error(t('Geen duidelijke handtekening gevonden. Kies een foto van alleen je handtekening, op wit papier.'));
+  await adem(.2);
   // Samenhangende stukken: stipjes (ruis) en grote vlekken aan de rand (schaduw, rand van het papier) weg
   const deel=new Int32Array(n).fill(-1),stukken=[],stapel=[];
   for(let i=0;i<n;i++){if(!inkt[i]||deel[i]>=0)continue;
@@ -121,21 +129,23 @@ function sigLijnen(gray,w,h){
   const f=Math.max(1,Math.ceil(Math.max(bx1-bx0+1,by1-by0+1)/700)),ww=Math.ceil((bx1-bx0+1)/f)+2,wh=Math.ceil((by1-by0+1)/f)+2;
   let b=new Uint8Array(ww*wh);
   for(let y=by0;y<=by1;y++)for(let x=bx0;x<=bx1;x++){const i=y*w+x;if(inkt[i]&&houd[deel[i]])b[(1+Math.floor((y-by0)/f))*ww+1+Math.floor((x-bx0)/f)]=1;}
-  inkt=null;
+  inkt=null;await adem(.3);
   // Gaatjes in dikke lijnen dicht (sluiten: uitzetten en weer krimpen), anders worden het lusjes
   const buren=(a,i,waarde)=>{for(const d of [-ww-1,-ww,-ww+1,-1,1,ww-1,ww,ww+1])if(a[i+d]===waarde)return true;return false;};
   const dik=b.slice();for(let y=1;y<wh-1;y++)for(let x=1;x<ww-1;x++){const i=y*ww+x;if(!b[i]&&buren(b,i,1))dik[i]=1;}
   const open=[];for(let y=1;y<wh-1;y++)for(let x=1;x<ww-1;x++){const i=y*ww+x;if(dik[i]&&!b[i]&&buren(dik,i,0))open.push(i);}
   for(const i of open)dik[i]=0;
-  b=dik;const voor=b.slice();
-  // Uitdunnen (Zhang-Suen) tot lijnen van één pixel
-  for(let veranderd=true,ronde=0;veranderd&&ronde<200;ronde++){veranderd=false;
+  b=dik;const voor=b.slice();await adem(.35);
+  // Uitdunnen (Zhang-Suen) tot lijnen van één pixel; de eerste ronde haalt het meeste weg, daarop de voortgang
+  let eerste=0;
+  for(let veranderd=true,ronde=0;veranderd&&ronde<200;ronde++){veranderd=false;let rond=0;
     for(const stap of [0,1]){const weg=[];
       for(let y=1;y<wh-1;y++)for(let x=1;x<ww-1;x++){const i=y*ww+x;if(!b[i])continue;
         const p=[b[i-ww],b[i-ww+1],b[i+1],b[i+ww+1],b[i+ww],b[i+ww-1],b[i-1],b[i-ww-1]],som=p.reduce((s,v)=>s+v,0);if(som<2||som>6)continue;
         let overgangen=0;for(let k=0;k<8;k++)if(!p[k]&&p[(k+1)%8])overgangen++;if(overgangen!==1)continue;
         if(stap===0?(p[0]*p[2]*p[4]||p[2]*p[4]*p[6]):(p[0]*p[2]*p[6]||p[0]*p[4]*p[6]))continue;weg.push(i);}
-      for(const i of weg)b[i]=0;if(weg.length)veranderd=true;}
+      for(const i of weg)b[i]=0;if(weg.length)veranderd=true;rond+=weg.length;}
+    if(!ronde)eerste=Math.max(1,rond);await adem(.35+.5*Math.min(1,1-rond/eerste));
   }
   // Zhang-Suen laat een klein rond stuk (de punt op de i) soms helemaal verdwijnen: dan blijft het middelste pixel staan
   const lbl=new Uint8Array(ww*wh);
@@ -156,6 +166,7 @@ function sigLijnen(gray,w,h){
   for(let i=0;i<b.length;i++)if(b[i]&&!gezien[i]&&aantalBuren(i)===1)volg(i);
   for(let i=0;i<b.length;i++)if(b[i]&&!gezien[i])volg(i);
   if(!lijnen.length)throw Error(t('Geen handtekening gevonden. Kies een foto van je handtekening in donkere inkt op licht papier.'));
+  await adem(.9);
   // Vereenvoudigen (Ramer-Douglas-Peucker) tot het binnen de grenzen past; de kortste stukjes vallen als eerste af
   const lengte=l=>l.reduce((s,p,i)=>i?s+Math.hypot(p[0]-l[i-1][0],p[1]-l[i-1][1]):0,0);
   const rdp=(l,eps)=>{if(l.length<3)return l;const [a,z]=[l[0],l[l.length-1]],dx=z[0]-a[0],dy=z[1]-a[1],len=Math.hypot(dx,dy);let ver=-1,k=0;
@@ -170,37 +181,50 @@ function sigLijnen(gray,w,h){
   return {ratio:bh/bw,paths:paden.map(l=>l.map(p=>[rond((p[0]-x0+marge)/bw),rond((p[1]-y0+marge)/bh)]))};
 }
 /* Een geladen afbeelding (img) als lijnen; doorzichtig telt als wit papier. */
-function sigUitAfbeelding(img){
+function sigUitAfbeelding(img,meld){
   const max=1400,s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.max(1,Math.round(img.naturalWidth*s)),h=Math.max(1,Math.round(img.naturalHeight*s));
   const c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d',{willReadFrequently:true});
   ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
   const d=ctx.getImageData(0,0,w,h).data,gray=new Uint8Array(w*h);
   for(let i=0;i<gray.length;i++)gray[i]=(d[i*4]*30+d[i*4+1]*59+d[i*4+2]*11)/100;
-  return sigLijnen(gray,w,h);
+  return sigLijnen(gray,w,h,meld);
 }
 function sigFotoKan(){return typeof Android!=='undefined'&&typeof Android.pdfSignaturePick==='function';}
 /* Kiezen gaat via Android (een kiezer over de app heen); is Stamgegevens open, dan blijft die zo lang open. */
 function sigFoto(){
-  if(!sig.dlg||sig.kiezen||!sigFotoKan())return;
-  sig.kiezen=sig.dlg;$('#sig-fout').textContent='';$('#sig-status').textContent=t('Kies een foto of scan van je handtekening…');
+  if(!sig.dlg||sig.kiezen||sig.bezig||!sigFotoKan())return;
+  sig.kiezen=sig.dlg;$('#sig-fout').textContent='';$('#sig-status').textContent=t('Kies een foto of scan van je handtekening…');sigBezig(false);
   const token=typeof cm!=='undefined'&&typeof cmOpen==='function'&&cmOpen()?cm.token:'';
   try{Android.pdfSignaturePick(token||'');}catch(e){sig.kiezen=null;$('#sig-status').textContent='';$('#sig-fout').textContent=t('Bestandskiezer niet beschikbaar');}
 }
+/* Bezig met de foto (inlezen in Android, daarna lijnen zoeken): de balk in het venster, en zolang niet bewaren of nog een foto
+ * kiezen. tekst false = klaar. */
+function sigBezig(tekst,deel){
+  sig.bezig=!!tekst;uiWacht($('#sig-wacht'),tekst,deel);
+  for(const id of ['#sig-foto','#sig-ok','#sig-wis'])$(id).disabled=!!tekst;$('#sig-pad').style.pointerEvents=tekst?'none':'';
+  if(tekst)$('#sig-status').textContent='';
+}
+// Het inlezen van de gekozen foto (Voortgang "handtekening" in Java) staat in het venster, niet in de balk onderin.
+uiVgEigen.handtekening=r=>{
+  if(!sig.kiezen||sig.dlg!==sig.kiezen)return false;
+  if(!r.klaar)sigBezig(r.stap==='lezen'?t('Foto lezen…'):t('Foto verwerken…'),r.stap==='lezen'&&r.totaal>0?.3*r.gedaan/r.totaal:undefined);
+  return true;
+};
 window.onSignatureImage=function(r){
   const dlg=sig.kiezen;sig.kiezen=null;if(!dlg||sig.dlg!==dlg)return;
-  const stand=$('#sig-status'),fout=m=>{stand.textContent='';$('#sig-fout').textContent=m;};
-  if(!r||r.cancelled){stand.textContent='';return;}
+  const stand=$('#sig-status'),fout=m=>{sigBezig(false);stand.textContent='';$('#sig-fout').textContent=m;};
+  if(!r||r.cancelled){sigBezig(false);stand.textContent='';return;}
   if(r.error){fout(sigFout(r.error,t('Deze afbeelding kan niet worden geopend')));return;}
   if(typeof r.image!=='string'||r.image.length>1200000||!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(r.image)){fout(t('Deze afbeelding kan niet worden geopend'));return;}
-  stand.textContent=t('Foto verwerken…');
+  const zoek=t('Handtekening zoeken op de foto…');sigBezig(zoek,.3);
   const img=new Image();
-  img.onload=()=>{
-    // Even wachten, zodat "Foto verwerken…" in beeld is voordat het rekenen begint
-    setTimeout(()=>{
-      if(sig.dlg!==dlg)return;
-      try{const s=sigUitAfbeelding(img);sig.pad.load(s);stand.textContent=t('Zo ziet je handtekening eruit. Klopt hij niet? Kies Wissen en probeer een andere foto.');}
-      catch(e){fout(e.message||t('Deze afbeelding kan niet worden geopend'));}
-    },30);
+  img.onload=async()=>{
+    if(sig.dlg!==dlg)return;
+    try{
+      const s=await sigUitAfbeelding(img,deel=>{if(sig.dlg!==dlg)return false;sigBezig(zoek,.3+.7*deel);return true;});
+      if(!s||sig.dlg!==dlg)return;
+      sigBezig(false);sig.pad.load(s);stand.textContent=t('Zo ziet je handtekening eruit. Klopt hij niet? Kies Wissen en probeer een andere foto.');
+    }catch(e){if(sig.dlg===dlg)fout(e.message||t('Deze afbeelding kan niet worden geopend'));}
   };
   img.onerror=()=>{if(sig.dlg===dlg)fout(t('Deze afbeelding kan niet worden geopend'));};
   img.src=r.image;
@@ -237,7 +261,7 @@ function sigPad(canvas,kleur){
 function sigTeken(opts={}){
   const heeft=!!(sigHuidig()||sig.error),plaats=typeof opts.plaatsen==='function';
   if(!sig.pad){sig.pad=sigPad($('#sig-pad'),()=>$('#sig-kleur').value);$('#sig-kleur').addEventListener('change',()=>sig.pad.draw());}
-  sig.pad.clear();sig.dlg=opts;sig.kiezen=null;$('#sig-status').textContent='';$('#sig-foto').hidden=!sigFotoKan();sig.terug=document.activeElement&&document.activeElement.id||'';
+  sig.pad.clear();sig.dlg=opts;sig.kiezen=null;sigBezig(false);$('#sig-status').textContent='';$('#sig-foto').hidden=!sigFotoKan();sig.terug=document.activeElement&&document.activeElement.id||'';
   if(sig.value&&[...$('#sig-kleur').options].some(o=>o.value===sig.value.color))$('#sig-kleur').value=sig.value.color;
   $('#sig-title').textContent=heeft&&!plaats?t('Handtekening vervangen'):t('Handtekening tekenen');
   $('#sig-uitleg').textContent=plaats?t('Teken met je vinger. Bewaar je hem, dan gebruik je hem ook in Formulieren en Stamgegevens.')
@@ -250,14 +274,14 @@ function sigTeken(opts={}){
 function sigOpen(){return $('#sigdlg').classList.contains('on');}
 /* De knop die het venster opende, kan intussen opnieuw getekend zijn (sigWatch): dan de nieuwe met dezelfde id. */
 function sigClose(){
-  if(sig.pad)sig.pad.clear();sig.dlg=null;sig.kiezen=null;$('#sig-fout').textContent='';$('#sig-status').textContent='';$('#sigdlg').classList.remove('on');dialogFocus.sync();
+  if(sig.pad)sig.pad.clear();sig.dlg=null;sig.kiezen=null;sigBezig(false);$('#sig-fout').textContent='';$('#sig-status').textContent='';$('#sigdlg').classList.remove('on');dialogFocus.sync();
   const terug=sig.terug;sig.terug='';
   const weg=!document.activeElement||document.activeElement===document.body||$('#sigdlg').contains(document.activeElement);
   if(terug&&weg){const el=document.getElementById(terug);if(el&&!el.closest('[inert]'))el.focus();}
 }
 function sigWis(){if(sig.pad)sig.pad.clear();$('#sig-fout').textContent='';$('#sig-status').textContent='';}
 function sigOk(){
-  const o=sig.dlg;if(!o)return;
+  const o=sig.dlg;if(!o||sig.bezig)return;
   let s;try{s=sig.pad.signature();}catch(e){$('#sig-fout').textContent=e.message;return;}
   const plaats=typeof o.plaatsen==='function',bewaar=!plaats||$('#sig-bewaar').checked;
   if(bewaar){const err=sigSave(s);if(err){$('#sig-fout').textContent=err;return;}}

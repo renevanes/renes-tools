@@ -128,8 +128,11 @@ public class MasterBridge extends BankBridge {
     private void photoScan(String token,String id,long revision,String side,boolean grondig,String request){
         work(token,request,key->{
             JSONObject photo=MasterStore.photoScan(ctx,key,a.masterSession,token,id,revision,side);
-            JSONObject diag=new JSONObject();
-            JSONObject found=MasterPhotos.recognizeStored(ctx,photo.optString("image"),Regio.dayKey(ctx,System.currentTimeMillis()),()->a.masterSession.accepts(token)&&a.masterForeground&&a.masterWanted,grondig,diag);
+            JSONObject diag=new JSONObject(),found;
+            try(Voortgang v=Voortgang.van(a,"kaartfoto",1)){
+                v.tijd("herkennen",grondig?MasterPhotos.HERKEN_GRONDIG_MS:MasterPhotos.HERKEN_MS);
+                found=MasterPhotos.recognizeStored(ctx,photo.optString("image"),Regio.dayKey(ctx,System.currentTimeMillis()),()->a.masterSession.accepts(token)&&a.masterForeground&&a.masterWanted,grondig,diag);
+            }
             JSONObject out=new JSONObject().put("id",id).put("side",side).put("diag",diag);if(found!=null)out.put("herkend",found);return out;
         });
     }

@@ -84,6 +84,7 @@
     <p id="sig-uitleg"></p>
     <canvas id="sig-pad" class="sig-papier" width="900" height="450" tabindex="0" aria-label="Teken hier je handtekening"></canvas>
     <div class="row sig-rij"><label for="sig-kleur">Kleur</label><select id="sig-kleur" class="sel"><option value="#111111">Zwart</option><option value="#1649b8">Blauw</option></select><button class="mini" id="sig-wis" onclick="sigWis()">Wissen</button><button class="mini" id="sig-foto" onclick="sigFoto()" hidden>Uit foto of bestand</button></div>
+    <div class="ui-wacht" id="sig-wacht" hidden></div>
     <p class="hint" id="sig-status" role="status"></p>
     <label class="sw" id="sig-bewaar-rij" hidden><span id="sig-bewaar-t">Ook bewaren voor later</span><input type="checkbox" class="switch" role="switch" id="sig-bewaar"></label>
     <p class="note warn" id="sig-fout" role="alert"></p>

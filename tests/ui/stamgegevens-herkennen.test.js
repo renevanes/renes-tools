@@ -45,7 +45,11 @@ for(const colorScheme of ['light','dark']){
   // 3. Vanaf de bewaarde foto opnieuw herkennen, zonder de app te verlaten; daarna de foto verwijderen.
   await p.evaluate(()=>{Android._cm.herkend={document:{documentsoort:'identiteitskaart',document:'NX7P41KD9',geldig:'2031-06-11',uitgifteland:'Nederland'},persoon:{naam:'Jansen',voornamen:'Zoe Anna',geboortedatum:'2015-02-03',geslacht:'V',nationaliteit:'Nederlandse'},soort:'TD1',zeker:true};});
   await T.blok(doc,'fotos');assert.equal(await p.isDisabled('#cmh-photo-scan'),false);
-  await p.click('#cmh-photo-scan');await p.waitForFunction(()=>!$('#cmh-panel').hidden);assert.equal(await p.evaluate(()=>cmOpen()),true,'blijft ontgrendeld');
+  // Herkennen duurt even: de balk onderin zegt wat er gebeurt en hoe lang het hooguit duurt
+  await p.evaluate(()=>Android._cm.replyDelay=900);await p.click('#cmh-photo-scan');await p.waitForFunction(()=>!$('#vg').hidden);
+  assert.equal(await p.textContent('#vg-wat'),'Kaartfoto verwerken');assert.equal(await p.textContent('#vg-stand'),'Gegevens herkennen… nog hooguit 30 s');
+  await p.waitForFunction(()=>!$('#cmh-panel').hidden);assert.equal(await p.isVisible('#vg'),false,'balk weg na herkennen');await p.evaluate(()=>Android._cm.replyDelay=10);
+  assert.equal(await p.evaluate(()=>cmOpen()),true,'blijft ontgrendeld');
   assert.match(await p.textContent('#cmh-list'),/staat er al/,'nummer staat er al');
   await p.evaluate(()=>{cmhDismiss();cmTab('fotos');});
   for(const side of ['back','front']){await p.click('#cmi-'+side+'-delete');await p.waitForFunction(()=>$('#modal').classList.contains('on'));await p.click('#modal-ok');await p.waitForFunction(([doc,side])=>!Android._cm.records.find(r=>r.id===doc).images?.[side]&&!cm.mutating,[doc,side]);}

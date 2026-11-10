@@ -51,8 +51,10 @@ final class RijbewijsOcr {
      * op een zwart-wit-versie (tegen de achtergrondpatronen). Grondig (op verzoek, langzamer): ook vergroot en met een andere
      * indeling van de tekst. diag (mag null) krijgt alleen ja/nee en aantallen voor de hulp bij mislukken, nooit tekst.
      */
+    /** Hoe lang het lezen hooguit duurt (ms); ook voor de voortgangsbalk. */
+    static final long TIJD=25000,TIJD_GRONDIG=70000;
     static synchronized JSONObject read(Context context,byte[] bytes,String today,BooleanSupplier active,boolean thorough,JSONObject diag) {
-        final long deadline=android.os.SystemClock.elapsedRealtime()+(thorough?70000:25000);
+        final long deadline=android.os.SystemClock.elapsedRealtime()+(thorough?TIJD_GRONDIG:TIJD);
         BooleanSupplier running=()->active.getAsBoolean()&&android.os.SystemClock.elapsedRealtime()<deadline;
         TessBaseAPI api=null;Bitmap image=null;TessBaseAPI[] current=new TessBaseAPI[1];
         Rijbewijs.Stand stand=new Rijbewijs.Stand();int lines=0;boolean licence=false,bottom=false;

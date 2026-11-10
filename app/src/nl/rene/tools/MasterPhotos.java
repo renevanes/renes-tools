@@ -19,6 +19,8 @@ import java.io.InputStream;
 /** Kaartzijden na expliciete bestandskeuze en hernieuwde ontgrendeling, zonder leesbare werkbestanden. */
 final class MasterPhotos {
     static final int REQUEST=94,MAX_BYTES=256000,MAX_DATA=350000;
+    /** Langste duur van herkennen voor de voortgangsbalk: eerst de strook, dan de tekst van een rijbewijs. */
+    static final long HERKEN_MS=RijbewijsOcr.TIJD+5000,HERKEN_GRONDIG_MS=RijbewijsOcr.TIJD_GRONDIG+5000;
     final MainActivity activity;
     private Pending pending;
     MasterPhotos(MainActivity activity){this.activity=activity;}
@@ -71,11 +73,12 @@ final class MasterPhotos {
     JSONObject resume(SecretKey key,MasterSession session,String token){
         Pending job;synchronized(this){job=pending;if(job==null||job.uri==null)return null;}
         JSONObject result=new JSONObject();
-        try{
+        try(Voortgang v=Voortgang.van(activity,"kaartfoto",1)){
             if(job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kies de kaartfoto opnieuw vanuit Stamgegevens"));
-            session.require(token);byte[] bytes=read(activity.getContentResolver().openInputStream(job.uri));
-            JSONObject diag=new JSONObject();
+            session.require(token);byte[] bytes=read(v.open(activity,job.uri));
+            JSONObject diag=new JSONObject();v.tijd("herkennen",HERKEN_MS);
             JSONObject found=recognize(activity,bytes,Regio.dayKey(activity,System.currentTimeMillis()),()->session.accepts(token)&&activity.masterForeground&&activity.masterWanted&&job.dataset==MasterSession.datasetEpoch(),false,diag);session.require(token);
+            v.stap("opslaan",0,0);
             String image=normalize(bytes);session.require(token);
             // Herkennen uit foto (bij een persoon): een nieuw document met deze foto als bijlage, daarna voorstellen.
             if("scan".equals(job.side))return scanDocument(key,session,token,job,image,found).put("diag",diag);

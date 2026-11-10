@@ -47,6 +47,19 @@ public class VoortgangTest {
         // Na de bestanden: alles samen (bestand 0 = geen "bestand n van m").
         uit.clear(); Voortgang a = new Voortgang(uit::add, "bank", 3, () -> nu[0]); a.bestand(2); a.alleBestanden(); a.stap("verwerken", 0, 0);
         check(new JSONObject(uit.get(0)).getInt("bestand") == 0, "alle bestanden samen: " + uit);
-        System.out.println("Voortgang: begrensd, stappen, bestanden, einde en alleen aantallen gecontroleerd");
+        // Herkennen met een langste duur: de balk loopt met de tijd mee tot hooguit het totaal, en stopt bij de volgende stap.
+        List<String> tik = java.util.Collections.synchronizedList(new ArrayList<>()); long[] klok = {5000};
+        Voortgang h = new Voortgang(tik::add, "kaartfoto", 1, () -> klok[0]);
+        h.tijd("herkennen", 2000);
+        check(tik.size() == 1 && new JSONObject(tik.get(0)).getLong("gedaan") == 0 && new JSONObject(tik.get(0)).getLong("totaal") == 2000, "herkennen begint meteen: " + tik);
+        klok[0] += 1500; Thread.sleep(Voortgang.TIK_MS * 2 + 200);
+        JSONObject mee = new JSONObject(tik.get(tik.size() - 1));
+        check(tik.size() >= 2 && "herkennen".equals(mee.getString("stap")) && mee.getLong("gedaan") == 1500, "loopt met de tijd mee: " + tik);
+        klok[0] += 5000; Thread.sleep(Voortgang.TIK_MS + 200);
+        check(new JSONObject(tik.get(tik.size() - 1)).getLong("gedaan") == 2000, "niet verder dan het totaal");
+        h.stap("opslaan", 0, 0); int na = tik.size(); klok[0] += 1000; Thread.sleep(Voortgang.TIK_MS + 200);
+        check(tik.size() == na && "opslaan".equals(new JSONObject(tik.get(na - 1)).getString("stap")), "volgende stap stopt het meelopen: " + tik);
+        h.close(); Voortgang.GEEN.tijd("herkennen", 1000);
+        System.out.println("Voortgang: begrensd, stappen, bestanden, einde, meelopen met de tijd en alleen aantallen gecontroleerd");
     }
 }

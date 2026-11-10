@@ -12,7 +12,8 @@ import org.json.JSONObject;
 /**
  * Voortgang van het toevoegen van een bestand (boek, document, factuur, afschrift, foto's) voor de balk onderin de app
  * (interface: onVoortgang in 02-patronen.js). Alleen stappen en aantallen, nooit namen of inhoud.
- * Stappen: "lezen" (bytes van het bestand), "verwerken" (zonder aantal), "opslaan" (onderdelen, bijv. hoofdstukken).
+ * Stappen: "lezen" (bytes van het bestand), "verwerken" (zonder aantal), "opslaan" (onderdelen, bijv. hoofdstukken),
+ * "herkennen" (tekstherkenning; met tijd(): gedaan en totaal in milliseconden, de langste duur).
  * Hooguit één bericht per ELKE_MS, behalve bij een nieuwe stap, een nieuw bestand en het einde (close: klaar).
  */
 final class Voortgang implements AutoCloseable {
@@ -23,7 +24,7 @@ final class Voortgang implements AutoCloseable {
     static final Voortgang GEEN = new Voortgang(null, "", 1, () -> 0L);
 
     private final Uit uit; private final String soort; private final Klok klok; private final int bestanden;
-    private int bestand; private String stap = ""; private long laatst = Long.MIN_VALUE; private boolean klaar, eindGemeld;
+    private int bestand, tijdRonde; private String stap = ""; private long laatst = Long.MIN_VALUE; private boolean klaar, eindGemeld;
 
     Voortgang(Uit uit, String soort, int bestanden, Klok klok) {
         this.uit = uit; this.soort = soort; this.bestanden = Math.max(1, bestanden); this.klok = klok;
@@ -38,7 +39,28 @@ final class Voortgang implements AutoCloseable {
     synchronized void alleBestanden() { if (uit == null || bestand == -1) return; bestand = -1; stap = ""; }
 
     /** Stand van een stap; totaal 0 = onbekend (de balk loopt dan heen en weer). */
-    synchronized void stap(String naam, long gedaan, long totaal) {
+    synchronized void stap(String naam, long gedaan, long totaal) { tijdRonde++; meld(naam, gedaan, totaal); }
+
+    /**
+     * Een stap waarvan alleen de langste duur bekend is (herkennen tot hooguit totaalMs): de balk loopt met de tijd mee, ook als
+     * het werk zelf niets meldt. Stopt bij een volgende stap of het einde.
+     */
+    void tijd(String naam, long totaalMs) {
+        final int ronde; final long begin;
+        synchronized (this) { if (uit == null || klaar) return; stap(naam, 0, totaalMs); ronde = tijdRonde; begin = klok.nu(); }
+        Thread t = new Thread(() -> {
+            try {
+                while (true) {
+                    Thread.sleep(TIK_MS);
+                    synchronized (this) { if (klaar || ronde != tijdRonde) return; meld(naam, Math.min(totaalMs, klok.nu() - begin), totaalMs); }
+                }
+            } catch (Throwable ignored) { }
+        }, "voortgang-tijd");
+        t.setDaemon(true); t.start();
+    }
+    static final long TIK_MS = 500;
+
+    private void meld(String naam, long gedaan, long totaal) {
         if (uit == null || klaar) return;
         long nu = klok.nu(); boolean nieuw = !naam.equals(stap);
         if (nieuw) eindGemeld = false;
