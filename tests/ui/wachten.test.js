@@ -22,13 +22,15 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.isVisible('#vg'),true);assert.equal(await p.textContent('#vg-wat'),'Bezig met bewaren…','de nieuwste tekst');
   await p.evaluate(()=>onProefKlaar());assert.equal(await p.isVisible('#vg'),false);
   // Echte plek: een backup openen (archief kiezen → onArchive).
-  await p.evaluate(()=>{const o=Android.archiveOpen;Android.archiveOpen=function(pw){setTimeout(()=>o.call(Android,pw),700);};onArchivePicked();});
+  // De brug antwoordt pas als de test de balk gezien heeft (geen wedloop met de 400 ms op een drukke testmachine).
+  await p.evaluate(()=>{window.archiefOpen=Android.archiveOpen;Android.archiveOpen=function(pw){window.antwoord=()=>archiefOpen.call(Android,pw);};onArchivePicked();});
   await p.waitForSelector('#vg',{state:'visible'});assert.equal(await p.textContent('#vg-wat'),'Bezig met openen…');
-  await p.waitForSelector('#vg',{state:'hidden'});
+  await p.evaluate(()=>antwoord());await p.waitForSelector('#vg',{state:'hidden'});
   await p.evaluate(()=>closeSheet());
   // Herstel → oudere backup: dat antwoord komt via onArchive (het menu met keuzes), daar gaat de balk weg.
-  await p.evaluate(()=>{const o=Android.archiveOpen;Android.archiveOpen=function(pw){Android.archiveOpen=o;setTimeout(()=>o.call(Android,pw),700);};hsName='oud.rtb';hsPwOld='goedwachtwoord';hsOld();});
-  await p.waitForSelector('#vg',{state:'visible'});await p.waitForSelector('#vg',{state:'hidden'});
+  await p.evaluate(()=>{hsName='oud.rtb';hsPwOld='goedwachtwoord';hsOld();});
+  await p.waitForSelector('#vg',{state:'visible'});assert.equal(await p.textContent('#vg-wat'),'Bezig met openen…');
+  await p.evaluate(()=>{Android.archiveOpen=archiefOpen;antwoord();});await p.waitForSelector('#vg',{state:'hidden'});
   assert.equal(await p.evaluate(()=>$('#sheet').classList.contains('on')),true,'het menu staat er, de balk niet meer');
   await p.evaluate(()=>closeSheet());
   // Een menu dat dichtgaat terwijl het nog zoekt (Chromecast), laat geen lopende balk achter.
