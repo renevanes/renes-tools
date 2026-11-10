@@ -45,9 +45,9 @@ for(const colorScheme of ['light','dark']){
  assert.equal(await p.isVisible('#cm-field-categorieen'),true);assert.equal(await p.isVisible('#cm-field-afgegevenDoor'),false,'alleen het blok Document');
  // Een handmatige wijziging tijdens vertraagde OCR mag niet worden weggegooid door het resultaat.
  await p.evaluate(()=>{Android._cm.replyDelay=400;cmTab('fotos');});await p.click('#cmh-photo-scan');
- await p.evaluate(()=>cmTab('document'));await p.fill('#cm-field-categorieen','B');
+ await p.evaluate(()=>cmTab('document'));await p.click('#cm-field-categorieen button[data-cat="B"]');
  await p.waitForFunction(()=>!cmh.scanBusy);assert.equal(await p.isVisible('#cmh-panel'),false);
- assert.equal(await p.inputValue('#cm-field-categorieen'),'B','tussentijdse wijziging behouden');
+ assert.equal(await p.evaluate(()=>cm.edit.fields.categorieen),'AM, BE','tussentijdse wijziging behouden');assert.equal(await p.getAttribute('#cm-field-categorieen button[data-cat="B"]','aria-pressed'),'false');
  await p.evaluate(()=>{Android._cm.replyDelay=10;cm.dirty=false;});
  await p.evaluate(()=>cmCancelEdit());await p.waitForFunction(()=>current==='cmkaart'&&!cm.navigating);await T.blok(doc,'fotos');
  // Gewijzigde gegevens worden nooit deels overschreven bij een verouderd voorstel.

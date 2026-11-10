@@ -68,6 +68,7 @@ script/01-testbrug.js
 script/02-kern.js
 script/02-dialogen.js
 script/02-regio.js
+script/02-landen.js
 script/02-taal.js
 script/02-thema.js
 script/02-patronen.js

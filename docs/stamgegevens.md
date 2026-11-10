@@ -23,6 +23,13 @@ De schermen zijn kort gehouden, zodat je op de telefoon weinig hoeft te scrollen
 - **Namen ontstaan vanzelf**: bij een persoon roepnaam (of eerste voornaam) en achternaam, bij een document "Paspoort Anna", bij een relatie een korte zin met beide namen, bij een reis "Reis van {datum}", bij vaste gegevens "Reistoestemming Anna". Een naam die gelijk is aan zo'n automatische naam telt als automatisch en loopt mee als je iets wijzigt. Een echt andere naam (zoals "Mama") kies je met **⋯ → Andere naam in het overzicht**; die blijft staan.
 - Tussen deze schermen blijft de kluis open; zie "Vergrendelen en bewaren".
 
+## Keuzelijsten: nationaliteit, land en rijbewijscategorieën
+
+- **Nationaliteit** (persoon), **Land** (persoon, adres, organisatie, reis) en **Land van afgifte** (document) zijn keuzelijsten met alle landen (`web/src/script/02-landen.js`). Bovenaan staat het land uit **Regio en taal** onder *Jouw regio*, daarna alle landen of nationaliteiten op alfabet. Bewaard wordt de Nederlandse tekst ("Nederlandse", "Nederland"), net als wat de herkenning van de strook geeft; in het Engels toont de app de Engelse naam.
+- **Standaard**: een nieuwe persoon krijgt de nationaliteit, een nieuw adres, een nieuwe organisatie en een nieuw document het land van je regio. Dat land volgt uit je standaardplaats (Regio en taal) of anders de tijdzone van de telefoon (Europe/Amsterdam = Nederland). Zegt dat niets, dan is er geen standaard. Een reis krijgt geen standaardland (vaak het buitenland). Bestaande gegevens veranderen niet; een eigen tekst die niet in de lijst staat, blijft gewoon staan en is te kiezen.
+- Herkent de strook een land dat Mrz.java niet bij naam kent (SYR, XXA), dan zet de app dat om naar de naam in de lijst (Syrië, Staatloos).
+- **Rijbewijscategorieën** zijn knoppen (AM t/m DE en T) die je aan- en uitzet; bewaard als "AM, B, BE". Een andere code die er al stond, blijft als knop staan.
+
 ## Jezelf, je mensen en relaties
 
 Er is één *ik*: de persoon in het app-profiel. Die stel je in met **Begin met jezelf** (uit Contacten of zelf invullen; na opslaan ben jij het), met **Ik sta er al tussen**, of op het kaartje van een persoon met **⋯ → Dit ben ik**.

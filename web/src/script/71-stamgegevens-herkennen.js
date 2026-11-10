@@ -30,7 +30,7 @@ const cmhCancel=cmiPhotoCancel;cmiPhotoCancel=function(){cmh.scanning=false;if(!
 const cmhAfterUnlock=cmiPhotoAfterUnlock;cmiPhotoAfterUnlock=function(photo){
   cmh.data=null;cmh.back=null;cmh.hulp=null;
   if(photo&&!photo.error&&photo.saved){
-    if(photo.herkend)cmh.data={doc:photo.id,fields:photo.herkend};
+    if(photo.herkend)cmh.data={doc:photo.id,fields:cmhLanden(photo.herkend)};
     // Niets gevonden bij "Foto herkennen" (of een rijbewijs dat niet te lezen was): de hulp op het tabblad Foto's.
     // Een gewone kaartfoto (bijv. de voorkant van een ID-kaart, zonder strook) geeft geen melding.
     else if(photo.diag&&(photo.scan||photo.diag.rijbewijs))cmh.hulp={doc:photo.id,diag:photo.diag};
@@ -72,7 +72,7 @@ function cmhPhotoScan(grondig){
       if(epoch!==cmh.scanEpoch)return;if(cm.edit!==r){done('');return;}if(cm.dirty||r.revision!==revision){done(t('Sla je wijzigingen eerst op.'));return;}
       if(out.diag&&(!diag||(out.diag.regels||0)>(diag.regels||0)||out.diag.rijbewijs&&!diag.rijbewijs))diag=out.diag;
       if(!out.herkend){next();return;}
-      cmh.hulp=null;cmh.data={doc:r.id,fields:out.herkend,grondig};
+      cmh.hulp=null;cmh.data={doc:r.id,fields:cmhLanden(out.herkend),grondig};
       done(t('Controleer de gevonden gegevens en kies wat je bewaart.'));cmhShow();cmTab('document');
       setTimeout(()=>{const p=$('#cmh-panel');if(!p.hidden)p.scrollIntoView({block:'start'});},50);
     },false,()=>done(''));
@@ -140,8 +140,14 @@ function cmhShow(){
   if(!person){draw();return;}
   cmRequest('masterRead',[person,'masterdata',''],r=>{if(epoch!==cmh.epoch)return;cmh.current=r.record;draw();},false,()=>draw());
 }
+/* Herkende landen en nationaliteiten zoals in de keuzelijst: de strook geeft bij een minder bekend land de code (SYR, XXA). */
+function cmhLanden(fields){
+  const norm=(o,key,soort)=>{const v=o?.[key];if(!v)return;if(soort==='nationaliteit'&&/^XXA$/i.test(v)){o[key]=LN_STAATLOOS;return;}const r=lnVind(v),w=lnWaarde(r,soort);if(w)o[key]=w;};
+  norm(fields?.document,'uitgifteland','land');norm(fields?.persoon,'nationaliteit','nationaliteit');return fields;
+}
 function cmhValue(key,value){
   if(!value)return '';
+  if(CMI_LAND.has(key))return lnToon(key==='nationaliteit'?key:'land',value);
   if(['geboortedatum','geldig','afgifte'].includes(key))return fmtDate(value);
   if(key==='geslacht'||key==='documentsoort'){const c=(cmiChoices(key)||[]).find(x=>x[0]===value);return c?c[1]:value;}
   if((key==='document'||key==='bsn')&&!cmh.reveal)return '•••••'+value.slice(-3);

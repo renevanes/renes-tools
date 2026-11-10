@@ -37,7 +37,7 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  // Mijzelf toevoegen: een kort blok (namen en geboortedatum); na opslaan je eigen visitekaartje
  await p.click('#cmk-self-new');await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='persoon'&&!cm.edit.id);
  assert.equal(await p.textContent('#cm-editor-title'),L('Mijzelf toevoegen','Add myself'));
- assert.deepEqual(await p.$$eval('#cm-fields [id^=cm-field-]',x=>x.map(e=>e.id.slice(9))),['roepnaam','voornamen','naam','geboortedatum'],'nieuwe persoon begint kort');
+ assert.deepEqual(await p.$$eval('#cm-fields [id^=cm-field-]',x=>x.map(e=>e.id.slice(9))),['roepnaam','voornamen','naam','geboortedatum','nationaliteit'],'nieuwe persoon begint kort');
  assert.equal(await p.isVisible('#cm-label'),false,'naam in het overzicht vult zich vanzelf');
  await past('nieuwe persoon');assert.ok(await inBeeld('#cm-save'),tag+': opslaan in beeld');
  await p.fill('#cm-field-voornamen','Rene');await p.fill('#cm-field-naam','van Es');await p.fill('#cm-field-geboortedatum','1980-01-01');

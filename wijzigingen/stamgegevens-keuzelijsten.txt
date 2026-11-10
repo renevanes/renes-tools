@@ -1,0 +1,2 @@
+Stamgegevens: nationaliteit, land en land van afgifte kies je nu uit een lijst met alle landen; in Nederland staan Nederlandse en Nederland al voor je klaar
+Stamgegevens: rijbewijscategorieën zet je aan en uit met knoppen
