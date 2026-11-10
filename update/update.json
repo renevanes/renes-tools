@@ -1,15 +1,29 @@
 {
   "app": "Tools",
-  "versionName": "1.185",
-  "versionCode": 186,
-  "nativeLevel": 165,
+  "versionName": "1.186",
+  "versionCode": 187,
+  "nativeLevel": 166,
   "web": "index.html",
-  "webSha256": "b44d9d8375e76c59fed6f6f68272e8485c3344ad57ca6bc5e4e137a555216df8",
+  "webSha256": "36c1a6f699bc8264d6381abc8e5b309dfb4d7a5027b9dbc462f2781085beaeb0",
   "start": "start.html",
   "startSha256": "eb96929e99cefd1937525b8c0c5d0ed8979828dcbe88a9789da523294b6331be",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "b87549522048ecc0b06d10d1e0618d0e0ad0b81d1d786fa7a7884bf83a939d3d",
+  "apkSha256": "3548755bead102c59577d8292da64f388c7789ecd78ae02630ebac600e7dbb64",
   "changelog": [
+    {
+      "version": "1.186",
+      "date": "2026-11-10",
+      "changes": [
+        "Documentenkluis is nu de centrale opslag: wat je met de PDF-tools maakt (ook formulieren en ID-kopieën) gaat vanzelf versleuteld de kluis in (uit te zetten bij PDF → Gemaakt)",
+        "PDF's uit de kluis openen in de eigen PDF-viewer, en vanuit de kluis bewerken en ondertekenen; bewaren wordt een nieuwe versie, eerdere versies blijven (bekijken, vergelijken, terugzetten)",
+        "Nieuw: documenten vergelijken (PDF → Vergelijken): tekstverschillen per woord en per pagina in beeld, ook voor scans en voor twee versies uit de kluis",
+        "ID-kopie afschermen werkt samen met Stamgegevens: op het kaartje van een paspoort, ID-kaart of rijbewijs maak je meteen een afgeschermde kopie met voorgestelde vlakken, en zie je welke kopieën je aan wie gaf",
+        "Stamgegevens: nationaliteit, land en land van afgifte kies je nu uit een lijst met alle landen (of typ zelf iets bij Anders…); in Nederland staat Nederlandse al voor je klaar",
+        "Stamgegevens: dubbele nationaliteit invullen met Nog een nationaliteit",
+        "Stamgegevens: rijbewijscategorieën zet je aan en uit met knoppen",
+        "Formulieren: het land van bestemming kies je uit een lijst"
+      ]
+    },
     {
       "version": "1.185",
       "date": "2026-11-10",
@@ -1640,5 +1654,5 @@
       ]
     }
   ],
-  "webSig2": "kWq30meEf8i+l8NaKdoVJ/kBFJLPu4MOT6KzyHpu8KhRiLpcrhD7C7ChIBVano6kzC+wEqOuw2fAjv+F1EUlIvkq9WCEHKX2CRxBHNh2Aa8wd+bLOLq1ne8OJBk2vS42e5qtqWZXQ9wnPhYTtZ8qwYipQmOtxhFx4QNrNzvEglU/FFE7fDkqlXjrXOQATYO1UvbuOlYwxQkxzxOltrx/lH3Hnmar6+C0jbK/VX2IRNlVLjEHXa7U1ejgxaOyva5QP1k5qrv7gRJ8kScb89EP9dgiPLmJeD2H/vO+2JV8jnDIdWx/9FYp+otiRFmqqqqWMST/23SqsHf3DXUuOT9mmJymPLQoNYypF+XcrS1L8cxCxYv/l661WGguhX4E4abqak8T9oZ6Lii6rgHf7Vu54sjgznDKyQLl1AdZ907wlKoz5cx+boRN+Bxj1nxV3qiIxc5B4Urm1ahGl2R4IC7morICCU2urf6Pjuz9uE5+oOMHClI1nu2n5hgxJ8cGCmm0"
+  "webSig2": "Z20N9IKRBjqNQvOeqWiFDMrkkmkPLBfua9FWS+yV9wWQ/2F/1QDPYptHF5qNKE2jCjRwmK0zTkxiK5ahPrcqYHqp4lOZT4rdq2Y9Z0+fbb+tublzLvrMkwSmZ/SoKZMwYNYl+QCuBcRYFdxMDpMeuWYIu8vbT0l8cGarBGdxb3+JZCLvs/3f5/3CsGBAty5RahdAfkEZ82pkwY52W7mLvMhhJc8eISEeySvTa+NB/cL8r3bqXlTM9383lAca0MEGNCjkIl1QWhUnI+uniTtORaeGPO063MWMk3pvGz0xmfdMlbrUSZ0jDxYjEmxH9kzyK1/QX3JaVHGy1tjOiKoxjfn4VbqlO5hAbwtePYTSwE0q2dSlQwjCC3nomsZKgl91nRkIX7QKcNoSCNfztL1UPECeEou5XsyVNPuR3bNZHkm1pbzxRbVCDDFgntsX1Jcvv5m1jCECuthpoRXs35WWLUMqIvqJXui5sjXp/GKLA62yE0RWiMMp5OQVXgVs4O+C"
 }

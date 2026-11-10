@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.186",
+    "date": "2026-11-10",
+    "changes": [
+      "Documentenkluis is nu de centrale opslag: wat je met de PDF-tools maakt (ook formulieren en ID-kopieën) gaat vanzelf versleuteld de kluis in (uit te zetten bij PDF → Gemaakt)",
+      "PDF's uit de kluis openen in de eigen PDF-viewer, en vanuit de kluis bewerken en ondertekenen; bewaren wordt een nieuwe versie, eerdere versies blijven (bekijken, vergelijken, terugzetten)",
+      "Nieuw: documenten vergelijken (PDF → Vergelijken): tekstverschillen per woord en per pagina in beeld, ook voor scans en voor twee versies uit de kluis",
+      "ID-kopie afschermen werkt samen met Stamgegevens: op het kaartje van een paspoort, ID-kaart of rijbewijs maak je meteen een afgeschermde kopie met voorgestelde vlakken, en zie je welke kopieën je aan wie gaf",
+      "Stamgegevens: nationaliteit, land en land van afgifte kies je nu uit een lijst met alle landen (of typ zelf iets bij Anders…); in Nederland staat Nederlandse al voor je klaar",
+      "Stamgegevens: dubbele nationaliteit invullen met Nog een nationaliteit",
+      "Stamgegevens: rijbewijscategorieën zet je aan en uit met knoppen",
+      "Formulieren: het land van bestemming kies je uit een lijst"
+    ]
+  },
+  {
     "version": "1.185",
     "date": "2026-11-10",
     "changes": [
