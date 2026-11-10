@@ -18,14 +18,16 @@ jobs:
           set -u
           pip install --quiet sherpa-onnx==1.13.8 soundfile numpy
           mkdir -p wav
-          for n in vits-piper-nl_NL-dii-high vits-piper-nl_NL-miro-high vits-piper-nl_NL-pim-medium vits-piper-nl_NL-alex-medium vits-piper-nl_BE-nathalie-medium vits-piper-nl_NL-ronnie-medium; do
-            for v in "$n-int8" "$n"; do
+          for n in vits-piper-nl_NL-dii-high vits-piper-nl_NL-miro-high vits-piper-nl_NL-pim-medium vits-piper-nl_NL-ronnie-medium; do
+            for v in "$n"; do
               url="https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/$v.tar.bz2"
               if ! curl -fsSL -o "$v.tar.bz2" "$url"; then echo "GEEN $v"; continue; fi
               echo "STEM $v $(stat -c %s "$v.tar.bz2") $(sha256sum "$v.tar.bz2" | cut -d' ' -f1)"
               tar -tjf "$v.tar.bz2" | grep -vE 'espeak-ng-data/.' | sed "s/^/  BESTAND /"
               tar -xjf "$v.tar.bz2"
               onnx=$(ls "$v"/*.onnx | head -1)
+              for f in "$v"/README.md "$v"/MODEL_CARD; do [ -f "$f" ] && { echo "KAART $f"; sed "s/^/  | /" "$f"; }; done
+              python3 -c "import json,sys;d=json.load(open(sys.argv[1]));print('  JSON',json.dumps({k:d.get(k) for k in ('dataset','audio','language','num_speakers','piper_version')}))" "$onnx.json"
               python3 - "$v" "$onnx" <<'EOF'
           import sys, time, sherpa_onnx, soundfile
           d, onnx = sys.argv[1], sys.argv[2]
