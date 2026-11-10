@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.183",
-  "versionCode": 184,
-  "nativeLevel": 163,
+  "versionName": "1.184",
+  "versionCode": 185,
+  "nativeLevel": 164,
   "web": "index.html",
-  "webSha256": "8cc01c4560ac17a0980bd5063c8277b53ed682133748ceb4317f2bbc341e04af",
+  "webSha256": "f1ac6104fb4ef4be7c6cf3cd7ca38cbfd85848c85c88291cfbb7709bfc1b8efa",
   "start": "start.html",
   "startSha256": "eb96929e99cefd1937525b8c0c5d0ed8979828dcbe88a9789da523294b6331be",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "111686d47602e795fb94c7f528cf84776ba58d87c50b8982846508493b4f3cde",
+  "apkSha256": "506a6c2dbbecfd39e4ff4d69f69627c26f55263f1e76ca42a53db0a3124ec41f",
   "changelog": [
+    {
+      "version": "1.184",
+      "date": "2026-11-10",
+      "changes": [
+        "Handtekening uit een foto: je ziet nu een voortgangsbalk tijdens het lezen en het zoeken van de handtekening, en de app blijft bedienbaar.",
+        "Stamgegevens: bij het herkennen van een kaartfoto (ook Opnieuw herkennen en Grondig zoeken) staat onderin een balk met hoe lang het nog hooguit duurt.",
+        "Overal in de app zie je nu waarop je wacht: bij terugzetten en backups openen, exporteren, zoeken, PDF maken, de lokale AI, facturen, Bankzaken, Toiletten, Nieuws en meer loopt een balk mee in plaats van alleen een melding."
+      ]
+    },
     {
       "version": "1.183",
       "date": "2026-11-10",
@@ -1622,5 +1631,5 @@
       ]
     }
   ],
-  "webSig2": "djyBDxng+KN/UO0dGM/BKwpi6HZBdcOXUEuT0X0eQi0SDHdgG13mjpCQ30wARIGUS7UeCMkZG+XgX7Ls2ksva4DBBVsfWQFkcPJexgErWT2yTriqEOMVWkafBuIcJDYSKBTJxx89JI1o1hS6VdUeGI67OTPo1HzjRA67k7fCy6661zclw6BwELx2yeoJHl9IeAD53n59F1gNp+jdq8nCa/Q/N8r4bkq3PCqYelk0pqLbnXySWPy3vVg8Gz8ja6JMpAqTe+0gLT5/ibOvhupzsLtkVHh29vFJ32OpurhqrU20W5kJmIDXBas1ZEWAzYallmvfiZ89G5I5SHgIAQy9t/eyGYTHnOgw5CHkZnFvYBNRSFrj0aLokNXvaeQAHnAwRgk3YPzPdamVrS4uFr2M+XFdDPyM1+B/DFhKjVb3ZCPMrC+UIsUw3eZtAORa9cRMrIvTM13h351EcdXpwN9/dUR/w6KTgIRakqKOyAcw9Fc9FtfAU5eYkpR/FZZ24H1Q"
+  "webSig2": "X4VPgYhXSxVrRBl52sXSIPKk2c1E3JGRTEePMGeE94NHokriRG8uL54M1q3rGnDxot0iZ9ayEENX5h1EudLyQ45DnXcQUWOQZKSq2pA+/y/zf6gciMetzsaDmLWeYeebBR2hq2kxYJIKW8gLVorOnKnWKnZPXcYXujmh/qssIeYQcbmjR8PoelzVkJPfsnqxqtBjWDCDbWkNH6z9Lipoi9jI6sZWdyo45lC0dqgn9DL8mqMhl7HW5YP21HGknsVwQUbvB8yyaCn8Pkeeucna1jnlFqICmuJgF7KLDp8hEIqw1pzStXA5kr/kd4TUXJaDGwWqMBc62L42cgn7RTrMv1l2+ZW9eYA3etWt28ba6a21eVXTKRq6B3vmpVPI+7LztaUJ3gdHOnbm4v8MEJlm4zxvVDYJqlMk7IDWVhn/1HQOuMqxqUzmAyKWsqsAtrM+ObQg+ome//xNAEAzQuyoxHNxY2W9zDxazNIm8vOzNcXCX7Wx7+RZQBFUgv+PPxoX"
 }

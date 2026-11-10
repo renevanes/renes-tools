@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.184",
+    "date": "2026-11-10",
+    "changes": [
+      "Handtekening uit een foto: je ziet nu een voortgangsbalk tijdens het lezen en het zoeken van de handtekening, en de app blijft bedienbaar.",
+      "Stamgegevens: bij het herkennen van een kaartfoto (ook Opnieuw herkennen en Grondig zoeken) staat onderin een balk met hoe lang het nog hooguit duurt.",
+      "Overal in de app zie je nu waarop je wacht: bij terugzetten en backups openen, exporteren, zoeken, PDF maken, de lokale AI, facturen, Bankzaken, Toiletten, Nieuws en meer loopt een balk mee in plaats van alleen een melding."
+    ]
+  },
+  {
     "version": "1.183",
     "date": "2026-11-10",
     "changes": [
