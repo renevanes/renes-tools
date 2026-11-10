@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.186",
-  "versionCode": 187,
-  "nativeLevel": 166,
+  "versionName": "1.187",
+  "versionCode": 188,
+  "nativeLevel": 167,
   "web": "index.html",
-  "webSha256": "36c1a6f699bc8264d6381abc8e5b309dfb4d7a5027b9dbc462f2781085beaeb0",
+  "webSha256": "01adec111b638cb1bb2d284c6a18d4a6b8dc87e88d071203896254e13eaad59f",
   "start": "start.html",
   "startSha256": "eb96929e99cefd1937525b8c0c5d0ed8979828dcbe88a9789da523294b6331be",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3548755bead102c59577d8292da64f388c7789ecd78ae02630ebac600e7dbb64",
+  "apkSha256": "bb839b44e354dadaa44e0a16171c21cd43e51c00fe3e3b553f4b07080266a250",
   "changelog": [
+    {
+      "version": "1.187",
+      "date": "2026-11-10",
+      "changes": [
+        "Kluis, Bankzaken en Stamgegevens hebben geen eigen ontgrendelscherm meer: alles gaat via het slotscherm van Extra ontgrendelen. Staat dat uit, dan openen ze meteen."
+      ]
+    },
     {
       "version": "1.186",
       "date": "2026-11-10",
@@ -1654,5 +1661,5 @@
       ]
     }
   ],
-  "webSig2": "Z20N9IKRBjqNQvOeqWiFDMrkkmkPLBfua9FWS+yV9wWQ/2F/1QDPYptHF5qNKE2jCjRwmK0zTkxiK5ahPrcqYHqp4lOZT4rdq2Y9Z0+fbb+tublzLvrMkwSmZ/SoKZMwYNYl+QCuBcRYFdxMDpMeuWYIu8vbT0l8cGarBGdxb3+JZCLvs/3f5/3CsGBAty5RahdAfkEZ82pkwY52W7mLvMhhJc8eISEeySvTa+NB/cL8r3bqXlTM9383lAca0MEGNCjkIl1QWhUnI+uniTtORaeGPO063MWMk3pvGz0xmfdMlbrUSZ0jDxYjEmxH9kzyK1/QX3JaVHGy1tjOiKoxjfn4VbqlO5hAbwtePYTSwE0q2dSlQwjCC3nomsZKgl91nRkIX7QKcNoSCNfztL1UPECeEou5XsyVNPuR3bNZHkm1pbzxRbVCDDFgntsX1Jcvv5m1jCECuthpoRXs35WWLUMqIvqJXui5sjXp/GKLA62yE0RWiMMp5OQVXgVs4O+C"
+  "webSig2": "ey+AVBn2pMXMv2I+nLgQuGjsV1yVBJroYsgCjjkh6dZlc++VAK+mhNrN9iD0GWjj2TYvkTD9kFtnvm31/wPRFhYmYpRrCZbE83ZT9X2MyHTIdDMB/E+jkpFR7lRml8zLZnLfDn7wDNjx1GP+k8fVjMBtxHPvO2PL3qkN0v1hSSY6XI705hTgbyTjj2SRyxhc02YIb9f4q999/eMRK6LzQgwVgYloGb44MG2C5kAFBA4EalJWDnjFaLsbvbkkrr83Bw7FQ0zgR8J+kqTaf5tAByfeZk7sru+pIKNAqPulcWZo4DHfrzN9I0824FhOdCXpFV5jPHX1AWCYkc8Hn44dDTHzzwuYAw+QLt5qSSoqwhCRpMVjscKJ+pbGiu+wTd81Pa68XqaId7HRTs5z8ffnH0BEEH27k/r/t9yEMXk45wcD+zkErlkrvj1ltO/l8cbTPzoBPu8vh5yY1ur33QfW26w+r9ye+OpwCLBs+jhRWN1ZF/gs3+I7sL+HL4DvQzhy"
 }
