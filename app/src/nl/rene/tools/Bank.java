@@ -26,6 +26,8 @@ import javax.crypto.SecretKey;
  *   hardware van de telefoon (Android Keystore) en kan daar niet uit.
  * - De sleutel werkt alleen tot 15 minuten na je vingerafdruk of pincode (door de hardware afgedwongen, niet alleen door
  *   de app). Daarnaast gaat Bankzaken na 5 minuten niets doen, of zodra de app uit beeld gaat, op slot.
+ * - Extra ontgrendelen uit (ToolSlot): geen eigen vraag zolang de sleutel na het ontgrendelen van de telefoon nog zeker
+ *   werkt (vanzelf, Ontgrendeld); de sessie stopt dan vóór de sleutel. Anders vraagt Bankzaken het toch.
  * - Gaat nergens mee: niet in de Android-backup, niet in Alles back-uppen of "Alle appgegevens", niet in zoeken of de
  *   assistent, niet in Statistieken. De app maakt geen verbinding naar buiten voor Bankzaken (de interface mag dat sowieso
  *   niet: connect-src 'none'); de AI draait op de telefoon zelf.
@@ -64,7 +66,29 @@ final class Bank {
     static volatile boolean ongeldig = false;
     static long remaining() { long n = System.currentTimeMillis(); return Math.max(0, Math.min(openUntil, maxUntil) - n); }
 
-    static synchronized long open() { long n = System.currentTimeMillis(); generation++; maxUntil = n + MAX_MS; openUntil = n + IDLE_MS; return generation; }
+    static long open() { return open(MAX_MS); }
+    /** max: korter dan MAX_MS als de sleutel eerder ophoudt (geopend zonder vraag, zie vanzelf). */
+    static synchronized long open(long max) { long n = System.currentTimeMillis(); generation++; maxUntil = n + Math.max(0, Math.min(MAX_MS, max)); openUntil = Math.min(maxUntil, n + IDLE_MS); return generation; }
+
+    /**
+     * Extra ontgrendelen uit: zo lang mag Bankzaken zonder vraag open (0 = de telefoon is te lang geleden ontgrendeld,
+     * dus vragen; -1 = zonder vraag kan het niet, om een andere reden). Alleen met een bestaande sleutel en gegevens: een
+     * nieuwe sleutel hoort bij een echte vraag (anders zou createKey terugvallen op een sleutel zonder ontgrendeling).
+     * Een sleutel die deze telefoon niet aan de ontgrendeling koppelt, werkt altijd; staat dat niet vast, dan geldt hij
+     * als gekoppeld. De echte sleutel moet nu ook werken.
+     */
+    static long vanzelf(Context c) {
+        try {
+            if (!Lock.deviceSecure(c) || !hasData(c) || !hasKey()) return -1;
+            JSONObject m = metaJson(c);
+            long max = m.has("ontgrendeling") && !m.optBoolean("ontgrendeling", true) ? MAX_MS : Math.min(MAX_MS, Ontgrendeld.zeker(ALIAS, KEY_SECONDS));
+            if (max <= 0) return 0;
+            javax.crypto.Cipher proef = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding");
+            proef.init(javax.crypto.Cipher.ENCRYPT_MODE, existingKey());
+            return max;
+        } catch (UserNotAuthenticatedException e) { return 0; }
+        catch (Throwable t) { return -1; }
+    }
     static synchronized boolean session(long grant) { return grant == generation && isOpen(); }
     static void touch() { if (isOpen()) openUntil = System.currentTimeMillis() + IDLE_MS; }
 
@@ -87,9 +111,13 @@ final class Bank {
         synchronized boolean authenticated(long request, long now) { if (request != serial || !pending) return false; pending = false; until = now + 5000; return true; }
         synchronized boolean ready(long request, long now) { return foreground && request == serial && until > 0 && now <= until; }
         synchronized boolean claim(long request, long now) { if (!ready(request, now)) return false; until = 0; return true; }
+        /** Loopt er al een ontgrendeling (vraag open, of net bevestigd en nog niet geopend)? */
+        synchronized boolean bezig(long now) { return pending || until > 0 && now <= until; }
         synchronized void resume() { foreground = true; }
         synchronized void pause(boolean systemAuth) { foreground = false; if (!pending || !systemAuth) cancel(); }
         synchronized void cancel() { serial++; pending = false; until = 0; }
+        /** Alleen deze vraag afbreken (niet een nieuwere); false als hij al voorbij was. */
+        synchronized boolean cancel(long request) { if (request != serial || !pending) return false; cancel(); return true; }
     }
 
     static File dir(Context c) { File d = new File(c.getFilesDir(), "bank"); d.mkdirs(); return d; }
@@ -249,6 +277,7 @@ final class Bank {
                 f.delete();
             }
             try { ks().deleteEntry(ALIAS); } catch (Throwable ignored) { }
+            Ontgrendeld.wis(ALIAS);
             synchronized (WACHT) { WACHT.clear(); }
             laatsteKoppeling = ""; rev = 0; ongeldig = false;
             close();

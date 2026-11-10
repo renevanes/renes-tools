@@ -41,6 +41,17 @@ public class SoloTest {
         check(!auth.claim(request, 401), "sluiten of verlaten van bankscherm trekt antwoord in");
         request = auth.begin(); auth.authenticated(request, 500);
         check(!auth.claim(request, 5501), "te laat hervatten vraagt opnieuw ontgrendeling");
+        // Zonder vraag openen (extra ontgrendelen uit): een lopende vraag blijft van zichzelf, een oude kan een nieuwe niet afbreken
+        long oud = auth.begin();
+        check(auth.bezig(600), "vraag loopt: niet ook nog zonder vraag openen");
+        long nieuw = auth.begin();
+        check(!auth.cancel(oud) && auth.bezig(601), "een oude poging breekt de nieuwe niet af");
+        check(auth.authenticated(nieuw, 602) && auth.bezig(603) && !auth.bezig(5603), "net bevestigd en nog niet geopend telt als bezig, tot het te laat is");
+        check(auth.claim(nieuw, 604) && !auth.bezig(605), "geopend: niets meer bezig");
+        long mislukt = auth.begin();
+        check(auth.cancel(mislukt) && !auth.bezig(700) && !auth.claim(mislukt, 701), "zonder vraag lukt het niet: afgebroken, niets geopend");
+        check(Bank.open(60_000L) > 0 && Bank.remaining() <= 60_000L && Bank.remaining() > 50_000L, "zonder vraag geopend: Bankzaken stopt vóór de sleutel");
+        Bank.close();
         System.out.println("Register en venstergebonden bankontgrendeling geslaagd");
     }
 }

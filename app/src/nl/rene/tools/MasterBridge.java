@@ -1,5 +1,6 @@
 package nl.rene.tools;
 
+import android.os.SystemClock;
 import android.webkit.JavascriptInterface;
 import javax.crypto.SecretKey;
 import org.json.JSONArray;
@@ -35,39 +36,63 @@ public class MasterBridge extends BankBridge {
         try{return new JSONObject().put("open",a.masterSession.isOpen()).put("left",a.masterSession.remaining()).put("data",MasterStore.exists(ctx)).put("secure",Lock.deviceSecure(ctx)).toString();}
         catch(Throwable ignored){return "{\"open\":false}";}
     }
-    @JavascriptInterface public void masterUnlock(String request){
-        a.h.post(()->{
-            if(!a.masterWanted||a.isDestroyed()||a.isFinishing()||!a.masterForeground||(a.isSolo()&&!"masterdata".equals(a.solo)&&!"pdf".equals(a.solo))){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Ontgrendel de stamgegevens opnieuw"));}catch(Exception ignored){ }reply(request,"",e);return;}
-            if(Lock.busy()){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Er staat al een vraag om te ontgrendelen open"));}catch(Exception ignored){ }reply(request,"",e);return;}
+    /** Ontgrendelen met vingerafdruk of pincode; met extra ontgrendelen uit (ToolSlot) eerst zonder vraag. */
+    @JavascriptInterface public void masterUnlock(String request){a.h.post(()->unlock(request,false));}
+    /** Extra ontgrendelen uit: bij het openen vanzelf, zonder vraag. Kan dat niet zeker (telefoon te lang geleden ontgrendeld), dan {vraag:true}. */
+    @JavascriptInterface public void masterOpenVanzelf(String request){a.h.post(()->unlock(request,true));}
+    private void unlock(String request,boolean alleenVanzelf){
+        if(!a.masterWanted||a.isDestroyed()||a.isFinishing()||!a.masterForeground||(a.isSolo()&&!"masterdata".equals(a.solo)&&!"pdf".equals(a.solo))){JSONObject e=new JSONObject();try{if(!alleenVanzelf)e.put("error",Taal.T("Ontgrendel de stamgegevens opnieuw"));}catch(Exception ignored){ }reply(request,"",e);return;}
+        if(Lock.busy()){JSONObject e=new JSONObject();try{if(!alleenVanzelf)e.put("error",Taal.T("Er staat al een vraag om te ontgrendelen open"));}catch(Exception ignored){ }reply(request,"",e);return;}
+        if(ToolSlot.eigenUit(ctx,"masterdata")&&!a.masterAuthPending&&(a.isSolo()||!Lock.wouldLock(ctx))){
             final long auth=a.masterAuthSerial.incrementAndGet(),dataset=MasterSession.datasetEpoch();final String view=a.masterView;
-            a.masterAuthPending=true;
-            Lock.prompt(a,Taal.t(ctx,"Stamgegevens ontgrendelen"),(ok,message)->{
-                a.masterAuthPending=false;
-                if(!ok){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Stamgegevens niet ontgrendeld"));}catch(Exception ignored){ }reply(request,"",e);return;}
-                a.afterMasterAuth(()->new Thread(()->{
-                    String token="";JSONObject result=new JSONObject();
-                    try{
-                        synchronized(MasterStore.LOCK){
-                            if(dataset!=MasterSession.datasetEpoch())throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
-                            SecretKey key=MasterKeys.authenticated(ctx);
-                            synchronized(a.masterSession){
-                                if(auth!=a.masterAuthSerial.get()||!view.equals(a.masterView)||!a.masterWanted||!a.masterForeground)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
-                                token=a.masterSession.open();
-                            }
-                            MasterStore.unlock(ctx,key,a.masterSession,token);a.masterSession.require(token);MasterKeys.markReady();
-                            // Lukt het niet, dan blijft de tekst staan en biedt Aandacht nodig het aan; ontgrendelen gaat gewoon door.
-                            // De Play-versie heeft geen assistent: daar blijft de tekst in Stamgegevens.
-                            if(PlayPolicy.allows(ctx,"ai"))try{MasterStore.aboutMove(ctx,key,a.masterSession,token,"vanzelf");}catch(Throwable later){ }
-                            MasterStore.refreshContext(ctx,key,a.masterSession,token);
-                        }
-                        a.masterSession.require(token);if(!a.masterForeground||auth!=a.masterAuthSerial.get())throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
-                        result.put("opened",true);a.h.post(a::scheduleMasterExpiry);
-                        JSONObject photo=a.masterPhotos.resume(MasterKeys.authenticated(ctx),a.masterSession,token);if(photo!=null)result.put("photo",photo);
-                    }catch(Throwable e){a.masterSession.closeIf(token);try{MasterAppContext.invalidate(ctx);}catch(Exception ignored){ }MainActivity.appIdentityChanged("{}");try{result.put("error",why(e));}catch(Exception ignored){ }}
-                    reply(request,token,result);
-                },"master-unlock").start());
-            });
+            new Thread(()->{
+                try{
+                    long start=SystemClock.elapsedRealtime(),max=MasterKeys.vanzelf(ctx);
+                    if(max>0){open(request,auth,dataset,view,start+max);return;}
+                    if(!alleenVanzelf){a.h.post(()->prompt(request));return;}
+                    JSONObject r=new JSONObject();if(max==0)r.put("vraag",true);reply(request,"",r);
+                }catch(Throwable t){reply(request,"",new JSONObject());}
+            },"master-unlock").start();
+            return;
+        }
+        if(alleenVanzelf){reply(request,"",new JSONObject());return;}
+        prompt(request);
+    }
+    private void prompt(String request){
+        if(!a.masterWanted||a.isDestroyed()||a.isFinishing()||!a.masterForeground){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Ontgrendel de stamgegevens opnieuw"));}catch(Exception ignored){ }reply(request,"",e);return;}
+        if(Lock.busy()){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Er staat al een vraag om te ontgrendelen open"));}catch(Exception ignored){ }reply(request,"",e);return;}
+        final long auth=a.masterAuthSerial.incrementAndGet(),dataset=MasterSession.datasetEpoch();final String view=a.masterView;
+        a.masterAuthPending=true;
+        Lock.prompt(a,Taal.t(ctx,"Stamgegevens ontgrendelen"),(ok,message)->{
+            a.masterAuthPending=false;
+            if(!ok){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Stamgegevens niet ontgrendeld"));}catch(Exception ignored){ }reply(request,"",e);return;}
+            a.afterMasterAuth(()->new Thread(()->open(request,auth,dataset,view,Long.MAX_VALUE),"master-unlock").start());
         });
+    }
+    /** Na ontgrendelen (of zonder vraag): de sessie openen, hooguit tot tot (elapsedRealtime; zonder vraag: vóór de sleutel ophoudt). Loopt op een eigen thread. */
+    private void open(String request,long auth,long dataset,String view,long tot){
+        String token="";JSONObject result=new JSONObject();
+        try{
+            synchronized(MasterStore.LOCK){
+                if(dataset!=MasterSession.datasetEpoch())throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
+                SecretKey key=MasterKeys.authenticated(ctx);
+                synchronized(a.masterSession){
+                    if(auth!=a.masterAuthSerial.get()||!view.equals(a.masterView)||!a.masterWanted||!a.masterForeground)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
+                    long max=tot==Long.MAX_VALUE?MasterSession.MAX:tot-SystemClock.elapsedRealtime();
+                    if(max<60_000L)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
+                    token=a.masterSession.open(max);
+                }
+                MasterStore.unlock(ctx,key,a.masterSession,token);a.masterSession.require(token);MasterKeys.markReady();
+                // Lukt het niet, dan blijft de tekst staan en biedt Aandacht nodig het aan; ontgrendelen gaat gewoon door.
+                // De Play-versie heeft geen assistent: daar blijft de tekst in Stamgegevens.
+                if(PlayPolicy.allows(ctx,"ai"))try{MasterStore.aboutMove(ctx,key,a.masterSession,token,"vanzelf");}catch(Throwable later){ }
+                MasterStore.refreshContext(ctx,key,a.masterSession,token);
+            }
+            a.masterSession.require(token);if(!a.masterForeground||auth!=a.masterAuthSerial.get())throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
+            result.put("opened",true);a.h.post(a::scheduleMasterExpiry);
+            JSONObject photo=a.masterPhotos.resume(MasterKeys.authenticated(ctx),a.masterSession,token);if(photo!=null)result.put("photo",photo);
+        }catch(Throwable e){a.masterSession.closeIf(token);try{MasterAppContext.invalidate(ctx);}catch(Exception ignored){ }MainActivity.appIdentityChanged("{}");try{result.put("error",why(e));}catch(Exception ignored){ }}
+        reply(request,token,result);
     }
     @JavascriptInterface public void masterLock(){a.h.post(()->a.suspendMaster(true));}
     @JavascriptInterface public void masterTouch(String token){try{a.masterSession.touch(token);a.h.post(a::scheduleMasterExpiry);}catch(Throwable ignored){ }}

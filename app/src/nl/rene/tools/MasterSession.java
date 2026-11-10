@@ -14,7 +14,9 @@ final class MasterSession {
     private long idle,limit;
     MasterSession(){this(android.os.SystemClock::elapsedRealtime);}
     MasterSession(Clock clock){this.clock=clock;}
-    synchronized String open(){long n=clock.now();token=java.util.UUID.randomUUID().toString();dataset=DATASET.get();idle=n+IDLE;limit=n+MAX;return token;}
+    synchronized String open(){return open(MAX);}
+    /** max: korter dan MAX als de sleutel eerder ophoudt (geopend zonder vraag, Ontgrendeld). */
+    synchronized String open(long max){long n=clock.now();token=java.util.UUID.randomUUID().toString();dataset=DATASET.get();limit=n+Math.max(0,Math.min(MAX,max));idle=Math.min(limit,n+IDLE);return token;}
     synchronized boolean isOpen(){if(dataset!=DATASET.get()||token.isEmpty()||clock.now()>=idle||clock.now()>=limit){close();return false;}return true;}
     synchronized String consumerToken(){return isOpen()?token:"";}
     synchronized boolean accepts(String value){return isOpen()&&token.equals(value);}

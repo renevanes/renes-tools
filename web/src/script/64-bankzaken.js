@@ -263,9 +263,11 @@ function bkSaldoReeks(van, tot){
 function enterBank(){
   try { Android.bankSecure(true); } catch (e) { }
   bkToestand();
-  if (!bk.st || !bk.st.open) return;
+  if (!bk.st || !bk.st.open) { bkVanzelf(); return; }
   bkLaad();
 }
+/** Extra ontgrendelen uit: vanzelf open zonder vraag, als de sleutel nog zeker werkt (Java beslist); anders de knop. */
+function bkVanzelf(){ if (current !== 'bank' || !tsVanzelfMag()) return; tsLaad(); if (tsEigenUit('bank') && bk.st && bk.st.slot && !bk.st.open && !bk.st.kwijt && bk.st.data) Android.bankOpenVanzelf(); }
 function bkToestand(){
   let s; try { s = JSON.parse(Android.bankState()); } catch (e) { s = { open: false }; }
   bk.st = s;
@@ -280,6 +282,7 @@ function bkToestand(){
 }
 function bkOntgrendel(){ $('#bk-msg').textContent = ''; Android.bankUnlock(); }
 window.onBank = function(r){
+  if (r === 'vraag') { $('#bk-msg').textContent = t('Je telefoon is al even ontgrendeld. Bevestig het nog een keer met Ontgrendelen.'); return; }
   if (r !== true) { $('#bk-msg').textContent = String(r || 'Niet ontgrendeld'); return; }
   if (current !== 'bank') { Android.bankLock(); return; }
   if (bkToestand()) uiBezigNu(t('Bankgegevens openen…'), () => { if (current === 'bank') bkLaad(); else Android.bankLock(); });
@@ -349,6 +352,16 @@ document.addEventListener('pointerdown', ev => {
 document.addEventListener('input', ev => { if (current === 'bank' && ev.target.closest && ev.target.closest('#s-bank') && Date.now() - bk.aanraak > 20000) { bk.aanraak = Date.now(); try { Android.bankTouch(); } catch (e) { } } }, true);
 function bkVerlaat(){ if (bk.aiBezig) { try { Android.bankAiCancel(); } catch (e) { } bk.aiBezig = false; } Android.bankLock(); bkVergeet(); try { Android.bankSecure(false); } catch (e) { } $('#bk-dicht').hidden = false; $('#bk-los').hidden = true; }
 (function(){ const prev = window.onPauseApp; window.onPauseApp = function(){ if (prev) prev(); if (bk.store) { bkVergeet(); $('#bk-dicht').hidden = false; $('#bk-los').hidden = true; } }; })();
+// Het app-slot is net open (terug in de app doet enterBank al): met extra ontgrendelen uit vanzelf weer open
+(function(){
+  const prev = window.onUnlocked;
+  window.onUnlocked = function(){
+    if (prev) prev.apply(this, arguments);
+    if (current !== 'bank' || !tsEigenUit('bank')) return;
+    let s; try { s = JSON.parse(Android.bankState()); } catch (e) { s = {}; }
+    if (!s.open) { bkToestand(); bkVanzelf(); }
+  };
+})();
 
 // ---------- tabs en filters ----------
 function bkTab(tt){
@@ -662,7 +675,8 @@ function bkBeheer(){
   const st = bk.st || {};
   const veilig = [
     t(st.hardware ? 'Versleuteld met AES-256-GCM; de sleutel zit in de beveiligde hardware van deze telefoon en kan er niet uit.' : 'Versleuteld met AES-256-GCM; de sleutel zit in de beveiligde sleutelopslag van Android en kan er niet uit.'),
-    st.ontgrendeling ? 'De telefoon zelf geeft de sleutel alleen vrij tot 15 minuten na je vingerafdruk of pincode.' : 'Openen alleen na je vingerafdruk of pincode (deze telefoon koppelt de sleutel niet aan de ontgrendeling zelf).',
+    st.ontgrendeling ? 'De telefoon zelf geeft de sleutel alleen vrij tot 15 minuten na je vingerafdruk of pincode.' : tsEigenUit('bank') ? 'Deze telefoon koppelt de sleutel niet aan de ontgrendeling zelf.' : 'Openen alleen na je vingerafdruk of pincode (deze telefoon koppelt de sleutel niet aan de ontgrendeling zelf).',
+    ...(tsEigenUit('bank') ? [st.ontgrendeling ? 'Extra ontgrendelen staat uit: tot 10 minuten na het ontgrendelen van je telefoon opent Bankzaken zonder vraag, daarna vraagt hij het toch.' : 'Extra ontgrendelen staat uit: Bankzaken opent zonder vraag.'] : []),
     'Gaat op slot na 5 minuten niets doen en zodra je de app verlaat; dan is alles ook uit het geheugen.',
     'Geen schermafdrukken of schermopnames, en niet zichtbaar in "recente apps".',
     'Gaat niet mee in de Android-backup, Alles back-uppen, zoeken, de assistent of de statistieken.',

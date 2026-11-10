@@ -59,6 +59,7 @@
     <exclude domain="sharedpref" path="crash.xml" />
         <exclude domain="sharedpref" path="intent_token.xml" />
         <exclude domain="sharedpref" path="lock.xml" />
+        <exclude domain="sharedpref" path="toolslot.xml" />
         <exclude domain="sharedpref" path="spotify.xml" />
         <exclude domain="sharedpref" path="vpn.xml" />
         <exclude domain="sharedpref" path="statistiek.xml" />

@@ -125,6 +125,9 @@ public class MasterTest {
         clock.at=MasterSession.IDLE-1;s.touch(first);clock.at=MasterSession.MAX;check(!s.accepts(first),"harde maximale duur");
         clock.at=0;String second=s.open();s.closeIf(first);check(s.accepts(second),"late fout sluit nieuwe sessie niet");clock.at=MasterSession.IDLE;check(!s.isOpen(),"inactiviteit");
         clock.at=0;String reset=s.open();MasterSession.invalidateAll();check(!s.accepts(reset),"reset trekt alle sessies in");
+        clock.at=0;String kort=s.open(270_000L);clock.at=200_000L;s.touch(kort);check(s.remaining()==70_000L,"zonder vraag geopend: de sessie stopt vóór de sleutel ("+s.remaining()+")");
+        clock.at=270_000L;check(!s.accepts(kort),"zonder vraag geopend: dicht als de zekere tijd om is");
+        clock.at=0;String lang=s.open(Long.MAX_VALUE);clock.at=MasterSession.MAX;check(!s.accepts(lang),"nooit langer dan de gewone maximale duur");
         check(MasterSchema.validDate("2000-02-29")&&!MasterSchema.validDate("1900-02-29")&&!MasterSchema.validDate("2026-02-30"),"datumcontrole");
         JSONObject record=new JSONObject().put("type","persoon").put("label","Testpersoon").put("fields",new JSONObject().put("naam","Test").put("voornamen","Ada").put("bsn","123456782"));
         check("Ada Test".equals(MasterSchema.projection(record,"idcopy","ontvanger").getString("ontvanger")),"projectie ontvanger");

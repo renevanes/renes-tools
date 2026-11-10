@@ -317,7 +317,9 @@ if (!window.Android) window.Android = (function(){
     carTripDelete(id){ this._car.tripList = this._car.tripList.filter(x => x.id !== id); return ''; }, carExport(m){ setTimeout(() => onCarExport('ok:2'), 50); },
     carTripStart(){ this._car.tripActive = true; }, carTripStop(){ this._car.tripActive = false; },
     _kl: {open: false, docs: [{id: 'k1abcdef', name: 'Paspoort.pdf', mime: 'application/pdf', size: 820000, t: Date.now() - 864e5}]},
-    kluisUnlock(){ this._kl.open = true; setTimeout(() => onKluis(true), 30); }, kluisList(){ return this._kl.open ? JSON.stringify({docs: this._kl.docs, left: 300000}) : '{"locked":true}'; },
+    /* Met extra ontgrendelen uit opent Java de kluis meteen (vóór het antwoord, zonder vraag); _kl.vragen telt de vragen */
+    kluisUnlock(){ if (this._tslot.aan.includes('kluis')) this._kl.vragen = (this._kl.vragen || 0) + 1; this._kl.open = true; setTimeout(() => onKluis(true), 30); },
+    kluisOpenVanzelf(){ if (this._tslot.aan.includes('kluis')) return; this._kl.open = true; setTimeout(() => onKluis(true), 0); }, kluisList(){ return this._kl.open ? JSON.stringify({docs: this._kl.docs, left: 300000}) : '{"locked":true}'; },
     kluisAdd(){ this._kl.docs.push({id: 'k2abcdef', name: 'Polis <b>.pdf', mime: 'application/pdf', size: 1000, t: Date.now()}); setTimeout(() => onKluisChanged('ok'), 30); },
     kluisView(id){ this._klView = id; }, kluisDelete(id){ this._kl.docs = this._kl.docs.filter(d => d.id !== id); return ''; }, kluisRename(id, n){ const d = this._kl.docs.find(x => x.id === id); if (d) d.name = n; return ''; }, kluisClose(){ this._kl.open = false; },
     kluisOrganize(id,json){if(!this._kl.open)return 'De kluis is op slot';if(this._kl.error)return this._kl.error;const d=this._kl.docs.find(d=>d.id===id);if(!d)return 'Document niet gevonden';const p=JSON.parse(json);if((p.category||'').length>60||(p.note||'').length>1000)return 'Documentgegevens zijn te lang';Object.assign(d,p);return '';},
@@ -1172,8 +1174,9 @@ if (!window.Android) window.Android = (function(){
     lockSetCode(on, c){ if (c!==this._st.code) { setTimeout(()=>onSettingsChanged('De app-code klopt niet'),50); return; } this._st.lock=on; setTimeout(()=>onSettingsChanged(''),50); },
     lockUnlock(){ setTimeout(()=>{ this._st.locked=false; onUnlocked(); },200); },
     lockSet(on){ this._st.lock=on; setTimeout(()=>onSettingsChanged(''),100); }, lockTimeout(v){ this._st.timeout=+v; },
-    /* Extra ontgrendelen per tool; _tslot.nee = de volgende vraag mislukt (tests), _tslot.vragen = wat er gevraagd is */
-    _tslot:{aan:(window.__testToolSlot||[]).slice(),nee:'',vragen:[],scherm:false},
+    /* Extra ontgrendelen per tool; _tslot.nee = de volgende vraag mislukt (tests), _tslot.vragen = wat er gevraagd is.
+     * Kluis, Bankzaken en Stamgegevens staan standaard aan (ToolSlot.EIGEN); __testEigenUit zet ze uit. */
+    _tslot:{aan:[...new Set(['bank','kluis','masterdata'].filter(k=>!(window.__testEigenUit||[]).includes(k)).concat(window.__testToolSlot||[]))],nee:'',vragen:[],scherm:false},
     toolSlotState(){ const s=this._tslot; return JSON.stringify({aan:s.aan.slice().sort(),secure:this._st.secure!==false}); },
     _tsVraag(tool, soort, ja){ const s=this._tslot; s.vragen.push(soort+':'+tool); const fout=s.nee; s.nee=''; setTimeout(()=>{ if(!fout) ja(); onToolSlot(fout?{tool,soort,ok:false,msg:fout}:{tool,soort,ok:true}); },120); },
     toolSlotSet(tool, on, naam){ const s=this._tslot; if(!TOOLS[tool]||tool==='skin'){ setTimeout(()=>onToolSlot({tool,soort:on?'aan':'uit',ok:false,msg:'Onbekende tool'}),20); return; }
@@ -1358,7 +1361,10 @@ if (!window.Android) window.Android = (function(){
     masterSafeFrame(view,generation){this._cm.frame={view,generation};},
     // Gekozen kaartfoto verwerken (na ontgrendelen, of meteen als de kiezer binnen de tijd terugkwam).
     _cmPhoto(){const m=this._cm;let photo;const job=m.photo;if(job&&job.side==='scan'){m.photo=null;const who=m.records.find(r=>r.id===job.id&&r.type==='persoon');if(!who)photo={error:'Kies een gekoppelde persoon'};else{const soort=m.herkend?.document?.documentsoort||job.soort||'',side=m.herkend?(m.herkend.soort==='TD1'?'back':'front'):['identiteitskaart','verblijfsdocument'].includes(soort)?'back':'front',word={paspoort:'Paspoort',identiteitskaart:'Identiteitskaart',verblijfsdocument:'Verblijfsdocument',rijbewijs:'Rijbewijs'}[soort]||'Document';const fields={persoon:job.id};if(soort)fields.documentsoort=soort;const doc={id:crypto.randomUUID(),type:'identiteit',label:t('{soort} {naam}',{soort:t(word),naam:who.label}),revision:1,fields,images:{[side]:job.image}};m.records.push(doc);this._cmEvent('create','masterdata',doc,[...Object.keys(fields),'label']);this._cmEvent('photo_add','masterdata',doc,[side]);photo={id:doc.id,revision:doc.revision,saved:true,scan:true,person:job.id,side,diag:this._cmDiag(false),...(m.herkend?{herkend:m.herkend}:{})};}}else if(job){m.photo=null;const r=m.records.find(r=>r.id===job.id);if(!r||r.revision!==job.revision)photo={error:'Deze gegevens zijn intussen gewijzigd; laad ze opnieuw'};else{r.images={...r.images,[job.side]:job.image};r.revision++;this._cmEvent('photo_add','masterdata',r,[job.side]);photo={id:r.id,revision:r.revision,saved:true,diag:this._cmDiag(false),...(m.herkend?{herkend:m.herkend}:{})};}}return photo;},
-    masterUnlock(request){const m=this._cm;setTimeout(()=>{m.open=true;m.token='session-'+Date.now();this._cmEvent('unlock','masterdata');if(!window.__testPlay)try{this._cmAboutMove('vanzelf');}catch(e){}this._cmContextRefresh();const photo=this._cmPhoto();onMasterReply({request,token:m.token,opened:true,photo});},30);},
+    /* Extra ontgrendelen uit: zonder vraag open; _cm.lang = de telefoon is te lang geleden ontgrendeld (dan {vraag:true}) */
+    masterOpenVanzelf(request){const m=this._cm;if(this._tslot.aan.includes('masterdata')||!this._cm.view){setTimeout(()=>onMasterReply({request}),10);return;}if(m.lang){setTimeout(()=>onMasterReply({request,vraag:true}),10);return;}m.vanzelf=(m.vanzelf||0)+1;this._cmOpen(request);},
+    masterUnlock(request){const m=this._cm;m.vragen=(m.vragen||0)+1;this._cmOpen(request);},
+    _cmOpen(request){const m=this._cm;setTimeout(()=>{m.open=true;m.token='session-'+Date.now();this._cmEvent('unlock','masterdata');if(!window.__testPlay)try{this._cmAboutMove('vanzelf');}catch(e){}this._cmContextRefresh();const photo=this._cmPhoto();onMasterReply({request,token:m.token,opened:true,photo});},30);},
     masterLock(){this.masterPhotoCancel();this._cm.open=false;this._cm.grants.clear();const generation=++this._cm.generation;setTimeout(()=>onMasterLocked(generation),0);},
     masterTouch(token){this._cm.touched=token;},
     _cmEvent(action,source,record,fields,role){const m=this._cm;m.events.push({seq:m.events.length+1,t:Date.now(),action,source,role:role||'',id:record?.id||'',revision:record?.revision||0,label:record?.label||'',fields:fields||[]});},
@@ -1457,6 +1463,8 @@ if (!window.Android) window.Android = (function(){
     bankState(){ const b = this._bank; return JSON.stringify({ open: b.open, left: b.open ? 290000 : 0, data: !!b.data, sleutel: !!b.data || b.open, kwijt: false, ontgrendeling: true, hardware: true, slot: true,
       ai: { kan: true, klaar: b.aiKlaar, model: 'Klein en snel' } }); },
     bankUnlock(){ const b = this._bank; b.calls.push(['unlock']); setTimeout(() => { if (b.ontgrendelFout) { onBank(b.ontgrendelFout); return; } b.open = true; onBank(true); }, 60); },
+    /* Extra ontgrendelen uit: zonder vraag open; _bank.lang = de telefoon is te lang geleden ontgrendeld (dan onBank('vraag')) */
+    bankOpenVanzelf(){ const b = this._bank; if (this._tslot.aan.includes('bank') || b.open || !b.data) return; b.calls.push(['vanzelf']); setTimeout(() => { if (b.lang) { onBank('vraag'); return; } b.open = true; onBank(true); }, 30); },
     bankLoad(){ const b = this._bank; if (!b.open) return '{"locked":true}'; return JSON.stringify({ left: 290000, store: b.data }); },
     bankSave(json){ const b = this._bank; if (!b.open) return 'Bankzaken is op slot'; const o = JSON.parse(json);
       if (b.data && (o.rev || 0) !== (b.data.rev || 0)) return 'Er is intussen iets geïmporteerd; het scherm is bijgewerkt. Doe je laatste wijziging nog eens.';

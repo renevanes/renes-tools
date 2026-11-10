@@ -6,10 +6,13 @@
  * weggaan, net als bij het app-slot (MainActivity.onStop/onStart, ToolSlot.KIES_MS).
  * Wat bij het openen hoort (een vraag uit een melding, de speler): via tsDaarna, pas na ontgrendelen.
  * Aan of uit per tool: Instellingen → Extra ontgrendelen, of lang indrukken van een tegel. Uitzetten vraagt de
- * schermvergrendeling (in Java, ToolSlot). Kluis, Bankzaken en Stamgegevens hebben hun eigen ontgrendeling (hun
- * sleutels werken pas daarna): die staan altijd aan. Nieuwe tools doen vanzelf mee: via TOOLS en de BACK-volgorde
- * naar het eerste scherm van de tool. Zolang een tool op slot is, tonen Overal zoeken en het startscherm er niets uit;
- * alleen wat er speelt (spelerbalk, net als de melding van Android) blijft zichtbaar. */
+ * schermvergrendeling (in Java, ToolSlot). Nieuwe tools doen vanzelf mee: via TOOLS en de BACK-volgorde naar het eerste
+ * scherm van de tool. Zolang een tool op slot is, tonen Overal zoeken en het startscherm er niets uit; alleen wat er
+ * speelt (spelerbalk, net als de melding van Android) blijft zichtbaar.
+ * Kluis, Bankzaken en Stamgegevens (ts.eigen) hebben hun eigen ontgrendeling in plaats van dit slotscherm; die staat
+ * standaard aan en gaat met dezelfde schakelaar uit (tsEigenUit). Uit = de tool opent vanzelf, zonder vraag; Java
+ * beslist dat zelf ook. De sleutels van Bankzaken en Stamgegevens werken dan nog steeds alleen kort na het ontgrendelen
+ * van de telefoon (Ontgrendeld.java): is dat te lang geleden, dan vragen ze het toch. */
 // var: show() kan al tijdens het laden lopen; dan bestaat dit nog niet (en is er nog niets op slot)
 var ts = { aan: [], secure: false, open: '', tool: '', doel: '', van: '', sprong: false, daarna: null, lagen: [], getoond: '', scherm: null, eigen: ['masterdata', 'kluis', 'bank'] };
 function tsLaad(){
@@ -25,6 +28,10 @@ function tsTool(name){
 /** Tools met een eigen scherm in de app, op naam */
 function tsLijst(){ return Object.keys(TOOLS).filter(k => document.getElementById('s-' + k)).sort((a, b) => t(TOOLS[a][0]).localeCompare(t(TOOLS[b][0]))); }
 function tsEigen(tool){ return ts.eigen.includes(tool); }
+/** Kluis, Bankzaken of Stamgegevens met extra ontgrendelen uit: opent zonder eigen vraag */
+function tsEigenUit(tool){ return !!ts && tsEigen(tool) && !ts.aan.includes(tool); }
+/** Mag zo'n tool nu vanzelf open? Niet onder het app-slot of het slotscherm van een andere tool (Java kijkt zelf ook). */
+function tsVanzelfMag(){ const app = document.getElementById('lockscr'); return !tsZichtbaar() && !(app && app.classList.contains('on')); }
 /** Vraagt deze tool extra ontgrendelen? Zonder schermvergrendeling op de telefoon kan dat niet (dan zou je er niet meer in komen). */
 function tsAan(tool){ return !!tool && !tsEigen(tool) && ts.secure && ts.aan.includes(tool); }
 /** Staat de tool nu op slot? Buiten de tool altijd (weggaan zet hem op slot). */
@@ -167,44 +174,48 @@ window.onToolSlotWeg = function(soort){
 
 /* ---------- Instellen ---------- */
 function tsZet(tool, on){
-  if (!TOOLS[tool] || tsEigen(tool)) return;
+  if (!TOOLS[tool]) return;
   Android.toolSlotSet(tool, !!on, t(TOOLS[tool][0]));
 }
 /** Korte stand voor het overzicht van Instellingen */
 function tsStand(){
   tsLaad();
-  const n = ts.aan.filter(k => !tsEigen(k)).length;
-  if (n && !ts.secure) return t('Werkt pas met een schermvergrendeling');
+  const n = ts.aan.length;
+  if (ts.aan.some(k => !tsEigen(k)) && !ts.secure) return t('Werkt pas met een schermvergrendeling'); // Kluis, Bankzaken en Stamgegevens zeggen dat zelf
   return n ? tn(n, 'Aan voor {n} tool', 'Aan voor {n} tools') : t('Uit');
+}
+/** Wat uitzetten betekent bij een eigen ontgrendeling: kort en zichtbaar (het gaat om een veilige keuze) */
+function tsEigenUitleg(tool){
+  if (!tsEigen(tool)) return '';
+  if (tsEigenUit(tool)) return tool === 'kluis' ? t('Opent zonder vraag, blijft versleuteld') : t('Geen vraag als je telefoon net ontgrendeld is');
+  return tool === 'kluis' ? t('Eigen ontgrendeling. Uit: opent zonder vraag, blijft versleuteld') : t('Eigen ontgrendeling. Uit: geen vraag als je telefoon net ontgrendeld is');
 }
 function tsRender(){
   const box = $('#st-slot-list'); if (!box) return;
   tsLaad();
   $('#st-slot-geen').hidden = ts.secure;
   box.innerHTML = tsLijst().map(k => {
-    const naam = t(TOOLS[k][0]);
-    if (tsEigen(k)) return '<div class="sw"><span>' + esc(naam) + '<small>' + esc(t('Altijd: eigen ontgrendeling')) + '</small></span>' +
-      '<button class="tg on" role="switch" aria-checked="true" disabled aria-label="' + esc(t('Extra ontgrendelen voor {naam}', { naam })) + '"></button></div>';
-    const is = ts.aan.includes(k);
-    return '<div class="sw"><span>' + esc(naam) + '</span><button class="tg' + (is ? ' on' : '') + '" role="switch" aria-checked="' + is + '" data-tool="' + k + '"' +
+    const naam = t(TOOLS[k][0]), is = ts.aan.includes(k), uitleg = tsEigen(k) ? '<small>' + esc(tsEigenUitleg(k)) + '</small>' : '';
+    return '<div class="sw"><span>' + esc(naam) + uitleg + '</span><button class="tg' + (is ? ' on' : '') + '" role="switch" aria-checked="' + is + '" data-tool="' + k + '"' +
       (!ts.secure && !is ? ' disabled' : '') + ' aria-label="' + esc(t('Extra ontgrendelen voor {naam}', { naam })) + '" onclick="tsZet(this.dataset.tool, !this.classList.contains(\'on\'))"></button></div>';
   }).join('');
 }
 /** Keuze in het menu van een tegel (lang indrukken) */
 function tsMenu(tool){
-  if (!TOOLS[tool] || tsEigen(tool) || !document.getElementById('s-' + tool)) return [];
+  if (!TOOLS[tool] || !document.getElementById('s-' + tool)) return [];
   tsLaad();
   return [[ts.aan.includes(tool) ? 'Extra ontgrendelen uitzetten…' : 'Extra ontgrendelen aanzetten', () => tsZet(tool, !ts.aan.includes(tool))]];
 }
-/** Tegels op het startscherm: van een tool op slot geen stand eronder, wel een slotje */
+/** Tegels op het startscherm: van een tool op slot geen stand eronder, wel een slotje (ook bij een eigen ontgrendeling) */
 function tsTegels(){
   let tegels; try { tegels = TILE_TOOL; } catch (e) { return; } // tijdens het laden bestaat het tegeloverzicht nog niet
   document.querySelectorAll('.tile[id^="tile-"]').forEach(el => {
-    const tool = tegels[el.id], dicht = !!tool && tsAan(tool), ic = el.querySelector('.ic');
+    const tool = tegels[el.id], dicht = !!tool && tsAan(tool), eigen = !!tool && tsEigen(tool) && ts.secure && ts.aan.includes(tool), ic = el.querySelector('.ic');
     el.classList.toggle('ts-dicht', dicht);
+    el.classList.toggle('ts-eigen', eigen);
     const slot = ic && ic.querySelector('.ts-tegel');
-    if (dicht && ic && !slot) ic.insertAdjacentHTML('beforeend', '<span class="ts-tegel">' + uiIcon('lock') + '</span>');
-    else if (!dicht && slot) slot.remove();
+    if ((dicht || eigen) && ic && !slot) ic.insertAdjacentHTML('beforeend', '<span class="ts-tegel">' + uiIcon('lock') + '</span>');
+    else if (!dicht && !eigen && slot) slot.remove();
   });
 }
 tsLaad();
