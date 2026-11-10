@@ -84,7 +84,8 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.textContent('#cm-ik .strow small'),'Dit ben jij · één document');
   // 6. Vergrendelen sluit een open keuzelijst
   await p.click('#cm-add');await p.waitForSelector('#sheet.on');await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!cmOpen());
-  assert.equal(await p.evaluate(()=>$('#sheet').classList.contains('on')),false,'keuzelijst dicht na vergrendelen');
+  // (het sluiten loopt soms een tik na het vergrendelen: even wachten, binnen 2 seconden)
+  assert.ok(await p.waitForFunction(()=>!$('#sheet').classList.contains('on'),null,{timeout:2000}).then(()=>true,()=>false),'keuzelijst dicht na vergrendelen');
   await p.click('#cm-unlock');await hub();
 
   // 7. Lukt het bewaren van de relatie niet, dan zegt de app dat de persoon er wel is (na de foutmelding)
