@@ -109,9 +109,17 @@ function cmLockedUI(){
 }
 window.onMasterLocked=function(generation){cm.generation=generation;cmLockedUI();Android.masterSafeFrame(cm.view,generation);};
 window.onMasterReset=function(){cm.unlocking=false;cm.resetting=false;cm.pending.clear();cmLockedUI();if(current==='cmwis')show('masterdata');cmNote(t('Stamgegevens en activiteiten zijn gewist.'));};
-function cmUnlock(){
-  if(cm.unlocking||cm.resetting)return;if(!cmState().secure){cmNote(t('Stel eerst een schermvergrendeling in op je telefoon'));return;}cm.unlocking=true;cmNote(t('Bevestig op je telefoon.'));
-  cmRequest('masterUnlock',[],r=>{cm.unlocking=false;if(!r.opened||!cmState().open)return;cm.token=r.token;cmRenderState();cmNote('');appIdentityRefresh();cmiPhotoAfterUnlock(r.photo);if(cm.picker)cmPickerLoad();else if(typeof fmq!=='undefined'&&fmq.open)fmqLoad();else cmListOpen();},true);
+/* vanzelf: extra ontgrendelen staat uit, dus zonder vraag openen als dat zeker kan (Java beslist; anders {vraag:true}). */
+function cmUnlock(vanzelf=false){
+  vanzelf=vanzelf===true;
+  if(cm.unlocking||cm.resetting)return;if(!cmState().secure){if(!vanzelf)cmNote(t('Stel eerst een schermvergrendeling in op je telefoon'));return;}cm.unlocking=true;if(!vanzelf)cmNote(t('Bevestig op je telefoon.'));
+  cmRequest(vanzelf?'masterOpenVanzelf':'masterUnlock',[],r=>{cm.unlocking=false;if(r.vraag)cmNote(t('Je telefoon is al even ontgrendeld. Bevestig het nog een keer met Ontgrendelen.'));if(!r.opened||!cmState().open)return;cm.token=r.token;cmRenderState();cmNote('');appIdentityRefresh();cmiPhotoAfterUnlock(r.photo);if(cm.picker)cmPickerLoad();else if(typeof fmq!=='undefined'&&fmq.open)fmqLoad();else cmListOpen();},true);
+}
+/** Extra ontgrendelen uit: Stamgegevens (of de keuzelijst ervan) opent vanzelf zodra het scherm klaar is */
+function cmVanzelf(){
+  if(!tsEigenUit('masterdata')||cm.unlocking||cm.resetting||cm.token&&cmOpen())return;
+  if(!(cmZone(current)&&current!=='cmwis'||cm.picker||typeof fmq!=='undefined'&&fmq.open))return;
+  cmUnlock(true);
 }
 function cmLock(){Android.masterLock();cmLockedUI();}
 function cmTouch(){if(cmOpen())Android.masterTouch(cm.token);}
@@ -329,6 +337,12 @@ const cmFmInit=fmInit;fmInit=function(id){cmFmInit(id);fm.masterSensitive=false;
 const cmIdReset=idCopyReset;idCopyReset=function(secure=true){idc.masterSensitive=false;cmIdReset(secure);};
 const cmFmRender=fmRender;fmRender=function(){if(fm.masterSensitive&&!cmState().open){cmLockedUI();return;}cmFmRender();const s=fmSecties()[fm.step];$('#cm-form-pick').hidden=!s||!s.fields.some(f=>/^(kind|begeleider[12]|gever[12])-/.test(f.id)||f.id==='accommodatie');$('#cm-form-pick').disabled=fm.busy;};
 const cmOnPrivacy=window.onMasterPrivacy;window.onMasterPrivacy=function(r){cmOnPrivacy(r);if(cm.picker&&cmOpen())cmPickerLoad();else if(['masterdata','cmai'].includes(current)&&cmOpen())cmListOpen();};
+// Extra ontgrendelen uit: na het openen van het scherm (en terug in de app of na het app-slot) vanzelf ontgrendelen.
+// Een lopende vraag (fmq.ask, een ontgrendeling) gaat voor: cmVanzelf wacht één beurt en kijkt dan of er al iets loopt.
+(function(){
+  const privacy=window.onMasterPrivacy;window.onMasterPrivacy=function(r){privacy(r);if(r&&r.view&&r.view===cm.view)setTimeout(cmVanzelf,0);};
+  for(const naam of ['onResumeApp','onUnlocked']){const prev=window[naam];window[naam]=function(){if(prev)prev.apply(this,arguments);if(cm.view&&cm.privateReady)setTimeout(cmVanzelf,0);};}
+})();
 $('#cm-picker').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();cmClosePicker();}if(e.key==='Tab'){const nodes=[...$('#cm-picker').querySelectorAll('button,input,select,[tabindex="0"]')].filter(n=>!n.disabled&&n.getClientRects().length);if(!nodes.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
 document.addEventListener('input',e=>{if(e.target.closest(CM_SCR.map(n=>'#s-'+n).join(',')+',#cm-picker')||fm.masterSensitive&&e.target.closest('#s-formulieren')||idc.masterSensitive&&e.target.closest('#s-idcopy'))cmTouch();});
 window.addEventListener('pagehide',()=>{Android.masterLock();cmLockedUI();});

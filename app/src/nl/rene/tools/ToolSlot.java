@@ -3,6 +3,7 @@ package nl.rene.tools;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -12,12 +13,17 @@ import java.util.TreeSet;
  * Extra ontgrendelen per tool: welke tools bij het openen eerst de schermvergrendeling van de telefoon vragen, net als
  * Stamgegevens. Aanzetten mag meteen; uitzetten pas na bevestigen met de schermvergrendeling (de brug regelt dat).
  * Welke schermen bij een tool horen en wanneer hij weer op slot gaat, regelt de interface (26b-extra-ontgrendelen.js).
+ * Kluis, Bankzaken en Stamgegevens (EIGEN) hebben een eigen ontgrendeling: die staat standaard aan en wordt apart
+ * uitgezet ("eigenUit"). Uit = de tool opent zonder vraag; de sleutels van Bankzaken en Stamgegevens werken dan nog steeds
+ * alleen kort na het ontgrendelen van de telefoon (Ontgrendeld).
  */
 final class ToolSlot {
 
     private ToolSlot() { }
 
     static final String PREFS = "toolslot";
+
+    static final Set<String> EIGEN = Collections.unmodifiableSet(new TreeSet<>(Arrays.asList("bank", "kluis", "masterdata")));
 
     /** Zo lang mag een eigen scherm van de app (kiezer, PDF-viewer, de vraag om te ontgrendelen) open staan zonder dat de tool op slot gaat. */
     static final long KIES_MS = 120_000L;
@@ -31,7 +37,21 @@ final class ToolSlot {
         return out;
     }
 
-    static Set<String> aan(Context c) { return geldig(prefs(c).getStringSet("tools", Collections.<String>emptySet())); }
+    /** De tools met extra ontgrendelen: de gekozen tools, plus de tools met een eigen ontgrendeling die niet uit staan. */
+    static Set<String> samen(Collection<String> tools, Collection<String> eigenUit) {
+        Set<String> s = geldig(tools);
+        s.removeAll(EIGEN);
+        for (String e : EIGEN) if (Solo.known(e) && (eigenUit == null || !eigenUit.contains(e))) s.add(e);
+        return s;
+    }
+
+    static Set<String> aan(Context c) {
+        SharedPreferences p = prefs(c);
+        return samen(p.getStringSet("tools", Collections.<String>emptySet()), p.getStringSet("eigenUit", Collections.<String>emptySet()));
+    }
+
+    /** Opent deze tool met een eigen ontgrendeling zonder te vragen? */
+    static boolean eigenUit(Context c, String tool) { return EIGEN.contains(tool) && !aan(c).contains(tool); }
 
     /** De nieuwe lijst na aan- of uitzetten van één tool (een onbekende tool verandert niets). */
     static Set<String> met(Collection<String> huidig, String tool, boolean on) {
@@ -42,7 +62,17 @@ final class ToolSlot {
     }
 
     static synchronized void zet(Context c, String tool, boolean on) {
-        prefs(c).edit().putStringSet("tools", met(aan(c), tool, on)).apply();
+        SharedPreferences p = prefs(c);
+        if (EIGEN.contains(tool)) {
+            Set<String> uit = new TreeSet<>(p.getStringSet("eigenUit", Collections.<String>emptySet()));
+            uit.retainAll(EIGEN);
+            if (on) uit.remove(tool); else uit.add(tool);
+            p.edit().putStringSet("eigenUit", uit).apply();
+            return;
+        }
+        Set<String> tools = met(p.getStringSet("tools", Collections.<String>emptySet()), tool, on);
+        tools.removeAll(EIGEN);
+        p.edit().putStringSet("tools", tools).apply();
     }
 
     /** Naam van de tool voor de vraag om te ontgrendelen: korte, gewone tekst. */

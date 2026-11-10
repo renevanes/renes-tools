@@ -3,7 +3,7 @@ package nl.rene.tools;
 import java.util.Arrays;
 import java.util.Set;
 
-/** Extra ontgrendelen per tool: alleen echte tools, aan en uit per tool, en wanneer terugkomen weer op slot zet. */
+/** Extra ontgrendelen per tool: alleen echte tools, aan en uit per tool (ook de eigen ontgrendelingen), en wanneer terugkomen weer op slot zet. */
 public class ToolSlotTest {
     static void check(boolean yes, String text) { if (!yes) throw new AssertionError(text); }
     public static void main(String[] args) {
@@ -19,6 +19,16 @@ public class ToolSlotTest {
         check(ToolSlot.met(uit, "settings", true).equals(uit), "een onbekende naam verandert niets");
         check(ToolSlot.met(uit, "", true).equals(uit) && ToolSlot.met(uit, null, false).equals(uit), "lege naam verandert niets");
         for (String t : Solo.TOOLS) check(ToolSlot.met(null, t, true).contains(t), "elke tool kan extra ontgrendelen krijgen: " + t);
+
+        check(ToolSlot.EIGEN.equals(new java.util.TreeSet<>(Arrays.asList("bank", "kluis", "masterdata"))), "Kluis, Bankzaken en Stamgegevens hebben een eigen ontgrendeling");
+        for (String e : ToolSlot.EIGEN) check(Solo.known(e), "eigen ontgrendeling is een echte tool: " + e);
+        Set<String> standaard = ToolSlot.samen(null, null);
+        check(standaard.equals(ToolSlot.EIGEN), "zonder keuze: alleen de eigen ontgrendelingen aan: " + standaard);
+        Set<String> eenUit = ToolSlot.samen(Arrays.asList("notes"), Arrays.asList("kluis", "../home"));
+        check(eenUit.equals(new java.util.TreeSet<>(Arrays.asList("bank", "masterdata", "notes"))), "Kluis uitgezet, Notities aangezet: " + eenUit);
+        check(ToolSlot.samen(Arrays.asList("bank"), Arrays.asList("bank")).equals(new java.util.TreeSet<>(Arrays.asList("kluis", "masterdata"))),
+                "een oude vermelding in de gewone lijst zet een uitgezette eigen ontgrendeling niet weer aan");
+        check(ToolSlot.samen(null, ToolSlot.EIGEN).isEmpty(), "alle drie uit: niets aan");
 
         check(ToolSlot.naam("Notities").equals("Notities"), "gewone naam blijft");
         check(ToolSlot.naam(" Not\u202Eities\n ").equals("Notities"), "geen stuur- of richtingtekens in de vraag");

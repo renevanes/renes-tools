@@ -27,7 +27,8 @@ import javax.crypto.spec.GCMParameterSpec;
 
 /**
  * Kluis: documenten (bijv. paspoort, polissen) versleuteld op deze telefoon, met een sleutel in de beveiligde
- * hardware van de telefoon. Openen alleen na vingerafdruk of pincode (in de app geregeld, zie MainActivity).
+ * hardware van de telefoon. Openen alleen na vingerafdruk of pincode (in de app geregeld, zie MainActivity), tenzij
+ * extra ontgrendelen voor de kluis uit staat (ToolSlot): dan zonder vraag; de documenten blijven versleuteld.
  * De sleutel verlaat de telefoon nooit: de kluis gaat dus niet mee in een gewone backup; wel (ontsleuteld)
  * in een versleutelde Alles-back-uppen, zodat je hem met je backup-wachtwoord terug hebt.
  *
@@ -59,6 +60,8 @@ final class Kluis {
         H.removeCallbacks(EXPIRE);
         H.postDelayed(EXPIRE, 5 * 60_000L + 1000); // na het verlopen ook de tijdelijk geopende bestanden weg
     }
+    /** Ontgrendeld (na vingerafdruk of pincode, of zonder vraag als extra ontgrendelen uit staat): open met een nieuwe generatie. */
+    static synchronized int ontgrendeld(Context c) { clearViews(c); gen++; open(c); return gen; }
     static long remaining() { return Math.max(0, openUntil - System.currentTimeMillis()); }
     static void close(Context c) { openUntil = 0; clearViews(c); }
 

@@ -444,12 +444,18 @@ public class FeatureBridge {
         }
         @JavascriptInterface public void carTripStart() { Car.startTrip(ctx); }
         @JavascriptInterface public void carTripStop() { Car.stopTrip(ctx); }
+        /** Met extra ontgrendelen uit (ToolSlot) meteen open, voordat deze aanroep terugkomt; anders na vingerafdruk of pincode. Antwoord via onKluis. */
         @JavascriptInterface public void kluisUnlock() {
+            if (ToolSlot.eigenUit(ctx, "kluis") && (a.isSolo() || !Lock.locked(ctx))) {
+                if (a.kluisOk()) Kluis.open(ctx); else a.kluisGen = Kluis.ontgrendeld(ctx);
+                a.js("onKluis", "true");
+                return;
+            }
             a.h.post(() -> {
                 if (a.kluisOk()) { Kluis.open(ctx); a.js("onKluis", "true"); return; }
                 if (Lock.busy()) { a.js("onKluis", JSONObject.quote("Er staat al een vraag om te ontgrendelen open")); return; }
                 Lock.prompt(a, "Kluis openen", (ok, msg) -> a.runOnUiThread(() -> {
-                    if (ok) { Kluis.clearViews(ctx); a.kluisGen = ++Kluis.gen; Kluis.open(ctx); }
+                    if (ok) a.kluisGen = Kluis.ontgrendeld(ctx);
                     a.js("onKluis", ok ? "true" : JSONObject.quote(msg == null ? "Niet ontgrendeld" : msg));
                 }));
             });

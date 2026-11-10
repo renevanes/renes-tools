@@ -12,6 +12,8 @@ import java.security.KeyStore;
 final class MasterKeys {
     private MasterKeys(){ }
     static final String ALIAS="renes_masterdata_v1",READY="renes_masterdata_ready_v1",PROOF="renes_masterdata_reset_v1";
+    /** De sleutel werkt tot zo lang na het ontgrendelen; PROEF = naam van de proefsleutels voor openen zonder vraag (Ontgrendeld). */
+    static final int SECONDS=600;static final String PROEF="renes_masterdata";
     static KeyStore store()throws Exception{KeyStore s=KeyStore.getInstance("AndroidKeyStore");s.load(null);return s;}
     static boolean has(String alias)throws Exception{return store().containsAlias(alias);}
     static SecretKey generate(String alias,int seconds)throws Exception{
@@ -32,7 +34,7 @@ final class MasterKeys {
         if(ks.containsAlias(ALIAS))key=((KeyStore.SecretKeyEntry)ks.getEntry(ALIAS,null)).getSecretKey();
         else{
             if(MasterStore.exists(c)||ks.containsAlias(READY))throw new MasterError(Taal.T("De beveiligingssleutel ontbreekt; bestaande stamgegevens worden niet vervangen"));
-            key=generate(ALIAS,600);
+            key=generate(ALIAS,SECONDS);
         }
         byte[] probe=MasterCipher.encrypt(key,"auth",new byte[]{1,2,3});MasterCipher.decrypt(key,"auth",probe);
         if(ks.containsAlias(READY)&&!MasterStore.exists(c))throw new MasterError(Taal.T("Het gegevensbestand ontbreekt; herstel wordt niet automatisch uitgevoerd"));
@@ -44,5 +46,10 @@ final class MasterKeys {
         KeyStore ks=store();if(ks.containsAlias(PROOF))ks.deleteEntry(PROOF);
         SecretKey key=generate(PROOF,15);byte[] probe=MasterCipher.encrypt(key,"reset",new byte[]{1});MasterCipher.decrypt(key,"reset",probe);
     }
-    static void remove()throws Exception{KeyStore ks=store();if(ks.containsAlias(ALIAS))ks.deleteEntry(ALIAS);if(ks.containsAlias(READY))ks.deleteEntry(READY);}
+    static void remove()throws Exception{KeyStore ks=store();if(ks.containsAlias(ALIAS))ks.deleteEntry(ALIAS);if(ks.containsAlias(READY))ks.deleteEntry(READY);Ontgrendeld.wis(PROEF);}
+    /** Extra ontgrendelen uit: zo lang mag Stamgegevens zonder vraag open (0 = vragen, -1 = nog geen sleutel of geen schermvergrendeling). Alleen als de sleutel er al is en nu werkt. */
+    static long vanzelf(Context c){
+        try{if(!Lock.deviceSecure(c)||!has(ALIAS))return -1;long max=Ontgrendeld.zeker(PROEF,SECONDS);if(max>0)authenticated(c);return max;}
+        catch(Throwable e){return 0;}
+    }
 }

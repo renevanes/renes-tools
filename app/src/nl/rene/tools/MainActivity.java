@@ -2457,6 +2457,9 @@ public class MainActivity extends Activity {
             if (on) {
                 if (!Lock.deviceSecure(ctx)) { toolSlotAntwoord(id, "aan", false, "Stel eerst een schermvergrendeling in op je telefoon (pincode, patroon of vingerafdruk)"); return; }
                 ToolSlot.zet(ctx, id, true);
+                // Wat zonder vraag open was, gaat nu op slot: de volgende keer vraagt hij het weer
+                if ("kluis".equals(id)) Kluis.close(ctx);
+                if ("bank".equals(id)) synchronized (a.bankAuth) { a.bankAuth.cancel(); Bank.close(); }
                 toolSlotAntwoord(id, "aan", true, null);
                 return;
             }

@@ -397,7 +397,7 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 body .toolslot .hdr .back{display:grid}
 body.solo .toolslot .hdr .back{display:none}
 .tile.ts-dicht small{visibility:hidden}
-.tile.ts-dicht .ic{position:relative}
+.tile.ts-dicht .ic,.tile.ts-eigen .ic{position:relative}
 .ts-tegel{position:absolute;right:-5px;bottom:-5px;width:20px;height:20px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:grid;place-items:center}
 .ts-tegel .ui-icon{width:13px;height:13px}
 .foot{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
