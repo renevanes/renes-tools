@@ -15,7 +15,7 @@ function spBook(offset,chapter){if(!erBook||!spAvailable())return;const ch=Numbe
 function spSelection(){const selection=erSelection;if(!selection||!erText)return;spText(erText.slice(selection.start,selection.end),'selection');}
 function spNote(){const n=noteById(noteCur);if(n)spText([n.title,n.text,...(n.items||[]).map(i=>i.text)].filter(Boolean).join('\n'),'note',true);}
 // taal-vast: het voorbeeld is in de taal van de gekozen stem, onafhankelijk van de interface
-function spPreview(){const voice=(sp.models.voices||[]).find(v=>v.id===sp.models.voice);spText(voice&&voice.language==='en'?'This voice reads your books and notes on your phone.':'Deze stem leest je boeken en notities voor op je telefoon.','preview');}
+function spPreview(){sp.models=spReadModels();const voice=(sp.models.voices||[]).find(v=>v.id===sp.models.voice);spText(voice&&voice.language==='en'?'This voice reads your books and notes on your phone.':'Deze stem leest je boeken en notities voor op je telefoon.','preview');}
 function spStop(abandon=false){const active=sp.active;if(!active)return;
   // Heeft de app geen sessie (meer) voor deze aanvraag, dan komt er geen 'stopped': meteen loslaten.
   let native=true;if(typeof Android.speechState==='function'){try{const st=JSON.parse(Android.speechState());native=!!st.active&&st.request===active.request;}catch(_){native=false;}}
@@ -49,26 +49,45 @@ function spSettings(){
 }
 function spSettingsClose(){if(!sp.settings)return;sp.settings=false;clearInterval(sp.timer);$('#speech-settings').hidden=true;const origin=$('#s-'+sp.origin);if(origin)dialogFocus.base(origin,false);if(sp.focus&&sp.focus.isConnected)sp.focus.focus();}
 function spModelsRender(){
-  if(!sp.settings)return;sp.models=spReadModels();const model=sp.models,box=$('#speech-voices'),focus=box.contains(document.activeElement)?document.activeElement.dataset.speechAction:null;box.replaceChildren();
-  for(const voice of model.voices||[]){
-    const card=cmEl('div',undefined,'speech-voice'),title=cmEl('h3',voice.label),status=cmEl('p',undefined,'hint'),actions=cmEl('div',undefined,'row');
-    const ready=voice.state==='ready',busy=['running','queued'].includes(voice.state);status.textContent=ready?(voice.selected?t('In gebruik'):t('Stem gedownload')):busy?t('Downloaden: {stand}',{stand:voice.size?fmtNum(100*voice.bytes/voice.size,0)+'%':t('bezig')}):voice.error||t('Nog te downloaden: {grootte}',{grootte:fmtSize(voice.size)});
-    const button=(label,act)=>{const b=cmEl('button',t(label),'mini');b.dataset.speechAction=voice.id+':'+label;b.onclick=act;actions.append(b);return b;};
-    if(ready){if(!voice.selected)button('Gebruiken',()=>spChoose(voice.id));button('Verwijderen',()=>spDelete(voice));}
-    else if(busy)button('Downloaden stoppen',()=>{Android.speechDownloadStop(voice.id);spModelsRender();});
-    else{const b=button(voice.bytes?'Verder downloaden':'Stem downloaden',()=>{const error=Android.speechDownload(voice.id);if(error)toast(error);spModelsRender();});b.disabled=model.supported===false;}
-    card.append(title,status,actions);box.append(card);
-  }
-  if(focus){const next=[...box.querySelectorAll('button')].find(b=>b.dataset.speechAction===focus);(next||$('#speech-heading')).focus();}
-  if(document.activeElement!==$('#speech-speed'))$('#speech-speed').value=model.speed||1;$('#speech-speed-value').textContent=t('{snelheid}×',{snelheid:fmtNum(model.speed||1,1)});
-  $('#speech-background').setAttribute('aria-checked',String(model.background!==false));$('#speech-background').classList.toggle('on',model.background!==false);$('#speech-preview').disabled=!model.voice;
-  $('#speech-model-status').textContent=model.supported===false?t('Lokale voorleesstemmen werken op een 64-bits toestel'):model.voice?t('Dezelfde stem wordt gebruikt in de e-reader, notities en assistent.'):t('Download een stem en kies daarna opnieuw Voorlezen.');$('#speech-engine').textContent=model.engine||'';
+  if(!sp.settings)return;sp.models=spReadModels();const model=sp.models,box=$('#speech-voices'),f=document.activeElement,line=box.contains(f)&&f.closest('[data-voice]'),focus=line?[line.dataset.voice,f.getAttribute('onclick')]:null;
+  // Dezelfde stemregels als bij Modellen en Spraak (53-modellen.js)
+  box.innerHTML=mdVoicesHtml(model);
+  if(focus){const next=[...box.querySelectorAll('[data-voice] button')].find(b=>b.closest('[data-voice]').dataset.voice===focus[0]&&b.getAttribute('onclick')===focus[1])||box.querySelector('[data-voice="'+CSS.escape(focus[0])+'"] button');(next||$('#speech-heading')).focus();}
+  spControlsRender(model,'speech');
+  $('#speech-model-status').textContent=model.supported===false?t('Lokale voorleesstemmen werken op een 64-bits toestel'):model.voice?t('Dezelfde stem wordt overal in Tools gebruikt.'):t('Download een stem en kies daarna opnieuw Voorlezen.');$('#speech-engine').textContent=model.engine||'';
 }
-function spSave(voice,speed,background){const error=Android.speechConfigure(voice,speed,background);if(error)toast(error);spModelsRender();}
-function spChoose(voice){spStop();spSave(voice,sp.models.speed||1,sp.models.background!==false);}
-function spSpeed(value){const voice=sp.models.voice||'';spSave(voice,Number(value),sp.models.background!==false);}
-function spBackground(){const voice=sp.models.voice||'',on=sp.models.background===false;spSave(voice,sp.models.speed||1,on);if(on&&typeof Android.speechNotifAsk==='function')Android.speechNotifAsk();} // Android 13+: zonder meldingen geen pauzeknop in de melding
-function spDelete(voice){spSettingsClose();askConfirm(t('Voorleesstem verwijderen?'),t('Het voorlezen stopt en de stem wordt van je telefoon verwijderd. Je kunt hem later opnieuw downloaden.'),t('Verwijderen'),()=>{Android.speechDelete(voice.id);spSettings();});}
+/** Snelheid, achtergrond en proberen: hetzelfde in het stemmenvenster (prefix speech) en op Spraak (prefix sv). */
+function spControlsRender(model,pre){
+  const speed=$('#'+pre+'-speed');if(!speed)return;if(document.activeElement!==speed)speed.value=model.speed||1;$('#'+pre+'-speed-value').textContent=t('{snelheid}×',{snelheid:fmtNum(model.speed||1,1)});
+  const bg=$('#'+pre+'-background');bg.setAttribute('aria-checked',String(model.background!==false));bg.classList.toggle('on',model.background!==false);$('#'+pre+'-preview').disabled=!model.voice;
+}
+/** Na een wijziging in de stemmen: elke plek die ze toont opnieuw tekenen. */
+function spRefreshAll(){spModelsRender();if(typeof mdRefresh==='function'&&(current==='models'||current==='spraak'))mdRefresh();if(typeof erSpeakRender==='function')erSpeakRender();}
+function spDownload(id){const error=Android.speechDownload(id);if(error)toast(error);spRefreshAll();}
+function spDownloadStop(id){Android.speechDownloadStop(id);spRefreshAll();}
+/* light: alleen snelheid of achtergrond (geen modellen opnieuw ophalen; dat is zwaar bij elke beweging van de schuif) */
+function spSave(voice,speed,background,light){const error=Android.speechConfigure(voice,speed,background);if(error)toast(error);if(!light){spRefreshAll();return;}spModelsRender();if(current==='spraak')spControlsRender(spReadModels(),'sv');if(typeof erSpeakRender==='function')erSpeakRender();}
+function spChoose(voice){sp.models=spReadModels();spStop();spSave(voice,sp.models.speed||1,sp.models.background!==false);}
+function spSpeed(value){sp.models=spReadModels();const voice=sp.models.voice||'';spSave(voice,Number(value),sp.models.background!==false,true);}
+function spBackground(){sp.models=spReadModels();const voice=sp.models.voice||'',on=sp.models.background===false;spSave(voice,sp.models.speed||1,on,true);if(on&&typeof Android.speechNotifAsk==='function')Android.speechNotifAsk();} // Android 13+: zonder meldingen geen pauzeknop in de melding
+function spDelete(id){const open=sp.settings;if(open)spSettingsClose();askConfirm(t('Voorleesstem verwijderen?'),t('Het voorlezen stopt en de stem wordt van je telefoon verwijderd. Je kunt hem later opnieuw downloaden.'),t('Verwijderen'),()=>{Android.speechDelete(id);if(open)spSettings();spRefreshAll();});}
+
+/* ---------- Spraak (Instellingen → Spraak): één plek voor voorlezen en spraak naar tekst ----------
+   Stem, snelheid en achtergrond; daaronder dezelfde kaarten als bij Modellen (stemmen en spraakmodellen). */
+function enterSpraak(){mdRefresh();} // laadt de stand en tekent Spraak (svRender), met verversen tijdens downloads
+function svRender(){
+  if(current!=='spraak')return;
+  if(typeof Android.speechModels!=='function'){$('#sv-voice-card').hidden=true;}
+  const model=spReadModels(),ready=mdVoiceSort(model.voices).filter(v=>v.state==='ready'),sel=$('#sv-voice');
+  const opts=ready.length?ready.map(v=>[v.id,v.label+' · '+mdVoiceQ(v)]):[['',t('Nog geen stem gedownload')]],sig=JSON.stringify(opts);
+  if(sel.dataset.sig!==sig){sel.dataset.sig=sig;sel.replaceChildren(...opts.map(([id,label])=>{const o=cmEl('option',label);o.value=id;return o;}));}
+  sel.value=ready.some(v=>v.id===model.voice)?model.voice:(ready[0]?ready[0].id:'');sel.disabled=!ready.length;
+  $('#sv-stand').textContent=model.supported===false?t('Lokale voorleesstemmen werken op een 64-bits toestel'):ready.length?t('Dezelfde stem wordt overal in Tools gebruikt. Een boek in een andere taal krijgt vanzelf je stem in die taal.'):t('Download hieronder een stem; daarna werkt voorlezen zonder internet.');
+  spControlsRender(model,'sv');
+  // In de Play-versie geen spraak naar tekst (geen assistent, opnames of Slaappraat)
+  const play=typeof isPlay==='function'&&isPlay();$('#sv-help-stt').hidden=play;
+  if(mdSt&&mdSt.models)mdKeepFocus($('#sv-cats'),()=>uiHtml($('#sv-cats'),(play?['tts']:['tts','spraak']).map(k=>mdCatCard(MD_CATS.find(c=>c.kind===k))).join('')));
+}
 const spOldPause=window.onPauseApp;window.onPauseApp=function(){if(spOldPause)spOldPause();if(sp.active&&sp.active.source!=='reader'){sp.active=null;spSpeechRender();}};
 const spOldResume=window.onResumeApp;window.onResumeApp=function(){if(spOldResume)spOldResume();spSync();if(sp.settings)spModelsRender();};
 $('#speech-settings').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();spSettingsClose();}else if(e.key==='Tab'){const nodes=[...e.currentTarget.querySelectorAll('button,input,summary')].filter(n=>!n.disabled&&n.getClientRects().length),first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&(document.activeElement===first||document.activeElement===$('#speech-heading'))){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});

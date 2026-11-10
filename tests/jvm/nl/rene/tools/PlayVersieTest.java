@@ -12,6 +12,11 @@ public class PlayVersieTest {
         ok(!Updater.isPlayPackage(null), "zonder pakketnaam: gewone app");
         ok(PlayPolicy.allows("nl.rene.tools", "recorder"), "gewone functies blijven beschikbaar");
         ok(PlayPolicy.allows("nl.rene.tools.play", "notes"), "Play-notities beschikbaar");
+        // Voorleesstemmen met een niet-commerciële licentie (CC BY-NC-SA) niet in de Play-versie
+        for (VoiceModels.Voice v : VoiceModels.VOICES) {
+            ok(VoiceModels.offered("nl.rene.tools", v), "gewone app biedt elke stem aan: " + v.id);
+            ok(VoiceModels.offered("nl.rene.tools.play", v) == !v.nonCommercial, "Play biedt alleen stemmen zonder NC-licentie aan: " + v.id);
+        }
         for (String feature : new String[]{"recorder", "unlockPhoto", "ai", "vpn", "auto", "onbekend"})
             ok(!PlayPolicy.allows("nl.rene.tools.play", feature), "Play weigert " + feature);
         ok(!PlayPolicy.keepPreference("nl.rene.tools.play", "gebruik", "photoUnlock"), "oude foto-instelling geblokkeerd");

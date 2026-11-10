@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.184",
-  "versionCode": 185,
-  "nativeLevel": 164,
+  "versionName": "1.185",
+  "versionCode": 186,
+  "nativeLevel": 165,
   "web": "index.html",
-  "webSha256": "f1ac6104fb4ef4be7c6cf3cd7ca38cbfd85848c85c88291cfbb7709bfc1b8efa",
+  "webSha256": "b44d9d8375e76c59fed6f6f68272e8485c3344ad57ca6bc5e4e137a555216df8",
   "start": "start.html",
   "startSha256": "eb96929e99cefd1937525b8c0c5d0ed8979828dcbe88a9789da523294b6331be",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "506a6c2dbbecfd39e4ff4d69f69627c26f55263f1e76ca42a53db0a3124ec41f",
+  "apkSha256": "b87549522048ecc0b06d10d1e0618d0e0ad0b81d1d786fa7a7884bf83a939d3d",
   "changelog": [
+    {
+      "version": "1.185",
+      "date": "2026-11-10",
+      "changes": [
+        "Nieuw: Instellingen → Spraak, één plek voor voorlezen (stem, snelheid, achtergrond) en spraak naar tekst; de stemmen staan nu ook als gewone modellen bij Modellen.",
+        "Betere Nederlandse voorleesstemmen: Dii en Miro (hoogste kwaliteit) en Pim, in volledige kwaliteit (±67 MB). Ze klinken zuiverder dan Ronnie en rekenen zelfs sneller.",
+        "Kies je een stem in een andere taal, dan onthoudt Tools die per taal: een Engels boek krijgt vanzelf je Engelse stem."
+      ]
+    },
     {
       "version": "1.184",
       "date": "2026-11-10",
@@ -1631,5 +1640,5 @@
       ]
     }
   ],
-  "webSig2": "X4VPgYhXSxVrRBl52sXSIPKk2c1E3JGRTEePMGeE94NHokriRG8uL54M1q3rGnDxot0iZ9ayEENX5h1EudLyQ45DnXcQUWOQZKSq2pA+/y/zf6gciMetzsaDmLWeYeebBR2hq2kxYJIKW8gLVorOnKnWKnZPXcYXujmh/qssIeYQcbmjR8PoelzVkJPfsnqxqtBjWDCDbWkNH6z9Lipoi9jI6sZWdyo45lC0dqgn9DL8mqMhl7HW5YP21HGknsVwQUbvB8yyaCn8Pkeeucna1jnlFqICmuJgF7KLDp8hEIqw1pzStXA5kr/kd4TUXJaDGwWqMBc62L42cgn7RTrMv1l2+ZW9eYA3etWt28ba6a21eVXTKRq6B3vmpVPI+7LztaUJ3gdHOnbm4v8MEJlm4zxvVDYJqlMk7IDWVhn/1HQOuMqxqUzmAyKWsqsAtrM+ObQg+ome//xNAEAzQuyoxHNxY2W9zDxazNIm8vOzNcXCX7Wx7+RZQBFUgv+PPxoX"
+  "webSig2": "kWq30meEf8i+l8NaKdoVJ/kBFJLPu4MOT6KzyHpu8KhRiLpcrhD7C7ChIBVano6kzC+wEqOuw2fAjv+F1EUlIvkq9WCEHKX2CRxBHNh2Aa8wd+bLOLq1ne8OJBk2vS42e5qtqWZXQ9wnPhYTtZ8qwYipQmOtxhFx4QNrNzvEglU/FFE7fDkqlXjrXOQATYO1UvbuOlYwxQkxzxOltrx/lH3Hnmar6+C0jbK/VX2IRNlVLjEHXa7U1ejgxaOyva5QP1k5qrv7gRJ8kScb89EP9dgiPLmJeD2H/vO+2JV8jnDIdWx/9FYp+otiRFmqqqqWMST/23SqsHf3DXUuOT9mmJymPLQoNYypF+XcrS1L8cxCxYv/l661WGguhX4E4abqak8T9oZ6Lii6rgHf7Vu54sjgznDKyQLl1AdZ907wlKoz5cx+boRN+Bxj1nxV3qiIxc5B4Urm1ahGl2R4IC7morICCU2urf6Pjuz9uE5+oOMHClI1nu2n5hgxJ8cGCmm0"
 }

@@ -389,17 +389,23 @@ const SET_REG = [
   { id: 'ereader.volumeknoppen', scr: 'erset', ctl: '#er-keys', label: 'Bladeren met de volumeknoppen', desc: 'In een boek gaat zachter naar de volgende en harder naar de vorige pagina (niet tijdens het voorlezen).',
     syn: 'volumeknoppen bladeren pagina boek', synEn: 'volume buttons turn page book', need: /volumeknop|volumetoets|blader|pagina|page|e-?reader|boek|book|volume (?:buttons?|keys?)/,
     get: () => setB(erLezen().keys), set: v => erLezenSet('keys', setOnV(v)) },
-  /* Lokaal voorlezen (gedeeld door e-reader, notities en assistent; Instellingen → Lokaal voorlezen) */
-  { id: 'voorlezen.snelheid', scr: 'settings', type: 'keuze', vals: () => [.6, .7, .8, .9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8].map(r => [String(r), fmtNum(r) + '×']), label: 'Voorleessnelheid', desc: 'Hoe snel de lokale stem boeken, notities en antwoorden voorleest (Lokaal voorlezen).',
+  /* Voorlezen (gedeeld door alle tools; Instellingen → Spraak) */
+  { id: 'voorlezen.stem', scr: 'spraak', ctl: '#sv-voice', type: 'keuze', vals: () => { try { return mdVoiceSort(JSON.parse(Android.speechModels()).voices).filter(v => v.state === 'ready').map(v => [v.id, v.label]); } catch (e) { return []; } },
+    label: 'Voorleesstem', desc: 'Welke gedownloade stem voorleest in de e-reader, notities, de assistent en andere tools (Spraak). Stemmen download je bij Spraak of Modellen.',
+    syn: 'voorlezen stem voorleesstem spraak dii miro pim ronnie nederlands engels', synEn: 'read aloud voice speech dutch english', need: /voorle|stem|voice|read aloud/,
+    avail: () => typeof Android.speechModels === 'function' ? '' : 'Installeer de nieuwste APK voor lokaal voorlezen',
+    get: () => { try { return JSON.parse(Android.speechModels()).voice || ''; } catch (e) { return ''; } },
+    set: v => { const m = JSON.parse(Android.speechModels()); if (!(m.voices || []).some(x => x.id === v && x.state === 'ready')) return 'Download deze stem eerst bij Spraak'; spChoose(v); setIf('spraak', svRender); return ''; } },
+  { id: 'voorlezen.snelheid', scr: 'spraak', ctl: '#sv-speed', type: 'keuze', vals: () => [.6, .7, .8, .9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8].map(r => [String(r), fmtNum(r) + '×']), label: 'Voorleessnelheid', desc: 'Hoe snel de lokale stem boeken, notities en antwoorden voorleest (Spraak).',
     syn: 'voorlezen voorleessnelheid snelheid sneller langzamer stem spraak e-reader boek', synEn: 'read aloud speed faster slower voice speech e-reader book', need: /voorle|snelheid|speed|read aloud|stem|voice/,
     avail: () => typeof Android.speechModels === 'function' ? '' : 'Installeer de nieuwste APK voor lokaal voorlezen',
     get: () => { try { return String(JSON.parse(Android.speechModels()).speed || 1); } catch (e) { return '1'; } },
-    set: v => { const m = JSON.parse(Android.speechModels()); const e = Android.speechConfigure(m.voice || '', +v, m.background !== false); if (typeof spModelsRender === 'function') spModelsRender(); if (typeof erSpeakRender === 'function') erSpeakRender(); return e || ''; } },
-  { id: 'voorlezen.achtergrond', scr: 'settings', label: 'Boeken blijven voorlezen op de achtergrond', desc: 'Een boek leest door met het scherm uit of buiten Tools (Lokaal voorlezen). Notities en de assistent stoppen dan wel.',
+    set: v => { const m = JSON.parse(Android.speechModels()); const e = Android.speechConfigure(m.voice || '', +v, m.background !== false); if (typeof spRefreshAll === 'function') spRefreshAll(); setIf('spraak', svRender); if (typeof erSpeakRender === 'function') erSpeakRender(); return e || ''; } },
+  { id: 'voorlezen.achtergrond', scr: 'spraak', ctl: '#sv-background', label: 'Boeken blijven voorlezen op de achtergrond', desc: 'Een boek leest door met het scherm uit of buiten Tools (Spraak). Notities en de assistent stoppen dan wel.',
     syn: 'voorlezen achtergrond scherm uit doorgaan boek e-reader', synEn: 'read aloud background screen off keep reading book e-reader', need: /voorle|achtergrond|background|read aloud|boek|book/,
     avail: () => typeof Android.speechModels === 'function' ? '' : 'Installeer de nieuwste APK voor lokaal voorlezen',
     get: () => { try { return setB(JSON.parse(Android.speechModels()).background !== false); } catch (e) { return 'uit'; } },
-    set: v => { const m = JSON.parse(Android.speechModels()); const e = Android.speechConfigure(m.voice || '', m.speed || 1, setOnV(v)); if (!e && setOnV(v) && typeof Android.speechNotifAsk === 'function') Android.speechNotifAsk(); /* zoals spBackground: zonder meldingen geen pauzeknop */ if (typeof spModelsRender === 'function') spModelsRender(); if (typeof erSpeakRender === 'function') erSpeakRender(); return e || ''; } }
+    set: v => { const m = JSON.parse(Android.speechModels()); const e = Android.speechConfigure(m.voice || '', m.speed || 1, setOnV(v)); if (!e && setOnV(v) && typeof Android.speechNotifAsk === 'function') Android.speechNotifAsk(); /* zoals spBackground: zonder meldingen geen pauzeknop */ if (typeof spRefreshAll === 'function') spRefreshAll(); setIf('spraak', svRender); if (typeof erSpeakRender === 'function') erSpeakRender(); return e || ''; } }
 ];
 
 const SET_SRC_PRIV = ['sms', 'wa', 'calls', 'contacts', 'tx', 'sleep', 'checkin', 'gebruik', 'apparaten'];

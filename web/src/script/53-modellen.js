@@ -9,8 +9,8 @@ const MD_CATS = [
     need: 'Nodig voor die functies: één spraakmodel. Snel is genoeg; Nauwkeurig maakt minder fouten maar is trager.' },
   { kind: 'zoek', title: 'Slim zoeken', icon: 'search', what: 'Zoeken op betekenis in je notities, gesprekken en berichten, ook voor de assistent ("Met mijn gegevens").',
     need: 'Niet nodig om de assistent te gebruiken; alleen als je slim zoeken wilt.' },
-  { kind: 'tts', title: 'Voorlezen (tekst naar spraak)', icon: 'volume', what: 'De e-reader, notities en assistent lezen tekst voor met een lokaal spraakmodel.',
-    need: 'Download één Nederlandse of Engelse stem. Daarna werkt het zonder internet.' }
+  { kind: 'tts', title: 'Voorlezen (tekst naar spraak)', icon: 'volume', what: 'Leest tekst voor met een stem op je telefoon: de e-reader, notities, de assistent en andere tools.',
+    need: 'Nodig voor voorlezen: één stem. De stemmen met Beste kwaliteit klinken het natuurlijkst; de compacte stemmen zijn kleiner. Daarna werkt het zonder internet.' }
 ];
 function mdLoad(){ mdSt = rdJson(Android.modelsState(), {}); aiModelsTaal(mdSt.models); return mdSt; }
 function mdGB(b){ b = Math.max(0, +b || 0); return b >= 1e9 ? fmtNum(b / 1e9, 1) + ' GB' : fmtNum(Math.max(1, Math.round(b / 1e6))) + ' MB'; } // zoals Hugging Face (1000 per stap)
@@ -91,12 +91,12 @@ function mdResumed(){
 }
 function mdRefresh(){
   mdLoad();
-  if (current === 'models') mdRender();
+  if (current === 'models') mdRender(); else if (current === 'spraak' && typeof svRender === 'function') svRender();
   clearTimeout(mdPollT);
-  if (current === 'models' && (mdModels().some(m => ['running', 'queued', 'verifying'].includes(m.state) || m.waiting) || (mdSt.speech?.voices||[]).some(v=>v.state==='running'||v.state==='queued') || !mdSt.speech&&(mdSt.tts || {}).state === 'checking')) mdPollT = setTimeout(mdRefresh, 1500);
+  if ((current === 'models' || current === 'spraak') && (mdModels().some(m => ['running', 'queued', 'verifying'].includes(m.state) || m.waiting) || (mdSt.speech?.voices||[]).some(v=>v.state==='running'||v.state==='queued') || !mdSt.speech&&(mdSt.tts || {}).state === 'checking')) mdPollT = setTimeout(mdRefresh, 1500);
 }
 const _mdOnAiModels = window.onAiModels;
-window.onAiModels = function(){ if (_mdOnAiModels) _mdOnAiModels(); if (current === 'models') mdRefresh(); };
+window.onAiModels = function(){ if (_mdOnAiModels) _mdOnAiModels(); if (current === 'models' || current === 'spraak') mdRefresh(); };
 
 function mdRender(){
   const s = mdSt;
@@ -107,7 +107,7 @@ function mdRender(){
     '<p class="md-line"><b>' + (used ? t('Modellen: {grootte}', { grootte: mdGB(used) }) : t('Nog geen modellen')) + '</b><span>' + (free > 0 ? t('Vrij op je telefoon: {grootte}', { grootte: mdGB(free) }) : '') + '</span></p>' +
     (s.leftovers >= 1e6 ? '<div class="sw"><span>Resten van oude en halve downloads<small>' + esc(t('{grootte} die geen bruikbaar model zijn', { grootte: mdGB(s.leftovers) })) + '</small></span><button class="mini" onclick="mdClean()">Opruimen</button></div>' : '');
   mdRec = mdRecKey(mdModels());
-  uiHtml($('#md-cats'), MD_CATS.map(cat => mdCatCard(cat)).join(''));
+  mdKeepFocus($('#md-cats'), () => uiHtml($('#md-cats'), MD_CATS.map(cat => mdCatCard(cat)).join('')));
   const w = $('#md-wifi'); w.classList.toggle('on', !!s.wifiOnly); w.setAttribute('aria-checked', s.wifiOnly ? 'true' : 'false');
 }
 /** Kort: is deze soort klaar voor gebruik? Zuiver. [tekst, ok] */
@@ -126,13 +126,48 @@ function mdCatCard(cat){
     '';
   // Waarvoor en of je hem nodig hebt: ingeklapt (Hoe werkt dit?), net als de motor
   const help = eng => uiHelp(t('Waarvoor is dit?'), '<p class="md-what">' + esc(t(cat.what)) + ' <span class="md-need">' + esc(t(cat.need)) + '</span></p>' + (eng ? '<p class="md-engine">' + esc(t('Motor: {motor} (zit in de app, wordt bijgewerkt met de app)', { motor: eng })) + '</p>' : ''), true, 'md-' + cat.kind);
+  // Stemmen vers ophalen: hun namen komt vertaald uit Java, dus na een taalwissel niet uit de bewaarde stand
+  if (cat.kind === 'tts' && mdSt.speech) { const speech = typeof spReadModels === 'function' ? spReadModels() : mdSt.speech; return '<section class="card md-cat" data-kind="tts" aria-label="' + esc(cat.title) + '">' + head + mdVoicesHtml(speech) + help(speech.engine || '') + '</section>'; }
   if (cat.kind === 'tts') return '<section class="card md-cat" data-kind="tts" aria-label="' + esc(cat.title) + '">' + head + mdTtsBody(mdSt.tts || {}) + help('') + '</section>';
   const lines = mdLines(mdModels(), cat.kind), eng = (mdSt.engines || {})[cat.kind];
   // Het model (dat je downloadt) en de motor die het draait (zit in de app en gaat mee met app-updates)
   return '<section class="card md-cat" data-kind="' + cat.kind + '" aria-label="' + esc(cat.title) + '">' + head + '<div role="list">' + lines.map(l => mdLineHtml(l)).join('') + '</div>' + help(eng) + '</section>';
 }
+/** Kwaliteit van een stem in een paar woorden. */
+function mdVoiceQ(v){ return v.quality === 'best' ? t('Beste kwaliteit') : v.quality === 'goed' ? t('Goede kwaliteit') : t('Compact'); }
+/** Volgorde: eerst Nederlands, dan de beste kwaliteit. Zuiver. */
+function mdVoiceSort(voices){ const r = v => v.quality === 'best' ? 0 : v.quality === 'goed' ? 1 : 2; return (voices || []).slice().sort((a, b) => (a.language === 'nl' ? 0 : 1) - (b.language === 'nl' ? 0 : 1) || r(a) - r(b)); }
+/** Alle voorleesstemmen als modelregels, met dezelfde knoppen als de andere modellen (ook in het stemmenvenster). */
+function mdVoicesHtml(speech){
+  return (speech.supported === false ? '<p class="note">' + esc(t('Lokale voorleesstemmen werken op een 64-bits toestel')) + '</p>' : '') +
+    '<div role="list">' + mdVoiceSort(speech.voices).map(v => mdVoiceHtml(v, speech)).join('') + '</div>';
+}
+/** Eén stem: in gebruik / gebruiken, verwijderen; downloaden met voortgang; of nog niet op je telefoon. */
+function mdVoiceHtml(v, speech){
+  const id = jsq(v.id), name = '<b>' + esc(v.label) + '</b>', meta = mdVoiceQ(v) + ' · ' + mdGB(v.size) + (v.nc ? ' · ' + t('licentie: alleen niet-commercieel') : '');
+  let row;
+  if (v.state === 'ready') row = '<div class="md-ver"><div class="aimt">' + name + '<small>' + esc(t('Op je telefoon') + ' · ' + meta) + '</small></div><div class="aimb">' +
+    (v.selected ? '<span class="aisel">' + esc(t('In gebruik')) + '</span>' : mdBtn(esc(t('Gebruiken')), 'spChoose(' + id + ')', false, t('{model} gebruiken', { model: v.label }))) +
+    mdBtn(esc(t('Verwijderen')), 'spDelete(' + id + ')', false, t('{model} verwijderen', { model: v.label })) + '</div></div>';
+  else if (v.state === 'running' || v.state === 'queued') { const pct = v.size ? Math.min(100, 100 * v.bytes / v.size) : 0;
+    row = '<div class="md-busy"><div class="aimt">' + name + '<small class="aims">' + esc(v.state === 'queued' ? t('Wacht op zijn beurt') : t('Downloaden: {stand}', { stand: fmtNum(pct, 0) + '%' })) + '</small>' +
+      '<span class="pcprog" role="progressbar" aria-label="' + esc(t('Voortgang {model}', { model: v.label })) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.floor(pct) + '"><i style="width:' + pct.toFixed(1) + '%"></i></span></div>' +
+      '<div class="md-acts">' + mdBtn(esc(t('Stoppen')), 'spDownloadStop(' + id + ')', false, t('{model}: downloaden stoppen', { model: v.label })) + '</div></div>'; }
+  else row = '<div class="md-ver"><div class="aimt">' + name + '<small>' + esc((v.bytes ? t('Half gedownload') : t('Nog niet op je telefoon')) + ' · ' + meta) + '</small>' + (v.error ? '<small class="md-hint">' + esc(v.error) + '</small>' : '') + '</div><div class="aimb">' +
+    (speech.supported === false ? '' : mdBtn(esc(t(v.bytes ? 'Verder downloaden' : 'Downloaden')), 'spDownload(' + id + ')', true, t('{model} downloaden', { model: v.label }))) + '</div></div>';
+  return '<div class="md-linebox" role="listitem" data-voice="' + esc(v.id) + '">' + row + '</div>';
+}
+/** Opnieuw tekenen zonder dat de focus verloren gaat (TalkBack, toetsenbord): dezelfde knop in dezelfde regel terug. */
+function mdKeepFocus(box, draw){
+  const f = document.activeElement, line = box.contains(f) && f.closest('[data-voice],[data-line],[data-key]');
+  const key = line ? ['voice', 'line', 'key'].map(k => line.dataset[k] || '').join('|') : '', act = line ? f.getAttribute('onclick') : '';
+  draw();
+  if (!line) return;
+  const lines = [...box.querySelectorAll('[data-voice],[data-line],[data-key]')].filter(l => ['voice', 'line', 'key'].map(k => l.dataset[k] || '').join('|') === key);
+  const btns = lines.flatMap(l => [...l.querySelectorAll('button')]), next = btns.find(b => b.getAttribute('onclick') === act) || btns[0];
+  if (next) next.focus();
+}
 function mdTtsBody(tt){
-  if(mdSt.speech)return '<p class="hint">'+esc(t('Eén stem voor je boeken, notities en de assistent. Tekst blijft op je telefoon.'))+'</p><div class="md-acts">'+mdBtn(t('Lokale stemmen beheren'),'spSettings()',false,t('Lokale voorleesstemmen beheren'))+'</div>';
   if (tt.state === 'ok') return '<div class="md-acts">' + mdBtn('Stem en snelheid', 'Android.ttsSettings()', false, 'Stem en snelheid van het voorlezen instellen') + '</div>';
   if (tt.state === 'nodutch') return '<p class="note">' + esc(t('Er is wel een voorleesfunctie{motor}, maar zonder Nederlandse stem. Voeg er een toe; daarna kijkt de app vanzelf opnieuw.', { motor: tt.engine ? ' (' + tt.engine + ')' : '' })) + '</p><div class="md-acts">' + mdBtn('Nederlandse stem toevoegen', 'Android.ttsInstall()', true) + mdBtn('Instellingen', 'Android.ttsSettings()', false, 'Instellingen van het voorlezen') + mdBtn('Opnieuw kijken', 'mdTtsCheck()', false, 'Opnieuw kijken of er een Nederlandse stem is') + '</div>';
   if (tt.state === 'noengine' || tt.state === 'slow') return '<p class="note">' + (tt.state === 'slow' ? 'De voorleesfunctie van je telefoon antwoordde niet op tijd. Probeer het zo opnieuw.' : 'Installeer bijvoorbeeld Spraakservices van Google uit de Play Store en kies daar een Nederlandse stem.') + '</p><div class="md-acts">' + mdBtn('Instellingen', 'Android.ttsSettings()', false, 'Instellingen van het voorlezen') + mdBtn('Opnieuw kijken', 'mdTtsCheck()', false, 'Opnieuw kijken of er een voorleesfunctie is') + '</div>';
