@@ -8,7 +8,7 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>{Android._cm.contacts={
     ik:{weergave:'Rene van Es',fields:{voornamen:'Rene',naam:'van Es',telefoon:'010 123 4567'}},
     c1:{weergave:'Anna de Vries',fields:{voornamen:'Anna',naam:'de Vries',telefoon:'06 1234 5678',email:'anna@voorbeeld.nl',adres:'Straat 1',postcode:'3011 AA',plaats:'Rotterdam',geboortedatum:'2015-02-03'}}};});
-  await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+  await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
   const kaartTekst=()=>p.textContent('#cm-kaart');
   const herlaad=async id=>{await p.evaluate(id=>cmKaartLoad(id),id);await p.waitForFunction(id=>current==='cmkaart'&&cmc.rec?.id===id&&!cm.pending.size&&!cm.navigating,id);};
 

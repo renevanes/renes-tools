@@ -2,7 +2,7 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
 (async()=>{const browser=await chromium.launch(),errors=[];
 for(const colorScheme of ['light','dark']){
  const p=await browser.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));await p.goto('file://'+path.join(__dirname,'ui/index.html'));const T=require('./_stamtabs')(p);
- await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+ await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
  // Een nieuwe persoon (alleen het korte blok); tijdens het opslaan opent er niets anders
  const person=async(roepnaam,naam,traag)=>{
   await p.evaluate(()=>cmNew());await T.fill('#cm-field-roepnaam',roepnaam);await T.fill('#cm-field-naam',naam);
@@ -32,8 +32,8 @@ for(const colorScheme of ['light','dark']){
  await p.waitForFunction(()=>!cm.edit&&current==='cmkaart'&&cm.records.some(r=>r.type==='identiteit')&&!cm.navigating);const doc=await p.evaluate(()=>cm.records.find(r=>r.type==='identiteit').id);
  const openDoc=()=>T.blok(doc,'fotos');await openDoc();
  // Voorzijde: te lang weg uit de kiezer (kluis op slot, ontgrendelen); achterzijde: meteen terug, blijft open. Daarna het documentkaartje.
- await p.evaluate(()=>Android._cm.slowPick=true);await p.evaluate(()=>cmiPhotoPick('front'));await p.waitForFunction(()=>!cm.token&&!$('#cmi-photo-pending').hidden);assert.equal(await p.getAttribute('#cmi-front-image','src'),null);
- await p.locator('#cmi-photo-pending button').first().click();await p.waitForFunction(doc=>cmOpen()&&current==='cmkaart'&&cmc.rec?.id===doc&&!!cmc.rec.images?.front,doc);
+ await p.evaluate(()=>Android._cm.slowPick=true);await p.evaluate(()=>cmiPhotoPick('front'));await p.waitForFunction(()=>!cm.token&&!$('#cmi-photo-pending').hidden&&/kaartfoto is gekozen/i.test($('#ts-msg').textContent));assert.equal(await p.getAttribute('#cmi-front-image','src'),null);
+ assert.equal(await p.locator('#cmi-photo-pending button').count(),1,'alleen Foto annuleren, geen eigen ontgrendelknop');await p.click('#ts-open');await p.waitForFunction(doc=>cmOpen()&&current==='cmkaart'&&cmc.rec?.id===doc&&!!cmc.rec.images?.front,doc);
  assert.equal(await p.textContent('#cm-kaart-status'),'Kaartfoto opgeslagen.');
  await p.evaluate(()=>Android._cm.slowPick=false);await p.click('#cmc-foto-back');await p.waitForFunction(doc=>cmOpen()&&current==='cmkaart'&&cmc.rec?.id===doc&&!!cmc.rec.images?.back,doc);assert.equal(await p.isVisible('#cmi-photo-pending'),false,'achterzijde zonder opnieuw ontgrendelen');
  assert.equal(await p.textContent('#cm-kaart-status'),'Kaartfoto opgeslagen.','terug op het kaartje met bevestiging');
@@ -55,13 +55,13 @@ for(const colorScheme of ['light','dark']){
  await p.evaluate(()=>show('home'));assert.equal(await p.locator('#cmi-home-name').innerText(),'Hallo Rene');await p.evaluate(()=>show('aisetpers'));assert.equal(await p.locator('#cmi-ai-summary').innerText(),'De assistent kent jou (Rene) en één persoon.');
  // De echte bronkeuze bepaalt welke personen de formulierrelatie mogen leveren.
  await p.evaluate(()=>{show('formulieren');fmStart();fm.step=fmSecties().findIndex(s=>s.fields.some(f=>f.id==='kind-naam'));fmRender();fmHelpToon(true);});
- const choose=async(role,label)=>{await p.selectOption('#pff-hulp-rol',role);await p.click('#pff-hulp-kies');if(await p.isVisible('#cm-pick-unlock'))await p.click('#cm-pick-unlock');await p.getByRole('button',{name:label,exact:true}).click();await p.waitForSelector('#cm-pick-fields input[data-field]');await p.click('#cm-apply');await p.waitForFunction(()=>!cm.picker&&cm.privateReady);};
+ const choose=async(role,label)=>{await p.selectOption('#pff-hulp-rol',role);await p.click('#pff-hulp-kies');await T.slot();await p.getByRole('button',{name:label,exact:true}).click();await p.waitForSelector('#cm-pick-fields input[data-field]');await p.click('#cm-apply');await p.waitForFunction(()=>!cm.picker&&cm.privateReady);};
  await choose('kind','Zoë <b>Kind</b>');await p.evaluate(()=>{fmh.sources.find(s=>s.role==='kind').label='Kind '+ 'a'.repeat(110);fm.values.alleen='nee';fm.step=fmSecties().findIndex(s=>s.fields.some(f=>f.id==='begeleider1-naam'));fmRender();});await choose('begeleider1','Rene Instellingen');await p.waitForFunction(()=>fmh.sources.some(s=>s.type==='relatiecontext'));await p.click('#pff-hulp-vast');await p.waitForFunction(()=>fmh.rows.some(r=>r.id==='begeleider1-relatie'));assert.equal(await p.evaluate(()=>fmh.rows.find(r=>r.id==='begeleider1-relatie').value),'ouder');assert.equal(await p.inputValue('#pff-v-begeleider1-relatie'),'','voorstel is geen automatische invoer');
  await p.click('#pff-hulp-ai');await p.waitForFunction(()=>!fmh.busy&&fmh.rows.some(r=>r.id==='begeleider1-relatie'));assert.equal(await p.evaluate(()=>Android._pdf.formAi.input.sources.some(s=>s.type==='relatiecontext'&&s.fields.relatie==='ouder')),true);assert.equal(await p.evaluate(()=>JSON.stringify(Android._pdf.formAi.input).includes('base64')),false);assert.equal(await p.evaluate(()=>Android._pdf.formAi.input.sources.every(s=>s.label.length<=120)),true,'lange geldige persoonslabels houden een geldige AI-payload');
  // Navigeren tijdens het ophalen van relaties laat geen vastgelopen invulhulp achter.
  await p.evaluate(()=>{fmh.sources=fmh.sources.filter(s=>s.type!=='relatiecontext');cmiFormRelations.asked.clear();Android._cm.replyDelay=200;fmHelpRender();show('home');});await p.waitForTimeout(250);await p.evaluate(()=>show('formulieren'));await p.waitForFunction(()=>!cmiFormRelations.pending.size&&fmh.sources.some(s=>s.type==='relatiecontext'));assert.equal(await p.isDisabled('#pff-hulp-vast'),false);await p.evaluate(()=>Android._cm.replyDelay=10);
  // Intrekken werkt ook bij een laat contextsignaal van een eerdere worker.
- await p.evaluate(()=>show('masterdata'));if(await p.isVisible('#cm-unlock'))await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);await p.evaluate(()=>cmaiOpen());await p.waitForFunction(()=>current==='cmai'&&!$('#cm-ai-delen').disabled);await p.click('#cm-ai-delen');await p.waitForFunction(()=>!appIdentity.self);await p.evaluate(()=>onAppIdentity({self:{name:'VEROUDERD'}}));assert.equal(await p.evaluate(()=>appIdentity.self),undefined);assert.ok(await p.isHidden('#cmi-home'));
+ await p.evaluate(()=>show('masterdata'));if(await p.evaluate(()=>tsZichtbaar()))await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);await p.evaluate(()=>cmaiOpen());await p.waitForFunction(()=>current==='cmai'&&!$('#cm-ai-delen').disabled);await p.click('#cm-ai-delen');await p.waitForFunction(()=>!appIdentity.self);await p.evaluate(()=>onAppIdentity({self:{name:'VEROUDERD'}}));assert.equal(await p.evaluate(()=>appIdentity.self),undefined);assert.ok(await p.isHidden('#cmi-home'));
  assert.equal(await p.evaluate(()=>Object.keys(localStorage).some(k=>/stam|identity|profiel/.test(k))),false);
  await p.close();
 }

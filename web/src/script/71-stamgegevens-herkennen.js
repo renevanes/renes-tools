@@ -10,11 +10,10 @@ function cmhScanPick(person,soort=''){
   cmh.scanning=true;cmi.photoRequest=cmRequest('masterScanPick',[person,soort],()=>{},false,()=>cmiPhotoCancel());
 }
 function cmhPendingText(){
-  $('#cmi-photo-pending-text').textContent=cmh.scanning?t('Een foto is gekozen. Ontgrendel Stamgegevens: de app maakt dan een nieuw document met deze foto als bijlage en herkent de gegevens.'):t('Een kaartfoto is gekozen. Ontgrendel Stamgegevens om de foto bij het document op te slaan. Je vorige bewerking is bij het verlaten van de app gewist.');
-  $('#cmi-photo-pending-btn').textContent=cmh.scanning?t('Ontgrendelen en gegevens herkennen'):t('Ontgrendelen en kaartfoto opslaan');
+  $('#cmi-photo-pending-text').textContent=cmh.scanning?t('Een foto is gekozen. Na ontgrendelen maakt de app een nieuw document met deze foto als bijlage en herkent de gegevens.'):t('Een kaartfoto is gekozen. Na ontgrendelen wordt hij bij het document opgeslagen. Je vorige bewerking is bij het verlaten van de app gewist.');
 }
 const cmhPicked=window.onMasterPhotoPicked;window.onMasterPhotoPicked=function(r){
-  // Binnen 2 minuten terug uit de kiezer en nog ontgrendeld: geen kaart "Ontgrendel…", de foto wordt meteen verwerkt.
+  // Binnen 2 minuten terug uit de kiezer en nog ontgrendeld: geen kaart "Na ontgrendelen…", de foto wordt meteen verwerkt.
   if(r&&r.request===cmi.photoRequest&&r.picked&&r.direct&&cmOpen()){cmh.photoBusy=true;cmBusy(true);cmNote(t('Foto verwerken…'));return;}
   cmhPendingText();cmhPicked(r);
 };
@@ -197,4 +196,4 @@ function cmhDismiss(){if(cm.mutating)return;cmh.data=null;cmh.epoch++;$('#cmh-pa
 const cmhAfterEdit=cmAfterEdit;cmAfterEdit=function(saved,savedId){cmh.data=null;cmh.hulp=null;cmh.epoch++;$('#cmh-panel').hidden=true;$('#cmh-list').replaceChildren();cmhReviewState();cmhAfterEdit(saved,savedId);};
 const cmhClear=cmClearCentral;cmClearCentral=function(){cmh.data=null;cmh.hulp=null;$('#cmh-hulp').hidden=true;cmh.current=null;cmh.reveal=false;cmh.photoBusy=false;cmh.back=null;cmh.epoch++;cmh.scanEpoch++;cmh.scanBusy=false;$('#cmh-list').replaceChildren();$('#cmh-panel').hidden=true;cmhReviewState();cmhClear();};
 // Herkennen kan even duren na het ontgrendelen: zeg dat.
-const cmhUnlock=cmUnlock;cmUnlock=function(vanzelf){cmhUnlock(vanzelf);if(cmi.photoRequest&&cm.unlocking&&vanzelf!==true)cmNote(t('Bevestig op je telefoon. Daarna wordt de foto verwerkt; dat kan een paar seconden duren.'));};
+const cmhUnlock=cmUnlock;cmUnlock=function(){cmhUnlock();if(cmi.photoRequest&&cm.unlocking&&!$('#cmi-photo-pending').hidden)cmNote(t('De foto wordt verwerkt zodra Stamgegevens open is; dat kan een paar seconden duren.'));};

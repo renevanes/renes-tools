@@ -91,19 +91,29 @@ function rdClipMenu(){
 function rdClip(sec){ uiBezig(t('Bezig met bewaren…'), 'onRadioClip'); Android.radioSaveClip(Math.round(sec)); }
 window.onRadioClip = function(r){ toast(r ? r : 'Fragment bewaard in Radio/'); };
 
-/* Kluis: documenten versleuteld op de telefoon, open met vingerafdruk. */
-function enterKluis(){ klVanzelf(); klRender(); }
-/** Extra ontgrendelen uit: meteen open, zonder vraag (Java opent vóór het antwoord; onder het app-slot niet) */
-function klVanzelf(){ tsLaad(); if (tsEigenUit('kluis') && tsVanzelfMag()) Android.kluisOpenVanzelf(); }
-(function(){ const prev = window.onUnlocked; window.onUnlocked = function(){ if (prev) prev.apply(this, arguments); if (current === 'kluis') { klVanzelf(); klRender(); } }; })();
+/* Kluis: documenten versleuteld op de telefoon. Om ontgrendelen vraagt alleen het slotscherm van Extra ontgrendelen (26b);
+ * de kluis zelf heeft geen slotscherm. */
+function enterKluis(){ klRender(); }
+/** Open zonder vraag als dat mag: Java opent vóór het antwoord (net ontgrendeld op het slotscherm, of extra
+ *  ontgrendelen uit); anders onKluis('vraag'). Niet onder het app-slot of een slotscherm. */
+function klVanzelf(){ if (current !== 'kluis' || !tsVanzelfMag()) return false; Android.kluisOpen(); return true; }
+function klLijst(){ try { return JSON.parse(Android.kluisList()); } catch(e){ return { locked: true }; } }
+function klMsg(text){ const e = $('#kl-msg'); e.textContent = text || ''; e.hidden = !text; }
+// Na het app-slot of het slotscherm (dat ook over de kluis kan komen als je de app even verliet, of dat van een andere tool
+// waar je toch niet heen ging): open als hij intussen dicht ging
+(function(){
+  for (const naam of ['onUnlocked', 'onToolSlotVrij']) { const prev = window[naam]; window[naam] = function(){ if (prev) prev.apply(this, arguments); if (current === 'kluis' && tsVanzelfMag()) klRender(); }; }
+  const slot = window.onToolSlot; window.onToolSlot = function(r){ if (slot) slot.apply(this, arguments); if (r && r.soort === 'open' && r.ok && current === 'kluis' && tsVanzelfMag()) klRender(); };
+})();
 function klRender(){
-  let d; try { d = JSON.parse(Android.kluisList()); } catch(e){ d = { locked: true }; }
+  let d = klLijst();
+  if (d.locked && !d.error && klVanzelf()) d = klLijst();
   const locked = !!d.locked || !!d.error;
-  $('#kl-locked').style.display = locked ? 'block' : 'none';
   $('#kl-open').style.display = locked ? 'none' : 'block';
-  if (d.error) $('#kl-msg').textContent = d.error;
+  if (d.error) klMsg(d.error); else if (!locked) klMsg('');
   clearTimeout(klRender.t);
   if (locked) { $('#kl-list').replaceChildren();klRender.docs=[];klOrganizeClose();$('#kl-search').value='';$('#kl-category').replaceChildren();return; }
+  $('#kl-lock').hidden = tsEigenUit('kluis'); // uit: hij opent toch meteen weer
   if (d.left) klRender.t = setTimeout(() => { if (current === 'kluis') klRender(); }, d.left + 500); // na 5 minuten vanzelf op slot, ook op het scherm
   const docs=(d.docs||[]).slice(),category=$('#kl-category'),selected=category.value;
   category.replaceChildren();
@@ -122,8 +132,18 @@ function klRender(){
   $('#kl-list').innerHTML=shown.map(x=>'<button class="trip" data-id="'+esc(x.id)+'" onclick="klMenu(this.dataset.id)"><span><b>'+ic(x.mime||'')+' '+esc(x.name)+'</b><small>'+(x.favorite?t('★ Favoriet')+' · ':'')+esc(x.category||t('Zonder categorie'))+' · '+esc(fmtB(x.size||0))+' · '+esc(fmtDate(x.t, {day:'numeric',month:'short',year:'numeric'}))+'</small>'+(x.note?'<small class="kl-doc-note">'+esc(x.note)+'</small>':'')+'</span><span aria-hidden="true">›</span></button>').join('');
   klRender.docs=docs;
 }
-function klUnlock(){ $('#kl-msg').textContent = ''; Android.kluisUnlock(); }
-window.onKluis = function(r){ if (r !== true) $('#kl-msg').textContent = r; if(pdfKeepPending)pdfKeepUnlocked(r); if (current === 'kluis') klRender(); };
+window.onKluis = function(r){
+  if (r === 'vraag') { klVraag(); return; }
+  if (r !== true) klMsg(r);
+  if (pdfKeepPending) pdfKeepUnlocked(r);
+  if (current === 'kluis') klRender();
+};
+/** De kluis kan nu niet open zonder ontgrendeling: het slotscherm, over de kluis of over het bewaren van een PDF. */
+function klVraag(){
+  const geen = t('Stel eerst een schermvergrendeling in op je telefoon (pincode, patroon of vingerafdruk)');
+  if (pdfKeepPending) { if (!tsVraag('kluis', () => Android.kluisOpen(), () => pdfKeepUnlocked(false))) pdfKeepUnlocked(geen); return; }
+  if (current === 'kluis' && !tsVraag('kluis')) klMsg(geen); // na ontgrendelen opent onToolSlot hierboven hem
+}
 window.onKluisChanged = function(r){ toast(r === 'ok' ? 'Toegevoegd aan de kluis' : r); if (current === 'kluis') klRender(); };
 function klLock(){ Android.kluisClose(); klRender(); }
 // Ontsleutelen kan bij een groot document even duren; de balk gaat weg zodra de keuze van de app (of een fout) verschijnt.

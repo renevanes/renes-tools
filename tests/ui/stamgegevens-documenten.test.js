@@ -15,7 +15,7 @@ for(const colorScheme of ['light','dark']){
       rec(5,'identiteit','ID-kaart mama',{persoon:id(2),documentsoort:'identiteitskaart',document:'IA999',geldig:'2035-01-01'}),
       rec(6,'formulier','Reistoestemming Zoë',{formulier:'reistoestemming',kind:id(1),kindDocument:id(4),alleen:'ja',gever1:id(2),gever1Document:id(5),bsnInvullen:'nee'})];
   },soon);
-  await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+  await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
   // 1. Beginscherm: het bijna verlopen document staat bij Aandacht nodig; in Mijn mensen meldt de persoon het.
   assert.match(await p.textContent('#cm-aandacht-list'),/Paspoort Zoë.*Paspoort van Zoë <b> · verloopt over \d+ dagen/);
   assert.equal(await p.textContent('#cm-stand-documenten'),'2 documenten · één vraagt aandacht');
@@ -61,7 +61,7 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!cmOpen());
   // 4. Nieuwe reis: waarschuwing als het paspoort van het kind vóór het einde van de reis verloopt.
   await p.evaluate(()=>{openTool('pdf');});await p.getByRole('button',{name:'Formulieren invullen',exact:true}).click();
-  await p.click('#fmq-start');await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden&&fmq.records.length===1);
+  await p.click('#fmq-start');await T.slot();await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden&&fmq.records.length===1);
   const later=await p.evaluate(()=>new Date(Date.now()+60*864e5).toISOString().slice(0,10));
   await p.fill('#fmq-van',soon);await p.fill('#fmq-tot',later);await p.fill('#fmq-land','Spanje');await p.click('#fmq-ga');
   await p.waitForFunction(()=>!fmq.open&&!$('#pff-verloop').hidden);

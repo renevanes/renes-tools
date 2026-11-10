@@ -10,7 +10,7 @@ for(const colorScheme of ['light','dark']){
     Android._cm.herkend=null;Android._cm.diag={regels:14,rijbewijs:true,onderregel:false,onscherp:true};
     show('masterdata');
   });
-  await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+  await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
   // 1. Rijbewijs toevoegen met een foto, niets gevonden: naar Foto's, met uitleg en tips (onscherp, de regel onderaan, grondiger proberen).
   await T.kaart('owner');await p.click('#cmc-doc-add');await p.waitForSelector('#sheet.on');
   await p.getByRole('button',{name:'Rijbewijs',exact:true}).click();await p.waitForFunction(()=>$('#sheet.on')&&$('#sheet-title').textContent==='Rijbewijs');

@@ -43,8 +43,8 @@ const { chromium } = require('playwright');
 
       // Kluis
       await page.evaluate(() => show('kluis'));
-      assert.equal(await page.isVisible('#kl-locked'), true);
-      await page.click('#kl-locked button:has-text("Ontgrendelen")');
+      assert.equal(await page.evaluate(() => tsZichtbaar() && ts.tool === 'kluis'), true, 'op slot: het centrale slotscherm');
+      await page.click('#ts-open');
       await page.waitForSelector('#kl-open', { state: 'visible' });
       assert.match(await page.textContent('#kl-list'), /Paspoort\.pdf/);
       await page.click('#kl-open button:has-text("Document toevoegen")');

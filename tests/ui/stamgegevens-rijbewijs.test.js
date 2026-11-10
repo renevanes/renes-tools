@@ -10,7 +10,7 @@ for(const colorScheme of ['light','dark']){
   Android._cm.herkend={soort:'rijbewijs',bron:'tekst',zeker:false,document:{documentsoort:'rijbewijs',document:'0123456789',afgifte:'2020-04-03',geldig:'2030-04-03',afgegevenDoor:'RDW',categorieen:'AM, B, BE'},persoon:{naam:'VAN DIJK',voornamen:'ANNA',geboortedatum:'1980-02-01'},twijfel:['afgegevenDoor']};
   show('masterdata');
  });
- await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+ await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
  await T.kaart('owner');await p.click('#cmc-doc-add');await p.waitForSelector('#sheet.on');
  await p.getByRole('button',{name:'Rijbewijs',exact:true}).click();await p.waitForFunction(()=>$('#sheet.on')&&$('#sheet-title').textContent==='Rijbewijs');
  await p.getByRole('button',{name:'Foto kiezen',exact:true}).click();await p.waitForFunction(()=>cm.mutating);

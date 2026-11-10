@@ -36,40 +36,31 @@ public class MasterBridge extends BankBridge {
         try{return new JSONObject().put("open",a.masterSession.isOpen()).put("left",a.masterSession.remaining()).put("data",MasterStore.exists(ctx)).put("secure",Lock.deviceSecure(ctx)).toString();}
         catch(Throwable ignored){return "{\"open\":false}";}
     }
-    /** Ontgrendelen met vingerafdruk of pincode; met extra ontgrendelen uit (ToolSlot) eerst zonder vraag. */
-    @JavascriptInterface public void masterUnlock(String request){a.h.post(()->unlock(request,false));}
-    /** Extra ontgrendelen uit: bij het openen vanzelf, zonder vraag. Kan dat niet zeker (telefoon te lang geleden ontgrendeld), dan {vraag:true}. */
-    @JavascriptInterface public void masterOpenVanzelf(String request){a.h.post(()->unlock(request,true));}
-    private void unlock(String request,boolean alleenVanzelf){
-        if(!a.masterWanted||a.isDestroyed()||a.isFinishing()||!a.masterForeground||(a.isSolo()&&!"masterdata".equals(a.solo)&&!"pdf".equals(a.solo))){JSONObject e=new JSONObject();try{if(!alleenVanzelf)e.put("error",Taal.T("Ontgrendel de stamgegevens opnieuw"));}catch(Exception ignored){ }reply(request,"",e);return;}
-        if(Lock.busy()){JSONObject e=new JSONObject();try{if(!alleenVanzelf)e.put("error",Taal.T("Er staat al een vraag om te ontgrendelen open"));}catch(Exception ignored){ }reply(request,"",e);return;}
-        if(ToolSlot.eigenUit(ctx,"masterdata")&&!a.masterAuthPending&&(a.isSolo()||!Lock.wouldLock(ctx))){
-            final long auth=a.masterAuthSerial.incrementAndGet(),dataset=MasterSession.datasetEpoch();final String view=a.masterView;
-            new Thread(()->{
-                try{
-                    long start=SystemClock.elapsedRealtime(),max=MasterKeys.vanzelf(ctx);
-                    if(max>0){open(request,auth,dataset,view,start+max);return;}
-                    if(!alleenVanzelf){a.h.post(()->prompt(request));return;}
-                    JSONObject r=new JSONObject();if(max==0)r.put("vraag",true);reply(request,"",r);
-                }catch(Throwable t){reply(request,"",new JSONObject());}
-            },"master-unlock").start();
-            return;
-        }
-        if(alleenVanzelf){reply(request,"",new JSONObject());return;}
-        prompt(request);
-    }
-    private void prompt(String request){
-        if(!a.masterWanted||a.isDestroyed()||a.isFinishing()||!a.masterForeground){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Ontgrendel de stamgegevens opnieuw"));}catch(Exception ignored){ }reply(request,"",e);return;}
-        if(Lock.busy()){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Er staat al een vraag om te ontgrendelen open"));}catch(Exception ignored){ }reply(request,"",e);return;}
+    /**
+     * Openen zonder eigen vraag: Stamgegevens vraagt nooit zelf om te ontgrendelen, dat doet het slotscherm van Extra
+     * ontgrendelen. Open gaat hij meteen na dat slotscherm (MainActivity.toolSlotNeem), of met extra ontgrendelen uit
+     * zolang de sleutel zeker nog werkt (MasterKeys.vanzelf). Anders {vraag:"slot"}, of {vraag:"tijd"} (uit, maar de
+     * telefoon is te lang geleden ontgrendeld): dan toont de interface het slotscherm. Niet onder het app-slot, niet
+     * tijdens een andere vraag, en als losse app alleen in die van Stamgegevens of PDF (Formulieren).
+     */
+    @JavascriptInterface public void masterOpen(String request){a.h.post(()->unlock(request));}
+    private void unlock(String request){
+        if(!a.masterWanted||a.isDestroyed()||a.isFinishing()||!a.masterForeground||(a.isSolo()&&!"masterdata".equals(a.solo)&&!"pdf".equals(a.solo))
+                ||Lock.busy()||a.masterAuthPending||!a.isSolo()&&Lock.wouldLock(ctx)){reply(request,"",new JSONObject());return;}
+        final long net=a.toolSlotNeem("masterdata");
+        if(net<0&&!ToolSlot.eigenUit(ctx,"masterdata")){vraag(request,"slot");return;}
         final long auth=a.masterAuthSerial.incrementAndGet(),dataset=MasterSession.datasetEpoch();final String view=a.masterView;
-        a.masterAuthPending=true;
-        Lock.prompt(a,Taal.t(ctx,"Stamgegevens ontgrendelen"),(ok,message)->{
-            a.masterAuthPending=false;
-            if(!ok){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Stamgegevens niet ontgrendeld"));}catch(Exception ignored){ }reply(request,"",e);return;}
-            a.afterMasterAuth(()->new Thread(()->open(request,auth,dataset,view,Long.MAX_VALUE),"master-unlock").start());
-        });
+        new Thread(()->{
+            try{
+                if(net>=0){open(request,auth,dataset,view,net+MasterSession.MAX);return;}
+                long start=SystemClock.elapsedRealtime(),max=MasterKeys.vanzelf(ctx);
+                if(max>0){open(request,auth,dataset,view,start+max);return;}
+                vraag(request,max==0?"tijd":"slot");
+            }catch(Throwable t){vraag(request,"slot");}
+        },"master-unlock").start();
     }
-    /** Na ontgrendelen (of zonder vraag): de sessie openen, hooguit tot tot (elapsedRealtime; zonder vraag: vóór de sleutel ophoudt). Loopt op een eigen thread. */
+    private void vraag(String request,String soort){JSONObject r=new JSONObject();try{r.put("vraag",soort);}catch(Exception ignored){ }reply(request,"",r);}
+    /** Na het slotscherm (of zonder vraag): de sessie openen, hooguit tot tot (elapsedRealtime: vóór de sleutel ophoudt). Loopt op een eigen thread. */
     private void open(String request,long auth,long dataset,String view,long tot){
         String token="";JSONObject result=new JSONObject();
         try{
@@ -78,7 +69,7 @@ public class MasterBridge extends BankBridge {
                 SecretKey key=MasterKeys.authenticated(ctx);
                 synchronized(a.masterSession){
                     if(auth!=a.masterAuthSerial.get()||!view.equals(a.masterView)||!a.masterWanted||!a.masterForeground)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
-                    long max=tot==Long.MAX_VALUE?MasterSession.MAX:tot-SystemClock.elapsedRealtime();
+                    long max=tot-SystemClock.elapsedRealtime();
                     if(max<60_000L)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
                     token=a.masterSession.open(max);
                 }
@@ -236,6 +227,7 @@ public class MasterBridge extends BankBridge {
                         MasterKeys.proveReset();
                         synchronized(MasterStore.LOCK){synchronized(a.masterSession){if(dataset!=MasterSession.datasetEpoch()||!a.masterForeground||auth!=a.masterAuthSerial.get()||!view.equals(a.masterView))throw new MasterError(Taal.T("Wissen geannuleerd"));a.masterSession.close();attempted=true;MasterStore.reset(ctx);}}
                         complete=true;r.put("reset",true);
+                        a.toolSlotNet("masterdata"); // net bevestigd: het lege Stamgegevens opent daarna zonder nog een vraag
                     }catch(Throwable e){try{r.put("error",why(e));}catch(Exception ignored){ }}finally{if(attempted)MainActivity.masterResetAll(complete);}reply(request,"",r);
                 },"master-reset").start());
             });

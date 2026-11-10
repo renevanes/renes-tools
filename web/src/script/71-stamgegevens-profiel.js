@@ -74,7 +74,7 @@ window.onAppIdentity=function(){appIdentityRefresh();};
 function cmiSharedRender(){
   const self=appIdentity.self,people=appIdentity.people||[],box=$('#cmi-shared');box.replaceChildren();$('#cmi-home').hidden=!self;
   $('#cmi-home-name').textContent=self?t('Hallo {naam}',{naam:self.callname||self.name}):'';$('#cmi-home').setAttribute('aria-label',self?t('Hallo {naam}, naar Stamgegevens',{naam:self.callname||self.name}):t('Stamgegevens'));
-  const naam=self?self.callname||self.name:'';$('#cmi-shared-stand').textContent=cmiAiStand();
+  const naam=self?self.callname||self.name:'';
   if(!self){box.append(cmEl('p',t('De assistent weet nu niets uit Stamgegevens.'),'note'));$('#cmi-ai-summary').textContent=t('De assistent weet nu niets uit Stamgegevens.');return;}
   const line=(text,extra)=>{const p=cmData(cmEl('p',text));if(extra){p.append(cmEl('br'),cmData(cmEl('small',extra)));}box.append(p);};
   line(t('Jij: {naam}',{naam:self.name}),cmiAiDetails(self));

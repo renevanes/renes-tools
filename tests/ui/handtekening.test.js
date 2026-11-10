@@ -22,7 +22,7 @@ for(const colorScheme of ['light','dark']){
     await p.mouse.move(r.x+20,r.y+50);await p.mouse.down();await p.mouse.move(r.x+90,r.y+90,{steps:6});await p.mouse.move(r.x+170,r.y+30,{steps:6});await p.mouse.up();
   };
   const inkt=sel=>p.evaluate(sel=>{const c=$(sel),d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>0)n++;return n;},sel);
-  const unlock=async()=>{await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);await T.kaart(me);};
+  const unlock=async()=>{await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);await T.kaart(me);};
 
   // 1. Je eigen kaartje: nog geen handtekening, tekenen en bewaren (blauw)
   await unlock();

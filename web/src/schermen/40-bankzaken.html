@@ -5,13 +5,12 @@
     <h1 tabindex="-1">Bankzaken</h1>
   </div>
   <main>
-    <!-- Op slot -->
-    <div id="bk-dicht">
+    <!-- Niet open: om ontgrendelen vraagt het slotscherm van Extra ontgrendelen; hier alleen wat Bankzaken zelf moet zeggen -->
+    <div id="bk-dicht" hidden>
       <div class="card">
         <h2>Je bankzaken, alleen op deze telefoon</h2>
         <p class="note" style="margin-top:0">Rapportages over je inkomsten en uitgaven, met lokale AI. Je afschriften staan versleuteld op deze telefoon, met een sleutel die de beveiligde hardware niet uit kan. Niets gaat naar internet of naar een backup.</p>
-        <button class="big" id="bk-open-knop" onclick="bkOntgrendel()" data-icon="lock">Ontgrendelen</button>
-        <p class="note" id="bk-msg" role="status" aria-live="polite"></p>
+        <p class="note warn" id="bk-msg" role="status" aria-live="polite"></p>
         <div id="bk-kwijt" hidden>
           <p class="note warn" id="bk-kwijt-txt"></p>
           <button class="big ghost" onclick="bkWis()">Gegevens wissen en opnieuw beginnen</button>
@@ -147,7 +146,7 @@
         <div class="card">
           <h2>Zo blijven je gegevens veilig</h2>
           <ul class="bk-veilig" id="bk-veilig"></ul>
-          <button class="big ghost" onclick="bkSluit()" data-icon="lock">Nu op slot doen</button>
+          <button class="big ghost" id="bk-sluit" onclick="bkSluit()" data-icon="lock">Nu op slot doen</button>
           <button class="big ghost bk-gevaar" onclick="bkWis()" data-icon="trash">Alle bankgegevens wissen</button>
         </div>
       </div>

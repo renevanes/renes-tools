@@ -22,6 +22,10 @@ const TEGEL = Object.fromEntries(WEG.map(t => [t, 'tile-' + t]));
     // Openen (ook een subscherm zoals een sms-gesprek)
     for (const s of WEG.concat(['smschat'])) {
       await pg.evaluate(() => show('home')); await pg.evaluate(n => show(n), s); await pg.waitForTimeout(80);
+      // Bankzaken (extra ontgrendelen standaard aan) opent pas na het centrale slotscherm
+      if (!play && await pg.evaluate(n => typeof tsZichtbaar === 'function' && tsZichtbaar() && ts.tool === n, s)) {
+        await pg.click('#ts-open'); await pg.waitForFunction(n => current === n, s);
+      }
       const scherm = await pg.evaluate(() => current);
       assert(play ? scherm === 'home' : scherm === s, naam + ': ' + s + ' openen ' + (play ? 'gaat niet' : 'gaat'));
     }

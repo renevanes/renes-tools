@@ -14,7 +14,7 @@ for(const colorScheme of ['light','dark']){
   });
   // 1. Vaste gegevens: blok Ondertekenen met plaats en bij welke begeleider de handtekening komt.
   await p.evaluate(()=>{openTool('pdf');});await p.getByRole('button',{name:'Formulieren invullen',exact:true}).click();
-  await p.click('#fmq-instellen');await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&current==='cmlijst'&&cmLijstNu()==='vast');
+  await p.click('#fmq-instellen');await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&current==='cmlijst'&&cmLijstNu()==='vast');
   await p.click('#cm-lijst-add');await p.waitForFunction(()=>cm.edit&&cm.edit.type==='formulier'&&current==='cmedit');
   assert.equal(await p.isVisible('#cm-field-tekenplaats'),true,'blok Ondertekenen');
   assert.deepEqual(await p.$$eval('#cm-field-handtekening option',o=>o.map(x=>x.value)),['','begeleider1','begeleider2'],'nooit bij een toestemminggever');
@@ -33,7 +33,7 @@ for(const colorScheme of ['light','dark']){
   assert.equal(vast.tekenplaats,'Rotterdam');assert.equal(vast.handtekening,'begeleider1');
   // 2. Nieuwe reis: de datum staat standaard op vandaag en komt met de plaats en handtekening bij de begeleider.
   assert.equal(await p.evaluate(()=>goBack()&&current),'cmlijst');assert.equal(await p.evaluate(()=>goBack()&&current),'formulieren');
-  await p.click('#fmq-start');await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden&&fmq.records.length===1);
+  await p.click('#fmq-start');await T.slot();await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden&&fmq.records.length===1);
   assert.equal(await p.inputValue('#fmq-datum'),await p.evaluate(()=>rgDayKey(Date.now())),'datum standaard vandaag');
   await p.fill('#fmq-van','2027-07-15');await p.fill('#fmq-tot','2027-07-30');await p.fill('#fmq-land','Frankrijk');await p.fill('#fmq-datum','2027-07-01');
   await p.click('#fmq-ga');await p.waitForFunction(()=>!fmq.open&&fm.step===fmSecties().length&&fm.view==='stap');

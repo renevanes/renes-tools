@@ -1,0 +1,1 @@
+Kluis, Bankzaken en Stamgegevens hebben geen eigen ontgrendelscherm meer: alles gaat via het slotscherm van Extra ontgrendelen. Staat dat uit, dan openen ze meteen.

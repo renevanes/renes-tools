@@ -24,15 +24,13 @@ for(const colorScheme of ['light','dark']){
   const shared=()=>p.evaluate(()=>JSON.parse(Android.appIdentity()||'{}'));
   const wachtOp=f=>p.waitForFunction(f);
 
-  // 1. Op slot: alleen bekijken wat de assistent nu weet (nu niets)
-  await p.evaluate(()=>show('masterdata'));assert.equal(await p.isVisible('#cm-locked-ai'),true);
-  await p.click('#cm-locked-ai button');await wachtOp(()=>current==='cmai');
-  assert.equal(await p.isVisible('#cm-ai-dicht'),true);assert.equal(await p.isVisible('#cm-ai-set'),false,'op slot niets te kiezen');
+  // 1. Op slot: het centrale slotscherm van Extra ontgrendelen; Stamgegevens zelf heeft geen slotkaart of ontgrendelknop
+  await p.evaluate(()=>show('masterdata'));assert.equal(await p.evaluate(()=>tsZichtbaar()&&ts.tool==='masterdata'),true,'het centrale slotscherm');
+  assert.equal(await p.locator('[onclick^="cmUnlock"]').count(),0,'geen eigen ontgrendelknop');
   assert.equal(await p.textContent('#cmi-shared'),'De assistent weet nu niets uit Stamgegevens.');
-  await p.evaluate(()=>goBack());await wachtOp(()=>current==='masterdata');
 
   // 2. Ontgrendeld: delen staat uit; aanzetten deelt jou en je mensen, met de vinkjes (woonplaats standaard uit)
-  await p.click('#cm-unlock');await wachtOp(()=>cmOpen()&&cm.recordsReady);
+  await p.click('#ts-open');await wachtOp(()=>cmOpen()&&cm.recordsReady);
   assert.match(await p.textContent('#cm-stand-assistent'),/.+/);await p.click('#cm-row-assistent');await wachtOp(()=>current==='cmai'&&!$('#cm-ai-set').hidden);
   assert.equal(await sw('#cm-ai-delen'),'false|false');assert.equal(await p.textContent('#cm-ai-delen-s'),'De assistent weet nu niets uit Stamgegevens.');
   assert.equal(await p.isVisible('#cm-ai-soorten'),false);assert.equal(await p.isVisible('#cm-ai-mensen-card'),false);
@@ -73,8 +71,9 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>!cm.token),true,'Stamgegevens verlaten vergrendelt');
   // Assistent → Persoonlijk: de rij Wat weet de assistent? met de stand, ook op slot
   assert.equal(await p.textContent('#cmi-ai-summary'),'De assistent kent jou (Rene) en 2 personen.');
-  await p.click('#aic-stam');await wachtOp(()=>current==='cmai'&&cm.privateReady);assert.equal(await p.isVisible('#cm-ai-dicht'),true);assert.equal(await p.isVisible('#cm-ai-set'),false);
-  assert.match(await p.textContent('#cmi-shared'),/Anna van Es/,'op slot: wat de assistent nu weet');
+  await p.click('#aic-stam');await wachtOp(()=>tsZichtbaar()&&ts.doel==='cmai');assert.equal(await p.evaluate(()=>current),'aisetpers','eerst het slotscherm');
+  await p.click('#ts-open');await wachtOp(()=>current==='cmai'&&cmOpen()&&!$('#cm-ai-set').hidden);
+  assert.match(await p.textContent('#cmi-shared'),/Anna van Es/,'wat de assistent nu weet');
   assert.equal(await p.evaluate(()=>goBack()&&current),'aisetpers','terug naar de assistent');
 
   // 6. "bel mijn dochter": wie de assistent kent, met het nummer uit het gekoppelde contact; bellen doe je zelf

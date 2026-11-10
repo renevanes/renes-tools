@@ -146,14 +146,35 @@ public class MainActivity extends Activity {
     volatile int kluisGen = -1;
     volatile long bankGen = -1;
     final Bank.Unlock bankAuth = new Bank.Unlock();
-    private Runnable bankAfterAuth;
-    void afterBankAuth(Runnable task) { bankAfterAuth = task; h.post(this::runBankAfterAuth); }
-    void runBankAfterAuth() { if (!masterForeground || isDestroyed() || isFinishing()) return; Runnable task = bankAfterAuth; bankAfterAuth = null; if (task != null) task.run(); }
 
     /** Bankzaken staat in beeld (schermbeveiliging aan) / de gekozen afschriften na inlezen verwijderen. */
     volatile boolean bankScreen = false, bankWis = false;
     /** Een tool met extra ontgrendelen staat in beeld (ToolSlot). */
     volatile boolean toolScreen = false;
+    /**
+     * Extra ontgrendelen: net ontgrendeld op het slotscherm (welke tool, en wanneer: elapsedRealtime). Kluis, Bankzaken en
+     * Stamgegevens openen daarmee één keer zonder vraag van zichzelf; de sleutels van Bankzaken en Stamgegevens werken
+     * dan ook (dezelfde ontgrendeling). Weg na een minuut en zodra de app uit beeld gaat.
+     */
+    private final Object slotNetLock = new Object();
+    private String slotNet = "";
+    private long slotNetOp;
+    private Runnable slotAntwoord;
+    static final long SLOT_NET_MS = 60_000L;
+    void toolSlotNet(String tool) { synchronized (slotNetLock) { slotNet = tool; slotNetOp = android.os.SystemClock.elapsedRealtime(); } }
+    /** Het moment van die ontgrendeling als hij voor deze tool was (één keer te gebruiken), anders -1. */
+    long toolSlotNeem(String tool) {
+        synchronized (slotNetLock) {
+            long op = slotNetOp, nu = android.os.SystemClock.elapsedRealtime();
+            if (tool == null || !tool.equals(slotNet) || nu < op || nu - op > SLOT_NET_MS) return -1;
+            slotNet = "";
+            return op;
+        }
+    }
+    /** Het antwoord van het slotscherm pas als de app weer vooraan staat: dan kan de tool er meteen mee openen. */
+    void toolSlotNa(Runnable r) { if (masterForeground) h.post(r); else synchronized (slotNetLock) { slotAntwoord = r; } }
+    private void toolSlotVergeet() { synchronized (slotNetLock) { slotNet = ""; slotAntwoord = null; } }
+    private void runToolSlotNa() { Runnable r; synchronized (slotNetLock) { r = slotAntwoord; slotAntwoord = null; } if (r != null) r.run(); }
     /** Extra ontgrendelen: de app opende zelf een scherm (kiezer, PDF-viewer); weg = tijdstip van uit beeld gaan. */
     private boolean eigenScherm, wegIntern, slotCover;
     private long wegOp;
@@ -504,6 +525,7 @@ public class MainActivity extends Activity {
         boolean vraag = !eigenScherm && Lock.busy() && (pm == null || pm.isInteractive());
         wegIntern = eigenScherm || vraag;
         wegOp = android.os.SystemClock.elapsedRealtime();
+        toolSlotVergeet();
         if (!eigenScherm) js("onToolSlotWeg", vraag ? "'vraag'" : "");
         if (!wegIntern && toolScreen && web != null) { themeChanged(); coverOn(); slotCover = true; } // bij terugkomen geen flits van de tool
         if (!isSolo()) {
@@ -519,7 +541,7 @@ public class MainActivity extends Activity {
         if (live == this) live = null;
         synchronized (ALL) { ALL.remove(this); }
         if (isFinishing() && !isSolo()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
-        bankAuth.cancel();bankAfterAuth=null;
+        bankAuth.cancel();toolSlotVergeet();
         masterSession.close();masterAfterAuth=null;masterAuthSerial.incrementAndGet();h.removeCallbacks(masterExpiry);
         final IdCopy closingId = idCopy;
         new Thread(() -> { try { closingId.clear(); } catch (Throwable ignored) { } }, "id-copy-close").start();
@@ -653,7 +675,7 @@ public class MainActivity extends Activity {
             else if("contact".equals(kind)||"perm".equals(kind))masterContacts.continueAfterPick();
             else if(!"sig".equals(kind))masterPhotos.continueAfterPick();
         }
-        runMasterAfterAuth();bankAuth.resume();runBankAfterAuth();
+        runMasterAfterAuth();bankAuth.resume();runToolSlotNa();
         js("onResumeApp", "");
         try { GebruikLive.start(getApplicationContext()); } catch (Throwable ignored) { }
         if (isSolo()) return; // updates regelt de gewone app
@@ -2474,12 +2496,18 @@ public class MainActivity extends Activity {
             }));
         }
 
-        /** Een tool ontgrendelen met de schermvergrendeling van de telefoon. Antwoord via onToolSlot. */
+        /**
+         * Een tool ontgrendelen met de schermvergrendeling van de telefoon: het enige slotscherm, ook voor Kluis,
+         * Bankzaken en Stamgegevens (die openen daarna met toolSlotNeem). Antwoord via onToolSlot, als de app weer vooraan staat.
+         */
         @JavascriptInterface public void toolSlotUnlock(String tool, String naam) {
             final String id = tool == null ? "" : tool;
             if (!Solo.known(id)) return;
             final String titel = Taal.t(ctx, "{naam} ontgrendelen", "naam", ToolSlot.naam(naam));
-            a.h.post(() -> Lock.prompt(a, titel, (ok, msg) -> toolSlotAntwoord(id, "open", ok, ok ? null : msg == null ? "Niet ontgrendeld" : msg)));
+            a.h.post(() -> Lock.prompt(a, titel, (ok, msg) -> {
+                if (ok) a.toolSlotNet(id);
+                a.toolSlotNa(() -> toolSlotAntwoord(id, "open", ok, ok ? null : msg == null ? "Niet ontgrendeld" : msg));
+            }));
         }
 
         /** Een tool met extra ontgrendelen in beeld: geen voorbeeld in "recente apps" (onder Android 13 ook geen schermafdrukken). */

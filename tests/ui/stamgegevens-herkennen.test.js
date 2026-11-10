@@ -10,7 +10,7 @@ for(const colorScheme of ['light','dark']){
     Android._cm.herkend={document:{documentsoort:'identiteitskaart',document:'NX7P41KD9',geldig:'2031-06-11',uitgifteland:'Nederland'},
       persoon:{naam:'Jansen',voornamen:'Zoe Anna',geboortedatum:'2015-02-03',geslacht:'V',nationaliteit:'Nederlandse'},soort:'TD1',zeker:true};
   },kid);
-  await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+  await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
   // Document toevoegen begint op het kaartje van de persoon: eerst de soort, dan een foto
   const scan=async soort=>{
     await T.kaart(kid);await p.click('#cmc-doc-add');await p.waitForSelector('#sheet.on');
@@ -57,7 +57,7 @@ for(const colorScheme of ['light','dark']){
   // Geen strook gevonden, en te lang weg uit de app (kluis vergrendeld): na ontgrendelen wel een document met de foto, en hulp.
   await p.evaluate(()=>{Android._cm.herkend=null;Android._cm.slowPick=true;cm.dirty=false;cmCancelEdit();});await p.waitForFunction(()=>current==='cmkaart'&&!cm.navigating);
   await scan('Paspoort');await p.waitForFunction(()=>!$('#cmi-photo-pending').hidden&&current==='masterdata');
-  assert.equal(await p.textContent('#cmi-photo-pending-btn'),'Ontgrendelen en gegevens herkennen');await p.click('#cmi-photo-pending-btn');
+  await p.waitForFunction(()=>tsZichtbaar());assert.match(await p.textContent('#ts-msg'),/Na ontgrendelen maakt de app een nieuw document/,'het slotscherm zegt waarom');await p.click('#ts-open');
   await p.waitForFunction(()=>current==='cmedit'&&cm.edit&&cm.edit.type==='identiteit'&&cm.tab==='fotos'&&/geen gegevens herkend/.test($('#cm-edit-status').textContent));
   assert.equal(await p.isVisible('#cmh-hulp'),true,'wat je kunt proberen');
   assert.equal(await p.evaluate(()=>Android._cm.records.filter(r=>r.type==='identiteit').length),2);
@@ -74,7 +74,7 @@ for(const colorScheme of ['light','dark']){
   await openDoc2();await p.evaluate(()=>{Android._cm.slowPick=false;Android._cm.lateLock=true;});
   await p.evaluate(()=>cmiPhotoPick('back'));await p.waitForFunction(()=>!cmOpen());
   await p.waitForFunction(()=>!cmi.photoRequest);await p.evaluate(()=>Android._cm.lateLock=false);
-  await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);assert.equal(await p.isVisible('#cmi-photo-pending'),false,'geen hangende fotokeuze');
+  await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);assert.equal(await p.isVisible('#cmi-photo-pending'),false,'geen hangende fotokeuze');
   await openDoc2();await p.evaluate(()=>cmiPhotoPick('back'));await p.waitForFunction(()=>cm.edit?.images?.back&&!$('#cmh-panel').hidden);
   // 4. Vergrendelen wist voorstellen.
   await p.evaluate(()=>{Android._cm.herkend={document:{document:'X1'},persoon:{},zeker:true};});

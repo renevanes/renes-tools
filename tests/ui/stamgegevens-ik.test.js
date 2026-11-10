@@ -18,7 +18,7 @@ for(const colorScheme of ['light','dark']){
 
   // 1. Er staat al iemand, maar nog niet jij: Begin met jezelf, of Ik sta er al tussen
   await p.evaluate(()=>{Android._cm.records.push({id:'p-anna',type:'persoon',label:'Anna',revision:1,fields:{voornamen:'Anna',naam:'de Boer'}});show('masterdata');});
-  await p.click('#cm-unlock');await hub();
+  await p.click('#ts-open');await hub();
   assert.equal(await p.isVisible('#cm-ik .cmk-start'),true,'Begin met jezelf');assert.equal(await p.textContent('#cmk-self-pick'),'Ik sta er al tussen');
   await p.click('#cmk-self-new');await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='persoon'&&!cm.edit.id);
   assert.equal(await p.textContent('#cm-editor-title'),'Mijzelf toevoegen');
@@ -85,7 +85,7 @@ for(const colorScheme of ['light','dark']){
   // 6. Vergrendelen sluit een open keuzelijst
   await p.click('#cm-add');await p.waitForSelector('#sheet.on');await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!cmOpen());
   assert.equal(await p.evaluate(()=>$('#sheet').classList.contains('on')),false,'keuzelijst dicht na vergrendelen');
-  await p.click('#cm-unlock');await hub();
+  await p.click('#ts-open');await hub();
 
   // 7. Lukt het bewaren van de relatie niet, dan zegt de app dat de persoon er wel is (na de foutmelding)
   await p.evaluate(()=>{Android._cm.saveFail='relatie';});await p.click('#cm-add');await kies('Mijn partner');await kies('Zelf invullen');

@@ -25,8 +25,15 @@ module.exports = p => {
     await p.click('#cm-save');
     await p.waitForFunction(() => !cm.mutating && !cm.edit && cm.recordsReady && !cm.pending.size && current !== 'cmedit');
   };
+  // Stamgegevens op slot (een keuzelijst, Nieuwe reis): het centrale slotscherm van Extra ontgrendelen vraagt; ontgrendelen
+  // en wachten tot hij open is. Is hij al open (of opent hij vanzelf), dan niets.
+  const slot = async () => {
+    await p.waitForFunction(() => cmOpen() || tsZichtbaar());
+    if (await p.evaluate(() => tsZichtbaar())) await p.click('#ts-open');
+    await p.waitForFunction(() => cmOpen());
+  };
   return {
-    tab, maak, blok, kaart, opslaan,
+    tab, maak, blok, kaart, opslaan, slot,
     fill: async (s, v) => { await tab(s); await p.fill(s, v); },
     select: async (s, v) => { await tab(s); return p.selectOption(s, v); },
     click: async s => { await tab(s); await p.click(s); },

@@ -12,7 +12,7 @@ for(const colorScheme of ['light','dark']){
     Android._cm.records=[rec(1,'persoon','Rene van Es',{roepnaam:'Rene',voornamen:'Rene',naam:'van Es'}),rec(2,'profiel','Mijn app-profiel',{persoon:id(1)})];
   });
   const inkt=()=>p.evaluate(()=>{const c=$('#sig-pad'),d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>0)n++;return n;});
-  await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);await T.kaart(me);
+  await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);await T.kaart(me);
 
   // 1. Uit een foto: de lijnen staan op het tekenvlak, bewaren geeft een gewone (geldige) handtekening
   await p.click('#cmc-sig-teken');await p.waitForSelector('#sigdlg.on');

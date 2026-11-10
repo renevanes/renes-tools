@@ -14,7 +14,7 @@ function fmqKaart(){
 }
 function fmqRenderState(){
   if(!fmq.open)return;const open=cmOpen();
-  $('#fmq-ontgrendel').hidden=open;$('#fmq-annuleer-dicht').hidden=open;$('#fmq-open').hidden=!open;
+  $('#fmq-annuleer-dicht').hidden=open;$('#fmq-open').hidden=!open; // op slot: het slotscherm van Extra ontgrendelen vraagt
 }
 function fmqClearInput(){
   fmq.records=[];$('#fmq-profiel').replaceChildren();$('#fmq-id').checked=false;$('#fmq-geen').hidden=true;fmqNote('');

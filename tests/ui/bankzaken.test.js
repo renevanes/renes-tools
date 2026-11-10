@@ -11,19 +11,25 @@ const { chromium } = require('playwright');
     const ok = (c, wat) => { if (!c) errs.push('mislukt: ' + wat); };
     const tekst = async s => (await pg.textContent(s)) || '';
 
-    // Tegel en op slot
+    // Tegel en op slot: het centrale slotscherm (Bankzaken heeft geen eigen slotscherm of ontgrendelknop)
     ok(await pg.isVisible('#tile-bank'), 'tegel Bankzaken zichtbaar');
     await pg.click('#tile-bank'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => tsZichtbaar() && ts.tool === 'bank' && current !== 'bank'), 'begint op slot: eerst het slotscherm');
+    ok(await pg.locator('#s-bank button', { hasText: 'Ontgrendelen' }).count() === 0, 'geen eigen ontgrendelknop');
+    // Ontgrendelen mislukt: melding op het slotscherm, Bankzaken blijft dicht
+    await pg.evaluate(() => { Android._tslot.nee = 'Niet ontgrendeld'; });
+    await pg.click('#ts-open'); await pg.waitForTimeout(250);
+    ok((await tekst('#ts-msg')).includes('Niet ontgrendeld') && await pg.evaluate(() => current !== 'bank' && !Android._bank.open), 'mislukte ontgrendeling: blijft op slot');
+    // Openen lukt niet (een fout van Java): de melding in Bankzaken, verder niets
+    await pg.evaluate(() => { Android._bank.ontgrendelFout = 'Openen lukt niet'; });
+    await pg.click('#ts-open'); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => current) === 'bank', 'scherm Bankzaken open');
-    ok(await pg.isVisible('#bk-dicht') && !(await pg.isVisible('#bk-los')), 'begint op slot');
+    ok((await tekst('#bk-msg')).includes('Openen lukt niet') && await pg.isVisible('#bk-dicht') && !(await pg.isVisible('#bk-los')), 'fout bij openen: melding, blijft dicht');
     ok(await pg.evaluate(() => Android._bank.secure), 'schermbeveiliging aan (geen schermafdrukken)');
-    // Ontgrendelen mislukt: melding
-    await pg.evaluate(() => { Android._bank.ontgrendelFout = 'Niet ontgrendeld'; });
-    await pg.click('#bk-open-knop'); await pg.waitForTimeout(150);
-    ok((await tekst('#bk-msg')).includes('Niet ontgrendeld') && !(await pg.isVisible('#bk-los')), 'mislukte ontgrendeling: blijft op slot');
-    await pg.evaluate(() => { Android._bank.ontgrendelFout = ''; });
-    await pg.click('#bk-open-knop'); await pg.waitForTimeout(200);
-    ok(await pg.isVisible('#bk-los') && await pg.isVisible('#bk-leeg'), 'open en nog leeg');
+    await pg.evaluate(() => { Android._bank.ontgrendelFout = ''; goBack(); }); await pg.waitForTimeout(100);
+    await pg.click('#tile-bank'); await pg.waitForTimeout(150); await pg.click('#ts-open'); await pg.waitForTimeout(300);
+    ok(await pg.isVisible('#bk-los') && await pg.isVisible('#bk-leeg') && !(await pg.isVisible('#bk-dicht')), 'open en nog leeg');
+    ok(await pg.evaluate(() => JSON.stringify(Android._bank.calls.filter(c => c[0] === 'unlock' || c[0] === 'vanzelf' || c[0] === 'vraag'))) === '[["unlock"],["unlock"]]', 'opent alleen met de ontgrendeling van het slotscherm');
     ok((await tekst('#bk-leeg')).includes('Rabobank'), 'Rabobank automatisch ophalen aangeboden');
 
     // Automatisch ophalen bij de Rabobank (nog niets: 13 maanden terug)
@@ -168,23 +174,25 @@ const { chromium } = require('playwright');
 
     // App uit beeld: alles uit het geheugen
     await pg.evaluate(() => onPauseApp()); await pg.waitForTimeout(50);
-    ok(await pg.evaluate(() => bk.store === null) && (await tekst('#bk-overzicht')) === '' && await pg.isVisible('#bk-dicht'), 'app uit beeld: gegevens weg uit het geheugen');
+    ok(await pg.evaluate(() => bk.store === null) && (await tekst('#bk-overzicht')) === '' && !(await pg.isVisible('#bk-los')) && !(await pg.isVisible('#bk-dicht')), 'app uit beeld: gegevens weg uit het geheugen');
     ok(!(await pg.isVisible('#sheet.on')) && (await tekst('#sheet-title')) === '' && (await tekst('#bk-lijst-telling')) === '' && await pg.$$eval('#bk-rek option', l => l.length) === 0, 'ook geen open menu of tekst met gegevens meer');
-    await pg.evaluate(() => { Android._bank.open = false; onResumeApp(); }); await pg.waitForTimeout(100);
-    ok(await pg.isVisible('#bk-dicht'), 'terug in de app: op slot');
+    await pg.evaluate(() => { Android._bank.open = false; onToolSlotWeg(''); onResumeApp(); }); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => tsZichtbaar() && ts.tool === 'bank' && current === 'bank') && !(await pg.isVisible('#bk-los')), 'terug in de app: op slot (het slotscherm)');
 
     // Weg uit Bankzaken: op slot en schermbeveiliging uit
-    await pg.click('#bk-open-knop'); await pg.waitForTimeout(250);
+    await pg.click('#ts-open'); await pg.waitForTimeout(250);
     ok(await pg.isVisible('#bk-los'), 'weer open');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => current) === 'home' && await pg.evaluate(() => !Android._bank.open && !Android._bank.secure && bk.store === null), 'weg uit Bankzaken: op slot, beveiliging uit, geheugen leeg');
 
     // Wissen
-    await pg.click('#tile-bank'); await pg.waitForTimeout(100); await pg.click('#bk-open-knop'); await pg.waitForTimeout(250);
+    await pg.click('#tile-bank'); await pg.waitForTimeout(100); await pg.click('#ts-open'); await pg.waitForTimeout(250);
     await pg.click('#bk-tab-beheer'); await pg.waitForTimeout(100);
     await pg.click('#bk-p-beheer .bk-gevaar'); await pg.waitForTimeout(100);
     await pg.click('#modal button:has-text("Wissen")'); await pg.waitForTimeout(150);
-    ok(await pg.evaluate(() => Android._bank.data === null) && await pg.isVisible('#bk-dicht'), 'alles gewist');
+    ok(await pg.evaluate(() => Android._bank.data === null) && !(await pg.isVisible('#bk-los')), 'alles gewist');
+    await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => tsZichtbaar() && ts.tool === 'bank') && /De eerste keer maakt Bankzaken een sleutel/.test(await tekst('#ts-msg')), 'opnieuw beginnen: het slotscherm, voor een nieuwe sleutel');
     await pg.evaluate(() => goBack());
     console.log(scheme, 'errors', errs);
     await pg.close();

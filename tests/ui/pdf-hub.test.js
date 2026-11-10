@@ -65,6 +65,8 @@ const SHOTS = process.env.PDF_SHOTS || path.join(__dirname, 'shots');
 
     // Meer: documentenkluis (terug komt hier) en standaard PDF-app
     await pg.click('#pdf-kluis-row'); await pg.waitForTimeout(80);
+    assert.equal(await pg.evaluate(() => tsZichtbaar() && ts.tool === 'kluis' && current === 'pdf'), true, 'de kluis vraagt eerst het slotscherm');
+    await pg.click('#ts-open'); await pg.waitForFunction(() => current === 'kluis');
     assert.equal(await cur(), 'kluis');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(80);
     assert.equal(await cur(), 'pdf', 'terug van de kluis naar PDF');

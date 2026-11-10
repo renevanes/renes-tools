@@ -1,6 +1,7 @@
 /* Wat weet de assistent?: kiezen wat de assistent (de lokale AI, op de telefoon) uit Stamgegevens weet. Het hoofdschakelaartje
  * is "delen" in het app-profiel; daaronder per soort gegevens (vinkjes ai… in het app-profiel) en per persoon ("delen" bij die
- * persoon). Op slot zie je alleen wat de assistent nu weet (de gedeelde momentopname); kiezen kan na ontgrendelen.
+ * persoon). Op slot zie je alleen wat de assistent nu weet (de gedeelde momentopname); kiezen kan weer zodra Stamgegevens
+ * open is (vanzelf, of na het slotscherm van Extra ontgrendelen).
  * Over mij staat bij de assistent zelf (Persoonlijk). */
 const CMAI_SOORTEN=['aiStatus','aiGeboorte','aiDocumenten','aiContact','aiWoonplaats'];
 // Zelfde standaard als MasterIdentity.ai: leeg = aan, behalve de woonplaats
@@ -9,7 +10,7 @@ function cmaiOpen(){if(current!=='cmai')show('cmai');cmaiRender();}
 function cmaiSw(id,on,disabled){const b=$('#'+id);b.classList.toggle('on',!!on);b.setAttribute('aria-checked',String(!!on));b.disabled=!!disabled||cm.mutating;}
 function cmaiRender(){
   const open=cmOpen()&&cm.recordsReady,prof=open?cm.records.find(r=>r.type==='profiel'):null,me=open?cmkMe():'';
-  $('#cm-ai-dicht').hidden=cmOpen();$('#cm-ai-set').hidden=!open;cmiSharedRender();
+  $('#cm-ai-set').hidden=!open;cmiSharedRender();
   const box=$('#cm-ai-mensen');box.replaceChildren();$('#cm-ai-mensen-card').hidden=true;
   if(!open)return;
   const on=!!me&&prof?.delen==='ja';

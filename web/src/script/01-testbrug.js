@@ -317,9 +317,11 @@ if (!window.Android) window.Android = (function(){
     carTripDelete(id){ this._car.tripList = this._car.tripList.filter(x => x.id !== id); return ''; }, carExport(m){ setTimeout(() => onCarExport('ok:2'), 50); },
     carTripStart(){ this._car.tripActive = true; }, carTripStop(){ this._car.tripActive = false; },
     _kl: {open: false, docs: [{id: 'k1abcdef', name: 'Paspoort.pdf', mime: 'application/pdf', size: 820000, t: Date.now() - 864e5}]},
-    /* Met extra ontgrendelen uit opent Java de kluis meteen (vóór het antwoord, zonder vraag); _kl.vragen telt de vragen */
-    kluisUnlock(){ if (this._tslot.aan.includes('kluis')) this._kl.vragen = (this._kl.vragen || 0) + 1; this._kl.open = true; setTimeout(() => onKluis(true), 30); },
-    kluisOpenVanzelf(){ if (this._tslot.aan.includes('kluis')) return; this._kl.open = true; setTimeout(() => onKluis(true), 0); }, kluisList(){ return this._kl.open ? JSON.stringify({docs: this._kl.docs, left: 300000}) : '{"locked":true}'; },
+    /* Zoals Java: open meteen (vóór het antwoord) na het slotscherm (_tslot.net; _kl.vragen telt die) of met extra
+     * ontgrendelen uit; anders onKluis('vraag') en vraagt het slotscherm */
+    kluisOpen(){ const k = this._kl; if (!k.open) { if (this._tsNeem('kluis')) k.vragen = (k.vragen || 0) + 1; else if (this._tslot.aan.includes('kluis')) { setTimeout(() => onKluis('vraag'), 0); return; } }
+      k.open = true; setTimeout(() => onKluis(true), 0); },
+    kluisList(){ return this._kl.open ? JSON.stringify({docs: this._kl.docs, left: 300000}) : '{"locked":true}'; },
     kluisAdd(){ this._kl.docs.push({id: 'k2abcdef', name: 'Polis <b>.pdf', mime: 'application/pdf', size: 1000, t: Date.now()}); setTimeout(() => onKluisChanged('ok'), 30); },
     kluisView(id){ this._klView = id; }, kluisDelete(id){ this._kl.docs = this._kl.docs.filter(d => d.id !== id); return ''; }, kluisRename(id, n){ const d = this._kl.docs.find(x => x.id === id); if (d) d.name = n; return ''; }, kluisClose(){ this._kl.open = false; },
     kluisOrganize(id,json){if(!this._kl.open)return 'De kluis is op slot';if(this._kl.error)return this._kl.error;const d=this._kl.docs.find(d=>d.id===id);if(!d)return 'Document niet gevonden';const p=JSON.parse(json);if((p.category||'').length>60||(p.note||'').length>1000)return 'Documentgegevens zijn te lang';Object.assign(d,p);return '';},
@@ -1184,7 +1186,9 @@ if (!window.Android) window.Android = (function(){
         if(!s.aan.includes(tool)) s.aan.push(tool); setTimeout(()=>onToolSlot({tool,soort:'aan',ok:true}),20); return; }
       if(!s.aan.includes(tool)||this._st.secure===false){ s.aan=s.aan.filter(x=>x!==tool); setTimeout(()=>onToolSlot({tool,soort:'uit',ok:true}),20); return; }
       this._tsVraag(tool,'uit',()=>{ s.aan=s.aan.filter(x=>x!==tool); }); },
-    toolSlotUnlock(tool, naam){ if(!TOOLS[tool]) return; this._tslot.naam=naam; this._tsVraag(tool,'open',()=>{}); },
+    toolSlotUnlock(tool, naam){ const s=this._tslot; if(!TOOLS[tool]) return; s.naam=naam; this._tsVraag(tool,'open',()=>{ s.net=tool; s.netOp=Date.now(); }); },
+    /* Net ontgrendeld op het slotscherm (MainActivity.toolSlotNeem): één keer, voor die tool, hooguit een minuut */
+    _tsNeem(tool){ const s=this._tslot; if(!s.net||s.net!==tool||Date.now()-s.netOp>60000) return false; s.net=''; return true; },
     toolSlotScherm(on){ this._tslot.scherm=!!on; },
     _sec:{on:false,since:0,rotate:false,space:null},
     backupSetPassword(pw){ setTimeout(()=>{ this._sec.on=true; this._sec.since=Date.now(); this._sec.pw=pw; onSecure(''); },200); },
@@ -1362,8 +1366,13 @@ if (!window.Android) window.Android = (function(){
     // Gekozen kaartfoto verwerken (na ontgrendelen, of meteen als de kiezer binnen de tijd terugkwam).
     _cmPhoto(){const m=this._cm;let photo;const job=m.photo;if(job&&job.side==='scan'){m.photo=null;const who=m.records.find(r=>r.id===job.id&&r.type==='persoon');if(!who)photo={error:'Kies een gekoppelde persoon'};else{const soort=m.herkend?.document?.documentsoort||job.soort||'',side=m.herkend?(m.herkend.soort==='TD1'?'back':'front'):['identiteitskaart','verblijfsdocument'].includes(soort)?'back':'front',word={paspoort:'Paspoort',identiteitskaart:'Identiteitskaart',verblijfsdocument:'Verblijfsdocument',rijbewijs:'Rijbewijs'}[soort]||'Document';const fields={persoon:job.id};if(soort)fields.documentsoort=soort;const doc={id:crypto.randomUUID(),type:'identiteit',label:t('{soort} {naam}',{soort:t(word),naam:who.label}),revision:1,fields,images:{[side]:job.image}};m.records.push(doc);this._cmEvent('create','masterdata',doc,[...Object.keys(fields),'label']);this._cmEvent('photo_add','masterdata',doc,[side]);photo={id:doc.id,revision:doc.revision,saved:true,scan:true,person:job.id,side,diag:this._cmDiag(false),...(m.herkend?{herkend:m.herkend}:{})};}}else if(job){m.photo=null;const r=m.records.find(r=>r.id===job.id);if(!r||r.revision!==job.revision)photo={error:'Deze gegevens zijn intussen gewijzigd; laad ze opnieuw'};else{r.images={...r.images,[job.side]:job.image};r.revision++;this._cmEvent('photo_add','masterdata',r,[job.side]);photo={id:r.id,revision:r.revision,saved:true,diag:this._cmDiag(false),...(m.herkend?{herkend:m.herkend}:{})};}}return photo;},
     /* Extra ontgrendelen uit: zonder vraag open; _cm.lang = de telefoon is te lang geleden ontgrendeld (dan {vraag:true}) */
-    masterOpenVanzelf(request){const m=this._cm;if(this._tslot.aan.includes('masterdata')||!this._cm.view){setTimeout(()=>onMasterReply({request}),10);return;}if(m.lang){setTimeout(()=>onMasterReply({request,vraag:true}),10);return;}m.vanzelf=(m.vanzelf||0)+1;this._cmOpen(request);},
-    masterUnlock(request){const m=this._cm;m.vragen=(m.vragen||0)+1;this._cmOpen(request);},
+    /* Zoals Java: open na het slotscherm (_tslot.net; telt in _cm.vragen) of met extra ontgrendelen uit (telt in _cm.vanzelf;
+     * _cm.lang = de telefoon is te lang geleden ontgrendeld: {vraag:'tijd'}); anders {vraag:'slot'} */
+    masterOpen(request){const m=this._cm;if(!m.view){setTimeout(()=>onMasterReply({request}),10);return;}const net=this._tsNeem('masterdata');
+      if(!net&&this._tslot.aan.includes('masterdata')){setTimeout(()=>onMasterReply({request,vraag:'slot'}),10);return;}
+      if(!net&&m.lang){setTimeout(()=>onMasterReply({request,vraag:'tijd'}),10);return;}
+      if(m.openFout){setTimeout(()=>onMasterReply({request,error:m.openFout}),10);return;} // bijv. de sleutel is weg
+      if(net)m.vragen=(m.vragen||0)+1;else m.vanzelf=(m.vanzelf||0)+1;this._cmOpen(request);},
     _cmOpen(request){const m=this._cm;setTimeout(()=>{m.open=true;m.token='session-'+Date.now();this._cmEvent('unlock','masterdata');if(!window.__testPlay)try{this._cmAboutMove('vanzelf');}catch(e){}this._cmContextRefresh();const photo=this._cmPhoto();onMasterReply({request,token:m.token,opened:true,photo});},30);},
     masterLock(){this.masterPhotoCancel();this._cm.open=false;this._cm.grants.clear();const generation=++this._cm.generation;setTimeout(()=>onMasterLocked(generation),0);},
     masterTouch(token){this._cm.touched=token;},
@@ -1462,9 +1471,12 @@ if (!window.Android) window.Android = (function(){
     },
     bankState(){ const b = this._bank; return JSON.stringify({ open: b.open, left: b.open ? 290000 : 0, data: !!b.data, sleutel: !!b.data || b.open, kwijt: false, ontgrendeling: true, hardware: true, slot: true,
       ai: { kan: true, klaar: b.aiKlaar, model: 'Klein en snel' } }); },
-    bankUnlock(){ const b = this._bank; b.calls.push(['unlock']); setTimeout(() => { if (b.ontgrendelFout) { onBank(b.ontgrendelFout); return; } b.open = true; onBank(true); }, 60); },
-    /* Extra ontgrendelen uit: zonder vraag open; _bank.lang = de telefoon is te lang geleden ontgrendeld (dan onBank('vraag')) */
-    bankOpenVanzelf(){ const b = this._bank; if (this._tslot.aan.includes('bank') || b.open || !b.data) return; b.calls.push(['vanzelf']); setTimeout(() => { if (b.lang) { onBank('vraag'); return; } b.open = true; onBank(true); }, 30); },
+    /* Zoals Java: open na het slotscherm (_tslot.net; calls 'unlock') of met extra ontgrendelen uit (calls 'vanzelf';
+     * _bank.lang = de telefoon is te lang geleden ontgrendeld: 'tijd'; zonder gegevens nog geen sleutel: 'vraag'); anders 'vraag' */
+    bankOpen(){ const b = this._bank; if (b.open) { setTimeout(() => onBank(true), 0); return; } const net = this._tsNeem('bank');
+      if (!net && this._tslot.aan.includes('bank')) { b.calls.push(['vraag']); setTimeout(() => onBank('vraag'), 0); return; }
+      b.calls.push([net ? 'unlock' : 'vanzelf']);
+      setTimeout(() => { if (!net && b.lang) { onBank('tijd'); return; } if (!net && !b.data) { onBank('vraag'); return; } if (b.ontgrendelFout) { onBank(b.ontgrendelFout); return; } b.open = true; onBank(true); }, 40); },
     bankLoad(){ const b = this._bank; if (!b.open) return '{"locked":true}'; return JSON.stringify({ left: 290000, store: b.data }); },
     bankSave(json){ const b = this._bank; if (!b.open) return 'Bankzaken is op slot'; const o = JSON.parse(json);
       if (b.data && (o.rev || 0) !== (b.data.rev || 0)) return 'Er is intussen iets geïmporteerd; het scherm is bijgewerkt. Doe je laatste wijziging nog eens.';

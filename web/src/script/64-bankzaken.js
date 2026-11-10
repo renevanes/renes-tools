@@ -262,38 +262,50 @@ function bkSaldoReeks(van, tot){
 // ---------- openen, op slot, opslaan ----------
 function enterBank(){
   try { Android.bankSecure(true); } catch (e) { }
+  $('#bk-msg').textContent = '';
   bkToestand();
   if (!bk.st || !bk.st.open) { bkVanzelf(); return; }
   bkLaad();
 }
-/** Extra ontgrendelen uit: vanzelf open zonder vraag, als de sleutel nog zeker werkt (Java beslist); anders de knop. */
-function bkVanzelf(){ if (current !== 'bank' || !tsVanzelfMag()) return; tsLaad(); if (tsEigenUit('bank') && bk.st && bk.st.slot && !bk.st.open && !bk.st.kwijt && bk.st.data) Android.bankOpenVanzelf(); }
+/** Openen: Java opent zonder vraag als dat mag (net ontgrendeld op het slotscherm van Extra ontgrendelen, of dat staat
+ *  uit en de sleutel werkt nog zeker); anders onBank('vraag'/'tijd') en dan het slotscherm. Bankzaken vraagt zelf niets. */
+function bkVanzelf(){ if (current !== 'bank' || !tsVanzelfMag() || !bk.st || !bk.st.slot || bk.st.open) return; Android.bankOpen(); }
 function bkToestand(){
   let s; try { s = JSON.parse(Android.bankState()); } catch (e) { s = { open: false }; }
   bk.st = s;
   const open = !!s.open && !s.kwijt; // sleutel kwijt: alleen wissen kan nog (na ontgrendelen)
-  $('#bk-open-knop').hidden = !!s.open && !!s.kwijt;
-  $('#bk-dicht').hidden = open; $('#bk-los').hidden = !open;
-  $('#bk-kwijt').hidden = !s.kwijt;
-  if (s.kwijt) $('#bk-kwijt-txt').textContent = 'De sleutel van Bankzaken bestaat niet meer (bijvoorbeeld omdat de schermvergrendeling van je telefoon uit is gezet). Je bankgegevens zijn daardoor niet meer te openen.';
   if (!s.slot && !open) $('#bk-msg').textContent = 'Stel eerst een schermvergrendeling in op je telefoon (pincode, patroon of vingerafdruk). Zonder kan Bankzaken je gegevens niet beveiligen.';
+  $('#bk-kwijt').hidden = !(s.kwijt && s.open);
+  if (s.kwijt) $('#bk-kwijt-txt').textContent = 'De sleutel van Bankzaken bestaat niet meer (bijvoorbeeld omdat de schermvergrendeling van je telefoon uit is gezet). Je bankgegevens zijn daardoor niet meer te openen.';
+  const msg = !!$('#bk-msg').textContent; $('#bk-msg').hidden = !msg;
+  $('#bk-dicht').hidden = open || !(s.kwijt && s.open) && !msg; // niets te zeggen: niets (geen eigen slotscherm)
+  $('#bk-los').hidden = !open;
+  $('#bk-sluit').hidden = tsEigenUit('bank'); // uit: hij opent toch meteen weer
   if (!open) bkVergeet();
   return open;
 }
-function bkOntgrendel(){ $('#bk-msg').textContent = ''; Android.bankUnlock(); }
 window.onBank = function(r){
-  if (r === 'vraag') { $('#bk-msg').textContent = t('Je telefoon is al even ontgrendeld. Bevestig het nog een keer met Ontgrendelen.'); return; }
-  if (r !== true) { $('#bk-msg').textContent = String(r || 'Niet ontgrendeld'); return; }
+  if (r === 'vraag' || r === 'tijd') { bkOpenVraag(r); return; }
+  if (r !== true) { $('#bk-msg').textContent = String(r || 'Niet ontgrendeld'); bkToestand(); return; }
   if (current !== 'bank') { Android.bankLock(); return; }
+  $('#bk-msg').textContent = '';
   if (bkToestand()) uiBezigNu(t('Bankgegevens openen…'), () => { if (current === 'bank') bkLaad(); else Android.bankLock(); });
 };
+/** Bankzaken kan nu niet open zonder ontgrendeling: het slotscherm over Bankzaken (terug = Bankzaken verlaten).
+ *  Na ontgrendelen opent onToolSlot hieronder hem (één keer, met die ontgrendeling). */
+function bkOpenVraag(r){
+  if (current !== 'bank') return;
+  const msg = r === 'tijd' ? t('Je telefoon is al even ontgrendeld. Bevestig het nog een keer.') : bk.st && !bk.st.data && !bk.st.open ? t('De eerste keer maakt Bankzaken een sleutel die bij je schermvergrendeling hoort.') : '';
+  if (!tsVraag('bank', null, null, msg)) bkToestand();
+}
+(function(){ const prev = window.onToolSlot; window.onToolSlot = function(r){ if (prev) prev.apply(this, arguments); if (r && r.soort === 'open' && r.ok && current === 'bank' && tsVanzelfMag()) { bkToestand(); bkVanzelf(); } }; })();
 function bkLaad(){
   let d; try { d = JSON.parse(Android.bankLoad()); } catch (e) { d = { error: 'Openen lukt niet' }; }
   if (d.locked || d.error) {
     if (d.error) $('#bk-msg').textContent = d.error;
     // Sleutel ongeldig: niet op slot doen, dan kan er nog gewist worden
     if (!(d.error && /niet meer te openen/.test(d.error))) Android.bankLock();
-    bkToestand(); return;
+    bkToestand(); if (!d.error) bkVanzelf(); return;
   }
   bk.store = d.store || { v: 1, tx: [], imports: [] };
   for (const k of ['tx', 'imports', 'rules', 'cats', 'eigen']) if (!Array.isArray(bk.store[k])) bk.store[k] = [];
@@ -323,7 +335,7 @@ function bkVergeet(){
   const k = $('#bk-ai-uit-kaart'); if (k) k.hidden = true;
   clearInterval(bk.tmr); bk.tmr = null;
 }
-function bkSluit(){ Android.bankLock(); bkToestand(); }
+function bkSluit(){ Android.bankLock(); bkToestand(); bkVanzelf(); }
 function bkSave(){
   if (!bk.store) return false;
   const r = Android.bankSave(JSON.stringify(bk.store));
@@ -340,7 +352,7 @@ function bkTijdBewaken(){
   bk.tmr = setInterval(() => {
     if (current !== 'bank') return;
     let s; try { s = JSON.parse(Android.bankState()); } catch (e) { s = { open: false }; }
-    if (!s.open) { bkToestand(); toast('Bankzaken is op slot gegaan'); return; }
+    if (!s.open) { bkToestand(); if (!tsEigenUit('bank')) toast('Bankzaken is op slot gegaan'); bkVanzelf(); return; }
     const min = Math.ceil(s.left / 60000);
     $('#bk-tijd').textContent = tn(min, 'Gaat op slot over {n} minuut zonder gebruik, en zodra je de app verlaat.', 'Gaat op slot over {n} minuten zonder gebruik, en zodra je de app verlaat.');
   }, 10000);
@@ -350,18 +362,18 @@ document.addEventListener('pointerdown', ev => {
   if (Date.now() - bk.aanraak > 20000) { bk.aanraak = Date.now(); try { Android.bankTouch(); } catch (e) { } }
 }, true);
 document.addEventListener('input', ev => { if (current === 'bank' && ev.target.closest && ev.target.closest('#s-bank') && Date.now() - bk.aanraak > 20000) { bk.aanraak = Date.now(); try { Android.bankTouch(); } catch (e) { } } }, true);
-function bkVerlaat(){ if (bk.aiBezig) { try { Android.bankAiCancel(); } catch (e) { } bk.aiBezig = false; } Android.bankLock(); bkVergeet(); try { Android.bankSecure(false); } catch (e) { } $('#bk-dicht').hidden = false; $('#bk-los').hidden = true; }
-(function(){ const prev = window.onPauseApp; window.onPauseApp = function(){ if (prev) prev(); if (bk.store) { bkVergeet(); $('#bk-dicht').hidden = false; $('#bk-los').hidden = true; } }; })();
-// Het app-slot is net open (terug in de app doet enterBank al): met extra ontgrendelen uit vanzelf weer open
-(function(){
-  const prev = window.onUnlocked;
-  window.onUnlocked = function(){
+function bkVerlaat(){ if (bk.aiBezig) { try { Android.bankAiCancel(); } catch (e) { } bk.aiBezig = false; } Android.bankLock(); bkVergeet(); try { Android.bankSecure(false); } catch (e) { } $('#bk-dicht').hidden = true; $('#bk-los').hidden = true; }
+(function(){ const prev = window.onPauseApp; window.onPauseApp = function(){ if (prev) prev(); if (bk.store) { bkVergeet(); $('#bk-dicht').hidden = true; $('#bk-los').hidden = true; } }; })();
+// Het app-slot is net open (terug in de app doet enterBank al), of het slotscherm van een andere tool ging weg terwijl je
+// hier bleef: weer open als dat mag, anders het slotscherm
+for (const naam of ['onUnlocked', 'onToolSlotVrij']) {
+  const prev = window[naam];
+  window[naam] = function(){
     if (prev) prev.apply(this, arguments);
-    if (current !== 'bank' || !tsEigenUit('bank')) return;
-    let s; try { s = JSON.parse(Android.bankState()); } catch (e) { s = {}; }
-    if (!s.open) { bkToestand(); bkVanzelf(); }
+    if (current !== 'bank' || !tsVanzelfMag()) return;
+    bkToestand(); bkVanzelf();
   };
-})();
+}
 
 // ---------- tabs en filters ----------
 function bkTab(tt){
@@ -726,6 +738,6 @@ function bkWis(){
     if (!bk.st || !bk.st.open) { toast('Ontgrendel eerst; daarna kun je wissen'); return; }
     const r = Android.bankWipe();
     if (r) { toast(r); return; }
-    bkVergeet(); bkToestand(); toast('Alle bankgegevens zijn gewist');
+    bkVergeet(); bkToestand(); toast('Alle bankgegevens zijn gewist'); bkVanzelf(); // opnieuw beginnen: een nieuwe sleutel na het slotscherm
   });
 }

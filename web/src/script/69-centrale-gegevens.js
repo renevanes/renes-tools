@@ -64,8 +64,8 @@ window.onMasterPrivacy=function(r){
   cmRenderState();Android.masterSafeFrame(cm.view,cm.generation);
 };
 function cmRenderState(){
-  const open=cmOpen();$('#cm-locked').hidden=open;$('#cm-locked-ai').hidden=open;$('#cm-open').hidden=!open;$('#cm-lock-btn').hidden=!open;
-  $('#cm-pick-unlock').hidden=open;$('#cm-pick-search').hidden=!open;
+  const open=cmOpen();$('#cm-open').hidden=!open;$('#cm-lock-btn').hidden=!open||tsEigenUit('masterdata'); // uit: hij opent toch meteen weer
+  $('#cm-pick-search').hidden=!open;
   if(typeof cmaiRender==='function'&&current==='cmai')cmaiRender();
   // Op slot tijdens bewerken, een lijst, een visitekaartje of het logboek: terug naar het overzicht (na een lopende schermwissel)
   if(!open&&CM_PRIVE.includes(current))setTimeout(()=>{if(CM_PRIVE.includes(current)&&!cmOpen()){const note=$('#'+CM_NOTE[current]).textContent;show('masterdata');cmNote(note);}},0);
@@ -77,6 +77,7 @@ function enterMasterdata(name='masterdata',prev=''){
   if(CM_PRIVE.includes(name)&&!cmOpen()){cmRenderState();return;}
   if(name==='masterdata'&&cmZone(prev)&&prev!=='masterdata'&&cmOpen())cmListLoad();
   if(name==='cmwis'){$('#cm-reset-word').value='';cmResetReady();}
+  else if(cmZone(prev)&&!cmOpen()&&cm.privateReady)setTimeout(cmVanzelf,0); // terug van Opnieuw beginnen: weer open (of het slotscherm)
 }
 function cmLeave(){if(typeof cmi!=='undefined'){cmi.newType='';cmi.newLijst='';cmi.reopen='';}cmClearCentral();Android.masterLock();cmPrivacy(false);}
 function cmClearCentral(){
@@ -106,21 +107,33 @@ function cmLockedUI(){
   if(cmZone(current)&&$('#modal').classList.contains('on'))closeModal(null);
   if(cmZone(current)&&sigOpen())sigClose();
   cmRenderState();cmNote(t('Stamgegevens zijn vergrendeld. Niet-bewaarde gegevens zijn gewist.'));
+  setTimeout(cmVanzelf,0); // nog in Stamgegevens (of een keuzelijst ervan): weer open als dat mag, anders het slotscherm
 }
 window.onMasterLocked=function(generation){cm.generation=generation;cmLockedUI();Android.masterSafeFrame(cm.view,generation);};
 window.onMasterReset=function(){cm.unlocking=false;cm.resetting=false;cm.pending.clear();cmLockedUI();if(current==='cmwis')show('masterdata');cmNote(t('Stamgegevens en activiteiten zijn gewist.'));};
-/* vanzelf: extra ontgrendelen staat uit, dus zonder vraag openen als dat zeker kan (Java beslist; anders {vraag:true}). */
-function cmUnlock(vanzelf=false){
-  vanzelf=vanzelf===true;
-  if(cm.unlocking||cm.resetting)return;if(!cmState().secure){if(!vanzelf)cmNote(t('Stel eerst een schermvergrendeling in op je telefoon'));return;}cm.unlocking=true;if(!vanzelf)cmNote(t('Bevestig op je telefoon.'));
-  cmRequest(vanzelf?'masterOpenVanzelf':'masterUnlock',[],r=>{cm.unlocking=false;if(r.vraag)cmNote(t('Je telefoon is al even ontgrendeld. Bevestig het nog een keer met Ontgrendelen.'));if(!r.opened||!cmState().open)return;cm.token=r.token;cmRenderState();cmNote('');appIdentityRefresh();cmiPhotoAfterUnlock(r.photo);if(cm.picker)cmPickerLoad();else if(typeof fmq!=='undefined'&&fmq.open)fmqLoad();else cmListOpen();},true);
+/* Openen: Stamgegevens vraagt zelf nooit om te ontgrendelen. Java opent zonder vraag als dat mag (net ontgrendeld op het
+ * slotscherm van Extra ontgrendelen, of dat staat uit en de sleutel werkt nog zeker); anders {vraag} en dan het slotscherm
+ * (26b, tsVraag) over wat je deed. */
+function cmUnlock(){
+  if(cm.unlocking||cm.resetting)return;if(!cmState().secure){cmNote(t('Stel eerst een schermvergrendeling in op je telefoon'));return;}cm.unlocking=true;
+  cmRequest('masterOpen',[],r=>{cm.unlocking=false;if(r.vraag){cmVraag(r.vraag);return;}if(!r.opened||!cmState().open)return;cm.token=r.token;cmRenderState();cmNote('');appIdentityRefresh();cmiPhotoAfterUnlock(r.photo);if(cm.picker)cmPickerLoad();else if(typeof fmq!=='undefined'&&fmq.open)fmqLoad();else cmListOpen();},true);
 }
-/** Extra ontgrendelen uit: Stamgegevens (of de keuzelijst ervan) opent vanzelf zodra het scherm klaar is */
+/** Wil het scherm nu Stamgegevens open hebben? (Opnieuw beginnen werkt juist op slot.) */
+function cmWil(){return cmZone(current)&&current!=='cmwis'||!!cm.picker||typeof fmq!=='undefined'&&fmq.open;}
+/** Kan niet open zonder ontgrendeling: het slotscherm. Over een keuzelijst sluit terug die lijst; over Stamgegevens zelf verlaat terug Stamgegevens. */
+function cmVraag(soort){
+  if(!cmWil()||!cm.view||!cm.privateReady)return;
+  const foto=cmi.photoRequest&&!$('#cmi-photo-pending').hidden?$('#cmi-photo-pending-text').textContent:'';
+  const msg=soort==='tijd'?t('Je telefoon is al even ontgrendeld. Bevestig het nog een keer.'):foto;
+  const terug=cmZone(current)?null:()=>{if(cm.picker)cmClosePicker();if(typeof fmq!=='undefined'&&fmq.open)fmqClose();};
+  if(!tsVraag('masterdata',cmVanzelf,terug,msg))cmNote(t('Stel eerst een schermvergrendeling in op je telefoon'));
+}
+/** Stamgegevens (of de keuzelijst ervan) opent vanzelf zodra het scherm klaar is: zonder vraag als dat mag, anders het slotscherm */
 function cmVanzelf(){
-  // Onder het slotscherm van een andere tool (bijv. PDF met Formulieren) niets ontsleutelen: dat wacht tot na ontgrendelen
-  if(!tsEigenUit('masterdata')||!tsVanzelfMag()||cm.unlocking||cm.resetting||cm.token&&cmOpen())return;
-  if(!(cmZone(current)&&current!=='cmwis'||cm.picker||typeof fmq!=='undefined'&&fmq.open))return;
-  cmUnlock(true);
+  // Onder het app-slot of een slotscherm (bijv. van PDF met Formulieren) niets ontsleutelen: dat wacht tot na ontgrendelen
+  if(!tsVanzelfMag()||cm.unlocking||cm.resetting||cm.token&&cmOpen())return;
+  if(!cmWil())return;
+  cmUnlock();
 }
 function cmLock(){Android.masterLock();cmLockedUI();}
 function cmTouch(){if(cmOpen())Android.masterTouch(cm.token);}
@@ -338,11 +351,11 @@ const cmFmInit=fmInit;fmInit=function(id){cmFmInit(id);fm.masterSensitive=false;
 const cmIdReset=idCopyReset;idCopyReset=function(secure=true){idc.masterSensitive=false;cmIdReset(secure);};
 const cmFmRender=fmRender;fmRender=function(){if(fm.masterSensitive&&!cmState().open){cmLockedUI();return;}cmFmRender();const s=fmSecties()[fm.step];$('#cm-form-pick').hidden=!s||!s.fields.some(f=>/^(kind|begeleider[12]|gever[12])-/.test(f.id)||f.id==='accommodatie');$('#cm-form-pick').disabled=fm.busy;};
 const cmOnPrivacy=window.onMasterPrivacy;window.onMasterPrivacy=function(r){cmOnPrivacy(r);if(cm.picker&&cmOpen())cmPickerLoad();else if(['masterdata','cmai'].includes(current)&&cmOpen())cmListOpen();};
-// Extra ontgrendelen uit: na het openen van het scherm (en terug in de app of na het app-slot) vanzelf ontgrendelen.
+// Na het openen van het scherm (en terug in de app, na het app-slot of het slotscherm) vanzelf openen of het slotscherm.
 // Een lopende vraag (fmq.ask, een ontgrendeling) gaat voor: cmVanzelf wacht één beurt en kijkt dan of er al iets loopt.
 (function(){
   const privacy=window.onMasterPrivacy;window.onMasterPrivacy=function(r){privacy(r);if(r&&r.view&&r.view===cm.view)setTimeout(cmVanzelf,0);};
-  for(const naam of ['onResumeApp','onUnlocked']){const prev=window[naam];window[naam]=function(){if(prev)prev.apply(this,arguments);if(cm.view&&cm.privateReady)setTimeout(cmVanzelf,0);};}
+  for(const naam of ['onResumeApp','onUnlocked','onToolSlotVrij']){const prev=window[naam];window[naam]=function(){if(prev)prev.apply(this,arguments);if(cm.view&&cm.privateReady)setTimeout(cmVanzelf,0);};}
   const slot=window.onToolSlot;window.onToolSlot=function(r){slot(r);if(r&&r.soort==='open'&&r.ok&&cm.view&&cm.privateReady)setTimeout(cmVanzelf,0);};
 })();
 $('#cm-picker').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();cmClosePicker();}if(e.key==='Tab'){const nodes=[...$('#cm-picker').querySelectorAll('button,input,select,[tabindex="0"]')].filter(n=>!n.disabled&&n.getClientRects().length);if(!nodes.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});

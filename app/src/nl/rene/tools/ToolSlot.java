@@ -13,9 +13,10 @@ import java.util.TreeSet;
  * Extra ontgrendelen per tool: welke tools bij het openen eerst de schermvergrendeling van de telefoon vragen, net als
  * Stamgegevens. Aanzetten mag meteen; uitzetten pas na bevestigen met de schermvergrendeling (de brug regelt dat).
  * Welke schermen bij een tool horen en wanneer hij weer op slot gaat, regelt de interface (26b-extra-ontgrendelen.js).
- * Kluis, Bankzaken en Stamgegevens (EIGEN) hebben een eigen ontgrendeling: die staat standaard aan en wordt apart
- * uitgezet ("eigenUit"). Uit = de tool opent zonder vraag; de sleutels van Bankzaken en Stamgegevens werken dan nog steeds
- * alleen kort na het ontgrendelen van de telefoon (Ontgrendeld).
+ * Er is één slotscherm voor alle tools; geen tool vraagt zelf om te ontgrendelen. Kluis, Bankzaken en Stamgegevens
+ * (EIGEN) staan standaard aan en worden apart uitgezet ("eigenUit"). Ze openen alleen meteen na het slotscherm
+ * (MainActivity.toolSlotNeem) of als het uit staat; de sleutels van Bankzaken en Stamgegevens werken dan nog steeds
+ * alleen kort na het ontgrendelen van de telefoon (Ontgrendeld), anders toont de interface toch het slotscherm.
  */
 final class ToolSlot {
 
@@ -37,7 +38,7 @@ final class ToolSlot {
         return out;
     }
 
-    /** De tools met extra ontgrendelen: de gekozen tools, plus de tools met een eigen ontgrendeling die niet uit staan. */
+    /** De tools met extra ontgrendelen: de gekozen tools, plus Kluis, Bankzaken en Stamgegevens als die niet uit staan. */
     static Set<String> samen(Collection<String> tools, Collection<String> eigenUit) {
         Set<String> s = geldig(tools);
         s.removeAll(EIGEN);
@@ -50,7 +51,7 @@ final class ToolSlot {
         return samen(p.getStringSet("tools", Collections.<String>emptySet()), p.getStringSet("eigenUit", Collections.<String>emptySet()));
     }
 
-    /** Opent deze tool met een eigen ontgrendeling zonder te vragen? */
+    /** Kluis, Bankzaken of Stamgegevens met extra ontgrendelen uit: opent zonder slotscherm (als de sleutel nog werkt)? */
     static boolean eigenUit(Context c, String tool) { return EIGEN.contains(tool) && !aan(c).contains(tool); }
 
     /** De nieuwe lijst na aan- of uitzetten van één tool (een onbekende tool verandert niets). */

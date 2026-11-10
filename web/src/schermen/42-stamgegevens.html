@@ -3,15 +3,9 @@
     <button class="icon-btn" id="cm-lock-btn" onclick="cmLock()" aria-label="Vergrendelen" hidden><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></button>
     <button class="icon-btn" id="cm-menu" onclick="cmMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button></div>
   <main>
-    <div class="card" id="cm-locked">
-      <h2>Jouw gegevens, alleen op deze telefoon</h2>
-      <p class="note">Jij, je mensen en jullie documenten op één beveiligde plek. Versleuteld op dit toestel en niet in back-ups: zonder dit toestel zijn ze niet te herstellen.</p>
-      <button class="big" id="cm-unlock" onclick="cmUnlock()">Ontgrendelen</button>
-      <details class="help in"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>Vergrendelt bij verlaten van de app, na vijf minuten niets doen en uiterlijk na negen minuten. Schermafdrukken en automatisch invullen zijn afgeschermd.</p><p>Niet-bewaarde wijzigingen en overgenomen concepten worden bij vergrendelen gewist.</p><p>Wat de assistent van jou en je mensen weet, kies je zelf bij Wat weet de assistent?. Activiteiten (wat wanneer is bekeken of gewijzigd) en Opnieuw beginnen vind je onder ⋯ rechtsboven.</p></div></details>
-    </div>
-    <div class="card stlist" id="cm-locked-ai"><button class="strow" onclick="cmaiOpen()"><span class="stic"><span class="ui-icon" data-icon="smile" aria-hidden="true"></span></span><span class="sttxt"><b>Wat weet de assistent?</b><small id="cmi-shared-stand" translate="no"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button></div>
+    <!-- Op slot staat hier niets: om ontgrendelen vraagt het slotscherm van Extra ontgrendelen (26b), niet Stamgegevens zelf -->
     <p class="note cm-status" id="cm-status" role="status" aria-live="polite"></p>
-    <div class="card" id="cmi-photo-pending" hidden><p class="note" id="cmi-photo-pending-text">Een kaartfoto is gekozen. Ontgrendel Stamgegevens om de foto bij het document op te slaan. Je vorige bewerking is bij het verlaten van de app gewist.</p><button class="big" id="cmi-photo-pending-btn" onclick="cmUnlock()">Ontgrendelen en kaartfoto opslaan</button><button class="mini" onclick="cmiPhotoCancel()">Foto annuleren</button></div>
+    <div class="card" id="cmi-photo-pending" hidden><p class="note" id="cmi-photo-pending-text">Een kaartfoto is gekozen. Na ontgrendelen wordt hij bij het document opgeslagen. Je vorige bewerking is bij het verlaten van de app gewist.</p><button class="mini" onclick="cmiPhotoCancel()">Foto annuleren</button></div>
     <div id="cm-open" hidden>
       <input class="search" id="cm-search" type="search" autocomplete="off" placeholder="Zoeken" aria-label="Zoeken in stamgegevens" oninput="cmRenderList()">
       <div class="card stlist" id="cm-zoek" hidden><div id="cm-list" translate="no"></div></div>
@@ -49,9 +43,8 @@
 <section class="screen" id="s-cmai">
   <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">Wat weet de assistent?</h1></div>
   <main>
-    <p class="hint">Blijft op je telefoon; ook leesbaar als Stamgegevens op slot is.</p>
+    <p class="hint">Blijft op je telefoon.</p>
     <p class="note cm-status" id="cm-ai-status" role="status" aria-live="polite"></p>
-    <div class="card" id="cm-ai-dicht" hidden><p class="note">Ontgrendel Stamgegevens om te kiezen wat de assistent weet.</p><button class="big" id="cm-ai-unlock" onclick="cmUnlock()">Ontgrendelen</button></div>
     <div class="card cm-ai-set" id="cm-ai-set">
       <div class="cm-sw"><span class="cm-sw-t"><b id="cm-ai-delen-t">Assistent kent jou en je mensen</b><small id="cm-ai-delen-s"></small></span><button class="tg" role="switch" id="cm-ai-delen" aria-checked="false" aria-labelledby="cm-ai-delen-t" onclick="cmaiSet('delen')"></button></div>
       <div id="cm-ai-soorten">
@@ -143,7 +136,6 @@
     <h2 id="cm-pick-title" tabindex="-1">Stamgegevens overnemen</h2><p class="note" id="cm-pick-target"></p>
     <p class="note">Je kiest zelf welke velden naar dit onderdeel gaan. Overgenomen gegevens zijn een momentopname. Een gemaakte PDF bevat die gegevens en valt buiten de centrale kluis.</p>
     <p class="note">Bij vergrendelen worden open formulieren en ID-bewerkingen met overgenomen gegevens gewist, inclusief handmatig aangevulde invoer.</p>
-    <button class="big" id="cm-pick-unlock" onclick="cmUnlock()">Ontgrendelen om te kiezen</button>
     <input class="search" id="cm-pick-search" type="search" placeholder="Zoek een naam" oninput="cmRenderPicker()" aria-label="Zoek in stamgegevens">
     <div id="cm-pick-list" translate="no"></div><div id="cm-pick-fields"></div>
     <label class="chk" id="cm-sensitive-row" hidden><input id="cm-sensitive" type="checkbox" onchange="cmConsentReady()">Ik wil deze identiteitsgegevens overnemen en heb de juiste persoon gecontroleerd</label>

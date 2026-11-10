@@ -19,6 +19,12 @@ const W = +process.env.UI_WACHT || 1;
       await pg.addInitScript(tool => { window.__testSolo = tool; }, id);
       await pg.goto(url); await pg.waitForTimeout(220 * W);
       const root = id === 'player' ? 'radio' : id;
+      // Kluis, Bankzaken en Stamgegevens: het centrale slotscherm vóór het eigen scherm
+      if (['bank', 'kluis', 'masterdata'].includes(id)) {
+        assert.equal(await pg.evaluate(id => tsZichtbaar() && ts.tool === id && current === 'home', id), true, id + ' vraagt bij starten het centrale slotscherm');
+        await pg.click('#ts-open');
+        await pg.waitForFunction(root => current === root && !tsZichtbaar(), root);
+      }
       const state = await pg.evaluate(() => ({current, tabs:getComputedStyle($('#tabs')).display, root:document.body.classList.contains('solo-root'), visible:!!document.querySelector('.screen.on')?.getClientRects().length, allowed:SOLO_TOOLS}));
       assert.equal(state.current,root,id+' opent zijn eigen scherm');
       assert.equal(state.tabs,'none',id+' heeft geen algemene tabbalk');
@@ -50,14 +56,12 @@ const W = +process.env.UI_WACHT || 1;
         assert.equal(await pg.evaluate(() => current), 'gebruik');
       }
       if (id === 'bank') {
-        assert.equal(await pg.isVisible('#bk-dicht'),true,'Bankzaken blijft op slot bij starten');
-        await pg.evaluate(() => Android.bankUnlock()); await pg.waitForTimeout(160 * W);
-        assert.equal(await pg.evaluate(() => bk.st.open),true,'Bankzaken kan met eigen ontgrendeling open');
+        await pg.waitForFunction(() => bk.st && bk.st.open);
+        assert.equal(await pg.isVisible('#bk-los'),true,'Bankzaken opent na het slotscherm');
         await pg.evaluate(() => Android.bankLock());
       }
       if (id === 'masterdata') {
-        assert.equal(await pg.isVisible('#cm-unlock'),true,'Stamgegevens vraagt eigen ontgrendeling');
-        await pg.click('#cm-unlock'); await pg.waitForFunction(() => cmOpen() && cm.recordsReady);
+        await pg.waitForFunction(() => cmOpen() && cm.recordsReady);
         await pg.evaluate(() => show('cmlog'));
         assert.equal(await pg.evaluate(() => current),'cmlog','eigen subscherm blijft beschikbaar');
       }

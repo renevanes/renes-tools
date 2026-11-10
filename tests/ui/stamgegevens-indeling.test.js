@@ -15,19 +15,25 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  const blokken=()=>p.$$eval('#cm-kaart .cmc-blok',s=>s.map(x=>x.dataset.blok));
  const opKaart=id=>p.waitForFunction(id=>current==='cmkaart'&&cmc.rec?.id===id&&!cm.pending.size&&!cm.mutating&&!cm.navigating,id);
 
- // Vergrendeld: korte kaart, uitleg ingeklapt, wat de assistent weet in één regel
+ // Vergrendeld: eerst het centrale slotscherm (Stamgegevens heeft geen eigen slotkaart of ontgrendelknop)
  await p.evaluate(()=>show('masterdata'));await p.waitForTimeout(120*W);
+ assert.equal(await p.evaluate(()=>tsZichtbaar()&&ts.tool==='masterdata'),true,tag+': het centrale slotscherm');
+ assert.equal(await p.locator('#s-masterdata [onclick^="cmUnlock"]').count(),0,tag+': geen eigen ontgrendelknop');
+ // Lukt openen daarna niet (de sleutel is weg): het kale beginscherm met de melding; Opnieuw beginnen kan dan nog (⋯),
+ // op een eigen scherm; terug naar het beginscherm probeert het opnieuw
+ const sleutelWeg='De beveiligingssleutel ontbreekt; bestaande stamgegevens worden niet vervangen';
+ await p.evaluate(f=>{Android._cm.openFout=f;},sleutelWeg);
+ await p.click('#ts-open');await p.waitForFunction(t=>current==='masterdata'&&!tsZichtbaar()&&!cm.unlocking&&$('#cm-status').textContent===t,L(sleutelWeg,'The security key is missing; existing master data will not be replaced'));
  await past('vergrendeld beginscherm');
+ assert.equal(await p.textContent('#cm-status'),L(sleutelWeg,'The security key is missing; existing master data will not be replaced'));
  assert.equal(await p.isVisible('#cm-add'),false,tag+': geen Persoon toevoegen zolang het slot dicht is');
- assert.equal(await p.textContent('#cmi-shared-stand'),L('Weet niets uit Stamgegevens','Knows nothing from Master data'));
- // Opnieuw beginnen kan ook vergrendeld (⋯), op een eigen scherm; terug naar het beginscherm
  await p.click('#cm-menu');await p.waitForSelector('#sheet.on');
  assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),[L('Opnieuw beginnen','Start over')],tag+': vergrendeld alleen opnieuw beginnen');
  await p.click('#sheet-acts button');await p.waitForFunction(()=>current==='cmwis');assert.equal(await p.isDisabled('#cm-reset'),true);await past('opnieuw beginnen');
- await p.evaluate(()=>goBack());await p.waitForFunction(()=>current==='masterdata');
+ await p.evaluate(()=>{Android._cm.openFout='';goBack();});await p.waitForFunction(()=>current==='masterdata');
 
- // Leeg: Begin met jezelf, rijen met hun stand
- await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+ // Leeg: Begin met jezelf, rijen met hun stand (terug van Opnieuw beginnen vraagt het slotscherm opnieuw)
+ await T.slot();await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
  assert.equal(await p.isVisible('#cm-ik .cmk-start'),true,tag+': Begin met jezelf');
  assert.deepEqual(await p.$$eval('#cm-ik .cmk-start button',b=>b.map(x=>x.id)),['cmk-self-contact','cmk-self-new'],'nog niemand om uit te kiezen');
  assert.equal(await p.textContent('#cm-stand-mensen'),L('Nog niemand','Nobody yet'));assert.equal(await p.textContent('#cm-stand-documenten'),L('Nog geen documenten','No documents yet'));
@@ -141,7 +147,7 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  assert.equal(await p.textContent('#cm-status'),L('Stamgegevens zijn vergrendeld. Niet-bewaarde gegevens zijn gewist.','Master data is locked. Unsaved data has been cleared.'));
  for(const s of ['#s-masterdata','#s-cmedit','#s-cmlog','#s-cmlijst','#s-cmkaart'])assert.equal(await p.evaluate(s=>/Rene|Anna|Paspoort Rene|123456782|Gemeente|Coolsingel/.test($(s).innerHTML),s),false,tag+': geen gegevens meer in '+s);
  // Verwijderen vanuit het bewerken (potlood, dan ⋯): terug naar de lijst, niet naar het kaartje van wat weg is
- await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+ await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
  const weg=await T.maak('organisatie','Weg BV',{naam:'Weg BV'});
  await p.click('#cm-row-organisaties');await p.waitForFunction(()=>current==='cmlijst'&&!cm.navigating);
  await T.kaart(weg);await T.blok(weg,'gegevens');
@@ -153,7 +159,7 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  // Een subscherm openen zonder ontgrendelen kan niet
  for(const s of ['cmedit','cmlijst','cmkaart']){await p.evaluate(s=>show(s),s);await p.waitForFunction(()=>current==='masterdata');}
  // De zone verlaten vergrendelt; Overal zoeken neemt de schermen niet op
- await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);await p.click('#cm-row-adressen');await p.waitForFunction(()=>current==='cmlijst');
+ await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);await p.click('#cm-row-adressen');await p.waitForFunction(()=>current==='cmlijst');
  await p.evaluate(()=>show('home'));await p.waitForFunction(()=>!cm.token);
  assert.equal(await p.evaluate(()=>{gsIndex=null;gsBuildIndex();return gsIndex.some(x=>CM_SCR.includes(x.scr));}),false,'niet in Overal zoeken');
  assert.equal(await p.evaluate(()=>Object.keys(localStorage).some(k=>/stam|identity|profiel|relati/.test(k))),false);

@@ -192,7 +192,9 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
     ok(top.hello < 60 && (await pg.textContent('#cmi-home')).includes('Hallo Rene'), '"Hallo Rene" in de kopbalk');
     ok((await pg.getAttribute('#cmi-home', 'aria-label')) === 'Hallo Rene, naar Stamgegevens', 'knop zegt waar hij heen gaat (aria-label)');
     await pg.click('#cmi-home'); await pg.waitForTimeout(150);
-    ok(await pg.evaluate(() => current === 'masterdata'), 'Hallo Rene opent Stamgegevens');
+    ok(await pg.evaluate(() => tsZichtbaar() && ts.tool === 'masterdata' && current === 'home'), 'Hallo Rene vraagt het slotscherm, Stamgegevens zelf nog niet');
+    await pg.click('#ts-open'); await pg.waitForFunction(() => current === 'masterdata');
+    ok(await pg.evaluate(() => current === 'masterdata' && !tsZichtbaar()), 'Hallo Rene opent Stamgegevens na het slotscherm');
     await pg.evaluate(() => { Android.appIdentity = window._idOud; appIdentityRefresh(); show('home'); }); await pg.waitForTimeout(100);
     ok(!(await pg.isVisible('#cmi-home')), 'zonder profiel geen lege rij of knop');
     await pg.evaluate(() => { store.set('homeRecent', []); show('home'); }); // Stamgegevens hierboven telde als gebruikt

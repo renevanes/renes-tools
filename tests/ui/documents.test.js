@@ -5,7 +5,8 @@ const assert=require('node:assert/strict');
   for(const scheme of ['light','dark']){
     const p=await browser.newPage({viewport:{width:390,height:844},colorScheme:scheme});const errors=[];p.on('pageerror',e=>errors.push(e.message));
     await p.goto('file://'+require('path').join(__dirname,'ui','index.html'));await p.evaluate(()=>show('kluis'));
-    assert.equal(await p.isVisible('#kl-locked'),true);await p.getByRole('button',{name:'Ontgrendelen',exact:true}).click();await p.waitForFunction(()=>$('#kl-open').style.display==='block');
+    assert.equal(await p.evaluate(()=>tsZichtbaar()&&ts.tool==='kluis'),true,'op slot: het centrale slotscherm');assert.equal(await p.locator('#s-kluis button',{hasText:'Ontgrendelen'}).count(),0,'geen eigen ontgrendelknop');
+    await p.click('#ts-open');await p.waitForFunction(()=>$('#kl-open').style.display==='block');
     const first=await p.evaluate(()=>JSON.parse(JSON.stringify(Android._kl.docs[0])));
     const menu=async(id,label)=>{await p.locator('#kl-list [data-id="'+id+'"]').click();await p.getByRole('button',{name:label,exact:true}).click();};
     await menu(first.id,'Categorie en toelichting');await p.fill('#kl-edit-category','Identiteit');await p.fill('#kl-edit-note','Paspoort geldig tot december');await p.check('#kl-edit-favorite');await p.click('#kl-edit-save');
@@ -33,11 +34,11 @@ const assert=require('node:assert/strict');
     assert.equal(await p.locator('#kl-list img,#kl-list script').count(),0);await p.fill('#kl-search','alert');assert.equal(await p.locator('#kl-list .trip').count(),1);await p.fill('#kl-search','');
     // Bij verlopen sessie komt niets door en verdwijnen de gevoelige gegevens uit de bediening.
     await menu(first.id,'Categorie en toelichting');await p.fill('#kl-edit-note','Nog niet bewaard');await p.evaluate(()=>Android._kl.open=false);await p.click('#kl-edit-save');
-    assert.equal(await p.isVisible('#kl-locked'),true);assert.equal(await p.locator('#kl-list .trip').count(),0);assert.equal(await p.inputValue('#kl-edit-note'),'');
-    await p.getByRole('button',{name:'Ontgrendelen',exact:true}).click();await p.waitForFunction(()=>$('#kl-open').style.display==='block');
+    await p.waitForFunction(()=>tsZichtbaar()&&ts.tool==='kluis');assert.equal(await p.isVisible('#kl-open'),false);assert.equal(await p.locator('#kl-list .trip').count(),0);assert.equal(await p.inputValue('#kl-edit-note'),'');
+    await p.click('#ts-open');await p.waitForFunction(()=>$('#kl-open').style.display==='block');
     assert.equal(await p.evaluate(id=>Android._kl.docs.find(d=>d.id===id).note,first.id),'<script>alert(1)</script>');
     // Filter en categorielijst worden hersteld uit de native index, ook na een nieuwe schermopening.
-    await p.evaluate(()=>{show('pdf');show('kluis');});assert.equal(await p.isVisible('#kl-locked'),true);await p.getByRole('button',{name:'Ontgrendelen',exact:true}).click();await p.waitForFunction(()=>$('#kl-open').style.display==='block');
+    await p.evaluate(()=>{show('pdf');show('kluis');});assert.equal(await p.evaluate(()=>tsZichtbaar()&&ts.tool==='kluis'),true);await p.click('#ts-open');await p.waitForFunction(()=>$('#kl-open').style.display==='block');
     await p.selectOption('#kl-category','category:<img src=x>');assert.equal(await p.locator('#kl-list .trip').count(),1);
     await menu(first.id,'Verwijderen');await p.click('#modal-cancel');assert.equal(await p.evaluate(()=>Android._kl.docs.length),2);
     await menu(first.id,'Verwijderen');await p.click('#modal-ok');assert.equal(await p.evaluate(()=>Android._kl.docs.length),1);assert.equal(await p.inputValue('#kl-category'),'all');

@@ -56,9 +56,12 @@ const assert=require('node:assert/strict');
     await p.click('#pdf-edit-save');await p.waitForFunction(()=>!pdfBusy);
     const name=await p.evaluate(()=>Android._pdf.outs[0].name),before=await p.evaluate(()=>Android._kl.docs.length);
     const keep=async()=>{await p.evaluate(name=>pdfOutMenu(name),name);await p.getByRole('button',{name:'Bewaren in documentenkluis',exact:true}).click();await p.fill('#modal-input','Verzekeringen');await p.click('#modal-ok');};
-    await p.evaluate(()=>{window.unlock=Android.kluisUnlock;Android.kluisUnlock=()=>setTimeout(()=>onKluis('Geannuleerd'),30);});
-    await keep();await p.waitForFunction(()=>!pdfBusy);assert.equal(await p.evaluate(()=>Android._kl.docs.length),before);
-    await p.evaluate(()=>Android.kluisUnlock=window.unlock);await keep();await p.waitForFunction(()=>!pdfBusy&&pdfKeepPending===null);
+    // De kluis op slot: het centrale slotscherm over de PDF (geen eigen vraag van de kluis); terug = niet bewaren, je blijft in PDF
+    const scherm=await p.evaluate(()=>current);
+    await keep();await p.waitForFunction(()=>tsZichtbaar()&&ts.tool==='kluis');
+    await p.evaluate(()=>goBack());await p.waitForFunction(()=>!pdfBusy&&!tsZichtbaar());assert.equal(await p.evaluate(()=>Android._kl.docs.length),before);
+    assert.equal(await p.evaluate(()=>current),scherm,'terug op het slotscherm blijft in PDF');
+    await keep();await p.click('#ts-open');await p.waitForFunction(()=>!pdfBusy&&pdfKeepPending===null);
     assert.equal(await p.evaluate(()=>Android._kl.docs.length),before+1);
     const doc=await p.evaluate(name=>Android._kl.docs.find(d=>d.name===name),name);assert.equal(doc.category,'Verzekeringen');assert.equal(doc.mime,'application/pdf');
     assert.ok(await p.evaluate(name=>Android._pdf.outs.some(d=>d.name===name),name),'de tijdelijke PDF blijft behouden');

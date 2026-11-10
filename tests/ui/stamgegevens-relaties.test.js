@@ -9,7 +9,7 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
 (async()=>{const browser=await chromium.launch(),errors=[];
 for(const colorScheme of ['light','dark']){
  const p=await browser.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));await p.goto('file://'+path.join(__dirname,'ui/index.html'));const T=require('./_stamtabs')(p);
- await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+ await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
  const person=(label,naam)=>T.maak('persoon',label,{naam});
  const open=T.kaart;
  const list=()=>p.evaluate(()=>{const b=$('#cm-kaart [data-blok=relaties]');return [...b.querySelectorAll('.strow b')].map(e=>e.textContent).sort().concat([...b.querySelectorAll('p.hint')].map(e=>e.textContent));});

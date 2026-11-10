@@ -16,7 +16,7 @@ for(const colorScheme of ['light','dark'])for(const play of [false,true]){
   },[me,delen]);
   const over=()=>p.evaluate(()=>(Android._ai.cfg||{}).about||'');
   const oud=()=>p.evaluate(me=>Android._cm.records.find(r=>r.id===me).fields.context||'',me);
-  const open=async()=>{await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady&&!cm.pending.size);};
+  const open=async()=>{await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady&&!cm.pending.size);};
   const dicht=()=>p.evaluate(()=>{cmLock();show('home');});
   const aandacht=()=>p.$$eval('#cm-aandacht-list .strow b',r=>r.map(x=>x.textContent));
 

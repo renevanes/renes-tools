@@ -7,7 +7,7 @@ const path=require('path');
   const p=await browser.newPage({viewport:{width:390,height:844},colorScheme}),errors=[];
   p.on('pageerror',e=>errors.push(e.message));await p.goto('file://'+path.join(__dirname,'ui/index.html'));const T=require('./_stamtabs')(p);
   // De vaste dataset is de bestaande beveiligde centrale opslag, inclusief herbruikbare reizen.
-  await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen());
+  await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen());
   await p.waitForFunction(()=>cm.recordsReady);await p.evaluate(()=>cmiNew('reis'));
   await T.fill('#cm-field-van','2027-07-12');await T.fill('#cm-field-tot','2027-07-30');
   await T.fill('#cm-field-land','België');await T.fill('#cm-field-accommodatie','Familie');await T.select('#cm-field-alleen','ja');
@@ -20,7 +20,7 @@ const path=require('path');
   await openHulp();
   const choose=async(role,label,secret=[])=>{
    await p.selectOption('#pff-hulp-rol',role);await p.click('#pff-hulp-kies');
-   if(await p.isVisible('#cm-pick-unlock'))await p.click('#cm-pick-unlock');
+   await T.slot();
    await p.getByRole('button',{name:label,exact:true}).click();await p.waitForSelector('#cm-pick-fields input[data-field]');
    for(const key of secret)await p.check('#cm-pick-fields input[data-field="'+key+'"]');
    if(secret.length)await p.check('#cm-sensitive');
@@ -80,7 +80,7 @@ const path=require('path');
   // De reis bestaat na vergrendelen nog in de native dataset en kan opnieuw gekozen worden.
   // Op de stap Reis kiest "Overnemen uit stamgegevens" een reis (geen adres).
   // Het concept onthield de stap waar je was: eerst terug naar de stap Reis.
-  await p.click('#pff-zelf');await p.evaluate(()=>{fm.step=0;fmRender();});await p.click('#cm-form-pick');if(await p.isVisible('#cm-pick-unlock'))await p.click('#cm-pick-unlock');
+  await p.click('#pff-zelf');await p.evaluate(()=>{fm.step=0;fmRender();});await p.click('#cm-form-pick');await T.slot();
   await p.getByRole('button',{name:'Zomerreis België',exact:true}).click();await p.waitForSelector('#cm-pick-fields input[data-field]');
   await p.click('#cm-apply');await p.waitForFunction(()=>!cm.picker);
   assert.equal(await p.inputValue('#pff-v-land'),'België');assert.equal(await p.inputValue('#pff-v-accommodatie'),'Familie');assert.equal(await p.evaluate(()=>$('#pff-meer').open),true);
@@ -100,7 +100,7 @@ const path=require('path');
  assert.match(await en.textContent('#pff-hulp summary'),/local AI/);
  assert.match(await en.getAttribute('#pff-hulp-tekst','placeholder'),/accompanying adult/);
  await en.evaluate(()=>{Android._cm.records.push({id:crypto.randomUUID(),type:'reis',label:'Instellingen',revision:1,fields:{van:'2027-07-12'}});});
- await en.selectOption('#pff-hulp-rol','reis');await en.click('#pff-hulp-kies');await en.click('#cm-pick-unlock');
+ await en.selectOption('#pff-hulp-rol','reis');await en.click('#pff-hulp-kies');await en.click('#ts-open');
  await en.getByRole('button',{name:'Instellingen',exact:true}).click();await en.waitForSelector('#cm-pick-fields input[data-field="van"]');await en.click('#cm-apply');await en.waitForFunction(()=>!cm.picker);
  await en.click('#pff-hulp-vast');assert.match(await en.textContent('#pff-hulp-voorstellen'),/First travel day/);assert.match(await en.textContent('#pff-hulp-voorstellen'),/Source: Instellingen/);
  await en.close();await browser.close();

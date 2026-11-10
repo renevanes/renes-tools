@@ -36,51 +36,36 @@ public class BankBridge extends FacturenBridge {
         } catch (Throwable t) { return new JSONObject(); }
     }
 
-    /** Openen met vingerafdruk of pincode van de telefoon; met extra ontgrendelen uit (ToolSlot) eerst zonder vraag. Antwoord via onBank(true | melding). */
-    @JavascriptInterface public void bankUnlock() { unlock(false); }
-
-    /** Extra ontgrendelen uit: bij het openen vanzelf, zonder vraag. Kan dat niet zeker, dan onBank('vraag'). */
-    @JavascriptInterface public void bankOpenVanzelf() { unlock(true); }
-
-    private void unlock(boolean alleenVanzelf) {
-        if (a.isSolo() && !"bank".equals(a.solo)) { if (!alleenVanzelf) a.js("onBank", q("Bankzaken is op slot")); return; }
+    /**
+     * Openen zonder eigen vraag: Bankzaken vraagt nooit zelf om te ontgrendelen, dat doet het slotscherm van Extra
+     * ontgrendelen. Open gaat hij meteen na dat slotscherm (MainActivity.toolSlotNeem; de eerste keer maakt dat ook de
+     * sleutel), of met extra ontgrendelen uit zolang de sleutel zeker nog werkt (Bank.vanzelf). Anders onBank('vraag'),
+     * of 'tijd' (uit, maar de telefoon is te lang geleden ontgrendeld): dan toont de interface het slotscherm.
+     * Niet onder het app-slot, niet tijdens een andere vraag, en als losse app alleen in die van Bankzaken.
+     * Antwoord via onBank(true | 'vraag' | 'tijd' | melding).
+     */
+    @JavascriptInterface public void bankOpen() {
+        if (a.isSolo() && !"bank".equals(a.solo)) return;
         a.h.post(() -> {
-            if (Lock.busy()) { if (!alleenVanzelf) a.js("onBank", q("Er staat al een vraag om te ontgrendelen open")); return; }
-            if (!a.bankScreen || a.isDestroyed() || a.isFinishing()) return;
-            long nu = android.os.SystemClock.elapsedRealtime();
-            if (ToolSlot.eigenUit(ctx, "bank") && !a.bankAuth.bezig(nu) && (a.isSolo() || !Lock.wouldLock(ctx))) {
-                final long request = a.bankAuth.begin();
-                if (request < 0) return;
-                new Thread(() -> {
-                    try {
-                        long max = Bank.vanzelf(ctx);
-                        if (max > 0 && a.bankAuth.authenticated(request, android.os.SystemClock.elapsedRealtime())) { open(request, max); return; }
-                        if (!a.bankAuth.cancel(request)) return; // intussen weg uit de app, of een nieuwe vraag
-                        if (!alleenVanzelf) a.h.post(this::prompt);
-                        else if (max == 0) a.js("onBank", q("vraag"));
-                    } catch (Throwable t) { if (a.bankAuth.cancel(request) && !alleenVanzelf) a.h.post(this::prompt); }
-                }, "bank-open").start();
-                return;
-            }
-            if (!alleenVanzelf) prompt();
-        });
-    }
-
-    private void prompt() {
-        if (Lock.busy()) { a.js("onBank", q("Er staat al een vraag om te ontgrendelen open")); return; }
-        if (!a.bankScreen || a.isDestroyed() || a.isFinishing()) return;
-        final long request = a.bankAuth.begin();
-        if (request < 0) return;
-        Lock.prompt(a, "Bankzaken openen", (ok, msg) -> {
-            if (!ok) { a.bankAuth.cancel(); a.js("onBank", q(msg == null ? "Niet ontgrendeld" : msg)); return; }
-            if (!a.bankAuth.authenticated(request, android.os.SystemClock.elapsedRealtime())) return;
-            a.afterBankAuth(() -> new Thread(() -> {
+            if (Lock.busy() || !a.bankScreen || a.isDestroyed() || a.isFinishing()) return;
+            if (a.bankAuth.bezig(android.os.SystemClock.elapsedRealtime()) || !a.isSolo() && Lock.wouldLock(ctx)) return;
+            if (a.bankOk()) { a.js("onBank", "true"); return; }
+            final long net = a.toolSlotNeem("bank");
+            if (net < 0 && !ToolSlot.eigenUit(ctx, "bank")) { a.js("onBank", q("vraag")); return; }
+            final long request = a.bankAuth.begin();
+            if (request < 0) return;
+            new Thread(() -> {
                 try {
-                    // De sleutel meteen na de ontgrendeling maken (dan kan hij aan die ontgrendeling gekoppeld worden)
-                    if (a.bankAuth.ready(request, android.os.SystemClock.elapsedRealtime()) && !Bank.hasData(ctx)) Bank.key(ctx);
-                } catch (Throwable t) { a.js("onBank", q(Bank.why(t))); return; }
-                open(request, Bank.MAX_MS);
-            }, "bank-open").start());
+                    long max;
+                    if (net >= 0) {
+                        // De sleutel meteen na de ontgrendeling maken (dan kan hij aan die ontgrendeling gekoppeld worden)
+                        if (!Bank.hasData(ctx)) Bank.key(ctx);
+                        max = Bank.MAX_MS - (android.os.SystemClock.elapsedRealtime() - net);
+                    } else max = Bank.vanzelf(ctx);
+                    if (max > 0 && a.bankAuth.authenticated(request, android.os.SystemClock.elapsedRealtime())) { open(request, max); return; }
+                    if (a.bankAuth.cancel(request)) a.js("onBank", q(max == 0 ? "tijd" : "vraag")); // anders: intussen weg uit de app
+                } catch (Throwable t) { if (a.bankAuth.cancel(request)) a.js("onBank", q(Bank.why(t))); }
+            }, "bank-open").start();
         });
     }
 

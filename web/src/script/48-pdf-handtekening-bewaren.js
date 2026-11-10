@@ -42,7 +42,7 @@ function pdfKeep(name){
   askInput('Bewaren in documentenkluis','Categorie (mag leeg). De PDF blijft ook onder Gemaakt staan.','PDF','Bewaren',category=>{
     if(category.trim().length>60){toast('Kies een categorie van maximaal 60 tekens');return;}
     pdfKeepPending={name,category:category.trim(),saving:false};pdfSetBusy('Documentenkluis openen…');
-    try{const d=JSON.parse(Android.kluisList());if(d.error)throw Error(d.error);if(d.locked)Android.kluisUnlock();else pdfKeepUnlocked(true);}
+    try{const d=JSON.parse(Android.kluisList());if(d.error)throw Error(d.error);if(d.locked)Android.kluisOpen();else pdfKeepUnlocked(true);}
     catch(e){pdfKeepPending=null;pdfSetBusy('');toast(e.message||'Kluis openen lukt niet');}
   });
 }
