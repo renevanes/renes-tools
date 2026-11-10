@@ -938,7 +938,8 @@ final class AppBackup {
             File bin = new File(kl, id + ".bin");
             if (!bin.isFile()) continue;
             for (String b : Kluis.blobs(d)) { File f = new File(kl, b + ".bin"); if (f.isFile()) HerstelLog.move(jf, f, new File(stKl, b + ".bin")); }
-            JSONObject kept = Kluis.clean(d, b -> new File(stKl, b + ".bin").isFile());
+            JSONObject kept;
+            try { kept = Kluis.clean(d, b -> new File(stKl, b + ".bin").isFile()); } catch (Exception e) { kept = null; }
             if (kept != null) back.put(kept);
             ids.add(id);
         }

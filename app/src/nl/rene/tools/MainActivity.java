@@ -104,7 +104,11 @@ public class MainActivity extends Activity {
     /** Kaartfoto's uit Stamgegevens voor ID-kopie afschermen: alleen in het geheugen, hooguit een minuut (zie masterIdCopySource). */
     private java.util.List<byte[]> idMaster;
     private long idMasterUntil;
-    synchronized void idMasterTake(java.util.List<byte[]> images) { idMasterClear(); idMaster = images; idMasterUntil = android.os.SystemClock.elapsedRealtime() + 60_000L; }
+    private final Runnable idMasterExpiry = this::idMasterClear;
+    synchronized void idMasterTake(java.util.List<byte[]> images) {
+        idMasterClear(); idMaster = images; idMasterUntil = android.os.SystemClock.elapsedRealtime() + 60_000L;
+        h.removeCallbacks(idMasterExpiry); h.postDelayed(idMasterExpiry, 61_000L); // ook zonder ophalen na een minuut gewist
+    }
     synchronized java.util.List<byte[]> idMasterPop() {
         java.util.List<byte[]> r = android.os.SystemClock.elapsedRealtime() < idMasterUntil ? idMaster : null;
         if (r == null) idMasterClear(); else idMaster = null;
@@ -274,6 +278,7 @@ public class MainActivity extends Activity {
         if (!isSolo() || "backup".equals(solo)) AppBackup.recoverIfNeeded(getApplicationContext());
         IdCopy.cleanStale(getApplicationContext());
         PdfCompare.cleanStale(getApplicationContext());
+        Kluis.cleanTmp(getApplicationContext());
         PlayPolicy.sanitizePreferences(getApplicationContext());
         if (!Updater.viaPlay(this)) {
             RedialService.createChannel(this);
@@ -524,6 +529,11 @@ public class MainActivity extends Activity {
         wegOp = android.os.SystemClock.elapsedRealtime();
         if (!eigenScherm) js("onToolSlotWeg", vraag ? "'vraag'" : "");
         if (!wegIntern && toolScreen && web != null) { themeChanged(); coverOn(); slotCover = true; } // bij terugkomen geen flits van de tool
+        if (!wegIntern) {
+            // Uit de app: ontsleutelde kluisdocumenten bij Vergelijken en klaargezette kaartfoto's niet laten liggen
+            if (cmp.dropKluis()) { try { js("onCmp", cmp.info().put("kluisWeg", true).toString()); } catch (Exception ignored) { } }
+            idMasterClear();
+        }
         if (!isSolo()) {
             Lock.onHidden();
             // Met app-slot de inhoud alvast verbergen; bij terugkomen beslist onStart of hij op slot moet.
@@ -539,8 +549,9 @@ public class MainActivity extends Activity {
         if (isFinishing() && !isSolo()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
         bankAuth.cancel();bankAfterAuth=null;
         masterSession.close();masterAfterAuth=null;masterAuthSerial.incrementAndGet();h.removeCallbacks(masterExpiry);
-        final IdCopy closingId = idCopy;
-        new Thread(() -> { try { closingId.clear(); } catch (Throwable ignored) { } }, "id-copy-close").start();
+        final IdCopy closingId = idCopy; final PdfCompare closingCmp = cmp;
+        idMasterClear();
+        new Thread(() -> { try { closingId.clear(); } catch (Throwable ignored) { } try { closingCmp.clear(); } catch (Throwable ignored) { } }, "id-copy-close").start();
         super.onDestroy();
     }
 
@@ -1049,7 +1060,7 @@ public class MainActivity extends Activity {
             final Uri to = data.getData();
             new Thread(() -> {
                 String r = "✓ Opgeslagen";
-                java.io.File tmp = new java.io.File(Kluis.viewDir(this), "opslaan.tmp");
+                java.io.File tmp = new java.io.File(getCacheDir(), "kluistmp-" + Kluis.newId() + ".tmp"); // niet in de kijkmap (die kan intussen leeg)
                 try {
                     if (!kluisOk()) throw new Exception("De kluis is weer op slot");
                     Kluis.decryptTo(getApplicationContext(), id, version, tmp);

@@ -14,9 +14,9 @@ function cmpInfo(){ const r = rdJson(Android.cmpInfo(), {}); cmp.a = r.a || null
 function cmpTeken(){
   [['a', 0], ['b', 1]].forEach(([k, i]) => {
     const d = cmp[k];
-    $('#cmp-' + k + '-naam').textContent = d ? d.name : (i ? t('Document B kiezen') : t('Document A kiezen'));
-    $('#cmp-' + k + '-naam').setAttribute('translate', d ? 'no' : 'yes');
-    $('#cmp-' + k + '-info').textContent = d ? [d.pdf ? tn(d.pages, '{n} pagina', '{n} pagina\'s') : t('Foto'), d.kluis ? t('uit de documentenkluis') : ''].filter(Boolean).join(' · ') : (i ? t('Bijvoorbeeld de nieuwe versie') : t('Bijvoorbeeld de oude versie'));
+    $(`#cmp-${k}-naam`).textContent = d ? d.name : (i ? t('Document B kiezen') : t('Document A kiezen'));
+    $(`#cmp-${k}-naam`).setAttribute('translate', d ? 'no' : 'yes');
+    $(`#cmp-${k}-info`).textContent = d ? [d.pdf ? tn(d.pages, '{n} pagina', '{n} pagina\'s') : t('Foto'), d.kluis ? t('uit de documentenkluis') : ''].filter(Boolean).join(' · ') : (i ? t('Bijvoorbeeld de nieuwe versie') : t('Bijvoorbeeld de oude versie'));
   });
   const beide = !!(cmp.a && cmp.b);
   $('#cmp-werk').hidden = !beide;
@@ -44,15 +44,16 @@ function cmpUitKluis(slot){
   });
 }
 function cmpUitGemaakt(slot, outs){ openSheet(t('Een gemaakte PDF'), '', outs.slice(0, 40).map(o => [o.name, () => cmpVanGemaakt(slot, o.name)])); }
-function cmpVanKluis(slot, id, version){ cmpWacht(t('Document uit de kluis openen…')); klMetKluis(() => Android.cmpKluis(slot, id, version)); }
+function cmpVanKluis(slot, id, version){ cmpWacht(t('Document uit de kluis openen…')); klMetKluis(() => { Android.cmpKluis(slot, id, version); setTimeout(klDichtBuiten, 0); }); }
 function cmpVanGemaakt(slot, name){ cmpWacht(t('Document openen…')); Android.cmpMade(slot, name); }
 /** Een oudere versie (A) met de huidige (B) van hetzelfde kluisdocument */
-function cmpVersies(id, n){ cmpWacht(t('Document uit de kluis openen…')); klMetKluis(() => { Android.cmpKluis(0, id, n); Android.cmpKluis(1, id, 0); }); }
+function cmpVersies(id, n){ cmpWacht(t('Document uit de kluis openen…')); klMetKluis(() => { Android.cmpKluis(0, id, n); Android.cmpKluis(1, id, 0); setTimeout(klDichtBuiten, 0); }); }
 function cmpWacht(tekst){ document.querySelectorAll('#s-pdfcmp .pdfbusy').forEach(e => uiWachtTekst(e, tekst)); }
 window.onCmp = function(r){
   document.querySelectorAll('#s-pdfcmp .pdfbusy').forEach(e => { e.textContent = ''; });
   if (!r || r.error) { toast(t(r && r.error || 'Openen lukt niet')); return; }
   cmp.a = r.a || null; cmp.b = r.b || null; cmpReset();
+  if (r.kluisWeg) toast(t('Documenten uit de kluis zijn weggehaald omdat je de app verliet. Kies ze opnieuw.'));
   if (cmp.a && cmp.b && current === 'pdfcmp') cmpTab(cmp.tab);
 };
 function cmpWissel(){ if (cmp.bezig) return; Android.cmpSwap(); cmpInfo(); cmpReset(); cmpTab(cmp.tab); }
@@ -118,7 +119,7 @@ window.onCmpScan = function(r){
   const max = Math.max(r.a, r.b);
   for (let i = 0; i < max; i++) {
     const p = r.pages.find(x => x.i === i), b = document.createElement('button');
-    b.className = 'cmp-pag' + (p && p.score > 0 ? ' anders' : '') + (!p ? ' extra' : '');
+    b.className = 'cmp-pag'; b.classList.toggle('anders', !!(p && p.score > 0)); b.classList.toggle('extra', !p);
     b.type = 'button'; b.onclick = () => cmpPagina(i);
     const sterk = document.createElement('b'); sterk.textContent = t('Pagina {n}', { n: fmtNum(i + 1) });
     const klein = document.createElement('small');

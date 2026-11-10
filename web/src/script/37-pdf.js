@@ -86,7 +86,9 @@ window.onPdf = function(r){
 function pdfNaarKluis(r){
   const names = r.made || []; if (!names.length) return false;
   const versie = r.kind === 'edited' && pdfIn && pdfIn.kluis ? pdfIn.kluis : '';
-  return kcNaMaken(names.map(name => versie && names.length === 1 ? { name, versionOf: versie, note: 'Bewerkt' } : { name, category: 'PDF', source: r.kind === 'edited' ? 'bewerkt' : 'pdf' }));
+  // Een kluisdocument bewerkt: altijd terug de kluis in (nieuwe versie), ook als vanzelf bewaren uit staat
+  if (versie && names.length === 1) return kcBewaar([{ name: names[0], versionOf: versie, note: 'Bewerkt' }]);
+  return kcNaMaken(names.map(name => ({ name, category: 'PDF', source: r.kind === 'edited' ? 'bewerkt' : 'pdf' })));
 }
 /* Eén gemaakt bestand: tikken opent het menu (bekijken, delen, opslaan …) */
 function pdfOutRow(o, share){

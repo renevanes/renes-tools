@@ -36,34 +36,40 @@ final class PdfCompare {
     private final Slot[] slots = new Slot[2];
     private File dir;
     private volatile int gen;
+    private final java.util.concurrent.atomic.AtomicInteger vragen = new java.util.concurrent.atomic.AtomicInteger();
+    /** Eén tekenklus tegelijk (geheugen; PdfRenderer niet tegelijk op oude Android-versies). */
+    private static final Object TEKENEN = new Object();
 
     int gen() { return gen; }
+    /** Nieuwe paginavraag; laatste() zegt welke de nieuwste is (oudere vragen hoeven niet meer getekend te worden). */
+    int vraag() { return vragen.incrementAndGet(); }
+    int laatste() { return vragen.get(); }
 
     synchronized File work(Context c) throws Exception {
         if (dir == null) {
             File root = new File(c.getCacheDir(), "pdf-compare");
             dir = new File(root, java.util.UUID.randomUUID().toString());
-            if (!dir.mkdirs()) throw new Exception("Werkbestand maken lukt niet");
+            if (!dir.mkdirs()) throw new Exception(Taal.T("Werkbestand maken lukt niet"));
         }
         return new File(dir, java.util.UUID.randomUUID().toString());
     }
 
     /** Een bestand (al in de werkmap van work()) als document A (0) of B (1). */
     synchronized JSONObject set(int slot, File f, String name, String kluis, int version) throws Exception {
-        if (slot < 0 || slot > 1) throw new Exception("Ongeldige keuze");
         try {
-            if (f.length() > MAX_BYTES) throw new Exception("Bestand is te groot");
+            if (slot < 0 || slot > 1) throw new Exception(Taal.T("Ongeldige keuze"));
+            if (f.length() > MAX_BYTES) throw new Exception(Taal.T("Bestand is te groot"));
             boolean pdf = isPdf(f); int pages;
             if (pdf) {
                 try (ParcelFileDescriptor fd = ParcelFileDescriptor.open(f, ParcelFileDescriptor.MODE_READ_ONLY); PdfRenderer r = new PdfRenderer(fd)) { pages = r.getPageCount(); }
-                catch (SecurityException e) { throw new Exception("Deze PDF is beveiligd met een wachtwoord"); }
+                catch (SecurityException e) { throw new Exception(Taal.T("Deze PDF is beveiligd met een wachtwoord")); }
             } else {
                 android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options(); o.inJustDecodeBounds = true;
                 android.graphics.BitmapFactory.decodeFile(f.getPath(), o);
-                if (o.outWidth <= 0 || o.outHeight <= 0) throw new Exception("Kies een PDF of een foto");
+                if (o.outWidth <= 0 || o.outHeight <= 0) throw new Exception(Taal.T("Kies een PDF of een foto"));
                 pages = 1;
             }
-            if (pages < 1) throw new Exception("Dit document heeft geen pagina's");
+            if (pages < 1) throw new Exception(Taal.T("Dit document heeft geen pagina's"));
             if (slots[slot] != null) slots[slot].file.delete();
             slots[slot] = new Slot(f, name == null || name.isEmpty() ? "document" : name, pages, pdf, kluis == null ? "" : kluis, version);
             gen++;
@@ -78,6 +84,17 @@ final class PdfCompare {
         for (int i = 0; i < 2; i++) if (slots[i] != null) o.put(i == 0 ? "a" : "b", new JSONObject().put("name", slots[i].name).put("pages", slots[i].pages)
                 .put("pdf", slots[i].pdf).put("kluis", slots[i].kluis).put("version", slots[i].version));
         return o;
+    }
+
+    /**
+     * Documenten uit de kluis weghalen (de app gaat uit beeld, of het venster sluit): ontsleuteld blijven ze alleen zolang je
+     * aan het vergelijken bent. Geeft true als er iets weg ging.
+     */
+    synchronized boolean dropKluis() {
+        boolean weg = false;
+        for (int i = 0; i < 2; i++) if (slots[i] != null && !slots[i].kluis.isEmpty()) { slots[i].file.delete(); slots[i] = null; weg = true; }
+        if (weg) gen++;
+        return weg;
     }
 
     synchronized void clear() {
@@ -95,7 +112,7 @@ final class PdfCompare {
     }
 
     private synchronized Slot[] both() throws Exception {
-        if (slots[0] == null || slots[1] == null) throw new Exception("Kies eerst twee documenten");
+        if (slots[0] == null || slots[1] == null) throw new Exception(Taal.T("Kies eerst twee documenten"));
         return new Slot[]{slots[0], slots[1]};
     }
 
@@ -114,7 +131,7 @@ final class PdfCompare {
         boolean[] ocr = {false};
         int[] done = {0};
         String a = pagesText(c, s[0], run, ocr, v, done, total), b = pagesText(c, s[1], run, ocr, v, done, total);
-        if (!run.getAsBoolean()) throw new Exception("Gestopt");
+        if (!run.getAsBoolean()) throw new Exception(Taal.T("Gestopt"));
         JSONObject r = diffText(a, b);
         return r.put("ocr", ocr[0]).put("pagesA", s[0].pages).put("pagesB", s[1].pages).put("limited", s[0].pages > MAX_PAGES || s[1].pages > MAX_PAGES);
     }
@@ -127,7 +144,7 @@ final class PdfCompare {
                 for (int i = 0; i < Math.min(s.pages, MAX_PAGES) && run.getAsBoolean(); i++) {
                     String t = doc == null ? "" : doc.text(i);
                     if (t.trim().isEmpty()) {
-                        Bitmap b = render(s, i, 2000);
+                        Bitmap b; synchronized (TEKENEN) { b = render(s, i, 2000); }
                         try { t = RijbewijsOcr.pageText(c, b, run); ocr[0] = true; } finally { b.recycle(); }
                     }
                     out.append(t).append('\n');
@@ -135,7 +152,7 @@ final class PdfCompare {
                 }
             } finally { if (doc != null) doc.close(); }
         } else {
-            Bitmap b = render(s, 0, 2400);
+            Bitmap b; synchronized (TEKENEN) { b = render(s, 0, 2400); }
             try { out.append(RijbewijsOcr.pageText(c, b, run)); ocr[0] = true; } finally { b.recycle(); }
             v.stap("bezig", ++done[0], total);
         }
@@ -150,7 +167,7 @@ final class PdfCompare {
         int n = Math.min(Math.min(s[0].pages, s[1].pages), MAX_PAGES);
         JSONArray pages = new JSONArray();
         for (int i = 0; i < n; i++) {
-            if (!active.getAsBoolean() || g != gen) throw new Exception("Gestopt");
+            if (!active.getAsBoolean() || g != gen) throw new Exception(Taal.T("Gestopt"));
             int[] r = pair(s, i, SCAN_EDGE, null);
             pages.put(new JSONObject().put("i", i).put("score", r[0]));
             v.stap("bezig", i + 1, n);
@@ -161,14 +178,14 @@ final class PdfCompare {
     /** Eén pagina groot: mode verschil (B lichtgrijs, rood = alleen in A, groen = alleen in B), a of b (de pagina zelf). */
     JSONObject page(int i, String mode) throws Exception {
         Slot[] s = both();
-        if (i < 0 || i >= Math.max(s[0].pages, s[1].pages)) throw new Exception("Ongeldige pagina");
+        if (i < 0 || i >= Math.max(s[0].pages, s[1].pages)) throw new Exception(Taal.T("Ongeldige pagina"));
         Bitmap[] out = new Bitmap[1];
         JSONObject o = new JSONObject().put("i", i).put("mode", mode);
         try {
             if ("a".equals(mode) || "b".equals(mode) || i >= Math.min(s[0].pages, s[1].pages)) {
                 Slot one = "b".equals(mode) || i >= s[0].pages ? s[1] : s[0];
-                if (i >= one.pages) throw new Exception("Deze pagina bestaat alleen in het andere document");
-                out[0] = render(one, i, EDGE);
+                if (i >= one.pages) throw new Exception(Taal.T("Deze pagina bestaat alleen in het andere document"));
+                synchronized (TEKENEN) { out[0] = render(one, i, EDGE); }
                 o.put("only", i >= Math.min(s[0].pages, s[1].pages));
             } else {
                 int[] r = pair(s, i, EDGE, out);
@@ -183,6 +200,9 @@ final class PdfCompare {
 
     /** Pagina i van A en B op dezelfde maat; geeft {score (promille anders)}; met keep: het verschilbeeld in keep[0]. */
     private static int[] pair(Slot[] s, int i, int edge, Bitmap[] keep) throws Exception {
+        synchronized (TEKENEN) { return pairLocked(s, i, edge, keep); }
+    }
+    private static int[] pairLocked(Slot[] s, int i, int edge, Bitmap[] keep) throws Exception {
         Bitmap a = render(s[0], i, edge), b = null, sb = null;
         try {
             b = render(s[1], i, edge);
@@ -200,7 +220,7 @@ final class PdfCompare {
         Bitmap image;
         if (!s.pdf) {
             image = PdfTools.decode(s.file, edge);
-            if (image == null) throw new Exception("Deze foto is niet te lezen");
+            if (image == null) throw new Exception(Taal.T("Deze foto is niet te lezen"));
         } else try (ParcelFileDescriptor fd = ParcelFileDescriptor.open(s.file, ParcelFileDescriptor.MODE_READ_ONLY); PdfRenderer r = new PdfRenderer(fd); PdfRenderer.Page p = r.openPage(i)) {
             float scale = (float) edge / Math.max(p.getWidth(), p.getHeight());
             image = Bitmap.createBitmap(Math.max(1, Math.round(p.getWidth() * scale)), Math.max(1, Math.round(p.getHeight() * scale)), Bitmap.Config.ARGB_8888);
@@ -271,7 +291,7 @@ final class PdfCompare {
             int[][] w = diff(wa.toArray(new String[0]), wb.toArray(new String[0]), MAX_D);
             for (int[] op : w) o.add(op[0], op[0] > 0 ? wb.get(op[2]) : wa.get(op[1]));
         }
-        return new JSONObject().put("ops", o.ops).put("weg", o.weg).put("erbij", o.erbij).put("same", o.same);
+        return new JSONObject().put("ops", o.ops()).put("weg", o.weg).put("erbij", o.erbij).put("same", o.same);
     }
 
     /** Woorden van een regel, met een regeleinde als laatste "woord" (zodat de opmaak blijft). */
@@ -281,13 +301,17 @@ final class PdfCompare {
     }
 
     static final class Out {
-        final JSONArray ops = new JSONArray(); int weg, erbij, same; int last = 99; StringBuilder cur;
-        void add(int type, String text) throws Exception {
+        final List<int[]> types = new ArrayList<>(); final List<StringBuilder> texts = new ArrayList<>(); int weg, erbij, same; int last = 99;
+        void add(int type, String text) {
             String t = text.trim();
             if (!t.isEmpty()) { if (type < 0) weg++; else if (type > 0) erbij++; else same++; }
-            if (type != last || cur == null) { cur = new StringBuilder(); last = type; ops.put(new JSONArray().put(type).put("")); }
-            cur.append(text);
-            ops.getJSONArray(ops.length() - 1).put(1, cur.toString());
+            if (type != last || texts.isEmpty()) { texts.add(new StringBuilder()); types.add(new int[]{type}); last = type; }
+            texts.get(texts.size() - 1).append(text);
+        }
+        JSONArray ops() throws Exception {
+            JSONArray out = new JSONArray();
+            for (int k = 0; k < texts.size(); k++) out.put(new JSONArray().put(types.get(k)[0]).put(texts.get(k).toString()));
+            return out;
         }
     }
 

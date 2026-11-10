@@ -74,9 +74,9 @@ const path=require('path');
     await p.waitForFunction(()=>!kc.bezig&&!kc.wacht&&!kc.rij.length&&kcIn('Reistoestemming Zoë.pdf'));
     const kdoc=await p.evaluate(()=>Android._kl.docs.find(d=>d.name==='Reistoestemming Zoë.pdf'));assert.equal(kdoc.source,'formulier');assert.equal(kdoc.category,'Formulieren');
     assert.ok(!await p.evaluate(()=>Android._pdf.outs.some(o=>o.name==='Reistoestemming Zoë.pdf')),'leesbare PDF weg');
-    await p.getByRole('button',{name:'Opslaan als…',exact:true}).click();assert.deepEqual(await p.evaluate(()=>Android._kl.savedAs),{id:kdoc.id,version:0});
-    await p.getByRole('button',{name:'Delen',exact:true}).click();assert.deepEqual(await p.evaluate(()=>Android._kl.shared),{id:kdoc.id,version:0});
-    await p.getByRole('button',{name:'Bekijken en afdrukken',exact:true}).click();assert.deepEqual(await p.evaluate(()=>Android._kl.opened),{id:kdoc.id,version:0});
+    await p.getByRole('button',{name:'Opslaan als…',exact:true}).click();await p.waitForFunction(v=>JSON.stringify(Android._kl.savedAs)===JSON.stringify(v),{id:kdoc.id,version:0});
+    await p.getByRole('button',{name:'Delen',exact:true}).click();await p.waitForFunction(v=>JSON.stringify(Android._kl.shared)===JSON.stringify(v),{id:kdoc.id,version:0});
+    await p.getByRole('button',{name:'Bekijken en afdrukken',exact:true}).click();await p.waitForFunction(v=>JSON.stringify(Android._kl.opened)===JSON.stringify(v),{id:kdoc.id,version:0});
     assert.equal(await p.evaluate(()=>Object.values(localStorage).join('').includes('Ouder & voogd')),false,'geen concept in lokale opslag (alleen versleuteld in de app)');
     await p.evaluate(()=>goBack());assert.match(await p.textContent('#pff-zelf-stand'),/PDF gemaakt: Reistoestemming Zoë\.pdf/);await p.click('#pff-zelf');
     // Terug en conditionele personen: eerder ingevulde, verborgen begeleiders mogen niet worden geëxporteerd.

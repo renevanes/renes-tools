@@ -263,9 +263,16 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         final Uri u = i == null ? null : i.getData();
         if (u == null) { fail("Geen PDF om te openen"); return; }
         if (!PdfTools.grantedBySender(i, java.util.Collections.singletonList(u))) { fail("Deze PDF kan niet geopend worden"); return; }
+        // Een kluisdocument (pad k/) alleen als de app de viewer zelf opende, nooit op verzoek van een andere app
+        boolean kluisPad = PdfProvider.AUTH.equals(u.getAuthority()) && !u.getPathSegments().isEmpty() && "k".equals(u.getPathSegments().get(0));
+        if (kluisPad && bijApp() != 1) { fail("Deze PDF kan niet geopend worden"); return; }
         source = u;
         String k = i.getStringExtra(EXTRA_KLUIS);
-        kluisId = k != null && bijApp() == 1 && k.matches("[a-z0-9]{6,24}") && "k".equals(u.getPathSegments().isEmpty() ? "" : u.getPathSegments().get(0)) ? k : "";
+        kluisId = k != null && kluisPad && k.matches("[a-z0-9]{6,24}") ? k : "";
+        if (kluisPad) { // niet in "recente apps" en geen schermafbeeldingen van een kluisdocument
+            if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(false);
+            getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
+        }
         spin.setVisibility(View.VISIBLE);
         msg.setText("PDF openen…");
         msg.setVisibility(View.VISIBLE);
@@ -767,9 +774,9 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
             try {
                 File tmp = new File(PdfTools.dir(app, "pdf-in"), "kopie.pdf");
                 try (InputStream in = new FileInputStream(f); OutputStream o = new FileOutputStream(tmp)) { byte[] b = new byte[1 << 16]; int n; while ((n = in.read(b)) > 0) o.write(b, 0, n); }
-                JSONObject j = new JSONObject(PdfTools.openPdfFile(app, tmp, nm));
+                // Uit de kluis: bewaren = een nieuwe versie van dat document (PdfTools.inKluis), de leesbare kopie gaat daarna weg
+                JSONObject j = new JSONObject(kluis.isEmpty() ? PdfTools.openPdfFile(app, tmp, nm) : PdfTools.openKluisPdf(app, tmp, nm, kluis));
                 if (!j.has("error")) j.put("kind", "pdf").put("to", edit ? "edit" : "split"); // welk PDF-scherm (37-pdf.js, pdfTarget)
-                if (!j.has("error") && !kluis.isEmpty()) j.put("kluis", kluis); // bewaren = nieuwe versie van dit kluisdocument
                 r = j.toString();
             } catch (Throwable e) { r = PdfTools.err(e); }
             final String res = r;

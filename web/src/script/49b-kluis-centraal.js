@@ -22,7 +22,11 @@ function kcVolgende(){
   if (kc.bezig || !kc.rij.length) return;
   let d; try { d = JSON.parse(Android.kluisList()); } catch(e){ d = { locked: true }; }
   if (d.error) { kcMislukt(d.error); return; }
-  if (d.locked) { if (kc.wacht) return; kc.wacht = true; kcStatus(t('Documentenkluis openen…'), true); Android.kluisUnlock(); return; }
+  if (d.locked) {
+    if (kc.wacht) return; kc.wacht = true; kcStatus(t('Documentenkluis openen…'), true); Android.kluisUnlock();
+    clearTimeout(kc.wachtT); kc.wachtT = setTimeout(() => { if (kc.wacht) { kc.wacht = false; kcMislukt('Kluis niet ontgrendeld'); } }, 120000);
+    return;
+  }
   kc.bezig = true; kc.lopend = kc.rij.splice(0);
   kcStatus(t('Bewaren in de documentenkluis…'), true);
   try { Android.kluisStore(JSON.stringify({ items: kc.lopend.map(({ klaar, ...i }) => i) })); }
@@ -37,7 +41,7 @@ function kcMislukt(reden){
 /* Antwoord op het ontgrendelen (34-uitbreidingen.js zet onKluis; hier erbij) */
 (function(){ const prev = window.onKluis; window.onKluis = function(r){ if (prev) prev.apply(this, arguments); kcOnKluis(r); klDanOnKluis(r); }; })();
 function kcOnKluis(r){
-  if (!kc.wacht) return; kc.wacht = false;
+  if (!kc.wacht) return; kc.wacht = false; clearTimeout(kc.wachtT);
   if (r === true) kcVolgende(); else kcMislukt(typeof r === 'string' ? r : 'Kluis niet ontgrendeld');
 }
 window.onKluisStored = function(r){
@@ -61,13 +65,17 @@ window.onKluisStored = function(r){
   }
   kcVernieuw();
   kcVolgende();
+  if (!kc.bezig && !kc.rij.length) klDichtBuiten();
 };
+/** Alleen het kluisscherm houdt de kluis open: was hij voor iets anders even open, dan meteen weer op slot */
+function klDichtBuiten(){ if (current !== 'kluis' && typeof Android.kluisClose === 'function') Android.kluisClose(); }
 function kcVernieuw(){ if (typeof pdfScr === 'function' && pdfScr(current)) pdfRender(); if (current === 'kluis') klRender(); kcRender(); }
 /* Op Gemaakt: de schakelaar en wat er nog niet in de kluis staat */
 function kcRender(){
   const sw = $('#kc-aan'); if (!sw) return;
   const play = isPlay();
   $('#kc-card').hidden = play;
+  $('#pdf-out-uitleg').textContent = !play && kcAan() ? t('Hier staat wat (nog) niet in de documentenkluis staat. Tik op een bestand om het te openen, te delen of op te slaan. Na een week worden ze hier opgeruimd.') : t('Tik op een bestand om het te openen, te delen of op te slaan. Na een week worden ze hier opgeruimd.');
   if (play) return;
   sw.classList.toggle('on', kcAan()); sw.setAttribute('aria-checked', kcAan() ? 'true' : 'false');
   const outs = rdJson(Android.pdfOutputs(), []);
@@ -160,8 +168,10 @@ function klVersies(id){
   const x = (klRender.docs || []).find(d => d.id === id); if (!x) return;
   const vs = (x.versions || []).map((v, i) => ({ ...v, n: i + 1 })).reverse();
   openSheet(t('Versies van {naam}', { naam: x.name }), t('De nieuwste staat bovenaan; de huidige versie is wat je bij Bekijken ziet.'),
-    vs.map(v => [t('Versie {n} · {wanneer}', { n: fmtNum(v.n), wanneer: fmtDT(v.t) }) + (v.note ? ' · ' + v.note : ''), () => klVersie(id, v.n)]));
+    vs.map(v => [v.note ? t('Versie {n} · {wanneer} · {notitie}', { n: fmtNum(v.n), wanneer: fmtDT(v.t), notitie: klNotitie(v.note) }) : t('Versie {n} · {wanneer}', { n: fmtNum(v.n), wanneer: fmtDT(v.t) }), () => klVersie(id, v.n)]));
 }
+/** Vaste notities bij een versie (Kluis.java bewaart ze in het Nederlands) vertaald tonen */
+function klNotitie(note){ const m = /^Versie (\d+) teruggezet$/.exec(note || ''); return m ? t('Versie {n} teruggezet', { n: fmtNum(+m[1]) }) : t(note); }
 function klVersie(id, n){
   const x = (klRender.docs || []).find(d => d.id === id); if (!x) return;
   const pdf = klIsPdf(x);

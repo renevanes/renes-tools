@@ -52,7 +52,7 @@ function cmcIdKopie(box,r){
 }
 function cmcIdLijst(){
   const r=cmc.rec,lijst=$('#cmc-idlijst');if(!lijst||!r)return;lijst.replaceChildren();
-  const d=rdJson(Android.kluisLinked('id',r.id),{locked:true});
+  const d=rdJson(Android.kluisLinked('id',r.id),{locked:true});if(!d.locked)klDichtBuiten(); // alleen even gelezen: de kluis weer op slot
   if(d.locked){lijst.append(cmcKnop(t('Gemaakte kopieën tonen (documentenkluis)'),()=>klMetKluis(()=>cmcIdLijst()),'lock','cmc-idlijst-open'));return;}
   const docs=(d.docs||[]).sort((a,b)=>(b.t||0)-(a.t||0));
   if(!docs.length){lijst.append(cmEl('p',t('Nog geen afgeschermde kopieën in de documentenkluis.'),'hint'));return;}

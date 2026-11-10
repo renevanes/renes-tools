@@ -39,8 +39,9 @@ final class KluisIndex {
         if(!id.matches("[a-z0-9]{6,24}")||!has.blob(id))return null;
         JSONObject o=new JSONObject().put("id",id).put("name",cut(d.optString("name","document"),120))
                 .put("mime",cut(d.optString("mime","application/octet-stream"),120)).put("size",Math.max(0,d.optLong("size")))
-                .put("t",d.optLong("t",System.currentTimeMillis())).put("category",DocumentMeta.category(cut(d.optString("category",""),60)));
-        if(d.has("note"))o.put("note",DocumentMeta.note(cut(d.optString("note"),1000)));
+                .put("t",d.optLong("t",System.currentTimeMillis()));
+        try{o.put("category",DocumentMeta.category(cut(d.optString("category",""),60)));}catch(IllegalArgumentException e){o.put("category","");}
+        if(d.has("note"))try{o.put("note",DocumentMeta.note(cut(d.optString("note"),1000)));}catch(IllegalArgumentException ignored){ } // een kapotte toelichting kost niet het hele document
         if(d.optBoolean("favorite"))o.put("favorite",true);
         if(d.has("vnote"))try{o.put("vnote",DocumentMeta.note(cut(d.optString("vnote"),1000)));}catch(IllegalArgumentException ignored){ }
         try{JSONObject m=meta(d);java.util.Iterator<String> k=m.keys();while(k.hasNext()){String key=k.next();o.put(key,m.get(key));}}catch(Exception ignored){ }

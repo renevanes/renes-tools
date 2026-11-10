@@ -106,6 +106,7 @@ window.onIdCopySaved=function(r){
   const link=bron?{kind:'id',ref:bron.doc,soort:bron.soort||'',ontvanger:w.ontvanger||'',doel:w.doel||'',datum:w.datum||''}:undefined;
   kcNaMaken([{name:r.name,title:titel,category:t('Identiteit'),source:'idkopie',link,klaar:doc=>{if(doc&&idc.result===r.name)$('#id-result-name').textContent=doc.title;}}]);
   idc.bron=null;$('#id-bron').hidden=true;
+  $('#id-result-note').textContent=kcAan()?t('Het tijdelijke bronbestand is gewist. De afgeschermde kopie gaat versleuteld de documentenkluis in, met voor wie en waarvoor.'):t('Het tijdelijke bronbestand is gewist. De afgeschermde kopie staat ook bij PDF → Gemaakt.');
 };
 function idCopyOpen(){if(idc.result)kcOpen(idc.result);}
 function idCopyExport(){if(idc.result)kcSave(idc.result);}
@@ -131,7 +132,7 @@ const ID_VOORSTEL={
   idkaart:{front:[[.02,.14,.36,.80],[.52,.02,.46,.18],[.36,.76,.46,.20]],back:[[.02,.02,.66,.24],[0,.58,1,.42]]},
   rijbewijs:{front:[[.02,.18,.32,.70],[.34,.56,.50,.14],[.34,.68,.50,.12],[.34,.80,.50,.16]],back:[]}
 };
-function idCopySoort(s){s=String(s||'').toLowerCase();return /pas/.test(s)?'paspoort':/rijbewijs/.test(s)?'rijbewijs':/kaart|identiteit|id/.test(s)?'idkaart':'';}
+function idCopySoort(s){s=String(s||'').toLowerCase();return /paspoort/.test(s)?'paspoort':/rijbewijs/.test(s)?'rijbewijs':/identiteitskaart|id-kaart|idkaart/.test(s)?'idkaart':'';}
 function idCopyStamVoorstel(vanaf){
   const soort=idCopySoort(idc.bron&&idc.bron.soort),sides=String(idc.bron&&idc.bron.sides||'').split(',');let n=0;
   for(let k=vanaf;k<idc.pages.length;k++){const v=(ID_VOORSTEL[soort]||{})[sides[k-vanaf]||'front']||[];idc.pages[k].rects=v.map(r=>r.slice());n+=v.length;}

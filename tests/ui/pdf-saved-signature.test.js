@@ -67,7 +67,7 @@ const assert=require('node:assert/strict');
     const doc=await p.evaluate(()=>Android._kl.docs[Android._kl.docs.length-1]);assert.equal(doc.category,'PDF');assert.equal(doc.mime,'application/pdf');
     assert.ok(!await p.evaluate(name=>Android._pdf.outs.some(d=>d.name===name),name),'leesbare PDF weg zodra hij in de kluis staat');
     assert.match(await p.textContent('#s-pdfedit .pdfkeep'),/Bewaard in de documentenkluis/);
-    await p.evaluate(()=>Android._kl.storeError='Kluis vol');await p.click('#pdf-edit-save');await p.waitForFunction(()=>!pdfBusy&&!kc.bezig);await p.waitForTimeout(80);
+    await p.evaluate(()=>{Android._kl.storeError='Kluis vol';pdfEditDate();});await p.click('#pdf-edit-save');await p.waitForFunction(()=>!pdfBusy&&!kc.bezig);await p.waitForTimeout(80);
     assert.equal(await p.evaluate(()=>Android._kl.docs.length),before+1);
     assert.match(await p.textContent('#s-pdfedit .pdfkeep'),/Kluis vol/);await p.evaluate(()=>Android._kl.storeError='');
     // Verwijderen kan mislukken of geannuleerd worden; geplaatste exemplaren blijven staan.

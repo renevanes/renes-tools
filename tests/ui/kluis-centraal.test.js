@@ -19,9 +19,9 @@ for(const colorScheme of ['light','dark']){
   assert.match(await p.textContent('#toast'),/In de documentenkluis/);
   // Tikken op de rij: bekijken gaat via de kluis (eigen viewer), delen en opslaan ook
   await p.click('.pdfres[data-scr="pdfimg"] .trip');await p.getByRole('button',{name:'Bekijken',exact:true}).click();
-  assert.deepEqual(await p.evaluate(()=>Android._kl.opened),{id:kl.docs[0].id,version:0});
+  await p.waitForFunction(v=>JSON.stringify(Android._kl.opened)===JSON.stringify(v),{id:kl.docs[0].id,version:0});
   await p.click('.pdfres[data-scr="pdfimg"] .trip');await p.getByRole('button',{name:'Delen (bijv. mailen of WhatsApp)',exact:true}).click();
-  assert.deepEqual(await p.evaluate(()=>Android._kl.shared),{id:kl.docs[0].id,version:0});
+  await p.waitForFunction(v=>JSON.stringify(Android._kl.shared)===JSON.stringify(v),{id:kl.docs[0].id,version:0});
   // 2. Schakelaar uit: dan blijft het onder Gemaakt, en daar staat de knop om het alsnog te bewaren
   await p.evaluate(()=>show('pdfmade'));await p.waitForTimeout(80);
   assert.equal(await p.getAttribute('#kc-aan','aria-checked'),'true');
@@ -36,12 +36,14 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>Android._pdf.outs.length),0,'Gemaakt is leeg');assert.equal(await p.isVisible('#kc-alles'),false);
   await p.click('#kc-aan');assert.equal(await p.getAttribute('#kc-aan','aria-checked'),'true');
   // 3. In de kluis: menu met bekijken (eigen viewer), bewerken, delen, opslaan, vergelijken
-  await p.evaluate(()=>show('kluis'));await p.waitForFunction(()=>$('#kl-open').style.display==='block');
+  // Na het bewaren is de kluis weer op slot (alleen het kluisscherm houdt hem open)
+  assert.equal(await p.evaluate(()=>Android._kl.open),false,'kluis na bewaren weer op slot');
+  await p.evaluate(()=>{show('kluis');klUnlock();});await p.waitForFunction(()=>$('#kl-open').style.display==='block');
   const id=await p.evaluate(()=>Android._kl.docs[0].id),rij=p.locator('#kl-list .trip',{hasText:'Bonnetjes.pdf'});
   await rij.click();
   for(const n of ['Bekijken','Bewerken en ondertekenen','Delen (bijv. mailen of WhatsApp)','Opslaan als…','Vergelijken met…'])assert.equal(await p.locator('#sheet-acts').getByRole('button',{name:n,exact:true}).count(),1,n);
   await p.locator('#sheet-acts').getByRole('button',{name:'Opslaan als…',exact:true}).click();
-  assert.deepEqual(await p.evaluate(()=>Android._kl.savedAs),{id,version:0});
+  await p.waitForFunction(v=>JSON.stringify(Android._kl.savedAs)===JSON.stringify(v),{id,version:0});
   // Bewerken: opent de bewerker met de kluis-PDF; bewaren wordt een nieuwe versie van hetzelfde document
   await rij.click();await p.locator('#sheet-acts').getByRole('button',{name:'Bewerken en ondertekenen',exact:true}).click();
   await p.waitForFunction(id=>current==='pdfedit'&&pdfIn.kluis===id&&pdfEd.revision&&!pdfEd.loading&&pdfEd.meta[0],id);
@@ -52,13 +54,13 @@ for(const colorScheme of ['light','dark']){
   assert.equal(kl.docs.length,2,'geen nieuw document');assert.equal((d.versions||[]).length,1,'oude versie bewaard');assert.equal(d.vnote,'Bewerkt');
   assert.match(await p.textContent('#s-pdfedit .pdfkeep'),/nieuwe versie/);
   // 4. Versies: lijst, vergelijken met de huidige, terugzetten
-  await p.evaluate(()=>show('kluis'));await p.waitForFunction(()=>$('#kl-open').style.display==='block');
+  await p.evaluate(()=>{show('kluis');klUnlock();});await p.waitForFunction(()=>$('#kl-open').style.display==='block');
   assert.match(await rij.innerText(),/versie 2/);
   await rij.click();await p.locator('#sheet-acts').getByRole('button',{name:'Eerdere versie',exact:true}).click();
   await p.locator('#sheet-acts button').first().click();
   for(const n of ['Bekijken','Vergelijken met de huidige versie','Deze versie terugzetten'])assert.equal(await p.locator('#sheet-acts').getByRole('button',{name:n,exact:true}).count(),1,n);
   await p.locator('#sheet-acts').getByRole('button',{name:'Bekijken',exact:true}).click();
-  assert.deepEqual(await p.evaluate(()=>Android._kl.opened),{id,version:1},'oudere versie bekijken');
+  await p.waitForFunction(v=>JSON.stringify(Android._kl.opened)===JSON.stringify(v),{id,version:1});
   await rij.click();await p.locator('#sheet-acts').getByRole('button',{name:'Eerdere versie',exact:true}).click();await p.locator('#sheet-acts button').first().click();
   await p.locator('#sheet-acts').getByRole('button',{name:'Vergelijken met de huidige versie',exact:true}).click();
   await p.waitForFunction(()=>current==='pdfcmp'&&cmp.a&&cmp.b);

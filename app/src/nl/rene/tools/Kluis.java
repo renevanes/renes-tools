@@ -81,6 +81,12 @@ final class Kluis {
     static File viewDir(Context c) { File d = new File(c.getCacheDir(), VIEW_DIR); d.mkdirs(); return d; }
     static File index(Context c) { return new File(dir(c), "index.bin"); }
 
+    /** Tijdelijke ontsleutelde bestanden (terugzetten, opslaan als) van een afgebroken keer: weg. */
+    static void cleanTmp(Context c) {
+        File[] fs = c.getCacheDir().listFiles();
+        if (fs != null) for (File f : fs) if (f.getName().startsWith("kluistmp-") && f.getName().endsWith(".tmp")) f.delete();
+    }
+
     static void clearViews(Context c) {
         File[] fs = viewDir(c).listFiles();
         if (fs != null) for (File f : fs) f.delete();
@@ -234,20 +240,21 @@ final class Kluis {
         try(InputStream in=new FileInputStream(source)){return addVersion(c,id,in,note);}
     }
     static synchronized JSONObject addVersion(Context c,String id,InputStream in,String note) throws Exception {
-        if(!isOpen())throw new Exception("De kluis is op slot");safeId(id);
+        if(!isOpen())throw new Exception(Taal.T("De kluis is op slot"));safeId(id);
         JSONArray all=list(c);JSONObject d=null;
         for(int i=0;i<all.length();i++)if(id.equals(all.getJSONObject(i).optString("id")))d=all.getJSONObject(i);
-        if(d==null)throw new Exception("Document niet gevonden");
+        if(d==null)throw new Exception(Taal.T("Document niet gevonden"));
         String blob=newId();File cur=new File(dir(c),id+".bin"),old=new File(dir(c),blob+".bin"),next=new File(dir(c),id+".bin.writing");
-        boolean moved=false,saved=false;
+        boolean replaced=false,saved=false;
         try{
             CountingIn ci=new CountingIn(in);
-            try(OutputStream o=new java.io.BufferedOutputStream(new FileOutputStream(next))){encrypt(ci,o);}
-            if(!isOpen())throw new Exception("De kluis is weer op slot. Ontgrendel opnieuw om de nieuwe versie te bewaren.");
-            // Volgorde: huidige → oude versie, nieuwe → huidige, dan pas de index. Lukt iets niet, dan alles terug.
-            if(!cur.renameTo(old))throw new Exception("Nieuwe versie bewaren lukt niet");
-            moved=true;
-            if(!next.renameTo(cur))throw new Exception("Nieuwe versie bewaren lukt niet");
+            try(FileOutputStream fo=new FileOutputStream(next);OutputStream o=new java.io.BufferedOutputStream(fo)){encrypt(ci,o);o.flush();fo.getFD().sync();}
+            if(!isOpen())throw new Exception(Taal.T("De kluis is weer op slot. Ontgrendel opnieuw om de nieuwe versie te bewaren."));
+            // Volgorde (ook veilig als de app halverwege stopt): huidige kopiëren naar de oude versie (gesynchroniseerd),
+            // dan de nieuwe in één keer over de huidige, dan pas de index. Hooguit blijft er een los versiebestand over.
+            try(InputStream ci2=new FileInputStream(cur);FileOutputStream fo=new FileOutputStream(old)){byte[] b=new byte[1<<16];int r;while((r=ci2.read(b))>0)fo.write(b,0,r);fo.flush();fo.getFD().sync();}
+            if(!next.renameTo(cur))throw new Exception(Taal.T("Nieuwe versie bewaren lukt niet"));
+            replaced=true;
             JSONArray versions=d.optJSONArray("versions");if(versions==null)versions=new JSONArray();
             versions.put(new JSONObject().put("blob",blob).put("t",d.optLong("t")).put("size",d.optLong("size")).put("name",d.optString("name")).put("note",DocumentMeta.note(d.optString("vnote",""))));
             java.util.List<String> drop=new java.util.ArrayList<>();
@@ -258,26 +265,26 @@ final class Kluis {
             return d;
         }finally{
             next.delete();
-            if(moved&&!saved){if(old.exists()){cur.delete();old.renameTo(cur);}}
+            if(!saved){if(replaced)old.renameTo(cur);else old.delete();} // index niet bewaard: de vorige inhoud terug
         }
     }
 
     /** Een oudere versie terugzetten: die inhoud wordt de nieuwste versie; wat er nu staat blijft als versie bewaard. */
     static synchronized JSONObject restoreVersion(Context c,String id,int n) throws Exception {
-        File tmp=new File(viewDir(c),"terugzetten.tmp");
+        File tmp=new File(c.getCacheDir(),"kluistmp-"+newId()+".tmp"); // niet in de kijkmap: die kan intussen geleegd worden
         try{
             try(InputStream in=new java.io.BufferedInputStream(new FileInputStream(blobFile(c,id,n)),1<<16);OutputStream o=new FileOutputStream(tmp)){decrypt(in,o);}
-            return addVersion(c,id,tmp,"Versie "+n+" teruggezet");
+            return addVersion(c,id,tmp,"Versie "+n+" teruggezet"); // de interface vertaalt dit vaste patroon (49b-kluis-centraal.js)
         }finally{tmp.delete();}
     }
 
     /** Het versleutelde bestand van een versie: 0 = de huidige, 1 = de oudste. */
     static File blobFile(Context c,String id,int n) throws Exception {
         JSONObject d=find(c,safeId(id));
-        if(d==null)throw new Exception("Document niet gevonden");
+        if(d==null)throw new Exception(Taal.T("Document niet gevonden"));
         if(n==0)return new File(dir(c),id+".bin");
         JSONArray v=d.optJSONArray("versions");
-        if(v==null||n<1||n>v.length())throw new Exception("Deze versie bestaat niet meer");
+        if(v==null||n<1||n>v.length())throw new Exception(Taal.T("Deze versie bestaat niet meer"));
         return new File(dir(c),safeId(v.getJSONObject(n-1).optString("blob"))+".bin");
     }
 
@@ -290,7 +297,7 @@ final class Kluis {
     /** Een versie bekijken (n=0: de huidige), in de tijdelijke kijkmap die bij op slot gaan leeg gaat. */
     static File viewVersion(Context c,String id,int n) throws Exception {
         JSONObject d=find(c,safeId(id));
-        if(d==null)throw new Exception("Document niet gevonden");
+        if(d==null)throw new Exception(Taal.T("Document niet gevonden"));
         clearViews(c);
         String name=fileName(d);
         if(n>0){int dot=name.lastIndexOf('.');name=(dot>0?name.substring(0,dot):name)+" (versie "+n+")"+(dot>0?name.substring(dot):"");}
@@ -314,7 +321,7 @@ final class Kluis {
     static java.util.List<String> blobs(JSONObject d) { return KluisIndex.blobs(d); }
 
     private static JSONObject store(Context c,InputStream in,String name,String mime,String category) throws Exception {
-        if(!isOpen())throw new Exception("De kluis is op slot");
+        if(!isOpen())throw new Exception(Taal.T("De kluis is op slot"));
         if(in==null)throw new Exception("Bestand niet te openen");
         if(name==null||name.trim().isEmpty())name="document";
         JSONArray l=list(c); // eerst de bestaande index lezen; een leesfout nooit overschrijven
@@ -331,7 +338,7 @@ final class Kluis {
     }
 
     static synchronized void organize(Context c,String id,String json) throws Exception {
-        if(!isOpen())throw new Exception("De kluis is op slot");safeId(id);
+        if(!isOpen())throw new Exception(Taal.T("De kluis is op slot"));safeId(id);
         if(json==null||json.length()>8000)throw new Exception("Documentgegevens zijn te groot");
         JSONObject patch=new JSONObject(json);
         String category=patch.has("category")?DocumentMeta.category(patch.getString("category")):null;
@@ -339,7 +346,7 @@ final class Kluis {
         if(patch.has("favorite")&&!(patch.get("favorite") instanceof Boolean))throw new Exception("Ongeldige favorietkeuze");
         JSONArray all=list(c);JSONObject found=null;
         for(int i=0;i<all.length();i++)if(id.equals(all.getJSONObject(i).optString("id")))found=all.getJSONObject(i);
-        if(found==null)throw new Exception("Document niet gevonden");
+        if(found==null)throw new Exception(Taal.T("Document niet gevonden"));
         if(category!=null)found.put("category",category);if(note!=null)found.put("note",note);
         if(patch.has("favorite"))found.put("favorite",patch.getBoolean("favorite"));
         saveIndex(c,all);
@@ -361,7 +368,7 @@ final class Kluis {
     /** Ontsleutelt naar de tijdelijke map om te bekijken. Geeft het bestand (wordt opgeruimd bij sluiten). */
     static File view(Context c, String id) throws Exception {
         JSONObject d = find(c, safeId(id));
-        if (d == null) throw new Exception("Document niet gevonden");
+        if (d == null) throw new Exception(Taal.T("Document niet gevonden"));
         clearViews(c);
         File out = new File(viewDir(c), fileName(d));
         try (InputStream in = new java.io.BufferedInputStream(new FileInputStream(new File(dir(c), id + ".bin")), 1 << 16);

@@ -131,6 +131,7 @@ function show(name){
   if (current_prev==='idcopy' && name!=='idcopy') idCopyLeave();
   if (name==='idcopy') idCopyEnter();
   if (current_prev==='pdfcmp' && name!=='pdfcmp') cmpLeave(); // de te vergelijken bestanden weg uit de cache
+  if (typeof pdfScr === 'function' && pdfScr(current_prev) && !pdfScr(name) && pdfIn && pdfIn.kluis && typeof Android.pdfKluisSluit === 'function') { Android.pdfKluisSluit(); pdfIn = {}; } // kluisdocument uit de bewerker
   if (name==='pdfcmp') enterPdfCmp();
   if (current_prev === 'aisetpers' && name !== 'aisetpers' && typeof aicLeavePers === 'function') aicLeavePers(); // concept niet kwijtraken
   if ((current_prev === 'home' || current_prev === 'search') && !jumpTo.busy) gsResetTool(name);

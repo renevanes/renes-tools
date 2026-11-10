@@ -44,7 +44,7 @@ for(const colorScheme of ['light','dark']){
   assert.match(doc.name,/^ID-kopie voor Verhuurder <b> \d{4}-\d\d-\d\d\.pdf$/);
   assert.equal(await p.textContent('#id-result-name'),doc.name,'resultaat toont de naam in de kluis');assert.match(await p.textContent('#id-result .kcstatus'),/documentenkluis/);
   assert.equal(await p.isVisible('#id-bron'),false);
-  await p.click('#id-result >> text=Kopie bekijken');assert.deepEqual(await p.evaluate(()=>Android._kl.opened),{id:doc.id,version:0});
+  await p.click('#id-result >> text=Kopie bekijken');await p.waitForFunction(v=>JSON.stringify(Android._kl.opened)===JSON.stringify(v),{id:doc.id,version:0});
   // Terug op het kaartje: de gemaakte kopie staat erbij (de kluis is nog open)
   await p.evaluate(()=>{show('masterdata');});await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
   await p.evaluate(()=>Android.kluisUnlock());await p.waitForTimeout(60);

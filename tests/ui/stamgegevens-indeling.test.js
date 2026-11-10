@@ -112,7 +112,7 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  await p.click('#cm-row-documenten');await p.waitForFunction(()=>current==='cmlijst'&&cmLijstNu()==='documenten');
  assert.equal(await p.textContent('#cm-lijst-add'),L('Document toevoegen','Add document'));
  await p.locator('#cm-lijst .strow',{hasText:'Paspoort Rene'}).click();await opKaart(pas);
- assert.deepEqual(await blokken(),['document','afgifte','fotos']);
+ assert.deepEqual(await blokken(),['document','afgifte','fotos','idkopie'],'na de foto\'s: afgeschermde kopieën (ID-kopie, documentenkluis)');
  assert.match(await p.locator('#cm-kaart [data-blok=document]').innerText(),/••••123/);assert.doesNotMatch(await p.textContent('#cm-kaart'),/DOC123/);
  assert.equal((await p.textContent('#cmc-foto-front')).trim(),L('Voorkant toevoegen','Add front'));
  // Elk blok van elk soort past op het scherm, met de opslaanknop in beeld

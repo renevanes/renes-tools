@@ -174,6 +174,9 @@ const SET_REG = [
     get: () => setB(store.get('apTone', false)), set: v => { store.set('apTone', setOnV(v)); setIf('apdev', apdToggles); return ''; } },
   { id: 'apparaten.trillen', scr: 'apdev', ctl: '#apd-vib', need: /apparat|zoek|bluetooth|tracker|warmer|kouder/, label: 'Apparaten zoeken: trillen', desc: 'Bij zoeken (warmer/kouder) een tik als het warmer wordt.', syn: 'apparaten zoeken trillen tik warmer',
     get: () => setB(store.get('apVib', true)), set: v => { store.set('apVib', setOnV(v)); setIf('apdev', apdToggles); return ''; } },
+  /* ---------- PDF en documentenkluis ---------- */
+  { id: 'pdf.kluis', scr: 'pdfmade', ctl: '#kc-aan', need: /pdf|kluis|gemaakt|bewaar/, label: 'Gemaakte PDF\'s vanzelf in de documentenkluis', desc: 'Wat de PDF-tools maken (ook formulieren en ID-kopieën) gaat versleuteld de documentenkluis in; het bestand onder Gemaakt gaat daarna weg.', syn: 'pdf kluis documentenkluis gemaakt bewaren versleuteld vanzelf automatisch',
+    get: () => setB(kcAan()), set: v => { kcZet(setOnV(v)); return ''; } },
   /* ---------- Auto redial ---------- */
   { id: 'redial.pogingen', scr: 'redial', ctl: '#c-att', type: 'keuze', vals: [['5', '5'], ['10', '10'], ['25', '25'], ['50', '50'], ['0', 'Onbeperkt']], label: 'Auto redial: aantal pogingen', desc: 'Hoe vaak Auto redial opnieuw belt.', syn: 'redial bellen pogingen keer opnieuw',
     get: () => String(store.get('attempts', 10)), set: v => { store.set('attempts', +v); setRedial(); return ''; } },
