@@ -16,8 +16,14 @@ final class VoiceModels {
         final String id,label,language,folder,model,sha;final long size;
         /** Tweede downloadadres (bijv. een eigen kopie van Rene), alleen https; zelfde bestand en SHA-256. Null = geen. */
         String mirror;
+        /** Hoe goed hij klinkt: "best" (Piper high, volledige precisie), "goed" (medium, volledige precisie) of "compact" (int8). */
+        String quality="compact";
+        /** Licentie alleen voor niet-commercieel gebruik (CC BY-NC-SA): niet aanbieden in de Play-versie. */
+        boolean nonCommercial;
         Voice(String id,String label,String language,String folder,String model,long size,String sha){this.id=id;this.label=label;this.language=language;this.folder=folder;this.model=model;this.size=size;this.sha=sha;}
         Voice withMirror(String url){if(url!=null&&url.startsWith("https://"))mirror=url;return this;}
+        Voice quality(String q){quality=q;return this;}
+        Voice nonCommercial(){nonCommercial=true;return this;}
         /** Bron (upstream release; dat label kan daar veranderen, de SHA-256 vangt dat af). */
         String url(){return "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/"+folder+".tar.bz2";}
         /** Adressen in volgorde: eerst de bron, bij een fout de kopie. */
@@ -25,9 +31,15 @@ final class VoiceModels {
     }
     static final Voice[] VOICES={
         new Voice("tts-nl-ronnie",Taal.T("Ronnie · Nederlands"),"nl","vits-piper-nl_NL-ronnie-medium-int8","nl_NL-ronnie-medium.onnx",21158108L,"eb16022c9c8ee48b75dc833e8a8b04e08730929ea68cde9b67e2dc712f988978"),
-        new Voice("tts-en-ljspeech",Taal.T("LJ Speech · Engels"),"en","vits-piper-en_US-ljspeech-medium-int8","en_US-ljspeech-medium.onnx",21090429L,"24dc3bd77dd48c291e52c297878d3437c9492f245d823d7f6a06c4bbb67f4b6b")
+        new Voice("tts-en-ljspeech",Taal.T("LJ Speech · Engels"),"en","vits-piper-en_US-ljspeech-medium-int8","en_US-ljspeech-medium.onnx",21090429L,"24dc3bd77dd48c291e52c297878d3437c9492f245d823d7f6a06c4bbb67f4b6b"),
+        // Betere Nederlandse stemmen (nov. 2026): volledige precisie (niet int8) klinkt zuiverder en rekent op een CPU zelfs sneller.
+        new Voice("tts-nl-dii",Taal.T("Dii · Nederlands"),"nl","vits-piper-nl_NL-dii-high","nl_NL-dii-high.onnx",67203791L,"4620f8749efcef5d03533960bf13e723de75a2a9df50682ac56c0087401321dc").quality("best").nonCommercial(),
+        new Voice("tts-nl-miro",Taal.T("Miro · Nederlands"),"nl","vits-piper-nl_NL-miro-high","nl_NL-miro-high.onnx",67169101L,"44dd05eae66b5681abd95a5f7b4339c83a4d095e4ac063ddcb88bf8f225b6c4f").quality("best").nonCommercial(),
+        new Voice("tts-nl-pim",Taal.T("Pim · Nederlands"),"nl","vits-piper-nl_NL-pim-medium","nl_NL-pim-medium.onnx",67240538L,"e78ed301bf6fc66561a04c110754cd6928d772630a3b80b09a83f89410130171").quality("goed")
     };
     static Voice model(String id){for(Voice v:VOICES)if(v.id.equals(id))return v;return null;}
+    /** Wordt deze stem in deze installatie aangeboden? (De Play-versie biedt geen stemmen met een niet-commerciële licentie.) */
+    static boolean offered(Context c,Voice v){return !v.nonCommercial||!Updater.isPlayPackage(c.getPackageName());}
     /** De spraakmotor staat in deze installatie (APK: alleen arm64-v8a; de emulatortest en Play ook x86_64). */
     static boolean supported(Context c){try{String d=c.getApplicationInfo().nativeLibraryDir;return d!=null&&new File(d,"libsherpa-onnx-jni.so").isFile()&&new File(d,"libonnxruntime.so").isFile();}catch(Throwable e){return false;}}
     static SharedPreferences prefs(Context c){return c.getSharedPreferences("voorlezen",Context.MODE_PRIVATE);}
@@ -37,10 +49,13 @@ final class VoiceModels {
     static boolean ready(Context c,Voice v){return new File(dir(c,v),"klaar").isFile()&&new File(dir(c,v),v.model).length()>1000000&&new File(dir(c,v),"tokens.txt").isFile()&&new File(dir(c,v),"espeak-ng-data/phondata").isFile();}
     static Voice active(Context c){Voice picked=model(prefs(c).getString("voice",""));if(picked!=null&&ready(c,picked))return picked;for(Voice v:VOICES)if(ready(c,v))return v;return null;}
     static float speed(Context c){float value=prefs(c).getFloat("speed",1);return Float.isNaN(value)||Float.isInfinite(value)?1:Math.max(.6f,Math.min(1.8f,value));}
-    static void configure(Context c,String voice,double speed)throws Exception {if(!Double.isFinite(speed)||speed<.6||speed>1.8||!voice.isEmpty()&&model(voice)==null)throw new Exception(Taal.T("Kies een stem en een snelheid tussen 0,6 en 1,8"));SharedPreferences.Editor e=prefs(c).edit().putFloat("speed",(float)speed);if(!voice.isEmpty())e.putString("voice",voice);e.apply();}
+    static void configure(Context c,String voice,double speed)throws Exception {if(!Double.isFinite(speed)||speed<.6||speed>1.8||!voice.isEmpty()&&model(voice)==null)throw new Exception(Taal.T("Kies een stem en een snelheid tussen 0,6 en 1,8"));SharedPreferences.Editor e=prefs(c).edit().putFloat("speed",(float)speed);if(!voice.isEmpty())e.putString("voice",voice).putString("voice_"+model(voice).language,voice);e.apply();}
+    /** De stem voor een taal: de laatst gekozen stem in die taal (als hij er is), anders de eerste gedownloade in die taal. */
+    static Voice forLanguage(Context c,String language){Voice pref=model(prefs(c).getString("voice_"+language,""));if(pref!=null&&pref.language.equals(language)&&ready(c,pref))return pref;Voice best=null;for(Voice v:VOICES)if(v.language.equals(language)&&ready(c,v)&&(best==null||rank(v)>rank(best)))best=v;return best;}
+    static int rank(Voice v){return "best".equals(v.quality)?2:"goed".equals(v.quality)?1:0;}
     static boolean wanted(Context c,String id){return prefs(c).getBoolean("download_"+id,false);}
     static void failed(Context c,String id,String message){prefs(c).edit().putString("error_"+id,message).apply();MainActivity.jsAll("onAiModels", "");}
-    static void download(Context c,Voice v)throws Exception {if(!supported(c))throw new Exception(Taal.T("Lokale voorleesstemmen werken op een 64-bits toestel"));if(ready(c,v))return;prefs(c).edit().putBoolean("download_"+v.id,true).remove("error_"+v.id).apply();ModelDownloadService.start(c,v.id);}
+    static void download(Context c,Voice v)throws Exception {if(!offered(c,v))throw new Exception(PlayPolicy.UNAVAILABLE);if(!supported(c))throw new Exception(Taal.T("Lokale voorleesstemmen werken op een 64-bits toestel"));if(ready(c,v))return;prefs(c).edit().putBoolean("download_"+v.id,true).remove("error_"+v.id).apply();ModelDownloadService.start(c,v.id);}
     static void stop(Context c,String id){ModelDownloadService.stop(id);prefs(c).edit().putBoolean("download_"+id,false).apply();}
     static void install(Context c,Voice v,BooleanSupplier stop)throws Exception {
         File archive=part(c,v),stage=new File(root(c),v.id+".new");
@@ -56,8 +71,9 @@ final class VoiceModels {
     static long bytes(File dir){if(dir.isFile())return dir.length();long size=0;File[] files=dir.listFiles();if(files!=null)for(File f:files)size+=bytes(f);return size;}
     static JSONObject json(Context c)throws Exception {
         JSONArray voices=new JSONArray();Voice active=active(c);
-        for(Voice v:VOICES){long[] progress=ModelDownloadService.RUN.get(v.id);String state=ready(c,v)?"ready":ModelDownloadService.QUEUED.contains(v.id)?"queued":progress!=null?"running":part(c,v).isFile()?"paused":"none";
-            voices.put(new JSONObject().put("id",v.id).put("label",Taal.t(c,v.label)).put("language",v.language).put("size",v.size).put("state",state).put("bytes",progress==null?part(c,v).length():progress[0]).put("error",Taal.tx(c,prefs(c).getString("error_"+v.id,""))).put("selected",active==v));}
-        return new JSONObject().put("voices",voices).put("voice",active==null?"":active.id).put("speed",speed(c)).put("supported",supported(c)).put("background",prefs(c).getBoolean("background",false)).put("engine",VoiceEngine.ENGINE).put("wifiOnly",LocalAi.wifiOnly(c));
+        for(Voice v:VOICES){if(!offered(c,v)&&!ready(c,v))continue;long[] progress=ModelDownloadService.RUN.get(v.id);String state=ready(c,v)?"ready":ModelDownloadService.QUEUED.contains(v.id)?"queued":progress!=null?"running":part(c,v).isFile()?"paused":"none";
+            voices.put(new JSONObject().put("id",v.id).put("label",Taal.t(c,v.label)).put("language",v.language).put("size",v.size).put("state",state).put("bytes",progress==null?part(c,v).length():progress[0]).put("error",Taal.tx(c,prefs(c).getString("error_"+v.id,""))).put("selected",active==v).put("quality",v.quality).put("nc",v.nonCommercial));}
+        JSONObject lang=new JSONObject();for(String l:new String[]{"nl","en"}){Voice v=forLanguage(c,l);if(v!=null)lang.put(l,v.id);}
+        return new JSONObject().put("voices",voices).put("voice",active==null?"":active.id).put("speed",speed(c)).put("supported",supported(c)).put("background",prefs(c).getBoolean("background",false)).put("engine",VoiceEngine.ENGINE).put("wifiOnly",LocalAi.wifiOnly(c)).put("lang",lang);
     }
 }

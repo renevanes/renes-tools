@@ -26,5 +26,10 @@ Downloadbare stemmen (geen onderdeel van de APK):
   Nederlandse opnames (OHF Voice) en de trainingsherkomst. Zie Ronnie-MODEL_CARD.txt.
 - LJ Speech / en_US-ljspeech-medium, Piper int8. Vanaf nul getraind op de
   LJ Speech-dataset (publiek domein). Zie LJSpeech-MODEL_CARD.txt.
+- Dii / nl_NL-dii-high en Miro / nl_NL-miro-high, Piper in volledige precisie
+  (OpenVoiceOS). Licentie CC BY-NC-SA 4.0: alleen niet-commercieel gebruik; daarom
+  niet aangeboden in de Play-versie. Zie Dii-MODEL_CARD.txt en Miro-MODEL_CARD.txt.
+- Pim / nl_NL-pim-medium, Piper in volledige precisie. De modelkaart vermeldt CC0
+  voor de Nederlandse opnames (OHF Voice). Zie Pim-MODEL_CARD.txt.
 Conversie en archieven: https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models
 De modellen en hun naam/controlegetal wijzigen nooit onder een bestaande id.

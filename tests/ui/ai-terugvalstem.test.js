@@ -13,7 +13,7 @@ const { chromium } = require('playwright');
     // Tik op Voorlezen: terugvalstem, met de tip en zonder pauzeknop (die kan Android niet)
     await pg.click('#ai-msgs .aispk'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._tts.system === 1 && Android._speech.said.length === 0 && aiSpk && aiSpk.system), 'zonder lokale stem: de stem van Android (niet ReadAloud)');
-    ok(await pg.isVisible('#ai-spkhint') && (await pg.textContent('#ai-spkhint')).includes('Download Ronnie voor een betere stem'), 'eenmalige tip om Ronnie te downloaden');
+    ok(await pg.isVisible('#ai-spkhint') && (await pg.textContent('#ai-spkhint')).includes('Download een lokale stem (zoals Dii) voor een betere stem'), 'eenmalige tip om Ronnie te downloaden');
     ok(await pg.isHidden('#ai-speech-pause') && await pg.isVisible('#ai-spkbar'), 'balk zonder Pauzeren (Android kan niet pauzeren)');
     ok(await pg.evaluate(() => !sp.settings), 'geen venster vanzelf');
     await pg.screenshot({ path: __dirname + '/shots/ai-terugvalstem-' + scheme + '.png' });
@@ -29,7 +29,7 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._tts.noSystem = true; aiSpeakStart(aiChat.msgs[aiChat.msgs.length - 1], aiChat, true); }); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => !sp.settings) && await pg.isVisible('#ai-spkhint'), 'vanzelf voorlezen zonder stem: alleen de tip, geen venster');
     await pg.click('#ai-spkhint button.mini'); await pg.waitForTimeout(100);
-    ok(await pg.evaluate(() => sp.settings) && await pg.isHidden('#ai-spkhint'), 'Stem kiezen opent Lokaal voorlezen');
+    ok(await pg.evaluate(() => sp.settings) && await pg.isHidden('#ai-spkhint'), 'Stem kiezen opent het stemmenvenster');
     await pg.evaluate(() => spSettingsClose());
     await pg.click('#ai-msgs .aispk'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => sp.settings), 'zelf op Voorlezen tikken zonder stem: de stemkiezer');
