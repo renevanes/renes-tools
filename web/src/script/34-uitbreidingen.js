@@ -140,12 +140,14 @@ window.onKluis = function(r){
 /** De kluis kan nu niet open zonder ontgrendeling: het slotscherm, over de kluis of over wat de PDF-tools willen bewaren. */
 function klVraag(){
   const geen = t('Stel eerst een schermvergrendeling in op je telefoon (pincode, patroon of vingerafdruk)');
-  const terug = () => {
-    if (typeof kc !== 'undefined' && kc.wacht) { kc.wacht = false; clearTimeout(kc.wachtT); kcMislukt('Kluis niet ontgrendeld'); }
-    if (typeof klDan !== 'undefined' && klDan) { klDan = null; toast(geen); }
+  const afbreken = (reden) => {
+    if (typeof kc !== 'undefined' && kc.wacht) { kc.wacht = false; clearTimeout(kc.wachtT); kcMislukt(reden); }
+    if (typeof klDan !== 'undefined' && klDan) { klDan = null; toast(t(reden)); }
   };
-  // Op het kluisscherm zelf: terug verlaat de kluis. Elders (PDF bewaren): terug maakt het bewaren ongedaan.
-  if (!tsVraag('kluis', () => Android.kluisUnlock(), current === 'kluis' ? null : terug)) { if (current === 'kluis') klMsg(geen); else terug(); }
+  // Op het kluisscherm zelf: terug verlaat de kluis. Elders (PDF bewaren of bekijken): terug maakt dat ongedaan.
+  // Alleen als het slotscherm niet kan (geen schermvergrendeling) is dát de reden; terug op het slotscherm is annuleren.
+  const terug = () => afbreken('Kluis niet ontgrendeld');
+  if (!tsVraag('kluis', () => Android.kluisUnlock(), current === 'kluis' ? null : terug)) { if (current === 'kluis') klMsg(geen); else afbreken('Stel eerst een schermvergrendeling in op je telefoon (pincode, patroon of vingerafdruk)'); }
 }
 window.onKluisChanged = function(r){ toast(r === 'ok' ? t('Toegevoegd aan de kluis') : t(r)); if (current === 'kluis') klRender(); };
 function klLock(){ Android.kluisClose(); klRender(); }

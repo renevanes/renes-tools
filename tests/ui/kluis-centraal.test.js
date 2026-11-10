@@ -35,6 +35,10 @@ for(const colorScheme of ['light','dark']){
   assert.match(await p.textContent('#s-pdfimg .pdfkeep'),/Bewaard in de documentenkluis/);
   assert.match(await p.textContent('#toast'),/In de documentenkluis/);
   // Tikken op de rij: bekijken gaat via de kluis (eigen viewer), delen en opslaan ook
+  await p.click('.pdfres[data-scr="pdfimg"] .trip');await p.getByRole('button',{name:'Bekijken',exact:true}).click();
+  await p.waitForFunction(()=>tsZichtbaar()&&ts.tool==='kluis'&&!!klDan&&!$('#ts-open').disabled);
+  await p.evaluate(()=>goBack());await p.waitForFunction(()=>!tsZichtbaar()&&!klDan);
+  assert.match(await p.textContent('#toast'),/Kluis niet ontgrendeld/);assert.doesNotMatch(await p.textContent('#toast'),/schermvergrendeling/,'terug is annuleren, niet een ontbrekende schermvergrendeling');
   await p.click('.pdfres[data-scr="pdfimg"] .trip');await p.getByRole('button',{name:'Bekijken',exact:true}).click();await doorSlot();
   await p.waitForFunction(v=>JSON.stringify(Android._kl.opened)===JSON.stringify(v),{id:kl.docs[0].id,version:0});
   await p.click('.pdfres[data-scr="pdfimg"] .trip');await p.getByRole('button',{name:'Delen (bijv. mailen of WhatsApp)',exact:true}).click();await doorSlot();
