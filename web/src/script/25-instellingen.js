@@ -1,6 +1,6 @@
 /* ---------- Instellingen ----------
  * Een overzicht in groepen (met per onderwerp een korte stand van zaken) en per onderwerp een eigen scherm. */
-const ST_SUBS = ['setnotif', 'setlook', 'setregio', 'setskin', 'setlock', 'setslot', 'setsolo', 'setperm', 'setmusic', 'setcrash'];
+const ST_SUBS = ['setnotif', 'setlook', 'setregio', 'setskin', 'setlock', 'setslot', 'setsolo', 'setperm', 'setmusic', 'setcrash', 'spraak'];
 const stOn = () => current === 'settings' || ST_SUBS.includes(current);
 function stJson(s){ try { return JSON.parse(s); } catch(e){ return {}; } }
 function stSum(id, tt){ const e = $('#st-sum-' + id); if (e) e.textContent = tt; }
@@ -21,6 +21,8 @@ function stSummaries(i){
   // AI alleen in het overzicht (vraagt wat meer werk)
   if (current === 'settings' && typeof Android.aiState === 'function') { const a = stJson(Android.aiState()), m = (a.models || []).filter(x => x.state === 'ready');
     stSum('ai', m.length ? m.map(x => x.label).join(' · ') : 'Nog geen model gedownload'); }
+  if (typeof Android.speechModels === 'function') { const v = stJson(Android.speechModels()), on = (v.voices || []).find(x => x.id === v.voice);
+    stSum('spraak', on ? t('Stem: {stem}', { stem: on.label }) : t('Nog geen voorleesstem')); }
   stSum('music', i.audd ? 'AudD-sleutel ingesteld' : 'Nog geen AudD-sleutel');
   stSum('crash', i.crashes ? tn(i.crashes, '{n} fout vastgelegd', '{n} fouten vastgelegd') : t('✓ Geen fouten'));
   stSum('self', 'Controleer of alles werkt');

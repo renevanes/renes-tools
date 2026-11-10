@@ -1,0 +1,21 @@
+# Miro (nl_NL-miro-high), Piper, volledige precisie
+
+* Language: nl_NL (Dutch, Netherlands)
+* Speakers: 1
+* Quality: high
+* Samplerate: 22,050Hz
+* Dataset: Jarbas/tts-train-synthetic-miro_nl-NL
+* Base model: OpenVoiceOS/pipertts_pt-PT_miro
+* Source: https://huggingface.co/OpenVoiceOS/pipertts_nl-NL_miro
+* Conversion: https://github.com/k2-fsa/sherpa-onnx/pull/2480
+
+## License
+
+This model is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0
+International License (CC BY-NC-SA 4.0): https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+- Always free for regular (non-commercial) users
+- Commercial use is not allowed at this time
+- The author may relax the restrictions in the future, but will not make them stricter
+
+(From the README.md in the sherpa-onnx archive vits-piper-nl_NL-miro-high.)

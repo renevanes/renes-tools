@@ -28,6 +28,9 @@ public class VoiceArchiveTest {
             check(ReadAloud.speakable("Hoi\u0000\ud83d\ude00\ud800!").equals("Hoi!"),"geen NUL of ongeldige JNI-tekens");
             for(VoiceModels.Voice voice:VoiceModels.VOICES){check(voice.sha.matches("[0-9a-f]{64}")&&voice.size>10000000&&voice.url().startsWith("https://github.com/k2-fsa/sherpa-onnx/"),"stemmen hebben vaste herkomst en SHA");}
             for(VoiceModels.Voice voice:VoiceModels.VOICES){String[] u=voice.urls();check(u[0].equals(voice.url())&&(u.length==1||u.length==2&&u[1].startsWith("https://")),"eerst de bron, daarna hooguit één https-kopie");}
+            {StringBuilder nc=new StringBuilder();for(VoiceModels.Voice voice:VoiceModels.VOICES){check(java.util.Arrays.asList("best","goed","compact").contains(voice.quality),"geldige kwaliteit: "+voice.id);check(voice.language.matches("nl|en"),"taal nl of en: "+voice.id);check(voice.folder.endsWith("-int8")==voice.quality.equals("compact"),"compact = int8, anders volledige precisie: "+voice.id);if(voice.nonCommercial)nc.append(voice.id).append(' ');}
+             check(nc.toString().trim().equals("tts-nl-dii tts-nl-miro"),"precies Dii en Miro hebben een niet-commerciële licentie ("+nc+")");
+             check(VoiceModels.rank(VoiceModels.model("tts-nl-dii"))>VoiceModels.rank(VoiceModels.model("tts-nl-pim"))&&VoiceModels.rank(VoiceModels.model("tts-nl-pim"))>VoiceModels.rank(VoiceModels.model("tts-nl-ronnie")),"rangorde: beste, goed, compact");}
             VoiceModels.Voice probe=new VoiceModels.Voice("x","x","nl","map","m.onnx",1L,"0");check(probe.withMirror("http://kopie/x").urls().length==1&&probe.withMirror("https://kopie/x").urls()[1].equals("https://kopie/x"),"kopie alleen via https");
         }finally{VoiceArchive.erase(root);}
         System.out.println("Modelarchief: gewone installatie, padcontrole, bestandstypen, dubbelen en afbreken gecontroleerd");

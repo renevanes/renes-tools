@@ -62,7 +62,7 @@ public class ToolDataTest {
         try { ToolData.parse("{\"format\":\"iets anders\"}"); check(false, "verkeerd bestand geweigerd"); } catch (Exception e) { check(true, "verkeerd bestand geweigerd"); }
         try { ToolData.parse(new JSONObject().put("format", ToolData.FORMAT).put("version", 99).toString()); check(false, "nieuwere versie geweigerd"); } catch (Exception e) { check(true, "nieuwere versie geweigerd"); }
 
-        check(ToolData.toolName("voorlezen").equals("Lokaal voorlezen"), "Lokaal voorlezen heeft een eigen naam in Toolgegevens");
+        check(ToolData.toolName("voorlezen").equals("Spraak (voorlezen)"), "Voorlezen heeft een eigen naam in Toolgegevens");
         System.out.println(fails == 0 ? "Alle ToolData-tests geslaagd" : fails + " ToolData-tests mislukt");
         System.exit(fails == 0 ? 0 : 1);
     }
