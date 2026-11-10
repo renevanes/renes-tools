@@ -1,0 +1,1 @@
+Extra ontgrendelen: nu ook voor Kluis, Bankzaken en Stamgegevens aan of uit te zetten (Instellingen → Extra ontgrendelen, of de tegel lang indrukken). Uit = geen eigen vraag meer: de kluis opent meteen en blijft versleuteld; Bankzaken en Stamgegevens openen zonder vraag als je telefoon net ontgrendeld is, anders vragen ze het toch.

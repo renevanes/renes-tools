@@ -26,7 +26,8 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   openen, het overzicht Losse apps en het native register volgen daaruit. Subschermen krijgen een `BACK`-verwijzing
   naar hun eigen tool. `solo-alle-tools.test.js` en `SoloTest` bewaken dit; behoud de eigen ontgrendeling en privacy.
  Zo doet hij ook vanzelf mee met **Extra ontgrendelen** (per tool aan of uit, `26b-extra-ontgrendelen.js`, `ToolSlot`):
- elk scherm hoort via `BACK` bij zijn tool. Toont een ander scherm (zoeken, het startscherm) gegevens uit een tool, verberg
+ elk scherm hoort via `BACK` bij zijn tool. Kluis, Bankzaken en Stamgegevens (`ts.eigen`, `ToolSlot.EIGEN`) gebruiken
+ dezelfde schakelaar voor hun eigen ontgrendeling (standaard aan; uit = `tsEigenUit`). Toont een ander scherm (zoeken, het startscherm) gegevens uit een tool, verberg
  ze dan met `tsVerborgen(tool)` zolang die tool op slot is. Opent code na `show(tool)` meteen iets in die tool (een vraag
  uit een melding, een zoekactie), zet dat in `tsDaarna(tool, () => …)`: dan wacht het tot na ontgrendelen. Een nieuw
  venster dat over een tool kan liggen, hoort in `TS_LAGEN` (terug op het slotscherm sluit het); inert onder een venster
@@ -472,6 +473,9 @@ Rene's inkomsten en uitgaven. **Niets mag de telefoon verlaten** (wens van Rene)
   bevatten nooit bedragen, namen of rekeningnummers. Op slot na 5 minuten niets doen en zodra de app uit beeld gaat;
   de interface vergeet dan alles. Op het scherm FLAG_SECURE (`bankSecure`). Ook als losse app alleen na eigen
   ontgrendeling; de vrijgave hoort bij dat venster en mag niet van een andere banksessie worden overgenomen.
+  Rene kan de eigen ontgrendeling uitzetten (Extra ontgrendelen, `ToolSlot.eigenUit`, net als bij Kluis en Stamgegevens):
+  dan opent Bankzaken zonder vraag, maar alleen zolang de sleutel zeker nog werkt (`Ontgrendeld`, `Bank.vanzelf`); de
+  sleutel blijft gekoppeld aan het ontgrendelen van de telefoon. Nooit omzetten naar een sleutel zonder ontgrendeling.
 - **Inlezen:** `BankImport` (zuiver, getest in `BankTest`): CSV met kopregel (ING, Rabobank, Knab, bunq, algemeen), zonder
   kopregel (ABN AMRO TXT, ASN/SNS/RegioBank, Triodos), MT940 en CAMT.053/052/054 (XML zonder DOCTYPE: XXE). Dubbele
   boekingen: id = rekening|datum|bedrag|volgnummer op die dag. Nieuwe bank = herkenning erbij + een test met een voorbeeld.

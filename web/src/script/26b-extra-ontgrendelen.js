@@ -182,14 +182,18 @@ function tsStand(){
   if (n && !ts.secure) return t('Werkt pas met een schermvergrendeling');
   return n ? tn(n, 'Aan voor {n} tool', 'Aan voor {n} tools') : t('Uit');
 }
-/* Wat uitzetten betekent bij een eigen ontgrendeling: kort en zichtbaar (het gaat om een veilige keuze) */
-const TS_EIGEN_UIT = { kluis: 'Uit: opent zonder vraag, blijft versleuteld', bank: 'Uit: geen vraag als je telefoon net ontgrendeld is', masterdata: 'Uit: geen vraag als je telefoon net ontgrendeld is' };
+/** Wat uitzetten betekent bij een eigen ontgrendeling: kort en zichtbaar (het gaat om een veilige keuze) */
+function tsEigenUitleg(tool){
+  if (!tsEigen(tool)) return '';
+  if (tsEigenUit(tool)) return tool === 'kluis' ? t('Opent zonder vraag, blijft versleuteld') : t('Geen vraag als je telefoon net ontgrendeld is');
+  return tool === 'kluis' ? t('Eigen ontgrendeling. Uit: opent zonder vraag, blijft versleuteld') : t('Eigen ontgrendeling. Uit: geen vraag als je telefoon net ontgrendeld is');
+}
 function tsRender(){
   const box = $('#st-slot-list'); if (!box) return;
   tsLaad();
   $('#st-slot-geen').hidden = ts.secure;
   box.innerHTML = tsLijst().map(k => {
-    const naam = t(TOOLS[k][0]), is = ts.aan.includes(k), uitleg = TS_EIGEN_UIT[k] ? '<small>' + esc(t(TS_EIGEN_UIT[k])) + '</small>' : '';
+    const naam = t(TOOLS[k][0]), is = ts.aan.includes(k), uitleg = tsEigen(k) ? '<small>' + esc(tsEigenUitleg(k)) + '</small>' : '';
     return '<div class="sw"><span>' + esc(naam) + uitleg + '</span><button class="tg' + (is ? ' on' : '') + '" role="switch" aria-checked="' + is + '" data-tool="' + k + '"' +
       (!ts.secure && !is ? ' disabled' : '') + ' aria-label="' + esc(t('Extra ontgrendelen voor {naam}', { naam })) + '" onclick="tsZet(this.dataset.tool, !this.classList.contains(\'on\'))"></button></div>';
   }).join('');

@@ -1,6 +1,7 @@
 // Extra ontgrendelen per tool (Instellingen → Extra ontgrendelen, 26b-extra-ontgrendelen.js): aan of uit per tool, het
 // slotscherm vóór het openen, weer op slot bij weggaan uit de tool of de app, niets zichtbaar in zoeken en op het
-// startscherm, uitzetten alleen na bevestigen, losse apps, zonder schermvergrendeling en in het Engels.
+// startscherm, uitzetten alleen na bevestigen, losse apps, zonder schermvergrendeling, in het Engels, en de eigen
+// ontgrendeling van Kluis, Bankzaken en Stamgegevens aan of uit (uit = openen zonder vraag, of toch vragen als het moet).
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const errs = [];
@@ -14,22 +15,23 @@ const { chromium } = require('playwright');
     await pg.goto(url); await pg.waitForTimeout(300);
     await pg.evaluate(() => { notesGet().push({ id: 'ts1', title: 'Geheim lijstje', text: 'cadeau voor Anna', items: [], updated: Date.now() }); Android.notePinSet('app', 'ts1', true); });
 
-    // 1. Instellen: alle tools in één lijst, Kluis/Bankzaken/Stamgegevens altijd aan
+    // 1. Instellen: alle tools in één lijst; Kluis/Bankzaken/Stamgegevens (eigen ontgrendeling) standaard aan, ook uit te zetten
     await pg.evaluate(() => show('settings')); await pg.waitForTimeout(100);
-    ok(/Uit/.test(await pg.textContent('#st-sum-slot')), 'overzicht Instellingen: stand Uit');
+    ok(/Aan voor 3 tools/.test(await pg.textContent('#st-sum-slot')), 'overzicht Instellingen: standaard aan voor Kluis, Bankzaken en Stamgegevens');
     await pg.click('button.strow:has-text("Extra ontgrendelen")'); await pg.waitForTimeout(150);
     const lijst = await pg.evaluate(() => ({ n: document.querySelectorAll('#st-slot-list .sw').length, verwacht: tsLijst().length,
-      tools: Object.keys(TOOLS).filter(k => document.getElementById('s-' + k)).length,
-      eigen: [...document.querySelectorAll('#st-slot-list .tg:disabled')].map(b => b.getAttribute('aria-label')), geen: !$('#st-slot-geen').hidden }));
+      tools: Object.keys(TOOLS).filter(k => document.getElementById('s-' + k)).length, uit: document.querySelectorAll('#st-slot-list .tg:disabled').length,
+      eigen: ['kluis', 'bank', 'masterdata'].map(k => { const b = $('#st-slot-list .tg[data-tool="' + k + '"]'); return b && b.getAttribute('aria-checked') === 'true' && !!b.closest('.sw').querySelector('small'); }),
+      geen: !$('#st-slot-geen').hidden }));
     ok(lijst.n === lijst.verwacht && lijst.n === lijst.tools && lijst.n > 25, 'elke tool met een eigen scherm staat in de lijst (' + lijst.n + ')');
-    ok(lijst.eigen.length === 3 && ['Kluis', 'Bankzaken', 'Stamgegevens'].every(n => lijst.eigen.some(l => l.includes(n))), 'Kluis, Bankzaken en Stamgegevens: altijd aan, niet uit te zetten');
+    ok(!lijst.uit && lijst.eigen.every(Boolean), 'Kluis, Bankzaken en Stamgegevens: aan, met uitleg wat uit betekent, en uit te zetten (' + JSON.stringify(lijst.eigen) + ')');
     ok(!lijst.geen, 'met schermvergrendeling: geen waarschuwing');
     await pg.screenshot({ path: __dirname + '/shots/extra-ontgrendelen-instellen-' + scheme + '.png' });
     await pg.click('#st-slot-list .tg[aria-label="Extra ontgrendelen voor Notities"]'); await pg.waitForTimeout(150);
-    ok((await pg.evaluate(() => Android._tslot.aan)).join() === 'notes' && /extra ontgrendelen aan/.test(await pg.textContent('#toast')), 'aanzetten: meteen, zonder vraag');
+    ok((await pg.evaluate(() => Android._tslot.aan.slice().sort())).join() === 'bank,kluis,masterdata,notes' && /extra ontgrendelen aan/.test(await pg.textContent('#toast')), 'aanzetten: meteen, zonder vraag');
     ok(await pg.getAttribute('#st-slot-list .tg[aria-label="Extra ontgrendelen voor Notities"]', 'aria-checked') === 'true', 'schakelaar staat aan');
     await pg.evaluate(() => show('settings')); await pg.waitForTimeout(100);
-    ok(/Aan voor 1 tool/.test(await pg.textContent('#st-sum-slot')), 'overzicht Instellingen: Aan voor 1 tool');
+    ok(/Aan voor 4 tools/.test(await pg.textContent('#st-sum-slot')), 'overzicht Instellingen: Aan voor 4 tools');
 
     // 2. Openen: eerst het slotscherm, de tool zelf nog niet
     await pg.evaluate(() => show('home')); await pg.waitForTimeout(100);
@@ -95,7 +97,7 @@ const { chromium } = require('playwright');
     await pg.click('#sheet-acts button:has-text("Extra ontgrendelen uitzetten…")'); await pg.waitForTimeout(250);
     ok((await pg.evaluate(() => Android._tslot.aan)).includes('notes') && /Niet bevestigd/.test(await pg.textContent('#toast')), 'uitzetten zonder bevestiging: blijft aan');
     await pg.evaluate(() => toolMenu('kluis')); await pg.waitForTimeout(100);
-    ok(!(await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent))).some(a => /Extra ontgrendelen/.test(a)), 'Kluis: geen keuze (altijd eigen ontgrendeling)');
+    ok((await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent))).some(a => /Extra ontgrendelen uitzetten…/.test(a)), 'Kluis: ook in het tegelmenu uit te zetten');
     await pg.evaluate(() => closeSheet());
 
     // 8. Vanuit een andere tool (sprong): na ontgrendelen terug naar waar je vandaan kwam
@@ -210,6 +212,53 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => current) === 'notes' && !(await stand(pg)).slot, 'losse app ontgrendeld');
     await pg.evaluate(() => onToolSlotWeg()); await pg.waitForTimeout(80);
     ok((await stand(pg)).slot && await pg.evaluate(() => goBack()) === false, 'uit beeld: weer op slot; terug sluit de losse app');
+    await pg.close();
+
+    // 12. Kluis, Bankzaken en Stamgegevens: eigen ontgrendeling uit = openen zonder vraag
+    pg = await b.newPage({ viewport: { width: 390, height: 844 }, colorScheme: scheme });
+    pg.on('pageerror', e => errs.push(e.message));
+    await pg.goto(url); await pg.waitForTimeout(300);
+    await pg.evaluate(() => show('home')); await pg.waitForTimeout(100);
+    let tegels = await pg.evaluate(() => ['kluis', 'bank', 'notes'].map(k => { const el = [...document.querySelectorAll('.tile[id^="tile-"]')].find(e => TILE_TOOL[e.id] === k); return el ? { k, eigen: el.classList.contains('ts-eigen'), dicht: el.classList.contains('ts-dicht'), slotje: !!el.querySelector('.ts-tegel') } : { k }; }));
+    const kt = tegels.find(x => x.k === 'kluis');
+    ok(kt && kt.eigen && kt.slotje && !kt.dicht, 'tegel Kluis: slotje (eigen ontgrendeling aan), geen slotscherm (' + JSON.stringify(tegels) + ')');
+    await pg.evaluate(() => { show('kluis'); }); await pg.waitForTimeout(150);
+    ok(await pg.isVisible('#kl-locked') && !(await pg.evaluate(() => Android._kl.open)), 'aan: Kluis blijft dicht tot je ontgrendelt');
+    await pg.evaluate(() => show('setslot')); await pg.waitForTimeout(100);
+    await pg.click('#st-slot-list .tg[data-tool="kluis"]'); await pg.waitForTimeout(250);
+    ok((await pg.evaluate(() => Android._tslot.vragen)).includes('uit:kluis') && !(await pg.evaluate(() => Android._tslot.aan)).includes('kluis'), 'Kluis uitzetten vroeg de schermvergrendeling');
+    ok(await pg.getAttribute('#st-slot-list .tg[data-tool="kluis"]', 'aria-checked') === 'false', 'schakelaar Kluis staat uit');
+    await pg.evaluate(() => { Android._kl.open = false; Android._kl.vragen = 0; show('kluis'); }); await pg.waitForTimeout(150);
+    ok(await pg.isVisible('#kl-open') && !(await pg.isVisible('#kl-locked')) && await pg.evaluate(() => !Android._kl.vragen), 'uit: Kluis opent meteen, zonder vraag');
+    await pg.evaluate(() => show('home')); await pg.waitForTimeout(100);
+    tegels = await pg.evaluate(() => { const el = [...document.querySelectorAll('.tile[id^="tile-"]')].find(e => TILE_TOOL[e.id] === 'kluis'); return el && { eigen: el.classList.contains('ts-eigen'), slotje: !!el.querySelector('.ts-tegel') }; });
+    ok(tegels && !tegels.eigen && !tegels.slotje, 'tegel Kluis: geen slotje meer');
+    // Bankzaken uit: opent zonder vraag; te lang geleden ontgrendeld = toch vragen
+    await pg.evaluate(() => { Android._bank.data = Android._bankVoorbeeld(); Android._bank.lang = true; });
+    await pg.evaluate(() => show('setslot')); await pg.waitForTimeout(100);
+    await pg.click('#st-slot-list .tg[data-tool="bank"]'); await pg.waitForTimeout(250);
+    await pg.evaluate(() => show('bank')); await pg.waitForTimeout(200);
+    ok(await pg.isVisible('#bk-dicht') && /al even ontgrendeld/.test(await pg.textContent('#bk-msg')) && !(await pg.evaluate(() => Android._bank.open)), 'Bankzaken uit, telefoon te lang geleden ontgrendeld: toch de vraag (' + await pg.textContent('#bk-msg') + ')');
+    await pg.evaluate(() => { Android._bank.lang = false; show('home'); }); await pg.waitForTimeout(100);
+    await pg.evaluate(() => show('bank')); await pg.waitForTimeout(250);
+    ok(await pg.evaluate(() => Android._bank.open) && await pg.isVisible('#bk-los') && !(await pg.evaluate(() => Android._bank.calls.some(c => c[0] === 'unlock'))), 'Bankzaken uit: opent zonder vraag');
+    await pg.evaluate(() => show('home')); await pg.waitForTimeout(150);
+    // Stamgegevens uit: opent zonder vraag, ook na de app uit beeld; te lang geleden = toch vragen
+    await pg.evaluate(() => show('setslot')); await pg.waitForTimeout(100);
+    await pg.click('#st-slot-list .tg[data-tool="masterdata"]'); await pg.waitForTimeout(250);
+    ok(await pg.evaluate(() => tsStand()) === 'Uit', 'alle drie uit: stand Uit');
+    await pg.evaluate(() => show('masterdata')); await pg.waitForTimeout(250);
+    ok(await pg.evaluate(() => cmOpen() && Android._cm.vanzelf === 1 && !Android._cm.vragen), 'Stamgegevens uit: opent zonder vraag');
+    await pg.evaluate(() => { Android._cm.lang = true; Android.masterLock(); }); await pg.waitForTimeout(50);
+    await pg.evaluate(() => onResumeApp()); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => !cmOpen() && /al even ontgrendeld/.test($('#cm-status').textContent)), 'terug in de app, te lang geleden ontgrendeld: de knop Ontgrendelen met uitleg');
+    await pg.evaluate(() => { Android._cm.lang = false; onResumeApp(); }); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => cmOpen() && Android._cm.vanzelf === 2), 'terug in de app: weer vanzelf open');
+    // Weer aan via het tegelmenu: dan vraagt hij het weer
+    await pg.evaluate(() => { show('home'); toolMenu('kluis'); }); await pg.waitForTimeout(100);
+    await pg.click('#sheet-acts button:has-text("Extra ontgrendelen aanzetten")'); await pg.waitForTimeout(150);
+    await pg.evaluate(() => { Android._kl.open = false; show('kluis'); }); await pg.waitForTimeout(150);
+    ok((await pg.evaluate(() => Android._tslot.aan)).includes('kluis') && await pg.isVisible('#kl-locked'), 'weer aan: Kluis vraagt weer om te ontgrendelen');
     await pg.close();
   }
   await b.close();
