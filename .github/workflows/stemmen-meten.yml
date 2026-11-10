@@ -1,0 +1,46 @@
+# Tijdelijk: grootte, SHA-256, bestanden en een proefzin van kandidaat-stemmen (alleen op deze branch).
+name: Stemmen meten
+
+on:
+  push:
+    branches: [claude/stemmen-meten]
+
+permissions:
+  contents: read
+
+jobs:
+  meten:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Meten
+        run: |
+          set -u
+          pip install --quiet sherpa-onnx==1.13.8 soundfile numpy
+          mkdir -p wav
+          for n in vits-piper-nl_NL-dii-high vits-piper-nl_NL-miro-high vits-piper-nl_NL-pim-medium vits-piper-nl_NL-alex-medium vits-piper-nl_BE-nathalie-medium vits-piper-nl_NL-ronnie-medium; do
+            for v in "$n-int8" "$n"; do
+              url="https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/$v.tar.bz2"
+              if ! curl -fsSL -o "$v.tar.bz2" "$url"; then echo "GEEN $v"; continue; fi
+              echo "STEM $v $(stat -c %s "$v.tar.bz2") $(sha256sum "$v.tar.bz2" | cut -d' ' -f1)"
+              tar -tjf "$v.tar.bz2" | grep -vE 'espeak-ng-data/.' | sed "s/^/  BESTAND /"
+              tar -xjf "$v.tar.bz2"
+              onnx=$(ls "$v"/*.onnx | head -1)
+              python3 - "$v" "$onnx" <<'EOF'
+          import sys, time, sherpa_onnx, soundfile
+          d, onnx = sys.argv[1], sys.argv[2]
+          cfg = sherpa_onnx.OfflineTtsConfig(model=sherpa_onnx.OfflineTtsModelConfig(vits=sherpa_onnx.OfflineTtsVitsModelConfig(model=onnx, tokens=d+"/tokens.txt", data_dir=d+"/espeak-ng-data"), num_threads=2, provider="cpu"), max_num_sentences=1)
+          tts = sherpa_onnx.OfflineTts(cfg)
+          tekst = "Goedemiddag Rene. Dit is een proef van de voorleesstem. Om half vier staat de afspraak bij de tandarts in Rotterdam, en morgen wordt het twaalf graden."
+          t = time.time(); a = tts.generate(tekst, sid=0, speed=1.0); dt = time.time() - t
+          dur = len(a.samples) / a.sample_rate
+          print(f"  SNELHEID {d} rtf={dt/dur:.3f} rate={a.sample_rate} duur={dur:.1f}s")
+          soundfile.write(f"wav/{d}.wav", a.samples, a.sample_rate)
+          EOF
+              rm -rf "$v" "$v.tar.bz2"
+            done
+          done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: proefzinnen
+          path: wav/
