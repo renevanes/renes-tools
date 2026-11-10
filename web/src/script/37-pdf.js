@@ -1,6 +1,6 @@
 /* ---------- PDF: plaatjes naar PDF, splitsen, tekst/e-mail naar PDF ----------
  * Overzicht 'pdf' (PDF openen, recent gemaakt, tegels, Meer) met per taak een eigen scherm. Terug gaat naar het overzicht. */
-const PDF_SUBS = ['pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade'];
+const PDF_SUBS = ['pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade', 'pdfcmp'];
 function pdfScr(name){ return name === 'pdf' || PDF_SUBS.includes(name); }
 let pdfImgs = [], pdfSel = new Set(), pdfIn = {}, pdfBusy = false, pdfInGen = 0;
 let pdfLast = null; // {scr, names}: wat er net gemaakt is, getoond op het scherm waar het gemaakt werd
@@ -70,11 +70,11 @@ window.onPdf = function(r){
   if (r.kind === 'pdf') { pdfIn = r; pdfInGen++; pdfSel = new Set(); $('#pdf-range').value = ''; pdfEditSource(); }
   if ((r.kind === 'edited' || r.kind === 'done') && (r.made || []).length) pdfLast = { scr: pdfJobScr || current, names: r.made.slice() };
   if (r.error || r.kind === 'edited' || r.kind === 'done') pdfJobScr = null;
-  if (r.kind === 'edited') { pdfEditSaved(r); toast('✓ Bewerkte PDF-kopie gemaakt'); }
+  if (r.kind === 'edited') { pdfEditSaved(r); if (!pdfNaarKluis(r)) toast('✓ Bewerkte PDF-kopie gemaakt'); }
   if (r.kind === 'done') {
     pdfImgs = rdJson(Android.pdfImages(), []);
     const n = (r.made || []).length;
-    toast(n === 1 ? t('✓ PDF gemaakt') : t('✓ {n} PDF\'s gemaakt', { n }));
+    if (!pdfNaarKluis(r)) toast(n === 1 ? t('✓ PDF gemaakt') : t('✓ {n} PDF\'s gemaakt', { n }));
     if (r.lossless === false) setTimeout(() => toast('Deze PDF kon niet direct gesplitst worden; de pagina\'s zijn als afbeelding overgenomen'), 2800);
   }
   if (r.kind === 'saved') toast('✓ Opgeslagen');
@@ -82,6 +82,14 @@ window.onPdf = function(r){
   // Niet wegspringen als je intussen ergens anders bent: het resultaat staat klaar op het PDF-scherm
   if (pdfScr(current)) pdfRender();
 };
+/* Wat er net gemaakt is vanzelf in de documentenkluis (49b-kluis-centraal.js). Bewerken van een kluisdocument = nieuwe versie. */
+function pdfNaarKluis(r){
+  const names = r.made || []; if (!names.length) return false;
+  const versie = r.kind === 'edited' && pdfIn && pdfIn.kluis ? pdfIn.kluis : '';
+  // Een kluisdocument bewerkt: altijd terug de kluis in (nieuwe versie), ook als vanzelf bewaren uit staat
+  if (versie && names.length === 1) return kcBewaar([{ name: names[0], versionOf: versie, note: 'Bewerkt' }]);
+  return kcNaMaken(names.map(name => ({ name, category: 'PDF', source: r.kind === 'edited' ? 'bewerkt' : 'pdf' })));
+}
 /* Eén gemaakt bestand: tikken opent het menu (bekijken, delen, opslaan …) */
 function pdfOutRow(o, share){
   const when = o.t ? ' · ' + (rgIsToday(o.t) ? t('vandaag {tijd}', { tijd: fmtTime(o.t) }) : fmtDate(o.t)) : '';
@@ -110,11 +118,12 @@ function pdfRender(){
   // net gemaakt, op het scherm waar het gemaakt is
   document.querySelectorAll('.pdfres').forEach(box => {
     const names = pdfLast && pdfLast.scr === box.dataset.scr ? pdfLast.names : [];
-    const made = outs.filter(o => names.includes(o.name));
-    box.innerHTML = made.length ? '<h3 class="pdfres-h">' + esc(t('Net gemaakt')) + '</h3>' + made.map(o => pdfOutRow(o, false)).join('') +
+    const made = outs.filter(o => names.includes(o.name)), inKluis = names.filter(n => kcIn(n) && !made.some(o => o.name === n));
+    box.innerHTML = made.length || inKluis.length ? '<h3 class="pdfres-h">' + esc(t('Net gemaakt')) + '</h3>' + made.map(o => pdfOutRow(o, false)).join('') + inKluis.map(kcRij).join('') +
       '<button class="linkish" onclick="show(\'pdfmade\')">' + esc(t('Alle gemaakte PDF\'s')) + '</button>' : '';
   });
   pdfTileHints();
+  kcRender();
   // plaatjes
   $('#pdf-img-opts').style.display = pdfImgs.length ? 'block' : 'none';
   $('#pdf-img-pick').classList.toggle('ghost', pdfImgs.length > 0); // eerst kiezen, daarna is PDF maken de hoofdknop
@@ -209,7 +218,8 @@ function pdfOutMenu(name){
     ['Bekijken', () => Android.pdfOpen(name)],
     ['Delen (bijv. mailen of WhatsApp)', () => Android.pdfShare(JSON.stringify([name]))],
     ['Opslaan als…', () => Android.pdfSave(name)],
-    ...(!isPlay() ? [['Bewaren in documentenkluis', () => pdfKeep(name)]] : []),
+    ...(!isPlay() ? [['Naar de documentenkluis', () => kcEenNaarKluis(name)]] : []),
+    ...(!isPlay() ? [['Vergelijken met…', () => { show('pdfcmp'); cmpVanGemaakt(0, name); }]] : []),
     ['Weghalen', () => { Android.pdfDelete(name); pdfRender(); }]]);
 }
 function pdfNames(){ return rdJson(Android.pdfOutputs(), []).map(o => o.name); }

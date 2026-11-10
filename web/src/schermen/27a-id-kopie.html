@@ -3,6 +3,7 @@
   <main>
     <div class="card">
       <p class="note">Scherm af wat de ontvanger niet nodig heeft, zoals BSN, documentnummer, handtekening of pasfoto. Controleer ook de achterkant en de machineleesbare strook. De app herkent deze velden niet automatisch.</p>
+      <p class="note" id="id-bron" hidden><span class="ui-icon" data-icon="user" aria-hidden="true"></span> Uit Stamgegevens: <b id="id-bron-naam" translate="no"></b></p>
       <button class="big" id="id-pick" onclick="idCopyChoose()">Foto of PDF kiezen</button>
       <p class="note">Maximaal vier pagina's. Alles wordt op je telefoon verwerkt. Bij teruggaan wordt het werkbestand gewist; je oorspronkelijke bestand blijft behouden.</p>
       <p class="note" id="id-status" role="status" aria-live="polite"></p>
@@ -16,7 +17,7 @@
         <label class="chk"><input type="checkbox" id="id-pan" onchange="idCopyPan()">Voorbeeld verschuiven in plaats van afschermen</label>
         <div id="id-scroll" class="idcopyscroll"><div id="id-paper" class="idcopypaper"><img id="id-image" alt="Gekozen pagina van je ID-kopie" draggable="false"><canvas id="id-layer" aria-label="Sleep over de gegevens die je wilt afschermen"></canvas></div></div>
         <p class="note" id="id-masks" aria-live="polite"></p>
-        <button class="mini" id="id-undo" onclick="idCopyUndo()">Laatste vlak verwijderen</button>
+        <div class="row"><button class="mini" id="id-undo" onclick="idCopyUndo()">Laatste vlak verwijderen</button><button class="mini" id="id-voorstel" onclick="idCopyVoorstelKiezen()">Vlakken voorstellen</button></div>
         <details><summary>Vlak invoeren zonder te tekenen</summary><div class="row" style="flex-wrap:wrap">
           <label>Links (%)<input class="search" id="id-x" inputmode="decimal" value="10"></label><label>Boven (%)<input class="search" id="id-y" inputmode="decimal" value="10"></label>
           <label>Breedte (%)<input class="search" id="id-w" inputmode="decimal" value="40"></label><label>Hoogte (%)<input class="search" id="id-h" inputmode="decimal" value="10"></label>
@@ -36,7 +37,8 @@
     </div>
     <div class="card" id="id-result" hidden>
       <h2>Afgeschermde kopie</h2><p id="id-result-name" translate="no"></p>
-      <p class="note">Het tijdelijke bronbestand is gewist. De afgeschermde kopie staat ook bij PDF → Gemaakt.</p>
+      <p class="note" id="id-result-note">Het tijdelijke bronbestand is gewist. De afgeschermde kopie staat ook bij PDF → Gemaakt.</p>
+      <p class="note kcstatus" role="status" aria-live="polite"></p>
       <button class="big" onclick="idCopyOpen()">Kopie bekijken</button><div class="row"><button class="big ghost" onclick="idCopyExport()">Opslaan als…</button><button class="big ghost" onclick="idCopyShare()">Kopie delen</button></div>
     </div>
   </main>

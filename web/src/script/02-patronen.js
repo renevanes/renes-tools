@@ -54,7 +54,7 @@ uiPatterns();
    aantallen, nooit namen. */
 function uiVgWat(soort){
   if (soort === 'bezig') return uiVg.bezig;
-  return ({ ereader: tc('voortgang', 'Boek toevoegen'), kluis: tc('voortgang', 'Document toevoegen'), factuur: tc('voortgang', 'Factuur toevoegen'), bank: t('Afschriften inlezen'), pdf: t('Bestanden toevoegen'), idkopie: t("Pagina's toevoegen"), handtekening: t('Handtekening inlezen'), kaartfoto: t('Kaartfoto verwerken'), terugzetten: t('Backup bekijken') })[soort] || t('Bestand toevoegen');
+  return ({ ereader: tc('voortgang', 'Boek toevoegen'), kluis: tc('voortgang', 'Document toevoegen'), factuur: tc('voortgang', 'Factuur toevoegen'), bank: t('Afschriften inlezen'), pdf: t('Bestanden toevoegen'), idkopie: t("Pagina's toevoegen"), handtekening: t('Handtekening inlezen'), kaartfoto: t('Kaartfoto verwerken'), terugzetten: t('Backup bekijken'), vergelijken: t('Documenten vergelijken') })[soort] || t('Bestand toevoegen');
 }
 const uiVg = { soort: '', toon: 0, wacht: 0, kop: '', bezig: '' };
 function uiVgStand(r){

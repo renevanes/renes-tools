@@ -52,18 +52,24 @@ const assert=require('node:assert/strict');
     await p.getByRole('button',{name:'Handtekening tekenen',exact:true}).click();await draw();
     const n=await p.evaluate(()=>{const n=pdfEd.items.length;window._rev=pdfEd.revision;pdfEd.revision='anders';return n;});await p.click('#sig-ok');
     assert.equal(await p.evaluate(()=>{pdfEd.revision=window._rev;return pdfEd.items.length;}),n);assert.match(await p.textContent('#toast'),/niet geplaatst/);
-    // Een gemaakte PDF direct bewaren: eerst ontgrendelen, geen verwijdering uit de uitvoerlijst.
-    await p.click('#pdf-edit-save');await p.waitForFunction(()=>!pdfBusy);
-    const name=await p.evaluate(()=>Android._pdf.outs[0].name),before=await p.evaluate(()=>Android._kl.docs.length);
-    const keep=async()=>{await p.evaluate(name=>pdfOutMenu(name),name);await p.getByRole('button',{name:'Bewaren in documentenkluis',exact:true}).click();await p.fill('#modal-input','Verzekeringen');await p.click('#modal-ok');};
+    // Bewaren gaat vanzelf naar de documentenkluis (eerst ontgrendelen). Wordt dat geweigerd, dan blijft de PDF onder Gemaakt;
+    // daarna kan hij er via het menu alsnog in. Het leesbare bestand verdwijnt pas als hij in de kluis staat.
+    const before=await p.evaluate(()=>Android._kl.docs.length);
     await p.evaluate(()=>{window.unlock=Android.kluisUnlock;Android.kluisUnlock=()=>setTimeout(()=>onKluis('Geannuleerd'),30);});
-    await keep();await p.waitForFunction(()=>!pdfBusy);assert.equal(await p.evaluate(()=>Android._kl.docs.length),before);
-    await p.evaluate(()=>Android.kluisUnlock=window.unlock);await keep();await p.waitForFunction(()=>!pdfBusy&&pdfKeepPending===null);
+    await p.click('#pdf-edit-save');await p.waitForFunction(()=>!pdfBusy&&!kc.bezig&&!kc.wacht);await p.waitForTimeout(80);
+    const name=await p.evaluate(()=>Android._pdf.outs[0].name);
+    assert.equal(await p.evaluate(()=>Android._kl.docs.length),before,'niet ontgrendeld: niet in de kluis');
+    assert.match(await p.textContent('#s-pdfedit .pdfkeep'),/Geannuleerd/);
+    await p.evaluate(()=>Android.kluisUnlock=window.unlock);
+    await p.evaluate(name=>pdfOutMenu(name),name);await p.locator('#sheet-acts').getByRole('button',{name:'Naar de documentenkluis',exact:true}).click();
+    await p.waitForFunction(()=>!kc.bezig&&!kc.wacht&&!kc.rij.length);await p.waitForTimeout(80);
     assert.equal(await p.evaluate(()=>Android._kl.docs.length),before+1);
-    const doc=await p.evaluate(name=>Android._kl.docs.find(d=>d.name===name),name);assert.equal(doc.category,'Verzekeringen');assert.equal(doc.mime,'application/pdf');
-    assert.ok(await p.evaluate(name=>Android._pdf.outs.some(d=>d.name===name),name),'de tijdelijke PDF blijft behouden');
-    await p.evaluate(()=>Android._kl.error='Kluis vol');await keep();await p.waitForFunction(()=>!pdfBusy);assert.equal(await p.evaluate(()=>Android._kl.docs.length),before+1);
-    assert.match(await p.textContent('#pdf-keep-status'),/Kluis vol/);await p.evaluate(()=>Android._kl.error='');
+    const doc=await p.evaluate(()=>Android._kl.docs[Android._kl.docs.length-1]);assert.equal(doc.category,'PDF');assert.equal(doc.mime,'application/pdf');
+    assert.ok(!await p.evaluate(name=>Android._pdf.outs.some(d=>d.name===name),name),'leesbare PDF weg zodra hij in de kluis staat');
+    assert.match(await p.textContent('#s-pdfedit .pdfkeep'),/Bewaard in de documentenkluis/);
+    await p.evaluate(()=>{Android._kl.storeError='Kluis vol';pdfEditDate();});await p.click('#pdf-edit-save');await p.waitForFunction(()=>!pdfBusy&&!kc.bezig);await p.waitForTimeout(80);
+    assert.equal(await p.evaluate(()=>Android._kl.docs.length),before+1);
+    assert.match(await p.textContent('#s-pdfedit .pdfkeep'),/Kluis vol/);await p.evaluate(()=>Android._kl.storeError='');
     // Verwijderen kan mislukken of geannuleerd worden; geplaatste exemplaren blijven staan.
     const items=await p.evaluate(()=>JSON.stringify(pdfEd.items));await p.click('#pdf-signature-delete');await p.click('#modal-cancel');assert.ok(await p.evaluate(()=>Android._signature));
     await p.evaluate(()=>Android._signatureError='Kan niet verwijderen');await p.click('#pdf-signature-delete');await p.click('#modal-ok');assert.deepEqual(await p.evaluate(()=>sig.value),replacement);

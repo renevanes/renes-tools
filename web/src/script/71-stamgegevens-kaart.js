@@ -37,6 +37,38 @@ function cmKaartRender(){
     const sec=cmcBlok(box,r,blok,cmcRows(r,blok[2]),{mask:blok[2].some(k=>CM_MASK.has(k))});
     if(r.type==='formulier'&&blok[0]==='ondertekenen'&&r.fields?.handtekening)sec.append(cmSigStand('cmc-sig-stand',true));
   }
+  if(r.type==='identiteit'&&!isPlay())cmcIdKopie(box,r);
+}
+/* ID-kopie bij een identiteitsdocument: een afgeschermde kopie maken vanaf de kaartfoto's, en welke kopieën er al in de
+ * documentenkluis staan (voor wie, waarvoor, wanneer). De kluis heeft een eigen slot: op slot staat daar een knop. */
+function cmcIdKopie(box,r){
+  const sec=cmEl('section',undefined,'card cmc-blok'),head=cmEl('div',undefined,'cmc-kop');sec.dataset.blok='idkopie';sec.id='cmc-idkopie';
+  head.append(cmEl('h2',t('Afgeschermde kopieën')));sec.append(head);
+  const heeft=!!(r.images?.front||r.images?.back);
+  sec.append(cmEl('p',heeft?t('Maak een kopie met zwarte vlakken en een watermerk, voor iemand die om een kopie van je ID vraagt.'):t('Voeg eerst een foto van het document toe; daarvan maakt de app de kopie.'),'hint'));
+  const maak=cmcKnop(t('Afgeschermde kopie maken'),()=>cmcIdKopieMaken(),'shield','cmc-idkopie-maak');maak.disabled=!heeft;if(typeof soloOk!=='function'||soloOk('idcopy'))sec.append(maak); // als losse app Stamgegevens: niet naar een andere tool
+  const lijst=cmEl('div',undefined,'cmc-idlijst');lijst.id='cmc-idlijst';sec.append(lijst);
+  box.append(sec);cmcIdLijst();
+}
+function cmcIdLijst(){
+  const r=cmc.rec,lijst=$('#cmc-idlijst');if(!lijst||!r)return;lijst.replaceChildren();
+  const d=rdJson(Android.kluisLinked('id',r.id),{locked:true});if(!d.locked)klDichtBuiten(); // alleen even gelezen: de kluis weer op slot
+  if(d.locked){lijst.append(cmcKnop(t('Gemaakte kopieën tonen (documentenkluis)'),()=>klMetKluis(()=>cmcIdLijst()),'lock','cmc-idlijst-open'));return;}
+  const docs=(d.docs||[]).sort((a,b)=>(b.t||0)-(a.t||0));
+  if(!docs.length){lijst.append(cmEl('p',t('Nog geen afgeschermde kopieën in de documentenkluis.'),'hint'));return;}
+  const ul=cmEl('ul',undefined,'cmc-idkopieen');
+  for(const x of docs){const li=cmEl('li'),l=x.link||{};const b=cmEl('b',l.ontvanger||x.name);b.setAttribute('translate','no');li.append(b);
+    const sm=cmEl('small',[l.doel,l.datum?fmtDate(l.datum):''].filter(Boolean).join(' · '));sm.setAttribute('translate','no');li.append(sm);
+    const open=cmcKnop(t('Bekijken'),()=>klMetKluis(()=>Android.kluisOpen(x.id,0)),'document');open.setAttribute('aria-label',t('Kopie voor {ontvanger} bekijken',{ontvanger:l.ontvanger||x.name}));li.append(open);ul.append(li);}
+  lijst.append(cmEl('p',tn(docs.length,'Eén kopie gemaakt:','{n} kopieën gemaakt:'),'hint'),ul);
+}
+function cmcIdKopieMaken(){
+  const r=cmc.rec;if(!cmOpen()||cm.mutating||!r||r.type!=='identiteit')return;
+  const b=$('#cmc-idkopie-maak');if(b)b.disabled=true;
+  cmRequest('masterIdCopySource',[r.id,r.revision],out=>{
+    if(b)b.disabled=false;
+    idCopyVanStam({doc:r.id,soort:out.soort||r.fields?.documentsoort||'',sides:out.sides||'',label:r.label});
+  },false,()=>{if(b)b.disabled=false;});
 }
 /* Een blok: kop met potlood en de ingevulde velden. */
 function cmcBlok(box,r,blok,rows,opts={}){

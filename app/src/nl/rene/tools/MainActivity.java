@@ -91,9 +91,30 @@ public class MainActivity extends Activity {
     }
     static final int REQ_PDF_IMG = 28, REQ_PDF_FILE = 29, REQ_PDF_SAVE = 30, REQ_PDF_DOC = 31, REQ_PDF_VIEW = 32;
     static final int REQ_ID_COPY = 65;
+    static final int REQ_CMP = 74, REQ_KLUIS_SAVE = 75;
+    /** Opslaan als… vanuit de kluis: welk document en welke versie (0 = huidige) wachten op de gekozen plek. */
+    volatile String kluisSaveId = "";
+    volatile int kluisSaveVersion;
+    /** Documenten vergelijken: de twee gekozen documenten (cache, weg bij sluiten) en voor welke kant de kiezer open staat. */
+    volatile PdfCompare cmp = new PdfCompare();
+    volatile int cmpPickSlot;
     static final int REQ_SIG_IMG = 33;
     volatile IdCopy idCopy = new IdCopy();
     volatile IdCopy idPickStore;
+    /** Kaartfoto's uit Stamgegevens voor ID-kopie afschermen: alleen in het geheugen, hooguit een minuut (zie masterIdCopySource). */
+    private java.util.List<byte[]> idMaster;
+    private long idMasterUntil;
+    private final Runnable idMasterExpiry = this::idMasterClear;
+    synchronized void idMasterTake(java.util.List<byte[]> images) {
+        idMasterClear(); idMaster = images; idMasterUntil = android.os.SystemClock.elapsedRealtime() + 60_000L;
+        h.removeCallbacks(idMasterExpiry); h.postDelayed(idMasterExpiry, 61_000L); // ook zonder ophalen na een minuut gewist
+    }
+    synchronized java.util.List<byte[]> idMasterPop() {
+        java.util.List<byte[]> r = android.os.SystemClock.elapsedRealtime() < idMasterUntil ? idMaster : null;
+        if (r == null) idMasterClear(); else idMaster = null;
+        return r;
+    }
+    synchronized void idMasterClear() { if (idMaster != null) for (byte[] b : idMaster) java.util.Arrays.fill(b, (byte) 0); idMaster = null; }
     volatile String idSession = "", idPickSession = "";
     final java.util.concurrent.atomic.AtomicLong idSecurityGeneration = new java.util.concurrent.atomic.AtomicLong();
     volatile boolean idScreen;
@@ -256,6 +277,8 @@ public class MainActivity extends Activity {
         // Een terugzetten dat halverwege stopte (ook als de app vóór het ontgrendelen startte): eerst afmaken of terugdraaien
         if (!isSolo() || "backup".equals(solo)) AppBackup.recoverIfNeeded(getApplicationContext());
         IdCopy.cleanStale(getApplicationContext());
+        PdfCompare.cleanStale(getApplicationContext());
+        Kluis.cleanTmp(getApplicationContext());
         PlayPolicy.sanitizePreferences(getApplicationContext());
         if (!Updater.viaPlay(this)) {
             RedialService.createChannel(this);
@@ -506,6 +529,11 @@ public class MainActivity extends Activity {
         wegOp = android.os.SystemClock.elapsedRealtime();
         if (!eigenScherm) js("onToolSlotWeg", vraag ? "'vraag'" : "");
         if (!wegIntern && toolScreen && web != null) { themeChanged(); coverOn(); slotCover = true; } // bij terugkomen geen flits van de tool
+        if (!wegIntern) {
+            // Uit de app: ontsleutelde kluisdocumenten bij Vergelijken en klaargezette kaartfoto's niet laten liggen
+            if (cmp.dropKluis()) { try { js("onCmp", cmp.info().put("kluisWeg", true).toString()); } catch (Exception ignored) { } }
+            idMasterClear();
+        }
         if (!isSolo()) {
             Lock.onHidden();
             // Met app-slot de inhoud alvast verbergen; bij terugkomen beslist onStart of hij op slot moet.
@@ -521,8 +549,9 @@ public class MainActivity extends Activity {
         if (isFinishing() && !isSolo()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
         bankAuth.cancel();bankAfterAuth=null;
         masterSession.close();masterAfterAuth=null;masterAuthSerial.incrementAndGet();h.removeCallbacks(masterExpiry);
-        final IdCopy closingId = idCopy;
-        new Thread(() -> { try { closingId.clear(); } catch (Throwable ignored) { } }, "id-copy-close").start();
+        final IdCopy closingId = idCopy; final PdfCompare closingCmp = cmp;
+        idMasterClear();
+        new Thread(() -> { try { closingId.clear(); } catch (Throwable ignored) { } try { closingCmp.clear(); } catch (Throwable ignored) { } }, "id-copy-close").start();
         super.onDestroy();
     }
 
@@ -1023,6 +1052,41 @@ public class MainActivity extends Activity {
         if (req == REQ_PDF_VIEW) {
             if (res != RESULT_OK || data == null || data.getData() == null) return;
             try { startActivity(new Intent(this, PdfViewActivity.class).setData(data.getData()).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)); } catch (Exception ignored) { }
+            return;
+        }
+        if (req == REQ_KLUIS_SAVE) {
+            final String id = kluisSaveId; final int version = kluisSaveVersion; kluisSaveId = "";
+            if (res != RESULT_OK || data == null || data.getData() == null || id.isEmpty()) return;
+            final Uri to = data.getData();
+            new Thread(() -> {
+                String r = "✓ Opgeslagen";
+                java.io.File tmp = new java.io.File(getCacheDir(), "kluistmp-" + Kluis.newId() + ".tmp"); // niet in de kijkmap (die kan intussen leeg)
+                try {
+                    if (!kluisOk()) throw new Exception("De kluis is weer op slot");
+                    Kluis.decryptTo(getApplicationContext(), id, version, tmp);
+                    try (java.io.InputStream in = new java.io.FileInputStream(tmp); java.io.OutputStream o = getContentResolver().openOutputStream(to, "w")) {
+                        if (o == null) throw new Exception("Opslaan lukt niet");
+                        byte[] b = new byte[1 << 16]; int n; while ((n = in.read(b)) > 0) o.write(b, 0, n);
+                    }
+                } catch (Throwable e) { r = e.getMessage() == null ? "Opslaan lukt niet" : e.getMessage(); }
+                finally { tmp.delete(); }
+                js("onKluisChanged", org.json.JSONObject.quote(r));
+            }, "kluis-opslaan").start();
+            return;
+        }
+        if (req == REQ_CMP) {
+            if (res != RESULT_OK || data == null || data.getData() == null) return;
+            final Uri u = data.getData(); final int slot = cmpPickSlot; final PdfCompare store = cmp;
+            new Thread(() -> {
+                String r;
+                try (Voortgang v = Voortgang.van(this, "vergelijken", 1)) {
+                    java.io.File f = store.work(getApplicationContext());
+                    v.stap("lezen", 0, 0);
+                    PdfTools.copy(getApplicationContext(), u, f, PdfCompare.MAX_BYTES);
+                    r = store.set(slot, f, PdfTools.base(PdfTools.displayName(getApplicationContext(), u)), "", 0).put("slot", slot).toString();
+                } catch (Throwable e) { r = PdfTools.err(e); }
+                if (store == cmp) js("onCmp", r);
+            }, "vergelijken-kiezen").start();
             return;
         }
         if (req == REQ_ID_COPY) {

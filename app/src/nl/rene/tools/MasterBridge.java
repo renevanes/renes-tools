@@ -162,6 +162,20 @@ public class MasterBridge extends BankBridge {
         });
     }
     @JavascriptInterface public void masterPhotoRead(String token,String id,long revision,String side,String request){work(token,request,key->MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,true));}
+    /**
+     * ID-kopie maken vanaf de kaartfoto's van een identiteitsdocument: de foto's gaan alleen in het geheugen klaar te staan voor
+     * het scherm ID-kopie afschermen (MainActivity.idMaster), dat ze binnen een minuut ophaalt (idCopyTakeMaster); de
+     * foto's gaan nooit door de interface. Antwoord {pages, soort}.
+     */
+    @JavascriptInterface public void masterIdCopySource(String token,String id,long revision,String request){
+        work(token,request,key->{
+            JSONObject r=MasterStore.idCopySource(ctx,key,a.masterSession,token,id,revision);JSONArray sides=r.getJSONArray("sides");
+            java.util.List<byte[]> images=new java.util.ArrayList<>();
+            for(int i=0;i<sides.length();i++){String v=sides.getJSONObject(i).getString("image");images.add(android.util.Base64.decode(v.substring(v.indexOf(',')+1),android.util.Base64.DEFAULT));}
+            a.idMasterTake(images);
+            return new JSONObject().put("pages",images.size()).put("soort",r.optString("soort")).put("sides",images.size()==2?"front,back":sides.getJSONObject(0).getString("side"));
+        });
+    }
     @JavascriptInterface public void masterPhotoDelete(String token,String id,long revision,String side,String request){work(token,request,key->MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,false));}
     @JavascriptInterface public void masterPhotoCancel(){a.masterPhotos.cancel();}
     @JavascriptInterface public void masterUse(String token,String id,long revision,String source,String role,String fields,boolean consent,String request){

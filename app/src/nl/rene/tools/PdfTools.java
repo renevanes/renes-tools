@@ -302,10 +302,28 @@ final class PdfTools {
     static volatile int inPages = 0;
     static volatile boolean inLossless = true;
     static volatile String inRevision = "";
+    /** De invoer komt uit de documentenkluis (id): bewaren wordt een nieuwe versie; de leesbare kopie gaat weg zodra dat lukte. */
+    static volatile String inKluis = "";
     /** Slot voor de te splitsen PDF (los van de plaatjes). */
     static final java.util.concurrent.locks.ReentrantLock IN = new java.util.concurrent.locks.ReentrantLock();
     /** Groter dan dit: niet zelf ontleden (geheugen), maar Android de pagina's laten tekenen. */
     static final long LOSSLESS_MAX = 80L * 1024 * 1024;
+
+    /** Een PDF uit de kluis als invoer (bewerken): zoals openPdfFile, met het kluis-id erbij. */
+    static String openKluisPdf(Context c, File src, String name, String kluis) {
+        IN.lock();
+        try {
+            String r = openPdfFileLocked(c, src, name);
+            if (!r.contains("\"error\"")) { inKluis = kluis; r = new JSONObject(r).put("kluis", kluis).toString(); }
+            return r;
+        } catch (Exception e) { return err(e); } finally { IN.unlock(); }
+    }
+    /** De leesbare kopie van een kluisdocument als invoer weghalen (na bewaren als versie, of bij weggaan uit de app). */
+    static void dropKluisIn(Context c, String kluis) {
+        IN.lock();
+        try { if (!inKluis.isEmpty() && (kluis == null || kluis.equals(inKluis))) { inFile(c).delete(); inKluis = ""; inRevision = ""; inPages = 0; } }
+        finally { IN.unlock(); }
+    }
 
     /** Een PDF kiezen om te splitsen: {name, pages, lossless} of {error}. */
     static String openPdf(Context c, Uri u) {
@@ -314,7 +332,7 @@ final class PdfTools {
     }
 
     private static String openPdfLocked(Context c, Uri u) {
-        inRevision = "";
+        inRevision = ""; inKluis = "";
         try {
             File f = inFile(c);
             copy(c, u, f, MAX_IN);
@@ -329,7 +347,7 @@ final class PdfTools {
     }
 
     private static String openPdfFileLocked(Context c, File src, String name) {
-        inRevision = "";
+        inRevision = ""; inKluis = "";
         try {
             File f = inFile(c);
             if (!src.renameTo(f)) { try (InputStream in = new FileInputStream(src); OutputStream o = new FileOutputStream(f)) { byte[] b = new byte[1 << 16]; int r; while ((r = in.read(b)) > 0) o.write(b, 0, r); } src.delete(); }

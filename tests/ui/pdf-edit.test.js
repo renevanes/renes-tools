@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
   const b=await chromium.launch();
   for(const scheme of ['light','dark']){
     const p=await b.newPage({viewport:{width:390,height:844},colorScheme:scheme});const errors=[];p.on('pageerror',e=>errors.push(e.message));
-    await p.goto('file://'+require('path').join(__dirname,'ui','index.html'));
+    await p.goto('file://'+require('path').join(__dirname,'ui','index.html'));await p.evaluate(()=>store.set('pdfKluisVanzelf',false)); // over de PDF-tools zelf; vanzelf naar de kluis: kluis-centraal.test.js
     await p.evaluate(()=>openTool('pdf'));await p.click('#pdf-t-edit');assert.equal(await p.evaluate(()=>current),'pdfedit');await p.click('#pdf-edit-pick');
     await p.waitForFunction(()=>pdfEd.revision&&!pdfEd.loading&&pdfEd.meta[0]);
     assert.equal(await p.isDisabled('#pdf-edit-save'),true);

@@ -70,9 +70,13 @@ const path=require('path');
     const exported=await p.evaluate(()=>Android._pdf.form);assert.equal(exported.id,'reistoestemming');assert.deepEqual(exported.layers.map(x=>x.page),[0,1]);
     assert.ok(exported.layers.every(x=>x.png.startsWith('data:image/png;base64,')));
     fs.writeFileSync(path.join(__dirname,'shots','formulier-lagen-'+colorScheme+'.json'),JSON.stringify(exported));
-    await p.getByRole('button',{name:'Opslaan als…',exact:true}).click();assert.equal(await p.evaluate(()=>Android._pdf.saved),'Reistoestemming Zoë.pdf');
-    await p.getByRole('button',{name:'Delen',exact:true}).click();assert.deepEqual(await p.evaluate(()=>Android._pdf.shared),['Reistoestemming Zoë.pdf']);
-    await p.getByRole('button',{name:'Bekijken en afdrukken',exact:true}).click();assert.equal(await p.evaluate(()=>Android._pdf.opened),'Reistoestemming Zoë.pdf');
+    // De ingevulde PDF gaat vanzelf de documentenkluis in; opslaan, delen en bekijken gaan dan via de kluis
+    await p.waitForFunction(()=>!kc.bezig&&!kc.wacht&&!kc.rij.length&&kcIn('Reistoestemming Zoë.pdf'));
+    const kdoc=await p.evaluate(()=>Android._kl.docs.find(d=>d.name==='Reistoestemming Zoë.pdf'));assert.equal(kdoc.source,'formulier');assert.equal(kdoc.category,'Formulieren');
+    assert.ok(!await p.evaluate(()=>Android._pdf.outs.some(o=>o.name==='Reistoestemming Zoë.pdf')),'leesbare PDF weg');
+    await p.getByRole('button',{name:'Opslaan als…',exact:true}).click();await p.waitForFunction(v=>JSON.stringify(Android._kl.savedAs)===JSON.stringify(v),{id:kdoc.id,version:0});
+    await p.getByRole('button',{name:'Delen',exact:true}).click();await p.waitForFunction(v=>JSON.stringify(Android._kl.shared)===JSON.stringify(v),{id:kdoc.id,version:0});
+    await p.getByRole('button',{name:'Bekijken en afdrukken',exact:true}).click();await p.waitForFunction(v=>JSON.stringify(Android._kl.opened)===JSON.stringify(v),{id:kdoc.id,version:0});
     assert.equal(await p.evaluate(()=>Object.values(localStorage).join('').includes('Ouder & voogd')),false,'geen concept in lokale opslag (alleen versleuteld in de app)');
     await p.evaluate(()=>goBack());assert.match(await p.textContent('#pff-zelf-stand'),/PDF gemaakt: Reistoestemming Zoë\.pdf/);await p.click('#pff-zelf');
     // Terug en conditionele personen: eerder ingevulde, verborgen begeleiders mogen niet worden geëxporteerd.

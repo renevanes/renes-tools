@@ -413,6 +413,39 @@ Alles wat nog moet gebeuren staat als GitHub-issue, met een label (REST: `gh api
 Voorstellen (3–5 uitbreidingen als `voorstel`-issue). Vaste opdracht van Rene: ook deze taken publiceren zelf, na
 geslaagde tests en een onafhankelijke review, en melden kort wat er gepubliceerd is (en of er een nieuwe APK nodig is).
 
+## Documentenkluis: centrale opslag, versies en vergelijken
+De Documentenkluis (`Kluis`, scherm `s-kluis`) is de centrale opslag van de PDF-tools (wens van Rene). Alles blijft op de
+telefoon en versleuteld; de sleutel zit in de Android Keystore.
+- **Vanzelf in de kluis** (`web/src/script/49b-kluis-centraal.js`, Java `kluisStore`): wat de PDF-tools maken (plaatjes naar PDF,
+  splitsen, tekst naar PDF, bewerken, Formulieren, ID-kopie) gaat na het maken versleuteld de kluis in; het leesbare bestand in
+  `pdf-out` (Gemaakt) gaat daarna weg. Op slot: eerst ontgrendelen (`kluisUnlock`); geweigerd of mislukt = het bestand blijft
+  onder Gemaakt met "Naar de documentenkluis". Uit te zetten op PDF → Gemaakt (`store` `pdfKluisVanzelf`). Een nieuw
+  PDF-resultaat = `kcNaMaken([{name, title, category, source, link}])` aanroepen; daarna bekijken, delen en opslaan via
+  `kcOpen`/`kcShare`/`kcSave` (die weten of het bestand al in de kluis staat). De Play-versie heeft geen kluis.
+- **Weg van het kluisscherm = op slot** (bestaand gedrag). Een actie vanuit het kluismenu naar een ander scherm (bewerken,
+  vergelijken) start dus éérst de opdracht in Java (die controleert de kluis meteen) en gaat daarna pas naar het andere scherm.
+- **Bekijken in de eigen viewer**: `kluisOpen(id, versie)` ontsleutelt naar `cache/kluis-open` (leeg bij op slot gaan) en opent
+  `PdfViewActivity` met `PdfProvider`-pad `k/<naam>` (alleen zolang de kluis open is; geen kopie in `pdf-view`).
+  `EXTRA_KLUIS` telt alleen als de app de viewer zelf opende (`TOKEN`); "Tekst of handtekening toevoegen" geeft het id door,
+  zodat bewaren een nieuwe versie wordt. Andere bestanden (foto's) openen met een andere app via `KluisProvider`.
+- **Versies** (`Kluis.addVersion`, `restoreVersion`, `blobFile`): een indexregel heeft `versions` (oudste eerst; elk een eigen
+  versleuteld bestand `<blob>.bin`, hooguit `MAX_VERSIONS`), `vnote` (wat de huidige versie is), `source` en `link`. Zuiver deel
+  in `KluisIndex` (`meta`, `clean`, `blobs`; `KluisIndexTest`). "Alle appgegevens" neemt elke versie mee als gewoon kluisbestand
+  (`AppBackup.exportKluis`/`exportKluisBlob`) en `cleanKluisIndex`/`mergeKluis` houden versies alleen als hun bestand er is.
+  "Alles back-uppen" (map Kluis/) bevat alleen de huidige versie. Verwijderen wist ook de versies.
+- **Koppeling met Stamgegevens**: een ID-kopie gemaakt vanaf het documentkaartje van een identiteitsdocument krijgt
+  `link: {kind:"id", ref:<record-id>, soort, ontvanger, doel, datum}` (nooit nummers; `KluisIndex.meta` laat alleen deze velden
+  toe). Het kaartje toont de kopieën via `kluisLinked`. De kaartfoto's gaan van `masterIdCopySource` (Stamgegevens, met
+  Activiteiten-regel "Kaartfoto bekeken" door ID-kopie) alleen via het geheugen van `MainActivity` (`idMasterTake`, een
+  minuut) naar `IdCopy.addImages` (`idCopyTakeMaster`); nooit door de interface. Voorgestelde vlakken: `ID_VOORSTEL` in
+  `67-id-kopie.js` (ruim genomen; de pagina blijft "niet gecontroleerd" tot Rene het aanvinkt).
+- **Vergelijken** (scherm `s-pdfcmp`, `77-vergelijken.js`, `PdfCompare`): A en B uit een bestand, de kluis (ook een oudere
+  versie) of Gemaakt, in `cache/pdf-compare/<uuid>` en weg bij het verlaten van het scherm (`cmpClear`) of bij opstarten
+  (`cleanStale`). Tekst: uit de PDF (Android 15+) of anders de lokale tekstherkenning (`RijbewijsOcr.pageText`), dan per regel
+  en per woord een Myers-diff (begrensd in tijd en geheugen). Beeld: per pagina pixels vergelijken met één pixel speling
+  (rood alleen in A, groen alleen in B). Tekst uit een document altijd als tekst tonen (`textContent`), nooit als HTML.
+  Tests: `PdfCompareTest`, `tests/ui/vergelijken.test.js`, `kluis-centraal.test.js`, `id-kopie-stamgegevens.test.js`.
+
 ## Facturen ophalen (algemeen raamwerk, leveranciers toevoegen)
 Facturen (scherm `s-facturen`, `Facturen*.java`) logt in bij websites van leveranciers en downloadt PDF-facturen, op de
 achtergrond (`FacturenJob`, onzichtbare WebView) of terwijl Rene meekijkt (`FacturenActivity`). Eerste leverancier: KPN Zakelijk.

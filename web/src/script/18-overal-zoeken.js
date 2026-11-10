@@ -26,7 +26,7 @@ function gsBuildIndex(){
   const tiles = []; // tegels op een overzicht (bijv. PDF): {to, title, key, sub}
   document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {
     const scr = sec.id.slice(2);
-    if (['masterdata','cmedit','cmlog','cmwis','cmlijst','cmkaart','cmai','formulieren','idcopy'].includes(scr)) return; // centrale gegevens en afgeleide concepten nooit indexeren
+    if (['masterdata','cmedit','cmlog','cmwis','cmlijst','cmkaart','cmai','formulieren','idcopy','pdfcmp'].includes(scr)) return; // centrale gegevens en afgeleide concepten nooit indexeren
     if (typeof playWeg === 'function' && playWeg(scr)) return;
     if (scr === 'home' || scr === 'search' || DETAIL.includes(scr)) return;
     const h1 = sec.querySelector('.hdr h1'), screen = h1 ? h1.textContent.trim() : scr;

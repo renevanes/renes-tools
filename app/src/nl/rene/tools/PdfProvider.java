@@ -18,6 +18,7 @@ public final class PdfProvider extends ContentProvider {
     static Uri uri(File f) {
         Uri.Builder b = new Uri.Builder().scheme("content").authority(AUTH);
         File p = f.getParentFile();
+        if (p != null && Kluis.VIEW_DIR.equals(p.getName())) return b.appendPath("k").appendPath(f.getName()).build(); // tijdelijk geopend kluisdocument
         if (p != null && p.getParentFile() != null && PdfViewActivity.DIR.equals(p.getParentFile().getName())) b.appendPath("v").appendPath(p.getName());
         return b.appendPath(f.getName()).build();
     }
@@ -27,6 +28,13 @@ public final class PdfProvider extends ContentProvider {
         if (!AUTH.equals(uri.getAuthority())) throw new Exception("niet gevonden");
         java.util.List<String> seg = uri.getPathSegments();
         if (seg.size() == 1) return PdfTools.output(c, seg.get(0));
+        if (seg.size() == 2 && "k".equals(seg.get(0))) {
+            // Een kluisdocument dat de app net ontsleutelde om te bekijken; alleen zolang de kluis open is (daarna is de map leeg)
+            if (!Kluis.isOpen()) { Kluis.clearViews(c); throw new Exception("niet gevonden"); }
+            File d = Kluis.viewDir(c).getCanonicalFile(), f = new File(d, seg.get(1)).getCanonicalFile();
+            if (!d.equals(f.getParentFile()) || !f.isFile() || !f.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) throw new Exception("niet gevonden");
+            return f;
+        }
         if (seg.size() == 3 && "v".equals(seg.get(0))) {
             File d = new File(PdfTools.dir(c, PdfViewActivity.DIR), seg.get(1)).getCanonicalFile(), f = new File(d, seg.get(2)).getCanonicalFile();
             if (!PdfTools.dir(c, PdfViewActivity.DIR).getCanonicalFile().equals(d.getParentFile()) || !d.equals(f.getParentFile()) || !f.isFile() || !f.getName().endsWith(".pdf")) throw new Exception("niet gevonden");
