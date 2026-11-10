@@ -130,14 +130,14 @@ function rdRender(){
   rdShown = all.slice(0, rdListN);
   $('#rd-list-label').textContent = t(q ? 'Zoekresultaten' : 'Populair in Nederland') + (rdGenre ? ' · ' + rdGenre : '') + (all.length > rdShown.length ? ' (' + all.length + ')' : '');
   $('#rd-list').innerHTML = rdShown.map((s, i) => rdRow(s, 's', i)).join('') ||
-    '<p class=note style="padding:14px">' + (q ? 'Geen zender gevonden.' : rdStations.length ? 'Geen zenders in dit genre.' : 'Zenders laden…') + '</p>';
+    (q || rdStations.length ? '<p class=note style="padding:14px">' + (q ? 'Geen zender gevonden.' : 'Geen zenders in dit genre.') + '</p>' : '<p class="note wacht" style="padding:14px">Zenders laden…</p>');
   $('#rd-list-more').hidden = all.length <= rdShown.length;
 }
 function rdSearchDo(){
   rdTabUser = true; // je zoekt: bij terugkomen blijf je bij Zenders
   if (rdGenre) { rdGenre = ''; rdRenderGenres(); } // een nieuwe zoekopdracht zoekt in alle genres
   clearTimeout(rdTmr);
-  rdTmr = setTimeout(() => { const q = $('#rd-search').value.trim(); $('#rd-list').innerHTML = '<p class=note style="padding:14px">Zoeken…</p>'; Android.radioLoad(q); }, 400);
+  rdTmr = setTimeout(() => { const q = $('#rd-search').value.trim(); $('#rd-list').innerHTML = '<p class="note wacht" style="padding:14px">Zoeken…</p>'; Android.radioLoad(q); }, 400);
 }
 function rdGet(list, i){ return list === 'f' ? rdFavs[i] : rdShown[i]; }
 function rdPlay(list, i){ const s = rdGet(list, i); if (!s) return; Android.radioPlay(JSON.stringify(s)); rdState = { status: 'connecting', station: s, title: '' }; plHintSrc('radio'); rdShowNow(); rdRender(); plRender(); }

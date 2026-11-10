@@ -15,7 +15,7 @@ function waInfo(){ try { return JSON.parse(Android.waInfo()); } catch(e){ return
 function enterWa(name){ renderWa(!name || name === 'wa' || name === 'wasel'); stopWaPoll(); waPoll = setInterval(waPollOnce, 700); waPollOnce(); }
 function stopWaPoll(){ if (waPoll) { clearInterval(waPoll); waPoll = null; } }
 window.onWaChanged = function(){ renderWa(true); };
-window.onWaSizes = function(sz){ waSizesC = sz; renderWaCats(); };
+window.onWaSizes = function(sz){ waSizesC = sz; $('#wa-all-size').classList.remove('wacht'); renderWaCats(); };
 function renderWa(rescan){
   uncache('waInfo');
   const i = waInfoC = waInfo();
@@ -51,7 +51,7 @@ function renderWa(rescan){
     '<small>' + (x.result === 'ok' ? '✓ ' : x.result === 'error' ? '✗ ' : '') + esc(x.message || '') + (x.bytesDone > 0 ? ' · ' + fmtB(x.bytesDone) : '') + '</small></div>').join('');
   renderWaCats();
   renderReadable();
-  if (rescan && i.filesAccess && (i.sources||[]).length) Android.waScanSizes();
+  if (rescan && i.filesAccess && (i.sources||[]).length) { $('#wa-all-size').classList.add('wacht'); Android.waScanSizes(); }
 }
 function renderWaCats(){
   const el = $('#wa-cats'); el.innerHTML = '';

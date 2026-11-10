@@ -272,7 +272,7 @@ function pcShowTop(){
   $('#pc-list-label').textContent = 'Populair in Nederland';
   if (pcTop) { if (pcListAll !== pcTop) pcListN = PC_LIST_N; pcListAll = pcTop; pcListShow(); return; }
   $('#pc-list-more').hidden = true;
-  $('#pc-list').innerHTML = '<p class="note" style="padding:14px">Laden…</p>';
+  $('#pc-list').innerHTML = '<p class="note wacht" style="padding:14px">Laden…</p>';
   if (pcTopLoading) return;
   pcTopLoading = true;
   Android.podTop();
@@ -288,7 +288,7 @@ function pcSearchSoon(){
   clearTimeout(pcSearchT);
   const q = $('#pc-q').value.trim();
   if (!q) { pcShowTop(); return; }
-  pcSearchT = setTimeout(() => { $('#pc-list-label').textContent = 'Zoekresultaten'; $('#pc-list-more').hidden = true; $('#pc-list').innerHTML = '<p class="note" style="padding:14px">Zoeken…</p>'; Android.podSearch(q); }, 500);
+  pcSearchT = setTimeout(() => { $('#pc-list-label').textContent = 'Zoekresultaten'; $('#pc-list-more').hidden = true; $('#pc-list').innerHTML = '<p class="note wacht" style="padding:14px">Zoeken…</p>'; Android.podSearch(q); }, 500);
 }
 window.onPodSearch = function(r){
   if ((r.q || '') !== $('#pc-q').value.trim()) return; // verouderd antwoord
@@ -314,7 +314,7 @@ function pdOpen(p){
   pdResumeShow();
   pdTitleBar();
   pcListRole($('#pd-eps'), false);
-  $('#pd-eps').innerHTML = '<p class="note" style="padding:14px">Afleveringen laden…</p>';
+  $('#pd-eps').innerHTML = '<p class="note wacht" style="padding:14px">Afleveringen laden…</p>';
   $('#pd-more').style.display = 'none';
   Android.podOpen(p.feed, false);
   pcStartPoll();
@@ -394,7 +394,7 @@ function pdTitleBar(){
   if (tt) { if (past) { tt.removeAttribute('role'); tt.removeAttribute('aria-level'); } else { tt.setAttribute('role', 'heading'); tt.setAttribute('aria-level', '1'); } }
 }
 addEventListener('scroll', () => { if (current === 'podcast') pdTitleBar(); }, { passive: true });
-function pdUpdate(){ if (!pdPod || !pdPod.feed) return; toast('Afleveringen bijwerken…'); Android.podOpen(pdPod.feed, true); }
+function pdUpdate(){ if (!pdPod || !pdPod.feed) return; uiBezig(t('Afleveringen bijwerken…'), 'onPodFeed'); Android.podOpen(pdPod.feed, true); }
 function pdSortToggle(){ pdSort = pdSort === 'old' ? 'new' : 'old'; pdSortShow(); pdShown = 50; pdRender(); }
 function pdSortShow(){
   const b = $('#pd-sort'), tt = pdSort === 'old' ? 'Oudste eerst' : 'Nieuwste eerst';

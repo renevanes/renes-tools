@@ -561,7 +561,7 @@ function faEcBewaar(){
   $('#fa-ec-msg').textContent = e || '';
   if (!e) { if (document.activeElement) document.activeElement.blur(); faRender(); toast('✓ Bewaard'); }
 }
-function faEcTest(){ $('#fa-ec-msg').textContent = ''; $('#fa-ec-test').disabled = true; Android.facturenEcTest(); }
+function faEcTest(){ uiWachtTekst($('#fa-ec-msg'), t('Verbinding testen…')); $('#fa-ec-test').disabled = true; Android.facturenEcTest(); }
 window.onFacturenEcTest = function(r){
   $('#fa-ec-test').disabled = false;
   $('#fa-ec-msg').textContent = r.error ? r.error : '';
@@ -622,7 +622,7 @@ function fdLees(){
   if (fdGelezen || !faDos) return;
   fdGelezen = true;
   const e = $('#fd-lees');
-  if (faDos.bezigMetLezen) { e.style.display = 'block'; e.textContent = 'Gegevens uit de facturen lezen…'; return; }
+  if (faDos.bezigMetLezen) { e.style.display = 'block'; uiWachtTekst(e, t('Gegevens uit de facturen lezen…')); return; }
   e.style.display = 'none'; e.textContent = '';
   const mist = faDos.teLezen || 0; // de app telt zelf wat er nog gelezen moet worden
   if (!faDos.pdfTekst) {
@@ -630,7 +630,7 @@ function fdLees(){
     return;
   }
   if (!mist) return;
-  $('#fd-lees').style.display = 'block'; $('#fd-lees').textContent = tn(mist, 'Gegevens uit {n} factuur lezen…', 'Gegevens uit {n} facturen lezen…');
+  $('#fd-lees').style.display = 'block'; uiWachtTekst($('#fd-lees'), tn(mist, 'Gegevens uit {n} factuur lezen…', 'Gegevens uit {n} facturen lezen…'));
   Android.facturenDossierHerken();
 }
 window.onFacturenHerkend = function(r){
@@ -783,7 +783,7 @@ function fdRender(laad){
   $('#fd-lijst').querySelectorAll('tr.fd-rij').forEach(tr => { tr.onclick = () => fsToon(tr.dataset.sha); tr.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fsToon(tr.dataset.sha); } }; });
   $('#fd-csv').disabled = !items.length;
 }
-function fdCsv(){ $('#fd-csv-msg').textContent = 'Exporteren…'; $('#fd-csv').disabled = true; Android.facturenDossierCsv(); }
+function fdCsv(){ $('#fd-csv-msg').classList.remove('bad'); uiWachtTekst($('#fd-csv-msg'), t('Exporteren…')); $('#fd-csv').disabled = true; Android.facturenDossierCsv(); }
 window.onFacturenCsv = function(r){
   $('#fd-csv').disabled = false;
   $('#fd-csv-msg').textContent = r.error ? t(r.error) : t('✓ Opgeslagen in {waar}', { waar: r.waar });
@@ -886,7 +886,7 @@ function fdAllesWeg(){
   const n = ((faDos || {}).items || []).length;
   askConfirm(t('Alles weghalen?'), tn(n, 'Eén factuur gaat uit de app, en ook uit je backup-map, de map op je telefoon en Google Drive. Dit kan niet ongedaan worden.', '{n} facturen gaan uit de app, en ook uit je backup-map, de map op je telefoon en Google Drive. Dit kan niet ongedaan worden.'), t('Weghalen'), () =>
     askConfirm(t('Echt alles weghalen?'), t('Weet je het zeker? De PDF\'s zijn daarna nergens meer, behalve in mail die al verstuurd is.'), t('Ja, alles weghalen'), () => {
-      const k = $('#fd-alles'); k.disabled = true; $('#fd-alles-msg').textContent = t('Bezig met weghalen…');
+      const k = $('#fd-alles'); k.disabled = true; uiWachtTekst($('#fd-alles-msg'), t('Bezig met weghalen…'));
       Android.facturenDossierAllesWeg();
     }));
 }
@@ -1079,7 +1079,7 @@ function fmBewaar(){
   $('#fm-msg').textContent = e || '';
   if (!e) { if (document.activeElement) document.activeElement.blur(); faRender(); toast('✓ Bewaard'); }
 }
-function fmTest(){ $('#fm-msg').textContent = ''; $('#fm-test').disabled = true; Android.facturenSmtpTest(); }
+function fmTest(){ uiWachtTekst($('#fm-msg'), t('Verbinding testen…')); $('#fm-test').disabled = true; Android.facturenSmtpTest(); }
 window.onFacturenSmtpTest = function(r){
   $('#fm-test').disabled = false;
   $('#fm-msg').textContent = r.error ? r.error : '';

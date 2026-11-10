@@ -35,6 +35,7 @@ function pspRender(){
  $('#psp-find').disabled=busy||!pending;$('#psp-find').textContent=pending?t('Openbare versies zoeken ({n})',{n:pending}):t('Openbare versies gezocht');
  $('#psp-pause').hidden=!pspRunning;$('#psp-pause').disabled=pspAdding;
  $('#psp-progress').textContent=pspActive?t('Zoeken: {titel}',{titel:pspRows[pspActive.index].title}):pspRunning?t('Volgende podcast zoeken…'):pspLoaded?t('{n} van {totaal} podcasts gecontroleerd',{n:pspRows.filter(r=>r.searched).length,totaal:pspRows.length}):'';
+ $('#psp-progress').classList.toggle('wacht',!!pspActive||pspRunning);$('#psp-message').classList.toggle('wacht',!!pspReading);
  const opened=new Set([...document.querySelectorAll('#psp-list details[open]')].map(e=>e.dataset.id));
  const active=document.activeElement,focus=active&&active.closest('#psp-list')?{id:active.id,start:active.selectionStart,end:active.selectionEnd}:null;
  $('#psp-list').innerHTML=pspRows.map((r,i)=>{

@@ -212,7 +212,7 @@ function gbTestShot(){
   }
   gbShotWait = false;
   Android.gebruikTestShot();
-  $('#gb-test-res').textContent = 'Proefopname bezig…';
+  uiWachtTekst($('#gb-test-res'), t('Proefopname bezig…'));
   clearTimeout(gbShotPoll);
   const t0 = Date.now();
   const poll = () => {

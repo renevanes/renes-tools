@@ -55,7 +55,7 @@ function historyExport(){
   if (!plainOk('De meldingsgeschiedenis (met bijv. inlogcodes)', historyExport)) return;
   const error = Android.historyExport();
   if (error) { $('#history-result').textContent = error; return; }
-  historyExportBusy = true; $('#history-result').textContent = 'Bezig met exporteren…'; loadHistory();
+  historyExportBusy = true; uiWachtTekst($('#history-result'), t('Bezig met exporteren…')); loadHistory();
 }
 window.onHistoryExport = function(result){ historyExportBusy = false; $('#history-result').textContent = result; if (current === 'history') loadHistory(); };
 function historyClear(){ if (!(historyData || {}).total) { toast('Er is niets om te wissen'); return; } askConfirm('Meldingsgeschiedenis wissen?', 'Verwijdert alle bewaarde meldingen op deze telefoon. Je backups blijven staan. Nieuwe meldingen worden nog steeds bewaard als opnemen aanstaat.', 'Wissen', () => { const error = Android.historyClear(); if (error) toast(error); loadHistory(); }); }

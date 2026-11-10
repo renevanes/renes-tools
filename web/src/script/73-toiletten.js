@@ -105,13 +105,14 @@ function wcRender(){
   const st = wcSt || {}, klaar = !!st.gegevens;
   uiSetup('#wc-setup', klaar);
   $('#wc-ophalen').disabled = !!st.bezig;
-  $('#wc-setup-st').textContent = st.bezig ? t('Bezig met ophalen…') : wcSetupFout;
+  $('#wc-setup-st').textContent = st.bezig ? t('Bezig met ophalen…') : wcSetupFout; $('#wc-setup-st').classList.toggle('wacht', !!st.bezig);
   $('#wc-status').hidden = !klaar;
   $('#wc-chips').hidden = !klaar;
   $('#wc-chips').querySelectorAll('button').forEach(b => { const on = !!wcF[b.dataset.f]; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   const mis = (st.bronnen || []).filter(b => b.aan !== false && b.toestand && b.toestand.fout && (b.toestand.lastTry || 0) >= (b.toestand.lastOk || 0));
   $('#wc-sub').textContent = !klaar ? '' : mis.length ? t('Bijwerken lukte de laatste keer niet; je ziet de vorige versie (zie Instellingen → Bronnen).')
     : st.bezig ? t('Bezig met bijwerken…') : st.laatste ? t('Bijgewerkt {wanneer}', { wanneer: faMoment(st.laatste) }) : '';
+  $('#wc-sub').classList.toggle('wacht', klaar && !mis.length && !!st.bezig);
   const bs = (st.bronnen || []).filter(b => b.aan !== false && b.toestand && b.toestand.lastOk);
   $('#wc-voet').textContent = klaar && bs.length ? t('Gegevens: {lijst}.', { lijst: bs.map(b => b.licentie).filter((x, i, a) => a.indexOf(x) === i).join('; ') }) : '';
   $('#wc-voet').setAttribute('translate', 'no');
@@ -450,7 +451,7 @@ function wcbrRender(){
     '<span class="stxt"><b translate="no">' + esc(b.naam) + '</b><small>' + esc(wcBronStand(b)) + '</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button></div>').join('')
     : uiEmpty('download', t('Geen bronnen: voeg er een toe.')));
   $('#wcbr-scan').disabled = !!st.bezig || !bs.length;
-  $('#wcbr-st').textContent = st.bezig ? t('Bezig met bijwerken…') : '';
+  $('#wcbr-st').textContent = st.bezig ? t('Bezig met bijwerken…') : ''; $('#wcbr-st').classList.toggle('wacht', !!st.bezig);
 }
 function wcBronOpen(id){
   const b = ((wcSt || {}).bronnen || []).find(x => x.id === id);
@@ -568,7 +569,7 @@ function wcnStand(){
   el.hidden = false;
   const s = b.toestand || {};
   let h = '<h2>' + esc(t('Laatste scan')) + '</h2>';
-  if (st.bezig) h += '<p class="note">' + esc(t('Bezig met scannen…')) + '</p>';
+  if (st.bezig) h += '<p class="note wacht">' + esc(t('Bezig met scannen…')) + '</p>';
   if (s.lastOk) h += '<p>' + esc(t('{wanneer}: {n} plekken ({nieuw} nieuw, {gewijzigd} gewijzigd, {weg} weg).', { wanneer: faMoment(s.lastOk), n: s.aantal || 0, nieuw: s.nieuw || 0, gewijzigd: s.gewijzigd || 0, weg: s.weg || 0 })) + '</p>';
   else if (!s.fout) h += '<p class="note">' + esc(t('Nog niet gescand.')) + '</p>';
   if (s.fout && (s.lastTry || 0) >= (s.lastOk || 0)) h += '<p class="wc-mis">' + esc(t('Laatste poging {wanneer} lukte niet: {fout}', { wanneer: faMoment(s.lastTry), fout: s.fout })) + '</p>' +

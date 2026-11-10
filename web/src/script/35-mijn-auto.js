@@ -75,7 +75,7 @@ function carShowMap(p){
   } catch(e){ el.style.display = 'none'; }
 }
 function carNavigate(){ const p = carSt.park; if (!p || p.lat == null) return; Android.openUrl('https://www.google.com/maps/dir/?api=1&travelmode=walking&destination=' + p.lat + ',' + p.lon); }
-function carParkNow(){ toast('Locatie bepalen…'); Android.carParkNow(); }
+function carParkNow(){ uiBezig(t('Locatie bepalen…'), 'onCarChanged'); Android.carParkNow(); }
 function carLeft(){ Android.carLeft(); enterCar(); }
 function carSave(){
   const sel = $('#car-dev'), opt = sel.options[sel.selectedIndex];
@@ -83,7 +83,7 @@ function carSave(){
   enterCar();
 }
 function carTripToggle(){ if (carSt.tripActive) Android.carTripStop(); else Android.carTripStart(); setTimeout(enterCar, 600); }
-function carExport(){ if (!plainOk('Het rittenoverzicht', carExport)) return; if (!carSt.dest) { toast('Kies eerst een backup-map (Instellingen)'); return; } Android.carExport(carMonth); }
+function carExport(){ if (!plainOk('Het rittenoverzicht', carExport)) return; if (!carSt.dest) { toast('Kies eerst een backup-map (Instellingen)'); return; } uiBezig(t('Ritten exporteren…'), 'onCarExport'); Android.carExport(carMonth); }
 function carTripMenu(id){
   const tt = (carSt.tripList || []).find(x => x.id === id); if (!tt) return;
   openSheet(fmtDT(tt.start, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }), carFmtKm(tt.m), [

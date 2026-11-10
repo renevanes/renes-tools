@@ -26,7 +26,7 @@ function fmHelpDrop(source){
 function fmHelpControls(){
   const busy=fm.busy||fmh.busy;
   ['pff-hulp-kies','pff-hulp-vast','pff-hulp-ai','pff-hulp-rol'].forEach(id=>$('#'+id).disabled=busy);
-  $('#pff-hulp-stop').hidden=!fmh.busy;
+  $('#pff-hulp-stop').hidden=!fmh.busy;$('#pff-hulp-status').classList.toggle('wacht',!!fmh.busy);
   $('#pff-hulp-overnemen').disabled=busy||!document.querySelector('#pff-hulp-voorstellen input:checked');
   $('#pff-volgende').disabled=busy;$('#pff-vorige').disabled=busy||fm.step===0;$('#pff-keuze').disabled=busy;
   $('#cm-form-pick').disabled=busy;

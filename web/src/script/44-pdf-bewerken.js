@@ -40,7 +40,7 @@ function pdfEditLoad(){
   pdfEd.loading = true; pdfEd.selected = -1; pdfEd.drag = null;
   $('#pdf-edit-page').value = pdfEd.page + 1;
   $('#pdf-edit-paper').style.visibility = 'hidden';
-  $('#pdf-edit-status').textContent = 'Pagina laden…';
+  uiWachtTekst($('#pdf-edit-status'), t('Pagina laden…'));
   pdfEditControls(); Android.pdfEditPreview(pdfEd.revision, pdfEd.page);
 }
 window.onPdfEditPreview = function(r){

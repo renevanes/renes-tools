@@ -49,7 +49,7 @@ function voiceToggle(){
   const b = $('#voice-btn');
   if (b.classList.contains('rec')) {
     clearInterval(voiceTmr); b.classList.remove('rec'); b.disabled = true;
-    $('#voice-state').textContent = 'Uitschrijven…';
+    uiWachtTekst($('#voice-state'), t('Uitschrijven…'));
     Android.voiceStop(); return;
   }
   const e = Android.voiceStart();
@@ -88,7 +88,7 @@ function rdClipMenu(){
   if (!opts.length || max < 5 * 60) opts.unshift([t('Alles wat er is ({n} min)', { n: Math.max(1, Math.round(max / 60)) }), () => rdClip(max)]);
   openSheet('Fragment bewaren', 'Komt in de map Radio in je backup-map. Alleen voor eigen gebruik.', opts);
 }
-function rdClip(sec){ toast('Bezig met bewaren…'); Android.radioSaveClip(Math.round(sec)); }
+function rdClip(sec){ uiBezig(t('Bezig met bewaren…'), 'onRadioClip'); Android.radioSaveClip(Math.round(sec)); }
 window.onRadioClip = function(r){ toast(r ? r : 'Fragment bewaard in Radio/'); };
 
 /* Kluis: documenten versleuteld op de telefoon, open met vingerafdruk. */
@@ -123,10 +123,16 @@ function klUnlock(){ $('#kl-msg').textContent = ''; Android.kluisUnlock(); }
 window.onKluis = function(r){ if (r !== true) $('#kl-msg').textContent = r; if(pdfKeepPending)pdfKeepUnlocked(r); if (current === 'kluis') klRender(); };
 window.onKluisChanged = function(r){ toast(r === 'ok' ? 'Toegevoegd aan de kluis' : r); if (current === 'kluis') klRender(); };
 function klLock(){ Android.kluisClose(); klRender(); }
+// Ontsleutelen kan bij een groot document even duren; de balk gaat weg zodra de keuze van de app (of een fout) verschijnt.
+function klView(id){
+  const klaar = uiBezig(t('Document ontsleutelen…'), ['onKluisChanged', 'onPauseApp']);
+  setTimeout(klaar, 60000);
+  Android.kluisView(id);
+}
 function klMenu(id){
   const x = (klRender.docs || []).find(d => d.id === id); if (!x) return;
   openSheet(x.name, fmtB(x.size || 0), [
-    ['Bekijken', () => Android.kluisView(id)],
+    ['Bekijken', () => klView(id)],
     ['Categorie en toelichting', () => klOrganizeOpen(id)],
     [x.favorite?'Uit favorieten halen':'Als favoriet markeren', () => klFavorite(id)],
     ['Naam wijzigen', () => askInput('Naam', '', x.name, 'Opslaan', v => { const e = Android.kluisRename(id, v); if (e) toast(e); klRender(); })],

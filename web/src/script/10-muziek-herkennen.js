@@ -31,7 +31,7 @@ function muPollOnce(){
   const st = rdJson(Android.musicState(), {});
   const busy = st.state === 'recording' || st.state === 'sending';
   $('#mu-btn').classList.toggle('busy', busy);
-  $('#mu-state').textContent = st.state === 'recording' ? 'Luisteren…' : st.state === 'sending' ? 'Zoeken…' : 'Tik om te herkennen';
+  if (st.state === 'sending') uiWachtTekst($('#mu-state'), t('Zoeken…')); else $('#mu-state').textContent = st.state === 'recording' ? 'Luisteren…' : 'Tik om te herkennen';
   $('#mu-sub').textContent = st.state === 'recording' ? 'Tik nogmaals om te stoppen' : st.state === 'sending' ? 'Even geduld' : 'Houd de telefoon bij de muziek';
   if ((st.state === 'done' || st.state === 'error') && st.at !== muLastAt) {
     muLastAt = st.at;

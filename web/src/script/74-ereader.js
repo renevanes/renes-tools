@@ -203,7 +203,7 @@ function erFindInput(){erCancelSearch();$('#er-browse-list').replaceChildren();$
 function erFind(){
   if(!erBook)return;const query=$('#er-find').value.trim();erCancelSearch();if(query.length<2||query.length>80){$('#er-find-status').textContent=t('Typ minimaal twee tekens.');return;}
   if(typeof Android.ereaderSearch!=='function'){$('#er-find-status').textContent=t('Installeer de nieuwste APK om alle leesfuncties te gebruiken');return;}
-  erRequest=Date.now()+'-'+Math.random().toString(36).slice(2);$('#er-find-status').textContent=t('Zoeken in het hele boek…');Android.ereaderSearch(erBook.id,query,erRequest);
+  erRequest=Date.now()+'-'+Math.random().toString(36).slice(2);uiWachtTekst($('#er-find-status'),t('Zoeken in het hele boek…'));Android.ereaderSearch(erBook.id,query,erRequest);
 }
 window.onEreaderSearch=function(r){
   if(!erBook||r.id!==erBook.id||r.request!==erRequest||current!=='ercontents'||erTab!=='search')return;

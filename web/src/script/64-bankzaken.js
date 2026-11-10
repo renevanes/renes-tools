@@ -282,7 +282,7 @@ function bkOntgrendel(){ $('#bk-msg').textContent = ''; Android.bankUnlock(); }
 window.onBank = function(r){
   if (r !== true) { $('#bk-msg').textContent = String(r || 'Niet ontgrendeld'); return; }
   if (current !== 'bank') { Android.bankLock(); return; }
-  if (bkToestand()) bkLaad();
+  if (bkToestand()) uiBezigNu(t('Bankgegevens openen…'), () => { if (current === 'bank') bkLaad(); else Android.bankLock(); });
 };
 function bkLaad(){
   let d; try { d = JSON.parse(Android.bankLoad()); } catch (e) { d = { error: 'Openen lukt niet' }; }

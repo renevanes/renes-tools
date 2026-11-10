@@ -346,6 +346,7 @@ function plOutSheet(){
   acts.push(['Bluetooth, koptelefoon of speaker…', () => { const e = Android.outputSwitcher(); if (e) toast(e); }]);
   plCastDevs.forEach((d, i) => { if (d.name !== m.cast) acts.push(['📺 ' + d.name + (d.model ? ' (' + d.model + ')' : ''), () => plCastTo(i)]); });
   openSheet('Waar speelt het?', plOutScanning ? 'Zoeken naar Chromecasts in je wifi…' : plCastDevs.length ? 'Chromecasts in je wifi' : 'Geen Chromecast gevonden (zelfde wifi?)', acts);
+  if (plOutScanning) uiWachtTekst($('#sheet-sub'), t('Zoeken naar Chromecasts in je wifi…'));
 }
 window.onCastDevices = function(r){
   plOutScanning = false;

@@ -49,8 +49,8 @@ function erMediaNode(n,parent){
   erMediaStyle(button,n.style);
   const alt=String(n.alt||'').slice(0,500);button.setAttribute('aria-label',alt?t('Afbeelding vergroten: {naam}',{naam:alt}):t('Afbeelding vergroten'));
   const img=document.createElement('img');img.alt=alt;img.hidden=true;img.draggable=false;
-  const status=document.createElement('span');status.className='er-media-status';status.textContent=t('Afbeelding laden…');
-  button.append(img,status);parent.append(button);
+  const status=document.createElement('span');status.className='er-media-status';
+  button.append(img,status);uiWachtTekst(status,t('Afbeelding laden…'));parent.append(button);
   const asset=Number(n.asset),entry={button,img,status,asset,loaded:false,pending:false,epoch:erImageEpoch};erImages.set(button,entry);
   button.addEventListener('click',()=>{if(entry.loaded)erImageOpen(img.src,alt);else if(!entry.pending){entry.failed=false;erQueueImages();}});
   if(!Number.isInteger(asset)||asset<0){entry.failed=true;status.textContent=t('Deze afbeelding ontbreekt in het boek');}

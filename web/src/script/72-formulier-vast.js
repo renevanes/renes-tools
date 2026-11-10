@@ -56,7 +56,7 @@ function fmqGo(){
   if(!fmqGeldig())return;
   if(typeof Android.masterFormProfile!=='function'){fmqNote(t('Installeer de nieuwste APK om formulieren in te vullen.'));return;}
   const reis={};for(const key of FMQ_REIS)reis[key]=$('#fmq-'+key).value.trim();
-  const consent=$('#fmq-id').checked,id=fm.id,epoch=fmq.epoch;fmq.busy=true;$('#fmq-ga').disabled=true;fmqNote(t('Formulier invullen…'));
+  const consent=$('#fmq-id').checked,id=fm.id,epoch=fmq.epoch;fmq.busy=true;$('#fmq-ga').disabled=true;uiWachtTekst($('#fmq-status'),t('Formulier invullen…'));
   // Eerst de geldigheid van de reisdocumenten (na het sluiten van dit venster is de privésessie even niet bruikbaar).
   if(typeof Android.masterFormExpiry==='function')cmRequest('masterFormExpiry',[record.id,record.revision,reis.van,reis.tot,consent],r=>{if(epoch===fmq.epoch)fmqFill(record,reis,consent,id,epoch,r.warnings||[]);},false,()=>{if(epoch===fmq.epoch)fmqFill(record,reis,consent,id,epoch,[]);});
   else fmqFill(record,reis,consent,id,epoch,[]);

@@ -60,7 +60,7 @@ function pdfRenderDef(){
   if (d.state === 'ours') { box.textContent = t('✓ PDF\'s openen standaard in Tools'); return; }
   box.textContent = d.state === 'other' && d.app ? t('PDF\'s openen nu in {app}. Tik hier, kies Tools en dan Altijd.', { app: d.app }) : t('Tik hier, kies Tools en dan Altijd.');
 }
-function pdfSetBusy(tt){ if (tt && !pdfBusy) pdfJobScr = current; pdfBusy = !!tt; document.querySelectorAll('.pdfbusy').forEach(e => { e.textContent = tt || ''; }); document.querySelectorAll('.pdfscr main button').forEach(b => b.disabled = pdfBusy); pdfEditControls(); }
+function pdfSetBusy(tt){ if (tt && !pdfBusy) pdfJobScr = current; pdfBusy = !!tt; document.querySelectorAll('.pdfbusy').forEach(e => uiWachtTekst(e, tt ? t(tt) : '')); document.querySelectorAll('.pdfscr main button').forEach(b => b.disabled = pdfBusy); pdfEditControls(); }
 window.onPdf = function(r){
   if (!r) return;
   // Een gekozen bestand (plaatjes of PDF) beëindigt geen lopende klus; al het andere wel

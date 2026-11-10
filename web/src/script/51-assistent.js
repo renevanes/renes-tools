@@ -572,7 +572,7 @@ function aiRenderSet(){
 /* Stand van de zoekindex (bij Slim zoeken en bij Gegevens) */
 function aiIndexHtml(subId){
   const ix = aiSt.index || {}, busy = ix.busy || aiIdx.busy;
-  return '<div class="sw" style="margin-top:6px"><span>Zoekindex<small id="' + subId + '">' + esc(busy ? t('Bijwerken… {klaar} van {totaal} nieuwe stukken (gaat door op de achtergrond)', { klaar: aiIdx.done || ix.done || 0, totaal: aiIdx.total || ix.total || 0 })
+  return '<div class="sw" style="margin-top:6px"><span>Zoekindex<small id="' + subId + '"' + (busy ? ' class="wacht"' : '') + '>' + esc(busy ? t('Bijwerken… {klaar} van {totaal} nieuwe stukken (gaat door op de achtergrond)', { klaar: aiIdx.done || ix.done || 0, totaal: aiIdx.total || ix.total || 0 })
       : (ix.items ? t('{stukken} stukken uit {n} bronnen', { stukken: ix.chunks, n: ix.items }) + (ix.at ? ' · ' + fmtD(ix.at) : '') : t('Nog niet opgebouwd')) + (ix.stale && ix.items ? ' · ' + (ix.stopped ? t('gestopt: tik op Bijwerken om verder te gaan') : t('wordt bij de volgende zoekvraag bijgewerkt')) : '')) + '</small></span>' +
     (busy ? '<button class="mini" onclick="aisIndexStop()">Stoppen</button>' : '<button class="mini" onclick="aisIndex(false)">' + (ix.items ? 'Bijwerken' : 'Opbouwen') + '</button>') + '</div>' +
     (ix.items && !busy ? '<button class="linkish" onclick="aisIndex(true)">Helemaal opnieuw opbouwen</button>' : '');
@@ -653,7 +653,7 @@ window.onAiSearch = function(r){
 };
 function aiSearchHtml(ql){
   if (!aiSearchRes || aiSearchRes.q !== gsQ) return '';
-  if (aiSearchRes.pending) return '<div class="card gsg aigs"><h3>' + uiIcon('sparkle') + 'Op betekenis <span class="n">…</span></h3><p class="note" style="margin:4px 0">Zoeken op betekenis…</p></div>';
+  if (aiSearchRes.pending) return '<div class="card gsg aigs"><h3>' + uiIcon('sparkle') + 'Op betekenis <span class="n">…</span></h3><p class="note wacht" style="margin:4px 0">Zoeken op betekenis…</p></div>';
   const it = (aiSearchRes.items || []).filter(h => typeof gsDicht !== 'function' || !gsDicht(aiHitGs(h)[0]));
   if (!it.length) return '';
   return '<div class="card gsg aigs"><h3>' + uiIcon('sparkle') + 'Op betekenis <span class="n">' + it.length + '</span></h3>' + it.map(h => { const g = aiHitGs(h);

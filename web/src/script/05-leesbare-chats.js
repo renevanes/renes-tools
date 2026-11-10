@@ -26,7 +26,7 @@ function rdSaveKey(){
   if (rdKeyBusy) return; // de controle loopt al
   rdKeyBusy = true; document.querySelectorAll('#rd-setup button').forEach(b => b.disabled = true);
   setTimeout(() => { if (rdKeyBusy) { rdKeyBusy = false; document.querySelectorAll('#rd-setup button').forEach(b => b.disabled = false); } }, 120000); // vangnet
-  toast('Sleutel controleren…');
+  uiBezig(t('Sleutel controleren…'), 'onWaKeyResult');
   Android.waSetKey(k);
 }
 let rdKeyBusy = false;

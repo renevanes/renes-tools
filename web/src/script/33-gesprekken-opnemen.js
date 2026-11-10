@@ -66,5 +66,6 @@ $('#recorder-list').addEventListener('click', event => {
 
 function recorderExportDo(id){
   if (!plainOk('De opname', () => recorderExportDo(id))) return;
-  const error = Android.recorderExport(id); $('#recorder-result').textContent = error || 'Bezig met exporteren…';
+  const error = Android.recorderExport(id);
+  if (error) $('#recorder-result').textContent = error; else uiWachtTekst($('#recorder-result'), t('Bezig met exporteren…'));
 }

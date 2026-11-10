@@ -178,7 +178,7 @@ window.onRestorePreview = function(d){
   if (d.kind === 'launcher') {
     askConfirm('Startscherm terugzetten?', t('De indeling van de skin ({wat}) vervangt de huidige. Widgets kunnen niet mee terug; die plaats je opnieuw. De huidige indeling wordt bewaard.', { wat: tn(d.pages, '{n} pagina', '{n} pagina\'s') + ', ' + t('{n} apps en mappen', { n: d.total }) + (d.hasLook ? ', ' + t('look') : '') }), 'Terugzetten', () => {
       restoreWhat = 'onderdelen van het startscherm'; restoreKind = 'launcher';
-      const e = Android.restoreApply(); if (e) { Android.restoreCancel(); toast(t(e)); } else toast('Bezig met terugzetten…');
+      const e = Android.restoreApply(); if (e) { Android.restoreCancel(); toast(t(e)); } else uiBezig(t('Bezig met terugzetten…'), 'onRestoreDone');
     }, () => Android.restoreCancel());
     return;
   }
@@ -196,7 +196,7 @@ window.onRestorePreview = function(d){
     const chats = t('Gesprekken: {n} nieuw', { n: d.chatFresh }) + (d.chatDup ? ', ' + t('{n} staan er al', { n: d.chatDup }) : '') + (d.chatFull ? ', ' + t('{n} passen niet (hooguit 100)', { n: d.chatFull }) : '') + '.';
     askConfirm('Assistent terugzetten?', mem + '\n' + chats + '\n\n' + t('Er wordt niets overschreven of verwijderd.') + ((d.sample || []).length ? '\n\n' + d.sample.join('\n') : ''), 'Toevoegen', () => {
       restoreWhat = 'herinneringen en gesprekken'; restoreKind = 'ai';
-      const e = Android.restoreApply(); if (e) { Android.restoreCancel(); toast(t(e)); } else toast('Bezig met toevoegen…');
+      const e = Android.restoreApply(); if (e) { Android.restoreCancel(); toast(t(e)); } else uiBezig(t('Bezig met toevoegen…'), 'onRestoreDone');
     }, () => Android.restoreCancel());
     return;
   }
@@ -207,7 +207,7 @@ window.onRestorePreview = function(d){
       (d.bad ? '\n' + t('{n} niet leesbaar (overgeslagen).', { n: d.bad }) : '') + '\n\n' + t('Er wordt niets overschreven of verwijderd. Teruggezette vragen staan eerst uit: zet ze aan als je weer meldingen wilt.') +
       ((d.sample || []).length ? '\n\n' + d.sample.join('\n') : ''), 'Toevoegen', () => {
       restoreWhat = d.rTotal ? 'vragen, antwoorden en opmerkingen' : 'vragen en antwoorden'; restoreKind = 'checkin';
-      const e = Android.restoreApply(); if (e) { Android.restoreCancel(); toast(t(e)); } else toast('Bezig met toevoegen…');
+      const e = Android.restoreApply(); if (e) { Android.restoreCancel(); toast(t(e)); } else uiBezig(t('Bezig met toevoegen…'), 'onRestoreDone');
     }, () => Android.restoreCancel());
     return;
   }
@@ -222,7 +222,7 @@ window.onRestorePreview = function(d){
     askConfirm(tn(d.fresh, '{n} nacht toevoegen?', '{n} nachten toevoegen?'), (d.sample || []).map(x => fmtD(x)).join(', ') + (d.fresh > (d.sample || []).length ? ', …' : '') + '\n\n' + snd +
       (skip.length ? '\n' + t('Niet toegevoegd: {wat}.', { wat: skip.join('; ') }) : '') + '\n\n' + t('Bestaande nachten worden nooit overschreven.'), 'Toevoegen', () => {
       restoreWhat = 'nachten'; restoreKind = 'sleep';
-      const e = Android.restoreApply(); if (e) { Android.restoreCancel(); toast(t(e)); } else toast('Bezig met toevoegen…');
+      const e = Android.restoreApply(); if (e) { Android.restoreCancel(); toast(t(e)); } else uiBezig(t('Bezig met toevoegen…'), 'onRestoreDone');
     }, () => Android.restoreCancel()); // niet doen: ontsleuteld geluid meteen uit de cache
     return;
   }
@@ -231,7 +231,7 @@ window.onRestorePreview = function(d){
     const parts = [d.rules ? tn(d.rules, '{n} automatisering', '{n} automatiseringen') : '', d.favs ? tn(d.favs, '{n} zender', '{n} zenders') : '', d.alarm ? t('radiowekker') : '', d.plan ? t('geplande Auto redial') : '', d.reminders ? tn(d.reminders, '{n} herinnering', '{n} herinneringen') : ''].filter(Boolean);
     askConfirm('Instellingen terugzetten?', (parts.length ? t('Toegevoegd wordt wat hier nog ontbreekt: {wat}.', { wat: parts.join(', ') }) : t('Toegevoegd wordt wat hier nog ontbreekt.')) + ' ' + t('Bestaande instellingen blijven zoals ze zijn.'), 'Terugzetten', () => {
       restoreWhat = 'instellingen'; restoreKind = 'settings';
-      const e = Android.restoreApply(); if (e) { Android.restoreCancel(); toast(t(e)); } else toast('Bezig met terugzetten…');
+      const e = Android.restoreApply(); if (e) { Android.restoreCancel(); toast(t(e)); } else uiBezig(t('Bezig met terugzetten…'), 'onRestoreDone');
     }, () => Android.restoreCancel());
     return;
   }
@@ -241,7 +241,7 @@ window.onRestorePreview = function(d){
     if (d.kind === 'notes' && typeof notesSaveNow === 'function') notesSaveNow(); // eerst eventuele laatste wijziging bewaren
     restoreWhat = what; restoreKind = d.kind;
     const e = Android.restoreApply();
-    if (e) { Android.restoreCancel(); toast(t(e)); } else toast('Bezig met toevoegen…');
+    if (e) { Android.restoreCancel(); toast(t(e)); } else uiBezig(t('Bezig met toevoegen…'), 'onRestoreDone');
   }, () => Android.restoreCancel());
 };
 let restoreWhat = '', restoreKind = '';

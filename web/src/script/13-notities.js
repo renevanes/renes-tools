@@ -323,8 +323,8 @@ function notesBackup(){
   if (isPlay() && !JSON.parse(Android.settingsInfo()).dest) { Android.waPickFolder(); toast(t('Kies een map en tik daarna opnieuw op Backup maken')); return; }
   if (!plainOk('De notities', notesBackup)) return;
   if (!notesSaveNow()) return;
-  const r = Android.notesExport();
-  toast(r.startsWith('ok:') ? t('✓ {n} notities in de map Notities gezet', { n: r.slice(3) }) : r);
+  uiBezigNu(t('Notities opslaan…'), () => Android.notesExport()).then(r =>
+  toast(r.startsWith('ok:') ? t('✓ {n} notities in de map Notities gezet', { n: r.slice(3) }) : r));
 }
 function refreshNotesTile(){
   const sub = $('#tile-notes-sub'); if (!sub) return;

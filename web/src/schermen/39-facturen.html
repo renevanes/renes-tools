@@ -9,7 +9,7 @@
   <main>
     <p class="note" style="margin:0 2px 12px">Haalt je facturen (PDF) vanzelf op: van websites waar je inlogt, zoals KPN Zakelijk, en uit je mail (Gmail). En bewaart ze waar jij wilt.</p>
     <div class="card" id="fa-bezig" style="display:none" role="status" aria-live="polite">
-      <div class="row" style="align-items:center;gap:8px"><b style="flex:1;min-width:0" id="fa-bezig-txt">Bezig…</b><button class="mini" style="float:none" onclick="Android.facturenStop()">Stoppen</button></div>
+      <div class="row" style="align-items:center;gap:8px"><b style="flex:1;min-width:0" id="fa-bezig-txt" class="wacht">Bezig…</b><button class="mini" style="float:none" onclick="Android.facturenStop()">Stoppen</button></div>
     </div>
     <div class="card" id="fa-maand" style="display:none">
       <h2 id="fa-maand-h">Deze maand</h2>
@@ -455,7 +455,7 @@
   </div>
   <main>
     <p class="note" style="margin:0 2px 12px">Stuur je facturen vanzelf naar je accountant of boekhouder. Per ontvanger kies je het kanaal (nu: e-mail), welke leveranciers en wanneer. Wat al verstuurd is, gaat niet nog een keer.</p>
-    <div class="card" id="fo-bezig" style="display:none" role="status" aria-live="polite"><b id="fo-bezig-txt">Versturen…</b></div>
+    <div class="card" id="fo-bezig" style="display:none" role="status" aria-live="polite"><b id="fo-bezig-txt" class="wacht">Versturen…</b></div>
     <div class="card stations" id="fo-lijst"></div>
     <button class="big" id="fo-nieuw" onclick="foNieuw()">Ontvanger toevoegen</button>
     <button class="big ghost" style="margin-top:8px" onclick="foLog()">Logboek</button>

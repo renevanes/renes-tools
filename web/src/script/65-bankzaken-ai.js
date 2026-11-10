@@ -11,6 +11,7 @@ function bkAiRender(){
   for (const id of ['#bk-ai-stuur', '#bk-ai-sam']) $(id).disabled = !ok || bk.aiBezig;
   document.querySelectorAll('#bk-ai-chips button').forEach(b => { b.disabled = !ok || bk.aiBezig; });
   $('#bk-ai-stop').hidden = !bk.aiBezig;
+  $('#bk-ai-status').classList.toggle('wacht', !!bk.aiBezig && bk.aiDoel !== 'categorie'); $('#bk-ai-cat-uit').classList.toggle('wacht', !!bk.aiBezig && bk.aiDoel === 'categorie');
 }
 
 /* taal-vast-begin: tekst voor het taalmodel (de cijfers), niet voor in beeld */

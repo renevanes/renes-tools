@@ -150,8 +150,8 @@ function gsRender(){
       g.items.map(x => gsItem(k, x, ql)).join('') + '</div>';
   }).join('');
   const ai = !isPlay() && typeof aiSearchHtml === 'function' ? aiSearchHtml(ql) : '';
-  $('#gs-res').innerHTML = (ai + html) || '<p class=gs-empty>' + (gsData.pending ? t('Zoeken…') : t('Niets gevonden voor "{q}"', { q: esc(gsQ) })) + '</p>';
-  if (html && gsData.pending) $('#gs-res').innerHTML += '<p class=gs-empty style="padding:8px 0">Verder zoeken…</p>';
+  $('#gs-res').innerHTML = (ai + html) || (gsData.pending ? '<p class="gs-empty wacht">' + t('Zoeken…') : '<p class=gs-empty>' + t('Niets gevonden voor "{q}"', { q: esc(gsQ) })) + '</p>';
+  if (html && gsData.pending) $('#gs-res').innerHTML += '<p class="gs-empty wacht" style="padding:8px 0">Verder zoeken…</p>';
 }
 function gsMore(k){
   const d = GS[k];

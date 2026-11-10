@@ -5,7 +5,7 @@ function enterSpotify(){ spRender(); if (!spPollT) spPollT = setInterval(() => {
 function spState(){
   const prev = spSt.busy;
   spSt = rdJson(Android.spotifyState(), {});
-  $('#sp-progress').textContent = spSt.busy ? (spSt.progress || 'Bezig…') : '';
+  uiWachtTekst($('#sp-progress'), spSt.busy ? t(spSt.progress || 'Bezig…') : '');
   $('#sp-now').disabled = !!spSt.busy;
   if (prev && !spSt.busy) spRender();
 }
@@ -71,7 +71,7 @@ function spLibShow(k, gone){
 }
 function spLibRestore(k, mode){
   if (spSt.busy) { toast('Even wachten: er loopt nog iets'); return; }
-  Android.spotifyLibRestore(k.kind, mode); spSt.busy = true; $('#sp-progress').textContent = 'Terugzetten…';
+  Android.spotifyLibRestore(k.kind, mode); spSt.busy = true; uiWachtTekst($('#sp-progress'), t('Terugzetten…'));
 }
 window.onSpotifyLibRestored = function(r){
   spSt.busy = false;
@@ -92,7 +92,7 @@ window.onSpotifyLinked = function(r){
   toast(t('✓ Gekoppeld met {naam}', { naam: r.name || 'Spotify' }));
   if (current === 'spotify') { spRender(); spBackup(); }
 };
-function spBackup(plain){ if (spSt.busy) return; Android.spotifyBackup(!!plain); spSt.busy = true; $('#sp-now').disabled = true; $('#sp-progress').textContent = 'Bezig…'; }
+function spBackup(plain){ if (spSt.busy) return; Android.spotifyBackup(!!plain); spSt.busy = true; $('#sp-now').disabled = true; uiWachtTekst($('#sp-progress'), t('Bezig…')); }
 /* Versleutelen staat aan: alleen na bevestigen leesbaar in de backup-map */
 function spPlainCopy(){ if (!plainOk('De Spotify-backup', spPlainCopy)) { return; } spBackup(true); }
 window.onSpotifyDone = function(r){
@@ -104,7 +104,7 @@ window.onSpotifyDone = function(r){
   else if (r.folder && r.folder !== 'ok') { if (r.folderAccess) askConfirm('Backup-map', t('Je backup is gemaakt in de app, maar niet in je backup-map.') + '\n\n' + t(r.folder), 'Map opnieuw kiezen', () => Android.waPickFolder()); else toast(r.folder.length > 160 ? r.folder.slice(0, 160) + '…' : r.folder); }
   if (current === 'spotify') spRender();
 };
-function spImport(){ Android.spotifyImport(); $('#sp-import').disabled = true; }
+function spImport(){ uiBezig(t('Playlists overnemen…'), 'onSpotifyImported'); Android.spotifyImport(); $('#sp-import').disabled = true; }
 window.onSpotifyImported = function(r){ $('#sp-import').disabled = false; toast(r.error || t('✓ {n} playlists overgenomen', { n: r.count })); if (current === 'spotify') spRender(); };
 function spMenu(){
   openSheet('Spotify', spSt.user || '', [
@@ -132,7 +132,7 @@ function spVersion(p, v, kind){
 }
 function spRestore(p, v, mode){
   if (spSt.busy) { toast('Even wachten: er loopt nog iets'); return; }
-  Android.spotifyRestore(p.id, v.snap, mode); spSt.busy = true; $('#sp-progress').textContent = 'Terugzetten…';
+  Android.spotifyRestore(p.id, v.snap, mode); spSt.busy = true; uiWachtTekst($('#sp-progress'), t('Terugzetten…'));
 }
 window.onSpotifyRestored = function(r){
   spSt.busy = false;

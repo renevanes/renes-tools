@@ -203,7 +203,7 @@ function rgpSearch(){
   const c = rgCoords(q);
   if (c) { $('#rgp-results').innerHTML = ''; rgpDraft = { lat: c.lat, lon: c.lon, addr: '' }; rgpRender(); return; }
   if (typeof Android.locSearch !== 'function') { toast('Adressen zoeken kan hier niet; tik coördinaten in'); return; }
-  rgpWait = q; $('#rgp-results').innerHTML = '<p class="note">Zoeken…</p>';
+  rgpWait = q; $('#rgp-results').innerHTML = '<p class="note wacht">Zoeken…</p>';
   Android.locSearch(q);
 }
 function rgpPick(i){ const p = rgpRes[i]; if (!p) return; rgpDraft = { lat: p.lat, lon: p.lng != null ? p.lng : p.lon, addr: p.name || '' }; $('#rgp-results').innerHTML = ''; rgpRender(); }

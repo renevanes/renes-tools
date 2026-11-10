@@ -250,7 +250,7 @@ function fmPreview(){
   $('#pff-papier').hidden=true;
   const cached=fm.previews[fm.page];
   if(cached){fmToonPreview(cached);return;}
-  $('#pff-preview-status').textContent=t('Voorbeeld laden…');
+  uiWachtTekst($('#pff-preview-status'),t('Voorbeeld laden…'));
   $('#pff-maak').disabled=true;
   fm.previewToken=String(++fm.token);
   if(typeof Android.pdfFormPreview!=='function'){$('#pff-preview-status').textContent=t('Installeer de nieuwste APK om formulieren in te vullen.');return;}
@@ -316,12 +316,17 @@ function fmMaak(){
     return;
   }
   if(!fmGeldig(true))return;
-  try{
-    const layers=fmDef().pages.map((_,page)=>({page,png:fmTeken(document.createElement('canvas'),page).toDataURL('image/png')}));
-    const json=JSON.stringify(layers);if(json.length>12_000_000)throw new Error(t('Het ingevulde formulier is te groot om te maken.'));
-    fm.exportToken=String(++fm.token);fm.busy=true;$('#pff-melding').textContent=t('Ingevulde PDF maken…');fmRender();
-    Android.pdfFormMake(fm.id,json,$('#pff-naam').value.trim()||fmDef().title,fm.exportToken);
-  }catch(e){fm.busy=false;$('#pff-melding').textContent=e.message;fmRender();}
+  // Eerst laten zien dat hij bezig is: het tekenen van de pagina's houdt de interface even vast.
+  const token=fm.exportToken=String(++fm.token),id=fm.id;fm.busy=true;uiWachtTekst($('#pff-melding'),t('Ingevulde PDF maken…'));fmRender();
+  requestAnimationFrame(()=>setTimeout(()=>{
+    if(fm.exportToken!==token||!fm.busy)return;
+    if(fm.id!==id){fm.busy=false;fmRender();return;}
+    try{
+      const layers=fmDef().pages.map((_,page)=>({page,png:fmTeken(document.createElement('canvas'),page).toDataURL('image/png')}));
+      const json=JSON.stringify(layers);if(json.length>12_000_000)throw new Error(t('Het ingevulde formulier is te groot om te maken.'));
+      Android.pdfFormMake(fm.id,json,$('#pff-naam').value.trim()||fmDef().title,token);
+    }catch(e){fm.busy=false;$('#pff-melding').textContent=e.message;fmRender();}
+  },30));
 }
 window.onPdfFormMade=function(r){
   if(!r||r.request!==fm.exportToken||r.id!==fm.id||!fm.busy)return;

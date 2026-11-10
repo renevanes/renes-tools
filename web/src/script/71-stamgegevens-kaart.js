@@ -195,7 +195,7 @@ function cmcPhotos(box,r,blok){
   const sec=cmcBlok(box,r,blok,[],{empty:false}),grid=cmEl('div',undefined,'cmc-fotos');
   for(const side of ['front','back']){
     const has=!!r.images?.[side],tile=cmEl('button',undefined,'cmc-foto');tile.classList.toggle('leeg',!has);tile.type='button';tile.id='cmc-foto-'+side;
-    if(has){const img=cmEl('img');img.alt=cmcPhotoAlt(side);img.hidden=true;tile.classList.add('vol');tile.append(img,cmEl('span',t('Foto laden…')));tile.onclick=()=>cmcPhotoZoom(side);}
+    if(has){const img=cmEl('img');img.alt=cmcPhotoAlt(side);img.hidden=true;tile.classList.add('vol');const laad=cmEl('span');tile.append(img,laad);uiWachtTekst(laad,t('Foto laden…'));tile.onclick=()=>cmcPhotoZoom(side);}
     else{tile.innerHTML=uiIcon('camera');tile.append(cmEl('span',side==='front'?t('Voorkant toevoegen'):t('Achterkant toevoegen')));tile.onclick=()=>cmcPhotoPick(side);}
     grid.append(tile);
   }

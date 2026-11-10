@@ -18,7 +18,7 @@ function enterTranscripts(){
                  : '<button class="mini" onclick="txDownload(' + jsq(m.id) + ')">Downloaden</button>') + '</div>').join('');
   $('#tx-home').style.display = i.supported && i.files ? 'block' : 'none';
   $('#tx-search').value = ''; $('#tx-results').innerHTML = '';
-  if (i.supported && i.files) { if (!txRecs.length) $('#tx-list').innerHTML = '<p class=note style="padding:14px">Opnames zoeken…</p>'; setTimeout(txLoad, 30); }
+  if (i.supported && i.files) { if (!txRecs.length) $('#tx-list').innerHTML = '<p class="note wacht" style="padding:14px">Opnames zoeken…</p>'; setTimeout(txLoad, 30); }
   txAutoRender();
   txPollOnce(); stopTrPoll(); txPoll = setInterval(txPollOnce, 700);
 }
@@ -136,8 +136,8 @@ function txWatch(){
 function leaveTrd(){ if (txPlayPoll) { clearInterval(txPlayPoll); txPlayPoll = null; } Android.txStop(); $('#txd-play').textContent = 'Afspelen'; $('#txd-play').dataset.icon='play'; }
 function txExport(id){
   if (!plainOk(id ? 'Het transcript' : 'Elk transcript', () => txExport(id))) return;
-  const r = Android.txExport(id || '');
-  toast(r.startsWith('ok:') ? tn(+r.slice(3), '✓ {n} transcript opgeslagen in de map Gesprekken', '✓ {n} transcripten opgeslagen in de map Gesprekken') : r);
+  uiBezigNu(t('Transcripten opslaan…'), () => Android.txExport(id || '')).then(r =>
+  toast(r.startsWith('ok:') ? tn(+r.slice(3), '✓ {n} transcript opgeslagen in de map Gesprekken', '✓ {n} transcripten opgeslagen in de map Gesprekken') : r));
 }
 function txDel(){
   askConfirm('Transcript verwijderen?', 'De opname zelf blijft staan; je kunt hem later opnieuw uitschrijven.', 'Verwijderen', () => { Android.txDelete(txCur); show('transcripts'); });

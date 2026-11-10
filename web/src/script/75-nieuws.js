@@ -306,7 +306,7 @@ function nwToevoegen(){
   if (nw.toevoegen || !nwKlaar()) return;
   const v = $('#nws-url').value.trim();
   if (!v) { nwSetStatus(t('Vul het adres van een nieuwssite of feed in')); $('#nws-url').focus(); return; }
-  nw.toevoegen = true; $('#nws-add').disabled = true; nwSetStatus(t('Feed zoeken…'));
+  nw.toevoegen = true; $('#nws-add').disabled = true; $('#nws-status').hidden = false; uiWachtTekst($('#nws-status'), t('Feed zoeken…'));
   Android.nieuwsToevoegen(v);
 }
 window.onNieuwsBron = function(r){

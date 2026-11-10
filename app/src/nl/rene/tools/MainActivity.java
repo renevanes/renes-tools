@@ -1007,8 +1007,9 @@ public class MainActivity extends Activity {
             if ("archive".equals(kind)) { pendingArchive = u; Secure.forget(); js("onArchivePicked", ""); return; }
             new Thread(() -> {
                 String r;
-                try {
+                try (Voortgang v = Voortgang.van(this, "terugzetten", 1)) {
                     if (HerstelLos.BUSY.get()) throw new Exception("Er wordt al teruggezet; even geduld");
+                    v.stap("verwerken", 0, 0);
                     r = Restore.preview(getApplicationContext(), kind, u).toString();
                 }
                 catch (Throwable e) {

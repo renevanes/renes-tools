@@ -90,7 +90,7 @@ function lcSearch(){
   const q = $('#lc-q').value.trim(); if (!q) return;
   const c = lcCoords(q);
   if (c) { $('#lc-results').innerHTML = ''; lcSet(c.lat, c.lng, '', true); return; }
-  $('#lc-results').innerHTML = '<p class="note">Zoeken…</p>';
+  $('#lc-results').innerHTML = '<p class="note wacht">Zoeken…</p>';
   Android.locSearch(q);
 }
 let lcRes = [];

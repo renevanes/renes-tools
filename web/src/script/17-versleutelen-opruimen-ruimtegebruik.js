@@ -35,7 +35,7 @@ function bkEncSet(){
     setTimeout(() => askPassword('Nog een keer', 'Typ het wachtwoord nog een keer ter controle.', 'Instellen', pw2 => {
       if (pw2 !== pw) { toast('De wachtwoorden zijn niet gelijk'); return; }
       bkEncBusy = true; $('#bk-enc-btn').disabled = true; $('#bk-enc-btn').textContent = 'Bezig…';
-      Android.backupSetPassword(pw);
+      uiBezig(t('Wachtwoord instellen…'), 'onSecure'); Android.backupSetPassword(pw);
     }), 80);
   });
 }
@@ -52,12 +52,12 @@ function bkEncOff(){
     const st = bkState(true); bkRenderSecure(st); bkSums(st); toast(t(priv.length ? 'Versleutelen staat uit; privé-onderdelen gaan niet meer mee' : 'Versleutelen staat uit'));
   });
 }
-function bkRotate(){ toast('Bezig met tellen…'); Android.backupRotate(true); }
+function bkRotate(){ uiBezig(t('Bezig met tellen…'), 'onRotate'); Android.backupRotate(true); }
 window.onRotate = function(r){
   if (r.error) { toast(r.error); return; }
   if (r.dry) {
     if (!r.count) { toast('Er is niets op te ruimen'); return; }
-    askConfirm(t('{n} oude bestanden verwijderen?', { n: r.count }), t('Samen {grootte}. Alles van de laatste 14 dagen en de nieuwste van elke maand blijven staan.', { grootte: fmtB(r.bytes) }), 'Verwijderen', () => Android.backupRotate(false));
+    askConfirm(t('{n} oude bestanden verwijderen?', { n: r.count }), t('Samen {grootte}. Alles van de laatste 14 dagen en de nieuwste van elke maand blijven staan.', { grootte: fmtB(r.bytes) }), 'Verwijderen', () => { uiBezig(t('Oude bestanden verwijderen…'), 'onRotate'); Android.backupRotate(false); });
   } else { toast(t('✓ {n} oude bestanden verwijderd ({grootte})', { n: r.count, grootte: fmtB(r.bytes) })); }
 };
 function bkSpace(){ $('#bk-space-btn').disabled = true; $('#bk-space-btn').textContent = 'Bezig met tellen…'; Android.backupSpace(); }
@@ -73,24 +73,25 @@ function bkRenderSpace(r){
   $('#bk-space-btn').textContent = 'Opnieuw berekenen';
 }
 /* versleutelde backup openen */
-window.onArchivePicked = function(){ toast('Bezig met openen…'); Android.archiveOpen(''); };
+window.onArchivePicked = function(){ uiBezig(t('Bezig met openen…'), 'onArchive'); Android.archiveOpen(''); };
 window.onArchive = function(r){
-  if (r.needPw) { askPassword('Wachtwoord', 'Het wachtwoord van deze backup.', 'Openen', pw => { toast('Bezig met ontsleutelen…'); Android.archiveOpen(pw); }); return; }
+  if (r.needPw) { askPassword('Wachtwoord', 'Het wachtwoord van deze backup.', 'Openen', pw => { uiBezig(t('Bezig met ontsleutelen…'), 'onArchive'); Android.archiveOpen(pw); }); return; }
   if (r.error) { toast(r.error); if (/Verkeerd/.test(r.error)) setTimeout(() => onArchive({needPw: true}), 400); return; }
   const acts = [];
-  if (r.contacts) acts.push(['Contacten terugzetten', () => Android.archiveRestore('contacts', r.contacts)]);
-  if (r.notes) acts.push(['Notities terugzetten', () => Android.archiveRestore('notes', r.notes)]);
-  if (r.launcher) acts.push(['Startscherm (skin) terugzetten', () => Android.archiveRestore('launcher', r.launcher)]);
-  if (r.settings) acts.push(['Instellingen, automatiseringen en zenders terugzetten', () => Android.archiveRestore('settings', r.settings)]);
-  if (r.transcripts) acts.push(['Uitgeschreven gesprekken terugzetten', () => Android.archiveRestore('transcripts', r.transcripts)]);
-  if (r.music) acts.push(['Herkende muziek terugzetten', () => Android.archiveRestore('music', r.music)]);
-  if (r.ai) acts.push(['Geheugen en gesprekken van de assistent terugzetten', () => Android.archiveRestore('ai', r.ai)]);
-  if (r.sleep) acts.push(['Slaappraat terugzetten', () => { toast('Bezig met openen…'); Android.archiveRestore('sleep', r.sleep); }]);
-  if (r.checkin) acts.push(['Check-in terugzetten', () => Android.archiveRestore('checkin', r.checkin)]);
-  acts.push(['Uitpakken naar de backup-map', () => askConfirm('Uitpakken?', 'De bestanden komen onversleuteld in de map Uitgepakt in je backup-map. Haal ze weg als je ze niet meer nodig hebt.', 'Uitpakken', () => { toast('Bezig met uitpakken…'); Android.archiveUnpack(); }, () => Android.archiveClose())]);
+  if (r.contacts) acts.push(['Contacten terugzetten', () => arcRestore('contacts', r.contacts)]);
+  if (r.notes) acts.push(['Notities terugzetten', () => arcRestore('notes', r.notes)]);
+  if (r.launcher) acts.push(['Startscherm (skin) terugzetten', () => arcRestore('launcher', r.launcher)]);
+  if (r.settings) acts.push(['Instellingen, automatiseringen en zenders terugzetten', () => arcRestore('settings', r.settings)]);
+  if (r.transcripts) acts.push(['Uitgeschreven gesprekken terugzetten', () => arcRestore('transcripts', r.transcripts)]);
+  if (r.music) acts.push(['Herkende muziek terugzetten', () => arcRestore('music', r.music)]);
+  if (r.ai) acts.push(['Geheugen en gesprekken van de assistent terugzetten', () => arcRestore('ai', r.ai)]);
+  if (r.sleep) acts.push(['Slaappraat terugzetten', () => arcRestore('sleep', r.sleep)]);
+  if (r.checkin) acts.push(['Check-in terugzetten', () => arcRestore('checkin', r.checkin)]);
+  acts.push(['Uitpakken naar de backup-map', () => askConfirm('Uitpakken?', 'De bestanden komen onversleuteld in de map Uitgepakt in je backup-map. Haal ze weg als je ze niet meer nodig hebt.', 'Uitpakken', () => { uiBezig(t('Bezig met uitpakken…'), 'onArchiveUnpacked'); Android.archiveUnpack(); }, () => Android.archiveClose())]);
   acts.push(['Sluiten', () => Android.archiveClose()]);
   // Dicht zonder keuze (terug of ernaast tikken): de sleutel meteen vergeten
   openSheet('🔒 ' + (r.name || t('Backup')), t('{n} bestanden · {grootte}', { n: (r.files || []).length, grootte: fmtB(r.bytes || 0) }), acts, () => Android.archiveClose());
 };
+function arcRestore(soort, e){ uiBezig(t('Bezig met openen…'), 'onRestorePreview'); Android.archiveRestore(soort, e); }
 window.onArchiveUnpacked = function(r){ toast(r.startsWith('ok:') ? t('✓ {n} bestanden uitgepakt naar Uitgepakt/', { n: r.slice(3) }) : r); };
 

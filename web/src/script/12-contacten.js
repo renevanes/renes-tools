@@ -111,7 +111,7 @@ function cvRestore(k, btn){
 }
 function ctExport(v){
   if (!plainOk('De contactenlijst', () => ctExport(v))) return;
-  const r = Android.contactsExport(String(v || 0));
-  toast(r.startsWith('ok:') ? t('✓ {n} contacten opgeslagen in de map Contacten backup', { n: r.slice(3) }) : r);
+  uiBezigNu(t('Contacten opslaan…'), () => Android.contactsExport(String(v || 0))).then(r =>
+  toast(r.startsWith('ok:') ? t('✓ {n} contacten opgeslagen in de map Contacten backup', { n: r.slice(3) }) : r));
 }
 
