@@ -335,6 +335,7 @@ window.onPdfFormMade=function(r){
   if(!r.name){$('#pff-melding').textContent=t('De PDF kan niet worden gemaakt. Probeer opnieuw.');return;}
   $('#pff-bestand').textContent=r.name;$('#pff-klaar').textContent=fmDef().instruction;
   $('#pff-resultaat').hidden=false;$('#pff-melding').textContent=t('De PDF is gemaakt. Bewaar hem en print hem uit om te ondertekenen.');
+  kcNaMaken([{name:r.name,category:t('Formulieren'),source:'formulier'}]); // vanzelf in de documentenkluis (49b-kluis-centraal.js)
   if(current==='formulieren')$('#pff-resultaat').scrollIntoView({block:'start'});
 };
 // App uit beeld (Android kan hem daarna stoppen): wat je invulde vanzelf opslaan.

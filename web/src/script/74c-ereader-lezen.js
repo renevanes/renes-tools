@@ -193,7 +193,7 @@ function erVoiceInfo(){if(typeof spReadModels!=='function')return{voices:[],read
    stem en legt die per sessie vast bij het starten: even wisselen, starten en meteen terugzetten. Notities en de
    assistent houden zo de gekozen stem. Geeft de stem van deze sessie. */
 function erVoiceForBook(m,start){
-  const want=erLangBase(erBookLang()),cur=(m.voices||[]).find(v=>v.id===m.voice),other=want&&cur&&cur.language!==want?m.ready.find(v=>v.language===want):null;
+  const want=erLangBase(erBookLang()),cur=(m.voices||[]).find(v=>v.id===m.voice),other=want&&cur&&cur.language!==want?(m.ready.find(v=>v.id===(m.lang||{})[want])||m.ready.find(v=>v.language===want)):null;
   if(!other){start();return m.voice;}
   const e=Android.speechConfigure(other.id,m.speed||1,m.background!==false);
   try{start();}finally{if(!e)Android.speechConfigure(m.voice,m.speed||1,m.background!==false);}
@@ -300,7 +300,7 @@ function erSpeakRender(){
 function erSpeakPanelRender(){
   if(erPanelOn!=='tts')return;const m=erVoiceInfo(),none=!m.voice||!m.ready.length;
   $('#er-tts-novoice').hidden=!none;$('#er-tts-main').hidden=none;
-  $('#er-tts-novoice-t').textContent=m.supported===false?t('Lokale voorleesstemmen werken op een 64-bits toestel'):t('Er is nog geen stem gedownload. Download eenmalig een stem (ongeveer 21 MB) bij Lokaal voorlezen; daarna leest de e-reader voor zonder internet.');
+  $('#er-tts-novoice-t').textContent=m.supported===false?t('Lokale voorleesstemmen werken op een 64-bits toestel'):t('Er is nog geen stem gedownload. Download eenmalig een stem met de knop hieronder; daarna leest de e-reader voor zonder internet.');
   $('#er-tts-novoice button').disabled=m.supported===false;
   if(none)return;
   const rates=$('#er-tts-rates');if(!rates.children.length)rates.innerHTML=ER_RATES.map(v=>'<button role="radio" data-v="'+v+'" onclick="erSpeakRate('+v+')" translate="no">'+esc(fmtNum(v))+'×</button>').join('');

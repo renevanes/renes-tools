@@ -42,8 +42,11 @@ const { chromium } = require('playwright');
     ok((await txt(klein + ' .md-newer')).includes('Nieuwere versie: Qwen3.5 2B') && (await txt(klein + ' .md-newer')).includes('Nederlands'), 'nieuwere versie met waarom');
     // De lokale voorleesstem wordt door de app beheerd, voor alle onderdelen.
     ok(await until(() => /Ronnie/.test(document.querySelector('#md-cats .md-cat[data-kind="tts"]').textContent)), 'lokale voorleesstem gevonden');
-    await pg.click(cat('tts') + ' button:has-text("Lokale stemmen beheren")');
-    ok(await pg.evaluate(() => sp.settings) && (await pg.textContent('#speech-voices')).includes('Ronnie'), 'gedeelde steminstellingen');
+    // Stemmen zijn gewone modelregels: beste kwaliteit (Nederlands) eerst, met licentie en grootte; dezelfde regels in het stemmenvenster
+    ok((await pg.evaluate(() => [...document.querySelectorAll('#md-cats .md-cat[data-kind="tts"] [data-voice]')].map(e => e.dataset.voice).join())) === 'tts-nl-dii,tts-nl-miro,tts-nl-pim,tts-nl-ronnie,tts-en-ljspeech', 'stemmen op volgorde');
+    ok((await txt(cat('tts') + ' [data-voice="tts-nl-dii"]')).includes('Beste kwaliteit') && (await txt(cat('tts') + ' [data-voice="tts-nl-dii"]')).includes('niet-commercieel') && (await txt(cat('tts') + ' [data-voice="tts-nl-ronnie"]')).includes('In gebruik'), 'kwaliteit, licentie en in gebruik');
+    await pg.evaluate(() => spSettings());
+    ok(await pg.evaluate(() => sp.settings) && (await pg.textContent('#speech-voices')).includes('Ronnie') && await pg.locator('#speech-voices [data-voice="tts-nl-dii"]').count() === 1, 'gedeelde steminstellingen');
     await pg.evaluate(()=>spSettingsClose());
     // Een oudere versie onderbroken: niet verder, wel stoppen; de nieuwste wordt aangeboden
     const groot = cat('ai') + ' .md-linebox[data-line="ai:groot35"]';
@@ -74,7 +77,7 @@ const { chromium } = require('playwright');
     // Spraak naar tekst: twee soorten (elk één versie), de ene in gebruik
     ok((await txt(cat('spraak'))).includes('In gebruik: Snel · Whisper base') && (await txt(cat('spraak'))).includes('Nauwkeurig'), 'spraakmodellen');
     ok((await txt(cat('spraak'))).includes('Je hebt versie: Whisper base, OpenAI 2022') && (await txt(cat('spraak'))).includes('Nog niet op je telefoon · versie: Whisper small, OpenAI 2022'), 'spraakmodellen: versie');
-    ok((await txt(cat('spraak'))).includes('Motor: whisper.cpp 1.9.5') && (await txt(cat('ai'))).includes('Motor: llama.cpp') && !(await txt(cat('tts'))).includes('Motor:'), 'motorversie per soort');
+    ok((await txt(cat('spraak'))).includes('Motor: whisper.cpp 1.9.5') && (await txt(cat('ai'))).includes('Motor: llama.cpp') && (await txt(cat('tts'))).includes('Motor: sherpa-onnx'), 'motorversie per soort');
     // Verwijderen met uitleg
     await pg.click(cat('zoek') + ' button:has-text("Verwijderen")'); await pg.waitForTimeout(150);
     ok((await pg.textContent('#modal')).includes('Slim zoeken werkt dan niet meer'), 'uitleg bij het zoekmodel');
@@ -87,9 +90,11 @@ const { chromium } = require('playwright');
     // Zonder model blijft downloaden expliciet; terugkeer ververst de status.
     await pg.evaluate(() => { Android._speech.voice='';Android._speech.voices.forEach(v=>v.state='none');mdRefresh(); });
     ok((await txt(cat('tts'))).includes('Nog geen lokale voorleesstem'), 'geen voorleesmodel gedownload');
-    await pg.click(cat('tts') + ' button:has-text("Lokale stemmen beheren")');
-    await pg.locator('#speech-voices .speech-voice').first().getByRole('button',{name:'Stem downloaden',exact:true}).click();
-    await pg.waitForFunction(()=>Android._speech.voices[0].state==='ready');await pg.evaluate(()=>{spSettingsClose();onResumeApp();});
+    await pg.click(cat('tts') + ' [data-voice="tts-nl-dii"] button:has-text("Downloaden")');
+    await pg.waitForFunction(()=>Android._speech.voices.find(v=>v.id==='tts-nl-dii').state==='ready');await pg.evaluate(()=>onResumeApp());
+    ok(await until(() => /Dii/.test(document.querySelector('#md-cats .md-cat[data-kind="tts"]').textContent) && /In gebruik/.test(document.querySelector('#md-cats .md-cat[data-kind="tts"] [data-voice="tts-nl-dii"]').textContent)), 'downloaden in Modellen: de stem is meteen in gebruik');
+    await pg.click(cat('tts') + ' [data-voice="tts-nl-ronnie"] button:has-text("Downloaden")');
+    await pg.waitForFunction(()=>Android._speech.voices[0].state==='ready');await pg.evaluate(()=>onResumeApp());
     ok(await until(() => /Ronnie/.test(document.querySelector('#md-cats .md-cat[data-kind="tts"]').textContent)), 'nieuwe stem na terugkeer beschikbaar');
     // Opruimen
     await pg.click('#md-sum button:has-text("Opruimen")'); await pg.waitForTimeout(100);

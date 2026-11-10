@@ -9,7 +9,7 @@
   <main>
     <div class="flabel stgl" role="heading" aria-level="2">Algemeen</div>
     <div class="card stlist">
-      <button class="strow" onclick="spSettings()"><span class="stic"><span class="ui-icon" data-icon="volume-high" aria-hidden="true"></span></span><span class="sttxt"><b>Lokaal voorlezen</b><small>Stemmen en snelheid voor de e-reader, notities en assistent</small></span><span class="ui-icon stchev" data-icon="chevron-right"></span></button>
+      <button class="strow" onclick="show('spraak')"><span class="stic"><span class="ui-icon" data-icon="volume-high" aria-hidden="true"></span></span><span class="sttxt"><b>Spraak</b><small id="st-sum-spraak"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('setnotif')"><span class="stic"><span class="ui-icon" data-icon="bell" aria-hidden="true"></span></span><span class="sttxt"><b>Meldingen</b><small id="st-sum-notif"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('setlook')"><span class="stic"><span class="ui-icon" data-icon="eye" aria-hidden="true"></span></span><span class="sttxt"><b>Weergave</b><small id="st-sum-look"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('setregio')"><span class="stic"><span class="ui-icon" data-icon="globe" aria-hidden="true"></span></span><span class="sttxt"><b>Regio en taal</b><small id="st-sum-regio"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
@@ -322,5 +322,33 @@
       </div>
       <details id="st-stat-what"><summary>Wat wordt er verstuurd?</summary><pre class="note" id="st-stat-preview" style="white-space:pre-wrap;word-break:break-word;font-size:12px"></pre></details>
     </div>
+  </main>
+</section>
+
+<!-- Spraak: één plek voor voorlezen (stemmen) en spraak naar tekst (spraakmodellen), voor alle tools -->
+<section class="screen" id="s-spraak">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Spraak</h1>
+  </div>
+  <main>
+    <p class="hint">Eén plek voor voorlezen en spraak naar tekst in alle tools. Alles werkt op je telefoon; tekst en geluid gaan niet naar internet.</p>
+    <div class="card" id="sv-voice-card">
+      <h2><span class="ui-icon" data-icon="volume-high" aria-hidden="true"></span>Stem en snelheid</h2>
+      <p class="hint" id="sv-stand" role="status"></p>
+      <label class="f" for="sv-voice">Stem</label>
+      <select class="sel" id="sv-voice" onchange="spChoose(this.value)"></select>
+      <label class="f" for="sv-speed">Snelheid</label>
+      <div class="row"><input id="sv-speed" type="range" min="0.6" max="1.8" step="0.1" value="1" oninput="spSpeed(this.value)"><output id="sv-speed-value" for="sv-speed"></output></div>
+      <p class="hint">De nieuwe snelheid hoor je na de volgende zin.</p>
+      <div class="sw"><span>Boeken blijven voorlezen<small>Ook met het scherm uit of buiten Tools. De melding heeft pauzeren en stoppen. De assistent en notities stoppen wanneer je Tools verlaat.</small></span><button class="tg" id="sv-background" role="switch" aria-checked="false" onclick="spBackground()" aria-label="Boeken blijven voorlezen"></button></div>
+      <button class="big tonal" id="sv-preview" onclick="spPreview()">Stem proberen</button>
+    </div>
+    <div id="sv-cats"></div>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Voorlezen gebruikt één stem voor de e-reader, notities, de assistent en andere tools. Kies je een stem in een andere taal, dan onthoudt Tools die per taal: een Engels boek krijgt je Engelse stem.</p>
+      <p>De stemmen met Beste kwaliteit zijn ±67 MB. De compacte stemmen zijn ±21 MB en klinken iets minder zuiver. Stemmen en spraakmodellen staan buiten back-ups en kun je later opnieuw downloaden; downloaden volgt Alleen via wifi bij Modellen.</p>
+      <p id="sv-help-stt">Spraak naar tekst (Whisper) schrijft gesprekken, spraaknotities, Slaappraat en ingesproken vragen aan de assistent uit.</p>
+    </div></details>
   </main>
 </section>

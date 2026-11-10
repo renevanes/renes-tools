@@ -337,7 +337,7 @@ alles kunnen lezen, dat controleert Bouwen en testen):
 | AI-modellen (Qwen3/Qwen3.5 GGUF) | `LocalAi.java` (vaste commit + SHA-256) | Onderhoud: Hugging Face (zelfde maker, zelfde grootte) | agent voegt een nieuw `Model` toe na overleg met Rene (1–3 GB); Rene kiest zelf of hij downloadt |
 | Lokale voorleesbibliotheken (sherpa-onnx/Piper, ONNX Runtime, Apache Ant-codecs) | `tools/voorlezen/deps.json` (URL's, SHA-256, ONNX Runtime-versie; `deps.py` controleert die), licenties in `app/voorlezen/` | Onderhoud: nieuwste sherpa-onnx 1.x (GitHub) + OSV (sherpa-onnx, onnxruntime, ant); sherpa 2 heeft de eSpeak-fonemizer niet meer | agent: vastgezette archieven, SHA-256 en `VoiceEngine.ENGINE` bijwerken; Play-controle (echte Android-synthesetest op API 24/36) moet slagen |
 | espeak-ng en piper-phonemize (in sherpa-onnx, fonemizer voor Piper) | `tools/voorlezen/deps.json` (`csukuangfj/espeak-ng@ed530aa…`, `csukuangfj/piper-phonemize@f3ff95a…`; vorken, espeak-ng 1.52-dev) | Onderhoud: commit gelijk aan `cmake/*.cmake` van de vastgezette sherpa-onnx + OSV (espeak-ng) | komt mee met een nieuwe sherpa-onnx; dan de commits in `deps.json` bijwerken |
-| Voorleesstemmen (Piper int8) | `VoiceModels.java` (grootte + SHA-256), modelkaarten in `app/voorlezen/` | Onderhoud: bestaat het releasebestand nog met dezelfde grootte | alleen op verzoek van Rene; een ander bestand krijgt een eigen id (de app weigert een gewijzigd bestand). De bron is het upstream releaselabel `tts-models` (kan veranderen): Rene kan later een eigen kopie toevoegen met `.withMirror("https://…")` (zelfde bestand en SHA-256, geprobeerd als de bron faalt); agents maken zelf geen releases of uploads |
+| Voorleesstemmen (Piper: int8 = compact, of volledige precisie; een NC-licentie krijgt `.nonCommercial()` en zit niet in de Play-versie) | `VoiceModels.java` (grootte + SHA-256), modelkaarten in `app/voorlezen/` | Onderhoud: bestaat het releasebestand nog met dezelfde grootte | alleen op verzoek van Rene; een ander bestand krijgt een eigen id (de app weigert een gewijzigd bestand). De bron is het upstream releaselabel `tts-models` (kan veranderen): Rene kan later een eigen kopie toevoegen met `.withMirror("https://…")` (zelfde bestand en SHA-256, geprobeerd als de bron faalt); agents maken zelf geen releases of uploads |
 | Spraakmodellen (whisper ggml) | `Transcribe.java` (vaste SHA-256) | niet automatisch: het formaat verandert zelden | alleen op verzoek van Rene |
 | Toiletten-momentopname (OpenStreetMap, ODbL) | release `toiletten-gegevens` (workflow `toiletten-gegevens.yml`, `tools/toiletten/`; Geofabrik-extract met osmium) | Onderhoud: datum in `meta.json` (ouder dan 10 dagen = melding) | vanzelf elke week; agent: als de workflow faalt (oorzaak oplossen, met de hand starten) |
 
@@ -415,6 +415,39 @@ Alles wat nog moet gebeuren staat als GitHub-issue, met een label (REST: `gh api
 één scherm kritisch nalopen: indeling, gebruiksgemak, toegankelijkheid, licht/donker); de eerste van de maand
 Voorstellen (3–5 uitbreidingen als `voorstel`-issue). Vaste opdracht van Rene: ook deze taken publiceren zelf, na
 geslaagde tests en een onafhankelijke review, en melden kort wat er gepubliceerd is (en of er een nieuwe APK nodig is).
+
+## Documentenkluis: centrale opslag, versies en vergelijken
+De Documentenkluis (`Kluis`, scherm `s-kluis`) is de centrale opslag van de PDF-tools (wens van Rene). Alles blijft op de
+telefoon en versleuteld; de sleutel zit in de Android Keystore.
+- **Vanzelf in de kluis** (`web/src/script/49b-kluis-centraal.js`, Java `kluisStore`): wat de PDF-tools maken (plaatjes naar PDF,
+  splitsen, tekst naar PDF, bewerken, Formulieren, ID-kopie) gaat na het maken versleuteld de kluis in; het leesbare bestand in
+  `pdf-out` (Gemaakt) gaat daarna weg. Op slot: eerst ontgrendelen (`kluisUnlock`); geweigerd of mislukt = het bestand blijft
+  onder Gemaakt met "Naar de documentenkluis". Uit te zetten op PDF → Gemaakt (`store` `pdfKluisVanzelf`). Een nieuw
+  PDF-resultaat = `kcNaMaken([{name, title, category, source, link}])` aanroepen; daarna bekijken, delen en opslaan via
+  `kcOpen`/`kcShare`/`kcSave` (die weten of het bestand al in de kluis staat). De Play-versie heeft geen kluis.
+- **Weg van het kluisscherm = op slot** (bestaand gedrag). Een actie vanuit het kluismenu naar een ander scherm (bewerken,
+  vergelijken) start dus éérst de opdracht in Java (die controleert de kluis meteen) en gaat daarna pas naar het andere scherm.
+- **Bekijken in de eigen viewer**: `kluisOpen(id, versie)` ontsleutelt naar `cache/kluis-open` (leeg bij op slot gaan) en opent
+  `PdfViewActivity` met `PdfProvider`-pad `k/<naam>` (alleen zolang de kluis open is; geen kopie in `pdf-view`).
+  `EXTRA_KLUIS` telt alleen als de app de viewer zelf opende (`TOKEN`); "Tekst of handtekening toevoegen" geeft het id door,
+  zodat bewaren een nieuwe versie wordt. Andere bestanden (foto's) openen met een andere app via `KluisProvider`.
+- **Versies** (`Kluis.addVersion`, `restoreVersion`, `blobFile`): een indexregel heeft `versions` (oudste eerst; elk een eigen
+  versleuteld bestand `<blob>.bin`, hooguit `MAX_VERSIONS`), `vnote` (wat de huidige versie is), `source` en `link`. Zuiver deel
+  in `KluisIndex` (`meta`, `clean`, `blobs`; `KluisIndexTest`). "Alle appgegevens" neemt elke versie mee als gewoon kluisbestand
+  (`AppBackup.exportKluis`/`exportKluisBlob`) en `cleanKluisIndex`/`mergeKluis` houden versies alleen als hun bestand er is.
+  "Alles back-uppen" (map Kluis/) bevat alleen de huidige versie. Verwijderen wist ook de versies.
+- **Koppeling met Stamgegevens**: een ID-kopie gemaakt vanaf het documentkaartje van een identiteitsdocument krijgt
+  `link: {kind:"id", ref:<record-id>, soort, ontvanger, doel, datum}` (nooit nummers; `KluisIndex.meta` laat alleen deze velden
+  toe). Het kaartje toont de kopieën via `kluisLinked`. De kaartfoto's gaan van `masterIdCopySource` (Stamgegevens, met
+  Activiteiten-regel "Kaartfoto bekeken" door ID-kopie) alleen via het geheugen van `MainActivity` (`idMasterTake`, een
+  minuut) naar `IdCopy.addImages` (`idCopyTakeMaster`); nooit door de interface. Voorgestelde vlakken: `ID_VOORSTEL` in
+  `67-id-kopie.js` (ruim genomen; de pagina blijft "niet gecontroleerd" tot Rene het aanvinkt).
+- **Vergelijken** (scherm `s-pdfcmp`, `77-vergelijken.js`, `PdfCompare`): A en B uit een bestand, de kluis (ook een oudere
+  versie) of Gemaakt, in `cache/pdf-compare/<uuid>` en weg bij het verlaten van het scherm (`cmpClear`) of bij opstarten
+  (`cleanStale`). Tekst: uit de PDF (Android 15+) of anders de lokale tekstherkenning (`RijbewijsOcr.pageText`), dan per regel
+  en per woord een Myers-diff (begrensd in tijd en geheugen). Beeld: per pagina pixels vergelijken met één pixel speling
+  (rood alleen in A, groen alleen in B). Tekst uit een document altijd als tekst tonen (`textContent`), nooit als HTML.
+  Tests: `PdfCompareTest`, `tests/ui/vergelijken.test.js`, `kluis-centraal.test.js`, `id-kopie-stamgegevens.test.js`.
 
 ## Facturen ophalen (algemeen raamwerk, leveranciers toevoegen)
 Facturen (scherm `s-facturen`, `Facturen*.java`) logt in bij websites van leveranciers en downloadt PDF-facturen, op de

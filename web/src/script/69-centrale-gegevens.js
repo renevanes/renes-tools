@@ -28,7 +28,7 @@ const CM_BLOKKEN={persoon:[['persoon','Persoon',['roepnaam','voornamen','naam','
   formulier:[['kind','Het kind',['formulier','kind','kindDocument','alleen','bsnInvullen']],['begeleiders','Begeleiders',['begeleider1','begeleider1Document','begeleider1Relatie','begeleider2','begeleider2Document','begeleider2Relatie']],['ondertekenen','Ondertekenen',['tekenplaats','handtekening']],['toestemming','Toestemming',['gever1','gever1Document','gever1Instelling','gever2','gever2Document','gever2Instelling']]],
   profiel:[['profiel','App-profiel',['persoon','delen']]]};
 // Een nieuwe persoon begint kort; de rest vul je daarna per blok op het visitekaartje in.
-const CM_NIEUW={persoon:['nieuw','Persoon',['roepnaam','voornamen','naam','geboortedatum']]};
+const CM_NIEUW={persoon:['nieuw','Persoon',['roepnaam','voornamen','naam','geboortedatum','nationaliteit']]};
 // Andere naam in het overzicht (menu ⋯): een eigen blok met alleen die naam
 const CM_NAAM=['naam','Naam in het overzicht',[]];
 // Vaste formuliergegevens en een reis vul je in één keer in (ze horen samen)
@@ -197,24 +197,25 @@ function cmEditorFields(){
       if(!schema.includes(key)||cmiSkip(key)||key==='categorieen'&&cm.edit.fields.documentsoort!=='rijbewijs')continue;
       const label=cmEl('label',t(cm.edit.type==='profiel'&&key==='persoon'?'Dit ben ik':CM_FIELDS[key]),'f');label.htmlFor='cm-field-'+key;
       const ref=cmRefType(cm.edit.type,key),person=!!ref,choices=cmiChoices(key),area=['context','toelichting'].includes(key);
+      // Eigen invoer: rijbewijscategorieën als knoppen, nationaliteit(en) als een of meer keuzelijsten
+      const eigen=key==='categorieen'?cmiCatsEl(label):key==='nationaliteit'?cmiNatEl(label):null;
+      if(eigen){if(!group){group=cmEl('div',undefined,'cm-group');group.dataset.cmTab=blok[0];if(all&&tabs.length>1)group.append(cmEl('h3',cmBlokTitle(blok,cm.edit),'cm-blok-h'));box.append(group);}group.append(label,eigen);continue;}
       const input=cmData(cmEl(person||choices?'select':area?'textarea':'input',undefined,'search'));input.id=label.htmlFor;input.name=key;
       if(person){
         const empty=cmEl('option',t(ref==='identiteit'?'Kies een document':ref==='organisatie'?'Geen instelling':'Kies een persoon'));empty.value='';input.append(empty);
         const owner=ref==='identiteit'?cm.edit.fields[key.slice(0,-8)]||'':'';
         cm.records.filter(r=>r.type===ref&&(ref!=='identiteit'||!!owner&&r.person===owner)).forEach(r=>{const o=cmData(cmEl('option',r.label));o.value=r.id;input.append(o);});
       }else if(choices){
-        let og=null;
-        for(const [value,text,name] of choices){const o=cmEl('option',text);o.value=value;if(name&&og?.label!==name){og=cmEl('optgroup');og.label=name;input.append(og);}(name?og:input).append(o);}
-        const old=cm.edit.fields[key];if(old&&!choices.some(c=>c[0]===old)){const o=cmData(cmEl('option',old));o.value=old;input.append(o);}
+        cmiVulKeuzes(input,choices,cm.edit.fields[key],key);
       }else{input.autocomplete='off';input.maxLength=key==='bsn'?9:240;if(!area)input.type=CM_MASK.has(key)?'password':['geboortedatum','van','tot','geldig','afgifte'].includes(key)?'date':key==='email'?'email':key==='telefoon'?'tel':'text';else input.rows=key==='context'?4:3;if(key==='bsn')input.inputMode='numeric';}
-      input.value=cm.edit.fields[key]||'';input.addEventListener(person||choices?'change':'input',()=>{cm.edit.fields[key]=input.value;cmDirty();if(cm.edit.type==='formulier'&&ref==='persoon')cmiFormPerson(key);if(cm.edit.type==='relatie')cmiRelationChange(key);if(key==='documentsoort')cmEditorFields();});
+      input.value=cm.edit.fields[key]||'';input.addEventListener(person||choices?'change':'input',()=>{if(choices&&input.value===CMI_ANDERS){input.value=cm.edit.fields[key]||'';cmiAnders(key,v=>{cm.edit.fields[key]=v;cmDirty();cmEditorFields();$('#cm-field-'+key)?.focus();});return;}cm.edit.fields[key]=input.value;cmDirty();if(cm.edit.type==='formulier'&&ref==='persoon')cmiFormPerson(key);if(cm.edit.type==='relatie')cmiRelationChange(key);if(key==='documentsoort')cmEditorFields();});
       if(!group){group=cmEl('div',undefined,'cm-group');group.dataset.cmTab=blok[0];if(all&&tabs.length>1)group.append(cmEl('h3',cmBlokTitle(blok,cm.edit),'cm-blok-h'));box.append(group);}
       group.append(label,input);
     }
   }cmiEditor();cmTabRender();
 }
 function cmShowSecret(show){CM_MASK.forEach(key=>{const input=$('#cm-field-'+key);if(input)input.type=show?'text':'password';});cmTouch();}
-function cmBusy(busy){cm.mutating=busy;$('#cm-save').disabled=busy;$('#cm-edit-menu').disabled=busy;document.querySelectorAll('#cm-fields input,#cm-fields select,#cm-fields textarea,#cmh-panel button,#cmh-list input:not([data-same]),#cmi-photos button,#cm-kaart button,#cm-ai-set button,#cm-ai-mensen button').forEach(e=>e.disabled=busy);$('#cm-label').disabled=busy;}
+function cmBusy(busy){cm.mutating=busy;$('#cm-save').disabled=busy;$('#cm-edit-menu').disabled=busy;document.querySelectorAll('#cm-fields input,#cm-fields select,#cm-fields textarea,#cm-fields .cmi-cats button,#cm-fields .cmi-nat-meer,#cmh-panel button,#cmh-list input:not([data-same]),#cmi-photos button,#cm-kaart button,#cm-ai-set button,#cm-ai-mensen button').forEach(e=>e.disabled=busy);$('#cm-label').disabled=busy;}
 const CM_ERR_FIELD={'Vul een naam voor het overzicht in':'cm-label','Kies bij welke begeleider je handtekening komt':'cm-field-handtekening','Kies voor je handtekening een begeleider die meereist':'cm-field-handtekening','Het kind reist alleen: kies bij je handtekening Nergens':'cm-field-handtekening','Je bewaarde handtekening is van jou: kies bij Vaste gegevens → Ondertekenen de begeleider die jij bent':'cm-field-handtekening','Kies een gekoppelde persoon':'cm-field-persoon','Kies een geldige relatie':'cm-field-relatie','Een relatie hoort bij twee verschillende personen':'cm-field-naarPersoon','Kies een status die bij deze relatie past':'cm-field-status','Vul een geldig BSN in':'cm-field-bsn',
   'Kies in de vaste gegevens het kind dat reist':'cm-field-kind','Kies in de vaste gegevens wie toestemming geeft':'cm-field-gever1','Kies in de vaste gegevens wie meereist, of kies dat het kind alleen reist':'cm-field-begeleider1',
   'Kies twee verschillende begeleiders':'cm-field-begeleider2','Kies twee verschillende toestemmingsgevers':'cm-field-gever2','Kies voor welk formulier deze vaste gegevens zijn':'cm-field-formulier'};

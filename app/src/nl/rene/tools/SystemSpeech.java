@@ -25,7 +25,7 @@ import java.util.Locale;
 final class SystemSpeech {
     private SystemSpeech() { }
     interface Sink { void event(JSONObject o); }
-    static final String NO_ENGINE = Taal.T("Je telefoon heeft geen voorleesstem die zonder internet werkt. Download een lokale stem bij Lokaal voorlezen.");
+    static final String NO_ENGINE = Taal.T("Je telefoon heeft geen voorleesstem die zonder internet werkt. Download een lokale stem bij Instellingen → Spraak.");
     static final String BUSY_AUDIO = "Voorlezen kan nu niet: er is iets anders bezig met geluid (bijvoorbeeld een gesprek).";
     private static Handler h;
     private static synchronized Handler h() { if (h == null) h = new Handler(Looper.getMainLooper()); return h; }

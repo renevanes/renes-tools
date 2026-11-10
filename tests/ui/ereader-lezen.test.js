@@ -101,7 +101,7 @@ const SHOTS=process.env.ER_SHOTS||path.join(__dirname,'shots');
   ok(await page.locator('#er-tts-panel').isVisible()&&await page.locator('#er-tts-novoice').isVisible()&&await page.evaluate(()=>Android._speech.said.length===0&&!sp.settings),'nog geen stem: korte uitleg in het paneel, geen audio of download');
   await page.click('#er-tts-novoice button');
   ok(await page.evaluate(()=>sp.settings&&current==='erbook'&&!document.querySelector('#er-tts-panel.on'))&&await page.locator('#speech-heading').isVisible(),'knop opent de gedeelde stemkiezer zonder het boek te verlaten');
-  await page.locator('#speech-voices .speech-voice').first().getByRole('button',{name:'Stem downloaden',exact:true}).click();await page.waitForFunction(()=>Android._speech.voices[0].state==='ready'&&Android._speech.voice);await page.evaluate(()=>spSettingsClose());
+  await page.locator('#speech-voices [data-voice="tts-nl-ronnie"] button:has-text("Downloaden")').click();await page.waitForFunction(()=>Android._speech.voices[0].state==='ready'&&Android._speech.voice);await page.evaluate(()=>spSettingsClose());
   ok(await page.evaluate(()=>current==='erbook'&&!document.getElementById('s-erbook').inert),'stem gekozen, terug in het boek');
   await page.evaluate(()=>erControls(true));const from=await page.evaluate(()=>erAnchor());await page.click('#er-speak');await page.waitForFunction(()=>sp.active&&sp.active.state==='playing');
   ok(await page.evaluate(a=>{const l=Android._speech.said.slice(-1)[0];return l.source==='reader'&&l.chapter===0&&l.offset<=a&&(l.offset===0||/[.!?]\s$/.test(erText.slice(l.offset-2,l.offset)))&&!/[.!?]\s/.test(erText.slice(l.offset,a));},from),'begint bij de eerste zichtbare zin (ook als die op de vorige pagina begon)');

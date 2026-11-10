@@ -63,7 +63,7 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>{openTool('pdf');});await p.getByRole('button',{name:'Formulieren invullen',exact:true}).click();
   await p.click('#fmq-start');await T.slot();await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden&&fmq.records.length===1);
   const later=await p.evaluate(()=>new Date(Date.now()+60*864e5).toISOString().slice(0,10));
-  await p.fill('#fmq-van',soon);await p.fill('#fmq-tot',later);await p.fill('#fmq-land','Spanje');await p.click('#fmq-ga');
+  await p.fill('#fmq-van',soon);await p.fill('#fmq-tot',later);await p.selectOption('#fmq-land','Spanje');await p.click('#fmq-ga');
   await p.waitForFunction(()=>!fmq.open&&!$('#pff-verloop').hidden);
   assert.match(await p.textContent('#pff-verloop'),/^Paspoort Zoë is vóór het einde van de reis niet meer geldig/,'zonder vinkje geen datum');
   assert.doesNotMatch(await p.textContent('#pff-verloop'),/NX12345|IA999/,'geen documentnummers');

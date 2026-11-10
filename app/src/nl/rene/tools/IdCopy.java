@@ -102,6 +102,31 @@ final class IdCopy {
         return new JSONObject().put("revision", revision).put("pages", pages.size());
     }
 
+    /** Kaartfoto's (JPEG) uit Stamgegevens als pagina's; de bytes worden daarna gewist. Zelfde werkmap en grenzen als kiezen. */
+    synchronized JSONObject addImages(Context c, List<byte[]> images) throws Exception {
+        if (closed) throw new Exception(Taal.T("Kies de ID-kopie opnieuw"));
+        cleanStale(c); retryPending();
+        if (images == null || images.isEmpty()) return new JSONObject().put("cancelled", true);
+        if (pages.size() + images.size() > MAX_PAGES) throw new Exception(Taal.T("Kies maximaal vier pagina's"));
+        if (dir == null) { dir = new File(c.getCacheDir(), "id-copy-" + java.util.UUID.randomUUID()); if (!dir.mkdirs()) throw new Exception(Taal.T("Werkbestand maken lukt niet")); }
+        List<Source> added = new ArrayList<>();
+        try {
+            for (byte[] b : images) {
+                File f = new File(dir, java.util.UUID.randomUUID().toString());
+                try (FileOutputStream o = new FileOutputStream(f)) { o.write(b); }
+                BitmapFactory.Options o = new BitmapFactory.Options(); o.inJustDecodeBounds = true; BitmapFactory.decodeFile(f.getPath(), o);
+                if (o.outWidth <= 0 || o.outHeight <= 0) { f.delete(); throw new Exception(Taal.T("Kies een leesbare foto of PDF")); }
+                added.add(new Source(f, -1));
+            }
+        } catch (Throwable e) {
+            for (Source s : added) s.file.delete();
+            if (e instanceof Exception) throw (Exception) e;
+            throw new Exception(Taal.T("Dit bestand is te groot of niet leesbaar"));
+        } finally { for (byte[] b : images) java.util.Arrays.fill(b, (byte) 0); }
+        pages.addAll(added); revision = java.util.UUID.randomUUID().toString();
+        return new JSONObject().put("revision", revision).put("pages", pages.size());
+    }
+
     private static boolean isPdf(File f) throws Exception {
         byte[] header = new byte[5];
         try (FileInputStream in = new FileInputStream(f)) { return in.read(header) == 5 && "%PDF-".equals(new String(header, java.nio.charset.StandardCharsets.US_ASCII)); }

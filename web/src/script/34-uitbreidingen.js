@@ -96,7 +96,7 @@ window.onRadioClip = function(r){ toast(r ? r : 'Fragment bewaard in Radio/'); }
 function enterKluis(){ klRender(); }
 /** Open zonder vraag als dat mag: Java opent vóór het antwoord (net ontgrendeld op het slotscherm, of extra
  *  ontgrendelen uit); anders onKluis('vraag'). Niet onder het app-slot of een slotscherm. */
-function klVanzelf(){ if (current !== 'kluis' || !tsVanzelfMag()) return false; Android.kluisOpen(); return true; }
+function klVanzelf(){ if (current !== 'kluis' || !tsVanzelfMag()) return false; Android.kluisUnlock(); return true; }
 function klLijst(){ try { return JSON.parse(Android.kluisList()); } catch(e){ return { locked: true }; } }
 function klMsg(text){ const e = $('#kl-msg'); e.textContent = text || ''; e.hidden = !text; }
 // Na het app-slot of het slotscherm (dat ook over de kluis kan komen als je de app even verliet, of dat van een andere tool
@@ -129,22 +129,25 @@ function klRender(){
   $('#kl-empty').textContent=docs.length?'Geen documenten bij deze zoekopdracht of filters.':'Nog leeg. Voeg een document, foto of PDF toe.';
   $('#kl-count').textContent=tn(docs.length, '{k} van {n} document', '{k} van {n} documenten', { k: shown.length });
   const ic=m=>uiIcon(/pdf/.test(m)?'document':/^image/.test(m)?'image':'folder');
-  $('#kl-list').innerHTML=shown.map(x=>'<button class="trip" data-id="'+esc(x.id)+'" onclick="klMenu(this.dataset.id)"><span><b>'+ic(x.mime||'')+' '+esc(x.name)+'</b><small>'+(x.favorite?t('★ Favoriet')+' · ':'')+esc(x.category||t('Zonder categorie'))+' · '+esc(fmtB(x.size||0))+' · '+esc(fmtDate(x.t, {day:'numeric',month:'short',year:'numeric'}))+'</small>'+(x.note?'<small class="kl-doc-note">'+esc(x.note)+'</small>':'')+'</span><span aria-hidden="true">›</span></button>').join('');
+  $('#kl-list').innerHTML=shown.map(x=>'<button class="trip" data-id="'+esc(x.id)+'" onclick="klMenu(this.dataset.id)"><span><b>'+ic(x.mime||'')+' '+esc(x.name)+'</b><small>'+(x.favorite?t('★ Favoriet')+' · ':'')+esc(x.category||t('Zonder categorie'))+' · '+esc(klSub(x))+' · '+esc(fmtDate(x.t, {day:'numeric',month:'short',year:'numeric'}))+'</small>'+(x.note?'<small class="kl-doc-note">'+esc(x.note)+'</small>':'')+'</span><span aria-hidden="true">›</span></button>').join('');
   klRender.docs=docs;
 }
 window.onKluis = function(r){
   if (r === 'vraag') { klVraag(); return; }
   if (r !== true) klMsg(r);
-  if (pdfKeepPending) pdfKeepUnlocked(r);
   if (current === 'kluis') klRender();
 };
-/** De kluis kan nu niet open zonder ontgrendeling: het slotscherm, over de kluis of over het bewaren van een PDF. */
+/** De kluis kan nu niet open zonder ontgrendeling: het slotscherm, over de kluis of over wat de PDF-tools willen bewaren. */
 function klVraag(){
   const geen = t('Stel eerst een schermvergrendeling in op je telefoon (pincode, patroon of vingerafdruk)');
-  if (pdfKeepPending) { if (!tsVraag('kluis', () => Android.kluisOpen(), () => pdfKeepUnlocked(false))) pdfKeepUnlocked(geen); return; }
-  if (current === 'kluis' && !tsVraag('kluis')) klMsg(geen); // na ontgrendelen opent onToolSlot hierboven hem
+  const terug = () => {
+    if (typeof kc !== 'undefined' && kc.wacht) { kc.wacht = false; clearTimeout(kc.wachtT); kcMislukt('Kluis niet ontgrendeld'); }
+    if (typeof klDan !== 'undefined' && klDan) { klDan = null; toast(geen); }
+  };
+  // Op het kluisscherm zelf: terug verlaat de kluis. Elders (PDF bewaren): terug maakt het bewaren ongedaan.
+  if (!tsVraag('kluis', () => Android.kluisUnlock(), current === 'kluis' ? null : terug)) { if (current === 'kluis') klMsg(geen); else terug(); }
 }
-window.onKluisChanged = function(r){ toast(r === 'ok' ? 'Toegevoegd aan de kluis' : r); if (current === 'kluis') klRender(); };
+window.onKluisChanged = function(r){ toast(r === 'ok' ? t('Toegevoegd aan de kluis') : t(r)); if (current === 'kluis') klRender(); };
 function klLock(){ Android.kluisClose(); klRender(); }
 // Ontsleutelen kan bij een groot document even duren; de balk gaat weg zodra de keuze van de app (of een fout) verschijnt.
 function klView(id){
@@ -152,12 +155,4 @@ function klView(id){
   setTimeout(klaar, 60000);
   Android.kluisView(id);
 }
-function klMenu(id){
-  const x = (klRender.docs || []).find(d => d.id === id); if (!x) return;
-  openSheet(x.name, fmtB(x.size || 0), [
-    ['Bekijken', () => klView(id)],
-    ['Categorie en toelichting', () => klOrganizeOpen(id)],
-    [x.favorite?'Uit favorieten halen':'Als favoriet markeren', () => klFavorite(id)],
-    ['Naam wijzigen', () => askInput('Naam', '', x.name, 'Opslaan', v => { const e = Android.kluisRename(id, v); if (e) toast(e); klRender(); })],
-    ['Verwijderen', () => askConfirm('Uit de kluis verwijderen?', t('"{naam}" wordt definitief gewist.', { naam: x.name }), 'Verwijderen', () => { const e = Android.kluisDelete(id); toast(e || 'Verwijderd'); klRender(); })]]);
-}
+function klMenu(id){ klDocSheet(id); } // het menu staat in 49b-kluis-centraal.js (bekijken, bewerken, versies, vergelijken …)

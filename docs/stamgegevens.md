@@ -23,6 +23,15 @@ De schermen zijn kort gehouden, zodat je op de telefoon weinig hoeft te scrollen
 - **Namen ontstaan vanzelf**: bij een persoon roepnaam (of eerste voornaam) en achternaam, bij een document "Paspoort Anna", bij een relatie een korte zin met beide namen, bij een reis "Reis van {datum}", bij vaste gegevens "Reistoestemming Anna". Een naam die gelijk is aan zo'n automatische naam telt als automatisch en loopt mee als je iets wijzigt. Een echt andere naam (zoals "Mama") kies je met **⋯ → Andere naam in het overzicht**; die blijft staan.
 - Tussen deze schermen blijft de kluis open; zie "Vergrendelen en bewaren".
 
+## Keuzelijsten: nationaliteit, land en rijbewijscategorieën
+
+- **Nationaliteit** (persoon), **Land** (persoon, adres, organisatie, reis) en **Land van afgifte** (document) zijn keuzelijsten met alle landen (`web/src/script/02-landen.js`). Bovenaan staat het land uit je regio onder *Jouw regio*, daarna alle landen of nationaliteiten op alfabet, en onderaan **Anders… (zelf typen)** voor wat er niet bij staat (een oude landnaam op een document, een vreemdelingenpaspoort). Bewaard wordt de Nederlandse tekst ("Nederlandse", "Nederland"), net als wat de herkenning van de strook geeft; in het Engels toont de app de Engelse naam. Een eerder ingevulde tekst die niet in de lijst staat, staat bovenaan onder *Zoals ingevuld*.
+- **Dubbele nationaliteit**: met **Nog een nationaliteit** komt er een tweede keuzelijst bij (bewaard als "Nederlandse, Marokkaanse", zoals het formulier *Nationaliteit(en)* het gebruikt); **Weghalen** haalt hem weer weg.
+- **Standaard**: een nieuwe persoon krijgt de nationaliteit en een nieuw adres het land van je regio; beide staan in beeld bij het invullen. Dat land volgt uit je standaardplaats (Regio en taal), anders de regio van de telefoon (nl-NL; telt alleen bij een land uit de lijst met bekende tijdzones, dus niet de toestelstandaard en-US), anders de tijdzone (Europe/Amsterdam = Nederland). Op reis verandert het dus niet zolang je telefoon op nl-NL staat. Geen standaard voor het land van afgifte, het land van een organisatie en een reis. Bestaande gegevens veranderen niet.
+- **Herkennen**: staat bij de persoon nog de standaardnationaliteit van je regio, dan is de herkende nationaliteit wel aangevinkt (met "nu: …"); een nationaliteit die er al tussen staat, telt als "staat er al". Codes uit de strook die Mrz.java niet bij naam kent (SYR, XXA, GBD) worden de naam uit de lijst (Syrië, Staatloos, Britse).
+- Het land van een contact ("Netherlands", "NL") wordt bij het overnemen de naam uit de lijst. Bij **Formulieren** is het land van bestemming ook een keuzelijst.
+- **Rijbewijscategorieën** zijn knoppen (AM t/m DE en T) die je aan- en uitzet; bewaard als "AM, B, BE". Een andere code die er al stond, blijft als knop staan; een oude vrije tekst die niet alleen uit codes bestaat ("B (code 78)") blijft een tekstveld.
+
 ## Jezelf, je mensen en relaties
 
 Er is één *ik*: de persoon in het app-profiel. Die stel je in met **Begin met jezelf** (uit Contacten of zelf invullen; na opslaan ben jij het), met **Ik sta er al tussen**, of op het kaartje van een persoon met **⋯ → Dit ben ik**.

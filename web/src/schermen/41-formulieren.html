@@ -99,10 +99,11 @@
         <p class="note" id="pff-klaar"></p>
         <p id="pff-bestand" translate="no"></p>
         <div class="row pff-navigatie">
-          <button class="big ghost" onclick="Android.pdfOpen(fm.bestand)">Bekijken en afdrukken</button>
-          <button class="big" onclick="Android.pdfSave(fm.bestand)">Opslaan als…</button>
-          <button class="big ghost" onclick="Android.pdfShare(JSON.stringify([fm.bestand]))">Delen</button>
+          <button class="big ghost" onclick="kcOpen(fm.bestand)">Bekijken en afdrukken</button>
+          <button class="big" onclick="kcSave(fm.bestand)">Opslaan als…</button>
+          <button class="big ghost" onclick="kcShare(fm.bestand)">Delen</button>
         </div>
+        <p class="note kcstatus" role="status" aria-live="polite"></p>
       </div>
     </div>
   </main>
@@ -124,7 +125,7 @@
       <label class="f" for="fmq-tot">Laatste reisdag *</label>
       <input class="search" id="fmq-tot" type="date" required>
       <label class="f" for="fmq-land">Land bestemming *</label>
-      <input class="search" id="fmq-land" maxlength="200" required translate="no">
+      <select class="search" id="fmq-land" required translate="no"></select>
       <label class="f" for="fmq-plaats">Plaats bestemming</label>
       <input class="search" id="fmq-plaats" maxlength="200" translate="no">
       <label class="f" for="fmq-datum">Datum ondertekening begeleiders</label>

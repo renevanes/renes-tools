@@ -7,7 +7,7 @@ for(const colorScheme of ['light','dark']){
   await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);const T=require('./_stamtabs')(p);
   await p.evaluate(()=>{Android._cm.contacts={
     ik:{weergave:'Rene van Es',fields:{voornamen:'Rene',naam:'van Es',telefoon:'010 123 4567'}},
-    c1:{weergave:'Anna de Vries',fields:{voornamen:'Anna',naam:'de Vries',telefoon:'06 1234 5678',email:'anna@voorbeeld.nl',adres:'Straat 1',postcode:'3011 AA',plaats:'Rotterdam',geboortedatum:'2015-02-03'}}};});
+    c1:{weergave:'Anna de Vries',fields:{voornamen:'Anna',naam:'de Vries',telefoon:'06 1234 5678',email:'anna@voorbeeld.nl',adres:'Straat 1',postcode:'3011 AA',plaats:'Rotterdam',land:'Netherlands',geboortedatum:'2015-02-03'}}};});
   await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
   const kaartTekst=()=>p.textContent('#cm-kaart');
   const herlaad=async id=>{await p.evaluate(id=>cmKaartLoad(id),id);await p.waitForFunction(id=>current==='cmkaart'&&cmc.rec?.id===id&&!cm.pending.size&&!cm.navigating,id);};
@@ -30,7 +30,7 @@ for(const colorScheme of ['light','dark']){
   assert.match(await p.textContent('#sheet-sub'),/naam, telefoon, e-mail, adres en verjaardag/);
   await p.locator('#sheet-acts').getByRole('button',{name:'Kies uit Contacten',exact:true}).click();
   await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.fields?.contact==='c1');
-  assert.deepEqual(await p.evaluate(()=>{const f=cm.edit.fields;return [f.voornamen,f.naam,f.geboortedatum,f.telefoon,f.email,f.adres,f.postcode,f.plaats];}),['Anna','de Vries','2015-02-03','06 1234 5678','anna@voorbeeld.nl','Straat 1','3011 AA','Rotterdam']);
+  assert.deepEqual(await p.evaluate(()=>{const f=cm.edit.fields;return [f.voornamen,f.naam,f.geboortedatum,f.telefoon,f.email,f.adres,f.postcode,f.plaats,f.land];}),['Anna','de Vries','2015-02-03','06 1234 5678','anna@voorbeeld.nl','Straat 1','3011 AA','Rotterdam','Nederland']);
   await p.click('#cm-save');await p.waitForFunction(()=>current==='cmkaart'&&cmc.rec?.label==='Anna de Vries'&&!cm.navigating&&!cm.mutating);
   const anna=await p.evaluate(()=>cmc.rec.id);
   assert.match(await p.textContent('#cmc-wie'),/Mijn kind/);
