@@ -182,6 +182,15 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   afschriften, foto's), gebruik dan `Voortgang` in Java: `try (Voortgang v = Voortgang.van(a, "soort", aantal)) { … v.open(c, uri) … v.stap("verwerken", 0, 0) … }`.
   De interface toont dan vanzelf de balk onderin (`uiVoortgang` in `02-patronen.js`; nieuwe soort = een kop in `uiVgWat`).
   Alleen stappen en aantallen, nooit namen. Test: `tests/ui/voortgang.test.js`, `VoortgangTest`.
+  Duurt een stap hooguit een bekende tijd (herkennen met een tijdslimiet): `v.tijd("herkennen", ms)`, de balk loopt dan met de klok mee.
+- **Wachten: altijd zichtbaar waarom.** Moet Rene langer dan een tel wachten, dan ziet hij wat er gebeurt, niet alleen een
+  melding of een stilstaande tekst. Kies (in `02-patronen.js`, test `tests/ui/wachten.test.js`):
+  een statusregel die al zegt waarop je wacht → `uiWachtTekst(el, t('Zoeken…'))` (lopende balk eronder, gaat vanzelf weg zodra
+  de tekst iets anders wordt) of de klasse `wacht` op een plaatshouder die bij het antwoord vervangen wordt
+  (`'<p class="note wacht">Laden…</p>'`); geen eigen plek → `uiBezig(t('Bezig met openen…'), 'onArchive')` (de balk onderin,
+  weg zodra die terugroepfunctie komt); een brugfunctie die de interface vasthoudt (exporteren) →
+  `uiBezigNu(t('…'), () => Android.…()).then(r => …)`; een venster met eigen voortgang → `uiWacht(el, tekst, deel)` (zoals
+  de handtekening uit een foto). Lang rekenen in JavaScript in stukjes doen (`await`), anders staat alles stil.
 - **Handtekening**: er is één handtekening voor de hele app (Stamgegevens, PDF, Formulieren). Gebruik altijd
  `web/src/script/02-handtekening.js`: `sigTeken({plaatsen, bewaard})` (het gedeelde tekenvenster), `sigLoad`/`sigHuidig`,
  `sigSave`, `sigVraagWeg`, `sigPaint`/`sigPreview`/`sigCanvas` en `sigWatch`; uit een foto of bestand: `sigFoto` (Java
