@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.182",
-  "versionCode": 183,
-  "nativeLevel": 162,
+  "versionName": "1.183",
+  "versionCode": 184,
+  "nativeLevel": 163,
   "web": "index.html",
-  "webSha256": "7f0c7262eef2fb82a5e984c4edd9ced1d621085b36b4c1af51f47a9fcfbbf406",
+  "webSha256": "8cc01c4560ac17a0980bd5063c8277b53ed682133748ceb4317f2bbc341e04af",
   "start": "start.html",
   "startSha256": "eb96929e99cefd1937525b8c0c5d0ed8979828dcbe88a9789da523294b6331be",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "964711d2cd2c032e6c2b3b392ccc82cc8ce2966e6d26be38e216fc4793ed29c5",
+  "apkSha256": "111686d47602e795fb94c7f528cf84776ba58d87c50b8982846508493b4f3cde",
   "changelog": [
+    {
+      "version": "1.183",
+      "date": "2026-11-10",
+      "changes": [
+        "Extra ontgrendelen: nu ook voor Kluis, Bankzaken en Stamgegevens aan of uit te zetten (Instellingen → Extra ontgrendelen, of de tegel lang indrukken). Uit = geen eigen vraag meer: de kluis opent meteen en blijft versleuteld; Bankzaken en Stamgegevens openen zonder vraag als je telefoon net ontgrendeld is, anders vragen ze het toch."
+      ]
+    },
     {
       "version": "1.182",
       "date": "2026-11-09",
@@ -1615,5 +1622,5 @@
       ]
     }
   ],
-  "webSig2": "NZQwxl1zwLDRYNUfEqubjOjO/we7ndqdlxflzKE9RzYGvp2+y32nFm+Wr+CUq5Pje8adAsFEyOZ3evVnvZqYxb1YOY0Y7VkjkhuxkErNIy3uAeXrcSUkGpltkqOzRV9W6SGD+lXP3fEMaRhe+MzDKJU6vAuZDdo3nMpJHbi8yofypc3S4Ma4w3ez4GXwWp4xenXJtSSH1vrXIreiAgRk1PTNpsz+ZvjmpwoYlPf8BF0tCh+E9EV7MvpNd+wKe4+ow6mUge5a6Np62l3roaF5RnwRqRSsUKDgBSRBPuKW1fYAJI6/o4GOq1rLP1bPf709RobwsviMYKfT4DZXl8oPcVUl29Jia4YV/JTbBCvnWBw62zpr82S3Mm16zUW/2Gtcx1b9eM/dMJvAGffVMjzYwfz3sH41+A1fm6sjH6FKlJb4x50Jlk1GTjBkaF0hOwsiwEiv7txtEyETsu0sCR7q7dmPZcOGzoA27qd3PsZJrzhWnOQDhqWyiRrwfXi1qJy1"
+  "webSig2": "djyBDxng+KN/UO0dGM/BKwpi6HZBdcOXUEuT0X0eQi0SDHdgG13mjpCQ30wARIGUS7UeCMkZG+XgX7Ls2ksva4DBBVsfWQFkcPJexgErWT2yTriqEOMVWkafBuIcJDYSKBTJxx89JI1o1hS6VdUeGI67OTPo1HzjRA67k7fCy6661zclw6BwELx2yeoJHl9IeAD53n59F1gNp+jdq8nCa/Q/N8r4bkq3PCqYelk0pqLbnXySWPy3vVg8Gz8ja6JMpAqTe+0gLT5/ibOvhupzsLtkVHh29vFJ32OpurhqrU20W5kJmIDXBas1ZEWAzYallmvfiZ89G5I5SHgIAQy9t/eyGYTHnOgw5CHkZnFvYBNRSFrj0aLokNXvaeQAHnAwRgk3YPzPdamVrS4uFr2M+XFdDPyM1+B/DFhKjVb3ZCPMrC+UIsUw3eZtAORa9cRMrIvTM13h351EcdXpwN9/dUR/w6KTgIRakqKOyAcw9Fc9FtfAU5eYkpR/FZZ24H1Q"
 }
