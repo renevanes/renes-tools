@@ -258,7 +258,7 @@ function openSheet(title, sub, acts, onDismiss){
   $('#sheet').classList.add('on');
   dialogFocus.sync();
 }
-function closeSheet(){ const s = document.getElementById('sheet'); if (s) s.classList.remove('on'); if (typeof dialogFocus !== 'undefined') dialogFocus.sync(); const d = sheetDismiss; sheetDismiss = null; if (d) d(); }
+function closeSheet(){ const s = document.getElementById('sheet'); if (s) s.classList.remove('on'); const sub = document.getElementById('sheet-sub'); if (sub && sub.dataset.wacht !== undefined) uiWachtUit(sub); if (typeof dialogFocus !== 'undefined') dialogFocus.sync(); const d = sheetDismiss; sheetDismiss = null; if (d) d(); }
 
 window.openTool = function(n){
   if (n === 'share') { noteFromShare(); return; }

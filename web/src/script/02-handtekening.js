@@ -137,7 +137,7 @@ async function sigLijnenStappen(gray,w,h,adem){
   for(const i of open)dik[i]=0;
   b=dik;const voor=b.slice();await adem(.35);
   // Uitdunnen (Zhang-Suen) tot lijnen van één pixel; de eerste ronde haalt het meeste weg, daarop de voortgang
-  let eerste=0;
+  let eerste=0,dun=.35;
   for(let veranderd=true,ronde=0;veranderd&&ronde<200;ronde++){veranderd=false;let rond=0;
     for(const stap of [0,1]){const weg=[];
       for(let y=1;y<wh-1;y++)for(let x=1;x<ww-1;x++){const i=y*ww+x;if(!b[i])continue;
@@ -145,7 +145,7 @@ async function sigLijnenStappen(gray,w,h,adem){
         let overgangen=0;for(let k=0;k<8;k++)if(!p[k]&&p[(k+1)%8])overgangen++;if(overgangen!==1)continue;
         if(stap===0?(p[0]*p[2]*p[4]||p[2]*p[4]*p[6]):(p[0]*p[2]*p[6]||p[0]*p[4]*p[6]))continue;weg.push(i);}
       for(const i of weg)b[i]=0;if(weg.length)veranderd=true;rond+=weg.length;}
-    if(!ronde)eerste=Math.max(1,rond);await adem(.35+.5*Math.min(1,1-rond/eerste));
+    if(!ronde)eerste=Math.max(1,rond);dun=Math.max(dun,.35+.5*Math.min(1,1-rond/eerste));await adem(dun);
   }
   // Zhang-Suen laat een klein rond stuk (de punt op de i) soms helemaal verdwijnen: dan blijft het middelste pixel staan
   const lbl=new Uint8Array(ww*wh);

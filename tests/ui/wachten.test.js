@@ -26,6 +26,14 @@ for(const colorScheme of ['light','dark']){
   await p.waitForSelector('#vg',{state:'visible'});assert.equal(await p.textContent('#vg-wat'),'Bezig met openen…');
   await p.waitForSelector('#vg',{state:'hidden'});
   await p.evaluate(()=>closeSheet());
+  // Herstel → oudere backup: dat antwoord komt via onArchive (het menu met keuzes), daar gaat de balk weg.
+  await p.evaluate(()=>{const o=Android.archiveOpen;Android.archiveOpen=function(pw){Android.archiveOpen=o;setTimeout(()=>o.call(Android,pw),700);};hsName='oud.rtb';hsPwOld='goedwachtwoord';hsOld();});
+  await p.waitForSelector('#vg',{state:'visible'});await p.waitForSelector('#vg',{state:'hidden'});
+  assert.equal(await p.evaluate(()=>$('#sheet').classList.contains('on')),true,'het menu staat er, de balk niet meer');
+  await p.evaluate(()=>closeSheet());
+  // Een menu dat dichtgaat terwijl het nog zoekt (Chromecast), laat geen lopende balk achter.
+  await p.evaluate(()=>{openSheet('Waar speelt het?','',[]);uiWachtTekst($('#sheet-sub'),t('Zoeken naar Chromecasts in je wifi…'));closeSheet();});
+  assert.equal(await p.evaluate(()=>$('#sheet-sub').classList.contains('wacht')),false);
 
   // 2. uiBezigNu: de balk staat er al voordat de (trage) brugfunctie begint, en gaat daarna weg.
   const nu=await p.evaluate(async()=>{let zichtbaar=null;const r=await uiBezigNu(t('Notities opslaan…'),()=>{zichtbaar=!$('#vg').hidden&&$('#vg-wat').textContent;return 'ok:3';});return [zichtbaar,r,$('#vg').hidden];});
@@ -35,13 +43,14 @@ for(const colorScheme of ['light','dark']){
 
   // 3. uiWachtTekst: lopende balk onder de regel; weg zodra de tekst iets anders wordt (antwoord of fout).
   await p.evaluate(()=>{const e=document.createElement('p');e.id='proef-st';document.querySelector('#s-home').append(e);uiWachtTekst(e,t('Zoeken…'));});
-  assert.deepEqual(await p.evaluate(()=>{const e=$('#proef-st');return [e.textContent,e.classList.contains('wacht'),e.getAttribute('aria-busy')];}),['Zoeken…',true,'true']);
+  // Geen aria-busy: dan zou een schermlezer de regel (een live-gebied) juist niet voorlezen.
+  assert.deepEqual(await p.evaluate(()=>{const e=$('#proef-st');return [e.textContent,e.classList.contains('wacht'),e.hasAttribute('aria-busy')];}),['Zoeken…',true,false]);
   const css=await p.evaluate(()=>{const s=getComputedStyle($('#proef-st'),'::after');return [s.animationName,s.position,parseFloat(getComputedStyle($('#proef-st')).paddingBottom)];});
   assert.equal(css[0],'wachtLoop');assert.equal(css[1],'absolute');assert.ok(css[2]>=10,'ruimte voor de balk');
   await p.evaluate(()=>uiWachtTekst($('#proef-st'),t('Bijwerken… 3 van 10')));await p.waitForTimeout(30);
   assert.equal(await p.evaluate(()=>$('#proef-st').classList.contains('wacht')),true,'nieuwe stand: balk blijft');
   await p.evaluate(()=>{$('#proef-st').textContent='3 gevonden';});
-  await p.waitForFunction(()=>!$('#proef-st').classList.contains('wacht')&&!$('#proef-st').hasAttribute('aria-busy'));
+  await p.waitForFunction(()=>!$('#proef-st').classList.contains('wacht'));
   await p.evaluate(()=>{uiWachtTekst($('#proef-st'),t('Zoeken…'));uiWachtTekst($('#proef-st'),'');});
   assert.equal(await p.evaluate(()=>$('#proef-st').className+'|'+$('#proef-st').textContent),'|');
   // Een plaatshouder met de klasse wacht (wordt bij het antwoord helemaal vervangen) blijft staan.

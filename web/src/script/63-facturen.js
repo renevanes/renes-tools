@@ -561,10 +561,10 @@ function faEcBewaar(){
   $('#fa-ec-msg').textContent = e || '';
   if (!e) { if (document.activeElement) document.activeElement.blur(); faRender(); toast('✓ Bewaard'); }
 }
-function faEcTest(){ uiWachtTekst($('#fa-ec-msg'), t('Verbinding testen…')); $('#fa-ec-test').disabled = true; Android.facturenEcTest(); }
+function faEcTest(){ $('#fa-ec-msg').classList.remove('bad'); uiWachtTekst($('#fa-ec-msg'), t('Verbinding testen…')); $('#fa-ec-test').disabled = true; Android.facturenEcTest(); }
 window.onFacturenEcTest = function(r){
   $('#fa-ec-test').disabled = false;
-  $('#fa-ec-msg').textContent = r.error ? r.error : '';
+  $('#fa-ec-msg').textContent = r.error ? r.error : ''; $('#fa-ec-msg').classList.add('bad');
   if (!r.error) toast('✓ Verbinding met Eigen Cloud werkt');
 };
 
@@ -1079,9 +1079,9 @@ function fmBewaar(){
   $('#fm-msg').textContent = e || '';
   if (!e) { if (document.activeElement) document.activeElement.blur(); faRender(); toast('✓ Bewaard'); }
 }
-function fmTest(){ uiWachtTekst($('#fm-msg'), t('Verbinding testen…')); $('#fm-test').disabled = true; Android.facturenSmtpTest(); }
+function fmTest(){ $('#fm-msg').classList.remove('bad'); uiWachtTekst($('#fm-msg'), t('Verbinding testen…')); $('#fm-test').disabled = true; Android.facturenSmtpTest(); }
 window.onFacturenSmtpTest = function(r){
   $('#fm-test').disabled = false;
-  $('#fm-msg').textContent = r.error ? r.error : '';
+  $('#fm-msg').textContent = r.error ? r.error : ''; $('#fm-msg').classList.add('bad');
   if (!r.error) toast('✓ Verbinding met de mailserver werkt');
 };

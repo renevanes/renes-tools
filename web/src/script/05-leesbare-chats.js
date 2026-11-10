@@ -49,7 +49,7 @@ function rdRefresh(){
   if (!plainOk('Elke chat', rdRefresh)) return;
   const err = Android.waMakeReadable();
   if (err) { toast(err); return; }
-  toast('Chats bijwerken…'); rdWatch();
+  rdWatch();
 }
 /* Voortgang en uitkomst van leesbaar maken op het scherm Leesbare chats zelf (ook als het na een backup vanzelf loopt) */
 let rdRunPoll = null;
@@ -59,11 +59,12 @@ function rdRunRender(){
   const el = $('#rd-run'), btn = $('#rd-refresh'), run = !!s.running;
   btn.disabled = run;
   if (run && s.mode === 'readable') {
-    el.hidden = false; el.className = 'note';
+    el.hidden = false; el.className = 'note wacht';
     el.textContent = s.phase === 'export' && s.filesTotal ? t('Bezig met leesbaar maken: {n} van {totaal}', { n: fmtNum(s.filesDone || 0), totaal: fmtNum(s.filesTotal) }) : t('Bezig met ontsleutelen…');
     return;
   }
   if (run) return; // een gewone backup loopt: daarna kan het weer
+  el.classList.remove('wacht');
   clearInterval(rdRunPoll); rdRunPoll = null;
   if (s.mode === 'readable' && s.phase === 'done' && el.dataset.at !== String(s.finishedAt)) {
     el.dataset.at = String(s.finishedAt); el.hidden = false;

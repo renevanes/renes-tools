@@ -48,7 +48,7 @@ function enterNieuws(prev){
 function nwResume(){ if (current === 'nieuws' && nwKlaar() && nwLaad()) { nwRender(); if (nwOud()) nwVerversen(false); } }
 function nwStand(tekst){ $('#nw-stand').textContent = tekst || ''; }
 function nwStandBij(){
-  if (nw.bezig) { nwStand(t('Bijwerken…')); return; }
+  if (nw.bezig) { uiWachtTekst($('#nw-stand'), t('Bijwerken…')); return; }
   const aan = nwBronnen().filter(b => b.aan);
   if (!aan.length) { nwStand(''); return; }
   const laatst = Math.max(0, ...aan.map(b => b.t || 0)), mis = aan.filter(b => b.fout && (b.poging || 0) >= (b.t || 0)).length;

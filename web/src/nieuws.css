@@ -33,3 +33,5 @@
 .nws-bronnen .tg{flex:none}
 .card.setup.done.nws-mis{border-left-color:var(--warn)}
 details.card.setup.done.nws-mis>summary small{color:var(--warn)}
+/* Bijwerken: de lopende balk onder de regel zonder dat de lijst verspringt (in de ruimte onder de regel). */
+.nw-stand.wacht{padding-bottom:0;overflow:visible;clip-path:inset(0 0 -8px 0)}.nw-stand.wacht::before,.nw-stand.wacht::after{bottom:-6px}

@@ -49,8 +49,8 @@ function erMediaNode(n,parent){
   erMediaStyle(button,n.style);
   const alt=String(n.alt||'').slice(0,500);button.setAttribute('aria-label',alt?t('Afbeelding vergroten: {naam}',{naam:alt}):t('Afbeelding vergroten'));
   const img=document.createElement('img');img.alt=alt;img.hidden=true;img.draggable=false;
-  const status=document.createElement('span');status.className='er-media-status';
-  button.append(img,status);uiWachtTekst(status,t('Afbeelding laden…'));parent.append(button);
+  const status=document.createElement('span');status.className='er-media-status';status.textContent=t('Afbeelding laden…');
+  button.append(img,status);parent.append(button);
   const asset=Number(n.asset),entry={button,img,status,asset,loaded:false,pending:false,epoch:erImageEpoch};erImages.set(button,entry);
   button.addEventListener('click',()=>{if(entry.loaded)erImageOpen(img.src,alt);else if(!entry.pending){entry.failed=false;erQueueImages();}});
   if(!Number.isInteger(asset)||asset<0){entry.failed=true;status.textContent=t('Deze afbeelding ontbreekt in het boek');}
@@ -62,12 +62,12 @@ function erQueueImages(){
     if(erImageRequests.size>=2)break;
     if(entry.loaded||entry.pending||entry.failed)continue;
     const rect=entry.button.getBoundingClientRect();if(rect.bottom<root.top-600||rect.top>root.bottom+600)continue;
-    const request=erImageEpoch+'-'+(++erImageSerial);entry.pending=true;erImageRequests.set(request,entry);Android.ereaderImage(erBook.id,entry.asset,request);
+    const request=erImageEpoch+'-'+(++erImageSerial);entry.pending=true;entry.status.classList.add('wacht');erImageRequests.set(request,entry);Android.ereaderImage(erBook.id,entry.asset,request);
   }
 }
 window.onEreaderImage=function(r){
   const entry=erImageRequests.get(r.request);if(!entry||!erBook||r.id!==erBook.id||r.asset!==entry.asset||entry.epoch!==erImageEpoch)return;
-  erImageRequests.delete(r.request);entry.pending=false;
+  erImageRequests.delete(r.request);entry.pending=false;entry.status.classList.remove('wacht');
   if(r.error||!/^data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(r.src||'')){entry.failed=true;entry.status.textContent=r.error||t('Deze afbeelding kan niet worden weergegeven');erQueueImages();return;}
   const position=current==='erbook'?erLocation():null;
   if(r.width>0&&r.width<100000)entry.button.style.maxWidth=Math.min(720,r.width)+'px';

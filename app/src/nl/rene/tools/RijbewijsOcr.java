@@ -46,13 +46,13 @@ final class RijbewijsOcr {
     static JSONObject read(Context context,byte[] bytes,String today) { return read(context,bytes,today,()->true); }
     static JSONObject read(Context context,byte[] bytes,String today,BooleanSupplier active) { return read(context,bytes,today,active,false,null); }
 
+    /** Hoe lang het lezen hooguit duurt (ms); ook voor de voortgangsbalk. */
+    static final long TIJD=25000,TIJD_GRONDIG=70000;
     /**
      * Leest de voorkant van een rijbewijs. Eerst gewoon (vier draaiingen); ontbreekt het nummer of de einddatum, dan nog eens
      * op een zwart-wit-versie (tegen de achtergrondpatronen). Grondig (op verzoek, langzamer): ook vergroot en met een andere
      * indeling van de tekst. diag (mag null) krijgt alleen ja/nee en aantallen voor de hulp bij mislukken, nooit tekst.
      */
-    /** Hoe lang het lezen hooguit duurt (ms); ook voor de voortgangsbalk. */
-    static final long TIJD=25000,TIJD_GRONDIG=70000;
     static synchronized JSONObject read(Context context,byte[] bytes,String today,BooleanSupplier active,boolean thorough,JSONObject diag) {
         final long deadline=android.os.SystemClock.elapsedRealtime()+(thorough?TIJD_GRONDIG:TIJD);
         BooleanSupplier running=()->active.getAsBoolean()&&android.os.SystemClock.elapsedRealtime()<deadline;

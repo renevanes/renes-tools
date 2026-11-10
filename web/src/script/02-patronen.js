@@ -118,9 +118,10 @@ uiVg.bezigNr = 0;
 /* Voor een brugfunctie die de interface laat wachten tot hij klaar is (exporteren): de balk meteen tonen, eerst laten
    tekenen en dan pas beginnen. Geeft wat fn teruggaf (als belofte). */
 function uiBezigNu(tekst, fn){
-  const klaar = uiBezig(tekst);
-  clearTimeout(uiVg.toon); uiVg.toon = 0; $('#vg').hidden = false;
-  return new Promise((ok, nee) => requestAnimationFrame(() => setTimeout(() => { try { ok(fn()); } catch (e) { nee(e); } finally { klaar(); } }, 30)));
+  const klaar = uiBezig(tekst), w = $('#vg-wat');
+  clearTimeout(uiVg.toon); uiVg.toon = 0; $('#vg').hidden = false; w.textContent = '';
+  // Zoals in uiVoortgang: de kop pas na het tonen zetten, zodat een schermlezer hem voorleest voordat de app even vastzit.
+  return new Promise((ok, nee) => requestAnimationFrame(() => { w.textContent = uiVg.kop || ''; setTimeout(() => { try { ok(fn()); } catch (e) { nee(e); } finally { klaar(); } }, 30); }));
 }
 /* Een statusregel die al zegt waarop je wacht ("Zoeken…", "PDF maken…"): met een balk eronder die heen en weer loopt. Wordt
    de tekst daarna iets anders (het antwoord, een fout), dan gaat de balk vanzelf weg; uiWachtTekst(el, '') ook. Bijwerken
@@ -131,7 +132,7 @@ function uiWachtTekst(el, tekst){
   if (!el) return;
   el.textContent = tekst || '';
   if (!tekst) { uiWachtUit(el); return; }
-  el.dataset.wacht = el.textContent; el.classList.add('wacht'); el.setAttribute('aria-busy', 'true');
+  el.dataset.wacht = el.textContent; el.classList.add('wacht');
   if (!uiWachtObs) {
     uiWachtObs = new MutationObserver(() => {
       for (const e of document.querySelectorAll('.wacht[data-wacht]')) if (e.textContent !== e.dataset.wacht && e.textContent !== t(e.dataset.wacht)) uiWachtUit(e);
@@ -140,7 +141,7 @@ function uiWachtTekst(el, tekst){
     uiWachtObs.observe(document.body, { subtree: true, childList: true, characterData: true });
   }
 }
-function uiWachtUit(el){ el.classList.remove('wacht'); el.removeAttribute('aria-busy'); delete el.dataset.wacht; }
+function uiWachtUit(el){ el.classList.remove('wacht'); delete el.dataset.wacht; }
 /* Wachten op iets wat je zelf startte (inlezen, herkennen, zoeken, ophalen) op de plek waar je het startte: één regel waarom,
    met een balk die heen en weer loopt, of met deel (0–1) hoe ver het is. el: een lege <div class="ui-wacht" hidden>;
    uiWacht(el, false) haalt hem weg. Duurt het ergens anders (Java, een bestand), gebruik dan ook Voortgang. */

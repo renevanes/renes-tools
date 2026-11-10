@@ -91,7 +91,7 @@ window.onHerstelOpened = function(r){
 };
 let hsMissing = [];
 function hsBackToList(){ Android.herstelCancel(); hsStaged = false; hsPwOld = ''; if (hsScanRes) onHerstelScan(hsScanRes); else enterHerstel(); }
-function hsOld(){ const pw = hsPwOld; hsPwOld = ''; uiBezig(t('Bezig met openen…'), 'onHerstelOpened'); Android.herstelOldArchive(hsName, pw); }
+function hsOld(){ const pw = hsPwOld; hsPwOld = ''; uiBezig(t('Bezig met openen…'), 'onArchive'); Android.herstelOldArchive(hsName, pw); }
 function hsApply(){
   const go = () => { hsStaged = false; hsStep('hs-bezig'); $('#hs-bezig-t').textContent = 'Bezig met terugzetten…'; $('#hs-bezig-s').textContent = 'Even geduld; daarna start de app opnieuw.'; $('#hs-prog').removeAttribute('value'); Android.herstelApply(); };
   if (hsWarn) askConfirm('Alles vervangen?', t('Alles wat er nu in Tools op deze telefoon staat (notities, instellingen, opnames, kluis …) wordt vervangen door wat in de backup van {wanneer} staat. Dit kan niet ongedaan worden gemaakt.', { wanneer: hsWhen(hsName) }) +
