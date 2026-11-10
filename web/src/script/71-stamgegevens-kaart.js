@@ -308,6 +308,8 @@ window.onMasterContactPicked=function(r){
   if(!r||!cmct.request||r.request!==cmct.request)return;const done=cmct.done;cmct.request='';cmct.done=null;
   if(r.token!==cm.token||!cmOpen())return;
   if(r.error){cmNote(t(r.error));return;}
+  // Het land uit Contacten ("Netherlands", "NL") wordt de naam uit de landenlijst; een onbekend land blijft zoals het is.
+  const f=r.contact?.fields;if(f?.land){const w=lnWaarde(lnVind(f.land),'land');if(w)f.land=w;}
   cmNote('');if(r.contact&&done)done(r.contact);
 };
 const cmcClear=cmClearCentral;cmClearCentral=function(){cmcPhotoViewerClose();cmc.rec=null;cmc.epoch++;cmc.photoEpoch++;cmc.fotos={};cmc.laden.clear();cmc.reveal=false;cmct.request='';cmct.done=null;cmcClear();};

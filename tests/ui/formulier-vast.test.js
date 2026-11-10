@@ -62,7 +62,7 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>getComputedStyle($('#fmq')).position),'fixed','venster over het hele scherm');
   assert.equal(await p.isChecked('#fmq-id'),false,'identiteitsgegevens niet standaard');
   await p.click('#fmq-ga');assert.match(await p.textContent('#fmq-status'),/reisdag/);
-  await p.fill('#fmq-van','2027-07-15');await p.fill('#fmq-tot','2027-07-01');await p.fill('#fmq-land','Frankrijk');await p.click('#fmq-ga');
+  await p.fill('#fmq-van','2027-07-15');await p.fill('#fmq-tot','2027-07-01');await p.selectOption('#fmq-land','Frankrijk');await p.click('#fmq-ga');
   assert.match(await p.textContent('#fmq-status'),/laatste reisdag/);
   await p.fill('#fmq-tot','2027-07-30');await p.fill('#fmq-plaats','Nice');await p.click('#fmq-ga');
   await p.waitForFunction(()=>!fmq.open&&fm.step===fmSecties().length&&fm.view==='stap');
@@ -82,7 +82,7 @@ for(const colorScheme of ['light','dark']){
   await p.click('#fmq-start');await p.waitForFunction(()=>$('#modal-ok').getClientRects().length>0);await p.click('#modal-ok');
   await p.waitForFunction(()=>fmq.open&&fmq.records.length===1);
   assert.equal(await p.inputValue('#fmq-land'),'','reisvelden beginnen leeg');
-  await p.fill('#fmq-van','2027-08-01');await p.fill('#fmq-tot','2027-08-10');await p.fill('#fmq-land','Spanje');await p.check('#fmq-id');await p.click('#fmq-ga');
+  await p.fill('#fmq-van','2027-08-01');await p.fill('#fmq-tot','2027-08-10');await p.selectOption('#fmq-land','Spanje');await p.check('#fmq-id');await p.click('#fmq-ga');
   await p.waitForFunction(()=>!fmq.open&&fm.values.land==='Spanje');
   const w=await p.evaluate(()=>fm.values);
   assert.equal(w['kind-document'],'NX12345');assert.equal(w['begeleider1-document'],'IA999');assert.equal(w['kind-bsn'],'','BSN alleen als ingesteld');
@@ -94,7 +94,7 @@ for(const colorScheme of ['light','dark']){
   // Een laat antwoord na sluiten wordt genegeerd (geen oude reis of oude toestemming).
   await p.evaluate(()=>{fm.values.land='Behouden';goBack();});
   await p.click('#fmq-start');await p.click('#modal-ok');await p.waitForFunction(()=>fmq.open&&fmq.records.length===1);
-  await p.evaluate(()=>{Android._cm.replyDelay=150;});await p.fill('#fmq-van','2027-09-01');await p.fill('#fmq-tot','2027-09-02');await p.fill('#fmq-land','Italië');await p.check('#fmq-id');await p.click('#fmq-ga');
+  await p.evaluate(()=>{Android._cm.replyDelay=150;});await p.fill('#fmq-van','2027-09-01');await p.fill('#fmq-tot','2027-09-02');await p.selectOption('#fmq-land','Italië');await p.check('#fmq-id');await p.click('#fmq-ga');
   assert.equal(await p.evaluate(()=>goBack()),true,'terugknop sluit eerst het venster');assert.equal(await p.evaluate(()=>fmq.open||current!=='formulieren'),false);
   await p.waitForTimeout(400);assert.equal(await p.evaluate(()=>fm.values.land),'Behouden','laat antwoord vult niets in');await p.evaluate(()=>{Android._cm.replyDelay=10;});
   // Vergrendelen wist alles.

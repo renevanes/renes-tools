@@ -35,7 +35,7 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>goBack()&&current),'cmlijst');assert.equal(await p.evaluate(()=>goBack()&&current),'formulieren');
   await p.click('#fmq-start');await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden&&fmq.records.length===1);
   assert.equal(await p.inputValue('#fmq-datum'),await p.evaluate(()=>rgDayKey(Date.now())),'datum standaard vandaag');
-  await p.fill('#fmq-van','2027-07-15');await p.fill('#fmq-tot','2027-07-30');await p.fill('#fmq-land','Frankrijk');await p.fill('#fmq-datum','2027-07-01');
+  await p.fill('#fmq-van','2027-07-15');await p.fill('#fmq-tot','2027-07-30');await p.selectOption('#fmq-land','Frankrijk');await p.fill('#fmq-datum','2027-07-01');
   await p.click('#fmq-ga');await p.waitForFunction(()=>!fmq.open&&fm.step===fmSecties().length&&fm.view==='stap');
   const v=await p.evaluate(()=>fm.values);
   assert.match(await p.textContent('#pff-melding'),/Je bewaarde handtekening staat bij Begeleider 1, op pagina 2\./,'melding zegt waar de handtekening staat');

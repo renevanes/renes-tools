@@ -1,2 +1,4 @@
-Stamgegevens: nationaliteit, land en land van afgifte kies je nu uit een lijst met alle landen; in Nederland staan Nederlandse en Nederland al voor je klaar
+Stamgegevens: nationaliteit, land en land van afgifte kies je nu uit een lijst met alle landen (of typ zelf iets bij Anders…); in Nederland staat Nederlandse al voor je klaar
+Stamgegevens: dubbele nationaliteit invullen met Nog een nationaliteit
 Stamgegevens: rijbewijscategorieën zet je aan en uit met knoppen
+Formulieren: het land van bestemming kies je uit een lijst

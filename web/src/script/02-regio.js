@@ -32,10 +32,10 @@ const RG_CUR = [['EUR', 'Euro (€)'], ['USD', 'Amerikaanse dollar ($)'], ['GBP'
   ['SEK', 'Zweedse kroon (kr)'], ['NOK', 'Noorse kroon (kr)'], ['PLN', 'Poolse zloty (zł)'], ['CZK', 'Tsjechische kroon (Kč)'], ['TRY', 'Turkse lira (₺)'],
   ['CAD', 'Canadese dollar ($)'], ['AUD', 'Australische dollar ($)'], ['JPY', 'Japanse yen (¥)'], ['CNY', 'Chinese yuan (¥)'], ['INR', 'Indiase roepie (₹)'],
   ['SRD', 'Surinaamse dollar ($)'], ['ANG', 'Antilliaanse gulden (ƒ)'], ['MAD', 'Marokkaanse dirham'], ['ZAR', 'Zuid-Afrikaanse rand (R)'], ['BRL', 'Braziliaanse real (R$)']];
-/* Vaste plaatsen voor de standaardplaats (en het thema met de zon) */
-const RG_CITIES = [['rotterdam', 'Rotterdam', 51.92, 4.48], ['amsterdam', 'Amsterdam', 52.37, 4.9], ['den-haag', 'Den Haag', 52.08, 4.31], ['utrecht', 'Utrecht', 52.09, 5.12],
-  ['eindhoven', 'Eindhoven', 51.44, 5.48], ['groningen', 'Groningen', 53.22, 6.57], ['maastricht', 'Maastricht', 50.85, 5.69], ['middelburg', 'Middelburg', 51.5, 3.61],
-  ['leeuwarden', 'Leeuwarden', 53.2, 5.8], ['enschede', 'Enschede', 52.22, 6.89], ['brussel', 'Brussel', 50.85, 4.35]];
+/* Vaste plaatsen voor de standaardplaats (en het thema met de zon): [id, naam, breedte, lengte, land (ISO 3166)] */
+const RG_CITIES = [['rotterdam', 'Rotterdam', 51.92, 4.48, 'NL'], ['amsterdam', 'Amsterdam', 52.37, 4.9, 'NL'], ['den-haag', 'Den Haag', 52.08, 4.31, 'NL'], ['utrecht', 'Utrecht', 52.09, 5.12, 'NL'],
+  ['eindhoven', 'Eindhoven', 51.44, 5.48, 'NL'], ['groningen', 'Groningen', 53.22, 6.57, 'NL'], ['maastricht', 'Maastricht', 50.85, 5.69, 'NL'], ['middelburg', 'Middelburg', 51.5, 3.61, 'NL'],
+  ['leeuwarden', 'Leeuwarden', 53.2, 5.8, 'NL'], ['enschede', 'Enschede', 52.22, 6.89, 'NL'], ['brussel', 'Brussel', 50.85, 4.35, 'BE']];
 const RG_DEF = { lang: 'nl', clock: '24', date: 'dmy', week: 1, tz: '', place: 'auto', dist: 'km', temp: 'c', size: '1024', speed: 'kmh', cur: 'EUR', dec: ',', grp: '.' };
 
 /* ---------- puur (getest in tests/ui/regio.test.js) ---------- */

@@ -31,22 +31,60 @@ function cmiChoices(key){
   if(CMI_LAND.has(key))return cmiLandKeuzes(key);
   return null;
 }
-/* Velden met een keuzelijst van landen (en nationaliteiten); opgeslagen als Nederlandse tekst (02-landen.js). */
-const CMI_LAND=new Set(['nationaliteit','land','uitgifteland']);
+/* Velden met een keuzelijst van landen (en nationaliteiten); opgeslagen als Nederlandse tekst (02-landen.js). Onderaan
+ * "Anders…": zelf typen (een oude landnaam op een document, een vreemdelingenpaspoort). */
+const CMI_LAND=new Set(['nationaliteit','land','uitgifteland']),CMI_ANDERS='\u0001anders';
 function cmiLandKeuzes(key){
-  const soort=key==='nationaliteit'?key:'land',alle=lnKeuzes(soort),thuis=lnWaarde(lnThuis(),soort),eigen=alle.find(c=>c[0]===thuis);
-  return [['',t('Niet ingevuld')],...(eigen?[[eigen[0],eigen[1],t('Jouw regio')]]:[]),...alle.map(c=>[c[0],c[1],soort==='nationaliteit'?t('Alle nationaliteiten'):t('Alle landen')])];
+  const soort=key==='nationaliteit'?key:'land',alle=lnKeuzes(soort),thuis=lnWaarde(lnThuis(),soort),eigen=alle.find(c=>c[0]===thuis),groep=soort==='nationaliteit'?t('Alle nationaliteiten'):t('Alle landen');
+  return [['',t('Niet ingevuld')],...(eigen?[[eigen[0],eigen[1],t('Jouw regio')]]:[]),...alle.map(c=>[c[0],c[1],groep]),[CMI_ANDERS,t('Anders… (zelf typen)'),t('Staat er niet bij?')]];
 }
-/* Nieuwe gegevens: nationaliteit en land volgen Regio en taal (in Nederland: Nederlandse, Nederland). Een reis gaat vaak naar het buitenland: geen standaard. */
+/* Een keuzelijst vullen; een opgeslagen waarde die er niet in staat, komt bovenaan onder "Zoals ingevuld" (er gaat niets verloren). */
+function cmiVulKeuzes(sel,choices,old,key){
+  let og=null;
+  for(const [value,text,name] of choices){const o=cmEl('option',text);o.value=value;if(name&&og?.label!==name){og=cmEl('optgroup');og.label=name;sel.append(og);}(name?og:sel).append(o);}
+  if(old&&!choices.some(c=>c[0]===old)){
+    const o=cmData(cmEl('option',CMI_LAND.has(key)?lnToon(key==='nationaliteit'?key:'land',old):old));o.value=old;
+    if(choices.some(c=>c[2])){const g=cmEl('optgroup');g.label=t('Zoals ingevuld');g.append(o);sel.insertBefore(g,sel.children[1]||null);}else sel.append(o);
+  }
+  sel.value=old||'';
+}
+/* "Anders…": zelf een land of nationaliteit typen; klaar(tekst) bij OK. De keuzelijst zelf blijft intussen op de oude waarde. */
+function cmiAnders(key,klaar){
+  askInput(key==='nationaliteit'?t('Andere nationaliteit'):t('Ander land'),t('Typ het zoals het op het document staat.'),'',t('OK'),v=>{v=String(v||'').replace(/\s+/g,' ').trim().slice(0,120);if(v&&cm.edit)klaar(v);});
+}
+/* Nieuwe gegevens: de nationaliteit van een nieuwe persoon en het land van een nieuw adres volgen Regio en taal (in Nederland:
+ * Nederlandse, Nederland); ze staan in beeld bij het invullen. Geen standaard voor wat bij een nieuw item niet in beeld is (land
+ * van afgifte, land van een organisatie) en voor een reis (vaak het buitenland). */
 function cmiDefaults(type){
-  const thuis=lnThuis(),nat=lnWaarde(thuis,'nationaliteit'),land=lnWaarde(thuis,'land'),v=(k,w)=>w?{[k]:w}:{};
-  return type==='identiteit'?{documentsoort:'identiteitskaart',...v('uitgifteland',land)}:type==='persoon'?v('nationaliteit',nat):type==='adres'||type==='organisatie'?v('land',land):type==='profiel'?{delen:'nee'}:type==='relatie'?{delen:'ja'}:type==='formulier'?{formulier:'reistoestemming',alleen:'nee',bsnInvullen:'nee'}:{};
+  const thuis=lnThuis(),v=(k,w)=>w?{[k]:w}:{};
+  return type==='identiteit'?{documentsoort:'identiteitskaart'}:type==='persoon'?v('nationaliteit',lnWaarde(thuis,'nationaliteit')):type==='adres'?v('land',lnWaarde(thuis,'land')):type==='profiel'?{delen:'nee'}:type==='relatie'?{delen:'ja'}:type==='formulier'?{formulier:'reistoestemming',alleen:'nee',bsnInvullen:'nee'}:{};
 }
-/* Rijbewijscategorieën als knoppen (aan/uit); opgeslagen als "AM, B, BE" (zoals Rijbewijs.java herkent). Een onbekende code blijft staan. */
+/* Nationaliteit: één keuzelijst per nationaliteit (dubbele nationaliteit: "Nog een nationaliteit"); opgeslagen als
+ * "Nederlandse, Marokkaanse", zoals het formulier Nationaliteit(en) het gebruikt. */
+function cmiNatParts(v){return String(v||'').split(/\s*,\s*/).map(x=>x.trim()).filter(Boolean);}
+function cmiNatEl(label){
+  const box=cmEl('div',undefined,'cmi-nat'),parts=cmiNatParts(cm.edit.fields.nationaliteit);if(!parts.length)parts.push('');
+  const zet=()=>{cm.edit.fields.nationaliteit=parts.filter(Boolean).join(', ');cmDirty();teken();},choices=cmiLandKeuzes('nationaliteit');
+  const teken=()=>{
+    box.replaceChildren();
+    parts.forEach((part,i)=>{
+      const sel=cmData(cmEl('select',undefined,'search'));sel.id=i?label.htmlFor+'-'+(i+1):label.htmlFor;sel.name=i?'':'nationaliteit';if(i)sel.setAttribute('aria-label',t('Nationaliteit {n}',{n:i+1}));
+      cmiVulKeuzes(sel,i?[['',t('Weghalen')],...choices.slice(1)]:choices,part,'nationaliteit');sel.disabled=!!cm.mutating;
+      sel.addEventListener('change',()=>{if(!cm.edit)return;if(sel.value===CMI_ANDERS){sel.value=part;cmiAnders('nationaliteit',v=>{parts.splice(i,1,...cmiNatParts(v));zet();});return;}parts[i]=sel.value;if(i&&!sel.value)parts.splice(i,1);zet();});
+      box.append(sel);
+    });
+    if(parts.every(Boolean)&&parts.length<4){const b=cmEl('button',undefined,'mini cmi-nat-meer');b.type='button';b.innerHTML=uiIcon('plus');b.append(document.createTextNode(t('Nog een nationaliteit')));b.disabled=!!cm.mutating;
+      b.onclick=()=>{if(!cm.edit||cm.mutating)return;parts.push('');teken();const s=box.querySelectorAll('select');s[s.length-1]?.focus();};box.append(b);}
+  };
+  teken();return box;
+}
+/* Rijbewijscategorieën als knoppen (aan/uit); opgeslagen als "AM, B, BE" (zoals Rijbewijs.java herkent). Een onbekende code blijft
+ * staan. Een oude vrije tekst die niet alleen uit codes bestaat ("B (code 78)"): null, dan blijft het een tekstveld. */
 const CMI_CATS=['AM','A1','A2','A','B','BE','C1','C1E','C','CE','D1','D1E','D','DE','T'];
 function cmiCatsEl(label){
-  const box=cmEl('div',undefined,'chips cmi-cats');box.id=label.htmlFor;label.id=box.id+'-label';label.removeAttribute('for');box.setAttribute('role','group');box.setAttribute('aria-labelledby',label.id);
   const have=[...new Set(String(cm.edit.fields.categorieen||'').toUpperCase().split(/[\s,/;|]+/).filter(Boolean))];
+  if(have.some(x=>!/^[A-Z][A-Z0-9]{0,2}$/.test(x)))return null;
+  const box=cmEl('div',undefined,'chips cmi-cats');box.id=label.htmlFor;label.id=box.id+'-label';label.removeAttribute('for');box.setAttribute('role','group');box.setAttribute('aria-labelledby',label.id);
   for(const c of [...CMI_CATS,...have.filter(x=>!CMI_CATS.includes(x))]){
     const b=cmData(cmEl('button',c));b.type='button';b.dataset.cat=c;const on=have.includes(c);b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on));b.disabled=!!cm.mutating;
     b.onclick=()=>{if(!cm.edit||cm.mutating)return;const aan=b.getAttribute('aria-pressed')!=='true';b.classList.toggle('on',aan);b.setAttribute('aria-pressed',String(aan));

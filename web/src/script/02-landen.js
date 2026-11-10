@@ -8,7 +8,7 @@ const LANDEN = [
   ['AF', 'AFG', 'Afghanistan', 'Afghaanse'], ['AL', 'ALB', 'Albanië', 'Albanese'], ['DZ', 'DZA', 'Algerije', 'Algerijnse'],
   ['AD', 'AND', 'Andorra', 'Andorrese'], ['AO', 'AGO', 'Angola', 'Angolese'], ['AG', 'ATG', 'Antigua en Barbuda', 'Antiguaanse'],
   ['AR', 'ARG', 'Argentinië', 'Argentijnse'], ['AM', 'ARM', 'Armenië', 'Armeense'], ['AW', 'ABW', 'Aruba', ''],
-  ['AU', 'AUS', 'Australië', 'Australische'], ['AZ', 'AZE', 'Azerbeidzjan', 'Azerbeidzjaanse'], ['BS', 'BHS', 'Bahama’s', 'Bahamaanse'],
+  ['AU', 'AUS', 'Australië', 'Australische'], ['AZ', 'AZE', 'Azerbeidzjan', 'Azerbeidzjaanse'], ['BS', 'BHS', 'Bahama’s', 'Bahamaanse'], ['BM', 'BMU', 'Bermuda', ''],
   ['BH', 'BHR', 'Bahrein', 'Bahreinse'], ['BD', 'BGD', 'Bangladesh', 'Bengalese'], ['BB', 'BRB', 'Barbados', 'Barbadaanse'],
   ['BY', 'BLR', 'Belarus', 'Belarussische'], ['BE', 'BEL', 'België', 'Belgische'], ['BZ', 'BLZ', 'Belize', 'Belizaanse'],
   ['BJ', 'BEN', 'Benin', 'Beninse'], ['BT', 'BTN', 'Bhutan', 'Bhutaanse'], ['BO', 'BOL', 'Bolivia', 'Boliviaanse'],
@@ -25,11 +25,11 @@ const LANDEN = [
   ['EC', 'ECU', 'Ecuador', 'Ecuadoraanse'], ['EG', 'EGY', 'Egypte', 'Egyptische'], ['SV', 'SLV', 'El Salvador', 'Salvadoraanse'],
   ['GQ', 'GNQ', 'Equatoriaal-Guinea', 'Equatoriaal-Guinese'], ['ER', 'ERI', 'Eritrea', 'Eritrese'], ['EE', 'EST', 'Estland', 'Estische'],
   ['SZ', 'SWZ', 'Eswatini', 'Swazische'], ['ET', 'ETH', 'Ethiopië', 'Ethiopische'], ['FJ', 'FJI', 'Fiji', 'Fijische'],
-  ['PH', 'PHL', 'Filipijnen', 'Filipijnse'], ['FI', 'FIN', 'Finland', 'Finse'], ['FR', 'FRA', 'Frankrijk', 'Franse'],
+  ['PH', 'PHL', 'Filipijnen', 'Filipijnse'], ['FO', 'FRO', 'Faeröer', ''], ['FI', 'FIN', 'Finland', 'Finse'], ['PF', 'PYF', 'Frans-Polynesië', ''], ['FR', 'FRA', 'Frankrijk', 'Franse'],
   ['GA', 'GAB', 'Gabon', 'Gabonese'], ['GM', 'GMB', 'Gambia', 'Gambiaanse'], ['GE', 'GEO', 'Georgië', 'Georgische'],
   ['GH', 'GHA', 'Ghana', 'Ghanese'], ['GD', 'GRD', 'Grenada', 'Grenadaanse'], ['GR', 'GRC', 'Griekenland', 'Griekse'],
   ['GT', 'GTM', 'Guatemala', 'Guatemalteekse'], ['GN', 'GIN', 'Guinee', 'Guinese'], ['GW', 'GNB', 'Guinee-Bissau', 'Guinee-Bissause'],
-  ['GY', 'GUY', 'Guyana', 'Guyaanse'], ['HT', 'HTI', 'Haïti', 'Haïtiaanse'], ['HN', 'HND', 'Honduras', 'Hondurese'],
+  ['GI', 'GIB', 'Gibraltar', ''], ['GL', 'GRL', 'Groenland', ''], ['GY', 'GUY', 'Guyana', 'Guyaanse'], ['HT', 'HTI', 'Haïti', 'Haïtiaanse'], ['HN', 'HND', 'Honduras', 'Hondurese'],
   ['HK', 'HKG', 'Hongkong', ''], ['HU', 'HUN', 'Hongarije', 'Hongaarse'], ['IE', 'IRL', 'Ierland', 'Ierse'],
   ['IS', 'ISL', 'IJsland', 'IJslandse'], ['IN', 'IND', 'India', 'Indiase'], ['ID', 'IDN', 'Indonesië', 'Indonesische'],
   ['IQ', 'IRQ', 'Irak', 'Iraakse'], ['IR', 'IRN', 'Iran', 'Iraanse'], ['IL', 'ISR', 'Israël', 'Israëlische'],
@@ -43,13 +43,13 @@ const LANDEN = [
   ['LI', 'LIE', 'Liechtenstein', 'Liechtensteinse'], ['LT', 'LTU', 'Litouwen', 'Litouwse'], ['LU', 'LUX', 'Luxemburg', 'Luxemburgse'],
   ['MO', 'MAC', 'Macau', ''], ['MG', 'MDG', 'Madagaskar', 'Malagassische'], ['MW', 'MWI', 'Malawi', 'Malawische'],
   ['MV', 'MDV', 'Maldiven', 'Maldivische'], ['MY', 'MYS', 'Maleisië', 'Maleisische'], ['ML', 'MLI', 'Mali', 'Malinese'],
-  ['MT', 'MLT', 'Malta', 'Maltese'], ['MA', 'MAR', 'Marokko', 'Marokkaanse'], ['MH', 'MHL', 'Marshalleilanden', 'Marshallese'],
+  ['MT', 'MLT', 'Malta', 'Maltese'], ['MA', 'MAR', 'Marokko', 'Marokkaanse'], ['MH', 'MHL', 'Marshalleilanden', 'Marshalleilandse'],
   ['MR', 'MRT', 'Mauritanië', 'Mauritaanse'], ['MU', 'MUS', 'Mauritius', 'Mauritiaanse'], ['MX', 'MEX', 'Mexico', 'Mexicaanse'],
   ['FM', 'FSM', 'Micronesia', 'Micronesische'], ['MD', 'MDA', 'Moldavië', 'Moldavische'], ['MC', 'MCO', 'Monaco', 'Monegaskische'],
   ['MN', 'MNG', 'Mongolië', 'Mongoolse'], ['ME', 'MNE', 'Montenegro', 'Montenegrijnse'], ['MZ', 'MOZ', 'Mozambique', 'Mozambikaanse'],
   ['MM', 'MMR', 'Myanmar', 'Myanmarese'], ['NA', 'NAM', 'Namibië', 'Namibische'], ['NR', 'NRU', 'Nauru', 'Nauruaanse'],
   ['NL', 'NLD', 'Nederland', 'Nederlandse'], ['NP', 'NPL', 'Nepal', 'Nepalese'], ['NI', 'NIC', 'Nicaragua', 'Nicaraguaanse'],
-  ['NZ', 'NZL', 'Nieuw-Zeeland', 'Nieuw-Zeelandse'], ['NE', 'NER', 'Niger', 'Nigerese'], ['NG', 'NGA', 'Nigeria', 'Nigeriaanse'],
+  ['NC', 'NCL', 'Nieuw-Caledonië', ''], ['NZ', 'NZL', 'Nieuw-Zeeland', 'Nieuw-Zeelandse'], ['NE', 'NER', 'Niger', 'Nigerese'], ['NG', 'NGA', 'Nigeria', 'Nigeriaanse'],
   ['KP', 'PRK', 'Noord-Korea', 'Noord-Koreaanse'], ['MK', 'MKD', 'Noord-Macedonië', 'Noord-Macedonische'], ['NO', 'NOR', 'Noorwegen', 'Noorse'],
   ['UG', 'UGA', 'Oeganda', 'Oegandese'], ['UA', 'UKR', 'Oekraïne', 'Oekraïense'], ['UZ', 'UZB', 'Oezbekistan', 'Oezbeekse'],
   ['OM', 'OMN', 'Oman', 'Omaanse'], ['AT', 'AUT', 'Oostenrijk', 'Oostenrijkse'], ['TL', 'TLS', 'Oost-Timor', 'Oost-Timorese'],
@@ -95,11 +95,15 @@ function lnVind(waarde){
   const s = lnNorm(waarde);
   if (!s) return null;
   if (s === 'd') return lnVind('DE'); // Duitsland in de strook
+  if (/^gb[dnops]$/.test(s)) return lnVind('GB'); // Britse varianten in de strook (overzeese gebieden, British National e.d.)
   for (const r of LANDEN) if (lnNorm(r[0]) === s || lnNorm(r[1]) === s || lnNorm(r[2]) === s || r[3] && lnNorm(r[3]) === s) return r;
   for (const r of LANDEN) if (lnNorm(lnLandNaam(r)) === s || r[3] && lnNorm(lnNatNaam(r)) === s) return r;
+  // De Engelse naam (bijv. het land van een contact op een Engelstalige telefoon: "Netherlands")
+  try { if (!lnEn) lnEn = new Intl.DisplayNames(['en'], { type: 'region' }); for (const r of LANDEN) if (lnNorm(lnEn.of(r[0])) === s) return r; } catch (e) {}
   return null;
 }
-function lnNorm(s){ return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’']/g, '\'').trim().toLowerCase(); }
+let lnEn = null;
+function lnNorm(s){ return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’']/g, '\'').trim().toLowerCase(); }
 /* Naam van het land in de taal van de app (Nederlands: uit de lijst; anders via Intl, met de Nederlandse naam als het niet lukt) */
 function lnLandNaam(r){
   if (rgLang().id === 'nl') return r[2];
@@ -112,17 +116,27 @@ function lnLandNaam(r){
 }
 let lnDn = null;
 function lnNatNaam(r){ return r[3] ? t(r[3]) : ''; }
-/* Het land van Rene volgens Regio en taal: de gekozen standaardplaats, anders de tijdzone. null als dat niets zegt. */
+/* Het land van Rene volgens Regio en taal: de gekozen standaardplaats; anders de regio van de telefoon (nl-NL), zodat een
+ * andere tijdzone op reis het land niet verandert; anders de tijdzone. Een telefoonregio telt alleen als hij in LN_ZONE
+ * voorkomt: "en-US" is vaak gewoon de standaard van het toestel. null als niets iets zegt. */
 function lnThuis(){
   const c = rgCfg(), city = RG_CITIES.find(x => x[0] === c.place);
-  const code = city ? (city[0] === 'brussel' ? 'BE' : 'NL') : LN_ZONE[rgZone()] || '';
+  if (city && city[4]) return lnVind(city[4]);
+  const bekend = new Set(Object.values(LN_ZONE));
+  let langs = [];
+  try { langs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]).slice(0, 1); } catch (e) {}
+  for (const l of langs) { const m = /^[a-z]{2,3}[-_]([A-Z]{2})\b/.exec(String(l || '')); if (m && bekend.has(m[1])) return lnVind(m[1]); }
+  const code = LN_ZONE[rgZone()] || '';
   return code ? lnVind(code) : null;
 }
 /* Opgeslagen tekst (Nederlands) zoals hij in de app getoond wordt; onbekende tekst blijft zoals hij is. */
 function lnToon(soort, waarde){
+  if (soort === 'nationaliteit' && String(waarde || '').includes(',')) return String(waarde).split(/\s*,\s*/).filter(Boolean).map(x => lnToon(soort, x)).join(', ');
   if (soort === 'nationaliteit' && lnNorm(waarde) === lnNorm(LN_STAATLOOS)) return t(LN_STAATLOOS);
   const r = lnVind(waarde);
   if (!r) return waarde;
+  // Een code uit de strook die eerder zo bewaard is (SYR): toon de naam
+  if (/^[A-Z]{1,3}$/.test(String(waarde).trim())) return soort === 'nationaliteit' ? lnNatNaam(r) || lnLandNaam(r) : lnLandNaam(r);
   return soort === 'nationaliteit' ? (r[3] && lnNorm(r[3]) === lnNorm(waarde) ? lnNatNaam(r) : waarde) : lnNorm(r[2]) === lnNorm(waarde) ? lnLandNaam(r) : waarde;
 }
 /* Keuzes [waarde, tekst] voor een landen- of nationaliteitenlijst, gesorteerd op de getoonde tekst. */
@@ -135,3 +149,11 @@ function lnKeuzes(soort){
 }
 /* Opgeslagen waarde (Nederlands) bij een land: de landnaam of de nationaliteit. */
 function lnWaarde(r, soort){ return r ? (soort === 'nationaliteit' ? r[3] : r[2]) : ''; }
+/* Een <select> vullen met alle landen (bijv. het land van bestemming bij Formulieren); waarde = de Nederlandse landnaam. */
+function lnSelect(sel, leeg){
+  if (!sel || sel.dataset.ln === regioLocale()) return;
+  sel.replaceChildren();
+  const o = document.createElement('option'); o.value = ''; o.textContent = leeg; sel.append(o);
+  for (const [w, txt] of lnKeuzes('land')) { const x = document.createElement('option'); x.value = w; x.textContent = txt; sel.append(x); }
+  sel.dataset.ln = regioLocale();
+}

@@ -18,7 +18,7 @@ function fmqRenderState(){
 }
 function fmqClearInput(){
   fmq.records=[];$('#fmq-profiel').replaceChildren();$('#fmq-id').checked=false;$('#fmq-geen').hidden=true;fmqNote('');
-  for(const key of FMQ_REIS)$('#fmq-'+key).value='';$('#fmq-datum').value=rgDayKey(Date.now());$('#fmq .fmq-meer').open=false;
+  lnSelect($('#fmq-land'),t('Kies een land'));for(const key of FMQ_REIS)$('#fmq-'+key).value='';$('#fmq-datum').value=rgDayKey(Date.now());$('#fmq .fmq-meer').open=false;
   document.querySelectorAll('#fmq [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);
 }
 function fmqOpen(){
