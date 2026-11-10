@@ -38,6 +38,7 @@ schermen/24-mijn-auto.html
 schermen/25-kluis.html
 schermen/27-pdf.html
 schermen/27a-id-kopie.html
+schermen/27b-vergelijken.html
 schermen/28-podcasts.html
 schermen/29-spotify.html
 schermen/30-vpn.html
@@ -125,6 +126,8 @@ script/71-stamgegevens-kaart.js
 script/71-stamgegevens-assistent.js
 script/72-formulier-vast.js
 script/49-documenten-ordenen.js
+script/49b-kluis-centraal.js
+script/77-vergelijken.js
 script/38-podcasts.js
 script/46-podcast-downloads.js
 script/51-assistent.js

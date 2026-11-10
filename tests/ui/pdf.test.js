@@ -10,7 +10,8 @@ const assert = require('node:assert');
 
     // tegel op home opent het scherm
     assert.ok(await pg.$('#tile-pdf'), 'tegel bestaat');
-    await pg.evaluate(() => openTool('pdf')); await pg.waitForTimeout(250);
+    // Deze test gaat over de PDF-tools en Gemaakt; vanzelf naar de documentenkluis staat in kluis-centraal.test.js
+    await pg.evaluate(() => { store.set('pdfKluisVanzelf', false); openTool('pdf'); }); await pg.waitForTimeout(250);
     assert.strictEqual(await pg.evaluate(() => current), 'pdf');
     assert.strictEqual(await pg.isVisible('#pdf-recent-card'), false, 'nog niets gemaakt');
     assert.strictEqual(await pg.isVisible('#pdf-split'), false);

@@ -340,6 +340,22 @@ final class MasterStore {
             append(db,k,h,value==null?"photo_delete":"photo_add","masterdata","",r,new JSONArray().put(side));return new JSONObject().put("id",id).put("revision",next);
         },commit);
     }
+    /**
+     * Kaartfoto's van een identiteitsdocument als bron voor ID-kopie afschermen. Elke gelezen kant staat in Activiteiten als
+     * Kaartfoto bekeken door ID-kopie afschermen. Geeft {sides:[{side,image}], soort} (alleen de documentsoort, geen nummers).
+     */
+    static JSONObject idCopySource(Context c,SecretKey key,MasterSession session,String token,String id,long revision)throws Exception{
+        return transaction(c,key,session,token,(db,k,h)->{
+            JSONObject r=record(db,k,id);if(!r.getString("type").equals("identiteit"))throw new MasterError(Taal.T("Kaartfoto’s horen bij een identiteitsdocument"));
+            if(r.getLong("revision")!=revision)throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
+            JSONObject images=r.optJSONObject("images");JSONArray sides=new JSONArray(),read=new JSONArray();
+            for(String side:new String[]{"front","back"}){String v=images==null?"":images.optString(side);if(v.startsWith("data:image/jpeg;base64,")){sides.put(new JSONObject().put("side",side).put("image",v));read.put(side);}}
+            if(sides.length()==0)throw new MasterError(Taal.T("Voeg eerst een foto van het document toe"));
+            append(db,k,h,"photo_view","idcopy","",r,read);
+            JSONObject f=r.optJSONObject("fields");
+            return new JSONObject().put("sides",sides).put("soort",f==null?"":f.optString("documentsoort"));
+        });
+    }
     static JSONObject formRelation(Context c,SecretKey key,MasterSession session,String token,String child,String companion,String role)throws Exception{
         MasterSchema.context("formulieren",role);if(!role.startsWith("begeleider"))throw new MasterError(Taal.T("Deze gegevens passen niet bij dit onderdeel"));
         return transaction(c,key,session,token,(db,k,h)->{

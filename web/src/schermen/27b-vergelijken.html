@@ -1,0 +1,58 @@
+<!-- ============ Documenten vergelijken (PDF → Vergelijken, of vanuit de documentenkluis) ============
+     Twee documenten (A en B): tekstverschillen per woord en per pagina in beeld. Alles op de telefoon (77-vergelijken.js, PdfCompare). -->
+<section class="screen pdfscr" id="s-pdfcmp">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Vergelijken</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2>Welke documenten?</h2>
+      <p class="hint">Een PDF of foto van je telefoon, uit de documentenkluis of een gemaakte PDF. Het vergelijken gebeurt op je telefoon.</p>
+      <div class="cmp-slots">
+        <button class="cmp-slot" id="cmp-a" onclick="cmpKies(0)"><span class="cmp-letter" aria-hidden="true" translate="no">A</span><span class="sttxt"><b id="cmp-a-naam">Document A kiezen</b><small id="cmp-a-info">Bijvoorbeeld de oude versie</small></span><span class="ui-icon stchev" data-icon="chevron-right"></span></button>
+        <button class="cmp-slot" id="cmp-b" onclick="cmpKies(1)"><span class="cmp-letter" aria-hidden="true" translate="no">B</span><span class="sttxt"><b id="cmp-b-naam">Document B kiezen</b><small id="cmp-b-info">Bijvoorbeeld de nieuwe versie</small></span><span class="ui-icon stchev" data-icon="chevron-right"></span></button>
+      </div>
+      <button class="big ghost" id="cmp-wissel" onclick="cmpWissel()" data-icon="repeat" disabled>A en B omwisselen</button>
+    </div>
+
+    <div id="cmp-werk" hidden>
+      <div class="pctabs-wrap"><div class="pctabs two" role="tablist" aria-label="Vergelijken">
+        <button role="tab" id="cmp-tab-tekst" data-tab="tekst" aria-controls="cmp-p-tekst" aria-selected="true" tabindex="0" onclick="cmpTab('tekst')">Tekst</button>
+        <button role="tab" id="cmp-tab-beeld" data-tab="beeld" aria-controls="cmp-p-beeld" aria-selected="false" tabindex="-1" onclick="cmpTab('beeld')">Pagina's</button>
+      </div></div>
+
+      <div id="cmp-p-tekst" role="tabpanel" aria-labelledby="cmp-tab-tekst">
+        <div class="card">
+          <p class="note" id="cmp-tekst-stand" role="status" aria-live="polite"></p>
+          <div class="cmp-legenda" id="cmp-tekst-legenda" hidden><span><span class="cmp-weg">doorgestreept</span> alleen in A</span><span><span class="cmp-erbij">gemarkeerd</span> alleen in B</span></div>
+          <label class="chk" id="cmp-alles-wrap" hidden><input type="checkbox" id="cmp-alles" onchange="cmpTekstTeken()"> Ook de gelijke tekst helemaal tonen</label>
+          <div id="cmp-tekst" class="cmp-tekst" translate="no"></div>
+          <button class="big" id="cmp-tekst-start" onclick="cmpTekst()">Tekst vergelijken</button>
+          <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>De app haalt de tekst uit beide documenten en zoekt per regel en per woord wat er weg is en wat er bij kwam. Witruimte en lege regels tellen niet mee. Staat er geen tekst in een pagina (een scan of foto), dan leest de app de tekst van het beeld met de tekstherkenning op je telefoon. Dat duurt langer en kan kleine leesfouten geven: controleer belangrijke verschillen op de pagina zelf.</p></div></details>
+        </div>
+      </div>
+
+      <div id="cmp-p-beeld" role="tabpanel" aria-labelledby="cmp-tab-beeld" hidden>
+        <div class="card">
+          <p class="note" id="cmp-beeld-stand" role="status" aria-live="polite"></p>
+          <div id="cmp-paginas" class="cmp-paginas"></div>
+          <button class="big tonal" id="cmp-beeld-start" onclick="cmpBeeld()">Pagina's vergelijken</button>
+        </div>
+        <div class="card" id="cmp-pagina-kaart" hidden>
+          <h2 id="cmp-pagina-kop"></h2>
+          <div class="aeopts cmp-modi" id="cmp-modi" role="radiogroup" aria-label="Wat tonen">
+            <button data-v="verschil" role="radio" class="on" aria-checked="true" onclick="cmpModus('verschil')"><b>Verschillen</b><small>B met wat weg is en wat erbij kwam</small></button>
+            <button data-v="a" role="radio" aria-checked="false" onclick="cmpModus('a')"><b>Alleen A</b><small>Zoals het in A staat</small></button>
+            <button data-v="b" role="radio" aria-checked="false" onclick="cmpModus('b')"><b>Alleen B</b><small>Zoals het in B staat</small></button>
+          </div>
+          <div class="cmp-legenda" id="cmp-beeld-legenda"><span><span class="cmp-sw weg" aria-hidden="true"></span> alleen in A</span><span><span class="cmp-sw erbij" aria-hidden="true"></span> alleen in B</span></div>
+          <div class="cmp-beeld"><img id="cmp-img" alt="" hidden></div>
+          <p class="note" id="cmp-pagina-stand" role="status" aria-live="polite"></p>
+          <div class="row"><button class="big ghost" id="cmp-vorige" onclick="cmpStap(-1)" data-icon="left">Vorige pagina</button><button class="big ghost" id="cmp-volgende" onclick="cmpStap(1)" data-icon="right">Volgende pagina</button></div>
+        </div>
+      </div>
+    </div>
+    <p class="note pdfbusy" role="status" aria-live="polite"></p>
+  </main>
+</section>

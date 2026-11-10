@@ -28,11 +28,12 @@
       <button class="tile" id="pdf-t-text" onclick="show('pdftext')" aria-describedby="pdf-t-text-d"><span class="ic"><span class="ui-icon" data-icon="mail" aria-hidden="true"></span></span><b>Tekst naar PDF</b><small id="pdf-t-text-d" aria-hidden="true">Tekst of e-mail</small></button>
       <button class="tile" id="pdf-t-forms" onclick="show('formulieren')" aria-describedby="pdf-t-forms-d"><span class="ic"><span class="ui-icon" data-icon="clipboard" aria-hidden="true"></span></span><b>Formulieren invullen</b><small id="pdf-t-forms-d" aria-hidden="true">Stap voor stap</small></button>
       <button class="tile" id="pdf-t-id" onclick="show('idcopy')" aria-describedby="pdf-t-id-d"><span class="ic"><span class="ui-icon" data-icon="shield" aria-hidden="true"></span></span><b>ID-kopie afschermen</b><small id="pdf-t-id-d" aria-hidden="true">Met watermerk</small></button>
+      <button class="tile" id="pdf-t-cmp" onclick="show('pdfcmp')" aria-describedby="pdf-t-cmp-d"><span class="ic"><span class="ui-icon" data-icon="copy" aria-hidden="true"></span></span><b>Vergelijken</b><small id="pdf-t-cmp-d" aria-hidden="true">Tekst en pagina's</small></button>
     </div>
 
     <div class="flabel stgl" role="heading" aria-level="2">Meer</div>
     <div class="card stlist">
-      <button class="strow" id="pdf-kluis-row" onclick="jumpTo('kluis')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Documentenkluis</b><small class="pdfwrap">Versleuteld bewaren</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" id="pdf-kluis-row" onclick="jumpTo('kluis')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Documentenkluis</b><small class="pdfwrap">Alles wat je maakt, versleuteld</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" id="pdf-def-btn" onclick="Android.pdfMakeDefault()"><span class="stic"><span class="ui-icon" data-icon="settings" aria-hidden="true"></span></span><span class="sttxt"><b>Standaard PDF-app</b><small id="pdf-def" class="pdfwrap"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
     <p class="note pdfbusy" id="pdf-busy" role="status" aria-live="polite"></p>
@@ -192,7 +193,12 @@
         <button class="big ghost" style="flex:1" id="pdf-share-all" onclick="pdfShareAll()">Alles delen</button>
         <button class="big ghost" style="flex:1" id="pdf-save-all" onclick="pdfSaveAll()">Alles in backup-map</button>
       </div>
-      <p class="note">Tik op een bestand om het te openen, te delen of op te slaan. Na een week worden ze hier opgeruimd.</p>
+      <p class="note">Hier staat wat (nog) niet in de documentenkluis staat. Tik op een bestand om het te openen, te delen of op te slaan. Na een week worden ze hier opgeruimd.</p>
+    </div>
+    <div class="card" id="kc-card">
+      <div class="row kc-row"><span class="sttxt"><b>Gemaakte PDF's vanzelf in de documentenkluis</b><small>Versleuteld bewaard; daarna staat het bestand niet meer hier</small></span><button class="tg" id="kc-aan" role="switch" aria-checked="true" aria-label="Gemaakte PDF's vanzelf in de documentenkluis" onclick="kcSchakel()"></button></div>
+      <button class="big tonal" id="kc-alles" onclick="kcAllesNaarKluis()" hidden>Naar de documentenkluis</button>
+      <button class="big ghost" id="kc-open" onclick="show('kluis')" data-icon="lock">Documentenkluis openen</button>
     </div>
     <p class="note pdfbusy" role="status" aria-live="polite"></p>
     <p class="note pdfkeep" role="status" aria-live="polite"></p>

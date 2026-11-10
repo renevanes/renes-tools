@@ -99,6 +99,21 @@ public class FeatureBridge {
             }
         });
     }
+    /** De kaartfoto's die Stamgegevens net klaarzette (masterIdCopySource) als pagina's; antwoord via onIdCopyPicked. */
+    @JavascriptInterface public void idCopyTakeMaster() {
+        if (!a.idScreen) { a.idMasterClear(); return; }
+        final IdCopy store = a.idCopy; final String session = a.idSession;
+        final java.util.List<byte[]> images = a.idMasterPop();
+        new Thread(() -> {
+            String result;
+            try {
+                if (images == null) throw new Exception(Taal.T("De foto's uit Stamgegevens zijn niet meer beschikbaar; probeer opnieuw"));
+                result = store.addImages(ctx, images).toString();
+            } catch (Throwable e) { result = PdfTools.err(e); }
+            try { result = new JSONObject(result).put("session", session).put("master", true).toString(); } catch (Exception ignored) { }
+            if (store == a.idCopy && a.idScreen) a.js("onIdCopyPicked", result);
+        }, "id-copy-master").start();
+    }
     @JavascriptInterface public void idCopySecure(boolean on, String session) {
         final long generation;
         synchronized (a.idSecurityGeneration) {
@@ -493,6 +508,210 @@ public class FeatureBridge {
                 } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote(e.getMessage() == null ? "Openen lukt niet" : e.getMessage())); }
             }, "kluis-view").start();
         }
+        // ----- Documentenkluis als centrale opslag: gemaakte PDF's erin, bekijken in de eigen viewer, bewerken als nieuwe versie -----
+
+        /**
+         * Gemaakte PDF's (PDF-tools, ID-kopie, formulieren) in de kluis: versleuteld bewaren, daarna het leesbare bestand onder
+         * Gemaakt weghalen. Per item: name (bestand in pdf-out), title, category, versionOf (id: nieuwe versie), source, link.
+         * Antwoord via onKluisStored {stored:[{name,id,title,version}], failed:[{name,error}]}.
+         */
+        @JavascriptInterface public void kluisStore(String json) {
+            if (!PlayPolicy.allows(ctx, "kluis")) { a.js("onKluisStored", PdfTools.err(new Exception(PlayPolicy.unavailable(ctx)))); return; }
+            new Thread(() -> {
+                String res;
+                try {
+                    if (json == null || json.length() > 40000) throw new Exception("Ongeldige opdracht");
+                    org.json.JSONArray items = new JSONObject(json).getJSONArray("items"), stored = new org.json.JSONArray(), failed = new org.json.JSONArray();
+                    if (items.length() > 50) throw new Exception("Te veel bestanden tegelijk");
+                    for (int k = 0; k < items.length(); k++) {
+                        JSONObject it = items.getJSONObject(k);
+                        String name = it.optString("name");
+                        try {
+                            if (!a.kluisOk()) throw new Exception("De kluis is weer op slot");
+                            File f = PdfTools.output(ctx, name);
+                            String of = it.optString("versionOf", "");
+                            JSONObject d;
+                            if (!of.isEmpty()) d = Kluis.addVersion(ctx, of, f, DocumentMeta.note(it.optString("note", "")));
+                            else {
+                                String title = it.optString("title", "").trim();
+                                title = title.isEmpty() ? f.getName() : DocumentMeta.text(title, 120, false, "Naam");
+                                d = Kluis.addFile(ctx, f, title, "application/pdf", it.optString("category", ""), it);
+                            }
+                            f.delete(); // staat nu versleuteld in de kluis; het leesbare bestand onder Gemaakt hoeft niet meer
+                            stored.put(new JSONObject().put("name", name).put("id", d.getString("id")).put("title", d.optString("name")).put("version", !of.isEmpty()));
+                        } catch (Throwable e) { failed.put(new JSONObject().put("name", name).put("error", new JSONObject(PdfTools.err(e)).optString("error"))); }
+                    }
+                    res = new JSONObject().put("stored", stored).put("failed", failed).toString();
+                } catch (Throwable e) { res = PdfTools.err(e); }
+                a.js("onKluisStored", res);
+            }, "kluis-bewaren").start();
+        }
+        /** Een document (of een oudere versie) openen: een PDF in de eigen viewer (geen kopie buiten de kluis), anders met een andere app. */
+        @JavascriptInterface public void kluisOpen(String id, int version) { kluisShow(id, version, true); }
+        private void kluisShow(String id, int version, boolean eigen) {
+            if (!a.kluisOk()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
+            new Thread(() -> {
+                try {
+                    JSONObject d = Kluis.find(ctx, Kluis.safeId(id));
+                    if (d == null) throw new Exception("Document niet gevonden");
+                    File f = Kluis.viewVersion(ctx, id, version);
+                    String mime = d.optString("mime").isEmpty() ? ctx.getContentResolver().getType(Uri.fromFile(f)) : d.optString("mime");
+                    if (eigen && f.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) {
+                        final Intent v = new Intent(ctx, PdfViewActivity.class).setData(PdfProvider.uri(f)).putExtra(PdfViewActivity.EXTRA_KLUIS, id);
+                        a.runOnUiThread(() -> { try { a.startActivity(v); } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote("Openen lukt niet")); } });
+                        return;
+                    }
+                    Uri u = new Uri.Builder().scheme("content").authority(KluisProvider.AUTH).appendPath(f.getName()).build();
+                    Intent v = new Intent(Intent.ACTION_VIEW).setDataAndType(u, mime == null ? "application/octet-stream" : mime)
+                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    final Intent ch = Intent.createChooser(v, "Openen met").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            .putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, new android.content.ComponentName[]{new android.content.ComponentName(ctx, PdfViewActivity.class)});
+                    a.runOnUiThread(() -> { try { a.startActivity(ch); } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote("Geen app om dit te openen")); } });
+                } catch (Throwable e) { a.js("onKluisChanged", JSONObject.quote(e.getMessage() == null ? "Openen lukt niet" : e.getMessage())); }
+            }, "kluis-open").start();
+        }
+        /** Een PDF uit de kluis bewerken en ondertekenen; bewaren wordt een nieuwe versie (antwoord via onKluisEdit, zoals onPdf). */
+        @JavascriptInterface public void kluisEdit(String id) {
+            if (!a.kluisOk()) { a.js("onKluisEdit", PdfTools.err(new Exception("De kluis is weer op slot"))); return; }
+            new Thread(() -> {
+                String r;
+                try {
+                    JSONObject d = Kluis.find(ctx, Kluis.safeId(id));
+                    if (d == null) throw new Exception("Document niet gevonden");
+                    if (!Kluis.fileName(d).toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) throw new Exception("Alleen een PDF is te bewerken");
+                    File tmp = new File(PdfTools.dir(ctx, "pdf-in"), "kopie.pdf");
+                    Kluis.decryptTo(ctx, id, 0, tmp);
+                    JSONObject j = new JSONObject(PdfTools.openPdfFile(ctx, tmp, Kluis.fileName(d)));
+                    if (!j.has("error")) j.put("kind", "pdf").put("to", "edit").put("kluis", id);
+                    r = j.toString();
+                } catch (Throwable e) { r = PdfTools.err(e); }
+                a.js("onKluisEdit", r);
+            }, "kluis-bewerken").start();
+        }
+        /** Delen met een andere app (mail, WhatsApp): ontsleuteld in de kijkmap, die bij op slot gaan leeg gaat. */
+        @JavascriptInterface public void kluisShare(String id, int version) {
+            if (!a.kluisOk()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
+            new Thread(() -> {
+                try {
+                    JSONObject d = Kluis.find(ctx, Kluis.safeId(id));
+                    if (d == null) throw new Exception("Document niet gevonden");
+                    File f = Kluis.viewVersion(ctx, id, version);
+                    Uri u = new Uri.Builder().scheme("content").authority(KluisProvider.AUTH).appendPath(f.getName()).build();
+                    String mime = d.optString("mime").isEmpty() ? "application/octet-stream" : d.optString("mime");
+                    Intent s = new Intent(Intent.ACTION_SEND).setType(mime).putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    s.setClipData(android.content.ClipData.newRawUri("", u));
+                    final Intent ch = Intent.createChooser(s, Taal.t(ctx, "Delen")).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    a.runOnUiThread(() -> { try { a.startActivity(ch); } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote("Delen lukt niet")); } });
+                } catch (Throwable e) { a.js("onKluisChanged", JSONObject.quote(e.getMessage() == null ? "Delen lukt niet" : e.getMessage())); }
+            }, "kluis-delen").start();
+        }
+        /** Opslaan als… (een plek die Rene kiest): eerst de kiezer, daarna ontsleutelen en schrijven (MainActivity, REQ_KLUIS_SAVE). */
+        @JavascriptInterface public void kluisSaveAs(String id, int version) {
+            if (!a.kluisOk()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
+            try {
+                JSONObject d = Kluis.find(ctx, Kluis.safeId(id));
+                if (d == null) throw new Exception("Document niet gevonden");
+                a.kluisSaveId = id; a.kluisSaveVersion = Math.max(0, version);
+                String mime = d.optString("mime").isEmpty() ? "application/octet-stream" : d.optString("mime");
+                final Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(mime).putExtra(Intent.EXTRA_TITLE, Kluis.fileName(d));
+                a.h.post(() -> { try { a.startActivityForResult(i, MainActivity.REQ_KLUIS_SAVE); } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote("Opslaan niet beschikbaar")); } });
+            } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote(e.getMessage() == null ? "Opslaan lukt niet" : e.getMessage())); }
+        }
+        /** Een oudere versie terugzetten (wat er nu staat blijft als versie bewaard). Antwoord via onKluisVersie. */
+        @JavascriptInterface public void kluisRestore(String id, int version) {
+            if (!a.kluisOk()) { a.js("onKluisVersie", PdfTools.err(new Exception("De kluis is op slot"))); return; }
+            new Thread(() -> {
+                String r;
+                try { Kluis.restoreVersion(ctx, Kluis.safeId(id), version); r = "{\"ok\":true}"; }
+                catch (Throwable e) { r = PdfTools.err(e); }
+                a.js("onKluisVersie", r);
+            }, "kluis-versie").start();
+        }
+        /** Documenten die aan iets gekoppeld zijn (kind "id": een identiteitsdocument uit Stamgegevens). Op slot: {locked:true}. */
+        @JavascriptInterface public String kluisLinked(String kind, String ref) {
+            if (!a.kluisOk()) return "{\"locked\":true}";
+            try {
+                if (!"id".equals(kind) || ref == null || !ref.matches("[A-Za-z0-9_-]{1,64}")) throw new Exception("Onbekende koppeling");
+                return new JSONObject().put("docs", Kluis.linked(ctx, kind, ref)).toString();
+            } catch (Exception e) { return errJson(e); }
+        }
+        // ----- Documenten vergelijken (PdfCompare): A en B uit een bestand, de kluis of Gemaakt -----
+
+        /** Document A (0) of B (1) kiezen met de bestandskiezer; antwoord via onCmp. */
+        @JavascriptInterface public void cmpPick(int slot) {
+            if (slot < 0 || slot > 1) return;
+            a.cmpPickSlot = slot;
+            a.h.post(() -> {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
+                        .putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/pdf", "image/*"});
+                try { a.startActivityForResult(i, MainActivity.REQ_CMP); }
+                catch (Throwable e) { a.js("onCmp", PdfTools.err(new Exception("Bestandskiezer niet beschikbaar"))); }
+            });
+        }
+        /** Een kluisdocument (of een oudere versie) als A of B: alleen tijdelijk ontsleuteld in de werkmap van vergelijken. */
+        @JavascriptInterface public void cmpKluis(int slot, String id, int version) {
+            if (!a.kluisOk()) { a.js("onCmp", PdfTools.err(new Exception("De kluis is op slot"))); return; }
+            final PdfCompare cmp = a.cmp;
+            new Thread(() -> {
+                String r;
+                try {
+                    JSONObject d = Kluis.find(ctx, Kluis.safeId(id));
+                    if (d == null) throw new Exception("Document niet gevonden");
+                    File f = cmp.work(ctx);
+                    Kluis.decryptTo(ctx, id, version, f);
+                    String name = d.optString("name", "document") + (version > 0 ? " · " + Taal.t(ctx, "versie {n}", "n", version) : "");
+                    r = cmp.set(slot, f, name, id, version).put("slot", slot).toString();
+                } catch (Throwable e) { r = PdfTools.err(e); }
+                a.js("onCmp", r);
+            }, "vergelijken-kluis").start();
+        }
+        /** Een gemaakte PDF (Gemaakt) als A of B. */
+        @JavascriptInterface public void cmpMade(int slot, String name) {
+            final PdfCompare cmp = a.cmp;
+            new Thread(() -> {
+                String r;
+                try {
+                    File src = PdfTools.output(ctx, name), f = cmp.work(ctx);
+                    try (java.io.InputStream in = new java.io.FileInputStream(src); java.io.OutputStream o = new java.io.FileOutputStream(f)) { byte[] b = new byte[1 << 16]; int n; while ((n = in.read(b)) > 0) o.write(b, 0, n); }
+                    r = cmp.set(slot, f, PdfTools.base(name), "", 0).put("slot", slot).toString();
+                } catch (Throwable e) { r = PdfTools.err(e); }
+                a.js("onCmp", r);
+            }, "vergelijken-gemaakt").start();
+        }
+        @JavascriptInterface public String cmpInfo() { try { return a.cmp.info().toString(); } catch (Exception e) { return "{}"; } }
+        @JavascriptInterface public void cmpSwap() { a.cmp.swap(); }
+        @JavascriptInterface public void cmpClear() { final PdfCompare old = a.cmp; a.cmp = new PdfCompare(); new Thread(() -> { try { old.clear(); } catch (Throwable ignored) { } }, "vergelijken-wissen").start(); }
+        /** Tekstverschillen; antwoord via onCmpText. */
+        @JavascriptInterface public void cmpText() {
+            final PdfCompare cmp = a.cmp;
+            new Thread(() -> {
+                String r;
+                try (Voortgang v = Voortgang.van(a, "vergelijken", 1)) { r = cmp.text(ctx, () -> cmp == a.cmp && !a.isDestroyed(), v).toString(); }
+                catch (Throwable e) { r = PdfTools.err(e); }
+                if (cmp == a.cmp) a.js("onCmpText", r);
+            }, "vergelijken-tekst").start();
+        }
+        /** Pagina's met verschillen zoeken (grof); antwoord via onCmpScan. */
+        @JavascriptInterface public void cmpScan() {
+            final PdfCompare cmp = a.cmp;
+            new Thread(() -> {
+                String r;
+                try (Voortgang v = Voortgang.van(a, "vergelijken", 1)) { r = cmp.scan(() -> cmp == a.cmp && !a.isDestroyed(), v).toString(); }
+                catch (Throwable e) { r = PdfTools.err(e); }
+                if (cmp == a.cmp) a.js("onCmpScan", r);
+            }, "vergelijken-beeld").start();
+        }
+        /** Eén pagina groot (mode verschil, a of b); antwoord via onCmpPage. */
+        @JavascriptInterface public void cmpPage(int i, String mode) {
+            final PdfCompare cmp = a.cmp; final String m = "a".equals(mode) || "b".equals(mode) ? mode : "verschil";
+            new Thread(() -> {
+                String r;
+                try { r = cmp.page(i, m).toString(); }
+                catch (Throwable e) { try { r = new JSONObject(PdfTools.err(e)).put("i", i).put("mode", m).toString(); } catch (Exception x) { r = "{}"; } }
+                if (cmp == a.cmp) a.js("onCmpPage", r);
+            }, "vergelijken-pagina").start();
+        }
+
         @JavascriptInterface public String kluisDelete(String id) {
             if (!a.kluisOk()) return "De kluis is op slot";
             try { Kluis.delete(ctx, id); return ""; } catch (Exception e) { return "Verwijderen lukt niet"; }
@@ -505,16 +724,6 @@ public class FeatureBridge {
             if (!a.kluisOk()) return "De kluis is op slot";
             try { Kluis.organize(ctx,id,json);return ""; }
             catch (Exception e) { return e.getMessage()==null?"Ordenen lukt niet":e.getMessage(); }
-        }
-        @JavascriptInterface public void kluisSavePdf(String name,String category) {
-            if (!PlayPolicy.allows(ctx, "kluis")) { a.js("onPdfStored", PdfTools.err(new Exception(PlayPolicy.unavailable(ctx)))); return; }
-            new Thread(()->{
-                String result;
-                try { if (!a.kluisOk()) throw new Exception("De kluis is weer op slot. Ontgrendel opnieuw om het document te bewaren.");
-                      JSONObject d=Kluis.addPdf(ctx,name,category);result=new JSONObject().put("ok",true).put("id",d.getString("id")).put("name",d.getString("name")).toString(); }
-                catch(Throwable e) { result=PdfTools.err(e); }
-                a.js("onPdfStored",result);
-            },"pdf-bewaren").start();
         }
         @JavascriptInterface public void kluisClose() {
             Kluis.close(ctx);

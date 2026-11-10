@@ -118,6 +118,26 @@ final class RijbewijsOcr {
         finally{current[0]=null;if(api!=null)api.recycle();if(image!=null)image.recycle();}
     }
 
+    /**
+     * Gewone tekst van een gescande pagina (documenten vergelijken), met hetzelfde lokale model. Leeg als het niet lukt of
+     * als active intussen nee zegt. De pagina en de tekst blijven in het geheugen.
+     */
+    static synchronized String pageText(Context context,Bitmap page,BooleanSupplier active) {
+        TessBaseAPI api=null;TessBaseAPI[] current=new TessBaseAPI[1];
+        try {
+            if(!active.getAsBoolean())return "";
+            File root=model(context);
+            api=new TessBaseAPI(progress->{if(!active.getAsBoolean()&&current[0]!=null)current[0].stop();});current[0]=api;
+            Map<String,String> config=new HashMap<>();config.put("debug_file","/dev/null");
+            if(!api.init(root.getAbsolutePath(),"eng",TessBaseAPI.OEM_LSTM_ONLY,config))return "";
+            api.setDebug(false);api.setVariable("tessedit_write_images","0");api.setVariable("user_defined_dpi","300");
+            api.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
+            Bitmap bw=binary(page,2400);
+            try{api.setImage(bw);String t=api.getUTF8Text();return t==null||!active.getAsBoolean()?"":t;}finally{bw.recycle();}
+        }catch(Throwable ignored){return "";}
+        finally{current[0]=null;if(api!=null)api.recycle();}
+    }
+
     /** Alles wat een rijbewijs nodig heeft gevonden (nummer zeker, einddatum en geboortedatum): dan niet verder zoeken. */
     static boolean complete(JSONObject r) {
         if(r==null)return false;JSONObject d=r.optJSONObject("document"),p=r.optJSONObject("persoon");

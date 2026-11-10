@@ -321,35 +321,53 @@ final class AppBackup {
         if (l.length() == 0) return;
         JSONArray ok = new JSONArray();
         for (int i = 0; i < l.length(); i++) {
-            stopCheck();
             JSONObject d = l.getJSONObject(i);
             String id = d.optString("id");
             if (!id.matches("[a-z0-9]{6,24}")) continue;
-            File f = new File(Kluis.dir(c), id + ".bin");
-            File tmp = new File(c.getCacheDir(), "kluis-app.tmp");
-            String written = null;
-            String path = AppData.KLUIS_DIR + "/" + id;
-            // Eerst helemaal ontsleutelen en controleren, pas dan in het archief (nooit een half document)
-            try {
-                try (InputStream in = new java.io.BufferedInputStream(new FileInputStream(f), 1 << 16); OutputStream o = new FileOutputStream(tmp)) { Kluis.decrypt(in, o); }
-                if (!ref(zip, m, tmp, path, d.optLong("t"))) {
-                    try (InputStream in = new FileInputStream(tmp); AppData.DigestOut o = new AppData.DigestOut(zip.stream(AppData.KLUIS_DIR, id, AppData.compressed(d.optString("name")) ? 1 : 6))) {
-                        written = zip.lastPath;
-                        byte[] b = new byte[1 << 16]; int r; while ((r = in.read(b)) > 0) o.write(b, 0, r);
-                        o.close();
-                        m.entries.add(new AppData.Entry(path, o.n, o.sha()));
-                        written = null;
-                    }
-                }
-                ok.put(d);
-            } catch (Exception e) {
-                if (written != null) { m.broken.add(written); zip.bad.add(written); }
-                if (AllBackup.stop) throw e;
-                m.skipped.add(new String[]{"kluis:" + id, "kluisdocument niet te lezen"});
-                App.log(c, "BACKUP", "appgegevens kluis " + id + ": " + e.getClass().getSimpleName());
-            } finally { tmp.delete(); }
+            // Het document zelf en daarna elke oudere versie (eigen bestand); een onleesbare versie valt weg, het document niet
+            java.util.Set<String> lost = new java.util.HashSet<>();
+            boolean docOk = true;
+            for (String blob : Kluis.blobs(d)) {
+                stopCheck();
+                if (!exportKluisBlob(c, zip, m, blob, d)) { if (blob.equals(id)) { docOk = false; break; } lost.add(blob); }
+            }
+            if (!docOk) continue;
+            if (!lost.isEmpty()) {
+                JSONArray v = d.optJSONArray("versions"), keep = new JSONArray();
+                for (int k = 0; v != null && k < v.length(); k++) if (!lost.contains(v.getJSONObject(k).optString("blob"))) keep.put(v.get(k));
+                d = new JSONObject(d.toString()).put("versions", keep);
+            }
+            ok.put(d);
         }
         putBytes(zip, m, AppData.KLUIS_INDEX, ok.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** Eén kluisbestand (document of versie) ontsleuteld in het archief. false = niet te lezen (dan staat dat in skipped). */
+    static boolean exportKluisBlob(Context c, Secure.Zip zip, AppData.Manifest m, String blob, JSONObject d) throws Exception {
+        File f = new File(Kluis.dir(c), blob + ".bin");
+        File tmp = new File(c.getCacheDir(), "kluis-app.tmp");
+        String written = null;
+        String path = AppData.KLUIS_DIR + "/" + blob;
+        // Eerst helemaal ontsleutelen en controleren, pas dan in het archief (nooit een half document)
+        try {
+            try (InputStream in = new java.io.BufferedInputStream(new FileInputStream(f), 1 << 16); OutputStream o = new FileOutputStream(tmp)) { Kluis.decrypt(in, o); }
+            if (!ref(zip, m, tmp, path, d.optLong("t"))) {
+                try (InputStream in = new FileInputStream(tmp); AppData.DigestOut o = new AppData.DigestOut(zip.stream(AppData.KLUIS_DIR, blob, AppData.compressed(d.optString("name")) ? 1 : 6))) {
+                    written = zip.lastPath;
+                    byte[] b = new byte[1 << 16]; int r; while ((r = in.read(b)) > 0) o.write(b, 0, r);
+                    o.close();
+                    m.entries.add(new AppData.Entry(path, o.n, o.sha()));
+                    written = null;
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            if (written != null) { m.broken.add(written); zip.bad.add(written); }
+            if (AllBackup.stop) throw e;
+            m.skipped.add(new String[]{"kluis:" + blob, "kluisdocument niet te lezen"});
+            App.log(c, "BACKUP", "appgegevens kluis " + blob + ": " + e.getClass().getSimpleName());
+            return false;
+        } finally { tmp.delete(); }
     }
 
     // ===================================================================================================
@@ -746,14 +764,10 @@ final class AppBackup {
         for (int i = 0; i < in.length(); i++) {
             JSONObject d = in.optJSONObject(i);
             if (d == null) continue;
-            String id = d.optString("id");
-            if (!id.matches("[a-z0-9]{6,24}") || !new File(stKluis, id + ".bin").isFile()) continue;
-            JSONObject o = new JSONObject().put("id", id).put("name", cut(d.optString("name", "document"), 120))
-                    .put("mime", cut(d.optString("mime", "application/octet-stream"), 120)).put("size", Math.max(0, d.optLong("size")))
-                    .put("t", d.optLong("t", System.currentTimeMillis())).put("category", DocumentMeta.category(d.optString("category", "")));
-            if (d.has("note")) o.put("note", DocumentMeta.note(d.optString("note")));
-            if (d.optBoolean("favorite")) o.put("favorite", true);
-            out.put(o);
+            JSONObject o;
+            try { o = Kluis.clean(d, b -> new File(stKluis, b + ".bin").isFile()); }
+            catch (IllegalArgumentException e) { continue; }
+            if (o != null) out.put(o);
         }
         return out;
     }
@@ -923,8 +937,9 @@ final class AppBackup {
             if (!id.matches("[a-z0-9]{6,24}") || ids.contains(id)) continue;
             File bin = new File(kl, id + ".bin");
             if (!bin.isFile()) continue;
-            HerstelLog.move(jf, bin, new File(stKl, id + ".bin"));
-            back.put(d);
+            for (String b : Kluis.blobs(d)) { File f = new File(kl, b + ".bin"); if (f.isFile()) HerstelLog.move(jf, f, new File(stKl, b + ".bin")); }
+            JSONObject kept = Kluis.clean(d, b -> new File(stKl, b + ".bin").isFile());
+            if (kept != null) back.put(kept);
             ids.add(id);
         }
         Kluis.writeEncrypted(new File(stKl, "index.bin"), back.toString().getBytes(StandardCharsets.UTF_8));

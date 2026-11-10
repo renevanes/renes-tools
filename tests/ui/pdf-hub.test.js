@@ -26,8 +26,9 @@ const SHOTS = process.env.PDF_SHOTS || path.join(__dirname, 'shots');
     for (const w of [390, 360]) {
       await pg.setViewportSize({ width: w, height: 844 }); await pg.waitForTimeout(100);
       const m = await pg.evaluate(() => ({ h: document.documentElement.scrollHeight, wide: document.documentElement.scrollWidth > innerWidth + 1 }));
-      // Ongeveer anderhalf scherm (844 px); de lettertypen in CI lopen iets anders af, vandaar wat ruimte op 360 px
-      assert.ok(m.h < (w === 390 ? 1300 : 1350), w + ' px: overzicht is ' + m.h + ' px hoog');
+      // Ongeveer anderhalf scherm (844 px) plus een rij tegels voor Vergelijken; de lettertypen in CI lopen iets anders af,
+      // vandaar wat ruimte op 360 px
+      assert.ok(m.h < (w === 390 ? 1420 : 1470), w + ' px: overzicht is ' + m.h + ' px hoog');
       assert.equal(m.wide, false, w + ' px: geen horizontaal schuiven');
       assert.equal(await pg.$eval('#pdf-kluis-row small', e => e.scrollWidth <= e.clientWidth + 1), true, w + ' px: ondertitel van de kluis niet afgekapt');
       await pg.screenshot({ path: path.join(SHOTS, 'pdf-after-hub-' + w + '-' + scheme + '.png'), fullPage: true });
@@ -42,7 +43,7 @@ const SHOTS = process.env.PDF_SHOTS || path.join(__dirname, 'shots');
 
     // Tegels: echte knoppen met een naam, in een logische volgorde; elke tegel opent zijn scherm en terug gaat terug
     const tiles = [['Bewerken en ondertekenen', 'pdfedit'], ['Plaatjes naar PDF', 'pdfimg'], ['Splitsen', 'pdfsplit'], ['Tekst naar PDF', 'pdftext'],
-      ['Formulieren invullen', 'formulieren'], ['ID-kopie afschermen', 'idcopy']];
+      ['Formulieren invullen', 'formulieren'], ['ID-kopie afschermen', 'idcopy'], ['Vergelijken', 'pdfcmp']];
     assert.deepEqual(await pg.$$eval('#pdf-tiles .tile', x => x.map(e => e.tagName + ':' + e.querySelector('b').textContent)), tiles.map(([n]) => 'BUTTON:' + n), 'volgorde');
     for (const [name, scr] of tiles) {
       const tile = pg.getByRole('button', { name, exact: true });

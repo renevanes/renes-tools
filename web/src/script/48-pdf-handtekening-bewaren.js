@@ -1,6 +1,5 @@
 /* Je handtekening in PDF → Bewerken en ondertekenen: plaatsen, tekenen en beheren gaan via 02-handtekening.js
  * (dezelfde als in Formulieren en Stamgegevens). Alleen bewaren maakt hem herbruikbaar. */
-let pdfKeepPending=null;
 function pdfSignatureControls(){
   const live=pdfEd.revision&&pdfEd.meta[pdfEd.page]&&!pdfEd.loading&&!pdfBusy;
   $('#pdf-signature-use').disabled=!sig.value||!live;
@@ -36,26 +35,3 @@ function pdfEditTeken(){
 }
 function pdfSignatureDraw(){if(!pdfBusy)sigTeken();}
 function pdfSignatureDelete(){if(!pdfBusy)sigVraagWeg('pdf-signature-draw');}
-function pdfKeep(name){
-  if (isPlay()) { toast(t('Deze tool zit niet in de Play-versie')); return; }
-  if(pdfKeepPending||pdfBusy)return;
-  askInput('Bewaren in documentenkluis','Categorie (mag leeg). De PDF blijft ook onder Gemaakt staan.','PDF','Bewaren',category=>{
-    if(category.trim().length>60){toast('Kies een categorie van maximaal 60 tekens');return;}
-    pdfKeepPending={name,category:category.trim(),saving:false};pdfSetBusy('Documentenkluis openen…');
-    try{const d=JSON.parse(Android.kluisList());if(d.error)throw Error(d.error);if(d.locked)Android.kluisUnlock();else pdfKeepUnlocked(true);}
-    catch(e){pdfKeepPending=null;pdfSetBusy('');toast(e.message||'Kluis openen lukt niet');}
-  });
-}
-function pdfKeepUnlocked(result){
-  const p=pdfKeepPending;if(!p||p.saving)return;
-  if(result!==true){pdfKeepPending=null;pdfSetBusy('');toast(typeof result==='string'?result:'Kluis niet ontgrendeld');return;}
-  p.saving=true;pdfSetBusy('PDF bewaren in documentenkluis…');
-  try{Android.kluisSavePdf(p.name,p.category);}catch(e){onPdfStored({error:'Bewaren in de kluis lukt niet'});}
-}
-window.onPdfStored=function(r){
-  if(!pdfKeepPending)return;pdfKeepPending=null;pdfSetBusy('');
-  const ok=!!(r&&r.ok);
-  const msg=ok?t('Bewaard in je documentenkluis: {naam}', { naam: r.name }):t(r&&r.error||'Bewaren lukt niet');
-  document.querySelectorAll('.pdfkeep').forEach(e=>{e.textContent=msg;});
-  toast(ok?'PDF bewaard in documentenkluis':r&&r.error||'Bewaren lukt niet');
-};

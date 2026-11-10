@@ -77,7 +77,8 @@ final class Kluis {
     }
 
     static File dir(Context c) { File d = new File(c.getFilesDir(), "kluis"); d.mkdirs(); return d; }
-    static File viewDir(Context c) { File d = new File(c.getCacheDir(), "kluis-open"); d.mkdirs(); return d; }
+    static final String VIEW_DIR = "kluis-open";
+    static File viewDir(Context c) { File d = new File(c.getCacheDir(), VIEW_DIR); d.mkdirs(); return d; }
     static File index(Context c) { return new File(dir(c), "index.bin"); }
 
     static void clearViews(Context c) {
@@ -206,10 +207,111 @@ final class Kluis {
         try(InputStream in=v.lees(c.getContentResolver().openInputStream(u),Math.max(0,size))){return store(c,in,name,mime,"");}
     }
 
-    static synchronized JSONObject addPdf(Context c,String name,String category) throws Exception {
-        File source=PdfTools.output(c,name);
-        try(InputStream in=new FileInputStream(source)){return store(c,in,source.getName(),"application/pdf",DocumentMeta.category(category));}
+    /** Een gemaakt bestand (PDF-tools, ID-kopie) als nieuw document, met herkomst en koppeling (zie meta). */
+    static synchronized JSONObject addFile(Context c,File source,String name,String mime,String category,JSONObject extra) throws Exception {
+        JSONObject meta=meta(extra);
+        try(InputStream in=new FileInputStream(source)){
+            JSONObject d=store(c,in,name,mime,DocumentMeta.category(category));
+            if(meta.length()==0)return d;
+            JSONArray all=list(c);
+            for(int i=0;i<all.length();i++)if(d.getString("id").equals(all.getJSONObject(i).optString("id"))){
+                JSONObject e=all.getJSONObject(i);java.util.Iterator<String> k=meta.keys();
+                while(k.hasNext()){String key=k.next();e.put(key,meta.get(key));d.put(key,meta.get(key));}
+            }
+            saveIndex(c,all);return d;
+        }
     }
+
+    // ---------- versies ----------
+    // Elk document kan oudere versies hebben: {"versions":[{"blob","t","size","name","note"}, …]} (oudste eerst). Een versie
+    // is een eigen versleuteld bestand <blob>.bin naast <id>.bin, met hetzelfde formaat, zodat backup en terugzetten het
+    // als gewoon kluisbestand kunnen meenemen (zie AppBackup.exportKluis en Kluis.clean).
+
+    static final int MAX_VERSIONS = KluisIndex.MAX_VERSIONS;
+
+    /** Nieuwe inhoud voor een bestaand document: de huidige inhoud wordt een oudere versie (de oudste vervalt na MAX_VERSIONS). */
+    static synchronized JSONObject addVersion(Context c,String id,File source,String note) throws Exception {
+        try(InputStream in=new FileInputStream(source)){return addVersion(c,id,in,note);}
+    }
+    static synchronized JSONObject addVersion(Context c,String id,InputStream in,String note) throws Exception {
+        if(!isOpen())throw new Exception("De kluis is op slot");safeId(id);
+        JSONArray all=list(c);JSONObject d=null;
+        for(int i=0;i<all.length();i++)if(id.equals(all.getJSONObject(i).optString("id")))d=all.getJSONObject(i);
+        if(d==null)throw new Exception("Document niet gevonden");
+        String blob=newId();File cur=new File(dir(c),id+".bin"),old=new File(dir(c),blob+".bin"),next=new File(dir(c),id+".bin.writing");
+        boolean moved=false,saved=false;
+        try{
+            CountingIn ci=new CountingIn(in);
+            try(OutputStream o=new java.io.BufferedOutputStream(new FileOutputStream(next))){encrypt(ci,o);}
+            if(!isOpen())throw new Exception("De kluis is weer op slot. Ontgrendel opnieuw om de nieuwe versie te bewaren.");
+            // Volgorde: huidige → oude versie, nieuwe → huidige, dan pas de index. Lukt iets niet, dan alles terug.
+            if(!cur.renameTo(old))throw new Exception("Nieuwe versie bewaren lukt niet");
+            moved=true;
+            if(!next.renameTo(cur))throw new Exception("Nieuwe versie bewaren lukt niet");
+            JSONArray versions=d.optJSONArray("versions");if(versions==null)versions=new JSONArray();
+            versions.put(new JSONObject().put("blob",blob).put("t",d.optLong("t")).put("size",d.optLong("size")).put("name",d.optString("name")).put("note",DocumentMeta.note(d.optString("vnote",""))));
+            java.util.List<String> drop=new java.util.ArrayList<>();
+            while(versions.length()>MAX_VERSIONS){drop.add(versions.getJSONObject(0).optString("blob"));versions.remove(0);}
+            d.put("versions",versions).put("size",ci.n).put("t",System.currentTimeMillis()).put("vnote",DocumentMeta.note(note==null?"":note));
+            saveIndex(c,all);saved=true;
+            for(String b:drop)if(b.matches("[a-z0-9]{6,24}"))new File(dir(c),b+".bin").delete();
+            return d;
+        }finally{
+            next.delete();
+            if(moved&&!saved){if(old.exists()){cur.delete();old.renameTo(cur);}}
+        }
+    }
+
+    /** Een oudere versie terugzetten: die inhoud wordt de nieuwste versie; wat er nu staat blijft als versie bewaard. */
+    static synchronized JSONObject restoreVersion(Context c,String id,int n) throws Exception {
+        File tmp=new File(viewDir(c),"terugzetten.tmp");
+        try{
+            try(InputStream in=new java.io.BufferedInputStream(new FileInputStream(blobFile(c,id,n)),1<<16);OutputStream o=new FileOutputStream(tmp)){decrypt(in,o);}
+            return addVersion(c,id,tmp,"Versie "+n+" teruggezet");
+        }finally{tmp.delete();}
+    }
+
+    /** Het versleutelde bestand van een versie: 0 = de huidige, 1 = de oudste. */
+    static File blobFile(Context c,String id,int n) throws Exception {
+        JSONObject d=find(c,safeId(id));
+        if(d==null)throw new Exception("Document niet gevonden");
+        if(n==0)return new File(dir(c),id+".bin");
+        JSONArray v=d.optJSONArray("versions");
+        if(v==null||n<1||n>v.length())throw new Exception("Deze versie bestaat niet meer");
+        return new File(dir(c),safeId(v.getJSONObject(n-1).optString("blob"))+".bin");
+    }
+
+    /** Ontsleutelen naar een bestand naar keuze (vergelijken: twee documenten tegelijk). */
+    static void decryptTo(Context c,String id,int n,File out) throws Exception {
+        try(InputStream in=new java.io.BufferedInputStream(new FileInputStream(blobFile(c,id,n)),1<<16);OutputStream o=new FileOutputStream(out)){decrypt(in,o);}
+        catch(Exception e){out.delete();throw e;}
+    }
+
+    /** Een versie bekijken (n=0: de huidige), in de tijdelijke kijkmap die bij op slot gaan leeg gaat. */
+    static File viewVersion(Context c,String id,int n) throws Exception {
+        JSONObject d=find(c,safeId(id));
+        if(d==null)throw new Exception("Document niet gevonden");
+        clearViews(c);
+        String name=fileName(d);
+        if(n>0){int dot=name.lastIndexOf('.');name=(dot>0?name.substring(0,dot):name)+" (versie "+n+")"+(dot>0?name.substring(dot):"");}
+        File out=new File(viewDir(c),name);
+        decryptTo(c,id,n,out);
+        return out;
+    }
+
+    /** Documenten met een koppeling (bijv. ID-kopieën bij een identiteitsdocument uit Stamgegevens). */
+    static JSONArray linked(Context c,String kind,String ref) throws Exception {
+        JSONArray all=list(c),out=new JSONArray();
+        for(int i=0;i<all.length();i++){JSONObject l=all.getJSONObject(i).optJSONObject("link");if(l!=null&&kind.equals(l.optString("kind"))&&ref.equals(l.optString("ref")))out.put(all.getJSONObject(i));}
+        return out;
+    }
+
+    static String newId(){return java.util.UUID.randomUUID().toString().replace("-","").substring(0,24);}
+
+    // Herkomst, koppeling, schoonmaken en versiebestanden: zuiver, in KluisIndex (getest in KluisIndexTest).
+    static JSONObject meta(JSONObject in) throws Exception { return KluisIndex.meta(in); }
+    static JSONObject clean(JSONObject d, KluisIndex.Has has) throws Exception { return KluisIndex.clean(d, has); }
+    static java.util.List<String> blobs(JSONObject d) { return KluisIndex.blobs(d); }
 
     private static JSONObject store(Context c,InputStream in,String name,String mime,String category) throws Exception {
         if(!isOpen())throw new Exception("De kluis is op slot");
@@ -271,9 +373,11 @@ final class Kluis {
     static synchronized void delete(Context c, String id) throws Exception {
         safeId(id);
         JSONArray l = list(c), out = new JSONArray();
-        for (int i = 0; i < l.length(); i++) if (!l.getJSONObject(i).optString("id").equals(id)) out.put(l.get(i));
+        java.util.List<String> gone = new java.util.ArrayList<>();
+        for (int i = 0; i < l.length(); i++) { if (!l.getJSONObject(i).optString("id").equals(id)) out.put(l.get(i)); else gone.addAll(blobs(l.getJSONObject(i))); }
         saveIndex(c, out);
         new File(dir(c), id + ".bin").delete();
+        for (String b : gone) new File(dir(c), b + ".bin").delete(); // ook de oudere versies
     }
 
     static synchronized void rename(Context c, String id, String name) throws Exception {
@@ -306,7 +410,8 @@ final class Kluis {
                 try (OutputStream o = dest.zip.stream(path, fileName(d)); InputStream in = new FileInputStream(tmp)) {
                     byte[] b = new byte[1 << 16]; int r; while ((r = in.read(b)) > 0) o.write(b, 0, r);
                 }
-                metadata.put(new JSONObject(d.toString()).put("file",dest.zip.lastPath));
+                JSONObject meta=new JSONObject(d.toString());meta.remove("versions"); // hier alleen de huidige versie; alle versies gaan mee in "Alle appgegevens"
+                metadata.put(meta.put("file",dest.zip.lastPath));
                 n++;
             } catch (Exception e) { bad++; App.log(c, "KLUIS", "backup " + d.optString("id") + ": " + e.getMessage()); }
             finally { tmp.delete(); }
