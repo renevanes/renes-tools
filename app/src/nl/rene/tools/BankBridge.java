@@ -48,7 +48,7 @@ public class BankBridge extends FacturenBridge {
             if (Lock.busy()) { if (!alleenVanzelf) a.js("onBank", q("Er staat al een vraag om te ontgrendelen open")); return; }
             if (!a.bankScreen || a.isDestroyed() || a.isFinishing()) return;
             long nu = android.os.SystemClock.elapsedRealtime();
-            if (ToolSlot.eigenUit(ctx, "bank") && !a.bankAuth.bezig(nu) && (a.isSolo() || !Lock.locked(ctx))) {
+            if (ToolSlot.eigenUit(ctx, "bank") && !a.bankAuth.bezig(nu) && (a.isSolo() || !Lock.wouldLock(ctx))) {
                 final long request = a.bankAuth.begin();
                 if (request < 0) return;
                 new Thread(() -> {
@@ -58,7 +58,7 @@ public class BankBridge extends FacturenBridge {
                         if (!a.bankAuth.cancel(request)) return; // intussen weg uit de app, of een nieuwe vraag
                         if (!alleenVanzelf) a.h.post(this::prompt);
                         else if (max == 0) a.js("onBank", q("vraag"));
-                    } catch (Throwable t) { a.bankAuth.cancel(request); }
+                    } catch (Throwable t) { if (a.bankAuth.cancel(request) && !alleenVanzelf) a.h.post(this::prompt); }
                 }, "bank-open").start();
                 return;
             }

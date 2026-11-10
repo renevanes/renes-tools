@@ -30,6 +30,8 @@ function tsLijst(){ return Object.keys(TOOLS).filter(k => document.getElementByI
 function tsEigen(tool){ return ts.eigen.includes(tool); }
 /** Kluis, Bankzaken of Stamgegevens met extra ontgrendelen uit: opent zonder eigen vraag */
 function tsEigenUit(tool){ return !!ts && tsEigen(tool) && !ts.aan.includes(tool); }
+/** Mag zo'n tool nu vanzelf open? Niet onder het app-slot of het slotscherm van een andere tool (Java kijkt zelf ook). */
+function tsVanzelfMag(){ const app = document.getElementById('lockscr'); return !tsZichtbaar() && !(app && app.classList.contains('on')); }
 /** Vraagt deze tool extra ontgrendelen? Zonder schermvergrendeling op de telefoon kan dat niet (dan zou je er niet meer in komen). */
 function tsAan(tool){ return !!tool && !tsEigen(tool) && ts.secure && ts.aan.includes(tool); }
 /** Staat de tool nu op slot? Buiten de tool altijd (weggaan zet hem op slot). */

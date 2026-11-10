@@ -461,7 +461,7 @@ public class FeatureBridge {
         /** Zonder vraag open: niet onder het app-slot, niet tijdens een andere vraag, en als losse app alleen in die van de kluis of PDF (handtekening bewaren). */
         private boolean kluisVanzelf() {
             if (!ToolSlot.eigenUit(ctx, "kluis") || Lock.busy()) return false;
-            if (a.isSolo() ? !"kluis".equals(a.solo) && !"pdf".equals(a.solo) : Lock.locked(ctx)) return false;
+            if (a.isSolo() ? !"kluis".equals(a.solo) && !"pdf".equals(a.solo) : Lock.wouldLock(ctx)) return false;
             if (a.kluisOk()) Kluis.open(ctx); else a.kluisGen = Kluis.ontgrendeld(ctx);
             return true;
         }

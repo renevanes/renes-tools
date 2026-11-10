@@ -118,7 +118,7 @@ function cmUnlock(vanzelf=false){
 /** Extra ontgrendelen uit: Stamgegevens (of de keuzelijst ervan) opent vanzelf zodra het scherm klaar is */
 function cmVanzelf(){
   // Onder het slotscherm van een andere tool (bijv. PDF met Formulieren) niets ontsleutelen: dat wacht tot na ontgrendelen
-  if(!tsEigenUit('masterdata')||tsZichtbaar()||cm.unlocking||cm.resetting||cm.token&&cmOpen())return;
+  if(!tsEigenUit('masterdata')||!tsVanzelfMag()||cm.unlocking||cm.resetting||cm.token&&cmOpen())return;
   if(!(cmZone(current)&&current!=='cmwis'||cm.picker||typeof fmq!=='undefined'&&fmq.open))return;
   cmUnlock(true);
 }
