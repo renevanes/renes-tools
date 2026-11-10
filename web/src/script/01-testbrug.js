@@ -318,7 +318,8 @@ if (!window.Android) window.Android = (function(){
     carTripStart(){ this._car.tripActive = true; }, carTripStop(){ this._car.tripActive = false; },
     _kl: {open: false, docs: [{id: 'k1abcdef', name: 'Paspoort.pdf', mime: 'application/pdf', size: 820000, t: Date.now() - 864e5}]},
     /* Met extra ontgrendelen uit opent Java de kluis meteen (vóór het antwoord, zonder vraag); _kl.vragen telt de vragen */
-    kluisUnlock(){ if (this._tslot.aan.includes('kluis')) this._kl.vragen = (this._kl.vragen || 0) + 1; this._kl.open = true; setTimeout(() => onKluis(true), 30); }, kluisList(){ return this._kl.open ? JSON.stringify({docs: this._kl.docs, left: 300000}) : '{"locked":true}'; },
+    kluisUnlock(){ if (this._tslot.aan.includes('kluis')) this._kl.vragen = (this._kl.vragen || 0) + 1; this._kl.open = true; setTimeout(() => onKluis(true), 30); },
+    kluisOpenVanzelf(){ if (this._tslot.aan.includes('kluis')) return; this._kl.open = true; setTimeout(() => onKluis(true), 0); }, kluisList(){ return this._kl.open ? JSON.stringify({docs: this._kl.docs, left: 300000}) : '{"locked":true}'; },
     kluisAdd(){ this._kl.docs.push({id: 'k2abcdef', name: 'Polis <b>.pdf', mime: 'application/pdf', size: 1000, t: Date.now()}); setTimeout(() => onKluisChanged('ok'), 30); },
     kluisView(id){ this._klView = id; }, kluisDelete(id){ this._kl.docs = this._kl.docs.filter(d => d.id !== id); return ''; }, kluisRename(id, n){ const d = this._kl.docs.find(x => x.id === id); if (d) d.name = n; return ''; }, kluisClose(){ this._kl.open = false; },
     kluisOrganize(id,json){if(!this._kl.open)return 'De kluis is op slot';if(this._kl.error)return this._kl.error;const d=this._kl.docs.find(d=>d.id===id);if(!d)return 'Document niet gevonden';const p=JSON.parse(json);if((p.category||'').length>60||(p.note||'').length>1000)return 'Documentgegevens zijn te lang';Object.assign(d,p);return '';},

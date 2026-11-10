@@ -52,11 +52,13 @@ public class BankBridge extends FacturenBridge {
                 final long request = a.bankAuth.begin();
                 if (request < 0) return;
                 new Thread(() -> {
-                    long max = Bank.vanzelf(ctx);
-                    if (max > 0 && a.bankAuth.authenticated(request, android.os.SystemClock.elapsedRealtime())) { open(request, max); return; }
-                    if (!a.bankAuth.cancel(request)) return; // intussen weg uit de app, of een nieuwe vraag
-                    if (alleenVanzelf) a.js("onBank", q("vraag"));
-                    else a.h.post(this::prompt);
+                    try {
+                        long max = Bank.vanzelf(ctx);
+                        if (max > 0 && a.bankAuth.authenticated(request, android.os.SystemClock.elapsedRealtime())) { open(request, max); return; }
+                        if (!a.bankAuth.cancel(request)) return; // intussen weg uit de app, of een nieuwe vraag
+                        if (!alleenVanzelf) a.h.post(this::prompt);
+                        else if (max == 0) a.js("onBank", q("vraag"));
+                    } catch (Throwable t) { a.bankAuth.cancel(request); }
                 }, "bank-open").start();
                 return;
             }

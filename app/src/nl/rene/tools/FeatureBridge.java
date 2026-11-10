@@ -446,11 +446,7 @@ public class FeatureBridge {
         @JavascriptInterface public void carTripStop() { Car.stopTrip(ctx); }
         /** Met extra ontgrendelen uit (ToolSlot) meteen open, voordat deze aanroep terugkomt; anders na vingerafdruk of pincode. Antwoord via onKluis. */
         @JavascriptInterface public void kluisUnlock() {
-            if (ToolSlot.eigenUit(ctx, "kluis") && (a.isSolo() || !Lock.locked(ctx))) {
-                if (a.kluisOk()) Kluis.open(ctx); else a.kluisGen = Kluis.ontgrendeld(ctx);
-                a.js("onKluis", "true");
-                return;
-            }
+            if (kluisVanzelf()) { a.js("onKluis", "true"); return; }
             a.h.post(() -> {
                 if (a.kluisOk()) { Kluis.open(ctx); a.js("onKluis", "true"); return; }
                 if (Lock.busy()) { a.js("onKluis", JSONObject.quote("Er staat al een vraag om te ontgrendelen open")); return; }
@@ -459,6 +455,15 @@ public class FeatureBridge {
                     a.js("onKluis", ok ? "true" : JSONObject.quote(msg == null ? "Niet ontgrendeld" : msg));
                 }));
             });
+        }
+        /** Bij het openen van de kluis: met extra ontgrendelen uit meteen open, en nooit een vraag (kan het nu niet, dan blijft de knop). Antwoord via onKluis, alleen als hij open ging. */
+        @JavascriptInterface public void kluisOpenVanzelf() { if (kluisVanzelf()) a.js("onKluis", "true"); }
+        /** Zonder vraag open: niet onder het app-slot, niet tijdens een andere vraag, en als losse app alleen in die van de kluis of PDF (handtekening bewaren). */
+        private boolean kluisVanzelf() {
+            if (!ToolSlot.eigenUit(ctx, "kluis") || Lock.busy()) return false;
+            if (a.isSolo() ? !"kluis".equals(a.solo) && !"pdf".equals(a.solo) : Lock.locked(ctx)) return false;
+            if (a.kluisOk()) Kluis.open(ctx); else a.kluisGen = Kluis.ontgrendeld(ctx);
+            return true;
         }
         @JavascriptInterface public String kluisList() {
             if (!a.kluisOk()) return "{\"locked\":true}";

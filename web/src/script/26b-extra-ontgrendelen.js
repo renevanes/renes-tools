@@ -179,7 +179,7 @@ function tsZet(tool, on){
 function tsStand(){
   tsLaad();
   const n = ts.aan.length;
-  if (n && !ts.secure) return t('Werkt pas met een schermvergrendeling');
+  if (ts.aan.some(k => !tsEigen(k)) && !ts.secure) return t('Werkt pas met een schermvergrendeling'); // Kluis, Bankzaken en Stamgegevens zeggen dat zelf
   return n ? tn(n, 'Aan voor {n} tool', 'Aan voor {n} tools') : t('Uit');
 }
 /** Wat uitzetten betekent bij een eigen ontgrendeling: kort en zichtbaar (het gaat om een veilige keuze) */

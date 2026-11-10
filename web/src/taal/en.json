@@ -1071,6 +1071,7 @@
  "Alleen met pincode": "Only with PIN",
  "Alleen nieuwe en gewijzigde bestanden worden gekopieerd. In de backup wordt nooit iets verwijderd.": "Only new and changed files are copied. Nothing is ever deleted from the backup.",
  "Alleen nog met de hand": "Manually only from now on",
+ "Alleen ontgrendelen met je pincode, patroon, wachtwoord of vingerafdruk telt. Gezichtsontgrendeling telt op veel telefoons niet, net als Smart Lock (ontgrendeld blijven thuis of met je horloge); dan vragen ze het ook.": "Only unlocking with your PIN, pattern, password or fingerprint counts. Face unlock does not count on many phones, nor does Smart Lock (staying unlocked at home or with your watch); then they ask as well.",
  "Alleen op de kaart tonen": "Only show on the map",
  "Alleen op deze domeinen en dat van de inlogpagina vult de app je gegevens in en downloadt hij.": "The app only fills in your details and downloads on these domains and that of the login page.",
  "Alleen op een bepaalde plek": "Only at a certain place",

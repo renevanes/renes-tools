@@ -2457,9 +2457,10 @@ public class MainActivity extends Activity {
             if (on) {
                 if (!Lock.deviceSecure(ctx)) { toolSlotAntwoord(id, "aan", false, "Stel eerst een schermvergrendeling in op je telefoon (pincode, patroon of vingerafdruk)"); return; }
                 ToolSlot.zet(ctx, id, true);
-                // Wat zonder vraag open was, gaat nu op slot: de volgende keer vraagt hij het weer
+                // Wat zonder vraag open was, gaat nu op slot (in alle vensters): de volgende keer vraagt hij het weer
                 if ("kluis".equals(id)) Kluis.close(ctx);
-                if ("bank".equals(id)) synchronized (a.bankAuth) { a.bankAuth.cancel(); Bank.close(); }
+                if ("bank".equals(id)) { synchronized (ALL) { for (MainActivity m : ALL) synchronized (m.bankAuth) { m.bankAuth.cancel(); } } Bank.close(); }
+                if ("masterdata".equals(id)) synchronized (ALL) { for (MainActivity m : ALL) m.h.post(() -> m.suspendMaster(false)); }
                 toolSlotAntwoord(id, "aan", true, null);
                 return;
             }

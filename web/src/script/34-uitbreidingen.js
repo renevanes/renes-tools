@@ -92,7 +92,10 @@ function rdClip(sec){ toast('Bezig met bewaren…'); Android.radioSaveClip(Math.
 window.onRadioClip = function(r){ toast(r ? r : 'Fragment bewaard in Radio/'); };
 
 /* Kluis: documenten versleuteld op de telefoon, open met vingerafdruk. */
-function enterKluis(){ tsLaad(); if (tsEigenUit('kluis')) Android.kluisUnlock(); klRender(); } // extra ontgrendelen uit: meteen open (Java opent dan vóór het antwoord)
+function enterKluis(){ klVanzelf(); klRender(); }
+/** Extra ontgrendelen uit: meteen open, zonder vraag (Java opent vóór het antwoord; onder het app-slot niet) */
+function klVanzelf(){ tsLaad(); if (tsEigenUit('kluis') && !tsZichtbaar()) Android.kluisOpenVanzelf(); }
+(function(){ const prev = window.onUnlocked; window.onUnlocked = function(){ if (prev) prev.apply(this, arguments); if (current === 'kluis') { klVanzelf(); klRender(); } }; })();
 function klRender(){
   let d; try { d = JSON.parse(Android.kluisList()); } catch(e){ d = { locked: true }; }
   const locked = !!d.locked || !!d.error;

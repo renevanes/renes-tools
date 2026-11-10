@@ -117,7 +117,8 @@ function cmUnlock(vanzelf=false){
 }
 /** Extra ontgrendelen uit: Stamgegevens (of de keuzelijst ervan) opent vanzelf zodra het scherm klaar is */
 function cmVanzelf(){
-  if(!tsEigenUit('masterdata')||cm.unlocking||cm.resetting||cm.token&&cmOpen())return;
+  // Onder het slotscherm van een andere tool (bijv. PDF met Formulieren) niets ontsleutelen: dat wacht tot na ontgrendelen
+  if(!tsEigenUit('masterdata')||tsZichtbaar()||cm.unlocking||cm.resetting||cm.token&&cmOpen())return;
   if(!(cmZone(current)&&current!=='cmwis'||cm.picker||typeof fmq!=='undefined'&&fmq.open))return;
   cmUnlock(true);
 }
@@ -342,6 +343,7 @@ const cmOnPrivacy=window.onMasterPrivacy;window.onMasterPrivacy=function(r){cmOn
 (function(){
   const privacy=window.onMasterPrivacy;window.onMasterPrivacy=function(r){privacy(r);if(r&&r.view&&r.view===cm.view)setTimeout(cmVanzelf,0);};
   for(const naam of ['onResumeApp','onUnlocked']){const prev=window[naam];window[naam]=function(){if(prev)prev.apply(this,arguments);if(cm.view&&cm.privateReady)setTimeout(cmVanzelf,0);};}
+  const slot=window.onToolSlot;window.onToolSlot=function(r){slot(r);if(r&&r.soort==='open'&&r.ok&&cm.view&&cm.privateReady)setTimeout(cmVanzelf,0);};
 })();
 $('#cm-picker').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();cmClosePicker();}if(e.key==='Tab'){const nodes=[...$('#cm-picker').querySelectorAll('button,input,select,[tabindex="0"]')].filter(n=>!n.disabled&&n.getClientRects().length);if(!nodes.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
 document.addEventListener('input',e=>{if(e.target.closest(CM_SCR.map(n=>'#s-'+n).join(',')+',#cm-picker')||fm.masterSensitive&&e.target.closest('#s-formulieren')||idc.masterSensitive&&e.target.closest('#s-idcopy'))cmTouch();});

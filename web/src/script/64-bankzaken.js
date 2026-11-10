@@ -267,7 +267,7 @@ function enterBank(){
   bkLaad();
 }
 /** Extra ontgrendelen uit: vanzelf open zonder vraag, als de sleutel nog zeker werkt (Java beslist); anders de knop. */
-function bkVanzelf(){ if (current === 'bank' && tsEigenUit('bank') && bk.st && bk.st.slot && !bk.st.open && !bk.st.kwijt && bk.st.data) Android.bankOpenVanzelf(); }
+function bkVanzelf(){ if (current !== 'bank' || tsZichtbaar()) return; tsLaad(); if (tsEigenUit('bank') && bk.st && bk.st.slot && !bk.st.open && !bk.st.kwijt && bk.st.data) Android.bankOpenVanzelf(); }
 function bkToestand(){
   let s; try { s = JSON.parse(Android.bankState()); } catch (e) { s = { open: false }; }
   bk.st = s;

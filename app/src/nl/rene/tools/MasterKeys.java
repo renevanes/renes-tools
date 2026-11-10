@@ -47,9 +47,10 @@ final class MasterKeys {
         SecretKey key=generate(PROOF,15);byte[] probe=MasterCipher.encrypt(key,"reset",new byte[]{1});MasterCipher.decrypt(key,"reset",probe);
     }
     static void remove()throws Exception{KeyStore ks=store();if(ks.containsAlias(ALIAS))ks.deleteEntry(ALIAS);if(ks.containsAlias(READY))ks.deleteEntry(READY);Ontgrendeld.wis(PROEF);}
-    /** Extra ontgrendelen uit: zo lang mag Stamgegevens zonder vraag open (0 = vragen, -1 = nog geen sleutel of geen schermvergrendeling). Alleen als de sleutel er al is en nu werkt. */
+    /** Extra ontgrendelen uit: zo lang mag Stamgegevens zonder vraag open (0 = de telefoon is te lang geleden ontgrendeld, dus vragen; -1 = zonder vraag kan het niet, om een andere reden). Alleen als de sleutel er al is en nu werkt. */
     static long vanzelf(Context c){
         try{if(!Lock.deviceSecure(c)||!has(ALIAS))return -1;long max=Ontgrendeld.zeker(PROEF,SECONDS);if(max>0)authenticated(c);return max;}
-        catch(Throwable e){return 0;}
+        catch(android.security.keystore.UserNotAuthenticatedException e){return 0;}
+        catch(Throwable e){return -1;}
     }
 }

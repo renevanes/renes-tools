@@ -1,5 +1,6 @@
 package nl.rene.tools;
 
+import android.os.SystemClock;
 import android.webkit.JavascriptInterface;
 import javax.crypto.SecretKey;
 import org.json.JSONArray;
@@ -45,10 +46,12 @@ public class MasterBridge extends BankBridge {
         if(ToolSlot.eigenUit(ctx,"masterdata")&&!a.masterAuthPending&&(a.isSolo()||!Lock.locked(ctx))){
             final long auth=a.masterAuthSerial.incrementAndGet(),dataset=MasterSession.datasetEpoch();final String view=a.masterView;
             new Thread(()->{
-                long max=MasterKeys.vanzelf(ctx);
-                if(max>0){open(request,auth,dataset,view,max);return;}
-                if(!alleenVanzelf){a.h.post(()->prompt(request));return;}
-                JSONObject r=new JSONObject();try{if(max==0)r.put("vraag",true);}catch(Exception ignored){ }reply(request,"",r);
+                try{
+                    long start=SystemClock.elapsedRealtime(),max=MasterKeys.vanzelf(ctx);
+                    if(max>0){open(request,auth,dataset,view,start+max);return;}
+                    if(!alleenVanzelf){a.h.post(()->prompt(request));return;}
+                    JSONObject r=new JSONObject();if(max==0)r.put("vraag",true);reply(request,"",r);
+                }catch(Throwable t){reply(request,"",new JSONObject());}
             },"master-unlock").start();
             return;
         }
@@ -63,11 +66,11 @@ public class MasterBridge extends BankBridge {
         Lock.prompt(a,Taal.t(ctx,"Stamgegevens ontgrendelen"),(ok,message)->{
             a.masterAuthPending=false;
             if(!ok){JSONObject e=new JSONObject();try{e.put("error",Taal.T("Stamgegevens niet ontgrendeld"));}catch(Exception ignored){ }reply(request,"",e);return;}
-            a.afterMasterAuth(()->new Thread(()->open(request,auth,dataset,view,MasterSession.MAX),"master-unlock").start());
+            a.afterMasterAuth(()->new Thread(()->open(request,auth,dataset,view,Long.MAX_VALUE),"master-unlock").start());
         });
     }
-    /** Na ontgrendelen (of zonder vraag): de sessie openen, hooguit max ms. Loopt op een eigen thread. */
-    private void open(String request,long auth,long dataset,String view,long max){
+    /** Na ontgrendelen (of zonder vraag): de sessie openen, hooguit tot tot (elapsedRealtime; zonder vraag: vóór de sleutel ophoudt). Loopt op een eigen thread. */
+    private void open(String request,long auth,long dataset,String view,long tot){
         String token="";JSONObject result=new JSONObject();
         try{
             synchronized(MasterStore.LOCK){
@@ -75,6 +78,8 @@ public class MasterBridge extends BankBridge {
                 SecretKey key=MasterKeys.authenticated(ctx);
                 synchronized(a.masterSession){
                     if(auth!=a.masterAuthSerial.get()||!view.equals(a.masterView)||!a.masterWanted||!a.masterForeground)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
+                    long max=tot==Long.MAX_VALUE?MasterSession.MAX:tot-SystemClock.elapsedRealtime();
+                    if(max<60_000L)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
                     token=a.masterSession.open(max);
                 }
                 MasterStore.unlock(ctx,key,a.masterSession,token);a.masterSession.require(token);MasterKeys.markReady();

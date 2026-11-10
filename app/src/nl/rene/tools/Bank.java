@@ -71,16 +71,23 @@ final class Bank {
     static synchronized long open(long max) { long n = System.currentTimeMillis(); generation++; maxUntil = n + Math.max(0, Math.min(MAX_MS, max)); openUntil = Math.min(maxUntil, n + IDLE_MS); return generation; }
 
     /**
-     * Extra ontgrendelen uit: zo lang mag Bankzaken zonder vraag open (0 = vragen). Alleen met een bestaande sleutel en
-     * gegevens: een nieuwe sleutel hoort bij een echte vraag (anders zou createKey terugvallen op een sleutel zonder
-     * ontgrendeling). Een sleutel die deze telefoon niet aan de ontgrendeling koppelt, werkt altijd.
+     * Extra ontgrendelen uit: zo lang mag Bankzaken zonder vraag open (0 = de telefoon is te lang geleden ontgrendeld,
+     * dus vragen; -1 = zonder vraag kan het niet, om een andere reden). Alleen met een bestaande sleutel en gegevens: een
+     * nieuwe sleutel hoort bij een echte vraag (anders zou createKey terugvallen op een sleutel zonder ontgrendeling).
+     * Een sleutel die deze telefoon niet aan de ontgrendeling koppelt, werkt altijd; staat dat niet vast, dan geldt hij
+     * als gekoppeld. De echte sleutel moet nu ook werken.
      */
     static long vanzelf(Context c) {
         try {
-            if (!Lock.deviceSecure(c) || !hasData(c) || !hasKey()) return 0;
-            if (!metaJson(c).optBoolean("ontgrendeling", false)) return MAX_MS;
-            return Math.min(MAX_MS, Ontgrendeld.zeker(ALIAS, KEY_SECONDS));
-        } catch (Throwable t) { return 0; }
+            if (!Lock.deviceSecure(c) || !hasData(c) || !hasKey()) return -1;
+            JSONObject m = metaJson(c);
+            long max = m.has("ontgrendeling") && !m.optBoolean("ontgrendeling", true) ? MAX_MS : Math.min(MAX_MS, Ontgrendeld.zeker(ALIAS, KEY_SECONDS));
+            if (max <= 0) return 0;
+            javax.crypto.Cipher proef = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding");
+            proef.init(javax.crypto.Cipher.ENCRYPT_MODE, existingKey());
+            return max;
+        } catch (UserNotAuthenticatedException e) { return 0; }
+        catch (Throwable t) { return -1; }
     }
     static synchronized boolean session(long grant) { return grant == generation && isOpen(); }
     static void touch() { if (isOpen()) openUntil = System.currentTimeMillis() + IDLE_MS; }
