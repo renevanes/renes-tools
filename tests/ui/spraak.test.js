@@ -51,6 +51,16 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => current === 'spraak' && !sp.settings), 'venster → Spraak');
     await pg.evaluate(() => goBack()); ok(await pg.evaluate(() => current === 'notes'), 'terug naar waar je was');
 
+    // Tijdens een download blijft de focus (TalkBack, toetsenbord) op dezelfde knop als de regels opnieuw getekend worden
+    await pg.evaluate(() => { show('spraak'); Android._speech.downloadMs = 8000; }); await pg.waitForTimeout(100);
+    await pg.click('#sv-cats [data-voice="tts-nl-pim"] button:has-text("Downloaden")'); await pg.waitForTimeout(100);
+    await pg.locator('#sv-cats [data-voice="tts-nl-pim"] button:has-text("Stoppen")').focus();
+    await pg.evaluate(() => { mdRefresh(); mdRefresh(); });
+    ok(await pg.evaluate(() => document.activeElement.closest('[data-voice]')?.dataset.voice === 'tts-nl-pim' && document.activeElement.textContent === 'Stoppen'), 'focus blijft bij verversen');
+    await pg.click('#sv-cats [data-voice="tts-nl-pim"] button:has-text("Stoppen")');
+    // De schuif haalt de modellen niet steeds opnieuw op (zwaar op de telefoon)
+    ok(await pg.evaluate(() => { let n = 0; const o = Android.modelsState; Android.modelsState = function(){ n++; return o.apply(this, arguments); }; const e = $('#sv-speed'); for (const v of ['1.1', '1.2', '1.3']) { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); } Android.modelsState = o; return n === 0 && Android._speech.speed === 1.3; }), 'snelheid zonder modellen op te halen');
+
     // Verwijderen vraagt eerst
     await pg.evaluate(() => show('spraak')); await pg.waitForTimeout(100);
     await pg.click('#sv-cats [data-voice="tts-nl-miro"] button:has-text("Verwijderen")'); await pg.waitForTimeout(100);

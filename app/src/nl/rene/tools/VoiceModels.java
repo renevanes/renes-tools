@@ -39,7 +39,8 @@ final class VoiceModels {
     };
     static Voice model(String id){for(Voice v:VOICES)if(v.id.equals(id))return v;return null;}
     /** Wordt deze stem in deze installatie aangeboden? (De Play-versie biedt geen stemmen met een niet-commerciële licentie.) */
-    static boolean offered(Context c,Voice v){return !v.nonCommercial||!Updater.isPlayPackage(c.getPackageName());}
+    static boolean offered(Context c,Voice v){return offered(c.getPackageName(),v);}
+    static boolean offered(String pkg,Voice v){return !v.nonCommercial||!Updater.isPlayPackage(pkg);}
     /** De spraakmotor staat in deze installatie (APK: alleen arm64-v8a; de emulatortest en Play ook x86_64). */
     static boolean supported(Context c){try{String d=c.getApplicationInfo().nativeLibraryDir;return d!=null&&new File(d,"libsherpa-onnx-jni.so").isFile()&&new File(d,"libonnxruntime.so").isFile();}catch(Throwable e){return false;}}
     static SharedPreferences prefs(Context c){return c.getSharedPreferences("voorlezen",Context.MODE_PRIVATE);}
@@ -47,15 +48,18 @@ final class VoiceModels {
     static File dir(Context c,Voice v){return new File(root(c),v.id);}
     static File part(Context c,Voice v){return new File(root(c),v.id+".part");}
     static boolean ready(Context c,Voice v){return new File(dir(c,v),"klaar").isFile()&&new File(dir(c,v),v.model).length()>1000000&&new File(dir(c,v),"tokens.txt").isFile()&&new File(dir(c,v),"espeak-ng-data/phondata").isFile();}
-    static Voice active(Context c){Voice picked=model(prefs(c).getString("voice",""));if(picked!=null&&ready(c,picked))return picked;for(Voice v:VOICES)if(ready(c,v))return v;return null;}
+    /** De gekozen stem; is die er niet (meer), dan de beste Nederlandse, dan elke gedownloade stem. */
+    static Voice active(Context c){Voice picked=model(prefs(c).getString("voice",""));if(picked!=null&&ready(c,picked))return picked;Voice nl=forLanguage(c,"nl");if(nl!=null)return nl;for(Voice v:VOICES)if(ready(c,v))return v;return null;}
     static float speed(Context c){float value=prefs(c).getFloat("speed",1);return Float.isNaN(value)||Float.isInfinite(value)?1:Math.max(.6f,Math.min(1.8f,value));}
     static void configure(Context c,String voice,double speed)throws Exception {if(!Double.isFinite(speed)||speed<.6||speed>1.8||!voice.isEmpty()&&model(voice)==null)throw new Exception(Taal.T("Kies een stem en een snelheid tussen 0,6 en 1,8"));SharedPreferences.Editor e=prefs(c).edit().putFloat("speed",(float)speed);if(!voice.isEmpty())e.putString("voice",voice).putString("voice_"+model(voice).language,voice);e.apply();}
-    /** De stem voor een taal: de laatst gekozen stem in die taal (als hij er is), anders de eerste gedownloade in die taal. */
+    /** De stem voor een taal: de laatst gekozen stem in die taal (als hij er is), anders de gedownloade stem in die taal met de beste kwaliteit. */
     static Voice forLanguage(Context c,String language){Voice pref=model(prefs(c).getString("voice_"+language,""));if(pref!=null&&pref.language.equals(language)&&ready(c,pref))return pref;Voice best=null;for(Voice v:VOICES)if(v.language.equals(language)&&ready(c,v)&&(best==null||rank(v)>rank(best)))best=v;return best;}
     static int rank(Voice v){return "best".equals(v.quality)?2:"goed".equals(v.quality)?1:0;}
     static boolean wanted(Context c,String id){return prefs(c).getBoolean("download_"+id,false);}
     static void failed(Context c,String id,String message){prefs(c).edit().putString("error_"+id,message).apply();MainActivity.jsAll("onAiModels", "");}
-    static void download(Context c,Voice v)throws Exception {if(!offered(c,v))throw new Exception(PlayPolicy.UNAVAILABLE);if(!supported(c))throw new Exception(Taal.T("Lokale voorleesstemmen werken op een 64-bits toestel"));if(ready(c,v))return;prefs(c).edit().putBoolean("download_"+v.id,true).remove("error_"+v.id).apply();ModelDownloadService.start(c,v.id);}
+    static void download(Context c,Voice v)throws Exception {if(!offered(c,v))throw new Exception(PlayPolicy.UNAVAILABLE);if(!supported(c))throw new Exception(Taal.T("Lokale voorleesstemmen werken op een 64-bits toestel"));if(ready(c,v))return;
+        // Archief plus uitgepakt (±150 MB voor een stem van 67 MB) met wat ruimte over
+        long free=root(c).getUsableSpace();if(free>0&&free<v.size*5/2-part(c,v).length())throw new Exception(Taal.T("Te weinig vrije ruimte op je telefoon voor deze stem"));prefs(c).edit().putBoolean("download_"+v.id,true).remove("error_"+v.id).apply();ModelDownloadService.start(c,v.id);}
     static void stop(Context c,String id){ModelDownloadService.stop(id);prefs(c).edit().putBoolean("download_"+id,false).apply();}
     static void install(Context c,Voice v,BooleanSupplier stop)throws Exception {
         File archive=part(c,v),stage=new File(root(c),v.id+".new");

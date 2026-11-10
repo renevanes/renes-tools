@@ -28,6 +28,11 @@ const TEGEL = Object.fromEntries(WEG.map(t => [t, 'tile-' + t]));
     // Zoeken en app-snelkoppelingen
     assert((await pg.evaluate(() => 'sms' in GS && 'calls' in GS)) === !play, naam + ': sms en oproepen in Overal zoeken ' + (play ? 'weg' : 'er'));
     assert((await pg.evaluate(() => SET_REG.some(r => r.scr === 'redial'))) === !play, naam + ': instellingen van Auto redial in zoeken ' + (play ? 'weg' : 'er'));
+    // Spraak (stemmen, snelheid) in beide versies; in Play zonder spraak naar tekst en zonder stemmen met een NC-licentie
+    assert(await pg.evaluate(() => ['voorlezen.stem', 'voorlezen.snelheid', 'voorlezen.achtergrond'].every(id => SET_REG.some(r => r.id === id))), naam + ': voorleesinstellingen in zoeken');
+    await pg.evaluate(() => show('spraak')); await pg.waitForTimeout(200);
+    assert(await pg.evaluate(() => current === 'spraak' && !!document.querySelector('#sv-cats .md-cat[data-kind="tts"]')), naam + ': Spraak bereikbaar');
+    assert((await pg.evaluate(() => !!document.querySelector('#sv-cats .md-cat[data-kind="spraak"]'))) === !play, naam + ': spraak naar tekst op Spraak ' + (play ? 'weg' : 'er'));
     assert((await pg.evaluate(() => SOLO_TOOLS.includes('redial'))) === !play, naam + ': Auto redial als losse app ' + (play ? 'weg' : 'er'));
     await pg.evaluate(() => { toggleFav('redial'); setDynamicShortcuts(); }); // als favoriet zou hij er in de gewone versie zeker bij staan
     const dyn = JSON.parse(await pg.evaluate(() => Android._dyn)).map(x => x[0]);

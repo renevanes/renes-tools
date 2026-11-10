@@ -65,24 +65,28 @@ function spControlsRender(model,pre){
 function spRefreshAll(){spModelsRender();if(typeof mdRefresh==='function'&&(current==='models'||current==='spraak'))mdRefresh();if(typeof erSpeakRender==='function')erSpeakRender();}
 function spDownload(id){const error=Android.speechDownload(id);if(error)toast(error);spRefreshAll();}
 function spDownloadStop(id){Android.speechDownloadStop(id);spRefreshAll();}
-function spSave(voice,speed,background){const error=Android.speechConfigure(voice,speed,background);if(error)toast(error);spRefreshAll();}
+/* light: alleen snelheid of achtergrond (geen modellen opnieuw ophalen; dat is zwaar bij elke beweging van de schuif) */
+function spSave(voice,speed,background,light){const error=Android.speechConfigure(voice,speed,background);if(error)toast(error);if(!light){spRefreshAll();return;}spModelsRender();if(current==='spraak')spControlsRender(spReadModels(),'sv');if(typeof erSpeakRender==='function')erSpeakRender();}
 function spChoose(voice){sp.models=spReadModels();spStop();spSave(voice,sp.models.speed||1,sp.models.background!==false);}
-function spSpeed(value){sp.models=spReadModels();const voice=sp.models.voice||'';spSave(voice,Number(value),sp.models.background!==false);}
-function spBackground(){sp.models=spReadModels();const voice=sp.models.voice||'',on=sp.models.background===false;spSave(voice,sp.models.speed||1,on);if(on&&typeof Android.speechNotifAsk==='function')Android.speechNotifAsk();} // Android 13+: zonder meldingen geen pauzeknop in de melding
+function spSpeed(value){sp.models=spReadModels();const voice=sp.models.voice||'';spSave(voice,Number(value),sp.models.background!==false,true);}
+function spBackground(){sp.models=spReadModels();const voice=sp.models.voice||'',on=sp.models.background===false;spSave(voice,sp.models.speed||1,on,true);if(on&&typeof Android.speechNotifAsk==='function')Android.speechNotifAsk();} // Android 13+: zonder meldingen geen pauzeknop in de melding
 function spDelete(id){const open=sp.settings;if(open)spSettingsClose();askConfirm(t('Voorleesstem verwijderen?'),t('Het voorlezen stopt en de stem wordt van je telefoon verwijderd. Je kunt hem later opnieuw downloaden.'),t('Verwijderen'),()=>{Android.speechDelete(id);if(open)spSettings();spRefreshAll();});}
 
 /* ---------- Spraak (Instellingen → Spraak): één plek voor voorlezen en spraak naar tekst ----------
    Stem, snelheid en achtergrond; daaronder dezelfde kaarten als bij Modellen (stemmen en spraakmodellen). */
-function enterSpraak(){mdLoad();svRender();mdRefresh();}
+function enterSpraak(){mdRefresh();} // laadt de stand en tekent Spraak (svRender), met verversen tijdens downloads
 function svRender(){
   if(current!=='spraak')return;
   if(typeof Android.speechModels!=='function'){$('#sv-voice-card').hidden=true;}
   const model=spReadModels(),ready=mdVoiceSort(model.voices).filter(v=>v.state==='ready'),sel=$('#sv-voice');
-  sel.replaceChildren(...(ready.length?ready.map(v=>{const o=cmEl('option',v.label+' · '+mdVoiceQ(v));o.value=v.id;o.selected=v.id===model.voice;return o;}):[(()=>{const o=cmEl('option',t('Nog geen stem gedownload'));o.value='';return o;})()]));
-  sel.disabled=!ready.length;
+  const opts=ready.length?ready.map(v=>[v.id,v.label+' · '+mdVoiceQ(v)]):[['',t('Nog geen stem gedownload')]],sig=JSON.stringify(opts);
+  if(sel.dataset.sig!==sig){sel.dataset.sig=sig;sel.replaceChildren(...opts.map(([id,label])=>{const o=cmEl('option',label);o.value=id;return o;}));}
+  sel.value=ready.some(v=>v.id===model.voice)?model.voice:(ready[0]?ready[0].id:'');sel.disabled=!ready.length;
   $('#sv-stand').textContent=model.supported===false?t('Lokale voorleesstemmen werken op een 64-bits toestel'):ready.length?t('Dezelfde stem wordt overal in Tools gebruikt. Een boek in een andere taal krijgt vanzelf je stem in die taal.'):t('Download hieronder een stem; daarna werkt voorlezen zonder internet.');
   spControlsRender(model,'sv');
-  if(mdSt&&mdSt.models)uiHtml($('#sv-cats'),['tts','spraak'].map(k=>mdCatCard(MD_CATS.find(c=>c.kind===k))).join(''));
+  // In de Play-versie geen spraak naar tekst (geen assistent, opnames of Slaappraat)
+  const play=typeof isPlay==='function'&&isPlay();$('#sv-help-stt').hidden=play;
+  if(mdSt&&mdSt.models)mdKeepFocus($('#sv-cats'),()=>uiHtml($('#sv-cats'),(play?['tts']:['tts','spraak']).map(k=>mdCatCard(MD_CATS.find(c=>c.kind===k))).join('')));
 }
 const spOldPause=window.onPauseApp;window.onPauseApp=function(){if(spOldPause)spOldPause();if(sp.active&&sp.active.source!=='reader'){sp.active=null;spSpeechRender();}};
 const spOldResume=window.onResumeApp;window.onResumeApp=function(){if(spOldResume)spOldResume();spSync();if(sp.settings)spModelsRender();};

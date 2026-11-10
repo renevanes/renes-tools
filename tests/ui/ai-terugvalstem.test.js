@@ -13,7 +13,7 @@ const { chromium } = require('playwright');
     // Tik op Voorlezen: terugvalstem, met de tip en zonder pauzeknop (die kan Android niet)
     await pg.click('#ai-msgs .aispk'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._tts.system === 1 && Android._speech.said.length === 0 && aiSpk && aiSpk.system), 'zonder lokale stem: de stem van Android (niet ReadAloud)');
-    ok(await pg.isVisible('#ai-spkhint') && (await pg.textContent('#ai-spkhint')).includes('Download een lokale stem (zoals Dii) voor een betere stem'), 'eenmalige tip om Ronnie te downloaden');
+    ok(await pg.isVisible('#ai-spkhint') && (await pg.textContent('#ai-spkhint')).includes('Download een lokale stem voor een betere stem'), 'eenmalige tip om Ronnie te downloaden');
     ok(await pg.isHidden('#ai-speech-pause') && await pg.isVisible('#ai-spkbar'), 'balk zonder Pauzeren (Android kan niet pauzeren)');
     ok(await pg.evaluate(() => !sp.settings), 'geen venster vanzelf');
     await pg.screenshot({ path: __dirname + '/shots/ai-terugvalstem-' + scheme + '.png' });

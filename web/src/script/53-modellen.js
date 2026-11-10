@@ -10,7 +10,7 @@ const MD_CATS = [
   { kind: 'zoek', title: 'Slim zoeken', icon: 'search', what: 'Zoeken op betekenis in je notities, gesprekken en berichten, ook voor de assistent ("Met mijn gegevens").',
     need: 'Niet nodig om de assistent te gebruiken; alleen als je slim zoeken wilt.' },
   { kind: 'tts', title: 'Voorlezen (tekst naar spraak)', icon: 'volume', what: 'Leest tekst voor met een stem op je telefoon: de e-reader, notities, de assistent en andere tools.',
-    need: 'Nodig voor voorlezen: één stem. Dii en Miro klinken het natuurlijkst; de compacte stemmen zijn kleiner. Daarna werkt het zonder internet.' }
+    need: 'Nodig voor voorlezen: één stem. De stemmen met Beste kwaliteit klinken het natuurlijkst; de compacte stemmen zijn kleiner. Daarna werkt het zonder internet.' }
 ];
 function mdLoad(){ mdSt = rdJson(Android.modelsState(), {}); aiModelsTaal(mdSt.models); return mdSt; }
 function mdGB(b){ b = Math.max(0, +b || 0); return b >= 1e9 ? fmtNum(b / 1e9, 1) + ' GB' : fmtNum(Math.max(1, Math.round(b / 1e6))) + ' MB'; } // zoals Hugging Face (1000 per stap)
@@ -107,7 +107,7 @@ function mdRender(){
     '<p class="md-line"><b>' + (used ? t('Modellen: {grootte}', { grootte: mdGB(used) }) : t('Nog geen modellen')) + '</b><span>' + (free > 0 ? t('Vrij op je telefoon: {grootte}', { grootte: mdGB(free) }) : '') + '</span></p>' +
     (s.leftovers >= 1e6 ? '<div class="sw"><span>Resten van oude en halve downloads<small>' + esc(t('{grootte} die geen bruikbaar model zijn', { grootte: mdGB(s.leftovers) })) + '</small></span><button class="mini" onclick="mdClean()">Opruimen</button></div>' : '');
   mdRec = mdRecKey(mdModels());
-  uiHtml($('#md-cats'), MD_CATS.map(cat => mdCatCard(cat)).join(''));
+  mdKeepFocus($('#md-cats'), () => uiHtml($('#md-cats'), MD_CATS.map(cat => mdCatCard(cat)).join('')));
   const w = $('#md-wifi'); w.classList.toggle('on', !!s.wifiOnly); w.setAttribute('aria-checked', s.wifiOnly ? 'true' : 'false');
 }
 /** Kort: is deze soort klaar voor gebruik? Zuiver. [tekst, ok] */
@@ -156,6 +156,16 @@ function mdVoiceHtml(v, speech){
   else row = '<div class="md-ver"><div class="aimt">' + name + '<small>' + esc((v.bytes ? t('Half gedownload') : t('Nog niet op je telefoon')) + ' · ' + meta) + '</small>' + (v.error ? '<small class="md-hint">' + esc(v.error) + '</small>' : '') + '</div><div class="aimb">' +
     (speech.supported === false ? '' : mdBtn(esc(t(v.bytes ? 'Verder downloaden' : 'Downloaden')), 'spDownload(' + id + ')', true, t('{model} downloaden', { model: v.label }))) + '</div></div>';
   return '<div class="md-linebox" role="listitem" data-voice="' + esc(v.id) + '">' + row + '</div>';
+}
+/** Opnieuw tekenen zonder dat de focus verloren gaat (TalkBack, toetsenbord): dezelfde knop in dezelfde regel terug. */
+function mdKeepFocus(box, draw){
+  const f = document.activeElement, line = box.contains(f) && f.closest('[data-voice],[data-line],[data-key]');
+  const key = line ? ['voice', 'line', 'key'].map(k => line.dataset[k] || '').join('|') : '', act = line ? f.getAttribute('onclick') : '';
+  draw();
+  if (!line) return;
+  const lines = [...box.querySelectorAll('[data-voice],[data-line],[data-key]')].filter(l => ['voice', 'line', 'key'].map(k => l.dataset[k] || '').join('|') === key);
+  const btns = lines.flatMap(l => [...l.querySelectorAll('button')]), next = btns.find(b => b.getAttribute('onclick') === act) || btns[0];
+  if (next) next.focus();
 }
 function mdTtsBody(tt){
   if (tt.state === 'ok') return '<div class="md-acts">' + mdBtn('Stem en snelheid', 'Android.ttsSettings()', false, 'Stem en snelheid van het voorlezen instellen') + '</div>';

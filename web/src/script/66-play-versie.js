@@ -5,7 +5,7 @@
 // (snelkoppeling, widget, melding, losse app) al langs de controle gaat.
 const PLAY = !!ver().play;
 const PLAY_TOOLS = new Set(ver().playTools || ['notes', 'pdf', 'radio', 'podcasts', 'masterdata']);
-const PLAY_NAV = new Set(['home', 'search', 'settings', 'info', 'homeedit', 'setnotif', 'setlook', 'setregio', 'setregiotz', 'setlock', 'setsolo', 'setperm', 'player']);
+const PLAY_NAV = new Set(['home', 'search', 'settings', 'info', 'homeedit', 'setnotif', 'setlook', 'setregio', 'setregiotz', 'setlock', 'setsolo', 'setperm', 'player', 'spraak']);
 function isPlay(){ return PLAY; }
 /** Alleen bekende schermen van de behouden functies; nieuwe subschermen worden bewust beoordeeld. */
 function playWeg(name){

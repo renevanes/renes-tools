@@ -30,6 +30,7 @@ Downloadbare stemmen (geen onderdeel van de APK):
   (OpenVoiceOS). Licentie CC BY-NC-SA 4.0: alleen niet-commercieel gebruik; daarom
   niet aangeboden in de Play-versie. Zie Dii-MODEL_CARD.txt en Miro-MODEL_CARD.txt.
 - Pim / nl_NL-pim-medium, Piper in volledige precisie. De modelkaart vermeldt CC0
-  voor de Nederlandse opnames (OHF Voice). Zie Pim-MODEL_CARD.txt.
+  voor de Nederlandse opnames (OHF Voice) en de trainingsherkomst (verfijnd vanuit de
+  Engelse lessac-stem, zoals Ronnie). Zie Pim-MODEL_CARD.txt.
 Conversie en archieven: https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models
 De modellen en hun naam/controlegetal wijzigen nooit onder een bestaande id.
