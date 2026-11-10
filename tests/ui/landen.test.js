@@ -28,7 +28,8 @@ const opties=(p,id)=>p.evaluate(id=>[...$(id).options].map(o=>[o.value,o.textCon
     assert.ok(row,'Mrz-land in de lijst: '+code);assert.equal(row[2],land,'landnaam '+code);assert.equal(row[3],nat,'nationaliteit '+code);
   }
   // Herkende codes uit de strook (een land dat Mrz.java niet kent, staatloos) worden de tekst uit de lijst.
-  assert.deepEqual(await p.evaluate(()=>[lnToon('land','SYR'),lnToon('nationaliteit','GBD'),lnVind('D')[2]]),['Syrië','Britse','Duitsland'],'codes uit de strook');
+  assert.deepEqual(await p.evaluate(()=>[lnToon('land','SYR'),lnToon('nationaliteit','GBD'),lnVind('D')[2],lnToon('nationaliteit','XXA')]),['Syrië','Britse','Duitsland','Staatloos'],'codes uit de strook');
+  assert.equal(await p.evaluate(()=>{const s=document.createElement('select');cmiVulKeuzes(s,cmiLandKeuzes('land'),'SYR','land');return s.options[1].textContent+'|'+s.value;}),'Syrië (code SYR)|SYR','oude code zichtbaar als code');
   const h=await p.evaluate(()=>cmhLanden({document:{uitgifteland:'SYR'},persoon:{nationaliteit:'XXA'}}));
   assert.deepEqual(h,{document:{uitgifteland:'Syrië'},persoon:{nationaliteit:'Staatloos'}});
   assert.deepEqual(await p.evaluate(()=>cmhLanden({document:{uitgifteland:'Nederland'},persoon:{nationaliteit:'nld'}})),{document:{uitgifteland:'Nederland'},persoon:{nationaliteit:'Nederlandse'}});
@@ -64,9 +65,12 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.getAttribute('#cm-field-nationaliteit-2','aria-label'),'Nationaliteit 2');
   await p.selectOption('#cm-field-nationaliteit-2','');
   assert.equal(await p.evaluate(()=>cm.edit.fields.nationaliteit),'Kaapverdiaans');assert.equal(await p.$('#cm-field-nationaliteit-2'),null);
+  assert.equal(await p.evaluate(()=>document.activeElement.id),'cm-field-nationaliteit','focus terug op de lijst');
+  await p.selectOption('#cm-field-nationaliteit','Marokkaanse');await p.click('.cmi-nat-meer');await p.selectOption('#cm-field-nationaliteit-2','Marokkaanse');
+  assert.equal(await p.evaluate(()=>cm.edit.fields.nationaliteit),'Marokkaanse','niet twee keer dezelfde');assert.equal(await p.$('#cm-field-nationaliteit-2'),null);
   // Anders… (zelf typen): een eigen tekst; Annuleren laat alles staan.
   await p.selectOption('#cm-field-nationaliteit',await p.evaluate(()=>CMI_ANDERS));await p.waitForSelector('#modal.on');
-  await p.click('#modal-cancel');assert.equal(await p.inputValue('#cm-field-nationaliteit'),'Kaapverdiaans');
+  await p.click('#modal-cancel');assert.equal(await p.inputValue('#cm-field-nationaliteit'),'Marokkaanse');
   await p.selectOption('#cm-field-nationaliteit',await p.evaluate(()=>CMI_ANDERS));await p.waitForSelector('#modal.on');
   await p.fill('#modal-input','Nederlandse, Kaapverdische');await p.click('#modal-ok');
   await p.waitForFunction(()=>cm.edit.fields.nationaliteit==='Nederlandse, Kaapverdische');
@@ -121,8 +125,9 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.inputValue('#cm-field-nationaliteit'),'Nederlandse','standaardplaats Utrecht');
   await ctx.close();
 }
-// Op reis (andere tijdzone) telt de regio van de telefoon (nl-NL); en-US (vaak de standaard van een toestel) telt niet.
-for(const [locale,zone,want] of [['nl-NL','Europe/Madrid','Nederlandse'],['en-US','Europe/Madrid','Spaanse'],['nl-BE','Europe/Amsterdam','Belgische']]){
+// Op reis (andere tijdzone) telt een Nederlandstalige telefoon (nl-NL); een andere taal op een telefoon in Nederland telt niet
+// (de tijdzone gaat voor), alleen als de tijdzone niets zegt; en-US (vaak de standaard van een toestel) telt nooit.
+for(const [locale,zone,want] of [['nl-NL','Europe/Madrid','Nederlandse'],['en-US','Europe/Madrid','Spaanse'],['nl-BE','Europe/Amsterdam','Belgische'],['en-GB','Europe/Amsterdam','Nederlandse'],['tr-TR','Europe/Amsterdam','Nederlandse'],['en-GB','UTC','Britse'],['en-US','UTC','']]){
   const {p,ctx}=await open({timezoneId:zone,locale,colorScheme:'light'});
   assert.equal(await p.evaluate(()=>cmiDefaults('persoon').nationaliteit||''),want,locale+' '+zone);
   await ctx.close();
@@ -147,9 +152,9 @@ for(const [locale,zone,want] of [['nl-NL','Europe/Madrid','Nederlandse'],['en-US
   assert.deepEqual(await p.evaluate(()=>[lnToon('nationaliteit','Nederlandse, Marokkaanse'),lnToon('land','SYR'),lnToon('nationaliteit','Joegoslavische')]),['Dutch, Moroccan','Syria','Joegoslavische']);
   await ctx.close();
 }
-// 6. Herkennen: een nationaliteit die gelijk is aan de standaard van je regio telt als nog niet gekozen (aangevinkt); bij een
-// dubbele nationaliteit die er al tussen staat, staat er "staat er al". Een code uit de strook wordt de naam uit de lijst.
-for(const [nu,rij] of [['Nederlandse','nationaliteit:v'],['Nederlandse, Duitse','nationaliteit:vx'],['Belgische','nationaliteit:-']]){
+// 6. Herkennen: een andere nationaliteit komt erbij (nooit in plaats van) en staat niet vanzelf aangevinkt; een nationaliteit die er
+// al tussen staat: "staat er al". Een code uit de strook wordt de naam uit de lijst.
+for(const [nu,rij] of [['','nationaliteit:v'],['Nederlandse','nationaliteit:-'],['Nederlandse, Duitse','nationaliteit:vx'],['Belgische','nationaliteit:-']]){
   const ctx=await b.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Amsterdam'});const p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));
   await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);const T=require('./_stamtabs')(p);
   await p.evaluate(nu=>{Android._cm.records=[{id:'kid',type:'persoon',label:'Zoë',revision:1,fields:{naam:'Jansen',voornamen:'Zoë',nationaliteit:nu}}];
@@ -162,6 +167,12 @@ for(const [nu,rij] of [['Nederlandse','nationaliteit:v'],['Nederlandse, Duitse',
   const rows=await p.$$eval('#cmh-list input',x=>x.map(i=>i.dataset.key+':'+(i.checked?'v':'-')+(i.disabled?'x':'')));
   assert.ok(rows.includes(rij),nu+': '+rows);assert.ok(rows.includes('uitgifteland:v'));
   assert.match(await p.textContent('#cmh-list'),/Duitsland/,'DEU als Duitsland');
+  if(nu==='Nederlandse'){
+    assert.match(await p.textContent('#cmh-list'),/komt erbij; nu: Nederlandse/);
+    await p.check('#cmh-list input[data-key="nationaliteit"]');await p.click('#cm-save');
+    await p.waitForFunction(()=>!cm.mutating&&!cm.edit);
+    assert.equal(await p.evaluate(()=>Android._cm.records.find(r=>r.id==='kid').fields.nationaliteit),'Nederlandse, Duitse','toegevoegd, niet vervangen');
+  }
   await ctx.close();
 }
 console.log('errors',errors);await b.close();assert.deepEqual(errors,[]);})().catch(e=>{console.error(e);process.exit(1);});

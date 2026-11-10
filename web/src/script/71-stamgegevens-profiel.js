@@ -43,7 +43,8 @@ function cmiVulKeuzes(sel,choices,old,key){
   let og=null;
   for(const [value,text,name] of choices){const o=cmEl('option',text);o.value=value;if(name&&og?.label!==name){og=cmEl('optgroup');og.label=name;sel.append(og);}(name?og:sel).append(o);}
   if(old&&!choices.some(c=>c[0]===old)){
-    const o=cmData(cmEl('option',CMI_LAND.has(key)?lnToon(key==='nationaliteit'?key:'land',old):old));o.value=old;
+    // Een oude code uit de strook (SYR): de naam met de code erbij, zodat zichtbaar is dat er nog een code staat
+    const naam=CMI_LAND.has(key)?lnToon(key==='nationaliteit'?key:'land',old):old,o=cmData(cmEl('option',naam!==old&&/^[A-Z]{1,3}$/.test(old)?t('{naam} (code {code})',{naam,code:old}):naam));o.value=old;
     if(choices.some(c=>c[2])){const g=cmEl('optgroup');g.label=t('Zoals ingevuld');g.append(o);sel.insertBefore(g,sel.children[1]||null);}else sel.append(o);
   }
   sel.value=old||'';
@@ -64,13 +65,15 @@ function cmiDefaults(type){
 function cmiNatParts(v){return String(v||'').split(/\s*,\s*/).map(x=>x.trim()).filter(Boolean);}
 function cmiNatEl(label){
   const box=cmEl('div',undefined,'cmi-nat'),parts=cmiNatParts(cm.edit.fields.nationaliteit);if(!parts.length)parts.push('');
-  const zet=()=>{cm.edit.fields.nationaliteit=parts.filter(Boolean).join(', ');cmDirty();teken();},choices=cmiLandKeuzes('nationaliteit');
+  // Na een keuze: dubbele weg, opnieuw tekenen en de focus terug op dezelfde lijst (of de vorige als hij weg is)
+  const zet=i=>{const uniek=[...new Set(parts.filter(Boolean))];parts.splice(0,parts.length,...(uniek.length?uniek:['']));cm.edit.fields.nationaliteit=uniek.join(', ');cmDirty();teken();
+    const s=box.querySelectorAll('select');(s[Math.min(i,s.length-1)]||null)?.focus();},choices=cmiLandKeuzes('nationaliteit');
   const teken=()=>{
     box.replaceChildren();
     parts.forEach((part,i)=>{
       const sel=cmData(cmEl('select',undefined,'search'));sel.id=i?label.htmlFor+'-'+(i+1):label.htmlFor;sel.name=i?'':'nationaliteit';if(i)sel.setAttribute('aria-label',t('Nationaliteit {n}',{n:i+1}));
       cmiVulKeuzes(sel,i?[['',t('Weghalen')],...choices.slice(1)]:choices,part,'nationaliteit');sel.disabled=!!cm.mutating;
-      sel.addEventListener('change',()=>{if(!cm.edit)return;if(sel.value===CMI_ANDERS){sel.value=part;cmiAnders('nationaliteit',v=>{parts.splice(i,1,...cmiNatParts(v));zet();});return;}parts[i]=sel.value;if(i&&!sel.value)parts.splice(i,1);zet();});
+      sel.addEventListener('change',()=>{if(!cm.edit)return;if(sel.value===CMI_ANDERS){sel.value=part;cmiAnders('nationaliteit',v=>{parts.splice(i,1,...cmiNatParts(v));zet(i);});return;}parts[i]=sel.value;if(i&&!sel.value)parts.splice(i,1);zet(i);});
       box.append(sel);
     });
     if(parts.every(Boolean)&&parts.length<4){const b=cmEl('button',undefined,'mini cmi-nat-meer');b.type='button';b.innerHTML=uiIcon('plus');b.append(document.createTextNode(t('Nog een nationaliteit')));b.disabled=!!cm.mutating;

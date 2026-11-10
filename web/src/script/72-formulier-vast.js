@@ -18,7 +18,7 @@ function fmqRenderState(){
 }
 function fmqClearInput(){
   fmq.records=[];$('#fmq-profiel').replaceChildren();$('#fmq-id').checked=false;$('#fmq-geen').hidden=true;fmqNote('');
-  lnSelect($('#fmq-land'),t('Kies een land'));for(const key of FMQ_REIS)$('#fmq-'+key).value='';$('#fmq-datum').value=rgDayKey(Date.now());$('#fmq .fmq-meer').open=false;
+  lnSelect($('#fmq-land'),t('Kies een land'),[CMI_ANDERS,t('Anders… (zelf typen)')]);for(const key of FMQ_REIS)$('#fmq-'+key).value='';$('#fmq-datum').value=rgDayKey(Date.now());$('#fmq .fmq-meer').open=false;
   document.querySelectorAll('#fmq [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);
 }
 function fmqOpen(){
@@ -122,3 +122,10 @@ $('#fmq').addEventListener('keydown',e=>{
   if(e.key==='Tab'){const nodes=[...$('#fmq').querySelectorAll('button,input,select,summary')].filter(n=>!n.disabled&&n.getClientRects().length);if(!nodes.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
 });
 document.addEventListener('input',e=>{if(fmq.open&&e.target.closest('#fmq'))cmTouch();});
+/* Land van bestemming: Anders… = zelf typen (Bonaire, Canarische Eilanden); het getypte land komt als keuze in de lijst. */
+function fmqLandAnders(){
+  const sel=$('#fmq-land');if(sel.value!==CMI_ANDERS)return;sel.value='';
+  askInput(t('Ander land'),t('Bijvoorbeeld een eiland of streek.'),'',t('OK'),v=>{v=String(v||'').replace(/\s+/g,' ').trim().slice(0,120);if(!v)return;
+    let o=[...sel.options].find(x=>x.value===v);if(!o){o=document.createElement('option');o.value=v;o.textContent=v;sel.insertBefore(o,sel.options[1]||null);}sel.value=v;sel.focus();});
+}
+document.addEventListener('change',e=>{if(e.target.id==='fmq-land')fmqLandAnders();});

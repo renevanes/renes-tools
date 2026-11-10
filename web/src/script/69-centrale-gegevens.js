@@ -195,7 +195,7 @@ function cmEditorFields(){
       }else if(choices){
         cmiVulKeuzes(input,choices,cm.edit.fields[key],key);
       }else{input.autocomplete='off';input.maxLength=key==='bsn'?9:240;if(!area)input.type=CM_MASK.has(key)?'password':['geboortedatum','van','tot','geldig','afgifte'].includes(key)?'date':key==='email'?'email':key==='telefoon'?'tel':'text';else input.rows=key==='context'?4:3;if(key==='bsn')input.inputMode='numeric';}
-      input.value=cm.edit.fields[key]||'';input.addEventListener(person||choices?'change':'input',()=>{if(choices&&input.value===CMI_ANDERS){input.value=cm.edit.fields[key]||'';cmiAnders(key,v=>{cm.edit.fields[key]=v;cmDirty();cmEditorFields();});return;}cm.edit.fields[key]=input.value;cmDirty();if(cm.edit.type==='formulier'&&ref==='persoon')cmiFormPerson(key);if(cm.edit.type==='relatie')cmiRelationChange(key);if(key==='documentsoort')cmEditorFields();});
+      input.value=cm.edit.fields[key]||'';input.addEventListener(person||choices?'change':'input',()=>{if(choices&&input.value===CMI_ANDERS){input.value=cm.edit.fields[key]||'';cmiAnders(key,v=>{cm.edit.fields[key]=v;cmDirty();cmEditorFields();$('#cm-field-'+key)?.focus();});return;}cm.edit.fields[key]=input.value;cmDirty();if(cm.edit.type==='formulier'&&ref==='persoon')cmiFormPerson(key);if(cm.edit.type==='relatie')cmiRelationChange(key);if(key==='documentsoort')cmEditorFields();});
       if(!group){group=cmEl('div',undefined,'cm-group');group.dataset.cmTab=blok[0];if(all&&tabs.length>1)group.append(cmEl('h3',cmBlokTitle(blok,cm.edit),'cm-blok-h'));box.append(group);}
       group.append(label,input);
     }

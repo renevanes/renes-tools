@@ -163,12 +163,13 @@ function cmhRender(){
       const label=cmEl('label',undefined,'chk cmh-row'),input=cmEl('input');input.type='checkbox';input.dataset.key=key;input.dataset.group=keys===CMH_DOC?'doc':'person';
       // Bij een nieuw document telt de standaardsoort als leeg; een met de tweede keus verbeterd veld staat uit.
       const dflt=keys===CMH_DOC&&!cm.edit.id&&(cmiDefaults('identiteit')[key]||'')===now[key],old=dflt?'':now[key]||'';
-      // Een nationaliteit die er al tussen staat (dubbele nationaliteit) is hetzelfde; de standaardnationaliteit van je regio telt
-      // als nog niet gekozen: dan staat de herkende nationaliteit wel aangevinkt (met "nu: …" erbij).
-      const same=old===found[key]||key==='nationaliteit'&&cmiNatParts(old).includes(found[key]),auto=key==='nationaliteit'&&!!old&&old===(cmiDefaults('persoon').nationaliteit||'');
-      const twijfel=(d.fields.twijfel||[]).includes(key);input.checked=key!=='bsn'&&!twijfel&&(!old||same||auto);if(same){input.disabled=true;input.dataset.same='true';}
+      // Een nationaliteit die er al tussen staat (dubbele nationaliteit) is hetzelfde; een andere wordt toegevoegd, nooit vervangen
+      // (een Marokkaans paspoort van iemand die ook Nederlands is). Niet vanzelf aangevinkt als er al een nationaliteit staat.
+      const same=old===found[key]||key==='nationaliteit'&&cmiNatParts(old).includes(found[key]),erbij=key==='nationaliteit'&&!!old&&!same;
+      if(erbij)input.dataset.erbij=old;
+      const twijfel=(d.fields.twijfel||[]).includes(key);input.checked=key!=='bsn'&&!twijfel&&(!old||same);if(same){input.disabled=true;input.dataset.same='true';}
       const text=cmEl('span');text.append(cmEl('b',t(CM_FIELDS[key]||key)),document.createTextNode(' '),cmData(cmEl('span',cmhValue(key,found[key]))));
-      if(old&&!same)text.append(cmEl('small',t('nu: {waarde}',{waarde:cmhValue(key,old)})));else if(same)text.append(cmEl('small',t('staat er al')));
+      if(erbij)text.append(cmEl('small',t('komt erbij; nu: {waarde}',{waarde:cmhValue(key,old)})));else if(old&&!same)text.append(cmEl('small',t('nu: {waarde}',{waarde:cmhValue(key,old)})));else if(same)text.append(cmEl('small',t('staat er al')));
       if(twijfel)text.append(cmEl('small',t('niet zeker gelezen: vergelijk met het document'),'cmi-warn'));
       cmData(text);label.append(input,text);box.append(label);
     }
@@ -192,7 +193,7 @@ function cmhApply(){
   if(!cmOpen()||cm.mutating||r?.type!=='identiteit'||!r.id||!d||d.doc!==r.id)return;
   if(!person||person.id!==r.fields.persoon){cmNote(t('Laad het document opnieuw om de gekoppelde persoon te controleren.'));return;}
   const doc={},per={};
-  for(const i of document.querySelectorAll('#cmh-list input:checked:not(:disabled)')){const k=i.dataset.key;if(i.dataset.group==='doc')doc[k]=d.fields.document[k];else per[k]=d.fields.persoon[k];}
+  for(const i of document.querySelectorAll('#cmh-list input:checked:not(:disabled)')){const k=i.dataset.key;if(i.dataset.group==='doc')doc[k]=d.fields.document[k];else per[k]=i.dataset.erbij?cmiNatParts(i.dataset.erbij+', '+d.fields.persoon[k]).join(', '):d.fields.persoon[k];}
   if(!Object.keys(doc).length&&!Object.keys(per).length){cmNote(t('Vink eerst aan welke gegevens je wilt bewaren.'));return;}
   const auto=soort=>t('{soort} {naam}',{soort:cmiDocSoort({soort}),naam:person.label});
   const label=doc.documentsoort&&r.label===auto(r.fields.documentsoort||'')?auto(doc.documentsoort):r.label;

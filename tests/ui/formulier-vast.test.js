@@ -82,6 +82,9 @@ for(const colorScheme of ['light','dark']){
   await p.click('#fmq-start');await p.waitForFunction(()=>$('#modal-ok').getClientRects().length>0);await p.click('#modal-ok');
   await p.waitForFunction(()=>fmq.open&&fmq.records.length===1);
   assert.equal(await p.inputValue('#fmq-land'),'','reisvelden beginnen leeg');
+  // Land van bestemming: een keuzelijst; Anders… = zelf typen (bijv. Bonaire)
+  await p.selectOption('#fmq-land',await p.evaluate(()=>CMI_ANDERS));await p.waitForSelector('#modal.on');await p.fill('#modal-input','Bonaire');await p.click('#modal-ok');
+  await p.waitForFunction(()=>$('#fmq-land').value==='Bonaire');
   await p.fill('#fmq-van','2027-08-01');await p.fill('#fmq-tot','2027-08-10');await p.selectOption('#fmq-land','Spanje');await p.check('#fmq-id');await p.click('#fmq-ga');
   await p.waitForFunction(()=>!fmq.open&&fm.values.land==='Spanje');
   const w=await p.evaluate(()=>fm.values);

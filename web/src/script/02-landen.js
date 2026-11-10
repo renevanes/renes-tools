@@ -116,23 +116,24 @@ function lnLandNaam(r){
 }
 let lnDn = null;
 function lnNatNaam(r){ return r[3] ? t(r[3]) : ''; }
-/* Het land van Rene volgens Regio en taal: de gekozen standaardplaats; anders de regio van de telefoon (nl-NL), zodat een
- * andere tijdzone op reis het land niet verandert; anders de tijdzone. Een telefoonregio telt alleen als hij in LN_ZONE
- * voorkomt: "en-US" is vaak gewoon de standaard van het toestel. null als niets iets zegt. */
+/* Het land van Rene volgens Regio en taal: de gekozen standaardplaats; anders, bij een Nederlandstalige telefoon (nl-NL, nl-BE),
+ * die regio, zodat een andere tijdzone op reis het land niet verandert; anders de tijdzone (Europe/Amsterdam = Nederland);
+ * anders de regio van de telefoon, maar alleen een land uit LN_ZONE ("en-US" is vaak gewoon de standaard van het toestel;
+ * een Nederlandse telefoon in het Engels of Turks telt dus via de tijdzone als Nederland). null als niets iets zegt. */
 function lnThuis(){
   const c = rgCfg(), city = RG_CITIES.find(x => x[0] === c.place);
   if (city && city[4]) return lnVind(city[4]);
   const bekend = new Set(Object.values(LN_ZONE));
-  let langs = [];
-  try { langs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]).slice(0, 1); } catch (e) {}
-  for (const l of langs) { const m = /^[a-z]{2,3}[-_]([A-Z]{2})\b/.exec(String(l || '')); if (m && bekend.has(m[1])) return lnVind(m[1]); }
-  const code = LN_ZONE[rgZone()] || '';
+  let taal = '', regio = '';
+  try { const m = /^([a-z]{2,3})[-_]([A-Z]{2})\b/.exec(String((navigator.languages && navigator.languages[0]) || navigator.language || '')); if (m) { taal = m[1]; regio = bekend.has(m[2]) ? m[2] : ''; } } catch (e) {}
+  if (taal === 'nl' && regio) return lnVind(regio);
+  const code = LN_ZONE[rgZone()] || regio;
   return code ? lnVind(code) : null;
 }
 /* Opgeslagen tekst (Nederlands) zoals hij in de app getoond wordt; onbekende tekst blijft zoals hij is. */
 function lnToon(soort, waarde){
   if (soort === 'nationaliteit' && String(waarde || '').includes(',')) return String(waarde).split(/\s*,\s*/).filter(Boolean).map(x => lnToon(soort, x)).join(', ');
-  if (soort === 'nationaliteit' && lnNorm(waarde) === lnNorm(LN_STAATLOOS)) return t(LN_STAATLOOS);
+  if (soort === 'nationaliteit' && (lnNorm(waarde) === lnNorm(LN_STAATLOOS) || lnNorm(waarde) === 'xxa')) return t(LN_STAATLOOS);
   const r = lnVind(waarde);
   if (!r) return waarde;
   // Een code uit de strook die eerder zo bewaard is (SYR): toon de naam
@@ -150,10 +151,11 @@ function lnKeuzes(soort){
 /* Opgeslagen waarde (Nederlands) bij een land: de landnaam of de nationaliteit. */
 function lnWaarde(r, soort){ return r ? (soort === 'nationaliteit' ? r[3] : r[2]) : ''; }
 /* Een <select> vullen met alle landen (bijv. het land van bestemming bij Formulieren); waarde = de Nederlandse landnaam. */
-function lnSelect(sel, leeg){
+function lnSelect(sel, leeg, anders){
   if (!sel || sel.dataset.ln === regioLocale()) return;
   sel.replaceChildren();
   const o = document.createElement('option'); o.value = ''; o.textContent = leeg; sel.append(o);
   for (const [w, txt] of lnKeuzes('land')) { const x = document.createElement('option'); x.value = w; x.textContent = txt; sel.append(x); }
+  if (anders) { const x = document.createElement('option'); x.value = anders[0]; x.textContent = anders[1]; sel.append(x); }
   sel.dataset.ln = regioLocale();
 }
