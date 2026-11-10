@@ -48,11 +48,20 @@ public class BankBridge extends FacturenBridge {
         if (a.isSolo() && !"bank".equals(a.solo)) return;
         a.h.post(() -> {
             if (Lock.busy() || !a.bankScreen || a.isDestroyed() || a.isFinishing()) return;
-            if (a.bankAuth.bezig(android.os.SystemClock.elapsedRealtime()) || !a.isSolo() && Lock.wouldLock(ctx)) return;
+            if (!a.isSolo() && Lock.wouldLock(ctx)) return;
             if (a.bankOk()) { a.js("onBank", "true"); return; }
-            final long net = a.toolSlotNeem("bank");
-            if (net < 0 && !ToolSlot.eigenUit(ctx, "bank")) { a.js("onBank", q("vraag")); return; }
-            final long request = a.bankAuth.begin();
+            final long now = android.os.SystemClock.elapsedRealtime();
+            final boolean uit = ToolSlot.eigenUit(ctx, "bank");
+            final long net, request;
+            final boolean vraag;
+            synchronized (a.bankAuth) {
+                // Controle en start onder dezelfde vergrendeling: anders kan een tweede open de eerste ongeldig maken.
+                if (a.bankAuth.bezig(now)) return;
+                net = a.toolSlotNeem("bank");
+                vraag = net < 0 && !uit;
+                request = vraag ? -1 : a.bankAuth.begin();
+            }
+            if (vraag) { a.js("onBank", q("vraag")); return; }
             if (request < 0) return;
             new Thread(() -> {
                 try {
