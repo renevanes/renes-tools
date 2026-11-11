@@ -121,7 +121,11 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     await page.evaluate(() => goBack());
 
     await page.screenshot({ path: path.join(__dirname, 'shots', 'nieuws-' + colorScheme + '.png'), fullPage: true });
-    ok(await page.evaluate(() => [...document.querySelectorAll('#s-nieuws .nw-rij, #s-nieuws .icon-btn, #nw-filter button, #nw-bron, #nw-zoek')].every(e => { if (!e.getClientRects().length) return true; const r = e.getBoundingClientRect(); return r.height >= 44 && r.width >= 44; })), 'overzicht: tikvlakken minstens 44 px');
+    ok(await page.evaluate(() => [...document.querySelectorAll('#s-nieuws .nw-rij, #s-nieuws .icon-btn, #nw-filter button, #nw-bron, #nw-zoek')].every(e => {
+      if (!e.getClientRects().length) return true; // verborgen knop (Start op het overzicht) is geen tikvlak
+      const r = e.getBoundingClientRect();
+      return r.height >= 44 && r.width >= 44;
+    })), 'overzicht: tikvlakken minstens 44 px');
     ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'overzicht past op de telefoon');
 
     // Instellingen: bronnen
