@@ -34,6 +34,13 @@ const path = require('path');
     await page.waitForTimeout(350);
     ok((await page.textContent('#ag-lijst')).includes('Overleg'), 'zoeken vindt de afspraak van morgen');
     ok(!(await page.textContent('#ag-lijst')).includes('Stand-up'), 'zonder toestemming geen agenda van de telefoon');
+    ok(await page.evaluate(() => {
+      const aan = agPeriode('aanstaande vrijdag', '2026-11-11');
+      const vol = agPeriode('volgende vrijdag', '2026-11-11');
+      const wk = agPeriode('volgende week woensdag', '2026-11-11');
+      const morgen = agVenster('wat staat er morgen in mijn agenda');
+      return aan && aan.van === '2026-11-13' && vol && vol.van === '2026-11-20' && wk && wk.van === '2026-11-18' && morgen.woorden.length === 0;
+    }), 'aanstaande vrijdag, volgende vrijdag en volgende week woensdag');
     await page.fill('#ag-zoek', '');
     await page.waitForTimeout(250);
 

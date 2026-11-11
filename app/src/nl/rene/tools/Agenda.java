@@ -62,6 +62,7 @@ final class Agenda {
     private static final String[] MAAND = {"jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"};
     private static final String[] MAAND_LANG = {"januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"};
     private static final String[] DAG_LANG = {"zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"};
+    private static final String DAG_RE = "zondag|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag";
 
     static int[] ymd(String key) {
         if (key == null) return null;
@@ -222,6 +223,29 @@ final class Agenda {
         if (freq.isEmpty()) return "";
         if (!dagOk(totDag)) return "FREQ=" + freq;
         return "FREQ=" + freq + ";UNTIL=" + totDag.replace("-", "") + (heleDag ? "" : "T235959Z");
+    }
+
+    /** Duur voor de agenda van de telefoon (RFC 5545). Een reeks krijgt dit in plaats van een eindtijdstip. */
+    static String duurIcs(long ms, boolean all) {
+        if (ms < 60_000L) ms = all ? 86_400_000L : 3_600_000L;
+        if (all) {
+            long dagen = (ms + 86_400_000L - 1) / 86_400_000L;
+            if (dagen < 1) dagen = 1;
+            return "P" + dagen + "D";
+        }
+        long min = ms / 60_000L;
+        long dag = min / (24 * 60);
+        min -= dag * 24 * 60;
+        long uur = min / 60;
+        min -= uur * 60;
+        StringBuilder b = new StringBuilder("P");
+        if (dag > 0) b.append(dag).append('D');
+        if (uur > 0 || min > 0 || dag == 0) {
+            b.append('T');
+            if (uur > 0) b.append(uur).append('H');
+            if (min > 0 || uur == 0) b.append(min).append('M');
+        }
+        return b.toString();
     }
 
     // ---------- opschonen ----------
@@ -409,22 +433,35 @@ final class Agenda {
         if (extern != null) for (int i = 0; i < extern.length(); i++) {
             Item it = item(extern.optJSONObject(i));
             if (it == null || it.titel.isEmpty() || !past(it, woorden)) continue;
-            if (!dagOk(it.dag)) continue;
-            String eind = dagOk(it.eind) ? it.eind : it.dag;
-            if (eind.compareTo(van) < 0 || it.dag.compareTo(tot) > 0) continue;
-            if (it.ext > 0 && heeft.contains(it.ext + "|" + it.dag)) continue;
-            uit.add(it);
+            for (Item m : momenten(it, van, tot, vandaag)) {
+                if (m.ext > 0 && heeft.contains(m.ext + "|" + m.dag)) continue;
+                if (m.ext > 0) heeft.add(m.ext + "|" + m.dag);
+                uit.add(m);
+            }
         }
-        Collections.sort(uit, (a, b) -> {
-            int c = a.dag.compareTo(b.dag);
-            if (c != 0) return c;
-            if (a.heleDag != b.heleDag) return a.heleDag ? -1 : 1;
-            c = a.van.compareTo(b.van);
-            if (c != 0) return c;
-            return a.titel.compareToIgnoreCase(b.titel);
-        });
-        if (uit.size() > MAX_ZOEK) return new ArrayList<>(uit.subList(0, MAX_ZOEK));
+        Collections.sort(uit, (a, b) -> volgorde(a, b));
+        if (uit.size() > MAX_ZOEK) {
+            // Een lang bereik (zoeken) houdt de momenten het dichtst bij vandaag. De oudste 200
+            // zouden een wekelijkse reeks van nu wegdrukken zodra er veel oudere treffers zijn.
+            if (verschil(van, tot) > 45 && dagOk(vandaag)) {
+                Collections.sort(uit, (a, b) -> {
+                    int da = Math.abs(verschil(vandaag, a.dag)), db = Math.abs(verschil(vandaag, b.dag));
+                    return da != db ? da - db : volgorde(a, b);
+                });
+                uit = new ArrayList<>(uit.subList(0, MAX_ZOEK));
+                Collections.sort(uit, (a, b) -> volgorde(a, b));
+            } else return new ArrayList<>(uit.subList(0, MAX_ZOEK));
+        }
         return uit;
+    }
+
+    private static int volgorde(Item a, Item b) {
+        int c = a.dag.compareTo(b.dag);
+        if (c != 0) return c;
+        if (a.heleDag != b.heleDag) return a.heleDag ? -1 : 1;
+        c = (a.van == null ? "" : a.van).compareTo(b.van == null ? "" : b.van);
+        if (c != 0) return c;
+        return (a.titel == null ? "" : a.titel).compareToIgnoreCase(b.titel == null ? "" : b.titel);
     }
 
     static JSONObject toon(JSONArray lokaal, JSONArray extern, String view, String anker, int weekStart, String vandaag) throws JSONException {
@@ -455,6 +492,12 @@ final class Agenda {
         o.put("naam", it.naam == null ? "" : it.naam).put("ext", it.ext);
         if (kleurOk(it.kleur)) o.put("kleur", it.kleur);
         return o;
+    }
+
+    /** Zoekwoorden nadat de periode uit de zin is gehaald. "morgen" is dan geen woord meer. */
+    static String[] zoekwoorden(Venster v) {
+        if (v == null || v.woorden == null || v.woorden.isEmpty()) return new String[0];
+        return v.woorden.split(" ");
     }
 
     static String[] woorden(String q) {
@@ -555,6 +598,12 @@ final class Agenda {
         if ((m = Pattern.compile("\\bgisteren\\b").matcher(s)).find()) return zet(plek, m, Regio.dayAdd(vandaag, -1), Regio.dayAdd(vandaag, -1));
         if ((m = Pattern.compile("\\bvandaag\\b").matcher(s)).find()) return zet(plek, m, vandaag, vandaag);
         if ((m = Pattern.compile("\\bmorgen\\b").matcher(s)).find()) return zet(plek, m, Regio.dayAdd(vandaag, 1), Regio.dayAdd(vandaag, 1));
+        if ((m = Pattern.compile("\\b(volgende|vorige|deze|komende)\\s+week\\s+(" + DAG_RE + ")\\b").matcher(s)).find()) {
+            int plus = "volgende".equals(m.group(1)) || "komende".equals(m.group(1)) ? 7 : "vorige".equals(m.group(1)) ? -7 : 0;
+            String dag = weekdagOp(vandaag, dagIndex(m.group(2)), plus);
+            if (dag == null) return null;
+            return zet(plek, m, dag, dag);
+        }
         if ((m = Pattern.compile("\\b(volgende|vorige|deze|komende)\\s+week\\b").matcher(s)).find()) {
             String[] w = bereik("week", vandaag, 1);
             int plus = "volgende".equals(m.group(1)) || "komende".equals(m.group(1)) ? 7 : "vorige".equals(m.group(1)) ? -7 : 0;
@@ -598,19 +647,35 @@ final class Agenda {
             if (!dagOk(van)) return null;
             return zet(plek, m, van, Regio.dayAdd(plusMaand(van, 1), -1));
         }
-        if ((m = Pattern.compile("\\b(vorige|volgende|deze|komende|aanstaande)\\s+(zondag|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag)\\b").matcher(s)).find()
-                || (m = Pattern.compile("\\b(zondag|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag)\\b").matcher(s)).find()) {
-            String welke = m.groupCount() == 2 ? m.group(2) : m.group(1);
-            String richting = m.groupCount() == 2 ? m.group(1) : "";
-            int doel = 0;
-            for (int i = 0; i < DAG_LANG.length; i++) if (DAG_LANG[i].equals(welke)) doel = i;
-            String[] w = bereik("week", vandaag, 1);
-            String dag = Regio.dayAdd(w[0], (doel + 6) % 7); // maandag + 0 … zondag + 6
-            if ("volgende".equals(richting) || "komende".equals(richting) || "aanstaande".equals(richting)) dag = Regio.dayAdd(dag, 7);
-            else if ("vorige".equals(richting)) dag = Regio.dayAdd(dag, -7);
+        if ((m = Pattern.compile("\\b(vorige|volgende|deze|komende|aanstaande)\\s+(" + DAG_RE + ")\\b").matcher(s)).find()) {
+            String dag = weekdagOp(vandaag, dagIndex(m.group(2)), 0);
+            if (dag == null) return null;
+            // volgende = de week erna. aanstaande en komende = de eerstvolgende, ook als die nog in deze week valt.
+            if ("volgende".equals(m.group(1))) dag = Regio.dayAdd(dag, 7);
+            else if ("vorige".equals(m.group(1))) dag = Regio.dayAdd(dag, -7);
+            else if (!"deze".equals(m.group(1)) && dag.compareTo(vandaag) < 0) dag = Regio.dayAdd(dag, 7);
+            return zet(plek, m, dag, dag);
+        }
+        if ((m = Pattern.compile("\\b(" + DAG_RE + ")\\b").matcher(s)).find()) {
+            String dag = weekdagOp(vandaag, dagIndex(m.group(1)), 0);
+            if (dag == null) return null;
+            if (dag.compareTo(vandaag) < 0) dag = Regio.dayAdd(dag, 7);
             return zet(plek, m, dag, dag);
         }
         return null;
+    }
+
+    private static int dagIndex(String welke) {
+        for (int i = 0; i < DAG_LANG.length; i++) if (DAG_LANG[i].equals(welke)) return i;
+        return -1;
+    }
+
+    /** Die weekdag in de week van vandaag (maandag als begin), plus extra dagen. */
+    private static String weekdagOp(String vandaag, int doel, int plus) {
+        if (doel < 0) return null;
+        String[] w = bereik("week", vandaag, 1);
+        if (w == null) return null;
+        return Regio.dayAdd(w[0], (doel + 6) % 7 + plus);
     }
 
     private static String[] zet(int[] plek, Matcher m, String van, String tot) {
@@ -622,7 +687,7 @@ final class Agenda {
     static String antwoord(JSONArray lokaal, JSONArray extern, String q, String vandaag) {
         if (!isVraag(q) || !dagOk(vandaag)) return "";
         Venster v = venster(q, vandaag);
-        String[] w = v.woorden.isEmpty() ? new String[0] : v.woorden.split(" ");
+        String[] w = zoekwoorden(v);
         List<Item> items = lijst(lokaal, extern, v.van, v.tot, vandaag, w);
         if (items.isEmpty()) return "Niets gevonden.";
         StringBuilder b = new StringBuilder();
@@ -639,7 +704,7 @@ final class Agenda {
     static String context(JSONArray lokaal, JSONArray extern, String q, String vandaag) {
         if (!gaatOver(q) || !dagOk(vandaag)) return "";
         Venster v = venster(q, vandaag);
-        String[] w = v.woorden.isEmpty() ? new String[0] : v.woorden.split(" ");
+        String[] w = zoekwoorden(v);
         List<Item> items = lijst(lokaal, extern, v.van, v.tot, vandaag, w);
         if (items.isEmpty()) return "Geen afspraken in deze periode.";
         StringBuilder b = new StringBuilder();

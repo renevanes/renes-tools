@@ -345,14 +345,22 @@ function agSpiegelLijst(st, van, tot, woorden){
   z.lokaal.forEach(it => { if (!it.titel || !agPast(it, woorden)) return; uit.push(...agMomenten(it, van, tot)); });
   const heeft = new Set(uit.filter(it => it.ext > 0).map(it => it.ext + '|' + it.dag));
   z.extern.forEach(it => {
-    if (!it.titel || !agPast(it, woorden) || !agDagOk(it.dag)) return;
-    const eind = it.eind || it.dag;
-    if (eind < van || it.dag > tot) return;
-    if (it.ext > 0 && heeft.has(it.ext + '|' + it.dag)) return;
-    uit.push(it);
+    if (!it.titel || !agPast(it, woorden)) return;
+    agMomenten(it, van, tot).forEach(m => {
+      if (m.ext > 0 && heeft.has(m.ext + '|' + m.dag)) return;
+      if (m.ext > 0) heeft.add(m.ext + '|' + m.dag);
+      uit.push(m);
+    });
   });
-  uit.sort((a, b) => a.dag < b.dag ? -1 : a.dag > b.dag ? 1 : (a.heleDag === b.heleDag ? String(a.van || '').localeCompare(String(b.van || '')) : a.heleDag ? -1 : 1));
-  return uit.slice(0, 200);
+  const volgorde = (a, b) => a.dag < b.dag ? -1 : a.dag > b.dag ? 1 : (a.heleDag === b.heleDag ? String(a.van || '').localeCompare(String(b.van || '')) : a.heleDag ? -1 : 1);
+  uit.sort(volgorde);
+  if (uit.length > 200 && rgDayDiff(van, tot) > 45) {
+    const nu = rgToday();
+    uit.sort((a, b) => Math.abs(rgDayDiff(nu, a.dag)) - Math.abs(rgDayDiff(nu, b.dag)) || volgorde(a, b));
+    uit.length = 200;
+    uit.sort(volgorde);
+  } else if (uit.length > 200) uit.length = 200;
+  return uit;
 }
 function agSpiegelToon(st, view, anker, weekStart){
   if (!['dag', 'week', 'maand', 'lijst'].includes(view)) view = 'week';
@@ -417,6 +425,32 @@ function agGaatOver(q){
   if (!/\b(agenda|kalender|afspraken|afspraak)\b/.test(s)) return false;
   return /\b(wat|wanneer|welke|hoeveel|zoek|toon|laat|staat|stond|heb|had|hebben|planning)\b/.test(s) || s.split(' ').filter(Boolean).length >= 3;
 }
+function agWeekdag(s, nu){
+  const namen = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+  const pak = (m, dag) => ({ van: dag, tot: dag, a: m.index, b: m.index + m[0].length });
+  const op = (doel, plus) => { const r = agBereik('week', nu, 1); return r ? rgDayAdd(r[0], (doel + 6) % 7 + plus) : nu; };
+  let m = new RegExp('\\b(volgende|vorige|deze|komende)\\s+week\\s+(' + namen.join('|') + ')\\b').exec(s);
+  if (m) {
+    const plus = m[1] === 'vorige' ? -7 : m[1] === 'deze' ? 0 : 7;
+    return pak(m, op(namen.indexOf(m[2]), plus));
+  }
+  m = new RegExp('\\b(vorige|volgende|deze|komende|aanstaande)\\s+(' + namen.join('|') + ')\\b').exec(s);
+  if (!m) return null;
+  let dag = op(namen.indexOf(m[2]), 0);
+  if (m[1] === 'volgende') dag = rgDayAdd(dag, 7);
+  else if (m[1] === 'vorige') dag = rgDayAdd(dag, -7);
+  else if (m[1] !== 'deze' && dag < nu) dag = rgDayAdd(dag, 7);
+  return pak(m, dag);
+}
+function agLosseWeekdag(s, nu){
+  const namen = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+  const m = new RegExp('\\b(' + namen.join('|') + ')\\b').exec(s);
+  if (!m) return null;
+  const r = agBereik('week', nu, 1);
+  let dag = r ? rgDayAdd(r[0], (namen.indexOf(m[1]) + 6) % 7) : nu;
+  if (dag < nu) dag = rgDayAdd(dag, 7);
+  return { van: dag, tot: dag, a: m.index, b: m.index + m[0].length };
+}
 function agPeriode(s, nu){
   let m;
   const pak = (re, van, tot) => { m = re.exec(s); return m ? { van, tot, a: m.index, b: m.index + m[0].length } : null; };
@@ -424,8 +458,9 @@ function agPeriode(s, nu){
     || pak(/\bgisteren\b/, rgDayAdd(nu, -1), rgDayAdd(nu, -1))
     || pak(/\bvandaag\b/, nu, nu)
     || pak(/\bmorgen\b/, rgDayAdd(nu, 1), rgDayAdd(nu, 1))
+    || agWeekdag(s, nu)
     || (() => { m = /\b(volgende|vorige|deze|komende)\s+week\b/.exec(s); if (!m) return null; const r = agBereik('week', nu, 1), plus = m[1] === 'vorige' ? -7 : m[1] === 'deze' ? 0 : 7; return { van: rgDayAdd(r[0], plus), tot: rgDayAdd(r[1], plus), a: m.index, b: m.index + m[0].length }; })()
-    || null;
+    || agLosseWeekdag(s, nu);
 }
 function agVenster(q){
   const s = agNormVraag(q), nu = rgToday(), wijdVan = rgDayAdd(nu, -365 * 15), wijdTot = rgDayAdd(nu, 365 * 3);

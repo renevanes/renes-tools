@@ -730,7 +730,7 @@ final class AiData {
         Agenda.Venster v = Agenda.venster(vraag, vandaag);
         JSONArray lokaal = AgendaStore.zichtbaar(c);
         if (lokaal == null) lokaal = new JSONArray();
-        JSONArray extern = AgendaCal.instanties(c, v.van, v.tot, AgendaStore.uit(c), Agenda.woorden(vraag), 400);
+        JSONArray extern = AgendaCal.zoek(c, v.van, v.tot, AgendaStore.uit(c), Agenda.zoekwoorden(v), 400);
         return new JSONObject().put("q", vraag).put("vandaag", vandaag).put("lokaal", lokaal).put("extern", extern);
     }
 }

@@ -91,7 +91,7 @@ public class AgendaBridge extends FeatureBridge {
             String[] w = Agenda.woorden(q);
             JSONArray lokaal = AgendaStore.zichtbaar(ctx);
             if (lokaal == null) lokaal = new JSONArray();
-            JSONArray extern = AgendaCal.instanties(ctx, vanD, totD, AgendaStore.uit(ctx), w, 400);
+            JSONArray extern = AgendaCal.zoek(ctx, vanD, totD, AgendaStore.uit(ctx), w, 400);
             JSONArray items = new JSONArray();
             for (Agenda.Item it : Agenda.lijst(lokaal, extern, vanD, totD, nu, w)) items.put(Agenda.json(it));
             return new JSONObject().put("items", items).put("van", vanD).put("tot", totD).toString();

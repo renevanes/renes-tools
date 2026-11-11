@@ -75,19 +75,13 @@ final class AgendaCal {
         JSONArray a = new JSONArray();
         if (!lezen(c) || !Agenda.dagOk(van) || !Agenda.dagOk(tot) || max <= 0) return a;
         JSONArray kals = kalenders(c);
-        List<String> ids = new ArrayList<>();
-        for (int i = 0; i < kals.length(); i++) {
-            JSONObject k = kals.optJSONObject(i);
-            if (k == null) continue;
-            String id = k.optString("id");
-            if (id.isEmpty() || (uit != null && uit.contains(id))) continue;
-            ids.add(id);
-        }
+        List<String> ids = gekozen(kals, uit);
         if (ids.isEmpty()) return a;
         TimeZone z = Regio.zone(c);
         long begin = Regio.toMillis(z, Regio.dayAdd(van, -1), "00:00");
         long end = Regio.toMillis(z, Regio.dayAdd(tot, 2), "00:00");
-        if (begin < 0 || end <= begin) return a;
+        // -1 = de datum klopt niet. Een tijdstip vóór 1970 is wel een echt tijdstip (negatief).
+        if (begin == -1 || end == -1 || end <= begin) return a;
         Uri.Builder b = CalendarContract.Instances.CONTENT_URI.buildUpon();
         ContentUris.appendId(b, begin);
         ContentUris.appendId(b, end);
@@ -99,14 +93,7 @@ final class AgendaCal {
             args.add(ids.get(i));
         }
         sel.append(')');
-        if (woorden != null) for (String w : woorden) {
-            String like = like(w);
-            if (like.isEmpty()) continue;
-            sel.append(" AND (").append(CalendarContract.Instances.TITLE).append(" LIKE ? OR ")
-                    .append(CalendarContract.Instances.DESCRIPTION).append(" LIKE ? OR ")
-                    .append(CalendarContract.Instances.EVENT_LOCATION).append(" LIKE ?)");
-            args.add(like); args.add(like); args.add(like);
-        }
+        voegWoorden(sel, args, woorden, CalendarContract.Instances.TITLE, CalendarContract.Instances.DESCRIPTION, CalendarContract.Instances.EVENT_LOCATION);
         try (Cursor cur = c.getContentResolver().query(b.build(), new String[]{
                 CalendarContract.Instances.TITLE, CalendarContract.Instances.BEGIN, CalendarContract.Instances.END,
                 CalendarContract.Instances.ALL_DAY, CalendarContract.Instances.EVENT_LOCATION, CalendarContract.Instances.DESCRIPTION,
@@ -122,6 +109,79 @@ final class AgendaCal {
             App.log(c, "AGENDA", "lezen: " + t.getClass().getSimpleName());
         }
         return a;
+    }
+
+    /**
+     * Afspraken uit de gekozen agenda's. Een kort bereik (een weergave) leest de instanties.
+     * Een lang bereik leest elke afspraak één keer, ook een reeks: anders vullen de oudste keren
+     * van een wekelijkse afspraak de lijst en valt de afspraak van deze week weg.
+     */
+    static JSONArray zoek(Context c, String van, String tot, Set<String> uit, String[] woorden, int max) {
+        if (Agenda.verschil(van, tot) <= 45) return instanties(c, van, tot, uit, woorden, max);
+        return gebeurtenissen(c, van, tot, uit, woorden, max);
+    }
+
+    private static JSONArray gebeurtenissen(Context c, String van, String tot, Set<String> uit, String[] woorden, int max) {
+        JSONArray a = new JSONArray();
+        if (!lezen(c) || !Agenda.dagOk(van) || !Agenda.dagOk(tot) || max <= 0) return a;
+        JSONArray kals = kalenders(c);
+        List<String> ids = gekozen(kals, uit);
+        if (ids.isEmpty()) return a;
+        TimeZone z = Regio.zone(c);
+        long begin = Regio.toMillis(z, Regio.dayAdd(van, -1), "00:00");
+        long end = Regio.toMillis(z, Regio.dayAdd(tot, 2), "00:00");
+        if (begin == -1 || end == -1 || end <= begin) return a;
+        StringBuilder sel = new StringBuilder();
+        List<String> args = new ArrayList<>();
+        sel.append('(').append(CalendarContract.Events.DELETED).append(" IS NULL OR ")
+                .append(CalendarContract.Events.DELETED).append("=0) AND ")
+                .append(CalendarContract.Events.CALENDAR_ID).append(" IN (");
+        for (int i = 0; i < ids.size(); i++) {
+            if (i > 0) sel.append(',');
+            sel.append('?');
+            args.add(ids.get(i));
+        }
+        sel.append(") AND ((").append(CalendarContract.Events.RRULE).append(" IS NOT NULL AND ")
+                .append(CalendarContract.Events.RRULE).append("!='' AND (")
+                .append(CalendarContract.Events.LAST_DATE).append(" IS NULL OR ")
+                .append(CalendarContract.Events.LAST_DATE).append("=0 OR ")
+                .append(CalendarContract.Events.LAST_DATE).append(">=?)) OR ((")
+                .append(CalendarContract.Events.RRULE).append(" IS NULL OR ")
+                .append(CalendarContract.Events.RRULE).append("='') AND ")
+                .append(CalendarContract.Events.DTSTART).append(">=? AND ")
+                .append(CalendarContract.Events.DTSTART).append("<?))");
+        args.add(String.valueOf(begin));
+        args.add(String.valueOf(begin));
+        args.add(String.valueOf(end));
+        voegWoorden(sel, args, woorden, CalendarContract.Events.TITLE, CalendarContract.Events.DESCRIPTION, CalendarContract.Events.EVENT_LOCATION);
+        String[] proj = {CalendarContract.Events.TITLE, CalendarContract.Events.EVENT_LOCATION, CalendarContract.Events.DESCRIPTION,
+                CalendarContract.Events.DTSTART, CalendarContract.Events.DTEND, CalendarContract.Events.ALL_DAY,
+                CalendarContract.Events.CALENDAR_ID, CalendarContract.Events.RRULE, CalendarContract.Events.DURATION,
+                CalendarContract.Events._ID, CalendarContract.Events.EVENT_COLOR};
+        String[] arg = args.toArray(new String[0]);
+        String reeksEerst = "CASE WHEN " + CalendarContract.Events.RRULE + " IS NOT NULL AND " + CalendarContract.Events.RRULE
+                + "!='' THEN 0 ELSE 1 END, " + CalendarContract.Events.DTSTART + " DESC";
+        JSONArray gelezen = leesGebeurtenissen(c, kals, proj, sel.toString(), arg, reeksEerst, max);
+        if (gelezen != null) return gelezen;
+        gelezen = leesGebeurtenissen(c, kals, proj, sel.toString(), arg, CalendarContract.Events.DTSTART + " DESC", max);
+        return gelezen == null ? a : gelezen;
+    }
+
+    private static JSONArray leesGebeurtenissen(Context c, JSONArray kals, String[] proj, String sel, String[] args, String order, int max) {
+        JSONArray a = new JSONArray();
+        try (Cursor cur = c.getContentResolver().query(CalendarContract.Events.CONTENT_URI, proj, sel, args, order)) {
+            if (cur == null) return null;
+            while (cur.moveToNext() && a.length() < max) {
+                try {
+                    JSONObject it = vanGebeurtenis(c, cur, kals);
+                    if (it != null) a.put(it);
+                } catch (Exception e) { /* een kapotte rij slaat het zoeken niet plat */ }
+            }
+            return a;
+        } catch (Throwable t) {
+            App.log(c, "AGENDA", "zoeken: " + t.getClass().getSimpleName());
+            return null;
+        }
     }
 
     /** Eén afspraak uit de agenda van de telefoon. null = weg. {"fout":true} = niet kunnen kijken. */
@@ -180,6 +240,7 @@ final class AgendaCal {
         if (k == null || !k.optBoolean("schrijf")) return -2;
         try {
             ContentValues cv = waarden(c, it, kal);
+            if (cv == null) return -1;
             long ext = it.optLong("ext");
             if (ext > 0) {
                 int n = c.getContentResolver().update(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, ext), cv, null, null);
@@ -206,29 +267,56 @@ final class AgendaCal {
         }
     }
 
-    private static ContentValues waarden(Context c, JSONObject it, String kal) {
+    /** Tijdstippen voor één afspraak. null als de datum niet klopt. Een reeks heeft een duur en geen eindtijdstip. */
+    static final class Plan {
+        long start, einde;
+        String duur = "", regel = "";
+        boolean herhaalt;
+    }
+
+    static Plan plan(TimeZone z, JSONObject it) {
+        if (it == null || z == null) return null;
         boolean all = it.optBoolean("heleDag");
         String dag = it.optString("dag"), eind = it.optString("eind");
+        if (!Agenda.dagOk(dag)) return null;
         if (!Agenda.dagOk(eind) || eind.compareTo(dag) < 0) eind = dag;
-        TimeZone z = all ? TimeZone.getTimeZone("UTC") : Regio.zone(c);
         long ds = Regio.toMillis(z, dag, all ? "00:00" : it.optString("van", "09:00"));
+        if (ds == -1) return null;
         long de = all ? Regio.toMillis(z, Regio.dayAdd(eind, 1), "00:00") : Regio.toMillis(z, eind, it.optString("tot", "10:00"));
-        if (ds < 0) ds = System.currentTimeMillis();
-        if (de <= ds) de = ds + (all ? 86_400_000L : 3_600_000L);
+        if (de == -1 || de <= ds) de = ds + (all ? 86_400_000L : 3_600_000L);
+        Plan p = new Plan();
+        p.start = ds;
+        p.regel = Agenda.rrule(it.optString("herhaal"), it.optString("totDag"), all);
+        p.herhaalt = !p.regel.isEmpty();
+        if (p.herhaalt) p.duur = Agenda.duurIcs(de - ds, all);
+        else p.einde = de;
+        return p;
+    }
+
+    private static ContentValues waarden(Context c, JSONObject it, String kal) {
+        boolean all = it.optBoolean("heleDag");
+        TimeZone z = all ? TimeZone.getTimeZone("UTC") : Regio.zone(c);
+        Plan p = plan(z, it);
+        if (p == null) return null;
         ContentValues cv = new ContentValues();
         cv.put(CalendarContract.Events.CALENDAR_ID, Long.parseLong(kal));
         cv.put(CalendarContract.Events.TITLE, it.optString("titel"));
         cv.put(CalendarContract.Events.EVENT_LOCATION, it.optString("plek"));
         cv.put(CalendarContract.Events.DESCRIPTION, it.optString("notitie"));
-        cv.put(CalendarContract.Events.DTSTART, ds);
-        cv.put(CalendarContract.Events.DTEND, de);
+        cv.put(CalendarContract.Events.DTSTART, p.start);
         cv.put(CalendarContract.Events.EVENT_TIMEZONE, z.getID());
         cv.put(CalendarContract.Events.ALL_DAY, all ? 1 : 0);
         cv.put(CalendarContract.Events.STATUS, CalendarContract.Events.STATUS_CONFIRMED);
         cv.put(CalendarContract.Events.HAS_ALARM, 0);
-        String rule = Agenda.rrule(it.optString("herhaal"), it.optString("totDag"), all);
-        if (rule.isEmpty()) cv.putNull(CalendarContract.Events.RRULE);
-        else cv.put(CalendarContract.Events.RRULE, rule);
+        if (p.herhaalt) {
+            cv.putNull(CalendarContract.Events.DTEND);
+            cv.put(CalendarContract.Events.DURATION, p.duur);
+            cv.put(CalendarContract.Events.RRULE, p.regel);
+        } else {
+            cv.put(CalendarContract.Events.DTEND, p.einde);
+            cv.putNull(CalendarContract.Events.DURATION);
+            cv.putNull(CalendarContract.Events.RRULE);
+        }
         return cv;
     }
 
@@ -267,6 +355,42 @@ final class AgendaCal {
         return o;
     }
 
+    /** Eén reeks of losse afspraak, nog niet uitgevouwen. herhaal blijft staan zodat het zoeken de keren maakt. */
+    private static JSONObject vanGebeurtenis(Context c, Cursor cur, JSONArray kals) throws Exception {
+        long begin = cur.getLong(3), end = cur.isNull(4) ? 0 : cur.getLong(4);
+        boolean all = cur.getInt(5) == 1;
+        if (end <= begin) end = begin + duur(cur.getString(8), all);
+        String d, e, van = "", tot = "";
+        if (all) {
+            String[] r = Agenda.alleDag(begin, end);
+            if (r == null) return null;
+            d = r[0]; e = r[1];
+        } else {
+            TimeZone z = Regio.zone(c);
+            d = Regio.dayKey(z, begin);
+            e = Regio.dayKey(z, Math.max(begin, end - 60_000L));
+            van = hm(z, begin); tot = hm(z, end);
+            if (!Agenda.dagOk(d)) return null;
+            if (!Agenda.dagOk(e) || e.compareTo(d) < 0) e = d;
+        }
+        long ext = cur.getLong(9);
+        if (ext <= 0) return null;
+        String rule = cur.getString(7) == null ? "" : cur.getString(7);
+        String kal = String.valueOf(cur.getLong(6));
+        JSONObject k = kalender(kals, kal);
+        JSONObject o = new JSONObject();
+        o.put("id", "x" + ext);
+        o.put("titel", leeg(c, cur.getString(0))).put("plek", cur.getString(1) == null ? "" : cur.getString(1));
+        o.put("notitie", cur.getString(2) == null ? "" : cur.getString(2));
+        o.put("dag", d).put("eind", e).put("van", van).put("tot", tot).put("heleDag", all);
+        o.put("herhaal", Agenda.herhaalCode(rule)).put("totDag", Agenda.totUitRrule(rule));
+        o.put("kalender", kal).put("ext", ext).put("naam", k == null ? "" : k.optString("naam"));
+        String kleur = kleur(cur, 10);
+        if (!Agenda.kleurOk(kleur) && k != null) kleur = k.optString("kleur");
+        if (Agenda.kleurOk(kleur)) o.put("kleur", kleur);
+        return o;
+    }
+
     private static String leeg(Context c, String titel) {
         return titel == null || titel.trim().isEmpty() ? Taal.t(c, "Zonder titel") : titel;
     }
@@ -278,17 +402,69 @@ final class AgendaCal {
         return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
     }
 
-    private static long duur(String d, boolean all) {
-        if (d == null) return all ? 86_400_000L : 3_600_000L;
-        int dag = 0, uur = 0, min = 0;
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("P(?:(\\d+)D)?(?:T(?:(\\d+)H)?(?:(\\d+)M)?)?").matcher(d);
-        if (m.matches()) {
-            if (m.group(1) != null) dag = Integer.parseInt(m.group(1));
-            if (m.group(2) != null) uur = Integer.parseInt(m.group(2));
-            if (m.group(3) != null) min = Integer.parseInt(m.group(3));
+    /**
+     * Duur uit de agenda van de telefoon, in ms. RFC 5545 (PT1H30M, P1D) en de vorm die Android zelf schrijft
+     * (P3600S, zonder T). Onleesbaar: een uur, of een dag als het een hele-dag-afspraak is.
+     */
+    static long duurMs(String d, boolean all) {
+        long standaard = all ? 86_400_000L : 3_600_000L;
+        if (d == null || d.length() < 2 || (d.charAt(0) != 'P' && d.charAt(0) != 'p')) return standaard;
+        long weken = 0, dagen = 0, uren = 0, minuten = 0, seconden = 0, n = 0;
+        boolean tijd = false, getal = false;
+        for (int i = 1; i < d.length(); i++) {
+            char c = d.charAt(i);
+            if (c >= '0' && c <= '9') {
+                if (n > 1_000_000_000L) return standaard;
+                n = n * 10 + (c - '0');
+                getal = true;
+                continue;
+            }
+            if (c == 'T' || c == 't') {
+                if (getal) return standaard;
+                tijd = true;
+                continue;
+            }
+            if (!getal) return standaard;
+            switch (c) {
+                case 'W': case 'w': if (tijd) return standaard; weken = n; break;
+                case 'D': case 'd': if (tijd) return standaard; dagen = n; break;
+                case 'H': case 'h': if (!tijd) return standaard; uren = n; break;
+                case 'M': case 'm': if (!tijd) return standaard; minuten = n; break;
+                case 'S': case 's': seconden = n; break;
+                default: return standaard;
+            }
+            n = 0;
+            getal = false;
         }
-        long ms = dag * 86_400_000L + uur * 3_600_000L + min * 60_000L;
-        return ms > 0 ? ms : (all ? 86_400_000L : 3_600_000L);
+        if (getal) return standaard;
+        long sec = weken * 7L * 86400L + dagen * 86400L + uren * 3600L + minuten * 60L + seconden;
+        if (sec <= 0 || sec > 366L * 86400L) return standaard;
+        return sec * 1000L;
+    }
+
+    private static long duur(String d, boolean all) { return duurMs(d, all); }
+
+    private static List<String> gekozen(JSONArray kals, Set<String> uit) {
+        List<String> ids = new ArrayList<>();
+        if (kals == null) return ids;
+        for (int i = 0; i < kals.length(); i++) {
+            JSONObject k = kals.optJSONObject(i);
+            if (k == null) continue;
+            String id = k.optString("id");
+            if (id.isEmpty() || (uit != null && uit.contains(id))) continue;
+            ids.add(id);
+        }
+        return ids;
+    }
+
+    private static void voegWoorden(StringBuilder sel, List<String> args, String[] woorden, String titel, String beschrijving, String plek) {
+        if (woorden == null) return;
+        for (String w : woorden) {
+            String like = like(w);
+            if (like.isEmpty()) continue;
+            sel.append(" AND (").append(titel).append(" LIKE ? OR ").append(beschrijving).append(" LIKE ? OR ").append(plek).append(" LIKE ?)");
+            args.add(like); args.add(like); args.add(like);
+        }
     }
 
     private static String like(String w) {
