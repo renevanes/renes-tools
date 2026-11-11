@@ -16,7 +16,8 @@ function idCopyLeave(){
   idc.session='';idCopyReset(false); Android.idCopySecure(false,''); idc.busy=false; idc.loading=false; idc.result='';
   ['id-recipient','id-purpose','id-date'].forEach(id=>$('#'+id).value=''); $('#id-result').hidden=true; $('#id-status').textContent='';
 }
-function idCopyChoose(){ if(idc.busy||idc.loading)return; bronKies({ titel: t('Foto of PDF kiezen'), soort: 'pdfbeeld', kiezer: 'idkopie', bestand: idCopyKiezer }); }
+function idCopyChoose(){ if(idc.busy||idc.loading)return; bronKies({ titel: t('Foto of PDF kiezen'), soort: 'pdfbeeld', kiezer: 'idkopie', bestand: idCopyKiezer,
+  voor: idCopyStamKan() ? [[t('Uit Stamgegevens (mijn documenten)'), idCopyUitStam, 'user']] : [] }); }
 function idCopyKiezer(){ if(idc.busy||idc.loading)return; if(!$('#id-date').value)$('#id-date').value=rgToday(); idc.busy=true; $('#id-status').textContent=t('Bestand kiezen…'); idCopyControls(); Android.idCopyPick(); }
 window.onIdCopyPicked=function(r){
   if(current!=='idcopy'||r.session!==idc.session)return; idc.busy=false;
@@ -118,6 +119,23 @@ function idCopyShare(){if(idc.result)kcShare(idc.result);}
  * dit scherm haalt ze op (idCopyTakeMaster). De foto's gaan nooit door de interface. Daarna stelt de app vlakken voor
  * volgens de vaste indeling van dat soort document; Rene controleert en past aan, zoals altijd. */
 function idCopyVanStam(bron){ idc.stamKlaar=bron; show('idcopy'); }
+/* Vanaf ID-kopie zelf: een identiteitsdocument uit Stamgegevens kiezen (eerst Stamgegevens open, met het slotscherm als dat
+ * aan staat). Alleen documenten met een foto; die van jezelf bovenaan. Daarna dezelfde weg als vanaf het documentkaartje. */
+function idCopyStamKan(){ return !isPlay()&&typeof cmOpen==='function'&&(typeof soloOk!=='function'||soloOk('masterdata')); }
+function idCopyUitStam(){ if(!idCopyStamKan())return; idc.stamKiezen=Date.now(); show('masterdata'); tsDaarna('masterdata',()=>idCopyStamWacht()); }
+function idCopyStamWacht(){
+  const begin=idc.stamKiezen; if(!begin||current!=='masterdata'){idc.stamKiezen=0;return;}
+  if(!(cmOpen()&&cm.recordsReady)){ if(Date.now()-begin<120000)setTimeout(idCopyStamWacht,150); else idc.stamKiezen=0; return; }
+  idc.stamKiezen=0;
+  const me=typeof cmkMe==='function'?cmkMe():'',docs=cm.records.filter(r=>r.type==='identiteit'&&(r.fotos||0)>0)
+    .sort((a,b)=>((b.person===me)-(a.person===me))||String(a.label).localeCompare(String(b.label)));
+  if(!docs.length){toast(t('Nog geen identiteitsdocument met een foto in Stamgegevens. Voeg eerst een foto toe.'));return;}
+  openSheet(t('Welk document?'),t('De foto\'s blijven in Stamgegevens; de app maakt er een afgeschermde kopie van.'),docs.map(r=>[r.label,()=>idCopyStamMaak(r),'shield']));
+}
+function idCopyStamMaak(r){
+  if(!cmOpen()||cm.mutating)return;
+  cmRequest('masterIdCopySource',[r.id,r.revision],out=>idCopyVanStam({doc:r.id,soort:out.soort||r.soort||'',sides:out.sides||'',label:r.label}));
+}
 function idCopyStamHalen(){
   const bron=idc.stamKlaar; if(!bron||idc.busy||idc.loading)return;
   idc.stamKlaar=null;
