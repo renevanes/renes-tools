@@ -35,7 +35,8 @@ html{scroll-padding-top:80px}
 .hdr .back,.hdr .icon-btn,.hrow>button:not(.hsearch){width:48px;height:48px;border-radius:24px;display:grid;place-items:center;flex:none;color:var(--ink)}
 .hdr .back:active,.hdr .icon-btn:active,.hrow>button:not(.hsearch):active{background:color-mix(in srgb,var(--ink) 10%,transparent)}
 .hdr .ver{font-size:13px;color:var(--muted)}
-body.tab-root .hdr .back{display:none}
+body.tab-root .hdr .back,body.tab-root .hdr .nav-home{display:none}
+.hdr .nav-home[hidden]{display:none}
 .hdr.home .hrow{padding:8px 8px 4px}
 .hsearch{flex:1;display:flex;align-items:center;gap:12px;height:56px;padding:0 18px;border-radius:28px;background:var(--hi);color:var(--muted);font-size:16px;text-align:left}
 .hdr.home.compact .hsearch{background:var(--card)}
@@ -792,7 +793,7 @@ body.tab-root .hs{padding-left:16px}
 .pdfedititems [aria-pressed=true]{background:var(--tonal);outline:2px solid var(--primary)}
 /* Losse app: geen tabbalk, geen terugknop op het eerste scherm, geen speler van andere tools */
 body.solo .tabs{display:none!important}
-body.solo-root .hdr .back{display:none}
+body.solo-root .hdr .back,body.solo-root .hdr .nav-home{display:none}
 body.solo-root .hs{padding-left:16px}
 body.solo:not(.solo-player) .plbar{display:none!important}
 body.solo:not(.solo-player).has-plbar main{padding-bottom:24px}

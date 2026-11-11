@@ -68,7 +68,31 @@ function uiShown(name){
   document.body.classList.toggle('tabs-on', on);
   document.body.classList.toggle('tab-root', on && !viaJump);
   document.querySelectorAll('#tabs button').forEach(b => { const me = b.dataset.t === name; b.classList.toggle('on', me); if (me) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  navSync();
   uiFit(); bars(); if (on) tabsFit();
+}
+/* Start naast de pijl, alleen als één stap terug nog niet het begin van deze app is. */
+function navPlaats(){
+  document.querySelectorAll('section.screen > .hdr').forEach(h => {
+    const row = h.querySelector('.hrow') || h, back = row.querySelector('.back');
+    if (!back || row.querySelector('.nav-home')) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'icon-btn nav-home';
+    b.hidden = true;
+    b.setAttribute('aria-label', 'Start');
+    b.innerHTML = typeof uiIcon === 'function' ? uiIcon('grid') : '';
+    b.addEventListener('click', () => navHome());
+    back.after(b);
+  });
+}
+function navSync(){
+  const on = typeof navThuisZicht === 'function' && navThuisZicht(current);
+  const label = (typeof SOLO !== 'undefined' && SOLO) ? t('Hoofdscherm') : t('Start');
+  document.querySelectorAll('.nav-home').forEach(b => {
+    b.hidden = !on;
+    if (on) b.setAttribute('aria-label', label);
+  });
 }
 /* Grote tekst (Tekstgrootte 200%): een label dat niet past wordt kleiner tot het past (niet afgekapt: "Instellingen" blijft leesbaar) */
 function tabsFit(){
@@ -88,5 +112,6 @@ function tabGo(tt){
 }
 
 uiInitHeaders();
+navPlaats();
 applyTheme();
 uiShown(current);

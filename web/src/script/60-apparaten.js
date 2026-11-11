@@ -10,8 +10,6 @@ const AP_TYPES = { telefoon: ['Telefoon', 'smartphone'], oortjes: ['Oortjes', 'h
   sensor: ['Sensor', 'info'], gezondheid: ['Gezondheid', 'info'], sport: ['Sport', 'route'], printer: ['Printer', 'document'], lamp: ['Lamp', 'sun'], baken: ['Baken', 'pin'],
   spel: ['Spelcomputer', 'play'], hoortoestel: ['Hoortoestel', 'volume'], afstandsbediening: ['Afstandsbediening', 'grid'], apple: ['Apple-apparaat', 'smartphone'],
   router: ['Router', 'wifi'], nas: ['NAS (opslag)', 'folder'], camera: ['Camera', 'camera'], slim: ['Slim apparaat', 'automation'], apparaat: ['Apparaat', 'nearby'] };
-Object.assign(BACK, { apparaten: 'home', apdev: 'apparaten', apset: 'apparaten' });
-
 function apLoad(){ apSt = rdJson(Android.apState(), {}) || {}; apSt.set = apSt.set || {}; apSt.perms = apSt.perms || {}; return apSt; }
 function setAp(){ return apLoad().set; }
 function apType(tt){ return AP_TYPES[tt] || AP_TYPES.apparaat; }

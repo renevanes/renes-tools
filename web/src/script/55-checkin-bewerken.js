@@ -1,5 +1,5 @@
 /* ---------- Check-in: een vraag maken of bewerken ---------- */
-let cedQ = null, cedSnap = '', cedNew = false;
+let cedQ = null, cedSnap = '', cedNew = false, cedNaar = null;
 const CED_SCALES = [['buttons2', '2 knoppen'], ['buttons3', '3 knoppen'], ['smileys5', '5 smileys'], ['score10', 'Score 1–10'], ['yesno', 'Ja / nee'], ['custom', 'Zelf kiezen']];
 const CED_RHYTHMS = [['daily', 'Elke dag'], ['workdays', 'Werkdagen'], ['weekdays', 'Gekozen dagen'], ['weekly', 'Elke week'], ['monthly', 'Elke maand'], ['multi', 'Meerdere keren per dag']];
 const CED_COLORS = [['primary', 'Standaard'], ['blue', 'Blauw'], ['green', 'Groen'], ['orange', 'Oranje'], ['red', 'Rood'], ['purple', 'Paars'], ['grey', 'Grijs']];
@@ -129,17 +129,18 @@ function cedLabelDel(i){ cedSync(); cedQ.labelList.splice(i, 1); cedRender(); }
 function cedSave(){
   cedSync();
   const q = cedQ;
-  if (!q.text.trim()) { toast('Vul de vraag in'); $('#ced-text').focus(); return; }
+  if (!q.text.trim()) { cedNaar = null; toast('Vul de vraag in'); $('#ced-text').focus(); return; }
   if (q.on && ciSt.notifOk === false) Android.permRequest('notif'); // Android 13+: toestemming voor de meldingen
   // Opgeslagen in de bewerker = niet meer het onaangeroerde voorstel (een backup vervangt hem dan niet)
   if (cedSnap && JSON.stringify(q) !== cedSnap) q.tpl = false;
   const r = rdJson(Android.checkinSave(JSON.stringify(q)), {});
-  if (r.error) { toast(r.error); return; }
+  if (r.error) { cedNaar = null; toast(r.error); return; }
   cedQ = null; cedSnap = '';
   ciLoad();
   const saved = ciQ(r.id);
   toast(cedNew ? t('✓ Vraag bewaard') + (saved && saved.on ? ': ' + ciRhythmText(saved).replace(/^./, x => x.toLowerCase()) : '') : t('✓ Bewaard'));
-  goBack();
+  const na = cedNaar; cedNaar = null;
+  if (typeof na === 'function') na(); else goBack();
   ciAfter();
 }
 function cedCancel(){ cedQ = null; cedSnap = ''; goBack(); }
