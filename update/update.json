@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.187",
-  "versionCode": 188,
-  "nativeLevel": 167,
+  "versionName": "1.188",
+  "versionCode": 189,
+  "nativeLevel": 168,
   "web": "index.html",
-  "webSha256": "01adec111b638cb1bb2d284c6a18d4a6b8dc87e88d071203896254e13eaad59f",
+  "webSha256": "8f22ca8968ae37fdb9475c569c6529bc5da244ed18a7d9d4bc93469be4393d49",
   "start": "start.html",
   "startSha256": "eb96929e99cefd1937525b8c0c5d0ed8979828dcbe88a9789da523294b6331be",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "bb839b44e354dadaa44e0a16171c21cd43e51c00fe3e3b553f4b07080266a250",
+  "apkSha256": "183955d229446eef7fbb3f97f7e3a40f2758ae3717369b52ceefc7a5a2493bac",
   "changelog": [
+    {
+      "version": "1.188",
+      "date": "2026-11-11",
+      "changes": [
+        "Nieuws: weigert nu ook adressen die via een IPv6-omweg (NAT64, 6to4) of een testnetwerk naar je eigen toestel of thuisnetwerk wijzen",
+        "Podcasts: na ontvolgen blijft er niets meer van die podcast in het geheugen hangen, ook niet als hij net aan het bijwerken was",
+        "Stamgegevens: een ID-kopie of formulier met je stamgegevens wordt alleen gemaakt terwijl Tools in beeld is"
+      ]
+    },
     {
       "version": "1.187",
       "date": "2026-11-10",
@@ -1661,5 +1670,5 @@
       ]
     }
   ],
-  "webSig2": "ey+AVBn2pMXMv2I+nLgQuGjsV1yVBJroYsgCjjkh6dZlc++VAK+mhNrN9iD0GWjj2TYvkTD9kFtnvm31/wPRFhYmYpRrCZbE83ZT9X2MyHTIdDMB/E+jkpFR7lRml8zLZnLfDn7wDNjx1GP+k8fVjMBtxHPvO2PL3qkN0v1hSSY6XI705hTgbyTjj2SRyxhc02YIb9f4q999/eMRK6LzQgwVgYloGb44MG2C5kAFBA4EalJWDnjFaLsbvbkkrr83Bw7FQ0zgR8J+kqTaf5tAByfeZk7sru+pIKNAqPulcWZo4DHfrzN9I0824FhOdCXpFV5jPHX1AWCYkc8Hn44dDTHzzwuYAw+QLt5qSSoqwhCRpMVjscKJ+pbGiu+wTd81Pa68XqaId7HRTs5z8ffnH0BEEH27k/r/t9yEMXk45wcD+zkErlkrvj1ltO/l8cbTPzoBPu8vh5yY1ur33QfW26w+r9ye+OpwCLBs+jhRWN1ZF/gs3+I7sL+HL4DvQzhy"
+  "webSig2": "TQdYYYC4lDL2ivE2XdOdnBJakxTtyPm2MVimqEBYcKENn02tG0e35qrLBgexbXi7w+t/2aXwp5SyNnECcVUufA289tpN1BZi0RV/vjhFxL7zjw0EKKngjzWAZfB5A31zkUB/k018nWWuZAakVAU/FVkyGZ1eQqxx0oxBmcLxxxW+3fdtr8hfZriXN4hPctRs+xIpUNgTYQurS3imvhiyBtw+lrjexxzDpOEEiQfSwl7jfRkf9hUWnAaUNlp0/TbxC0abn4/gj2EdOiF4V73w1B5nCJFvX5Gc7lMEVB+luodBjAwVnN7dwR2OomBgsIaVArF2qUflQ2ij2ibtux096cp2uSSKCRsi7AjbnkQ7VVqw3en/kkNPQsqf+OFSH8uzZ66qhg1YPDkqtswjJHGE+zbi4iRQ419cWKnPx6ihJvpN7X3qtiLIpDT9tc9nizuqkjL07IDU6+LtgqOe6FzxrdgUL2FBJgCEAUygW4qWv8FkbpGJ5a6cFPijf13epMW6"
 }

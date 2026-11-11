@@ -1,3 +1,0 @@
-Nieuws: weigert nu ook adressen die via een IPv6-omweg (NAT64, 6to4) of een testnetwerk naar je eigen toestel of thuisnetwerk wijzen
-Podcasts: na ontvolgen blijft er niets meer van die podcast in het geheugen hangen, ook niet als hij net aan het bijwerken was
-Stamgegevens: een ID-kopie of formulier met je stamgegevens wordt alleen gemaakt terwijl Tools in beeld is
