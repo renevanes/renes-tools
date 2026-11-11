@@ -263,15 +263,41 @@ final class Podcasts {
         saveSubs(c, a);
     }
 
-    static synchronized void unsubscribe(Context c, String id) throws Exception {
-        JSONArray a = subs(c), out = new JSONArray();
-        for (int i = 0; i < a.length(); i++) if (!id.equals(a.optJSONObject(i).optString("id"))) out.put(a.get(i));
-        saveSubs(c, out);
+    // Niet synchronized: vergeten neemt het slot van de feed, en fetch houdt dat slot vast terwijl hij updateSub (klasseslot) aanroept.
+    static void unsubscribe(Context c, String id) throws Exception {
+        synchronized (Podcasts.class) {
+            JSONArray a = subs(c), out = new JSONArray();
+            for (int i = 0; i < a.length(); i++) if (!id.equals(a.optJSONObject(i).optString("id"))) out.put(a.get(i));
+            saveSubs(c, out);
+        }
         forgetFetched(id);
     }
 
-    /** Niet meer gevolgd: wat fetch over deze feed onthield, hoeft niet in het geheugen te blijven. */
-    static void forgetFetched(String id) { if (id != null) { WRITTEN.remove(id); FETCHED.remove(id); } }
+    /**
+     * Niet meer gevolgd: wat fetch over deze feed onthield, hoeft niet in het geheugen te blijven. Onder het slot van de feed,
+     * zodat een fetch die tegelijk loopt het daarna niet weer terugzet.
+     */
+    static void forgetFetched(String id) {
+        if (id == null) return;
+        Object lock = FEED_LOCKS.get(id);
+        if (lock == null) { WRITTEN.remove(id); FETCHED.remove(id); return; }
+        synchronized (lock) { WRITTEN.remove(id); FETCHED.remove(id); }
+    }
+
+    /**
+     * Alleen onthouden voor gevolgde feeds (zoals LATEST.retain): feeds die alleen bekeken zijn, gaan weer uit het geheugen,
+     * behalve zolang ze net (binnen het half uur van feed) zonder wijziging opgehaald zijn; anders haalt het scherm ze meteen opnieuw.
+     */
+    static void retainFetched(java.util.Set<String> ids, long now) {
+        java.util.Set<String> keys = new java.util.HashSet<>(WRITTEN.keySet());
+        keys.addAll(FETCHED.keySet());
+        for (String id : keys) {
+            if (ids.contains(id)) continue;
+            Long t = FETCHED.get(id);
+            if (t != null && now - t < 30 * 60_000L) continue;
+            WRITTEN.remove(id); FETCHED.remove(id);
+        }
+    }
     static boolean remembersFetch(String id) { return WRITTEN.containsKey(id) || FETCHED.containsKey(id); }
 
     /** Na ophalen: titel, plaatje en nieuwste aflevering van het abonnement bijwerken. */
@@ -368,6 +394,7 @@ final class Podcasts {
         java.util.Set<String> ids = new java.util.HashSet<>();
         for (PodcastLatest.Sub s : subs) ids.add(s.id);
         LATEST.retain(ids); // niet meer gevolgd: uit het geheugen
+        retainFetched(ids, System.currentTimeMillis());
         JSONArray out = new JSONArray();
         for (PodcastLatest.Pick p : picks) {
             try {

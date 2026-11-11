@@ -126,6 +126,34 @@ public class PodcastLatestTest {
         Podcasts.forgetFetched(null);
         Podcasts.forgetFetched("pblijft");
 
+        // Ontvolgen terwijl een fetch van die feed loopt: vergeten wacht op het slot van de feed (anders zet fetch het terug)
+        Object slot = Podcasts.FEED_LOCKS.computeIfAbsent("pbezig", k -> new Object());
+        java.lang.reflect.Field wf = Podcasts.class.getDeclaredField("WRITTEN"); wf.setAccessible(true);
+        @SuppressWarnings("unchecked") java.util.Map<String, Object> written = (java.util.Map<String, Object>) wf.get(null);
+        final boolean[] klaar = { false };
+        Thread vergeet;
+        synchronized (slot) {
+            vergeet = new Thread(() -> { Podcasts.forgetFetched("pbezig"); synchronized (klaar) { klaar[0] = true; } });
+            vergeet.start();
+            Thread.sleep(150);
+            synchronized (klaar) { check(!klaar[0], "vergeten wacht tot de lopende fetch klaar is"); }
+            written.put("pbezig", new Object[] { "z", 1L, 2L }); // wat de lopende fetch nog schrijft
+        }
+        vergeet.join(5000);
+        check(!Podcasts.remembersFetch("pbezig"), "na de fetch vergeten: geen blijvende ingang");
+        Podcasts.FEED_LOCKS.remove("pbezig");
+
+        // Alleen bekeken (niet gevolgd): bij het bijwerken van de nieuwste afleveringen uit het geheugen
+        java.lang.reflect.Field ff = Podcasts.class.getDeclaredField("FETCHED"); ff.setAccessible(true);
+        @SuppressWarnings("unchecked") java.util.Map<String, Long> fetched = (java.util.Map<String, Long>) ff.get(null);
+        long nu = 10_000_000_000L;
+        written.put("pgevolgd", new Object[] { "a", 1L, 2L }); written.put("pbekeken", new Object[] { "b", 1L, 2L });
+        fetched.put("pnet", nu - 60_000L); written.put("pnet", new Object[] { "c", 1L, 2L }); fetched.put("plang", nu - 31 * 60_000L);
+        Podcasts.retainFetched(new HashSet<>(Arrays.asList("pgevolgd")), nu);
+        check(Podcasts.remembersFetch("pgevolgd") && !Podcasts.remembersFetch("pbekeken") && !Podcasts.remembersFetch("plang"), "alleen gevolgde feeds onthouden");
+        check(Podcasts.remembersFetch("pnet"), "net bekeken en ongewijzigd: blijft tot het half uur om is");
+        Podcasts.forgetFetched("pgevolgd"); Podcasts.forgetFetched("pnet");
+
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("alles goed");
     }

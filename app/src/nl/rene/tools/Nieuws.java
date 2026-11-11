@@ -834,14 +834,28 @@ final class Nieuws {
     static boolean intern(InetAddress a) {
         if (a.isLoopbackAddress() || a.isSiteLocalAddress() || a.isLinkLocalAddress() || a.isAnyLocalAddress() || a.isMulticastAddress()) return true;
         byte[] b = a.getAddress();
-        if (b.length == 4) { int o = b[0] & 0xff; return o == 0 || o >= 240 || (o == 100 && (b[1] & 0xc0) == 64); }
-        if (b.length != 16) return true;
-        boolean v4 = b[10] == (byte) 0xff && b[11] == (byte) 0xff;
-        for (int i = 0; i < 10 && v4; i++) v4 = b[i] == 0;
-        if (v4) {
-            try { return intern(InetAddress.getByAddress(Arrays.copyOfRange(b, 12, 16))); } catch (Exception e) { return true; }
+        if (b.length == 4) {
+            int o = b[0] & 0xff, o2 = b[1] & 0xff;
+            // 0/8, 240/4 en hoger, 100.64/10 (provider-NAT), 198.18/15 (testnetwerken), 192.0.0/24 (IETF-protocollen)
+            return o == 0 || o >= 240 || (o == 100 && (o2 & 0xc0) == 64) || (o == 198 && (o2 & 0xfe) == 18) || (o == 192 && o2 == 0 && b[2] == 0);
         }
+        if (b.length != 16) return true;
+        // Een IPv4-adres in IPv6: ::ffff:a.b.c.d en ::a.b.c.d (eerste 10 of 12 bytes nul), 64:ff9b::a.b.c.d (NAT64)
+        boolean nul = true;
+        for (int i = 0; i < 10 && nul; i++) nul = b[i] == 0;
+        boolean v4 = nul && ((b[10] == (byte) 0xff && b[11] == (byte) 0xff) || (b[10] == 0 && b[11] == 0));
+        boolean nat64 = b[0] == 0 && b[1] == 0x64 && b[2] == (byte) 0xff && b[3] == (byte) 0x9b;
+        for (int i = 4; i < 12 && nat64; i++) nat64 = b[i] == 0;
+        if (v4 || nat64) return intern4(Arrays.copyOfRange(b, 12, 16));
+        // 64:ff9b:1::/48 (NAT64 voor eigen gebruik): niet openbaar
+        if (b[0] == 0 && b[1] == 0x64 && b[2] == (byte) 0xff && b[3] == (byte) 0x9b && b[4] == 0 && b[5] == 1) return true;
+        // 2002::/16 (6to4): het IPv4-adres staat in byte 2 t/m 5
+        if (b[0] == 0x20 && b[1] == 0x02) return intern4(Arrays.copyOfRange(b, 2, 6));
         return (b[0] & 0xfe) == 0xfc;
+    }
+
+    private static boolean intern4(byte[] v4) {
+        try { return intern(InetAddress.getByAddress(v4)); } catch (Exception e) { return true; }
     }
 
     /** Hoeveel tijd er nog is tot {@code tot}; voorbij = de site is te traag. */
