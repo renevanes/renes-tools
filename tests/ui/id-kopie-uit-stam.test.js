@@ -1,4 +1,4 @@
-// ID-kopie afschermen vanaf het scherm zelf: bij "Foto of PDF kiezen" staat "Uit Stamgegevens (mijn documenten)" bovenaan.
+// ID-kopie afschermen vanaf het scherm zelf: bij "Foto of PDF kiezen" staat "Uit Stamgegevens" bovenaan.
 // Stamgegevens gaat open (slotscherm), je kiest een identiteitsdocument met een foto (die van jezelf bovenaan) en de kopie
 // begint met die foto, net als vanaf het documentkaartje (de foto gaat niet door de interface).
 const {chromium}=require('playwright');const assert=require('node:assert/strict');const path=require('path');
@@ -20,16 +20,41 @@ for(const colorScheme of ['light','dark']){
   await p.waitForFunction(()=>current==='idcopy');
   await p.click('#id-pick');await p.waitForSelector('#sheet.on');
   const keuzes=await p.$$eval('#sheet-acts button',x=>x.map(e=>e.textContent));
-  assert.equal(keuzes[0],'Uit Stamgegevens (mijn documenten)','Stamgegevens bovenaan');assert.ok(keuzes.includes('Bestand op de telefoon'));
-  await p.click('#sheet-acts >> text=Uit Stamgegevens (mijn documenten)');
+  assert.equal(keuzes[0],'Uit Stamgegevens','Stamgegevens bovenaan');assert.ok(keuzes.includes('Bestand op de telefoon'));
+  await p.click('#sheet-acts >> text=Uit Stamgegevens');
   await p.waitForFunction(()=>tsZichtbaar()&&ts.tool==='masterdata'&&!$('#ts-open').disabled);await p.click('#ts-open');
   await p.waitForFunction(()=>$('#sheet').classList.contains('on')&&$('#sheet-title').textContent==='Welk document?');
   assert.deepEqual(await p.$$eval('#sheet-acts button',x=>x.map(e=>e.textContent)),['Paspoort Rene','Paspoort Anna'],'alleen met foto, eigen documenten eerst');
+  assert.equal(await p.$$eval('#sheet-acts button',x=>x.every(e=>e.getAttribute('translate')==='no')),true,'namen zijn gegevens');
+  // Sluiten zonder keuze: terug naar ID-kopie
+  await p.keyboard.press('Escape');await p.waitForFunction(()=>current==='idcopy');
+  // Opnieuw (Stamgegevens is nu open): meteen het menu
+  await p.click('#id-pick');await p.click('#sheet-acts >> text=Uit Stamgegevens');
+  if(await p.evaluate(()=>tsZichtbaar()))await p.click('#ts-open');
+  await p.waitForFunction(()=>$('#sheet').classList.contains('on')&&$('#sheet-title').textContent==='Welk document?');
   await p.click('#sheet-acts >> text=Paspoort Rene');
   await p.waitForFunction(()=>current==='idcopy'&&idc.pages.length===1&&!idc.loading&&!idc.busy);
   assert.equal(await p.textContent('#id-bron-naam'),'Paspoort Rene');
   assert.equal(await p.evaluate(()=>Android._idc.master),true,'foto kwam uit Stamgegevens (niet via de interface)');
   assert.equal(await p.evaluate(()=>idc.pages[0].rects.length),5,'voorstel voor een paspoort');
+  // Er staat al een pagina: dan niet aangeboden (dat zou het werk wissen)
+  await p.click('#id-pick');assert.equal(await p.isVisible('#sheet-acts >> text=Uit Stamgegevens'),false);await p.evaluate(()=>closeSheet());
+  await p.close();
+}
+// Zonder Extra ontgrendelen voor Stamgegevens, in het Engels, en zonder document met foto: een melding en terug
+{
+  const p=await b.newPage({viewport:{width:390,height:844}});p.on('pageerror',e=>errors.push(e.message));
+  await p.addInitScript(()=>{window.__testEigenUit=['masterdata'];});
+  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);
+  await p.evaluate(()=>{Android._cm.records=[{id:'00000000-0000-0000-0000-000000000001',type:'persoon',label:'Rene',revision:1,fields:{naam:'Van Es'}}];
+    window.__toasts=[];const tt=toast;window.toast=(m,...r)=>{__toasts.push(m);return tt(m,...r);};show('idcopy');});
+  await p.click('#id-pick');await p.click('#sheet-acts >> text=Uit Stamgegevens');
+  if(await p.evaluate(()=>tsZichtbaar()))await p.click('#ts-open');
+  await p.waitForFunction(()=>current==='idcopy'&&__toasts.length>0);
+  assert.match(await p.evaluate(()=>__toasts[0]),/Voeg eerst een foto toe/);
+  // Play: niet aangeboden
+  await p.evaluate(()=>{window.isPlay=()=>true;});await p.click('#id-pick');
+  assert.equal(await p.isVisible('#sheet-acts >> text=Uit Stamgegevens'),false);
   await p.close();
 }
 console.log('errors',errors);await b.close();assert.deepEqual(errors,[]);})().catch(e=>{console.error(e);process.exit(1);});

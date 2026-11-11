@@ -17,7 +17,8 @@ function idCopyLeave(){
   ['id-recipient','id-purpose','id-date'].forEach(id=>$('#'+id).value=''); $('#id-result').hidden=true; $('#id-status').textContent='';
 }
 function idCopyChoose(){ if(idc.busy||idc.loading)return; bronKies({ titel: t('Foto of PDF kiezen'), soort: 'pdfbeeld', kiezer: 'idkopie', bestand: idCopyKiezer,
-  voor: idCopyStamKan() ? [[t('Uit Stamgegevens (mijn documenten)'), idCopyUitStam, 'user']] : [] }); }
+  // Uit Stamgegevens begint een nieuwe kopie (via Stamgegevens terug naar dit scherm): alleen als er nog niets staat
+  voor: idCopyStamKan() && !idc.pages.length ? [[t('Uit Stamgegevens'), idCopyUitStam, 'user']] : [] }); }
 function idCopyKiezer(){ if(idc.busy||idc.loading)return; if(!$('#id-date').value)$('#id-date').value=rgToday(); idc.busy=true; $('#id-status').textContent=t('Bestand kiezen…'); idCopyControls(); Android.idCopyPick(); }
 window.onIdCopyPicked=function(r){
   if(current!=='idcopy'||r.session!==idc.session)return; idc.busy=false;
@@ -122,18 +123,22 @@ function idCopyVanStam(bron){ idc.stamKlaar=bron; show('idcopy'); }
 /* Vanaf ID-kopie zelf: een identiteitsdocument uit Stamgegevens kiezen (eerst Stamgegevens open, met het slotscherm als dat
  * aan staat). Alleen documenten met een foto; die van jezelf bovenaan. Daarna dezelfde weg als vanaf het documentkaartje. */
 function idCopyStamKan(){ return !isPlay()&&typeof cmOpen==='function'&&(typeof soloOk!=='function'||soloOk('masterdata')); }
-function idCopyUitStam(){ if(!idCopyStamKan())return; idc.stamKiezen=Date.now(); show('masterdata'); tsDaarna('masterdata',()=>idCopyStamWacht()); }
+function idCopyUitStam(){ if(!idCopyStamKan())return; idc.stamKiezen=0; jumpTo('masterdata'); tsDaarna('masterdata',()=>{idc.stamKiezen=Date.now();idCopyStamWacht();}); }
+function idCopyStamTerug(){ idc.stamKiezen=0; if(current==='masterdata')goBack(); }
 function idCopyStamWacht(){
   const begin=idc.stamKiezen; if(!begin||current!=='masterdata'){idc.stamKiezen=0;return;}
-  if(!(cmOpen()&&cm.recordsReady)){ if(Date.now()-begin<120000)setTimeout(idCopyStamWacht,150); else idc.stamKiezen=0; return; }
+  if(!(cmOpen()&&cm.recordsReady)){ if(Date.now()-begin<30000)setTimeout(idCopyStamWacht,200); else idc.stamKiezen=0; return; }
   idc.stamKiezen=0;
-  const me=typeof cmkMe==='function'?cmkMe():'',docs=cm.records.filter(r=>r.type==='identiteit'&&(r.fotos||0)>0)
-    .sort((a,b)=>((b.person===me)-(a.person===me))||String(a.label).localeCompare(String(b.label)));
-  if(!docs.length){toast(t('Nog geen identiteitsdocument met een foto in Stamgegevens. Voeg eerst een foto toe.'));return;}
-  openSheet(t('Welk document?'),t('De foto\'s blijven in Stamgegevens; de app maakt er een afgeschermde kopie van.'),docs.map(r=>[r.label,()=>idCopyStamMaak(r),'shield']));
+  const me=typeof cmkMe==='function'?cmkMe():'',mijn=r=>!!me&&r.person===me,naam=id=>(cm.records.find(x=>x.id===id)||{}).label||'';
+  const docs=cm.records.filter(r=>r.type==='identiteit'&&(r.fotos||0)>0).sort((a,b)=>(mijn(b)-mijn(a))||String(a.label).localeCompare(String(b.label)));
+  if(!docs.length){toast(t('Nog geen identiteitsdocument met een foto in Stamgegevens. Voeg eerst een foto toe.'));idCopyStamTerug();return;}
+  // Sluiten zonder keuze (ook bij vergrendelen) = terug naar ID-kopie
+  openSheet(t('Welk document?'),t('De foto\'s blijven in Stamgegevens; de app maakt er een afgeschermde kopie van.'),
+    docs.map(r=>[r.person&&!r.label.includes(naam(r.person))&&naam(r.person)?t('{document} · {persoon}',{document:r.label,persoon:naam(r.person)}):r.label,()=>idCopyStamMaak(r),'shield']),idCopyStamTerug);
+  document.querySelectorAll('#sheet-acts button').forEach(b=>b.setAttribute('translate','no')); // namen van documenten zijn gegevens
 }
 function idCopyStamMaak(r){
-  if(!cmOpen()||cm.mutating)return;
+  if(!cmOpen()||cm.mutating){idCopyStamTerug();return;}
   cmRequest('masterIdCopySource',[r.id,r.revision],out=>idCopyVanStam({doc:r.id,soort:out.soort||r.soort||'',sides:out.sides||'',label:r.label}));
 }
 function idCopyStamHalen(){
