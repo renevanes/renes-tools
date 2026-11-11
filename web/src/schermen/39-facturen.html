@@ -354,7 +354,7 @@
     <h1 tabindex="-1">Dossier</h1>
   </div>
   <main>
-    <input class="aein" id="fd-zoek" type="search" placeholder="Zoeken op leverancier, nummer, bedrag of notitie" aria-label="Zoeken in het dossier" oninput="fdRender()" autocomplete="off">
+    <input class="aein" id="fd-zoek" type="search" placeholder="Zoeken op leverancier, nummer, bedrag of notitie" aria-label="Zoeken in het dossier" oninput="uiStraks('fd', fdRender)" autocomplete="off">
     <div class="row" style="gap:8px;margin:8px 0 0">
       <select class="sel" id="fd-lev" style="flex:1;min-width:0" onchange="fdRender()" aria-label="Leverancier"></select>
       <select class="sel" id="fd-filter" style="flex:1;min-width:0" onchange="fdRender()" aria-label="Filter"><option value="">Alle facturen</option><option value="open">Nog niet aangeleverd</option><option value="mis">Aanleveren mislukt</option><option value="tebetalen">Betaaldatum nog niet verstreken</option><option value="telaat">Over de betaaldatum</option></select>

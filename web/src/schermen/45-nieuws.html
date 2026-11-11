@@ -15,7 +15,7 @@
     </div>
     <div class="nw-zoek">
       <select class="sel" id="nw-bron" aria-label="Bron" onchange="nwRender()"></select>
-      <input class="search" id="nw-zoek" type="search" placeholder="Zoek in het nieuws" aria-label="Zoek in het nieuws" oninput="nwRender()">
+      <input class="search" id="nw-zoek" type="search" placeholder="Zoek in het nieuws" aria-label="Zoek in het nieuws" oninput="uiStraks('nw', nwRender)">
     </div>
     <div id="nw-lijst"></div>
   </main>

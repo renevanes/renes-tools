@@ -61,7 +61,8 @@ function carRender(){
 }
 function carShowMap(p){
   const el = $('#car-map');
-  if (!p || p.lat == null || typeof L === 'undefined') { el.style.display = 'none'; return; }
+  if (!p || p.lat == null) { el.style.display = 'none'; return; }
+  if (typeof L === 'undefined') { kaartLib(() => carShowMap(p)); return; }
   el.style.display = 'block';
   try {
     if (!carMap) {

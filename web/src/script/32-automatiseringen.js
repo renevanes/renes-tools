@@ -280,7 +280,7 @@ function aeEditStep(i){
 /* Kaart om de plek te kiezen (Leaflet + OpenStreetMap, zoals bij Mijn routes). */
 function aeMapInit(){
   if (current !== 'autoed' || !aeNeedsPlace()) return;
-  if (typeof L === 'undefined') { $('#ae-map').style.display = 'none'; return; }
+  if (typeof L === 'undefined') { kaartLib(() => aeMapInit()); return; }
   const p = aePlace();
   try {
     if (!aeMap) {

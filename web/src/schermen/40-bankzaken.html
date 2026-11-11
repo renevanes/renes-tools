@@ -62,7 +62,7 @@
 
       <div role="tabpanel" id="bk-p-boekingen" aria-labelledby="bk-tab-boekingen" hidden>
         <div class="card">
-          <input class="search" id="bk-zoek" type="search" aria-label="Zoek in boekingen" placeholder="Zoek op naam, omschrijving of bedrag…" oninput="bkLijstRender()" autocomplete="off" spellcheck="false">
+          <input class="search" id="bk-zoek" type="search" aria-label="Zoek in boekingen" placeholder="Zoek op naam, omschrijving of bedrag…" oninput="uiStraks('bk', bkLijstRender)" autocomplete="off" spellcheck="false">
           <div class="row bk-filterrij">
             <label class="f" for="bk-cat">Categorie</label><select class="sel" id="bk-cat" onchange="bkLijstRender()"></select>
           </div>

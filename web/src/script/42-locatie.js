@@ -31,7 +31,8 @@ function lcRender(){
 window.onLocChanged = function(){ if (current === 'loc') lcRender(); if (current === 'home') refreshLocTile(); };
 
 function lcMapInit(){
-  if (typeof L === 'undefined' || current !== 'loc') return;
+  if (current !== 'loc') return;
+  if (typeof L === 'undefined') { kaartLib(() => lcMapInit()); return; }
   if (!lcMap) {
     lcMap = L.map('lc-map', { attributionControl: true, zoomControl: true });
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(lcMap);

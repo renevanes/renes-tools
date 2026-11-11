@@ -25,14 +25,33 @@ final class FacturenDossier {
 
     private static void check(String t) throws Exception { JSONObject o = new JSONObject(t); if (o.length() > 0 && o.optJSONObject("items") == null) throw new Exception("onleesbaar"); }
 
+    /** Het geparste dossier, zolang lengte en wijzigingstijd van het bestand gelijk blijven. */
+    private static final class Geheugen {
+        final String pad;
+        final long len, mt;
+        final JSONObject items;
+        Geheugen(File f, JSONObject items) { pad = f.getAbsolutePath(); len = f.length(); mt = f.lastModified(); this.items = items; }
+        boolean past(File f) { return f.isFile() && pad.equals(f.getAbsolutePath()) && len == f.length() && mt == f.lastModified(); }
+    }
+
+    private static volatile Geheugen geheugen;
+
+    static JSONObject leesBestand(File f) throws Exception {
+        Geheugen g = geheugen;
+        if (g != null && g.past(f)) return g.items;
+        JSONObject o = new JSONObject(JsonFileStore.read(f, FacturenDossier::check)).optJSONObject("items");
+        if (o == null) o = new JSONObject();
+        if (f.isFile()) geheugen = new Geheugen(f, o);
+        return o;
+    }
+
     /** Alle stukken: {sha: stuk}. Bij de eerste keer worden de al opgehaalde facturen overgenomen. */
     static JSONObject alle(Context c) {
         synchronized (Facturen.LOCK) {
             try {
                 File f = file(c);
                 if (!JsonFileStore.exists(f)) { JSONObject o = overnemen(c); bewaar(c, o); return o; }
-                JSONObject o = new JSONObject(JsonFileStore.read(f, FacturenDossier::check)).optJSONObject("items");
-                return o == null ? new JSONObject() : o;
+                return leesBestand(f);
             } catch (Exception e) { return new JSONObject(); }
         }
     }
@@ -42,14 +61,16 @@ final class FacturenDossier {
         synchronized (Facturen.LOCK) {
             File f = file(c);
             if (!JsonFileStore.exists(f)) return true;
-            try { JsonFileStore.read(f, FacturenDossier::check); return true; } catch (Exception e) { return false; }
+            try { leesBestand(f); return true; } catch (Exception e) { return false; }
         }
     }
 
     static void bewaar(Context c, JSONObject items) throws Exception {
         synchronized (Facturen.LOCK) {
             if (!leesbaar(c)) throw new Exception("Het dossier is onleesbaar; er is niets veranderd");
-            JsonFileStore.write(file(c), new JSONObject().put("items", items).toString(), FacturenDossier::check);
+            File f = file(c);
+            JsonFileStore.write(f, new JSONObject().put("items", items).toString(), FacturenDossier::check);
+            if (f.isFile() && items != null) geheugen = new Geheugen(f, items);
         }
     }
 

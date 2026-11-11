@@ -1,13 +1,15 @@
 /* ---------- start ---------- */
 $('#hver').textContent = '(v' + ver().webName + ')';
 bars(); // wisselt het thema (ook de telefoon bij Systeem), dan roept 02-thema.js bars() opnieuw aan
-refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); refreshPodTile();
 const po = SOLO || Android.pendingOpen(); if (po) openTool(po); // losse app: meteen de eigen tool
 // Nieuwe installatie: eerst aanbieden om je gegevens terug te zetten; net teruggezet: het lijstje van wat opnieuw moet
 if (!SOLO && po !== 'herstel') { const hs = hsState(); if (hs.pending || hs.after) show('herstel'); }
 if (!SOLO && stJson(Android.lockState()).locked) showLock();
 // Pas nu mag de app zichtbaar worden (met app-slot staat het slotscherm er dan al; geen flits van het startscherm)
 setTimeout(() => { try { if (typeof Android.uiReady === 'function') Android.uiReady(); } catch(e){} }, 0); // (geen requestAnimationFrame: die loopt niet in een verborgen WebView)
+// Tegels ná het tonen, zodat het scherm er al is. De testpagina (file:) vult ze meteen: die tests lezen de tegel direct.
+const tegels = () => { try { refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); refreshPodTile(); } catch (e) {} };
+if (location.protocol === 'file:') tegels(); else setTimeout(tegels, 0);
 (function(){
   const owc = window.onWaChanged;
   window.onWaChanged = function(){ if (owc) owc(); if (stOn()) enterSettings(); if (bkOn()) enterBackup(); if (current === 'spotify') spRender(); if(current==='sms')enterSms(); };

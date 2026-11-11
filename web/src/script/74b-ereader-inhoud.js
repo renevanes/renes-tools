@@ -91,7 +91,7 @@ function erLinkButton(){$('#er-link-back').hidden=!erLinks.length;}
 function erFollow(target){
   if(!erBook)return;
   if(Number.isInteger(target.chapter)){
-    const previous=erLocation();if(erChapter(target.chapter,target.start||0)){erLinks.push(previous);if(erLinks.length>50)erLinks.shift();erLinkButton();erFragment(target.fragment,target.start);}
+    const previous=erLocation();erChapter(target.chapter,target.start||0,ok=>{if(!ok)return;erLinks.push(previous);if(erLinks.length>50)erLinks.shift();erLinkButton();erFragment(target.fragment,target.start);});
   }else if(Number.isInteger(target.asset)){
     const image=[...erImages.values()].find(e=>e.asset===target.asset&&e.loaded);if(image)erImageOpen(image.img.src,image.img.alt);
     else toast(t('Open de afbeelding bij de tekst om deze te vergroten'));
@@ -110,7 +110,7 @@ function erPlaceFragment(){
   erPendingLocation=null;if(!erText.length||erAnchor()<0)erPendingLocation={chapter:erIndex,anchor:-1,offset:erOffset()};
   erCurrentAnchor=erPendingLocation?erPendingLocation.anchor:erAnchor();erCurrentOffset=erOffset();return true;
 }
-function erLinkBack(){const p=erLinks.pop();if(!p)return false;if(!erChapter(p.chapter,p.anchor>=0?p.anchor:undefined)){erLinks.push(p);return false;}erRestoreLocation(p);erSave();erProgress();erLinkButton();return true;}
+function erLinkBack(){const p=erLinks.pop();if(!p)return false;let okUit=false;erChapter(p.chapter,p.anchor>=0?p.anchor:undefined,ok=>{if(!ok){erLinks.push(p);return;}erRestoreLocation(p);erSave();erProgress();erLinkButton();okUit=true;});return okUit;}
 function erBoundary(node,offset,end){
   const known=erNodes.find(n=>n.node===node);if(known)return Math.max(known.start,Math.min(known.end,known.start+offset));
   const point=document.createRange();point.setStart(node,offset);point.collapse(true);

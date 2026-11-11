@@ -2,6 +2,7 @@ package nl.rene.tools;
 
 import org.json.JSONObject;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -117,6 +118,24 @@ public class ToilettenSamenTest {
         check(eigenErin, "eigen toevoeging komt in de lijst");
         JSONObject kort = ToilettenSamen.kort(aang, 12.4);
         check(kort.getString("e").equals("aangepast") && kort.getLong("d") == 12 && kort.getJSONArray("b").length() == 2, "korte vorm voor de lijst");
+
+        File tmp = File.createTempFile("wc-index", ".json");
+        try {
+            ToilettenSamen.schrijf(tmp, "s1", ie);
+            ToilettenSamen.Index terug = ToilettenSamen.leesAls(tmp, "s1");
+            check(terug != null && ToilettenSamen.leesAls(tmp, "ander") == null, "index van schijf alleen bij dezelfde stempel");
+            check(terug != null && terug.opSleutel.keySet().equals(ie.opSleutel.keySet()), "teruggelezen index: dezelfde sleutels");
+            ToilettenSamen.Punt na = terug == null ? null : terug.opSleutel.get("osm-nl:n1");
+            check(na != null && na.notitie.equals("code 1234") && na.n.equals("Markt (gratis na 18:00)"), "bewerking blijft in de bewaarde index");
+            check(terug != null && terug.afgewezen.size() == ie.afgewezen.size(), "afgewezen plekken blijven in de bewaarde index");
+            List<ToilettenSamen.Treffer> zt = ToilettenSamen.zoek(terug, la, lo, geen, 25, 50_000);
+            java.util.Set<String> ka = new java.util.HashSet<>(), kb = new java.util.HashSet<>();
+            for (ToilettenSamen.Treffer t : ze) ka.add(t.p.keys.isEmpty() ? t.p.k : t.p.keys.get(0));
+            for (ToilettenSamen.Treffer t : zt) kb.add(t.p.keys.isEmpty() ? t.p.k : t.p.keys.get(0));
+            check(zt.size() == ze.size() && ka.equals(kb), "teruggelezen index zoekt dezelfde plekken (" + zt.size() + ")");
+            Contacts.writeText(tmp, "geen json", false);
+            check(ToilettenSamen.leesAls(tmp, "s1") == null, "kapotte index wordt genegeerd");
+        } finally { tmp.delete(); }
 
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }
     }

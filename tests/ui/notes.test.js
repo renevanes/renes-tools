@@ -20,13 +20,13 @@ const assert = require('node:assert/strict');
   assert.equal(await pg.locator('#note-done li').count(), 1);
   await pg.click('#s-note .back'); await pg.waitForTimeout(200);
   await pg.screenshot({ path: __dirname + '/shots/n-list-'+scheme+'.png' });
-  await pg.fill('#notes-search', 'fiets'); await pg.waitForTimeout(100);
+  await pg.fill('#notes-search', 'fiets'); await pg.waitForTimeout(400);
   console.log('search', await pg.$$eval('#notes-list .nrow', x=>x.map(e=>e.innerText.replace(/\n/g,' | '))));
   assert.equal(await pg.locator('#notes-list .nrow').count(), 1);
   assert.match(await pg.textContent('#notes-list'), /Fiets/i);
   await pg.screenshot({ path: __dirname + '/shots/n-search-'+scheme+'.png' });
   // empty note gets discarded
-  await pg.fill('#notes-search', ''); await pg.click('#s-notes .fab:not(.fab2)'); await pg.click('#s-note .back'); await pg.waitForTimeout(100);
+  await pg.fill('#notes-search', ''); await pg.waitForTimeout(400); await pg.click('#s-notes .fab:not(.fab2)'); await pg.click('#s-note .back'); await pg.waitForTimeout(100);
   const saved = JSON.parse(await pg.evaluate(() => Android._notes));
   console.log('saved notes', saved.length, saved.map(n=>n.title+':'+n.items.length));
   assert.equal(saved.length, 2, 'Een lege nieuwe notitie wordt niet bewaard');

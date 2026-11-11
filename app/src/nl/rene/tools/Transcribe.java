@@ -639,24 +639,92 @@ final class Transcribe {
 
     static String searchJson(Context c, String q) throws Exception {
         String needle = q == null ? "" : q.trim().toLowerCase(Locale.ROOT);
+        JSONArray out = needle.length() < 2 ? new JSONArray()
+                : zoekTranscripten(transcriptDir(c), new File(c.getCacheDir(), "transcript-zoek.json"), needle);
+        return new JSONObject().put("results", out).toString();
+    }
+
+    /** Zoeklijst in de cache: de eerste zoekactie leest elk transcript, de volgende alleen deze lijst tot een bestand wijzigt. */
+    static JSONArray zoekTranscripten(File dir, File index, String needle) throws Exception {
+        JSONArray leeg = new JSONArray();
+        if (needle == null || needle.trim().length() < 2) return leeg;
+        needle = needle.trim().toLowerCase(Locale.ROOT);
+        String stempel = stempelBestanden(dir, ".json");
+        File stempelBestand = new File(index.getPath() + ".stempel");
+        JSONArray bron = leesZoekIndex(index, stempelBestand, stempel);
+        if (bron == null) {
+            bron = new JSONArray();
+            File[] ts = dir == null ? null : dir.listFiles();
+            if (ts != null) for (File tf : ts) {
+                if (!tf.isFile() || !tf.getName().endsWith(".json")) continue;
+                try {
+                    JSONObject t = new JSONObject(Contacts.readText(tf, false));
+                    JSONArray segs = t.optJSONArray("segments"), klein = new JSONArray();
+                    if (segs != null) for (int i = 0; i < segs.length(); i++) {
+                        JSONObject s = segs.optJSONObject(i);
+                        if (s == null) continue;
+                        klein.put(new JSONObject().put("f", s.optLong("from")).put("t", s.optString("text")));
+                    }
+                    bron.put(new JSONObject().put("id", t.optString("id")).put("name", t.optString("name"))
+                            .put("file", t.optString("file")).put("mtime", t.optLong("mtime")).put("segs", klein));
+                } catch (Throwable ignored) { }
+            }
+            schrijfZoekIndex(index, stempelBestand, stempel, bron);
+        }
         JSONArray out = new JSONArray();
-        File[] ts = transcriptDir(c).listFiles();
-        if (ts != null && needle.length() >= 2) for (File tf : ts) {
-            if (!tf.getName().endsWith(".json")) continue;
-            JSONObject t = loadTranscript(c, tf.getName().replace(".json", ""));
+        for (int n = 0; n < bron.length() && out.length() < 300; n++) {
+            JSONObject t = bron.optJSONObject(n);
             if (t == null) continue;
-            JSONArray segs = t.optJSONArray("segments");
+            JSONArray segs = t.optJSONArray("segs");
             boolean nameHit = t.optString("name").toLowerCase(Locale.ROOT).contains(needle);
-            if (segs != null) for (int i = 0; i < segs.length() && out.length() < 300; i++) {
-                JSONObject s = segs.getJSONObject(i);
+            String naam = t.optString("name");
+            if (naam.isEmpty()) naam = t.optString("file");
+            if (segs == null) continue;
+            for (int i = 0; i < segs.length() && out.length() < 300; i++) {
+                JSONObject s = segs.optJSONObject(i);
+                if (s == null) continue;
                 if (nameHit && i > 0) break;
-                if (nameHit || s.optString("text").toLowerCase(Locale.ROOT).contains(needle)) {
-                    out.put(new JSONObject().put("id", t.optString("id")).put("name", t.optString("name", t.optString("file")))
-                            .put("mtime", t.optLong("mtime")).put("from", s.optLong("from")).put("text", s.optString("text")));
-                }
+                String text = s.optString("t");
+                if (nameHit || text.toLowerCase(Locale.ROOT).contains(needle))
+                    out.put(new JSONObject().put("id", t.optString("id")).put("name", naam).put("mtime", t.optLong("mtime")).put("from", s.optLong("f")).put("text", text));
             }
         }
-        return new JSONObject().put("results", out).toString();
+        return out;
+    }
+
+    static String stempelBestanden(File dir, String einde) {
+        File[] ts = dir == null || !dir.isDirectory() ? null : dir.listFiles();
+        long n = 0, len = 0, mt = 0;
+        int h = 1;
+        if (ts != null) {
+            java.util.Arrays.sort(ts, (a, b) -> a.getName().compareTo(b.getName()));
+            for (File f : ts) {
+                if (!f.isFile() || (einde != null && !f.getName().endsWith(einde))) continue;
+                n++;
+                len += f.length();
+                long m = f.lastModified();
+                if (m > mt) mt = m;
+                h = h * 31 + f.getName().hashCode();
+            }
+        }
+        return n + ":" + len + ":" + mt + ":" + h;
+    }
+
+    private static JSONArray leesZoekIndex(File index, File stempelBestand, String stempel) {
+        try {
+            if (!stempelBestand.isFile() || !index.isFile()) return null;
+            if (!stempel.equals(Contacts.readText(stempelBestand, false).trim())) return null;
+            return new JSONArray(Contacts.readText(index, false));
+        } catch (Throwable t) { return null; }
+    }
+
+    private static void schrijfZoekIndex(File index, File stempelBestand, String stempel, JSONArray bron) {
+        try {
+            File ouder = index.getParentFile();
+            if (ouder != null) ouder.mkdirs();
+            Contacts.writeText(index, bron.toString(), false);
+            Contacts.writeText(stempelBestand, stempel, false);
+        } catch (Throwable ignored) { }
     }
 
     static String fmtTime(long ms) {

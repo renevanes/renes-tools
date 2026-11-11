@@ -167,7 +167,9 @@ function wcRij(p){
 /* De kaart: tikken = daar zoeken, lang indrukken = plek toevoegen. Alleen als Kaart tonen aan staat. */
 function wcKaartAan(){ return store.get('wcKaart', true) !== false; }
 function wcKaartInit(){
-  const aan = wcKaartAan() && !!(wcSt && wcSt.gegevens) && typeof L !== 'undefined';
+  const wil = wcKaartAan() && !!(wcSt && wcSt.gegevens);
+  if (wil && typeof L === 'undefined') { kaartLib(() => { if (current === 'wc') wcKaartInit(); }); return; }
+  const aan = wil && typeof L !== 'undefined';
   $('#wc-kaartwrap').hidden = !aan;
   if (!aan || current !== 'wc') return;
   if (!wcMap) {

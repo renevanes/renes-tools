@@ -14,8 +14,8 @@ const assert=require('node:assert/strict');
     assert.equal(doc.category,'Identiteit');assert.equal(doc.favorite,true);assert.equal(doc.note,'Paspoort geldig tot december');assert.equal(doc.size,first.size);assert.equal(doc.mime,first.mime);
     await p.getByRole('button',{name:'＋ Document toevoegen',exact:true}).click();await (async()=>{if(await p.isVisible('#sheet.on'))await p.click('#sheet-acts >> text=Bestand op de telefoon');})();await p.waitForFunction(()=>Android._kl.docs.length===2);
     assert.equal(await p.locator('#kl-list b b').count(),0,'documentnaam blijft tekst');
-    await p.fill('#kl-search','december');assert.equal(await p.locator('#kl-list .trip').count(),1);
-    await p.fill('#kl-search','');await p.selectOption('#kl-category','category:Identiteit');assert.equal(await p.locator('#kl-list .trip').count(),1);
+    await p.fill('#kl-search','december');await p.waitForTimeout(400);assert.equal(await p.locator('#kl-list .trip').count(),1);
+    await p.fill('#kl-search','');await p.waitForTimeout(400);await p.selectOption('#kl-category','category:Identiteit');assert.equal(await p.locator('#kl-list .trip').count(),1);
     await p.selectOption('#kl-category','none');assert.equal(await p.locator('#kl-list .trip').count(),1);
     await p.selectOption('#kl-category','all');await p.check('#kl-favorites');assert.equal(await p.locator('#kl-list .trip').count(),1);
     await menu(first.id,'Naam wijzigen');await p.fill('#modal-input','Mijn paspoort.pdf');await p.click('#modal-ok');
@@ -31,7 +31,7 @@ const assert=require('node:assert/strict');
     await p.evaluate(()=>Android._kl.error='');await p.click('#kl-edit-save');assert.equal(await p.evaluate(id=>Android._kl.docs.find(d=>d.id===id).category,first.id),'Wonen');
     // Categorie en toelichting met HTML blijven veilig en zijn doorzoekbaar.
     await menu(first.id,'Categorie en toelichting');await p.fill('#kl-edit-category','<img src=x>');await p.fill('#kl-edit-note','<script>alert(1)</script>');await p.click('#kl-edit-save');
-    assert.equal(await p.locator('#kl-list img,#kl-list script').count(),0);await p.fill('#kl-search','alert');assert.equal(await p.locator('#kl-list .trip').count(),1);await p.fill('#kl-search','');
+    assert.equal(await p.locator('#kl-list img,#kl-list script').count(),0);await p.fill('#kl-search','alert');await p.waitForTimeout(400);assert.equal(await p.locator('#kl-list .trip').count(),1);await p.fill('#kl-search','');await p.waitForTimeout(400);
     // Bij verlopen sessie komt niets door en verdwijnen de gevoelige gegevens uit de bediening.
     await menu(first.id,'Categorie en toelichting');await p.fill('#kl-edit-note','Nog niet bewaard');await p.evaluate(()=>Android._kl.open=false);await p.click('#kl-edit-save');
     await p.waitForFunction(()=>tsZichtbaar()&&ts.tool==='kluis');assert.equal(await p.isVisible('#kl-open'),false);assert.equal(await p.locator('#kl-list .trip').count(),0);assert.equal(await p.inputValue('#kl-edit-note'),'');

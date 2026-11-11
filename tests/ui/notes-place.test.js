@@ -45,7 +45,7 @@ const assert=require('node:assert/strict');
     assert.equal(await p.locator('#note-move-choices [data-target="plaats-a"],#note-move-choices [data-target="plaats-b"]').count(),0);await cancel();
     await noteChildren(p);await p.click('#note-list-attach');assert.equal(await p.locator('#note-move-choices [data-target="plaats-d"]').count(),0);await cancel();
     // Overzicht en zoekresultaat tonen de relatie en openen de oorspronkelijke notitie.
-    await p.evaluate(()=>show('notes'));await p.fill('#notes-search','Boodschappen');
+    await p.evaluate(()=>show('notes'));await p.fill('#notes-search','Boodschappen');await p.waitForTimeout(400);
     assert.match(await p.textContent('#notes-list [data-note-id="plaats-b"]'),/Onder Weekend/);
     await p.click('#notes-list [data-note-id="plaats-b"]');assert.equal(await p.evaluate(()=>noteCur),'plaats-b');
     await p.getByRole('button',{name:'Bovenliggende lijst: Weekend',exact:true}).click();assert.equal(await p.evaluate(()=>noteCur),'plaats-a');
@@ -96,7 +96,7 @@ const assert=require('node:assert/strict');
     await p.click('#undo-b');assert.equal((await note('a')).parentNoteId,'plaats-d');assert.equal((await note('a')).text,'Later aangepast');
     // Onjuiste relaties in een backup verbergen geen lijsten, titels zijn veilig als tekst.
     await reset();await p.evaluate(()=>{noteById('plaats-a').parentNoteId='plaats-b';noteById('plaats-b').parentNoteId='plaats-a';noteById('plaats-c').parentNoteId='verwijderd';noteById('plaats-d').title='<img src=x onerror=alert(1)>';notesSaveNow();show('notes');});
-    await p.fill('#notes-search','');assert.equal(await p.locator('#notes-list [data-note-id^="plaats-"]').count(),4);assert.equal(await p.locator('#notes-list img').count(),0);
+    await p.fill('#notes-search','');await p.waitForTimeout(400);assert.equal(await p.locator('#notes-list [data-note-id^="plaats-"]').count(),4);assert.equal(await p.locator('#notes-list img').count(),0);
     await reset();await p.evaluate(()=>{noteById('plaats-b').parentNoteId='plaats-a';notesSaveNow();renderItems();});
     await p.evaluate(()=>{$('#undo').classList.remove('on');$('#toast').classList.remove('on');});await p.waitForTimeout(250);await p.screenshot({path:__dirname+'/shots/notes-place-'+scheme+'.png',fullPage:true});
     await p.setViewportSize({width:320,height:740});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);

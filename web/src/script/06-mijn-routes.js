@@ -73,7 +73,7 @@ function resetLiveMap(startT){
   try { const seed = JSON.parse(Android.trackLivePoints()); if (Array.isArray(seed)) recPts = seed; } catch(e){}
 }
 function updateLiveMap(s){
-  if (typeof L === 'undefined') { $('#tr-lmap').style.display = 'none'; $('#tr-map').style.display = 'block'; return; }
+  if (typeof L === 'undefined') { kaartLib(() => updateLiveMap(s)); return; }
   if (s.startT && s.startT !== recStartT) resetLiveMap(s.startT);
   $('#tr-lmap').style.display = 'block'; $('#tr-map').style.display = 'none';
   try {
@@ -149,10 +149,13 @@ function loadTrack(){
   drawMap(tdLine);
 }
 function drawMap(line){
-  const hasMap = typeof L !== 'undefined';
-  $('#td-map').style.display = hasMap ? 'block' : 'none';
-  $('#td-shape').style.display = hasMap ? 'none' : 'block';
-  if (!hasMap || !line || line.length < 1) return;
+  if (typeof L === 'undefined') {
+    if (line && line.length >= 1) { kaartLib(() => drawMap(line)); return; }
+    $('#td-map').style.display = 'none'; $('#td-shape').style.display = 'block'; return;
+  }
+  $('#td-map').style.display = 'block';
+  $('#td-shape').style.display = 'none';
+  if (!line || line.length < 1) return;
   try {
     if (!lmap) {
       lmap = L.map('td-map', { attributionControl: true, zoomControl: true });

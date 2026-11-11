@@ -9,7 +9,7 @@
       <div class="card">
         <h2>Mijn documenten</h2>
         <p class="hint">Documenten zoals een kopie van je paspoort of polissen, versleuteld op deze telefoon.</p>
-        <input class="search" id="kl-search" type="search" aria-label="Zoek documenten" placeholder="Zoek op naam, categorie of toelichting…" oninput="klRender()">
+        <input class="search" id="kl-search" type="search" aria-label="Zoek documenten" placeholder="Zoek op naam, categorie of toelichting…" oninput="uiStraks('kl', klRender)">
         <label class="f" for="kl-category">Categorie</label><select class="sel" id="kl-category" onchange="klRender()"><option value="all">Alle categorieën</option></select>
         <div class="row kl-filters"><label class="chk"><input type="checkbox" id="kl-favorites" onchange="klRender()"> Alleen favorieten</label><label for="kl-sort">Sorteren</label><select class="sel" id="kl-sort" onchange="klRender()"><option value="recent">Nieuwste eerst</option><option value="name">Naam A–Z</option><option value="category">Categorie</option></select></div>
         <p class="note" id="kl-count" role="status"></p>

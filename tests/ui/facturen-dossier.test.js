@@ -24,9 +24,9 @@ const { chromium } = require('playwright');
     await pg.click('#s-facturen button:has-text("Dossier")'); await pg.waitForTimeout(150);
     ok((await pg.$$('#fd-lijst tr.fd-rij')).length === 2, 'twee facturen in het dossier');
     ok((await tekst('#fd-tel')).includes('€ 93,47'), 'som van de bedragen');
-    await pg.fill('#fd-zoek', '48,37'); await pg.waitForTimeout(80);
+    await pg.fill('#fd-zoek', '48,37'); await pg.waitForTimeout(400);
     ok((await pg.$$('#fd-lijst tr.fd-rij')).length === 1, 'zoeken op bedrag');
-    await pg.fill('#fd-zoek', ''); await pg.waitForTimeout(80);
+    await pg.fill('#fd-zoek', ''); await pg.waitForTimeout(400);
     // Tabel: standaardkolommen, sorteren, kolommen kiezen, groeperen, filter op betaaldatum
     const koppen = () => pg.$$eval('#fd-lijst thead th', t => t.map(x => x.textContent.replace(/[↑↓]/g, '').trim()));
     ok(JSON.stringify(await koppen()) === JSON.stringify(['Factuurdatum', 'Leverancier', 'Bedrag', 'Uiterste betaaldatum', 'Aangeleverd']), 'standaardkolommen');

@@ -5,6 +5,7 @@ import android.content.Context;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -249,12 +250,105 @@ final class ToilettenSamen {
 
     // ================= met Android =================
 
+    /** Samengevoegde lijst als JSON, zodat een volgende start niet opnieuw alles inleest. */
+    static JSONObject pakIn(Index ix) throws Exception {
+        JSONArray punten = new JSONArray();
+        for (Punt p : ix.punten) {
+            JSONObject x = new JSONObject().put("k", p.k == null ? "" : p.k).put("la", p.la).put("lo", p.lo).put("s", p.s == null ? "" : p.s).put("f", p.f);
+            if (p.n != null && !p.n.isEmpty()) x.put("n", p.n);
+            if (p.u != null && !p.u.isEmpty()) x.put("u", p.u);
+            if (!p.notitie.isEmpty()) x.put("notitie", p.notitie);
+            if (!p.eigen.isEmpty()) x.put("eigen", p.eigen);
+            if (!p.inBron.isEmpty()) x.put("inBron", p.inBron);
+            if (!p.wijzigSleutel.isEmpty()) x.put("wijzig", p.wijzigSleutel);
+            if (!p.afSleutel.isEmpty()) x.put("afSleutel", p.afSleutel);
+            if (p.afgewezen) x.put("afgewezen", true);
+            if (p.weg) x.put("weg", true);
+            if (p.bronNu != null) x.put("bronNu", p.bronNu);
+            if (p.uitBron != null) x.put("uitBron", p.uitBron);
+            if (!p.keys.isEmpty()) x.put("keys", new JSONArray(p.keys));
+            if (!p.bronnen.isEmpty()) x.put("bronnen", new JSONArray(p.bronnen));
+            punten.put(x);
+        }
+        JSONArray af = new JSONArray();
+        for (JSONObject a : ix.afgewezen) af.put(a);
+        return new JSONObject().put("punten", punten).put("afgewezen", af);
+    }
+
+    static Index pakUit(JSONObject o) throws Exception {
+        Index ix = new Index();
+        JSONArray ps = o.optJSONArray("punten");
+        if (ps == null) throw new Exception("leeg");
+        for (int i = 0; i < ps.length(); i++) {
+            JSONObject x = ps.getJSONObject(i);
+            Punt p = new Punt();
+            p.k = x.optString("k");
+            p.la = x.optDouble("la");
+            p.lo = x.optDouble("lo");
+            p.s = x.optString("s");
+            p.f = x.optInt("f");
+            p.n = x.optString("n");
+            p.u = x.optString("u");
+            p.notitie = x.optString("notitie");
+            p.eigen = x.optString("eigen");
+            p.inBron = x.optString("inBron");
+            p.wijzigSleutel = x.optString("wijzig");
+            p.afSleutel = x.optString("afSleutel");
+            p.afgewezen = x.optBoolean("afgewezen");
+            p.weg = x.optBoolean("weg");
+            p.bronNu = x.optJSONObject("bronNu");
+            p.uitBron = x.optJSONObject("uitBron");
+            JSONArray keys = x.optJSONArray("keys");
+            if (keys != null) for (int k = 0; k < keys.length(); k++) p.keys.add(keys.optString(k));
+            JSONArray bronnen = x.optJSONArray("bronnen");
+            if (bronnen != null) for (int k = 0; k < bronnen.length(); k++) p.bronnen.add(bronnen.optString(k));
+            ix.voegToe(p);
+        }
+        JSONArray af = o.optJSONArray("afgewezen");
+        if (af != null) for (int i = 0; i < af.length(); i++) ix.afgewezen.add(af.getJSONObject(i));
+        return ix;
+    }
+
+    static void schrijf(File bestand, String stempel, Index ix) throws Exception {
+        JSONObject o = pakIn(ix);
+        o.put("v", 1);
+        o.put("stempel", stempel == null ? "" : stempel);
+        Contacts.writeText(bestand, o.toString(), false);
+    }
+
+    static Index leesAls(File bestand, String stempel) {
+        try {
+            if (bestand == null || !bestand.isFile() || stempel == null) return null;
+            JSONObject o = new JSONObject(Contacts.readText(bestand, false));
+            if (o.optInt("v") != 1 || !stempel.equals(o.optString("stempel"))) return null;
+            return pakUit(o);
+        } catch (Throwable t) { return null; }
+    }
+
+    static String stempel(Context c) {
+        StringBuilder s = new StringBuilder("v1");
+        JSONArray bs = Toiletten.bronnen(c);
+        for (int i = 0; i < bs.length(); i++) {
+            JSONObject b = bs.optJSONObject(i);
+            if (b == null || !b.optBoolean("aan", true)) continue;
+            File f = Toiletten.cacheFile(c, b.optString("id"));
+            s.append('|').append(b.toString().hashCode()).append(':').append(f.isFile() ? f.length() : 0).append(':').append(f.isFile() ? f.lastModified() : 0);
+        }
+        File e = Toiletten.eigenFile(c);
+        s.append("|eigen:").append(e.isFile() ? e.length() : 0).append(':').append(e.isFile() ? e.lastModified() : 0);
+        return s.toString();
+    }
+
     static Index index(Context c) {
         Index ix = cache;
         if (ix != null) return ix;
         synchronized (BOUW) {
             if (cache != null) return cache;
             long gen = GENERATIE.get();
+            String stempel = stempel(c);
+            File schijf = new File(c.getCacheDir(), "toiletten-index.json");
+            Index vanSchijf = leesAls(schijf, stempel);
+            if (vanSchijf != null && GENERATIE.get() == gen) { cache = vanSchijf; return vanSchijf; }
             List<Bron> lijst = new ArrayList<>();
             JSONArray bs = Toiletten.bronnen(c);
             for (int i = 0; i < bs.length(); i++) {
@@ -264,7 +358,10 @@ final class ToilettenSamen {
             }
             JSONObject e = Toiletten.eigen(c);
             Index nieuw = bouw(lijst, e);
-            if (GENERATIE.get() == gen) cache = nieuw;
+            if (GENERATIE.get() == gen) {
+                cache = nieuw;
+                try { schrijf(schijf, stempel, nieuw); } catch (Throwable ignored) { }
+            }
             return nieuw;
         }
     }
