@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.191",
+    "date": "2026-11-11",
+    "changes": [
+      "ID-kopie afschermen: kies bij Foto of PDF kiezen bovenaan Uit Stamgegevens; je eigen paspoort, ID-kaart of rijbewijs staat bovenaan en komt met een voorstel voor de zwarte vlakken klaar te staan"
+    ]
+  },
+  {
     "version": "1.190",
     "date": "2026-11-11",
     "changes": [

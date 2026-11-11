@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.190",
-  "versionCode": 191,
+  "versionName": "1.191",
+  "versionCode": 192,
   "nativeLevel": 170,
   "web": "index.html",
-  "webSha256": "1f62c71ca84e63a98aa9f8d621db48a58425ae409ce08ff10877d324344b271d",
+  "webSha256": "c450dfb877253d8a3b65b3d6df97c19627c4159d75ed64b6377d6b242d282c5b",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "db18b2eb7584b81a3fac3c3bf772563a2d92fae1d2aa863a5bd4c2583ed12946",
+  "apkSha256": "69de26b35994db593f7237b28c67a449202f0a8035412121e3261154fc9725e4",
   "changelog": [
+    {
+      "version": "1.191",
+      "date": "2026-11-11",
+      "changes": [
+        "ID-kopie afschermen: kies bij Foto of PDF kiezen bovenaan Uit Stamgegevens; je eigen paspoort, ID-kaart of rijbewijs staat bovenaan en komt met een voorstel voor de zwarte vlakken klaar te staan"
+      ]
+    },
     {
       "version": "1.190",
       "date": "2026-11-11",
@@ -1686,5 +1693,5 @@
       ]
     }
   ],
-  "webSig2": "f4b+/rbeUw/eEVBCUHK/s2lhrSfBA1FiUrjk1Hr36i3H3pNl5ny/CKTYH36csZOP9x9c6r5HH6n5ZgQfnxsTH8TGZJGB2lkigfHV1W8bsvYw2lcDZ/4mjPEX6SOMyTMdURY4U68bmP+Bp2E50j34GF23rkWuJy2x8sDy7QWmgIrPB5SiaEFiBylgu5zMLsUx6UosR2BtCWWIjmlFaB8aNjySH/6bQgw8R2AOR8gZ4snq+Kb6x/j44Yy5i9uEP/Uluo7ehqE2FaWnPHFWoV9pcJFI+gXLuMPNV72+Ax6e8jrIYrDWrDvNP07re5h3oRBeiIRpNK7xg38Xj5yyvDrHXHR7J88k/YKx9NNboTlFoyJz1TbCNxPEDoKRQPxiDn5N7JKY4UeO0IiA6p6lzf3xzkUeuwRx2RxNG8tAOPrjYP82X0ED1bJSeCNNQZh5chIHp+Ui6n5T4r/1ioauswqLjKusk99NTggB3HyNb7MdzPiVpeSXCBj4blK20ww+/lbM"
+  "webSig2": "DVTfkqEoWJJf3QX4og1NnTjfKBFQcQYKct1cZ9lEIpBtnGLJg0kGkwLMybxB+5IWWQ1YhOe+YN9ObwEcq0hBOrLhnFOo7nIiR8eXyfaH6VHe7aymjjIrEMA1KjLR2OcKpITL4qXJXe3jlYGs+PWKkOuxQb+JpyqCIwXjLK8YMWJW5kG4zW2Gjht10cNtOJbBRb1fha2xXsN13XIWO0dy1wvBpYZwb/WH5rI1qTcTiy1IUYH7Q51KjRGyM4KGxH6liC14XWvSsvuyvHdTaX7B+udFlafoo/EIyESqe0Guv0Wy0csCtZgu1o3mKRLyCSxrkvPc1gWJB/ep9qi3imtVOrbb4h5L7/Ema3msHyMc4JxYdRI5bnewz4TwacaFEvKeae9O267xTKJzgJ9pRrHLVzCrktnDTjAbMhbg+dOWCiYwX+lT+3y1ci2+d0Q7aaEv7bz3DNkNtHauVvq8p0iBONcJ50Z6XJIS55RFLoFs8RkFDg6ibBwDECA90wVwRCqu"
 }
