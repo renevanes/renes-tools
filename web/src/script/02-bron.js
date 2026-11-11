@@ -61,7 +61,7 @@ function bronUitKluis(o){
 function bronVanKluis(o, d){
   klMetKluis(() => {
     if (o.eigen && o.eigen.kluis) o.eigen.kluis(d); else bronNeem(o, [{ bron: 'kluis', id: d.id, versie: 0 }]);
-    if (!o.kluisOpen) setTimeout(klDichtBuiten, 0); // Java schreef het document al in (ontsleutelen pas bij het lezen); weg van het kluisscherm = op slot
+    if (!o.kluisOpen) setTimeout(klDichtBuiten, 0); // Java schreef het document al in (ontsleutelen pas bij het openen); weg van het kluisscherm = op slot
   });
 }
 function bronVanGemaakt(o, naam){ if (o.eigen && o.eigen.gemaakt) o.eigen.gemaakt(naam); else bronNeem(o, [{ bron: 'gemaakt', id: naam, versie: 0 }]); }

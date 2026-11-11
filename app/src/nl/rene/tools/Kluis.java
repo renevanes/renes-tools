@@ -84,7 +84,7 @@ final class Kluis {
     /** Tijdelijke ontsleutelde bestanden (terugzetten, opslaan als) van een afgebroken keer: weg. */
     static void cleanTmp(Context c) {
         File[] fs = c.getCacheDir().listFiles();
-        if (fs != null) for (File f : fs) if (f.getName().startsWith("kluistmp-") && f.getName().endsWith(".tmp")) f.delete();
+        if (fs != null) for (File f : fs) if ((f.getName().startsWith("kluistmp-") || f.getName().startsWith("bron-")) && f.getName().endsWith(".tmp")) f.delete(); // ook Bron (PdfProvider) na een vastloper
     }
 
     static void clearViews(Context c) {

@@ -23,7 +23,7 @@ import java.util.Map;
  * dus zoals een bestand van de telefoon. Klaargezet geldt per venster, voor één kiezer en hooguit GELDIG_MS.
  *
  * Er komt nergens een leesbare kopie: een gemaakte PDF of factuur leest de provider rechtstreeks (alleen lezen), een
- * kluisdocument ontsleutelt hij pas tijdens het lezen door een pijp. Een token is onraadbaar, geldt BEWAAR_MS en een
+ * kluisdocument ontsleutelt hij pas bij het openen, helemaal (een fout = geen bestand), en het tijdelijke pad wist hij meteen. Een token is onraadbaar, geldt BEWAAR_MS en een
  * kluistoken vervalt ook als de app uit beeld gaat (vergeetKluis).
  */
 final class Bron {

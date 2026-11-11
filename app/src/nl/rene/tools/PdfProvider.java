@@ -13,7 +13,7 @@ import java.io.File;
 /**
  * Geeft een gemaakte of geopende PDF (alleen lezen) aan de app waarmee je hem deelt, opent of afdrukt. Ook een bestand dat
  * Bron klaarzette voor een tool in de app zelf (pad b/&lt;token&gt;/&lt;naam&gt;, elke soort, alleen zolang het token geldt): een
- * kluisdocument wordt dan pas tijdens het lezen ontsleuteld, door een pijp (nooit leesbaar op schijf).
+ * kluisdocument wordt dan pas bij het openen ontsleuteld en het pad meteen gewist (geen leesbaar bestand op schijf).
  */
 public final class PdfProvider extends ContentProvider {
     static final String AUTH = "nl.rene.tools.pdf";
@@ -55,16 +55,16 @@ public final class PdfProvider extends ContentProvider {
     }
     private static boolean bronPad(Uri uri) { java.util.List<String> seg = uri.getPathSegments(); return !seg.isEmpty() && "b".equals(seg.get(0)); }
 
-    /** Een kluisdocument ontsleutelen in een pijp (de lezer krijgt het ene uiteinde); een fout sluit de pijp met die fout. */
-    private ParcelFileDescriptor pijp(Bron.Bestand b) throws java.io.IOException {
-        final ParcelFileDescriptor[] p = ParcelFileDescriptor.createReliablePipe();
-        final android.content.Context c = getContext();
-        new Thread(() -> {
-            try (java.io.InputStream in = new java.io.BufferedInputStream(new java.io.FileInputStream(Kluis.blobFile(c, b.id, b.versie)), 1 << 16);
-                 java.io.OutputStream o = new ParcelFileDescriptor.AutoCloseOutputStream(p[1])) { Kluis.decrypt(in, o); }
-            catch (Throwable e) { try { p[1].closeWithError("niet te lezen"); } catch (Throwable ignored) { } }
-        }, "bron-kluis").start();
-        return p[0];
+    /**
+     * Een kluisdocument helemaal ontsleutelen (een fout in een blok = geen bestand, nooit iets halfs), het tijdelijke bestand
+     * openen en meteen het pad wissen: de lezer houdt de open fd, op schijf staat niets leesbaars meer.
+     */
+    private ParcelFileDescriptor kluis(Bron.Bestand b) throws Exception {
+        File tmp = new File(getContext().getCacheDir(), "bron-" + Bron.token() + ".tmp");
+        try {
+            Kluis.decryptTo(getContext(), b.id, b.versie, tmp);
+            return ParcelFileDescriptor.open(tmp, ParcelFileDescriptor.MODE_READ_ONLY);
+        } finally { tmp.delete(); }
     }
 
     @Override public boolean onCreate() { return true; }
@@ -77,7 +77,7 @@ public final class PdfProvider extends ContentProvider {
             if (bronPad(uri)) {
                 Bron.Bestand b = bron(uri);
                 if (b == null) throw new Exception("niet gevonden");
-                if (b.bestand == null) return pijp(b);
+                if (b.bestand == null) return kluis(b);
                 if (!b.bestand.isFile()) throw new Exception("niet gevonden");
                 return ParcelFileDescriptor.open(b.bestand, ParcelFileDescriptor.MODE_READ_ONLY);
             }
