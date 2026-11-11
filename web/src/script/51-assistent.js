@@ -451,7 +451,8 @@ function aiSrcHtml(src){
   return '<div class="aisrc">' + src.map((h, i) => {
     // Feiten uit een tool (Gebruik, Slaappraat …): de knop opent die tool
     if (h && !h.id && AI_DATA_TOOL[h.kind]) return '<button class="aichip sm" onclick="jumpTo(\'' + AI_DATA_TOOL[h.kind] + '\')" aria-label="' + esc(t('Bron: {titel}, openen', { titel: h.title })) + '">' + uiIcon(aiKindIcon(h.kind)) + esc(h.title) + '</button>';
-    const g = aiHitGs(h); return '<button class="aichip sm" onclick="gsOpen(this)" data-k="' + esc(g[0]) + '" data-x="' + esc(JSON.stringify(g[1])) + '">[' + (i + 1) + '] ' + uiIcon(aiKindIcon(h.kind)) + esc(h.title) + '</button>'; }).join('') + '</div>';
+    const g = aiHitGs(h), naam = h.kind === 'notes' ? '<span translate="no">' + esc(h.title) + '</span>' : esc(h.title);
+    return '<button class="aichip sm" onclick="gsOpen(this)" data-k="' + esc(g[0]) + '" data-x="' + esc(JSON.stringify(g[1])) + '">[' + (i + 1) + '] ' + uiIcon(aiKindIcon(h.kind)) + naam + '</button>'; }).join('') + '</div>';
 }
 function aiMsgHtml(m, i){
   if (!m) return '';
@@ -498,7 +499,7 @@ function aiMsgMenu(i){
 }
 function aiToNote(text){
   const first = text.split('\n').find(l => l.trim()) || 'Van de assistent';
-  const n = { id: uid(), title: first.replace(/^[#*\-\s]+/, '').replace(/\*\*/g, '').slice(0, 60), text: text, items: [], updated: Date.now() };
+  const n = { id: uid(), kind: 'note', title: first.replace(/^[#*\-\s]+/, '').replace(/\*\*/g, '').slice(0, 60), text: text, items: [], updated: Date.now() };
   notesGet().push(n); notesSaveNow();
   toast('Bewaard bij Notities');
 }
@@ -657,7 +658,8 @@ function aiSearchHtml(ql){
   const it = (aiSearchRes.items || []).filter(h => typeof gsDicht !== 'function' || !gsDicht(aiHitGs(h)[0]));
   if (!it.length) return '';
   return '<div class="card gsg aigs"><h3>' + uiIcon('sparkle') + 'Op betekenis <span class="n">' + it.length + '</span></h3>' + it.map(h => { const g = aiHitGs(h);
-    return '<button class=gi data-k="' + esc(g[0]) + '" data-x="' + esc(JSON.stringify(g[1])) + '" onclick="gsOpen(this)"><b>' + uiIcon(aiKindIcon(h.kind)) + ' ' + esc(h.title) + '</b><small>' + esc(String(h.snip || '').slice(0, 160)) + (String(h.snip || '').length > 160 ? '…' : '') + '</small></button>'; }).join('') +
+    const note = h.kind === 'notes', snip = String(h.snip || ''), naam = note ? '<span translate="no">' + esc(h.title) + '</span>' : esc(h.title);
+    return '<button class=gi data-k="' + esc(g[0]) + '" data-x="' + esc(JSON.stringify(g[1])) + '" onclick="gsOpen(this)"><b>' + uiIcon(aiKindIcon(h.kind)) + ' ' + naam + '</b><small' + (note ? ' translate="no"' : '') + '>' + esc(snip.slice(0, 160)) + (snip.length > 160 ? '…' : '') + '</small></button>'; }).join('') +
     (aiSearchRes.updating ? '<p class="note" style="margin:4px 0">De zoekindex wordt nog bijgewerkt: misschien ontbreekt er nog iets.</p>' : '') + '</div>';
 }
 
@@ -1003,13 +1005,13 @@ function aiActDo(i){
   } else {
     let n = a.note && a.remFail ? noteById(a.note) : null; // al gemaakt bij een eerdere poging
     if (!n) {
-      n = { id: uid(), title: a.title.slice(0, 80), text: a.text || (a.title.length > 80 ? a.title : ''), items: [], updated: Date.now() };
+      n = { id: uid(), kind: 'note', title: a.title.slice(0, 80), text: a.text || (a.title.length > 80 ? a.title : ''), items: [], updated: Date.now() };
       const list = notesGet(); list.push(n);
       if (!notesSaveNow()) { const k = list.indexOf(n); if (k >= 0) list.splice(k, 1); toast('De notitie bewaren lukte niet'); return; }
     }
     a.note = n.id;
     if (a.type === 'herinnering') {
-      const rid = Android.noteRemindAdd(n.id, n.title || 'Herinnering', String(at), '');
+      const rid = Android.noteRemindAdd(n.id, noteLabel(n) || 'Herinnering', String(at), '');
       if (!rid) {
         // De notitie is er, de herinnering niet: het voorstel blijft staan om het nog eens te proberen (zonder tweede notitie)
         a.remFail = true; aiMemAfter(i);

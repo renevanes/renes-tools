@@ -35,7 +35,7 @@ public class NoteAddActivity extends Activity {
         int p = Math.round(20 * dp);
         box.setPadding(p, p, p, Math.round(12 * dp));
         TextView t = new TextView(this);
-        String title = n.optString("title").trim();
+        String title = Notes.showTitle(n);
         t.setText("Toevoegen aan " + (title.isEmpty() || Lock.active(this) ? "het lijstje" : title));
         t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         box.addView(t);

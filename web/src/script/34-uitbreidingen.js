@@ -25,7 +25,7 @@ function txToNote(asList){
   if (!picked.length) picked = segs;
   if (!picked.length) { toast('Er is geen tekst om te bewaren'); return; }
   const when = fmtDate(tr.callDate || tr.mtime || Date.now(), { day: 'numeric', month: 'short' });
-  const n = { id: uid(), title: ((tr.name ? t('Gesprek met {naam}', { naam: tr.name }) : t('Gesprek')) + ' · ' + when).slice(0, 80), text: '', items: [], updated: Date.now(), tx: txCur };
+  const n = { id: uid(), kind: asList ? 'list' : 'note', title: ((tr.name ? t('Gesprek met {naam}', { naam: tr.name }) : t('Gesprek')) + ' · ' + when).slice(0, 80), text: '', items: [], updated: Date.now(), tx: txCur };
   if (asList) picked.forEach(s => n.items.push({ id: uid(), text: s.text.trim(), done: false }));
   else n.text = picked.map(s => s.text.trim()).join('\n');
   notesGet().push(n); notesSaveNow();
@@ -76,7 +76,7 @@ window.onVoiceNote = function(r){
     return;
   }
   const words = text.split(/\s+/);
-  const nn = { id: uid(), title: words.slice(0, 6).join(' ').replace(/[.,;:!?]+$/, '') + (words.length > 6 ? '…' : ''), text: text, items: [], updated: Date.now() };
+  const nn = { id: uid(), kind: 'note', title: words.slice(0, 6).join(' ').replace(/[.,;:!?]+$/, '') + (words.length > 6 ? '…' : ''), text: text, items: [], updated: Date.now() };
   notesGet().push(nn); const ok = notesSaveNow(); voiceClose(); openNote(nn.id); if (ok) toast('Spraaknotitie gemaakt');
 };
 

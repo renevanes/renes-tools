@@ -208,27 +208,107 @@ function show(name){
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); renderDash(); refreshAutoTile(); refreshPodTile(); refreshVpnTile(); refreshLocTile(); refreshCheckinTile(); }
   if (name==='home' && typeof updTryReload === 'function') setTimeout(() => updTryReload(false), 0);
 }
-const BACK = {ereader:'home', erbook:'ereader', ercontents:'erbook', erset:'erbook', nieuws:'home', nieuwsart:'nieuws', nieuwsset:'nieuws', masterdata:'home', cmedit:'masterdata', cmlog:'masterdata', cmwis:'masterdata', cmlijst:'masterdata', cmkaart:'masterdata', cmai:'masterdata',idcopy:'pdf', formulieren:'pdf', pdfedit:'pdf', pdfimg:'pdf', pdfsplit:'pdf', pdftext:'pdf', pdfmade:'pdf', pdfcmp:'pdf', bank:'home', facturen:'home', faclev:'facturen', facoverz:'facturen', facopslag:'facturen', fackopp:'facturen', faclok:'facopslag', facgoogle:'fackopp', facec:'fackopp', facsmtp:'fackopp', facdos:'facturen', facstuk:'facdos', facaanl:'facturen', facontv:'facaanl', models:'aiset', aisetmodel:'aiset', aisetmem:'aiset', aisetdata:'aiset', aisetanswer:'aiset', aisetpers:'aiset', aisetvoice:'aiset', aisetsearch:'aiset', aisetperf:'aiset', aisetpriv:'aiset', setnotif:'settings', setlook:'settings', setregio:'settings', setregioplek:'setregio', setregiotz:'setregio', setskin:'settings', setlock:'settings', setsolo:'settings', setslot:'settings', setperm:'settings', setmusic:'settings', spraak:'settings', setcrash:'settings', ai:'home', aiset:'ai', aichats:'ai', search:'home', redial:'home', wa:'home', wasel:'wa', waauto:'wa', warestore:'wa', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', sleep:'home', sleepnight:'sleep', sleepset:'sleep', checkin:'home', checkined:'checkin', checkinq:'checkin', checkincmp:'checkin', gebruik:'home', gebruikset:'gebruik', gebruikontgr:'gebruikset', car:'home', carset:'car', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', podspotify:'podcasts', podlijst:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', wc:'home', wcplek:'wc', wcbewerk:'wcplek', wcdeel:'wcplek', wcset:'wc', wcbronnen:'wcset', wcbron:'wcbronnen', wceigen:'wcset', wcgedeeld:'wcset', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', bkparts:'backup', bkset:'backup', bkrestore:'backup', bkmap:'backup', herstel:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
+const BACK = {ereader:'home', erbook:'ereader', ercontents:'erbook', erset:'erbook', nieuws:'home', nieuwsart:'nieuws', nieuwsset:'nieuws', masterdata:'home', cmedit:'masterdata', cmlog:'masterdata', cmwis:'masterdata', cmlijst:'masterdata', cmkaart:'masterdata', cmai:'masterdata',idcopy:'pdf', formulieren:'pdf', pdfedit:'pdf', pdfimg:'pdf', pdfsplit:'pdf', pdftext:'pdf', pdfmade:'pdf', pdfcmp:'pdf', bank:'home', facturen:'home', faclev:'facturen', facoverz:'facturen', facopslag:'facturen', fackopp:'facturen', faclok:'facopslag', facgoogle:'fackopp', facec:'fackopp', facsmtp:'fackopp', facdos:'facturen', facstuk:'facdos', facaanl:'facturen', facontv:'facaanl', models:'aiset', aisetmodel:'aiset', aisetmem:'aiset', aisetdata:'aiset', aisetanswer:'aiset', aisetpers:'aiset', aisetvoice:'aiset', aisetsearch:'aiset', aisetperf:'aiset', aisetpriv:'aiset', setnotif:'settings', setlook:'settings', setregio:'settings', setregioplek:'setregio', setregiotz:'setregio', setskin:'settings', setlock:'settings', setsolo:'settings', setslot:'settings', setperm:'settings', setmusic:'settings', spraak:'settings', setcrash:'settings', ai:'home', aiset:'ai', aichats:'ai', search:'home', redial:'home', wa:'home', wasel:'wa', waauto:'wa', warestore:'wa', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', sleep:'home', sleepnight:'sleep', sleepset:'sleep', checkin:'home', checkined:'checkin', checkinq:'checkin', checkincmp:'checkin', gebruik:'home', gebruikset:'gebruik', gebruikontgr:'gebruikset', apparaten:'home', apdev:'apparaten', apset:'apparaten', car:'home', carset:'car', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', podspotify:'podcasts', podlijst:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', wc:'home', wcplek:'wc', wcbewerk:'wcplek', wcdeel:'wcplek', wcset:'wc', wcbronnen:'wcset', wcbron:'wcbronnen', wceigen:'wcset', wcgedeeld:'wcset', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', bkparts:'backup', bkset:'backup', bkrestore:'backup', bkmap:'backup', herstel:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
+/* Wat er bovenop het scherm ligt, één laag. 'lock' = de app mag sluiten. Zelfde volgorde voor de pijl en voor Start. */
+function navSluit(){
+  if (typeof sp !== 'undefined' && sp.settings && typeof spSettingsClose === 'function') { spSettingsClose(); return 'laag'; }
+  if ($('#lockscr').classList.contains('on')) return 'lock';
+  if (typeof tsTerug === 'function' && tsTerug()) return 'laag'; // een tool op slot: weg uit die tool (wat eronder ligt, is nog niet ontgrendeld)
+  if (typeof cm !== 'undefined' && cm.picker) { cmClosePicker(); return 'laag'; }
+  if (typeof fmq !== 'undefined' && fmq.open) { fmqClose(); return 'laag'; }
+  if ($('#modal').classList.contains('on')) { closeModal(null); return 'laag'; }
+  if ($('#sigdlg').classList.contains('on')) { sigClose(); return 'laag'; }
+  if (typeof gbBack === 'function' && gbBack()) return 'laag';
+  if (typeof aiTalkBack === 'function' && aiTalkBack()) return 'laag'; // eerst het gesprek met de assistent stoppen
+  if ($('#voice') && $('#voice').classList.contains('on')) { voiceClose(); return 'laag'; }
+  if ($('#ci-ans') && $('#ci-ans').classList.contains('on')) { ciAnsClose(); return 'laag'; }
+  if ($('#ci-rem') && $('#ci-rem').classList.contains('on')) { ciRemClose(); return 'laag'; }
+  if ($('#sleepdlg').classList.contains('on')) { sleepClose(); return 'laag'; }
+  if ($('#vp-scan') && $('#vp-scan').classList.contains('on')) { vpScanClose(); return 'laag'; }
+  if ($('#sheet').classList.contains('on')) { closeSheet(); return 'laag'; }
+  if ($('#er-image').classList.contains('on')) { erImageClose(); return 'laag'; }
+  if (typeof erPanelBack === 'function' && erPanelBack()) return 'laag'; // e-reader: eerst het paneel (leesweergave, voorlezen)
+  if (current === 'erbook' && typeof erLinks !== 'undefined' && erLinks.length && typeof erLinkBack === 'function' && erLinkBack()) return 'laag';
+  if (typeof plIsOpen !== 'undefined' && plIsOpen) { plClose(); return 'laag'; }
+  return '';
+}
+/* Het begin van deze app: het startscherm van Tools, of het eerste scherm van een losse app. */
+function navThuisVan(name){
+  if (typeof SOLO !== 'undefined' && SOLO) {
+    let n = name;
+    for (let i = 0; i < 16 && n; i++) {
+      if (typeof soloRoot === 'function' && soloRoot(n)) return n;
+      const p = BACK[n];
+      if (!p || (typeof soloOk === 'function' && !soloOk(p))) break;
+      n = p;
+    }
+    if (typeof soloRoot === 'function' && n && soloRoot(n)) return n;
+    return (typeof SOLO_ROOT === 'string' && SOLO_ROOT) || SOLO;
+  }
+  return 'home';
+}
+/* Eén stap terug, zoals de pijl (een sprong telt, en een losse app slaat een scherm van een andere tool over). */
+function navStap(name){
+  if (typeof jumpStack !== 'undefined' && jumpStack.length && jumpStack[jumpStack.length - 1].to === name) return jumpStack[jumpStack.length - 1].from;
+  let d = BACK[name] || (name === 'home' ? '' : 'home');
+  if (d && typeof soloOk === 'function' && !soloOk(d)) d = navThuisVan(name);
+  return d;
+}
+function navTab(name){
+  if (typeof SOLO !== 'undefined' && SOLO) return false;
+  const tabs = (typeof TABS !== 'undefined' && TABS) || ['home', 'search', 'ai', 'backup', 'settings'];
+  return tabs.includes(name);
+}
+/* Start tonen als één stap terug nog niet het begin van deze app is. */
+function navThuisZicht(name){
+  name = name || current;
+  if (!name || navTab(name)) return false;
+  if (typeof SOLO !== 'undefined' && SOLO && typeof soloRoot === 'function' && soloRoot(name)) return false;
+  const thuis = navThuisVan(name);
+  if (!thuis || thuis === name) return false;
+  return navStap(name) !== thuis;
+}
+function navGa(){
+  const dest = navThuisVan(current);
+  jumpStack.length = 0;
+  if (dest && dest !== current) show(dest);
+}
+/* Meteen naar het begin. Een laag gaat eerst dicht; niet-bewaarde wijzigingen vragen we, net als bij de pijl. */
+function navHome(){
+  const s = navSluit();
+  if (s === 'lock') return false;
+  if (s) return true;
+  if (current === 'autoed' && typeof aeDirty === 'function' && aeDirty()) {
+    askChoice('Wijzigingen opslaan?', 'Je hebt deze automatisering aangepast.', 'Opslaan', 'Weggooien', () => aeSave(() => navGa()), () => { aeRule = null; aeSnap = null; store.set('autoDraft', null); navGa(); });
+    return true;
+  }
+  if (current === 'cmedit' && typeof cm !== 'undefined') {
+    if (cm.mutating) return true;
+    const weg = () => { cm.dirty = false; cm.editorEpoch++; navGa(); };
+    if (cm.dirty) { askConfirm('Bewerking sluiten?', 'Niet-bewaarde wijzigingen gaan verloren.', 'Sluiten', weg); return true; }
+    weg();
+    return true;
+  }
+  if (current === 'checkined' && typeof cedDirty === 'function' && cedDirty()) {
+    askChoice('Wijzigingen bewaren?', 'Je hebt deze vraag aangepast.', 'Bewaren', 'Weggooien', () => { cedNaar = navGa; cedSave(); }, () => { cedQ = null; cedSnap = ''; navGa(); });
+    return true;
+  }
+  if (current === 'formulieren' && typeof fm !== 'undefined' && fm.view === 'stap') {
+    if (fm.busy) return true;
+    if (typeof fmConceptVanzelf === 'function') fmConceptVanzelf();
+  }
+  if (current === 'herstel' && typeof hsBack === 'function' && !(jumpStack.length && jumpStack[jumpStack.length - 1].to === 'herstel')) {
+    const welkom = $('#hs-welkom');
+    try { if (welkom && welkom.style.display !== 'none' && hsState().pending && hsBack()) return true; } catch (e) {}
+  }
+  navGa();
+  return true;
+}
 window.goBack = function(){
   // Eerst wat bovenop ligt: slotscherm (dan de app verlaten), dialoog, menu
-  if ($('#lockscr').classList.contains('on')) return false;
-  if (typeof tsTerug === 'function' && tsTerug()) return true; // een tool op slot: weg uit die tool (wat eronder ligt, is nog niet ontgrendeld)
-  if(typeof cm!=='undefined'&&cm.picker){cmClosePicker();return true;}
-  if(typeof fmq!=='undefined'&&fmq.open){fmqClose();return true;}
-  if ($('#modal').classList.contains('on')) { closeModal(null); return true; }
-  if ($('#sigdlg').classList.contains('on')) { sigClose(); return true; }
-  if (typeof gbBack === 'function' && gbBack()) return true;
-  if (typeof aiTalkBack === 'function' && aiTalkBack()) return true; // eerst het gesprek met de assistent stoppen
-  if ($('#voice') && $('#voice').classList.contains('on')) { voiceClose(); return true; }
-  if ($('#ci-ans') && $('#ci-ans').classList.contains('on')) { ciAnsClose(); return true; }
-  if ($('#ci-rem') && $('#ci-rem').classList.contains('on')) { ciRemClose(); return true; }
-  if ($('#sleepdlg').classList.contains('on')) { sleepClose(); return true; }
-  if ($('#vp-scan') && $('#vp-scan').classList.contains('on')) { vpScanClose(); return true; }
-  if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
-  if ($('#er-image').classList.contains('on')) { erImageClose(); return true; }
-  if (typeof erPanelBack === 'function' && erPanelBack()) return true; // e-reader: eerst het paneel (leesweergave, voorlezen)
-  if (current === 'erbook' && erLinks.length && erLinkBack()) return true;
-  if (typeof plIsOpen !== 'undefined' && plIsOpen) { plClose(); return true; }
+  const s = navSluit();
+  if (s === 'lock') return false;
+  if (s) return true;
   if (current === 'autoed' && typeof aeDirty === 'function' && aeDirty()) {
     askChoice('Wijzigingen opslaan?', 'Je hebt deze automatisering aangepast.', 'Opslaan', 'Weggooien', () => aeSave(), () => { aeRule = null; aeSnap = null; store.set('autoDraft', null); show('auto'); });
     return true;
@@ -244,7 +324,14 @@ window.goBack = function(){
   if (current === 'formulieren' && typeof fmTerugNaarStart === 'function' && fmTerugNaarStart()) return true;
   if (jumpStack.length && jumpStack[jumpStack.length - 1].to === current) { show(jumpStack.pop().from); return true; }
   if (current === 'herstel' && typeof hsBack === 'function' && hsBack()) return true;
-  if (current!=='home'){ show(BACK[current]||'home'); return true; } return false; };
+  if (current !== 'home') {
+    let dest = BACK[current] || 'home';
+    if (typeof soloOk === 'function' && !soloOk(dest)) dest = navThuisVan(current);
+    if (dest && dest !== current) show(dest);
+    return true;
+  }
+  return false;
+};
 /* Sprongen tussen tools (oproep → contact → oproepen): terug gaat naar waar je vandaan kwam. */
 const jumpStack = [];
 function jumpTo(name, open){ const from = current; jumpTo.busy = true; try { if (open) open(); else show(name); } finally { jumpTo.busy = false; } if (current !== from) jumpStack.push({ from, to: current }); }
@@ -255,7 +342,8 @@ function openSheet(title, sub, acts, onDismiss){
   const prev = sheetDismiss; sheetDismiss = null; if (prev) prev(); // een ander menu dat nog open stond
   sheetDismiss = onDismiss || null;
   sheetAt = Date.now(); // het loslaten na lang indrukken mag het menu niet meteen sluiten
-  $('#sheet-title').textContent = title; $('#sheet-sub').textContent = sub || '';
+  $('#sheet-title').textContent = title;
+  const subEl = $('#sheet-sub'); subEl.removeAttribute('translate'); subEl.textContent = sub || '';
   const box = $('#sheet-acts'); box.innerHTML = '';
   acts.forEach(([label, fn, icon]) => { const b = document.createElement('button'); b.textContent = label; if(UI_ICONS.has(icon))b.dataset.icon=icon; b.onclick = () => { sheetDismiss = null; closeSheet(); fn(); }; box.appendChild(b); });
   $('#sheet').classList.add('on');

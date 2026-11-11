@@ -8,9 +8,9 @@ function renderNotePins(){
   wrap.style.display = list.length ? 'block' : 'none';
   $('#home-notes-tiles').innerHTML = list.map(n => {
     const open = (n.items || []).filter(i => !i.done);
-    const sub = (n.items || []).length ? (open.length ? t('{n} open', { n: open.length }) + ' · ' + open.slice(0, 3).map(i => i.text).join(', ') : t('Alles afgestreept ✓')) : (n.text || '').slice(0, 60);
-    return '<button class="tile" data-id="' + esc(n.id) + '" onclick="jumpTo(\'note\', () => openNote(this.dataset.id))"><span class="ic">'+uiIcon('notes')+'</span><b>' +
-      '<span translate="no">' + esc(n.title || t('Notitie')) + '</span></b><small translate="no">' + esc(sub) + '</small></button>';
+    const sub = (n.items || []).length ? (open.length ? t('{n} open', { n: open.length }) + ' · ' + open.slice(0, 3).map(i => i.text).join(', ') : t('Alles afgestreept ✓')) : notePreview(n).slice(0, 60);
+    return '<button class="tile" data-id="' + esc(n.id) + '" onclick="jumpTo(\'note\', () => openNote(this.dataset.id))"><span class="ic">'+uiIcon(noteKind(n)==='list'?'notes':'document')+'</span><b>' +
+      '<span translate="no">' + esc(noteLabel(n) || t('Notitie')) + '</span></b><small translate="no">' + esc(sub) + '</small></button>';
   }).join('');
 }
 /* "Sinds gisteravond": wat er gebeurde terwijl je sliep (gemiste oproepen, backup, automatiseringen, batterij). */

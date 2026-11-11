@@ -164,6 +164,11 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   `<button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>`
   (geen `ui-icon`-pijl of "‹"). Een scherm dat je vanuit een ander scherm opent (een item, een instellingenscherm) heeft
   `class="hdr sm"`; zet het ook in de lijst `DETAIL` van de test. Nieuw scherm = ook in `BACK` (02-kern.js).
+  Zit je dieper dan één stap, dan staat naast de pijl ook Start (raster, zoals het tabblad Start). Die gaat meteen naar
+  het startscherm van Tools. In een losse app heet de knop Hoofdscherm en gaat die naar het eerste scherm van die app.
+  `navPlaats` zet hem in elke kop; een nieuw scherm krijgt hem vanzelf zodra het in `BACK` staat. Hij ontbreekt als één
+  stap terug al het begin is (het startscherm, een tabblad, of het eerste scherm van een losse app). De Telefoon-skin
+  gebruikt dezelfde pijl; Apps kiezen vanuit Look aanpassen heeft daar ook Hoofdscherm.
 - **Hoe werkt dit?**: uitleg van meer dan twee regels gaat ingeklapt:
   `<details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>…</p></div></details>`
   (in een kaart `class="help in"`; een eigen kop mag, bijv. "Waarvoor is dit?"). Vanuit JavaScript: `uiHelp(t('…'), html, inKaart)`.

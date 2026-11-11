@@ -101,7 +101,10 @@ final class Restore {
                 n = cleanNote(n);
                 if (n == null) continue;
                 fresh.put(n);
-                if (sample.length() < 8) sample.put(n.optString("title", "Zonder titel"));
+                if (sample.length() < 8) {
+                    String shown = Notes.showTitle(n);
+                    sample.put(shown.isEmpty() ? "Zonder titel" : shown);
+                }
             }
             pendingNotes = fresh;
             pendingKind = kind;
@@ -162,6 +165,8 @@ final class Restore {
             JSONObject rep = n.optJSONObject("repeat");
             if (rep != null && !rep.optString("every").isEmpty())
                 o.put("repeat", new JSONObject().put("every", rep.optString("every")).put("n", rep.optInt("n", 1)).put("last", System.currentTimeMillis()));
+            String kind = n.optString("kind");
+            if ("note".equals(kind) || "list".equals(kind)) o.put("kind", kind);
             return o.put("items", items);
         } catch (Exception e) { return null; }
     }

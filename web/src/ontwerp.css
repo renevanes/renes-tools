@@ -100,7 +100,7 @@ input[type=tel],textarea.key,.ntext{border-radius:8px;border-color:var(--outline
 .sheet-box button.cancel{border-radius:0}
 .toast,.undo{border-radius:8px;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.16)}
 .fab{border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.15)}
-.fab.note-new{font-size:15px;font-weight:600;min-width:136px;height:50px;background:var(--primary);color:var(--on-primary)}
+.fab.note-new{font-size:15px;font-weight:600;min-width:136px;height:50px;background:var(--tonal);color:var(--on-tonal)}
 .tabs{background:var(--card);border-top:1px solid var(--line);padding-top:13px}
 .tabs .ti{width:40px;height:28px;border-radius:6px}
 .tabs button{font-size:11px;letter-spacing:0;gap:5px;font-weight:500;min-height:52px}

@@ -103,9 +103,9 @@ function gsInput(){
 function gsNotes(q){
   const ql = q.toLowerCase(), out = [];
   for (const n of notesGet()) {
-    const title = n.title || 'Zonder titel', text = (n.text || '').replace(/\s+/g, ' ');
+    const label = noteLabel(n) || t('Zonder titel'), stored = n.title || '', text = (n.text || '').replace(/\s+/g, ' ');
     const item = (n.items || []).find(i => (i.text || '').toLowerCase().includes(ql));
-    if (title.toLowerCase().includes(ql) || text.toLowerCase().includes(ql) || item) out.push({ id: n.id, title, snip: item ? item.text : text, u: n.updated || 0 });
+    if (stored.toLowerCase().includes(ql) || label.toLowerCase().includes(ql) || text.toLowerCase().includes(ql) || item) out.push({ id: n.id, title: label, snip: item ? item.text : text, u: n.updated || 0 });
   }
   out.sort((a, b) => b.u - a.u);
   return { items: out.slice(0, 5), total: out.length };
