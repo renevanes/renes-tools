@@ -25,6 +25,7 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.textContent('#sheet-title'),'PDF openen');
   assert.deepEqual(await keuzes(),['Bestand op de telefoon','Uit de documentenkluis','Uit Gemaakt (PDF-tools)','Uit het facturendossier']);
   await kies('Bestand op de telefoon');assert.equal(await p.evaluate(()=>Android._pdf.viewPick),1,'gewone bestandskiezer');
+  assert.equal(await p.evaluate(()=>Android._bronLeeg),1,'niets klaargezet laten staan');
   // Uit de kluis: in de viewer van de kluis (geen kopie), alleen PDF's
   await p.click('#pdf-view-open');await kies('Uit de documentenkluis');await p.waitForFunction(()=>$('#sheet-title').textContent==='Uit de documentenkluis');
   assert.deepEqual(await keuzes(),['Polis.pdf'],'alleen wat past');
@@ -37,6 +38,7 @@ for(const colorScheme of ['light','dark']){
   assert.deepEqual(await keuzes(),['KPN · KPN oktober.pdf'],'een weggehaalde factuur niet');
   await kies('KPN · KPN oktober.pdf');
   assert.equal(await bron(),JSON.stringify([{bron:'factuur',id:SHA,versie:0}]));assert.equal(await p.evaluate(()=>Android._pdf.viewPick),2);
+  assert.equal(await p.evaluate(()=>Android._bronKiezer),'pdfview','voor deze kiezer');
 
   // 2. Plaatjes: alleen foto's uit de kluis (Gemaakt en facturen zijn PDF's); de kluis gaat daarna weer op slot
   await p.evaluate(()=>show('pdfimg'));await p.click('#pdf-img-pick');
@@ -44,7 +46,7 @@ for(const colorScheme of ['light','dark']){
   await kies('Uit de documentenkluis');assert.deepEqual(await keuzes(),['Bon.jpg']);
   await p.evaluate(()=>{Android._closed=0;const c=Android.kluisClose;Android.kluisClose=function(){Android._closed++;return c&&c.call(Android);};});
   await kies('Bon.jpg');await p.waitForFunction(()=>pdfImgs.length===2);
-  assert.equal(await bron(),JSON.stringify([{bron:'kluis',id:'kfoto00001',versie:0}]));
+  assert.equal(await bron(),JSON.stringify([{bron:'kluis',id:'kfoto00001',versie:0}]));assert.equal(await p.evaluate(()=>Android._bronKiezer),'pdfbeeld');
   await p.waitForFunction(()=>Android._closed>0);
   await p.evaluate(()=>{Android._kl.open=true;});
 
@@ -58,7 +60,7 @@ for(const colorScheme of ['light','dark']){
   // 4. Lukt klaarzetten niet (kluis intussen op slot): een melding en geen bestandskiezer
   await p.evaluate(()=>show('pdf'));
   const voor=await p.evaluate(()=>Android._pdf.viewPick);
-  await p.evaluate(()=>{window.__toasts=[];const tt=toast;window.toast=(m,...r)=>{__toasts.push(m);return tt(m,...r);};const d={id:'kpdf000001',name:'Polis.pdf'};Android._kl.open=false;bronNeem({bestand:()=>Android.pdfViewPick()},[{bron:'kluis',id:d.id,versie:0}]);});
+  await p.evaluate(()=>{window.__toasts=[];const tt=toast;window.toast=(m,...r)=>{__toasts.push(m);return tt(m,...r);};const d={id:'kpdf000001',name:'Polis.pdf'};Android._kl.open=false;bronNeem({kiezer:'pdfview',bestand:()=>Android.pdfViewPick()},[{bron:'kluis',id:d.id,versie:0}]);});
   assert.equal(await p.evaluate(()=>Android._pdf.viewPick),voor,'geen kiezer');
   assert.deepEqual(await p.evaluate(()=>__toasts),['De kluis is op slot']);
 
@@ -75,15 +77,15 @@ for(const colorScheme of ['light','dark']){
   assert.deepEqual(await keuzes(),['Bestand op de telefoon','Uit Gemaakt (PDF-tools)','Uit het facturendossier']);
   await p.evaluate(()=>closeSheet());
 
-  // 6. E-reader: Boek toevoegen; weg zonder keuze zet "nieuwe versie kiezen" terug
+  // 6. E-reader: een nieuwe versie kiezen geldt pas als er echt een bestand gekozen wordt (weg zonder keuze laat niets hangen)
   await p.evaluate(()=>{Android._kl.open=true;show('ereader');});await p.waitForFunction(()=>current==='ereader');
-  await p.evaluate(()=>{erUpgrading=true;});await p.click('#er-add');
+  await p.evaluate(()=>{erUpgrading=false;erPick(true);});
   assert.deepEqual(await keuzes(),['Bestand op de telefoon','Uit de documentenkluis']);
   await p.keyboard.press('Escape');await p.waitForFunction(()=>!$('#sheet').classList.contains('on'));
   assert.equal(await p.evaluate(()=>erUpgrading),false);
 
-  // 7. Zonder andere plek (geen kluis, niets gemaakt, geen facturen): meteen de bestandskiezer
-  await p.evaluate(()=>{Android._pdf.outs=[];Android._fa.dos={};window.__play=true;const ip=isPlay;window.isPlay=()=>true;show('pdf');window.__ip=ip;});
+  // 7. Play: geen kluis en geen facturen (die zitten niet in de Play-versie); niets gemaakt: meteen de bestandskiezer
+  await p.evaluate(()=>{Android._pdf.outs=[];window.__play=true;const ip=isPlay;window.isPlay=()=>true;show('pdf');window.__ip=ip;});
   const v2=await p.evaluate(()=>Android._pdf.viewPick);
   await p.click('#pdf-view-open');
   assert.equal(await p.evaluate(()=>Android._pdf.viewPick),v2+1);assert.equal(await p.evaluate(()=>$('#sheet').classList.contains('on')),false);

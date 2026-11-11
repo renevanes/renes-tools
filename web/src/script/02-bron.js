@@ -9,7 +9,8 @@
  * zoals een kluisdocument openen als nieuwe versie (PDF bewerken) of in de viewer van de kluis (PDF openen).
  * Niet hier: Stamgegevens (kaartfoto's), Bankzaken, de handtekening en back-ups terugzetten; die houden hun eigen kiezer.
  *
- * bronKies({ titel, soort: 'pdf'|'beeld'|'pdfbeeld'|'boek'|'tekst'|'alles', bestand: () => …, zonder: ['kluis'|'gemaakt'|'factuur'],
+ * bronKies({ titel, soort: 'pdf'|'beeld'|'pdfbeeld'|'boek'|'tekst'|'alles', kiezer: (MainActivity.bronReq), bestand: () => …,
+ *            zonder: ['kluis'|'gemaakt'|'factuur'],
  *            eigen: { kluis: doc => …, gemaakt: naam => … }, kluisOpen: true (de kluis niet meteen weer op slot),
  *            weg: () => … (het menu dicht zonder keuze) }) */
 const BRON_SOORT = {
@@ -26,7 +27,7 @@ function bronMag(o, bron){
   if ((o.zonder || []).includes(bron)) return false;
   const tool = bron === 'kluis' ? 'kluis' : bron === 'factuur' ? 'facturen' : 'pdf';
   if (typeof SOLO !== 'undefined' && SOLO && typeof soloOk === 'function' && !soloOk(tool)) return false;
-  return bron !== 'kluis' || !isPlay();
+  return !isPlay() || bron === 'gemaakt';
 }
 /* Gemaakte PDF's (Gemaakt) die passen */
 function bronGemaakt(o){
@@ -40,13 +41,13 @@ function bronFacturen(o){
     .sort((a, b) => (b.opgehaald || 0) - (a.opgehaald || 0));
 }
 function bronKies(o){
-  const keuzes = [[t('Bestand op de telefoon'), () => o.bestand(), 'smartphone']];
+  const keuzes = [[t('Bestand op de telefoon'), () => bronTelefoon(o), 'smartphone']];
   if (bronMag(o, 'kluis') && typeof Android.kluisList === 'function') keuzes.push([t('Uit de documentenkluis'), () => bronUitKluis(o), 'lock']);
   const gemaakt = bronGemaakt(o), facturen = bronFacturen(o);
   if (gemaakt.length) keuzes.push([t('Uit Gemaakt (PDF-tools)'), () => bronLijst(o, t('Uit Gemaakt (PDF-tools)'), gemaakt.slice(0, BRON_MAX).map(x => [x.name, () => bronVanGemaakt(o, x.name)])), 'document']);
   if (facturen.length) keuzes.push([t('Uit het facturendossier'), () => bronLijst(o, t('Uit het facturendossier'), facturen.slice(0, BRON_MAX).map(s => [
     s.leverancierNaam ? t('{leverancier} · {bestand}', { leverancier: s.leverancierNaam, bestand: s.naam || '' }) : (s.naam || ''), () => bronNeem(o, [{ bron: 'factuur', id: s.sha, versie: 0 }])])), 'wallet']);
-  if (keuzes.length === 1) { o.bestand(); return; }
+  if (keuzes.length === 1) { bronTelefoon(o); return; }
   openSheet(o.titel || t('Bestand kiezen'), t('Waar staat het bestand?'), keuzes, o.weg);
 }
 function bronLijst(o, titel, acts){ openSheet(titel, '', acts, o.weg); }
@@ -60,16 +61,18 @@ function bronUitKluis(o){
 function bronVanKluis(o, d){
   klMetKluis(() => {
     if (o.eigen && o.eigen.kluis) o.eigen.kluis(d); else bronNeem(o, [{ bron: 'kluis', id: d.id, versie: 0 }]);
-    if (!o.kluisOpen) setTimeout(klDichtBuiten, 0); // Java las de kluis al; weg van het kluisscherm = op slot
+    if (!o.kluisOpen) setTimeout(klDichtBuiten, 0); // Java schreef het document al in (ontsleutelen pas bij het lezen); weg van het kluisscherm = op slot
   });
 }
 function bronVanGemaakt(o, naam){ if (o.eigen && o.eigen.gemaakt) o.eigen.gemaakt(naam); else bronNeem(o, [{ bron: 'gemaakt', id: naam, versie: 0 }]); }
 /* Klaarzetten in Java en dan de gewone kiesfunctie van de tool: die krijgt dit bestand in plaats van de kiezer */
 function bronNeem(o, items){
   let fout = '';
-  try { fout = Android.bronVolgende(JSON.stringify(items)) || ''; } catch (e) { fout = 'Kiezen lukt niet'; }
+  try { fout = Android.bronVolgende(JSON.stringify(items), o.kiezer || '') || ''; } catch (e) { fout = 'Kiezen lukt niet'; }
   if (fout) { toast(t(fout)); if (o.weg) o.weg(); return; }
   o.bestand();
 }
+/* De kiezer van Android: niets klaargezet laten staan */
+function bronTelefoon(o){ try { Android.bronVolgende('', ''); } catch (e) {} o.bestand(); }
 /* Lukte het klaarzetten in Java niet (bijv. de factuur is intussen weg): zeggen; de tool hoort een geannuleerde keuze */
 window.onBron = function(r){ if (r && r.error) toast(t(r.error)); };

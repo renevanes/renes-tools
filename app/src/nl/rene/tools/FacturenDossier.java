@@ -850,7 +850,6 @@ final class FacturenDossier {
         } finally { tmp.delete(); }
     }
 
-    /** Een kort overzicht voor het scherm: [{…stuk, zonder grote velden}], nieuwste eerst. */
     /** De kopie van een factuur in de app zelf (facturen/pdf/…), om hem in een andere tool te gebruiken (Bron). */
     static File appBestand(Context c, String sha) throws Exception {
         JSONObject s = alle(c).optJSONObject(sha == null ? "" : sha);
@@ -862,6 +861,7 @@ final class FacturenDossier {
         return f;
     }
 
+    /** Een kort overzicht voor het scherm: [{…stuk, zonder grote velden}], nieuwste eerst. */
     static JSONArray lijst(Context c) {
         JSONArray out = new JSONArray();
         JSONObject all = alle(c);

@@ -7,23 +7,26 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Een bestand uit de app zelf in plaats van de bestandskiezer van Android: uit de documentenkluis, Gemaakt (PDF-tools) of het
  * facturendossier (alleen facturen waarvan de app zelf een kopie heeft).
  *
- * Werking: de interface zet met bronVolgende(...) klaar welk bestand het wordt en roept daarna de gewone kiesfunctie van de
- * tool aan (bijv. pdfPickPdf). MainActivity.startActivityForResult vangt die kiezer af (alleen voor de kiezers in
- * MainActivity.bronMag) en geeft de tool het klaargezette bestand alsof het met de kiezer gekozen was: elke tool verwerkt het
- * dus precies zo als een bestand van de telefoon. Een klaargezet bestand geldt hooguit GELDIG_MS en voor één kiezer.
+ * Werking: de interface zet met bronVolgende(json, kiezer) klaar welk bestand het wordt en voor welke kiezer, en roept daarna
+ * de gewone kiesfunctie van de tool aan (bijv. pdfPickPdf). MainActivity.startActivityForResult vangt precies die kiezer af en
+ * geeft de tool een content-uri (PdfProvider, pad b/&lt;token&gt;/&lt;naam&gt;) alsof het bestand gekozen was: elke tool verwerkt het
+ * dus zoals een bestand van de telefoon. Klaargezet geldt per venster, voor één kiezer en hooguit GELDIG_MS.
  *
- * Het bestand komt als kopie in cache/bron/&lt;uuid&gt;/ (een kluisdocument ontsleuteld) en is te lezen via PdfProvider (pad
- * b/&lt;uuid&gt;/&lt;naam&gt;, alleen binnen de app); na BEWAAR_MS en bij het starten van de app gaat het weg.
+ * Er komt nergens een leesbare kopie: een gemaakte PDF of factuur leest de provider rechtstreeks (alleen lezen), een
+ * kluisdocument ontsleutelt hij pas tijdens het lezen door een pijp. Een token is onraadbaar, geldt BEWAAR_MS en een
+ * kluistoken vervalt ook als de app uit beeld gaat (vergeetKluis).
  */
 final class Bron {
-    static final String DIR = "bron";
     static final long GELDIG_MS = 30_000, BEWAAR_MS = 120_000;
     static final int MAX = 20;
 
@@ -31,15 +34,20 @@ final class Bron {
         final String bron, id; final int versie;
         Item(String bron, String id, int versie) { this.bron = bron; this.id = id; this.versie = versie; }
     }
-    static final class Wacht {
-        final List<Item> items; final long tot; final boolean kluisOk;
-        Wacht(List<Item> items, long tot, boolean kluisOk) { this.items = items; this.tot = tot; this.kluisOk = kluisOk; }
+    /** Een bestand dat de provider mag geven: een gewoon bestand (Gemaakt, factuur) of een kluisdocument (id + versie). */
+    static final class Bestand {
+        final String token, bron, id, naam, mime; final int versie; final long grootte, tot; final File bestand;
+        Bestand(String token, String bron, String id, int versie, String naam, String mime, long grootte, File bestand, long tot) {
+            this.token = token; this.bron = bron; this.id = id; this.versie = versie; this.naam = naam; this.mime = mime; this.grootte = grootte; this.bestand = bestand; this.tot = tot;
+        }
     }
-    private static Wacht wacht;
+    /** Wat de volgende kiezer (req) van dit venster krijgt. */
+    static final class Wacht {
+        final List<Bestand> bestanden; final int req; final long tot;
+        Wacht(List<Bestand> bestanden, int req, long tot) { this.bestanden = bestanden; this.req = req; this.tot = tot; }
+    }
 
-    static synchronized void zet(List<Item> items, long nu, boolean kluisOk) { wacht = new Wacht(items, nu + GELDIG_MS, kluisOk); }
-    /** Het klaargezette bestand, één keer (daarna is het weg), of null als er niets (meer) klaarstaat. */
-    static synchronized Wacht neem(long nu) { Wacht w = wacht; wacht = null; return w != null && nu <= w.tot ? w : null; }
+    private static final Map<String, Bestand> REG = new HashMap<>();
 
     /** [{bron: kluis|gemaakt|factuur, id, versie}] controleren (zonder Android). */
     static List<Item> lees(String json) throws Exception {
@@ -60,20 +68,22 @@ final class Bron {
         return out;
     }
 
-    /** Soort bestand bij de naam (de app kent alleen de extensie). */
+    /** Soort bestand bij de naam (als de kluis het niet weet). */
     static String mime(String naam) {
         String n = naam == null ? "" : naam.toLowerCase(Locale.ROOT);
         int p = n.lastIndexOf('.');
         String e = p < 0 ? "" : n.substring(p + 1);
         switch (e) {
             case "pdf": return "application/pdf";
-            case "jpg": case "jpeg": return "image/jpeg";
+            case "jpg": case "jpeg": case "jfif": return "image/jpeg";
             case "png": return "image/png";
             case "webp": return "image/webp";
             case "gif": return "image/gif";
             case "heic": return "image/heic";
             case "heif": return "image/heif";
+            case "avif": return "image/avif";
             case "bmp": return "image/bmp";
+            case "tif": case "tiff": return "image/tiff";
             case "epub": return "application/epub+zip";
             case "txt": return "text/plain";
             case "csv": return "text/csv";
@@ -84,9 +94,9 @@ final class Bron {
         }
     }
 
-    /** Past een bestand bij wat de kiezer vroeg (type, eventueel met een lijst soorten)? */
-    static boolean past(String naam, String type, String[] mimes) {
-        String m = mime(naam);
+    /** Past een bestand (mime) bij wat de kiezer vroeg (type, eventueel met een lijst soorten)? */
+    static boolean past(String mime, String type, String[] mimes) {
+        String m = mime == null || mime.isEmpty() ? "application/octet-stream" : mime.toLowerCase(Locale.ROOT);
         if (mimes != null && mimes.length > 0) { for (String s : mimes) if (s != null && eenSoort(m, s)) return true; return false; }
         return type == null || type.isEmpty() || eenSoort(m, type);
     }
@@ -94,60 +104,50 @@ final class Bron {
         String v = vraag.toLowerCase(Locale.ROOT);
         if ("*/*".equals(v)) return true;
         if (v.endsWith("/*")) return m.startsWith(v.substring(0, v.length() - 1));
-        return m.equals(v) || "application/octet-stream".equals(v);
+        return m.equals(v);
     }
 
-    /** Een veilige bestandsnaam (geen mappen, geen stuurtekens), met de extensie erbij als die ontbreekt. */
-    static String naam(String n, String ext) {
+    /** Een veilige bestandsnaam (geen mappen, geen stuurtekens). */
+    static String naam(String n) {
         String s = n == null ? "" : n.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_").trim();
         while (s.startsWith(".")) s = s.substring(1);
         if (s.isEmpty()) s = "document";
         if (s.length() > 120) { int p = s.lastIndexOf('.'); String e = p > 0 && s.length() - p <= 8 ? s.substring(p) : ""; s = s.substring(0, 120 - e.length()) + e; }
-        if (ext != null && !ext.isEmpty() && !s.toLowerCase(Locale.ROOT).endsWith(ext)) s += ext;
         return s;
     }
 
-    static File dir(Context c) { return new File(c.getCacheDir(), DIR); }
+    static String token() { return java.util.UUID.randomUUID().toString().replace("-", ""); }
 
-    /** Het bestand klaarzetten in cache/bron/&lt;uuid&gt;/. */
-    static File maak(Context c, Item it, boolean kluisOk) throws Exception {
-        File map = new File(dir(c), java.util.UUID.randomUUID().toString());
-        if (!map.mkdirs()) throw new Exception(Taal.T("Openen lukt niet"));
-        File f;
-        if ("kluis".equals(it.bron)) {
-            if (!kluisOk) throw new Exception(Taal.T("De kluis is op slot"));
+    /** Een bestand inschrijven voor de provider (nu, terwijl de kluis open is); geeft wat de provider later geeft. */
+    static Bestand inschrijven(Context c, Item it, long nu) throws Exception {
+        String bron = it.bron, naam, mime; long grootte = -1; File f = null;
+        if ("kluis".equals(bron)) {
             JSONObject d = Kluis.find(c, Kluis.safeId(it.id));
             if (d == null) throw new Exception(Taal.T("Document niet gevonden"));
-            f = new File(map, naam(Kluis.fileName(d), ""));
-            Kluis.decryptTo(c, it.id, it.versie, f);
-        } else if ("gemaakt".equals(it.bron)) {
-            File src = PdfTools.output(c, it.id);
-            f = new File(map, naam(src.getName(), ".pdf"));
-            kopie(src, f);
+            Kluis.blobFile(c, it.id, it.versie); // bestaat de versie?
+            naam = naam(Kluis.fileName(d));
+            mime = d.optString("mime", "");
+            if (mime.isEmpty() || "application/octet-stream".equals(mime)) mime = mime(naam);
+            if (it.versie == 0) grootte = d.optLong("size", -1);
         } else {
-            File src = FacturenDossier.appBestand(c, it.id);
-            f = new File(map, naam(src.getName(), ".pdf"));
-            kopie(src, f);
+            f = "gemaakt".equals(bron) ? PdfTools.output(c, it.id) : FacturenDossier.appBestand(c, it.id);
+            naam = naam(f.getName()); mime = mime(naam); grootte = f.length();
         }
-        return f;
+        Bestand b = new Bestand(token(), bron, it.id, it.versie, naam, mime, grootte, f, nu + BEWAAR_MS);
+        synchronized (REG) { opruimen(nu); REG.put(b.token, b); }
+        return b;
     }
 
-    private static void kopie(File van, File naar) throws Exception {
-        try (java.io.InputStream in = new java.io.FileInputStream(van); java.io.OutputStream o = new java.io.FileOutputStream(naar)) {
-            byte[] b = new byte[1 << 16]; int n; while ((n = in.read(b)) > 0) o.write(b, 0, n);
-        } catch (Exception e) { naar.delete(); throw e; }
-    }
-
-    /** Klaargezette bestanden weghalen die ouder zijn dan ouderDanMs (0 = alles). */
-    static void opruimen(Context c, long ouderDanMs) {
-        File[] mappen = dir(c).listFiles();
-        if (mappen == null) return;
-        long grens = System.currentTimeMillis() - ouderDanMs;
-        for (File m : mappen) {
-            if (ouderDanMs > 0 && m.lastModified() > grens) continue;
-            File[] fs = m.listFiles();
-            if (fs != null) for (File f : fs) f.delete();
-            m.delete();
+    /** Het bestand achter een token (en precies die naam), zolang het geldt. */
+    static Bestand zoek(String token, String naam, long nu) {
+        synchronized (REG) {
+            Bestand b = token == null ? null : REG.get(token);
+            if (b == null || nu > b.tot || !b.naam.equals(naam)) return null;
+            return b;
         }
     }
+    static void opruimen(long nu) { synchronized (REG) { for (Iterator<Bestand> i = REG.values().iterator(); i.hasNext(); ) if (nu > i.next().tot) i.remove(); } }
+    /** De app gaat uit beeld (of de kluis op slot): geen kluisdocument meer te lezen. */
+    static void vergeetKluis() { synchronized (REG) { for (Iterator<Bestand> i = REG.values().iterator(); i.hasNext(); ) if ("kluis".equals(i.next().bron)) i.remove(); } }
+    static void vergeet(List<Bestand> l) { if (l == null) return; synchronized (REG) { for (Bestand b : l) REG.remove(b.token); } }
 }

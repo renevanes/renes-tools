@@ -16,7 +16,7 @@ function idCopyLeave(){
   idc.session='';idCopyReset(false); Android.idCopySecure(false,''); idc.busy=false; idc.loading=false; idc.result='';
   ['id-recipient','id-purpose','id-date'].forEach(id=>$('#'+id).value=''); $('#id-result').hidden=true; $('#id-status').textContent='';
 }
-function idCopyChoose(){ if(idc.busy||idc.loading)return; bronKies({ titel: t('Foto of PDF kiezen'), soort: 'pdfbeeld', bestand: idCopyKiezer }); }
+function idCopyChoose(){ if(idc.busy||idc.loading)return; bronKies({ titel: t('Foto of PDF kiezen'), soort: 'pdfbeeld', kiezer: 'idkopie', bestand: idCopyKiezer }); }
 function idCopyKiezer(){ if(idc.busy||idc.loading)return; if(!$('#id-date').value)$('#id-date').value=rgToday(); idc.busy=true; $('#id-status').textContent=t('Bestand kiezen…'); idCopyControls(); Android.idCopyPick(); }
 window.onIdCopyPicked=function(r){
   if(current!=='idcopy'||r.session!==idc.session)return; idc.busy=false;

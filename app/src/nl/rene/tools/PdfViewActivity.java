@@ -265,7 +265,9 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         if (!PdfTools.grantedBySender(i, java.util.Collections.singletonList(u))) { fail("Deze PDF kan niet geopend worden"); return; }
         // Een kluisdocument (pad k/) alleen als de app de viewer zelf opende, nooit op verzoek van een andere app
         boolean kluisPad = PdfProvider.AUTH.equals(u.getAuthority()) && !u.getPathSegments().isEmpty() && "k".equals(u.getPathSegments().get(0));
-        if (kluisPad && bijApp() != 1) { fail("Deze PDF kan niet geopend worden"); return; }
+        // Net zo: een bestand dat de app zelf klaarzette (Bron, pad b/); dat wordt hieronder gekopieerd zoals een bestand van buiten
+        boolean bronPad = PdfProvider.AUTH.equals(u.getAuthority()) && !u.getPathSegments().isEmpty() && "b".equals(u.getPathSegments().get(0));
+        if ((kluisPad || bronPad) && bijApp() != 1) { fail("Deze PDF kan niet geopend worden"); return; }
         source = u;
         String k = i.getStringExtra(EXTRA_KLUIS);
         kluisId = k != null && kluisPad && k.matches("[a-z0-9]{6,24}") ? k : "";

@@ -8,7 +8,7 @@ const path=require('path');
   const ok=(v,m)=>{console.log((v?'✓ ':'✗ ')+scheme+': '+m);if(!v)errors.push(scheme+': '+m);};
   await page.goto('file://'+path.join(__dirname,'ui/index.html'));await page.waitForTimeout(300);
   await page.click('#tile-ereader');ok((await page.locator('#er-list').innerText()).includes('Nog geen boeken'),'mooie lege boekenkast');
-  await page.evaluate(()=>{Android.pdfViewPick=()=>window._erPdf=true;});await page.click('#er-pdf');ok(await page.evaluate(()=>window._erPdf&&current==='ereader'),'PDF openen blijft beschikbaar');
+  await page.evaluate(()=>{Android.pdfViewPick=()=>window._erPdf=true;});await page.click('#er-pdf');await (async()=>{if(await page.isVisible('#sheet.on'))await page.click('#sheet-acts >> text=Bestand op de telefoon');})();ok(await page.evaluate(()=>window._erPdf&&current==='ereader'),'PDF openen blijft beschikbaar');
   await page.click('#er-add');await (async()=>{if(await page.isVisible('#sheet.on'))await page.click('#sheet-acts >> text=Bestand op de telefoon');})();await page.waitForFunction(()=>!erBusy);ok(await page.locator('#er-status').isHidden(),'import annuleren');
   await page.evaluate(()=>{
    const first=Array(45).fill('De ochtendzon viel door de ramen. Buiten kwam de stad langzaam tot leven. Er was vandaag alle tijd om iets nieuws te ontdekken.').join('\n\n')+'\n<img src=x onerror=alert(1)>';

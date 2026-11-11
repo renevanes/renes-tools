@@ -641,17 +641,32 @@ public class FeatureBridge {
             } catch (Exception e) { return errJson(e); }
         }
         /**
-         * Een bestand uit de app zelf klaarzetten voor de volgende bestandskiezer van een tool (Bron): [{bron, id, versie}].
-         * Een kluisdocument alleen als de kluis nu open is (net als bij vergelijken). Antwoord: "" of een foutmelding.
+         * Een bestand uit de app zelf klaarzetten voor de volgende bestandskiezer van een tool (Bron): json = [{bron, id, versie}],
+         * kiezer = welke kiezer (MainActivity.bronReq). Leeg = niets klaarzetten (de kiezer van Android). Een kluisdocument alleen
+         * als de kluis nu open is; het wordt nu ingeschreven en pas bij het lezen ontsleuteld. Antwoord: "" of een foutmelding.
          */
-        @JavascriptInterface public String bronVolgende(String json) {
+        @JavascriptInterface public String bronVolgende(String json, String kiezer) {
+            java.util.List<Bron.Bestand> klaar = new java.util.ArrayList<>();
             try {
+                Bron.Wacht oud = a.bronWacht; a.bronWacht = null; if (oud != null) Bron.vergeet(oud.bestanden);
+                if (json == null || json.isEmpty()) return "";
+                int req = MainActivity.bronReq(kiezer);
+                if (req < 0) return Taal.T("Onbekend bestand");
                 java.util.List<Bron.Item> items = Bron.lees(json);
-                boolean kluis = false; for (Bron.Item it : items) if ("kluis".equals(it.bron)) kluis = true;
-                if (kluis && (!PlayPolicy.allows(ctx, "kluis") || !a.kluisOk())) return Taal.T("De kluis is op slot");
-                Bron.zet(items, android.os.SystemClock.elapsedRealtime(), kluis);
+                long nu = android.os.SystemClock.elapsedRealtime();
+                for (Bron.Item it : items) {
+                    if ("kluis".equals(it.bron) && (!PlayPolicy.allows(ctx, "kluis") || !a.kluisOk())) throw new Exception(Taal.T("De kluis is op slot"));
+                    if ("factuur".equals(it.bron) && !PlayPolicy.allows(ctx, "facturen")) throw new Exception(Taal.T("Onbekend bestand"));
+                    klaar.add(Bron.inschrijven(ctx, it, nu));
+                }
+                a.bronWacht = new Bron.Wacht(klaar, req, nu + Bron.GELDIG_MS);
                 return "";
-            } catch (Exception e) { return e.getMessage() == null ? Taal.T("Onbekend bestand") : e.getMessage(); }
+            } catch (Exception e) {
+                Bron.vergeet(klaar);
+                String m = e.getMessage();
+                return m != null && (m.equals(Taal.T("De kluis is op slot")) || m.equals(Taal.T("Document niet gevonden")) || m.equals(Taal.T("Onbekend bestand"))
+                        || m.equals(Taal.T("Kies een bestand")) || m.equals(Taal.T("Deze factuur staat niet meer in de app"))) ? m : Taal.T("Openen lukt niet");
+            }
         }
         // ----- Documenten vergelijken (PdfCompare): A en B uit een bestand, de kluis of Gemaakt -----
 
