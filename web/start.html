@@ -232,6 +232,7 @@ button[data-icon]{align-items:center;gap:9px}
 .big2{min-height:48px;font-size:15px}.big2.ghost{border:1px solid var(--line)}
 #look h2,#pick h2,#wpick h2{font-size:21px;font-weight:650;letter-spacing:-.3px}
 #look h2>.ib,#pick h2>.ib,#wpick h2>.ib{border-radius:8px}
+#pick .nav-home[hidden]{display:none}
 .seg button{min-height:44px;padding:10px 13px;font-size:13px}
 .rb.main,.seg button.on,#banner button,.big2:not(.ghost),#pick .done,.chk2.on{color:var(--on-acc,#fff)}
 .tg.on::after{background:var(--on-acc,#fff)}
@@ -273,7 +274,7 @@ button[data-icon]::before{vertical-align:middle;margin-right:8px}
 <div id="sheet" onclick="if(event.target===this)closeSheet()"><div class="sbox glass"><div class="shd" id="shd"></div><div class="acts" id="sacts"></div></div></div>
 
 <div id="look" aria-label="Look aanpassen">
-  <h2><button class="ib" onclick="closeLook()" aria-label="Terug">‹</button> Look aanpassen</h2>
+  <h2><button class="ib" onclick="closeLook()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button> Look aanpassen</h2>
   <div class="lsec"><h4>Apps kiezen</h4>
     <button class="pickrow" onclick="pickApps('pinned')"><span>🏠 Op het startscherm</span><small id="l-n-pinned"></small><b aria-hidden="true">›</b></button>
     <button class="pickrow" onclick="pickApps('dock')"><span>⬇️ In het dock (onderbalk, max. 6)</span><small id="l-n-dock"></small><b aria-hidden="true">›</b></button>
@@ -323,12 +324,12 @@ button[data-icon]::before{vertical-align:middle;margin-right:8px}
   <p style="text-align:center;font-size:12px;color:var(--muted)">Tools Start · versie __VERSION_NAME__</p>
 </div>
 <div id="pick" aria-label="Apps kiezen">
-  <h2><button class="ib" onclick="closePick(false)" aria-label="Annuleren">‹</button><span id="pk-title"></span><button class="done" onclick="closePick(true)">Klaar</button></h2>
+  <h2><button class="ib" onclick="closePick(false)" aria-label="Annuleren"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><button class="ib nav-home" hidden onclick="skinNaarHome()" aria-label="Hoofdscherm"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button><span id="pk-title"></span><button class="done" onclick="closePick(true)">Klaar</button></h2>
   <input id="pk-q" type="search" placeholder="Zoek apps…" aria-label="Zoek apps" autocomplete="off" oninput="renderPick()" style="font:inherit;font-size:16px;padding:11px 14px;border-radius:14px;border:0;background:var(--glass2);color:var(--ink);outline:none">
   <div id="pk-list"></div>
 </div>
 <div id="wpick" aria-label="Widgets toevoegen">
-  <h2><button class="ib" onclick="closeWPick()" aria-label="Terug">‹</button> Widgets toevoegen</h2>
+  <h2><button class="ib" onclick="closeWPick()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button> Widgets toevoegen</h2>
   <input id="wp-q" type="search" placeholder="Zoek widgets…" aria-label="Zoek widgets" autocomplete="off" oninput="renderWPick()" style="font:inherit;font-size:16px;padding:11px 14px;border-radius:14px;border:0;background:var(--glass2);color:var(--ink);outline:none">
   <div id="wp-list"></div>
 </div>
@@ -1076,6 +1077,7 @@ function pickApps(mode){
   $('#pk-q').value = '';
   renderPick();
   $('#pick').classList.add('on');
+  skinNav();
 }
 function pkName(k){ return k.startsWith('f:') ? '📁 ' + k.slice(2) : (byKey[k] ? byKey[k].n : k); }
 function pkIcon(k){ return k.startsWith('f:') ? '<span class=ib><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span>' : icon(k, 80); }
@@ -1143,6 +1145,17 @@ function closePick(ok){
 /* ---------- look aanpassen ---------- */
 function openLook(){ closeDrawer(); clearTimeout(ovCheck.t); renderLook(); $('#look').classList.add('on'); }
 function closeLook(){ $('#look').classList.remove('on'); ovCheck(); }
+/* Apps kiezen ligt soms op Look aanpassen: dan is Annuleren één stap, en Hoofdscherm het startscherm. */
+function skinNaarHome(){
+  closeSheet(); closeAsk();
+  if (pk) closePick(false); else $('#pick').classList.remove('on');
+  closeWPick(); closeFolder(); closeLook();
+  if (drawerOn()) closeDrawer();
+}
+function skinNav(){
+  const b = document.querySelector('#pick .nav-home');
+  if (b) b.hidden = !($('#look').classList.contains('on') && $('#pick').classList.contains('on'));
+}
 function seg(id, opts, cur, fn){ $(id).innerHTML = opts.map(([v, l]) => '<button data-v="' + esc(v) + '"' + (String(v) === String(cur) ? ' class=on' : '') + '>' + l + '</button>').join('');
   $(id).querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); renderLook(); }); }
 function renderLook(){
