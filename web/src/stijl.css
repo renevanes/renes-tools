@@ -212,11 +212,25 @@ textarea.key:focus{outline:2px solid var(--primary);outline-offset:-1px;border-c
 .notes-quick-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.notes-quick-actions button{min-height:44px;padding:10px 16px;border-radius:24px;background:var(--chip);color:var(--on-chip);font-size:14px;font-weight:600}
 .notes-help{margin:18px 4px;color:var(--muted);font-size:13px}.notes-help summary{padding:10px 0;cursor:pointer}
 .note-identity{margin-bottom:6px}.note-identity .note-progress{margin:8px 0 0}
-.note-section-tabs{position:sticky;top:64px;z-index:12;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:var(--bg);padding:10px 0;margin-bottom:10px}
-.note-section-tabs button{min-height:48px;min-width:0;padding:10px 5px;background:var(--hi);color:var(--muted);font-size:14px;font-weight:600;border-radius:16px;white-space:normal;overflow-wrap:anywhere}
+.note-section-tabs{position:sticky;top:64px;z-index:12;display:flex;gap:4px;background:var(--bg);padding:10px 0;margin-bottom:10px}
+.note-section-tabs button{flex:1 1 0;min-height:48px;min-width:0;padding:10px 5px;background:var(--hi);color:var(--muted);font-size:14px;font-weight:600;border-radius:16px;white-space:normal;overflow-wrap:anywhere}
+.note-section-tabs button[hidden]{display:none}
 .note-section-tabs button[aria-selected=true]{background:var(--primary);color:var(--on-primary)}
 #note-child-count{font-size:11px;border-radius:12px;padding:2px 5px;background:var(--card);color:var(--ink)}
 .note-workspace>[role=tabpanel][hidden]{display:none}
+#note-panel-list{display:flex;flex-direction:column}
+#note-panel-list[hidden]{display:none}
+#s-note:not(.kind-note) .note-content-card{order:-1}
+#s-note.kind-note .note-progress{display:none}
+#s-note.kind-note:not(.has-items) .note-content-card{display:none}
+#s-note.kind-note #note-free-title{display:none}
+#s-note.kind-note #note-text{min-height:220px;max-height:none}
+#note-make-list{margin-top:12px}
+#note-make-list[hidden]{display:none}
+#note-extra-edit[hidden],#note-extra-repeat[hidden]{display:none}
+#note-compose[hidden]{display:none}
+#note-quick{min-height:120px;margin:0 0 10px}
+#note-compose .hint{margin:8px 0 0}
 .note-section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.note-section-heading h2{margin:0}.note-section-heading button{min-height:44px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--primary);border-radius:16px;background:var(--hi)}
 .note-content-card .additem{position:static;margin-top:14px}.note-workspace .ntext{min-height:110px;max-height:360px}
 .note-option-group{background:var(--card);border:1px solid var(--line);border-radius:20px;margin:10px 0;overflow:hidden}

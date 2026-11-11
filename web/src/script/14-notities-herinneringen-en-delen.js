@@ -29,8 +29,8 @@ function noteSetRem(){
   if (!(when > Date.now())) { toast('Kies een moment in de toekomst'); return; }
   notesSaveNow();
   const rep = $('#note-rem-rep').value;
-  if (typeof Android.noteRemindAdd === 'function') Android.noteRemindAdd(n.id, n.title || 'Notitie', String(when), rep);
-  else Android.noteRemind(n.id, n.title || 'Notitie', String(when));
+  if (typeof Android.noteRemindAdd === 'function') Android.noteRemindAdd(n.id, noteLabel(n) || 'Notitie', String(when), rep);
+  else Android.noteRemind(n.id, noteLabel(n) || 'Notitie', String(when));
   $('#note-rem-rep').value = '';
   noteRemShow(); toast(t('Herinnering gezet') + (rep ? ' (' + t(REM_REP[rep]) + ')' : ''));
 }
@@ -41,7 +41,7 @@ function notePinShow(){
   $('#note-pin-app').checked = notePins('app').includes(id);
   const onSkin = notePins('skin').includes(id);
   $('#note-pin-phone').textContent = skin ? (onSkin ? 'Van de telefoon-skin halen' : 'Op de telefoon-skin zetten') : 'Op het startscherm van je telefoon';
-  $('#note-pin-info').textContent = skin && onSkin ? '✓ Staat op je telefoon-skin.' : 'Zo open je dit lijstje (bijvoorbeeld je boodschappen) met één tik.';
+  $('#note-pin-info').textContent = skin && onSkin ? '✓ Staat op je telefoon-skin.' : t('Zo open je deze notitie of dit lijstje met één tik.');
   noteUiSummaries();
 }
 function notePinApp(on){ notesSaveNow(); Android.notePinSet('app', noteCur, on); noteUiSummaries();toast(on ? 'Staat op het startscherm van Tools' : 'Van het startscherm gehaald'); }
@@ -54,16 +54,17 @@ function notePinPhone(){
     Android.notePinSet('skin', n.id, on); notePinShow();
     toast(on ? 'Staat op je telefoon-skin' : 'Van de telefoon-skin gehaald'); return;
   }
-  const e = Android.shortcutPinNote(n.id, n.title || 'Notitie');
-  toast(e || t('Bevestig op je startscherm om {naam} toe te voegen', { naam: n.title || t('deze notitie') }));
+  const e = Android.shortcutPinNote(n.id, noteLabel(n) || 'Notitie');
+  toast(e || t('Bevestig op je startscherm om {naam} toe te voegen', { naam: noteLabel(n) || t('deze notitie') }));
 }
 function noteDelRem(){ askConfirm('Alle herinneringen weghalen?', '', 'Weghalen', () => { if (typeof Android.noteRemindClear === 'function') Android.noteRemindClear(noteCur); else Android.noteRemind(noteCur, '', '0'); noteRemShow(); }); }
 function noteShareNow(){
   const n = noteById(noteCur); if (!n) return;
   const items = n.items || [];
-  if (items.some(i => i.done) && items.some(i => !i.done))
-    openSheet('Delen', n.title || 'Notitie', [['Hele lijst (met vinkjes)', () => noteShareDo(false)], ['Alleen wat nog moet', () => noteShareDo(true)]]);
-  else noteShareDo(false);
+  if (items.some(i => i.done) && items.some(i => !i.done)) {
+    openSheet('Delen', noteLabel(n) || t('Notitie'), [['Hele lijst (met vinkjes)', () => noteShareDo(false)], ['Alleen wat nog moet', () => noteShareDo(true)]]);
+    const sub = $('#sheet-sub'); if (sub) sub.setAttribute('translate', 'no');
+  } else noteShareDo(false);
 }
 function noteShareDo(openOnly){
   const n = noteById(noteCur); if (!n) return;
@@ -71,7 +72,7 @@ function noteShareDo(openOnly){
   noteTree(n.items || []).filter(r => !openOnly || !r.it.done).forEach(r => lines.push('  '.repeat(Math.min(r.depth,20)) + (r.it.done ? '☑ ' : '☐ ') + r.it.text));
   const text = (n.title ? n.title + '\n\n' : '') + lines.join('\n') + (n.text ? (lines.length ? '\n\n' : '') + n.text : '');
   if (!text.trim()) { toast('De notitie is nog leeg'); return; }
-  Android.noteShare(n.title || '', text);
+  Android.noteShare(noteLabel(n), text);
 }
 /** Tekst gedeeld vanuit een andere app → nieuwe notitie. Regels die op een lijstje lijken worden items. */
 function noteFromShare(){
@@ -80,7 +81,7 @@ function noteFromShare(){
   const rawLines = d.text.split(/\r?\n/).filter(x=>x.trim());
   const lines = rawLines.map(x => x.trim());
   const listy = lines.length >= 2 && lines.every(x => x.length < 120);
-  const n = { id: uid(), title: (d.title || (listy ? '' : lines[0] || '')).slice(0, 80), text: listy ? '' : d.text, items: [], updated: Date.now() };
+  const n = { id: uid(), kind: listy ? 'list' : 'note', title: (d.title || '').slice(0, 80), text: listy ? '' : d.text, items: [], updated: Date.now() };
   if (listy) {
     const stack=[];
     rawLines.forEach(line=>{

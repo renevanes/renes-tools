@@ -3,13 +3,14 @@
 [Terug naar het overzicht](../README.md)
 
 ## Notities
-- Notities met lijstjes: items toevoegen (meerdere regels plakken = meerdere items), afstrepen, bewerken, afgevinkte items opruimen, plus een vrij tekstveld. Zoeken door titels, items en tekst met markering (`Notes.java` + interface).
+- Losse notities: bovenaan Notities schrijf je tekst en tik je op Notitie bewaren, zonder een lijst te maken. De notitie opent als tekst. Een titel is niet verplicht; in het overzicht is de eerste regel de naam.
+- Lijstjes: Nieuwe lijst (rechtsonder) of Lijstje toevoegen op een notitie. Items toevoegen (meerdere regels plakken = meerdere items), afstrepen, bewerken, afgevinkte items opruimen, plus een vrij tekstveld. Zoeken door titels, items en tekst met markering (`Notes.java` + interface).
 - **Lijst splitsen in losse items**: plak een lijst, gebruik de vrije notitietekst of kies een bestaand item. Splits op nieuwe regels, komma’s of puntkomma’s en controleer eerst het voorbeeld. Nummering en opsommingstekens verdwijnen; vinkjes en de positie van een bestaand item blijven behouden. De vrije notitietekst blijft standaard staan. Ongedaan maken herstelt de bron zonder intussen gewijzigde items te overschrijven. Maximaal 500 items tegelijk.
 - Opslag in de app-map (`notes.json`, via tijdelijk bestand + hernoemen). Lege notities worden niet bewaard.
 - Knop *Kopie in backup-map zetten*: `Notities/notities.json` en een leesbaar `notities.txt` met `[x]`/`[ ]`.
 
 - **Volgorde, herhalen en delen**: items slepen aan ⋮⋮ of sorteren (A–Z); *Herhalen* zet op een vast moment (elke dag, een weekdag, of een dag van de maand, om middernacht) alle vinkjes weer uit (`Notes.nextReset`/`applyRepeats`, test: `NotesRepeatTest`); delen kan met de hele lijst of alleen wat nog moet.
-- **Widget Lijstje** (`NoteWidget`, `NoteWidgetService`, `NoteWidgetConfig`): één notitie op het startscherm (van Oppo of de skin). Bij het plaatsen kies je welke (met app-slot eerst vingerafdruk); open items bovenaan, tik = afstrepen of terugzetten, tik op de titel = de notitie openen. Opslaan in de app controleert of de notities intussen in de widget veranderd zijn (volgnummer), zodat afstrepen in de widget nooit overschreven wordt.
+- **Widget Lijstje** (`NoteWidget`, `NoteWidgetService`, `NoteWidgetConfig`): één notitie op het startscherm (van Oppo of de skin). Bij het plaatsen kies je welke (met app-slot eerst vingerafdruk); open items bovenaan, tik = afstrepen of terugzetten, tik op de titel = de notitie openen. Een notitie zonder vinkjes toont de tekst; zonder titel is de eerste regel de naam. Opslaan in de app controleert of de notities intussen in de widget veranderd zijn (volgnummer), zodat afstrepen in de widget nooit overschreven wordt.
 - **Snelkoppeling naar één notitie** (in de notitie → Snelkoppeling): *Op het startscherm van Tools* (bovenaan, groep Notities, met het aantal open items) en *Op het startscherm van je telefoon* (vastgezette snelkoppeling die direct dat lijstje opent). Is de telefoon-skin je startscherm, dan komt het lijstje als kaart op de skin, met de eerste open items (de skin kan geen Android-snelkoppelingen tonen).
 
 Notities kun je met de luidsprekerknop voorlezen. Titel, tekst en lijstitems gaan door dezelfde lokale stem als boeken en de assistent; zie [Lokaal voorlezen](voorlezen.md).

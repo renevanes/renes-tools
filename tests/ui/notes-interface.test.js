@@ -17,7 +17,7 @@ const {noteList,noteChildren,noteExtra}=require('./note-navigation');
         ];notesSaveNow();show('notes');
       });
       const rows=()=>p.locator('#notes-list .nrow').count();
-      assert.equal(await p.textContent('#notes-total'),'4');assert.equal(await p.textContent('#notes-open-total'),'2');assert.equal(await p.textContent('#notes-child-total'),'2');
+      assert.equal(await p.textContent('#notes-total'),'1');assert.equal(await p.textContent('#notes-list-total'),'1');assert.equal(await p.textContent('#notes-open-total'),'2');
       assert.equal(await rows(),2,'overzicht begint met ingeklapte sublijsten');
       assert.equal(await p.locator('#notes-list img').count(),0);
       await p.click('[data-expand-id="ui-main"]');assert.equal(await rows(),3);

@@ -44,11 +44,11 @@ final class HomeSearch {
                 if (at < 0) continue;
                 found++;
                 if (notes.length() < 5) {
-                    String t = n.optString("title").trim();
+                    String shown = Notes.showTitle(n);
                     String full = text.toString();
                     int s = Math.max(0, Math.min(at, full.length()) - 20);
                     String snip = full.substring(s, Math.min(full.length(), s + 70)).replace('\n', ' ').trim();
-                    notes.put(new JSONObject().put("id", n.optString("id")).put("title", t.isEmpty() ? "Notitie" : t).put("snip", snip));
+                    notes.put(new JSONObject().put("id", n.optString("id")).put("title", shown.isEmpty() ? "Notitie" : shown).put("snip", snip));
                 }
             }
             o.put("notes", notes);

@@ -141,7 +141,8 @@ final class SmartSearch {
                 String text = sb.toString().trim();
                 if (text.length() < 3) continue;
                 if (text.length() > 30000) text = text.substring(0, 30000);
-                out.add(new Doc("notes", n.optString("id"), title.isEmpty() ? "Zonder titel" : title, text, n.optLong("updated"), null));
+                String shown = Notes.showTitle(n);
+                out.add(new Doc("notes", n.optString("id"), shown.isEmpty() ? "Zonder titel" : shown, text, n.optLong("updated"), null));
             }
         } catch (Exception ignored) { }
         File[] ts = LocalAi.srcOn(c, "tx") ? Transcribe.transcriptDir(c).listFiles() : null;

@@ -255,7 +255,8 @@ function openSheet(title, sub, acts, onDismiss){
   const prev = sheetDismiss; sheetDismiss = null; if (prev) prev(); // een ander menu dat nog open stond
   sheetDismiss = onDismiss || null;
   sheetAt = Date.now(); // het loslaten na lang indrukken mag het menu niet meteen sluiten
-  $('#sheet-title').textContent = title; $('#sheet-sub').textContent = sub || '';
+  $('#sheet-title').textContent = title;
+  const subEl = $('#sheet-sub'); subEl.removeAttribute('translate'); subEl.textContent = sub || '';
   const box = $('#sheet-acts'); box.innerHTML = '';
   acts.forEach(([label, fn, icon]) => { const b = document.createElement('button'); b.textContent = label; if(UI_ICONS.has(icon))b.dataset.icon=icon; b.onclick = () => { sheetDismiss = null; closeSheet(); fn(); }; box.appendChild(b); });
   $('#sheet').classList.add('on');

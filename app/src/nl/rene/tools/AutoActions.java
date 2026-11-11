@@ -128,12 +128,16 @@ public class AutoActions extends JobService {
             open++;
         }
         if (open > 15) b.append(Taal.t(c, "en nog {n}…", "n", open - 15));
-        String text = b.length() > 0 ? b.toString().trim() : (n.optString("text").isEmpty() ? Taal.t(c, "Alles afgestreept ✓") : n.optString("text"));
+        String storedTitle = n.optString("title").trim();
+        String shown = storedTitle.isEmpty() ? Notes.showTitle(n) : storedTitle;
+        String prose = storedTitle.isEmpty() ? Notes.showText(n) : n.optString("text");
+        boolean oneLine = storedTitle.isEmpty() && !shown.isEmpty() && prose.isEmpty() && (items == null || items.length() == 0);
+        String text = b.length() > 0 ? b.toString().trim() : (oneLine ? "" : (prose.isEmpty() ? Taal.t(c, "Alles afgestreept ✓") : prose));
         Auto.channel(c);
         Intent openNote = new Intent(c, MainActivity.class).putExtra("open", "note:" + n.optString("id"))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP).setData(android.net.Uri.fromParts("autonote", n.optString("id"), null));
         Notification.Builder nb = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, Auto.CHANNEL)) : new Notification.Builder(c);
-        String title = n.optString("title").isEmpty() ? Taal.t(c, "Notitie") : n.optString("title");
+        String title = shown.isEmpty() ? Taal.t(c, "Notitie") : shown;
         Taal.keep(nb, Notification.EXTRA_TITLE, Notification.EXTRA_TEXT, Notification.EXTRA_BIG_TEXT); // titel en items van de notitie zijn van Rene
         nb.setSmallIcon(R.drawable.ic_notif).setContentTitle(title + (open > 0 ? " · " + Taal.t(c, "{n} open", "n", open) : ""))
                 .setContentText(text.split("\n")[0]).setStyle(new Notification.BigTextStyle().bigText(text))

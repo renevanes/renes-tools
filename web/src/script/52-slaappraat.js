@@ -216,7 +216,7 @@ function slnMenu(){
   const acts = [];
   if (talk.length) acts.push(['Als notitie bewaren', () => {
     const text = talk.map(k => slTime(k.t) + ' — ' + k.text).join('\n');
-    notesGet().push({ id: uid(), title: t('Slaappraat: {nacht}', { nacht: slNightName(n.start).replace(/^(Nacht van|Night of) /, '') }), text, items: [], updated: Date.now() }); notesSaveNow();
+    notesGet().push({ id: uid(), kind: 'note', title: t('Slaappraat: {nacht}', { nacht: slNightName(n.start).replace(/^(Nacht van|Night of) /, '') }), text, items: [], updated: Date.now() }); notesSaveNow();
     toast('Bewaard bij Notities');
   }]);
   if (!(slSt.phase && slSt.night === n.id)) acts.push(['Deze nacht wissen', () => askConfirm(t('Deze nacht wissen?'), t('Alle stukjes van {nacht} gaan weg.', { nacht: slNightName(n.start).toLowerCase() }), t('Wissen'), () => {
