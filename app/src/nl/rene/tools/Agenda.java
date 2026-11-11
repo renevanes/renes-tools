@@ -102,14 +102,19 @@ final class Agenda {
         return epoch(y[0], y[1], y[2]) - epoch(x[0], x[1], x[2]);
     }
 
-    /** Dagen sinds 1970-01-01 (Howard Hinnant). 1970-01-01 = 0. */
+    /** Dagen sinds 1970-01-01 (Howard Hinnant). 1970-01-01 = 0. Jaren buiten 1–9999 geven 0. */
     static int epoch(int y, int m, int d) {
-        y -= m <= 2 ? 1 : 0;
-        int era = (y >= 0 ? y : y - 399) / 400;
-        int yoe = y - era * 400;
-        int doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
-        int doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-        return era * 146097 + doe - 719468;
+        if (y < 1 || y > 9999 || m < 1 || m > 12 || d < 1 || d > 31) return 0;
+        // long: de invoer past dan niet meer in een int-vermenigvuldiging die kan overlopen.
+        long jaar = y, maand = m, dag = d;
+        jaar -= maand <= 2 ? 1 : 0;
+        long era = (jaar >= 0 ? jaar : jaar - 399) / 400;
+        long yoe = jaar - era * 400;
+        long doy = (153 * (maand + (maand > 2 ? -3 : 9)) + 2) / 5 + dag - 1;
+        long doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+        long days = era * 146097 + doe - 719468;
+        if (days > Integer.MAX_VALUE || days < Integer.MIN_VALUE) return 0;
+        return (int) days;
     }
 
     /** Zelfde dag van de maand, of de laatste dag als die niet bestaat (31 jan → 28 of 29 feb). */
@@ -476,7 +481,31 @@ final class Agenda {
 
     static String norm(String q) {
         if (q == null) return "";
-        return q.toLowerCase(Locale.ROOT).replace('’', '\'').replaceAll("[?!.]+\\s*$", "").replaceAll("\\s+", " ").trim();
+        String s = q.toLowerCase(Locale.ROOT).replace('’', '\'');
+        int end = s.length();
+        while (end > 0 && wit(s.charAt(end - 1))) end--;
+        int punct = end;
+        while (punct > 0) {
+            char c = s.charAt(punct - 1);
+            if (c != '?' && c != '!' && c != '.') break;
+            punct--;
+        }
+        if (punct < end) end = punct;
+        StringBuilder b = new StringBuilder(end);
+        boolean spatie = false;
+        for (int i = 0; i < end; i++) {
+            char c = s.charAt(i);
+            if (wit(c)) { if (!spatie && b.length() > 0) { b.append(' '); spatie = true; } }
+            else { b.append(c); spatie = false; }
+        }
+        int n = b.length();
+        if (n > 0 && b.charAt(n - 1) == ' ') b.setLength(n - 1);
+        return b.toString();
+    }
+
+    /** Zelfde tekens als \\s zonder vlag: spatie, tab, nieuwe regel, verticale tab, form feed, return. */
+    private static boolean wit(char c) {
+        return c == ' ' || c == '\t' || c == '\n' || c == '\u000B' || c == '\f' || c == '\r';
     }
 
     /** Een vraag over de eigen agenda, geen opdracht om iets in de agenda te zetten. */
@@ -540,7 +569,9 @@ final class Agenda {
         if ((m = Pattern.compile("\\bweek(?:nummer)?\\s+(\\d{1,2})\\b").matcher(s)).find()) {
             int nr = Integer.parseInt(m.group(1));
             int jaar = isoJaar(vandaag);
-            if ((s.contains("was") || s.contains("vorige")) && nr > isoWeek(vandaag)) jaar--;
+            if ((s.contains("was") || s.contains("vorige")) && nr > isoWeek(vandaag)) {
+                if (jaar > 1) jaar--;
+            }
             String mon = isoMaandag(jaar, nr);
             if (mon == null) return null;
             return zet(plek, m, mon, Regio.dayAdd(mon, 6));
@@ -557,8 +588,12 @@ final class Agenda {
             m = Pattern.compile("\\b" + MAAND_LANG[i] + "(?:\\s+(\\d{4}))?\\b").matcher(s);
             if (!m.find()) continue;
             int jaar = m.group(1) != null ? Integer.parseInt(m.group(1)) : Integer.parseInt(vandaag.substring(0, 4));
+            if (jaar < 1 || jaar > 9999) return null;
             int huidig = Integer.parseInt(vandaag.substring(5, 7));
-            if (m.group(1) == null && (s.contains("was") || s.contains("geweest")) && (i + 1) > huidig) jaar--;
+            if (huidig < 1 || huidig > 12) huidig = 1;
+            if (m.group(1) == null && (s.contains("was") || s.contains("geweest")) && (i + 1) > huidig) {
+                if (jaar > 1) jaar--;
+            }
             String van = jaar + "-" + two(i + 1) + "-01";
             if (!dagOk(van)) return null;
             return zet(plek, m, van, Regio.dayAdd(plusMaand(van, 1), -1));

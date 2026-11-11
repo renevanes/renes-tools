@@ -45,8 +45,14 @@ public class AgendaTest {
         check(ant.contains("Tandarts") && ant.contains("2019") && ant.contains("14:00"), "zoeken in het verleden: tandarts in 2019 (" + ant + ")");
         check(!Agenda.gaatOver("Zet de tandarts morgen in mijn agenda") && !Agenda.gaatOver("Plan een afspraak in mijn kalender"), "iets in de agenda zetten is geen zoekvraag");
         check(Agenda.gaatOver("wat staat er morgen in mijn agenda"), "wat staat er morgen wel");
+        check(Agenda.gaatOver("Wat staat er morgen in mijn agenda???"), "vraagtekens aan het eind blijven een vraag");
         Agenda.Venster morgen = Agenda.venster("wat staat er morgen in mijn agenda", "2026-11-11");
         check("2026-11-12".equals(morgen.van) && "2026-11-12".equals(morgen.tot), "morgen is één dag");
+        Agenda.Venster dec = Agenda.venster("wat was er in december in mijn agenda", "2026-11-11");
+        check("2025-12-01".equals(dec.van) && "2025-12-31".equals(dec.tot), "december zonder jaar, en 'was', is vorig jaar (" + dec.van + ".." + dec.tot + ")");
+        Agenda.Venster decJaar = Agenda.venster("wat was er in december 2019 in mijn agenda", "2026-11-11");
+        check("2019-12-01".equals(decJaar.van) && "2019-12-31".equals(decJaar.tot), "december 2019 blijft 2019");
+        check(Agenda.verschil("1970-01-01", "1970-01-02") == 1 && Agenda.verschil("2026-11-11", "2026-11-11") == 0, "dagtelling");
         Agenda.Uitkomst leeg = Agenda.schoon(new JSONObject().put("titel", "  ").put("dag", "2026-11-11"), 0, true);
         check(!leeg.ok() && "titel".equals(leeg.fout), "lege titel weigeren");
 

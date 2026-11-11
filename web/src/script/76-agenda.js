@@ -393,7 +393,23 @@ function agSpiegelBewaar(st, inn){
   st.laatste = it;
   return { ok: true, id: it.id, los: !kal && inn.ext > 0 };
 }
-function agNormVraag(q){ return String(q || '').toLowerCase().replace(/[’']/g, "'").replace(/[?!.]+\s*$/, '').replace(/\s+/g, ' ').trim(); }
+function agWit(c){ return c === ' ' || c === '\t' || c === '\n' || c === '\r' || c === '\f' || c === '\v'; }
+function agNormVraag(q){
+  const s = String(q || '').toLowerCase().replace(/[’']/g, "'");
+  let end = s.length;
+  while (end > 0 && agWit(s.charAt(end - 1))) end--;
+  let punct = end;
+  while (punct > 0 && (s.charAt(punct - 1) === '?' || s.charAt(punct - 1) === '!' || s.charAt(punct - 1) === '.')) punct--;
+  if (punct < end) end = punct;
+  let uit = '', spatie = false;
+  for (let i = 0; i < end; i++) {
+    const c = s.charAt(i);
+    if (agWit(c)) { if (!spatie && uit) { uit += ' '; spatie = true; } }
+    else { uit += c; spatie = false; }
+  }
+  if (uit.charAt(uit.length - 1) === ' ') uit = uit.slice(0, -1);
+  return uit;
+}
 function agGaatOver(q){
   const s = agNormVraag(q);
   if (!s || s.length > 300) return false;
