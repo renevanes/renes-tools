@@ -92,13 +92,17 @@ function gsInput(){
   $('#gs-res').style.display = on ? 'block' : 'none';
   $('#gs-hint').style.display = on ? 'none' : '';
   if (!on) { if (gsQ) Android.searchAll(''); gsQ = ''; gsData = {}; return; }
-  // Vorige treffers blijven (gedimd) staan tot de nieuwe binnen zijn: geen verspringende pagina.
+  if (typeof aiSearchSoon === 'function') aiSearchSoon(q); // op betekenis (als het zoekmodel er is)
+  // Notities, apps en geschiedenis mee in dezelfde pauze als de rest: vorige treffers blijven staan.
+  gsTmr = setTimeout(() => gsZoek(q), 300);
+}
+function gsZoek(q){
+  if ($('#gs-q').value.trim() !== q) return;
   const prev = gsData; gsQ = q; gsData = { app: gsApp(q), notes: gsDicht('notes') ? null : gsNotes(q), history: gsDicht('history') ? null : gsHistory(q), pending: !isPlay(), stale: {} };
   for (const k of Object.keys(GS)) if (!['notes', 'app', 'history'].includes(k) && prev[k]) gsData.stale[k] = prev[k];
   gsRender();
   if (isPlay()) return;
-  gsTmr = setTimeout(() => { gsId = Android.searchAll(q); }, 300);
-  if (typeof aiSearchSoon === 'function') aiSearchSoon(q); // op betekenis (als het zoekmodel er is)
+  gsId = Android.searchAll(q);
 }
 function gsNotes(q){
   const ql = q.toLowerCase(), out = [];

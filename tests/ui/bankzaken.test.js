@@ -67,9 +67,9 @@ const { chromium } = require('playwright');
     // Categorie aantikken → boekingen
     await pg.click('#bk-overzicht .bk-bar:has-text("Wonen")'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => bk.tab) === 'boekingen' && (await tekst('#bk-lijst-telling')).startsWith('3 boekingen'), 'Wonen: 3 boekingen');
-    await pg.selectOption('#bk-cat', ''); await pg.fill('#bk-zoek', '23,45'); await pg.waitForTimeout(100);
+    await pg.selectOption('#bk-cat', ''); await pg.fill('#bk-zoek', '23,45'); await pg.waitForTimeout(400);
     ok((await tekst('#bk-lijst')).includes('ALBERT HEIJN'), 'zoeken op bedrag');
-    await pg.fill('#bk-zoek', 'kapper'); await pg.waitForTimeout(100);
+    await pg.fill('#bk-zoek', 'kapper'); await pg.waitForTimeout(400);
     ok((await tekst('#bk-lijst')).includes('Kapper Knip') && (await tekst('#bk-lijst')).includes('Persoonlijke verzorging'), 'zoeken op naam, kapper herkend');
 
     // Lokale AI: vraag en analyse
@@ -96,7 +96,7 @@ const { chromium } = require('playwright');
     ok((await tekst('#bk-veilig')).includes('AES-256-GCM') && (await tekst('#bk-veilig')).includes('15 minuten'), 'uitleg beveiliging');
 
     // Regel via een boeking
-    await pg.click('#bk-tab-boekingen'); await pg.fill('#bk-zoek', 'restaurant'); await pg.waitForTimeout(100);
+    await pg.click('#bk-tab-boekingen'); await pg.fill('#bk-zoek', 'restaurant'); await pg.waitForTimeout(400);
     await pg.click('#bk-lijst .bk-tx'); await pg.waitForTimeout(150);
     await pg.click('#sheet button:has-text("Altijd zo indelen")'); await pg.waitForTimeout(150);
     await pg.click('#sheet button:has-text("Vrije tijd & sport")'); await pg.waitForTimeout(150);
@@ -142,7 +142,7 @@ const { chromium } = require('playwright');
     await pg.selectOption('#bk-rek', 'prive'); await pg.waitForTimeout(150);
     ok((await tekst('#bk-overzicht')).includes('Uit eigen bedrijf') && !(await tekst('#bk-overzicht')).includes('Software & abonnementen'), 'privé overzicht: uit eigen bedrijf, geen zakelijke kosten');
     // Categorie kiezen op een zakelijke boeking: zakelijke categorieën
-    await pg.selectOption('#bk-rek', 'zakelijk'); await pg.click('#bk-tab-boekingen'); await pg.fill('#bk-zoek', 'klant'); await pg.waitForTimeout(150);
+    await pg.selectOption('#bk-rek', 'zakelijk'); await pg.click('#bk-tab-boekingen'); await pg.fill('#bk-zoek', 'klant'); await pg.waitForTimeout(400);
     await pg.click('#bk-lijst .bk-tx'); await pg.click('#sheet button:has-text("Categorie wijzigen")'); await pg.waitForTimeout(150);
     ok((await tekst('#sheet')).includes('Omzet') && !(await tekst('#sheet')).includes('Boodschappen'), 'zakelijke boeking: zakelijke categorieën om uit te kiezen');
     await pg.evaluate(() => closeSheet());
@@ -167,7 +167,7 @@ const { chromium } = require('playwright');
     await pg.click('#sheet button:has-text("Privérekening")'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._bank.data.rek['NL99RABO0123456789'].soort === 'prive'), 'soort te wijzigen');
     await pg.click('#bk-rekeningen .bk-rij:has-text("NL99") button'); await pg.click('#sheet button:has-text("Zakelijke rekening")'); await pg.waitForTimeout(150);
-    await pg.click('#bk-tab-boekingen'); await pg.selectOption('#bk-rek', 'alle'); await pg.fill('#bk-zoek', 'restaurant'); await pg.waitForTimeout(150);
+    await pg.click('#bk-tab-boekingen'); await pg.selectOption('#bk-rek', 'alle'); await pg.fill('#bk-zoek', 'restaurant'); await pg.waitForTimeout(400);
 
     // Open boeking-menu en dan app uit beeld: menu dicht en leeg
     await pg.click('#bk-lijst .bk-tx'); await pg.waitForTimeout(150);

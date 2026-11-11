@@ -51,7 +51,7 @@ function erControls(show){
 /* Bij binnenkomen: erResume zet daarna de leesplek terug, dus hier nog niets meten of herstellen. */
 function erLezenEnter(){erEntering=true;try{erSpeakResumeLoc();erWindowApply(true);erControls(false);erWarmApply();erSpeakRender();if(typeof spSpeechRender==='function')spSpeechRender();}finally{erEntering=false;}}
 /* Terug in het boek terwijl de motor verder las: naar de plek van de laatste zin */
-function erSpeakResumeLoc(){const l=erSpeakLoc;erSpeakLoc=null;if(!l||!erBook||l.book!==erBook.id)return;if(l.chapter!==erIndex){erFollowing=true;try{erChapter(l.chapter,l.offset);}finally{erFollowing=false;}}erCurrentAnchor=l.offset;erCurrentOffset=erText.length?l.offset/erText.length:0;erPendingLocation={chapter:l.chapter,anchor:l.offset,offset:erCurrentOffset};}
+function erSpeakResumeLoc(){const l=erSpeakLoc;erSpeakLoc=null;if(!l||!erBook||l.book!==erBook.id)return;const pas=()=>{erCurrentAnchor=l.offset;erCurrentOffset=erText.length?l.offset/erText.length:0;erPendingLocation={chapter:l.chapter,anchor:l.offset,offset:erCurrentOffset};};if(l.chapter!==erIndex){erVolgAan();erChapter(l.chapter,l.offset,()=>{erVolgUit();pas();});}else pas();}
 function erLezenLeave(){
   erPanel('');document.body.classList.remove('er-controls','er-immersive','er-speaking');erSpeakHighlight(null);$('#er-warm').hidden=true;$('#er-tts').hidden=true;
   setTimeout(()=>{if(typeof spSpeechRender==='function')spSpeechRender();},0); // buiten het boek: de gedeelde voorleesbalk
@@ -131,7 +131,9 @@ function erSetRender(){
  * geeft [offset, end) van de zin die klinkt. Hier: beginnen bij de eerste zichtbare zin, de zin markeren, meebladeren
  * (niet vlak na zelf bladeren), vorige/volgende zin, slaaptimer en wie de leesplek bewaart. */
 const ER_RATES=[.8,1,1.2,1.4,1.6,1.8];
-let erSleep={at:0,chapter:false,choice:'0',timer:null},erFollowing=false,erSpeakLoc=null,erSpeakLast=null;
+let erSleep={at:0,chapter:false,choice:'0',timer:null},erFollowing=false,erFollowingN=0,erSpeakLoc=null,erSpeakLast=null;
+function erVolgAan(){ erFollowing = true; erFollowingN++; }
+function erVolgUit(){ erFollowingN = Math.max(0, erFollowingN - 1); erFollowing = erFollowingN > 0; }
 function erBookLang(){const l=erBook&&erBook.language||'';return /^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$/.test(l)?l:'';}
 function erLangBase(tag){return String(tag||'').split('-')[0].toLowerCase();}
 /* De voorleessessie van de e-reader (of null) */
@@ -255,12 +257,15 @@ function erSpeakEvent(e){
   const reading=erReading()&&erBook.id===e.book;
   if(!reading){erSpeakLoc={book:e.book,chapter:e.chapter,offset:e.offset};return;} // terug in het boek: daar verder (erLezenEnter)
   if(e.chapter!==erIndex){if(Date.now()-erUserAt<4000)return; // net zelf gebladerd (ook naar een ander hoofdstuk): niet terugspringen
-    erFollowing=true;try{if(!erChapter(e.chapter,e.offset))return;}finally{erFollowing=false;}}
+    erVolgAan();erChapter(e.chapter,e.offset,ok=>{erVolgUit();if(ok)verder();});return;}
+  verder();
+  function verder(){
   // De exacte plek van de motor; wordt pas overschreven als je zelf bladert of scrolt
   if(!ended||e.state==='done'||e.state==='stopped'){erPendingLocation={chapter:e.chapter,anchor:e.offset,offset:erText.length?e.offset/erText.length:0};erCurrentAnchor=e.offset;erCurrentOffset=erPendingLocation.offset;}
   if(e.state==='playing'&&Number.isInteger(e.end)&&e.end>e.offset){const before=erSpeakLast;erSpeakLast={chapter:e.chapter,offset:e.offset,end:e.end};erSpeakHighlight(erSpeakLast);if(!before||before.offset!==e.offset||before.chapter!==e.chapter)erSpeakFollow(erSpeakLast);}
   else if(ended)erSpeakHighlight(null);
   else if(erSpeakLast)erSpeakHighlight(erSpeakLast);
+  }
 }
 /* De zin die nu klinkt oplichten (CSS Custom Highlight: de tekst zelf blijft onaangeroerd). */
 function erSpeakHighlight(r){
@@ -322,7 +327,9 @@ function erSpeakOpen(){
 }
 /* Zelf naar een ander boek of hoofdstuk springen (inhoud, zoeken, schuif) stopt het voorlezen; bladeren niet. */
 function erSpeakJump(id){if(erFollowing||erPaging)return;erSpeakLoc=null;const a=erSpeakNow();if(a&&(id===undefined||a.book!==id)){erSleepClear();spStop(true);}}
-let erPaging=false; // erTurn bladert naar een ander hoofdstuk: dat is bladeren, geen sprong
+let erPaging=false, erPagingN=0; // erTurn bladert naar een ander hoofdstuk: dat is bladeren, geen sprong
+function erBladAan(){ erPaging = true; erPagingN++; }
+function erBladUit(){ erPagingN = Math.max(0, erPagingN - 1); erPaging = erPagingN > 0; }
 
 (function(){
   const resumed=window.onResumeApp;window.onResumeApp=function(){if(resumed)resumed();if(erReading()){erWindowApply(true);erWarmApply();}erSpeakRender();};

@@ -444,24 +444,91 @@ final class SleepTalk {
 
     /** Zoeken in wat je zei (voor Zoeken): [{night, clip, t, text}], nieuwste eerst. */
     static synchronized JSONArray search(Context c, String ql) {
+        return zoekNachten(root(c), new File(c.getCacheDir(), "slaap-zoek.json"), ql);
+    }
+
+    /** Zoeklijst in de cache. Eerste keer leest elke nacht; daarna alleen deze lijst, tot night.json wijzigt. */
+    static JSONArray zoekNachten(File root, File index, String ql) {
         JSONArray out = new JSONArray();
-        File[] ds = root(c).listFiles();
-        if (ds == null || ql == null || ql.isEmpty()) return out;
-        Arrays.sort(ds, (x, y) -> y.getName().compareTo(x.getName()));
-        for (File d : ds) {
-            JSONObject n = night(c, d.getName());
-            JSONArray a = n == null ? null : n.optJSONArray("clips");
-            if (a == null) continue;
-            for (int i = a.length() - 1; i >= 0; i--) {
-                JSONObject k = a.optJSONObject(i);
-                if (k == null || !"praten".equals(k.optString("kind"))) continue;
-                String text = k.optString("text");
-                if (!text.toLowerCase(Locale.ROOT).contains(ql)) continue;
-                try { out.put(new JSONObject().put("night", n.optString("id")).put("clip", k.optString("id")).put("t", k.optLong("t")).put("text", text)); } catch (Exception ignored) { }
-                if (out.length() >= 200) return out;
+        if (ql == null || ql.isEmpty() || root == null) return out;
+        String stempel = stempelNachten(root);
+        File stempelBestand = new File(index.getPath() + ".stempel");
+        JSONArray bron = leesSlaapIndex(index, stempelBestand, stempel);
+        if (bron == null) {
+            bron = new JSONArray();
+            File[] ds = root.isDirectory() ? root.listFiles() : null;
+            if (ds != null) {
+                Arrays.sort(ds, (x, y) -> y.getName().compareTo(x.getName()));
+                for (File d : ds) {
+                    if (!d.isDirectory() || !safeId(d.getName())) continue;
+                    File f = new File(d, "night.json");
+                    if (!f.isFile()) continue;
+                    try {
+                        JSONObject n = new JSONObject(Contacts.readText(f, false));
+                        JSONArray a = n.optJSONArray("clips"), clips = new JSONArray();
+                        if (a != null) for (int i = a.length() - 1; i >= 0; i--) {
+                            JSONObject k = a.optJSONObject(i);
+                            if (k == null || !"praten".equals(k.optString("kind"))) continue;
+                            clips.put(new JSONObject().put("clip", k.optString("id")).put("t", k.optLong("t")).put("text", k.optString("text")));
+                        }
+                        if (clips.length() > 0) bron.put(new JSONObject().put("night", n.optString("id")).put("clips", clips));
+                    } catch (Throwable ignored) { }
+                }
+            }
+            schrijfSlaapIndex(index, stempelBestand, stempel, bron);
+        }
+        try {
+            for (int i = 0; i < bron.length() && out.length() < 200; i++) {
+                JSONObject n = bron.optJSONObject(i);
+                JSONArray clips = n == null ? null : n.optJSONArray("clips");
+                if (clips == null) continue;
+                for (int j = 0; j < clips.length() && out.length() < 200; j++) {
+                    JSONObject k = clips.optJSONObject(j);
+                    if (k == null) continue;
+                    String text = k.optString("text");
+                    if (!text.toLowerCase(Locale.ROOT).contains(ql)) continue;
+                    out.put(new JSONObject().put("night", n.optString("night")).put("clip", k.optString("clip")).put("t", k.optLong("t")).put("text", text));
+                }
+            }
+        } catch (Throwable ignored) { }
+        return out;
+    }
+
+    private static String stempelNachten(File root) {
+        File[] ds = root == null || !root.isDirectory() ? null : root.listFiles();
+        long n = 0, len = 0, mt = 0;
+        int h = 1;
+        if (ds != null) {
+            Arrays.sort(ds, (a, b) -> a.getName().compareTo(b.getName()));
+            for (File d : ds) {
+                if (!d.isDirectory() || !safeId(d.getName())) continue;
+                File f = new File(d, "night.json");
+                if (!f.isFile()) continue;
+                n++;
+                len += f.length();
+                long m = f.lastModified();
+                if (m > mt) mt = m;
+                h = h * 31 + d.getName().hashCode();
             }
         }
-        return out;
+        return n + ":" + len + ":" + mt + ":" + h;
+    }
+
+    private static JSONArray leesSlaapIndex(File index, File stempelBestand, String stempel) {
+        try {
+            if (!stempelBestand.isFile() || !index.isFile()) return null;
+            if (!stempel.equals(Contacts.readText(stempelBestand, false).trim())) return null;
+            return new JSONArray(Contacts.readText(index, false));
+        } catch (Throwable t) { return null; }
+    }
+
+    private static void schrijfSlaapIndex(File index, File stempelBestand, String stempel, JSONArray bron) {
+        try {
+            File ouder = index.getParentFile();
+            if (ouder != null) ouder.mkdirs();
+            Contacts.writeText(index, bron.toString(), false);
+            Contacts.writeText(stempelBestand, stempel, false);
+        } catch (Throwable ignored) { }
     }
 
     /** Wat je zei, per nacht (voor slim zoeken): {id, start, regels, tijden}. */

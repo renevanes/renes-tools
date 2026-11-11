@@ -33,6 +33,27 @@ function webStoreRestore(){
 }
 webStoreRestore();
 setTimeout(webStoreSync, 3000); // eerste keer na een update meteen bewaren
+/* Zoekveld: even wachten tot het typen stopt, dan pas de lijst opnieuw tekenen. */
+const uiStraksTimers = {};
+function uiStraks(sleutel, fn, ms){
+  clearTimeout(uiStraksTimers[sleutel]);
+  uiStraksTimers[sleutel] = setTimeout(fn, ms == null ? 250 : ms);
+}
+/* Leaflet hoort niet in het startscherm: pas laden als een scherm een kaart opent. */
+let kaartBelofte = null;
+function kaartLib(klaar){
+  if (window.L) { if (klaar) klaar(); return; }
+  if (!kaartBelofte) {
+    kaartBelofte = new Promise((ok, niet) => {
+      const s = document.createElement('script');
+      s.src = 'vendor/leaflet.js';
+      s.onload = () => { if (window.L) ok(); else { kaartBelofte = null; niet(); } };
+      s.onerror = () => { kaartBelofte = null; niet(); };
+      document.head.appendChild(s);
+    });
+  }
+  if (klaar) kaartBelofte.then(() => klaar(), () => {});
+}
 let current = 'home', poll = null, nameFor = '', lastResultShown = '';
 
 /* Kort onthouden van dure brugvragen (tellen van alle sms'en, mappen controleren) tijdens het pollen. */

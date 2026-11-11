@@ -38,10 +38,13 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     ok(await rijen() === 4, 'alleen Rijnmond');
     await page.selectOption('#nw-bron', '');
     await page.fill('#nw-zoek', 'tram');
+    await page.waitForTimeout(400);
     ok(await rijen() === 1, 'zoeken');
     await page.fill('#nw-zoek', 'xyzzy');
+    await page.waitForTimeout(400);
     ok((await page.locator('#nw-lijst').innerText()).includes('Niets gevonden'), 'zoeken zonder resultaat');
     await page.fill('#nw-zoek', '');
+    await page.waitForTimeout(400);
     await page.click('#nw-filter [data-v="ongelezen"]');
     ok(await rijen() === 8 && await page.getAttribute('#nw-filter [data-v="ongelezen"]', 'aria-checked') === 'true', 'filter Ongelezen');
     await page.click('#nw-filter [data-v="alles"]');

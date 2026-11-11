@@ -34,7 +34,7 @@ final class Sms {
 
     static final String PREFS = "sms";
     static final String DIR = "SMS backup";
-    static final Uri SMS_URI = Uri.parse("content://sms");
+    static Uri smsUri() { return Uri.parse("content://sms"); }
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE); }
 
@@ -49,7 +49,7 @@ final class Sms {
     static List<Msg> read(Context c) {
         List<Msg> out = new ArrayList<>();
         String[] cols = {"_id", "thread_id", "address", "date", "date_sent", "body", "type", "read", "status", "service_center", "protocol"};
-        try (Cursor cur = c.getContentResolver().query(SMS_URI, cols, null, null, "date ASC")) {
+        try (Cursor cur = c.getContentResolver().query(smsUri(), cols, null, null, "date ASC")) {
             if (cur == null) return out;
             int iId = cur.getColumnIndex("_id"), iTh = cur.getColumnIndex("thread_id"), iAddr = cur.getColumnIndex("address"),
                     iDate = cur.getColumnIndex("date"), iDs = cur.getColumnIndex("date_sent"), iBody = cur.getColumnIndex("body"),
@@ -159,7 +159,7 @@ final class Sms {
     }
 
     static int countTotal(Context c) {
-        try (Cursor cur = c.getContentResolver().query(SMS_URI, new String[]{"_id"}, null, null, null)) {
+        try (Cursor cur = c.getContentResolver().query(smsUri(), new String[]{"_id"}, null, null, null)) {
             return cur == null ? 0 : cur.getCount();
         } catch (Exception e) { return 0; }
     }
@@ -181,8 +181,61 @@ final class Sms {
         return a.toString();
     }
 
+    /** Patroon voor LIKE: de tekst, met \, % en _ geëscaped, tussen procenttekens. */
+    static String likePatroon(String q) {
+        StringBuilder b = new StringBuilder("%");
+        if (q != null) for (int i = 0; i < q.length(); i++) {
+            char c = q.charAt(i);
+            if (c == '\\' || c == '%' || c == '_') b.append('\\');
+            b.append(c);
+        }
+        return b.append('%').toString();
+    }
+
     static String searchJson(Context c, String q) throws Exception {
-        String ql = q.toLowerCase();
+        try {
+            String snel = searchSnel(c, q);
+            if (snel != null) return snel;
+        } catch (Throwable ignored) { }
+        return searchLangzaam(c, q);
+    }
+
+    /** Nieuwste 200 via de sms-provider. Null of een fout: de hele inbox, zoals voorheen. */
+    private static String searchSnel(Context c, String q) throws Exception {
+        String ql = q == null ? "" : q.toLowerCase();
+        String[] cols = {"_id", "thread_id", "address", "date", "date_sent", "body", "type", "read", "status", "service_center", "protocol"};
+        JSONArray a = new JSONArray();
+        try (Cursor cur = c.getContentResolver().query(smsUri(), cols, "body LIKE ? ESCAPE '\\'", new String[]{likePatroon(ql)}, "date DESC LIMIT 200")) {
+            if (cur == null) return null;
+            int iId = cur.getColumnIndex("_id"), iTh = cur.getColumnIndex("thread_id"), iAddr = cur.getColumnIndex("address"),
+                    iDate = cur.getColumnIndex("date"), iDs = cur.getColumnIndex("date_sent"), iBody = cur.getColumnIndex("body"),
+                    iType = cur.getColumnIndex("type"), iRead = cur.getColumnIndex("read"), iStatus = cur.getColumnIndex("status"),
+                    iSc = cur.getColumnIndex("service_center"), iProto = cur.getColumnIndex("protocol");
+            while (cur.moveToNext() && a.length() < 200) {
+                Msg m = new Msg();
+                m.id = iId >= 0 ? cur.getLong(iId) : 0;
+                m.threadId = iTh >= 0 ? cur.getLong(iTh) : 0;
+                m.address = iAddr >= 0 ? cur.getString(iAddr) : null;
+                m.date = iDate >= 0 ? cur.getLong(iDate) : 0;
+                m.dateSent = iDs >= 0 ? cur.getLong(iDs) : 0;
+                m.body = iBody >= 0 ? cur.getString(iBody) : null;
+                m.type = iType >= 0 ? cur.getInt(iType) : 0;
+                m.read = iRead >= 0 ? cur.getInt(iRead) : 1;
+                m.status = iStatus >= 0 && !cur.isNull(iStatus) ? cur.getInt(iStatus) : -1;
+                m.serviceCenter = iSc >= 0 ? cur.getString(iSc) : null;
+                m.protocol = iProto >= 0 && !cur.isNull(iProto) ? cur.getInt(iProto) : 0;
+                if (m.body == null || !m.body.toLowerCase().contains(ql)) continue;
+                JSONObject o = msgJson(m);
+                o.put("name", nameFor(c, m.address));
+                o.put("thread", m.threadId);
+                a.put(o);
+            }
+        }
+        return a.toString();
+    }
+
+    private static String searchLangzaam(Context c, String q) throws Exception {
+        String ql = q == null ? "" : q.toLowerCase();
         List<Msg> all = read(c);
         Map<Long, String> nm = new HashMap<>();
         for (Conv cv : conversations(c, all)) nm.put(cv.threadId, cv.name);

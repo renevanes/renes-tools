@@ -16,7 +16,7 @@
     <div class="notes-dashboard" aria-label="Overzicht van je notities">
       <div><strong id="notes-total">0</strong><span>Notities</span></div><div><strong id="notes-list-total">0</strong><span>Lijsten</span></div><div><strong id="notes-open-total">0</strong><span>Open items</span></div>
     </div>
-    <input class="search notes-search" id="notes-search" aria-label="Zoek in notities en lijsten" type="search" placeholder="Zoek een notitie of item…" oninput="renderNotes()">
+    <input class="search notes-search" id="notes-search" aria-label="Zoek in notities en lijsten" type="search" placeholder="Zoek een notitie of item…" oninput="uiStraks('notes', renderNotes)">
     <div class="notes-scopes" role="group" aria-label="Welke notities en lijsten tonen">
       <button data-scope="all" aria-pressed="true" onclick="notesFilter('all')">Alles</button><button data-scope="notes" aria-pressed="false" onclick="notesFilter('notes')">Notities</button><button data-scope="lists" aria-pressed="false" onclick="notesFilter('lists')">Lijsten</button><button data-scope="main" aria-pressed="false" onclick="notesFilter('main')">Hoofdlijsten</button><button data-scope="children" aria-pressed="false" onclick="notesFilter('children')">Sublijsten</button>
     </div>

@@ -144,7 +144,7 @@ function bkCat(tt){
   return r;
 }
 function bkHerbereken(){
-  bk.catCache.clear();
+  bk.vast = null; bk.catCache.clear();
   bk.eigen = new Set(); bk.geimporteerd = new Set();
   if (!bk.store) return;
   for (const tt of bk.store.tx) if (tt.acc && tt.acc !== 'onbekend') { bk.eigen.add(tt.acc); bk.geimporteerd.add(tt.acc); }
@@ -220,6 +220,8 @@ function bkTegenpartijen(lijst){
 }
 /** Vaste lasten en abonnementen: dezelfde tegenpartij, regelmatig (week/maand/kwartaal/jaar), ongeveer hetzelfde bedrag. */
 function bkTerugkerend(){
+  const sleutel = bkVandaag() + '|' + bkRekening();
+  if (bk.vast && bk.vast.k === sleutel) return bk.vast.uit;
   const groep = new Map();
   for (const tt of bk.store.tx) {
     if (tt.a >= 0 || !bkInZicht(tt.acc)) continue;
@@ -241,7 +243,9 @@ function bkTerugkerend(){
     const gestopt = vandaag - new Date(laatst.d + 'T12:00:00') > iv * 1.6 * 864e5;
     uit.push({ naam: laatst.cp || laatst.ci, cat: bkCat(laatst), soort: soort[0], bedrag: m, perMaand: Math.round(m * soort[1]), laatst: laatst.d, volgende, gestopt, n: l.length });
   }
-  return uit.sort((a, b) => (a.gestopt - b.gestopt) || b.perMaand - a.perMaand);
+  const klaar = uit.sort((a, b) => (a.gestopt - b.gestopt) || b.perMaand - a.perMaand);
+  bk.vast = { k: sleutel, uit: klaar };
+  return klaar;
 }
 function bkSaldoReeks(van, tot){
   // Laatste bekende saldo per rekening per dag; samen opgeteld (alleen rekeningen met saldo in het afschrift)
@@ -324,7 +328,7 @@ function bkLaad(){
 }
 /** Alles uit het geheugen en van het scherm. */
 function bkVergeet(){
-  bk.store = null; bk.catCache.clear(); bk.eigen = new Set(); bk.voorstellen = null; bk.aiTekst = ''; bk.lijstN = 100;
+  bk.store = null; bk.vast = null; bk.catCache.clear(); bk.eigen = new Set(); bk.voorstellen = null; bk.aiTekst = ''; bk.lijstN = 100;
   for (const id of ['#bk-overzicht', '#bk-lijst', '#bk-regels', '#bk-budgetten', '#bk-rekeningen', '#bk-imports', '#bk-ai-cat-uit', '#bk-ai-uit']) { const e = $(id); if (e) e.replaceChildren(); }
   for (const id of ['#bk-rek', '#bk-cat']) { const e = $(id); if (e) e.replaceChildren(); }
   for (const id of ['#bk-lijst-telling', '#bk-periode-txt', '#bk-ai-status', '#bk-zonder', '#bk-tijd', '#bk-uitleg']) { const e = $(id); if (e) e.textContent = ''; }

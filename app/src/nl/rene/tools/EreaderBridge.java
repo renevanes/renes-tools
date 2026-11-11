@@ -8,6 +8,7 @@ import org.json.JSONObject;
 public class EreaderBridge extends ToilettenBridge {
     private final java.util.concurrent.atomic.AtomicInteger searchGeneration = new java.util.concurrent.atomic.AtomicInteger();
     private final java.util.concurrent.atomic.AtomicInteger imageGeneration = new java.util.concurrent.atomic.AtomicInteger();
+    private final java.util.concurrent.atomic.AtomicInteger chapterAsk = new java.util.concurrent.atomic.AtomicInteger();
     private static final java.util.concurrent.ExecutorService IMAGE_THREADS = java.util.concurrent.Executors.newFixedThreadPool(2);
     static final int REQ_BOOK = 66;
     EreaderBridge(MainActivity a) { super(a); }
@@ -19,6 +20,24 @@ public class EreaderBridge extends ToilettenBridge {
     }
     @JavascriptInterface public String ereaderChapter(String id, int chapter) {
         try { return Ereader.chapter(ctx, id, chapter).toString(); } catch (Throwable e) { return error(e); }
+    }
+    /** Hoofdstuk op de achtergrond; de pagina blijft bedienbaar. onEreaderChapter krijgt hetzelfde object plus request. */
+    @JavascriptInterface public void ereaderChapterAsk(String id, int chapter, String request) {
+        if (id == null || request == null || request.length() > 40 || chapter < 0 || chapter > 100000) return;
+        final int gen = chapterAsk.incrementAndGet();
+        new Thread(() -> {
+            try {
+                if (gen != chapterAsk.get()) return;
+                JSONObject o = Ereader.chapter(ctx, id, chapter);
+                if (gen != chapterAsk.get()) return;
+                o.put("request", request);
+                a.js("onEreaderChapter", o.toString());
+            } catch (Throwable e) {
+                if (gen != chapterAsk.get()) return;
+                try { a.js("onEreaderChapter", new JSONObject(error(e)).put("request", request).toString()); }
+                catch (Throwable ignored) { }
+            }
+        }, "ereader-hoofdstuk").start();
     }
     @JavascriptInterface public String ereaderDetails(String id) {
         try { return Ereader.details(ctx, id).toString(); } catch (Throwable e) { return error(e); }

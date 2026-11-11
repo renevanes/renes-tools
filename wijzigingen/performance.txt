@@ -1,0 +1,5 @@
+Het startscherm verschijnt eerder; de tegels vullen zich daarna. De kaart laadt pas als je een scherm met een kaart opent.
+Zoeken in sms leest niet meer je hele inbox. Uitgeschreven gesprekken en Slaappraat houden een zoeklijst bij, zodat een volgende zoekactie sneller is.
+Zoeken in notities, de documentenkluis, bankboekingen, het facturendossier, nieuws en je boeken wacht even tot je klaar bent met typen. Vaste lasten in Bankzaken worden bijgehouden tot je iets importeert of een regel wijzigt.
+Toiletten onthoudt de samengevoegde lijst tot een bron of je eigen plekken wijzigen.
+Het facturendossier blijft in het geheugen zolang het bestand niet wijzigt. Een hoofdstuk in de e-reader laden houdt de app bedienbaar.

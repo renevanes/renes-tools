@@ -28,6 +28,7 @@ const W = +process.env.UI_WACHT || 1;
     ok(/Bijgewerkt/.test(await pg.textContent('#toast')), 'melding: bijgewerkt (' + await pg.textContent('#toast') + ')');
     ok(await vis('#wc-privacy') && /Je locatie gaat niet naar de bronnen/.test(await pg.textContent('#wc-privacy')), 'zichtbaar: je locatie gaat niet naar de bronnen');
     ok((await pg.textContent('#wc-voet')).includes('ODbL'), 'bronvermelding met licentie onderaan');
+    await pg.waitForFunction(() => !!document.querySelector('#wc-map .leaflet-container, #wc-map.leaflet-container'));
     ok(await vis('#wc-map') && await pg.evaluate(() => !!document.querySelector('#wc-map .leaflet-container, #wc-map.leaflet-container')), 'kaart staat er');
     ok(/Zoek bij mij|op de kaart/.test(await pg.textContent('#wc-list')), 'lege lijst met uitleg');
 

@@ -44,7 +44,7 @@ const screens=['home','search','backup','settings','redial','wa','calls','notes'
    assert.match(await p.textContent('#sms-result'),/31 berichten geëxporteerd/);assert.equal(await p.isVisible('#sms-recovery'),false);
    // Door de vormgeving veranderen gebruikersgegevens en hun eigen symbolen niet.
    await p.evaluate(()=>{notesGet().push({id:'design-note',title:'📝 Mijn eigen titel',text:'📍 Mijn tekst <img src=x>',items:[],updated:Date.now()});notesSaveNow();show('notes');});
-   await p.fill('#notes-search','Mijn eigen titel');assert.match(await p.textContent('#notes-list'),/📝 Mijn eigen titel/);assert.equal(await p.locator('#notes-list img').count(),0);
+   await p.fill('#notes-search','Mijn eigen titel');await p.waitForTimeout(400);assert.match(await p.textContent('#notes-list'),/📝 Mijn eigen titel/);assert.equal(await p.locator('#notes-list img').count(),0);
    await p.click('#notes-list [data-note-id="design-note"]');assert.equal(await p.inputValue('#note-title'),'📝 Mijn eigen titel');assert.equal(await p.inputValue('#note-text'),'📍 Mijn tekst <img src=x>');
    await p.evaluate(()=>show('home'));await p.waitForTimeout(250);await p.screenshot({path:__dirname+'/shots/redesign-home-'+scheme+'.png',fullPage:true});
    await p.evaluate(()=>show('pdf'));await p.waitForTimeout(250);await p.screenshot({path:__dirname+'/shots/redesign-pdf-'+scheme+'.png',fullPage:true});
