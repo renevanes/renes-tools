@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.189",
+    "date": "2026-11-11",
+    "changes": [
+      "Notities: bovenaan schrijf je een notitie en bewaart die met Notitie bewaren, zonder eerst een lijst te maken. Een notitie opent als tekst; een lijstje maak je met Nieuwe lijst of met Lijstje toevoegen. De widget toont de tekst van een notitie zonder vinkjes.",
+      "De pijl gaat één scherm terug; zit je dieper, dan staat ernaast Start (in een losse app: Hoofdscherm) om meteen naar het begin te gaan.",
+      "Op de Telefoon-skin is de terugpijl dezelfde als in Tools. Kies je apps vanuit Look aanpassen, dan staat er ook Hoofdscherm."
+    ]
+  },
+  {
     "version": "1.188",
     "date": "2026-11-11",
     "changes": [

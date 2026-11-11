@@ -1,1 +1,0 @@
-Notities: bovenaan schrijf je een notitie en bewaart die met Notitie bewaren, zonder eerst een lijst te maken. Een notitie opent als tekst; een lijstje maak je met Nieuwe lijst of met Lijstje toevoegen. De widget toont de tekst van een notitie zonder vinkjes.
