@@ -6,7 +6,7 @@ import org.json.JSONObject;
 import java.util.List;
 import java.util.TimeZone;
 
-/** Datums, ISO-weken, herhaling en zoeken in de agenda, ook in het verleden. */
+/** Datums, ISO-weken, herhaling, duur en zoeken in de agenda, ook in het verleden. */
 public class AgendaTest {
     static int fails = 0;
     static void check(boolean ok, String what) { System.out.println((ok ? "✓ " : "✗ ") + what); if (!ok) fails++; }
