@@ -84,7 +84,7 @@ final class Kluis {
     /** Tijdelijke ontsleutelde bestanden (terugzetten, opslaan als) van een afgebroken keer: weg. */
     static void cleanTmp(Context c) {
         File[] fs = c.getCacheDir().listFiles();
-        if (fs != null) for (File f : fs) if ((f.getName().startsWith("kluistmp-") || f.getName().startsWith("bron-")) && f.getName().endsWith(".tmp")) f.delete(); // ook Bron (PdfProvider) na een vastloper
+        if (fs != null) for (File f : fs) if ((f.getName().startsWith("kluistmp-") || f.getName().startsWith("bron-") || f.getName().startsWith("factuur-")) && f.getName().endsWith(".tmp")) f.delete(); // ook Bron (PdfProvider) en FacturenKluis na een vastloper
     }
 
     static void clearViews(Context c) {
@@ -377,6 +377,18 @@ final class Kluis {
         return out;
     }
 
+    /** Herkomst en koppeling van een document vervangen (alleen wat KluisIndex.meta toelaat), bijv. een factuur naar een andere leverancier. */
+    static synchronized void setMeta(Context c, String id, JSONObject extra) throws Exception {
+        JSONObject meta = meta(extra); JSONArray all = list(c);
+        for (int i = 0; i < all.length(); i++) {
+            JSONObject e = all.getJSONObject(i);
+            if (!id.equals(e.optString("id"))) continue;
+            e.remove("source"); e.remove("link");
+            for (java.util.Iterator<String> k = meta.keys(); k.hasNext(); ) { String key = k.next(); e.put(key, meta.get(key)); }
+            saveIndex(c, all); return;
+        }
+        throw new Exception(Taal.T("Document niet gevonden"));
+    }
     static synchronized void delete(Context c, String id) throws Exception {
         safeId(id);
         JSONArray l = list(c), out = new JSONArray();

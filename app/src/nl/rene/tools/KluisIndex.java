@@ -10,18 +10,25 @@ import org.json.JSONObject;
 final class KluisIndex {
     private KluisIndex() { }
     static final int MAX_VERSIONS = 20;
-    static final String[] SOURCES={"pdf","bewerkt","idkopie","formulier"};
+    static final String[] SOURCES={"pdf","bewerkt","idkopie","formulier","factuur"};
     static final String[] LINK_KEYS={"kind","ref","soort","ontvanger","doel","datum"};
+    /** Een factuur (facturendossier): sha van de PDF, leverancier en datum; nummers en bedragen blijven in het dossier. */
+    static final String[] FACTUUR_KEYS={"kind","ref","leverancier","datum"};
 
-    /** Alleen bekende velden, korte tekst zonder stuurtekens: {source, link:{kind, ref, soort, ontvanger, doel, datum}}. */
+    /**
+     * Alleen bekende velden, korte tekst zonder stuurtekens: {source, link}. Koppeling aan een identiteitsdocument
+     * {kind:"id", ref, soort, ontvanger, doel, datum} of aan een factuur {kind:"factuur", ref:sha, leverancier, datum}.
+     */
     static JSONObject meta(JSONObject in) throws Exception {
         JSONObject out=new JSONObject();if(in==null)return out;
         String source=in.optString("source","");
         if(java.util.Arrays.asList(SOURCES).contains(source))out.put("source",source);
         JSONObject l=in.optJSONObject("link");
-        if(l!=null&&"id".equals(l.optString("kind"))&&l.optString("ref").matches("[A-Za-z0-9_-]{1,64}")){
+        String[] keys=l==null?null:"id".equals(l.optString("kind"))&&l.optString("ref").matches("[A-Za-z0-9_-]{1,64}")?LINK_KEYS
+                :"factuur".equals(l.optString("kind"))&&l.optString("ref").matches("[0-9a-f]{64}")?FACTUUR_KEYS:null;
+        if(keys!=null){
             JSONObject link=new JSONObject();
-            for(String k:LINK_KEYS){String v=l.optString(k,"");if(!v.isEmpty())link.put(k,DocumentMeta.text(v,120,false,"Koppeling"));}
+            for(String k:keys){String v=l.optString(k,"");if(!v.isEmpty())link.put(k,DocumentMeta.text(v,120,false,"Koppeling"));}
             out.put("link",link);
         }
         return out;

@@ -50,6 +50,17 @@ public class KluisIndexTest {
         JSONObject lots = KluisIndex.clean(new JSONObject(d.toString()).put("versions", many), x -> true);
         check(lots.getJSONArray("versions").length() == KluisIndex.MAX_VERSIONS, "maximum aantal versies");
         check(lots.getJSONArray("versions").getJSONObject(0).getLong("t") == 5, "de oudste vallen weg");
+        // Factuur (samenvoegen met het facturendossier): sha als ref, leverancier en datum; geen nummers of bedragen
+        String sha = "ab".repeat(32);
+        JSONObject f = KluisIndex.meta(FacturenKluis.extra(sha, "KPN Zakelijk", "2026-10-05"));
+        check("factuur".equals(f.optString("source")), "herkomst factuur");
+        JSONObject fl = f.getJSONObject("link");
+        check("factuur".equals(fl.optString("kind")) && sha.equals(fl.optString("ref")) && "KPN Zakelijk".equals(fl.optString("leverancier")) && "2026-10-05".equals(fl.optString("datum")), "koppeling factuur");
+        JSONObject ruw = new JSONObject().put("link", new JSONObject().put("kind", "factuur").put("ref", sha).put("bedrag", "48,37").put("nummer", "800123").put("ontvanger", "x"));
+        JSONObject fr = KluisIndex.meta(ruw).getJSONObject("link");
+        check(!fr.has("bedrag") && !fr.has("nummer") && !fr.has("ontvanger"), "alleen de velden van een factuur");
+        check(!KluisIndex.meta(new JSONObject().put("link", new JSONObject().put("kind", "factuur").put("ref", "abc"))).has("link"), "factuur alleen met een sha");
+        check(!FacturenKluis.extra(sha, "", "5-10-2026").getJSONObject("link").has("datum"), "alleen een ISO-datum");
         System.out.println("Kluisindex: herkomst, koppeling, versies en schoonmaken kloppen");
     }
 }
