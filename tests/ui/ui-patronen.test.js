@@ -14,7 +14,7 @@ const DETAIL = ['spraak', 'erbook', 'ercontents', 'erset', 'cversions', 'cversio
   'sleepset', 'sleepnight', 'checkined', 'checkinq', 'checkincmp', 'setnotif', 'setlook', 'setregio', 'setcrash', 'setslot', 'facstuk', 'facgoogle', 'idcopy', 'formulieren',
   'pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade', 'bkparts', 'bkset', 'bkrestore', 'bkmap', 'wasel', 'waauto', 'warestore',
   'wcplek', 'wcbewerk', 'wcdeel', 'wcset', 'wcbronnen', 'wcbron', 'wceigen', 'wcgedeeld', 'cmedit', 'cmlog', 'cmwis', 'cmlijst', 'cmkaart', 'cmai',
-  'nieuwsart', 'nieuwsset'];
+  'nieuwsart', 'nieuwsset', 'nieuwsbron'];
 // Meer dan één gevulde hoofdknop: bewust (met de reden)
 const MEER_PRIMAIR = {
 };

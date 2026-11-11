@@ -121,7 +121,7 @@ public class NieuwsTest {
         Nieuws.zetAan(td, "tweakers", true);
         JSONObject tl = Nieuws.lijst(td, tc);
         check(bron(tl.getJSONArray("bronnen"), "tweakers").optBoolean("cookiekeuze") && "ok".equals(bron(tl.getJSONArray("bronnen"), "tweakers").optString("beeldStand"))
-                && !bron(tl.getJSONArray("bronnen"), "nos").has("cookiekeuze") && !bron(tl.getJSONArray("bronnen"), "nos").has("beeldStand"), "in de lijst: cookiekeuze en stand, alleen bij Tweakers");
+                && !bron(tl.getJSONArray("bronnen"), "nos").optBoolean("cookiekeuze") && !bron(tl.getJSONArray("bronnen"), "nos").has("beeldStand"), "in de lijst: cookiekeuze en stand, alleen bij Tweakers");
 
         // De toestemmingspagina: de site stuurt naar een andere site (DPG Media); dan stoppen en de cookiekeuze vragen
         gehaald.clear();
@@ -492,12 +492,13 @@ public class NieuwsTest {
 
         // Wat bijgewerkt moet worden
         File d2 = tmp("todo-dir"), c2 = tmp("todo-cache");
-        check(Nieuws.teDoen(d2, c2, false, nu).size() == 2, "zonder cache: de twee bronnen die aan staan");
+        check(Nieuws.teDoen(d2, c2, false, nu).size() == 3, "zonder cache: de drie bronnen die aan staan (NOS, Rijnmond, AI Report)");
         Nieuws.bewaarFeed(c2, "nos", "https://x.example.org/", rss(), nu);
+        Nieuws.bewaarFeed(c2, "aireport", "https://x.example.org/", rss(), nu);
         Nieuws.bewaarFout(c2, "rijnmond", "Geen verbinding", nu);
         check(Nieuws.teDoen(d2, c2, false, nu + 60_000L).isEmpty(), "net bijgewerkt of net mislukt: niets");
-        check(Nieuws.teDoen(d2, c2, true, nu + 60_000L).size() == 2, "met de hand: alles wat aan staat");
-        check(Nieuws.teDoen(d2, c2, false, nu + Nieuws.VERS + 1).size() == 2, "na een kwartier: weer bijwerken");
+        check(Nieuws.teDoen(d2, c2, true, nu + 60_000L).size() == 3, "met de hand: alles wat aan staat");
+        check(Nieuws.teDoen(d2, c2, false, nu + Nieuws.VERS + 1).size() == 3, "na een kwartier: weer bijwerken");
         Files.write(new File(c2, "weg.json").toPath(), "{}".getBytes(StandardCharsets.UTF_8));
         Nieuws.ruimOp(d2, c2);
         check(!new File(c2, "weg.json").exists() && new File(c2, "nos.json").isFile(), "opruimen: cache van onbekende bronnen weg");
@@ -558,7 +559,116 @@ public class NieuwsTest {
         String heelWv = "path=\"app_webview/\"";
         check(!br.contains(heelWv) && !dr.contains(heelWv), "de rest van app_webview/ (localStorage met de instellingen van de interface) gaat wel mee");
 
+        instellingen();
+
         System.out.println(fails == 0 ? "alles goed" : fails + " fout(en)");
         System.exit(fails == 0 ? 0 : 1);
     }
+
+    /** Instellingen per bron: voor elke bron hetzelfde (ook inloggen), opslaan, terugzetten, en wat er bij het ophalen meegaat. */
+    static void instellingen() throws Exception {
+        File dir = tmp("inst"), cache = tmp("inst-cache");
+        JSONArray bs = Nieuws.bronnen(dir);
+        // AI Report: een bekende bron, standaard aan, inloggen standaard aan (lezen in Tools), de feed zoekt Tools op de site
+        JSONObject ai = bron(bs, "aireport");
+        check(ai != null && ai.optBoolean("aan") && ai.optBoolean("inlog") && "app".equals(ai.optString("lezen")) && "https://www.aireport.nl/".equals(ai.optString("inlogStart"))
+                && "aireport.nl *.aireport.nl *.beehiiv.com".equals(ai.optString("inlogSites")) && !ai.optBoolean("aangepast"), "AI Report: bekende bron, aan, inloggen aan: " + ai);
+        check("aireport".equals(Nieuws.bekendeSite("https://www.aireport.nl/")) && "aireport".equals(Nieuws.bekendeSite("aireport.nl")), "aireport.nl intikken: de bekende bron");
+        for (String[] il : Nieuws.INLOG_STANDAARD) check(Nieuws.standaard(il[0]) != null && Nieuws.siteMag(il[2], il[1]) && il[2].equals(geen(() -> Nieuws.sitesNetjes(il[2]))), "inlog " + il[0] + ": bekende bron, inlogpagina bij de sites");
+        // Elke bron heeft dezelfde velden
+        for (int i = 0; i < bs.length(); i++) {
+            JSONObject b = bs.getJSONObject(i);
+            boolean alles = true;
+            for (String k : new String[]{"id", "naam", "url", "aan", "eigen", "alleen", "pagina", "cookiekeuze", "inlog", "inlogStart", "inlogSites", "lezen", "aangepast"}) alles &= b.has(k);
+            check(alles && Nieuws.siteMag(b.optString("inlogSites"), b.optString("inlogStart")), "bron " + b.optString("id") + ": alle instellingen, inlogpagina hoort bij de sites");
+        }
+        check("https://nos.nl/".equals(bron(bs, "nos").optString("inlogStart")) && "nos.nl *.nos.nl".equals(bron(bs, "nos").optString("inlogSites")) && !bron(bs, "nos").optBoolean("inlog")
+                && "browser".equals(bron(bs, "nos").optString("lezen")), "NOS: inloggen uit, begin bij de site van de bron");
+        check(bron(bs, "tweakers").optBoolean("pagina") && bron(bs, "tweakers").optBoolean("cookiekeuze") && "tweakers.net/nieuws/".equals(bron(bs, "tweakers").optString("alleen")), "Tweakers: afbeeldingen van de pagina en alleen nieuws, zoals voorheen");
+
+        // Sites
+        check("aireport.nl *.beehiiv.com".equals(geen(() -> Nieuws.sitesNetjes(" https://www.AIreport.nl/login, *.beehiiv.com aireport.nl "))), "sites netjes: zonder https://, www. en pad, geen dubbele");
+        for (String fout : new String[]{"", "*.com", "localhost", "192.168.1.1", "a b.c/ *.", "voor beeld", "x..nl", "-a.nl"}) check(geeftFout(() -> Nieuws.sitesNetjes(fout)), "ongeldige sites geweigerd: '" + fout + "'");
+        check(Nieuws.siteMag("aireport.nl *.beehiiv.com", "https://www.aireport.nl/p/x") && Nieuws.siteMag("aireport.nl", "https://aireport.nl/")
+                && Nieuws.siteMag("*.beehiiv.com", "https://link.mail.beehiiv.com/ss/c/1") && !Nieuws.siteMag("aireport.nl", "https://login.aireport.nl/")
+                && !Nieuws.siteMag("aireport.nl", "http://aireport.nl/") && !Nieuws.siteMag("aireport.nl", "https://aireport.nl.example.org/")
+                && !Nieuws.siteMag("*.beehiiv.com", "https://beehiiv.com.example.org/") && !Nieuws.siteMag("*.aireport.nl", "https://xaireport.nl/"), "siteMag: alleen https naar de sites zelf");
+        List<String> uit = Nieuws.uitlogAdressen("aireport.nl *.beehiiv.com", "https://login.aireport.nl/start");
+        check(uit.contains("https://login.aireport.nl/") && uit.contains("https://aireport.nl/") && uit.contains("https://www.aireport.nl/") && uit.contains("https://beehiiv.com/"), "uitloggen: de inlogpagina en de sites: " + uit);
+        check("tweakers.net/nieuws/".equals(geen(() -> Nieuws.alleenNetjes(" https://www.Tweakers.net/nieuws/ "))) && "".equals(geen(() -> Nieuws.alleenNetjes(""))) && geeftFout(() -> Nieuws.alleenNetjes("a b")), "begin van de link netjes");
+        check(Nieuws.kandidaten("https://www.aireport.nl/").contains("https://www.aireport.nl/feed") && Nieuws.kandidaten("https://www.aireport.nl/").contains("https://www.aireport.nl/rss")
+                && Nieuws.kandidaten("https://www.aireport.nl/nieuws/").get(0).equals("https://www.aireport.nl/feed") && Nieuws.kandidaten("http://x.example.org/").isEmpty(), "gangbare feedadressen op dezelfde site");
+
+        // Instellen: een bekende bron
+        JSONObject nos = Nieuws.instellen(dir, cache, "nos", new JSONObject().put("naam", "Nieuws van de NOS").put("alleen", "nos.nl/artikel/").put("pagina", true), null);
+        check("Nieuws van de NOS".equals(nos.optString("naam")) && "nos.nl/artikel/".equals(nos.optString("alleen")) && nos.optBoolean("pagina") && nos.optBoolean("aangepast")
+                && "NOS Nieuws".equals(nos.optString("standaardNaam")), "NOS aangepast: naam, alleen, afbeeldingen van de pagina");
+        Nieuws.zetAan(dir, "nos", false);
+        check("Nieuws van de NOS".equals(bron(Nieuws.bronnen(dir), "nos").optString("naam")), "aan/uit laat de instellingen staan");
+        Nieuws.zetAan(dir, "nos", true);
+        new File(cache, "nos.json").createNewFile();
+        nos = Nieuws.instellen(dir, cache, "nos", new JSONObject().put("url", "x"), "https://feeds.nos.nl/nosnieuwsbinnenland");
+        check("https://feeds.nos.nl/nosnieuwsbinnenland".equals(nos.optString("url")) && !new File(cache, "nos.json").exists(), "ander feedadres: bewaard, oude artikelen weg");
+        check(geeftFout(() -> Nieuws.instellen(dir, cache, "nos", new JSONObject().put("url", "x"), "https://www.rijnmond.nl/rss/index.xml")), "feed die al bij een andere bron staat: geweigerd");
+        // Inloggen bij een bron die het nog niet had
+        nos = Nieuws.instellen(dir, cache, "nos", new JSONObject().put("inlog", true).put("inlogStart", "https://mijn.nos.nl/login").put("inlogSites", "nos.nl *.nos.nl"), null);
+        check(nos.optBoolean("inlog") && "app".equals(nos.optString("lezen")) && "https://mijn.nos.nl/login".equals(nos.optString("inlogStart")), "inloggen aan: inlogpagina, lezen in Tools");
+        check(geeftFout(() -> Nieuws.instellen(dir, cache, "nos", new JSONObject().put("inlogStart", "https://login.example.org/"), null))
+                && "https://mijn.nos.nl/login".equals(bron(Nieuws.bronnen(dir), "nos").optString("inlogStart")), "inlogpagina buiten de sites: geweigerd, niets veranderd");
+        check(geeftFout(() -> Nieuws.instellen(dir, cache, "nos", new JSONObject().put("inlogSites", "*.com"), null)), "ongeldige sites: geweigerd");
+        check(geeftFout(() -> Nieuws.instellen(dir, cache, "nos", new JSONObject().put("lezen", "ergens"), null)), "lezen: alleen app of browser");
+        nos = Nieuws.instellen(dir, cache, "nos", new JSONObject().put("lezen", "browser"), null);
+        check("browser".equals(nos.optString("lezen")) && nos.optBoolean("inlog"), "lezen in de browser, inlog blijft");
+        // Bestand: alleen afwijkingen, en een oude app (v1) leest standaard/eigen nog
+        JSONObject f = new JSONObject(new String(Files.readAllBytes(new File(dir, "bronnen.json").toPath()), StandardCharsets.UTF_8));
+        check(f.optInt("v") == 2 && f.optJSONObject("standaard").has("nos") && f.optJSONObject("instellingen").has("nos") && !f.optJSONObject("instellingen").has("rijnmond"), "bronnen.json: v2, alleen afwijkingen");
+        // Standaard terugzetten
+        nos = Nieuws.instellen(dir, cache, "nos", new JSONObject().put("standaard", true), null);
+        check("NOS Nieuws".equals(nos.optString("naam")) && "https://feeds.nos.nl/nosnieuwsalgemeen".equals(nos.optString("url")) && !nos.optBoolean("inlog") && !nos.optBoolean("pagina")
+                && nos.optString("alleen").isEmpty() && !nos.optBoolean("aangepast") && nos.optBoolean("aan"), "standaard terugzetten: alles terug, aan blijft aan");
+        // Standaardwaarden expliciet kiezen = geen afwijking
+        JSONObject tw = Nieuws.instellen(dir, cache, "tweakers", new JSONObject().put("naam", "Tweakers Nieuws").put("alleen", "tweakers.net/nieuws/").put("pagina", true), null);
+        check(!tw.optBoolean("aangepast"), "standaardwaarden opslaan: niets aangepast");
+        tw = Nieuws.instellen(dir, cache, "tweakers", new JSONObject().put("alleen", ""), null);
+        check(tw.optString("alleen").isEmpty() && tw.optBoolean("aangepast"), "Tweakers: alles uit de feed (leeg begin) kan ook");
+        // AI Report: inloggen uit kan (en blijft uit)
+        ai = Nieuws.instellen(dir, cache, "aireport", new JSONObject().put("inlog", false), null);
+        check(!ai.optBoolean("inlog") && "browser".equals(ai.optString("lezen")) && ai.optBoolean("aangepast"), "AI Report: inloggen uit");
+        ai = Nieuws.instellen(dir, cache, "aireport", new JSONObject().put("inlog", true), null);
+        check(ai.optBoolean("inlog") && !ai.optBoolean("aangepast"), "AI Report: inloggen weer aan = standaard");
+
+        // Een eigen bron: dezelfde instellingen; naam en adres staan bij de eigen bron
+        JSONObject e = Nieuws.voegToe(dir, "https://feeds.example.org/blog.xml", "Blog");
+        String eid = e.getString("id");
+        check("https://example.org/".equals(e.optString("inlogStart")) && "example.org *.example.org".equals(e.optString("inlogSites")), "eigen bron: inloggen begint bij de site, niet bij feeds.: " + e.optString("inlogStart"));
+        e = Nieuws.instellen(dir, cache, eid, new JSONObject().put("naam", "Mijn blog").put("inlog", true), null);
+        check("Mijn blog".equals(e.optString("naam")) && e.optBoolean("inlog") && e.optBoolean("eigen"), "eigen bron: naam en inloggen");
+        e = Nieuws.instellen(dir, cache, eid, new JSONObject().put("url", "x"), "https://example.org/rss");
+        check("https://example.org/rss".equals(e.optString("url")) && eid.equals(e.optString("id")), "eigen bron: ander adres, zelfde id");
+        e = Nieuws.instellen(dir, cache, eid, new JSONObject().put("standaard", true), null);
+        check("Mijn blog".equals(e.optString("naam")) && !e.optBoolean("inlog") && !e.optBoolean("aangepast"), "eigen bron terugzetten: naam en adres blijven, de rest terug");
+        Nieuws.instellen(dir, cache, eid, new JSONObject().put("pagina", true), null);
+        Nieuws.verwijder(dir, cache, eid);
+        f = new JSONObject(new String(Files.readAllBytes(new File(dir, "bronnen.json").toPath()), StandardCharsets.UTF_8));
+        check(!f.optJSONObject("instellingen").has(eid), "eigen bron weg: zijn instellingen ook");
+        check(geeftFout(() -> Nieuws.instellen(dir, cache, "bestaat-niet", new JSONObject(), null)), "onbekende bron: fout");
+
+        // Een bron met een andere feed dan het opgegeven adres: de volgende keer meteen die feed
+        NieuwsFeed.Feed rf = rss();
+        Nieuws.bewaarFeed(cache, "aireport", "https://www.aireport.nl/feed", rf, 1_794_000_000_000L);
+        JSONObject c = new JSONObject(new String(Files.readAllBytes(Nieuws.cacheBestand(cache, "aireport").toPath()), StandardCharsets.UTF_8));
+        check("https://www.aireport.nl/feed".equals(c.optString("feed")), "cache onthoudt het echte feedadres");
+
+        // Beelden: alleen als het per bron aan staat
+        NieuwsFeed.Feed t1 = tweakers();
+        int[] gehaald = {0};
+        Nieuws.beelden("nos", "https://tweakers.net/feeds/mixed.xml", t1, null, System.currentTimeMillis() + 10_000, (u, tot) -> { gehaald[0]++; return ""; }, false);
+        check(gehaald[0] == 0, "afbeeldingen van de pagina uit: niets opgehaald");
+        Nieuws.beelden("nos", "https://tweakers.net/feeds/mixed.xml", t1, null, System.currentTimeMillis() + 10_000,
+                (u, tot) -> { gehaald[0]++; return "<head><meta property=\"og:image\" content=\"https://tweakers.net/i/x.jpg\"></head>"; }, true);
+        check(gehaald[0] == 2 && "https://tweakers.net/i/x.jpg".equals(t1.artikelen.get(0).beeld), "afbeeldingen van de pagina aan bij een andere bron: werkt hetzelfde (" + gehaald[0] + ")");
+    }
+
+    interface Geef { String geef() throws Exception; }
+    static String geen(Geef g) { try { return g.geef(); } catch (Exception e) { return "FOUT: " + e.getMessage(); } }
 }

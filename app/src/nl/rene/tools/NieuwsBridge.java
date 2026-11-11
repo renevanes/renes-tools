@@ -87,6 +87,96 @@ public class NieuwsBridge extends EreaderBridge {
         return "";
     }
 
+    /**
+     * De instellingen van een bron aanpassen (json met alleen wat verandert; "standaard": true = terug naar de vaste
+     * waarden). Een ander feedadres wordt eerst gelezen (met de cookies van de inlog als die aan staat). Antwoord via
+     * onNieuwsInstellen({bron} of {error}).
+     */
+    @JavascriptInterface public void nieuwsInstellen(String id, String json) {
+        new Thread(() -> {
+            String r;
+            try {
+                JSONObject in = new JSONObject(json == null ? "{}" : json);
+                String feed = null;
+                if (in.has("url")) {
+                    String u = Nieuws.adres(in.optString("url"));
+                    if (Nieuws.andereFeed(Nieuws.dir(ctx), id, u)) {
+                        JSONObject b = bron(id);
+                        boolean inlog = in.has("inlog") ? in.optBoolean("inlog") : b.optBoolean("inlog");
+                        Nieuws.Gelezen g = Nieuws.lees(u, System.currentTimeMillis() + Nieuws.MAX_HAAL,
+                                inlog ? Nieuws.inlogKoekjes(b.put("inlog", true)) : null, inlog ? Nieuws.paginaUa(Nieuws.webUa(ctx)) : Nieuws.UA);
+                        if (g.feed.artikelen.isEmpty()) throw new Nieuws.Fout(Taal.T("Deze feed heeft geen artikelen"));
+                        feed = g.url;
+                    }
+                }
+                r = new JSONObject().put("bron", Nieuws.instellen(Nieuws.dir(ctx), Nieuws.cache(ctx), id, in, feed)).toString();
+                App.log(ctx, "NIEUWS", "bron ingesteld");
+            } catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(Taal.tx(ctx, Nieuws.kort(e, Taal.T("Opslaan lukt niet")))) + "}"; }
+            a.js("onNieuwsInstellen", r);
+        }, "nieuws-instellen").start();
+    }
+
+    private JSONObject bron(String id) throws Exception {
+        JSONObject b = null;
+        synchronized (Nieuws.LOCK) {
+            JSONArray bs = Nieuws.bronnen(Nieuws.dir(ctx));
+            for (int i = 0; i < bs.length(); i++) if (bs.getJSONObject(i).optString("id").equals(id)) b = bs.getJSONObject(i);
+        }
+        if (b == null) throw new Nieuws.Fout(Taal.T("Deze bron bestaat niet meer"));
+        return b;
+    }
+
+    /** Inloggen bij de website van een bron: de echte site, in een eigen venster (alleen de sites van die bron). */
+    @JavascriptInterface public String nieuwsInloggen(String id) {
+        try {
+            JSONObject b = bron(id);
+            if (!b.optBoolean("inlog")) return Taal.tx(ctx, "Zet eerst Inloggen bij de website aan");
+            open(id, NieuwsInlogActivity.INLOGGEN, b.getString("inlogStart"));
+            return "";
+        } catch (Throwable e) { return fout(e, Taal.T("Openen lukt niet")); }
+    }
+
+    /**
+     * Een artikel lezen in het venster van de bron, met de inlog. "extern" = dat kan niet (inloggen staat uit, lezen gaat
+     * in de browser, of de link is van een andere site): dan opent de interface de browser.
+     */
+    @JavascriptInterface public String nieuwsLees(String id, String link) {
+        try {
+            JSONObject b = bron(id);
+            if (!b.optBoolean("inlog") || !"app".equals(b.optString("lezen")) || !Nieuws.siteMag(b.optString("inlogSites"), link)) return "extern";
+            open(id, NieuwsInlogActivity.LEZEN, link);
+            return "";
+        } catch (Throwable e) { return "extern"; }
+    }
+
+    private void open(String id, String soort, String url) {
+        Intent i = new Intent(ctx, NieuwsInlogActivity.class).putExtra("bron", id).putExtra("soort", soort).putExtra("url", url);
+        a.h.post(() -> { try { a.startActivity(i); } catch (Throwable ignored) { } });
+    }
+
+    /** Uitloggen: de cookies en websitegegevens van de sites van de inlog weg. */
+    @JavascriptInterface public String nieuwsUitloggen(String id) {
+        try {
+            JSONObject b = bron(id);
+            NieuwsInlogActivity.wis(Nieuws.uitlogAdressen(b.optString("inlogSites"), b.optString("inlogStart")));
+            App.log(ctx, "NIEUWS", "uitgelogd");
+            return "";
+        } catch (Throwable e) { return fout(e, Taal.T("Uitloggen lukt niet")); }
+    }
+
+    /** Heeft de site cookies bewaard (dan ben je waarschijnlijk ingelogd)? {koekjes: aantal namen} */
+    @JavascriptInterface public String nieuwsInlogStand(String id) {
+        try {
+            JSONObject b = bron(id);
+            int n = 0;
+            for (String u : Nieuws.uitlogAdressen(b.optString("inlogSites"), b.optString("inlogStart"))) {
+                String k = Nieuws.koekjesNamen(android.webkit.CookieManager.getInstance().getCookie(u));
+                if (!k.isEmpty()) n = Math.max(n, k.split(";").length);
+            }
+            return new JSONObject().put("koekjes", n).toString();
+        } catch (Throwable e) { return "{\"koekjes\":0}"; }
+    }
+
     /** Delen: titel en adres van het artikel (zonder volgparameters), via de gewone Android-keuze. */
     @JavascriptInterface public void nieuwsDeel(String titel, String link) {
         if (link == null || !Podcasts.httpUrl(link)) return;

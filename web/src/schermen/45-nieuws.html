@@ -37,7 +37,7 @@
 <section class="screen" id="s-nieuwsset">
   <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">Nieuws: instellingen</h1></div>
   <main>
-    <p class="hint">Tools haalt de nieuwsfeeds rechtstreeks bij de nieuwssites op, zonder account of tussendienst. Wat je leest en bewaart blijft op je telefoon.</p>
+    <p class="hint">Tools haalt de nieuwsfeeds rechtstreeks bij de nieuwssites op, zonder tussendienst. Wat je leest en bewaart blijft op je telefoon. Tik op een bron voor al zijn instellingen, ook inloggen.</p>
     <div class="flabel" id="nws-bronnen-l" style="margin:4px 2px 8px">Bronnen</div>
     <div class="card stations nws-bronnen" id="nws-bronnen" role="group" aria-labelledby="nws-bronnen-l"></div>
     <details class="card setup" id="nws-cookie" hidden>
@@ -59,12 +59,64 @@
       <div class="sw"><span>Afbeeldingen tonen<small id="nws-img-n">De afbeeldingen komen van de nieuwssite; die ziet dan dat je ze bekijkt. Bij Tweakers haalt Tools daarvoor ook het begin van elk nieuw artikel op, met je cookiekeuze.</small></span><button class="tg on" id="nws-img" role="switch" aria-checked="true" aria-label="Afbeeldingen tonen" aria-describedby="nws-img-n" onclick="togUi(this); nwBeelden(this.classList.contains('on'))"></button></div>
     </div>
     <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
-      <p>Een nieuwsfeed (RSS of Atom) is de lijst met nieuwste artikelen die een nieuwssite zelf aanbiedt. Tools haalt die lijst op als je Nieuws opent (hooguit eens per kwartier) of als je op Bijwerken tikt. Er loopt niets via een andere dienst en je hebt geen account nodig.</p>
+      <p>Een nieuwsfeed (RSS of Atom) is de lijst met nieuwste artikelen die een nieuwssite zelf aanbiedt. Tools haalt die lijst op als je Nieuws opent (hooguit eens per kwartier) of als je op Bijwerken tikt. Er loopt niets via een andere dienst. Een account is niet nodig; heb je er een bij een site, dan kun je per bron inloggen (tik op de bron).</p>
       <p>Veel sites zetten alleen het begin van een artikel in hun feed. Met Lees op de website open je het hele artikel in je browser; de site ziet dan wel dat je het leest.</p>
       <p>Tweakers zet geen afbeeldingen in de feed. Staat Afbeeldingen tonen aan, dan haalt Tools bij het bijwerken van elk nieuw artikel het begin van de pagina op om de afbeelding te vinden. Dat gebeurt voor alle nieuwe artikelen, dus ook voor artikelen die je niet leest.</p>
       <p>Tweakers laat die pagina pas zien als je een cookiekeuze hebt gemaakt. Die maak je één keer bij Eenmalig instellen, op de echte pagina van Tweakers (DPG Media); Tools kiest daar niets voor je. Biedt de pagina alleen Akkoord of een abonnement, dan kun je het venster ook sluiten: je mist dan alleen de afbeeldingen van Tweakers. Het venster opent alleen de pagina's voor de keuze; log daar niet in, want dan gaat je inlog mee met elke pagina die Tools ophaalt. Wil je niet meer dat Tools pagina's van Tweakers ophaalt, zet dan Afbeeldingen tonen uit.</p>
       <p>Een eigen bron: tik het adres van de site in (bijvoorbeeld tweakers.net) of plak het adres van de feed. Noemt de site geen feed, zoek dan op de site naar RSS.</p>
       <p>Tools onthoudt 60 dagen wat je gelezen hebt. Bewaarde artikelen blijven staan tot je ze weghaalt, ook als ze niet meer in de feed staan. Je bronnen, wat je gelezen hebt en wat je bewaard hebt gaan mee in Alles back-uppen → Alle appgegevens, niet in de backup van Android.</p>
     </div></details>
+  </main>
+</section>
+<section class="screen" id="s-nieuwsbron">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 id="nwb-titel" translate="no" tabindex="-1"></h1></div>
+  <main>
+    <p class="hint" id="nwb-stand" role="status" translate="no"></p>
+    <div class="card">
+      <div class="sw"><span>Bron aan<small id="nwb-aan-n">Artikelen van deze bron ophalen en tonen in Nieuws.</small></span><button class="tg" id="nwb-aan" role="switch" aria-checked="false" aria-label="Bron aan" aria-describedby="nwb-aan-n" onclick="togUi(this); nwbZet({ aan: this.classList.contains('on') })"></button></div>
+      <label class="f" for="nwb-naam">Naam</label>
+      <input class="aein" id="nwb-naam" autocomplete="off" maxlength="80" translate="no">
+      <label class="f" for="nwb-url">Adres van de feed of de site</label>
+      <input class="aein" id="nwb-url" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" translate="no">
+      <p class="hint" id="nwb-url-std" translate="no" hidden></p>
+      <label class="f" for="nwb-alleen">Alleen artikelen waarvan de link begint met</label>
+      <input class="aein" id="nwb-alleen" placeholder="Leeg = alle artikelen" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="nwb-alleen-n" translate="no">
+      <p class="hint" id="nwb-alleen-n">Bijvoorbeeld tweakers.net/nieuws/ voor alleen het nieuws uit een gemengde feed.</p>
+    </div>
+    <div class="card">
+      <h2>Inloggen</h2>
+      <div class="sw"><span>Inloggen bij de website<small id="nwb-inlog-n">Voor een site met een account of abonnement. Tools stuurt de cookies van je inlog mee als het de feed en pagina's van deze site ophaalt; de site ziet dan dat jij het bent.</small></span><button class="tg" id="nwb-inlog" role="switch" aria-checked="false" aria-label="Inloggen bij de website" aria-describedby="nwb-inlog-n" onclick="togUi(this); nwbZet({ inlog: this.classList.contains('on') })"></button></div>
+      <div id="nwb-inlog-deel" hidden>
+        <p class="hint" id="nwb-inlog-st" role="status" translate="no"></p>
+        <button class="big tonal" id="nwb-inloggen" data-icon="user" onclick="nwbInloggen()">Inloggen</button>
+        <button class="big ghost" id="nwb-uitloggen" onclick="nwbUitloggen()">Uitloggen</button>
+        <label class="f" for="nwb-lezen">Lees op de website</label>
+        <select class="sel" id="nwb-lezen" onchange="nwbZet({ lezen: this.value })">
+          <option value="app">In Tools, ingelogd</option>
+          <option value="browser">In je browser</option>
+        </select>
+        <label class="f" for="nwb-start">Inlogpagina</label>
+        <input class="aein" id="nwb-start" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" translate="no">
+        <label class="f" for="nwb-sites">Toegestane sites</label>
+        <input class="aein" id="nwb-sites" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="nwb-sites-n" translate="no">
+        <p class="hint" id="nwb-sites-n">Met spaties ertussen; *.site.nl = alle subdomeinen. Alleen deze sites openen in het inlogvenster en krijgen je cookies.</p>
+      </div>
+    </div>
+    <button class="big" id="nwb-opslaan" data-icon="save" onclick="nwbOpslaan()">Opslaan</button>
+    <p class="note" id="nwb-status" role="status" translate="no" hidden></p>
+    <div class="card">
+      <h2>Afbeeldingen</h2>
+      <div class="sw"><span>Afbeeldingen van de artikelpagina<small id="nwb-pagina-n">Voor een feed zonder afbeeldingen: Tools haalt dan het begin van elk nieuw artikel op de site op om de afbeelding te vinden. De site ziet dat.</small></span><button class="tg" id="nwb-pagina" role="switch" aria-checked="false" aria-label="Afbeeldingen van de artikelpagina" aria-describedby="nwb-pagina-n" onclick="togUi(this); nwbZet({ pagina: this.classList.contains('on') })"></button></div>
+      <p class="hint" id="nwb-pagina-st" translate="no" hidden></p>
+      <button class="big tonal" id="nwb-cookie" onclick="nwbCookies()" hidden>Cookiekeuze maken</button>
+    </div>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Elke bron heeft dezelfde instellingen. Bij een bekende bron zijn naam, adres en de rest alleen een begin: wat je hier verandert, gaat erboven. Met Standaard terugzetten haal je je wijzigingen weg.</p>
+      <p>Adres: de feed (RSS of Atom) of de site zelf. Bij een site zoekt Tools de feed die de site noemt, of een gangbaar adres zoals /feed of /rss op dezelfde site. Een nieuw adres wordt eerst gelezen; lukt dat niet, dan blijft het oude staan.</p>
+      <p>Inloggen: tik op Inloggen en log in op de echte site, in een eigen venster. Tools vult niets in en bewaart geen wachtwoord; de site bewaart je inlog in een cookie op je telefoon. Mailt de site je een inloglink, kopieer die link dan en tik in het venster op Link uit e-mail. Het venster opent alleen de toegestane sites; een andere site (bijvoorbeeld inloggen met Google) voeg je zelf toe.</p>
+      <p>Daarna gaan de cookies van je inlog mee als Tools de feed en artikelpagina's van die sites ophaalt, en met Lees op de website lees je het hele artikel ingelogd in Tools. Uitloggen haalt de cookies en websitegegevens van die sites weg. Na een nieuwe telefoon of het terugzetten van een backup log je opnieuw in: de inlog gaat niet mee in de backup.</p>
+    </div></details>
+    <button class="big ghost" id="nwb-standaard" onclick="nwbStandaard()">Standaard terugzetten</button>
+    <button class="big ghost" id="nwb-weg" data-icon="trash" onclick="nwbVerwijder()">Bron verwijderen</button>
   </main>
 </section>

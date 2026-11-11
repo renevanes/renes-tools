@@ -130,7 +130,7 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
 
     // Instellingen: bronnen
     await page.click('#nw-set-btn');
-    ok(await page.evaluate(() => current === 'nieuwsset') && await page.locator('#nws-bronnen .srow').count() === 11, 'instellingen: alle bekende bronnen');
+    ok(await page.evaluate(() => current === 'nieuwsset') && await page.locator('#nws-bronnen .srow').count() === 12, 'instellingen: alle bekende bronnen');
     ok((await page.locator('#nws-bronnen .srow:has-text("Rijnmond") small').innerText()) === 'Geen verbinding' && await page.locator('#nws-bronnen .srow:has-text("Rijnmond") small.nws-fout').count() === 1, 'fout bij de bron');
     ok((await page.locator('#nws-bronnen .srow:has-text("NU.nl") small').innerText()) === 'nu.nl', 'bron die uit staat: de site');
     ok((await page.locator('#nws-bronnen .srow:has-text("NOS Nieuws") small').innerText()).match(/^\d+ artikelen · bijgewerkt /), 'bron die aan staat: aantal en tijd');

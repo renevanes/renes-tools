@@ -74,6 +74,17 @@ final class Nieuws {
         {"tweakers", "Tweakers Nieuws", "https://tweakers.net/feeds/mixed.xml", "", "tweakers.net tweakers.net/nieuws", "tweakers.net/nieuws/"},
         {"bbc", "BBC News", "https://feeds.bbci.co.uk/news/rss.xml", "", "bbc.co.uk bbc.com bbc.co.uk/news bbc.com/news"},
         {"guardian", "The Guardian", "https://www.theguardian.com/world/rss", "", "theguardian.com theguardian.com/world"},
+        // Het adres van de site: Tools zoekt de feed zelf (link rel="alternate" of een gangbaar feedadres, zie kandidaten)
+        {"aireport", "AI Report", "https://www.aireport.nl/", "1", "aireport.nl"},
+    };
+
+    /**
+     * Bronnen waarbij Inloggen bij de website standaard aan staat: id, de pagina waar het inlogvenster begint en de sites die
+     * dat venster mag openen en waarheen de cookies van de inlog meegaan ({@link #siteMag}). Net als alles van een bron is dit
+     * per bron aan te passen; bij de andere bronnen staat inloggen standaard uit, met de site van de bron als begin.
+     */
+    static final String[][] INLOG_STANDAARD = {
+        {"aireport", "https://www.aireport.nl/", "aireport.nl *.aireport.nl *.beehiiv.com"},
     };
 
     /** De bekende bron bij een site die Rene intikt ("nu.nl", "https://www.nos.nl/"), of null. */
@@ -90,9 +101,11 @@ final class Nieuws {
     }
 
     /** Alleen de artikelen die bij de bron horen ({@link #alleen}). Blijft er niets over, dan is dat een fout: de vorige artikelen blijven. */
-    static void filter(String id, String basis, NieuwsFeed.Feed f) throws Fout {
-        String alleen = alleen(id);
-        if (alleen.isEmpty() || f.artikelen.isEmpty()) return;
+    static void filter(String id, String basis, NieuwsFeed.Feed f) throws Fout { filterOp(alleen(id), basis, f); }
+
+    /** Zo ook met een eigen begin van de link ({@code alleen}, zoals in de instellingen van de bron; "" = alles). */
+    static void filterOp(String alleen, String basis, NieuwsFeed.Feed f) throws Fout {
+        if (alleen == null || alleen.isEmpty() || f.artikelen.isEmpty()) return;
         for (Iterator<NieuwsFeed.Artikel> it = f.artikelen.iterator(); it.hasNext(); ) {
             NieuwsFeed.Artikel a = it.next();
             String l;
@@ -284,7 +297,12 @@ final class Nieuws {
      * de cache. De stand staat in {@code f.beeldStand}: "ok", "cookiekeuze" (de site stuurt naar een toestemmingspagina) of "fout".
      */
     static void beelden(String bron, String basis, NieuwsFeed.Feed f, JSONObject oud, long tot, Pagina p) {
-        if (paginaBron(bron) == null) return;
+        beelden(bron, basis, f, oud, tot, p, paginaBron(bron) != null);
+    }
+
+    /** Zo ook voor elke bron waarbij Afbeeldingen van de artikelpagina in de instellingen aan staat ({@code aan}). */
+    static void beelden(String bron, String basis, NieuwsFeed.Feed f, JSONObject oud, long tot, Pagina p, boolean aan) {
+        if (!aan) return;
         f.beeldStand = oud == null ? "" : oud.optString("beeldStand");
         f.beeldReden = oud == null ? "" : oud.optString("beeldReden");
         Map<String, String> bekend = new HashMap<>();
@@ -438,14 +456,23 @@ final class Nieuws {
 
     // ---------------------------------------------------------------- bronnen
 
-    /** Alle bronnen (eerst de bekende, dan de eigen) met aan/uit. */
+    /**
+     * Alle bronnen (eerst de bekende, dan de eigen) met aan/uit en hun instellingen, voor elke bron op dezelfde manier
+     * (de vaste waarden van een bekende bron zijn alleen het begin; {@code instellingen} in bronnen.json gaat erboven):
+     * naam, url (de feed), alleen (hoe de link van een artikel moet beginnen), pagina (afbeeldingen van de artikelpagina),
+     * inlog (inloggen bij de website), inlogStart, inlogSites ({@link #siteMag}) en lezen ("app" of "browser").
+     */
     static JSONArray bronnen(File dir) throws JSONException {
         JSONObject o = leesObject(new File(dir, "bronnen.json"));
-        JSONObject st = o == null ? null : o.optJSONObject("standaard");
+        JSONObject st = o == null ? null : o.optJSONObject("standaard"), inst = o == null ? null : o.optJSONObject("instellingen");
         JSONArray out = new JSONArray();
         for (String[] s : STANDAARD) {
             boolean aan = st != null && st.has(s[0]) ? st.optBoolean(s[0]) : "1".equals(s[3]);
-            out.put(new JSONObject().put("id", s[0]).put("naam", s[1]).put("url", s[2]).put("aan", aan).put("eigen", false));
+            JSONObject x = inst == null ? null : inst.optJSONObject(s[0]);
+            String naam = x == null ? "" : NieuwsFeed.cut(NieuwsFeed.regel(x.optString("naam")).trim(), 80), url = x == null ? "" : x.optString("url");
+            JSONObject b = new JSONObject().put("id", s[0]).put("naam", naam.isEmpty() ? s[1] : naam).put("url", https(url) ? url : s[2])
+                    .put("aan", aan).put("eigen", false).put("standaardNaam", s[1]).put("standaardUrl", s[2]);
+            out.put(instellingen(b, x));
         }
         JSONArray eigen = o == null ? null : o.optJSONArray("eigen");
         Set<String> ids = new HashSet<>();
@@ -455,22 +482,214 @@ final class Nieuws {
             String id = e.optString("id"), url = e.optString("url");
             if (!id.startsWith("e") || !BRON_ID.matcher(id).matches() || !https(url) || !ids.add(id)) continue;
             String naam = NieuwsFeed.regel(e.optString("naam")).trim();
-            out.put(new JSONObject().put("id", id).put("naam", NieuwsFeed.cut(naam.isEmpty() ? host(url) : naam, 80))
-                    .put("url", url).put("aan", e.optBoolean("aan", true)).put("eigen", true));
+            JSONObject b = new JSONObject().put("id", id).put("naam", NieuwsFeed.cut(naam.isEmpty() ? host(url) : naam, 80))
+                    .put("url", url).put("aan", e.optBoolean("aan", true)).put("eigen", true);
+            out.put(instellingen(b, inst == null ? null : inst.optJSONObject(id)));
         }
         return out;
     }
 
+    /** De bekende bron met dit id, of null. */
+    static String[] standaard(String id) {
+        for (String[] s : STANDAARD) if (s[0].equals(id)) return s;
+        return null;
+    }
+
+    static String[] inlogStandaard(String id) {
+        for (String[] s : INLOG_STANDAARD) if (s[0].equals(id)) return s;
+        return null;
+    }
+
+    /** De site van een bron (zonder https:// en www.): de eerste site van een bekende bron, anders die van de feed zonder "feeds." en dergelijke. */
+    static String site(JSONObject b) {
+        String[] s = standaard(b.optString("id"));
+        if (s != null && b.optString("url").equals(s[2])) return s[4].split(" ")[0].split("/")[0];
+        String h = host(b.optString("url"));
+        return h.matches("(?:feeds?|rss|atom)\\.[^.]+\\..+") ? h.substring(h.indexOf('.') + 1) : h;
+    }
+
+    /** De instellingen van een bron: de opgeslagen keuzes ({@code x}) boven de vaste waarden. "aangepast" = er is iets anders dan standaard. */
+    private static JSONObject instellingen(JSONObject b, JSONObject x) throws JSONException {
+        String id = b.getString("id");
+        if (x == null) x = new JSONObject();
+        String[] il = inlogStandaard(id);
+        String alleen = x.has("alleen") ? x.optString("alleen") : alleen(id);
+        boolean inlog = x.has("inlog") ? x.optBoolean("inlog") : il != null;
+        String start = x.optString("inlogStart"), sites = x.optString("inlogSites");
+        if (!https(start)) start = il != null ? il[1] : "https://" + site(b) + "/";
+        if (sites.isEmpty() || !sites.equals(sitesOfLeeg(sites))) sites = il != null ? il[2] : standaardSites(start);
+        String lezen = x.optString("lezen");
+        if (!lezen.equals("app") && !lezen.equals("browser")) lezen = inlog ? "app" : "browser";
+        boolean aangepast = x.length() > 0;
+        return b.put("alleen", alleen).put("pagina", x.has("pagina") ? x.optBoolean("pagina") : paginaBron(id) != null)
+                .put("cookiekeuze", paginaBron(id) != null).put("inlog", inlog).put("inlogStart", start).put("inlogSites", sites)
+                .put("lezen", lezen).put("aangepast", aangepast);
+    }
+
+    /** De sites bij een inlogpagina: de site zelf en alle subdomeinen ervan. */
+    static String standaardSites(String start) { String h = host(start); return h + " *." + h; }
+
+    private static final Pattern SITE = Pattern.compile("(?:\\*\\.)?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+");
+    static final int MAX_SITES = 12;
+
+    /**
+     * De sites die Rene intikt (spaties of komma's ertussen), netjes: kleine letters, zonder https:// en zonder pad. Een
+     * site met "*." ervoor = alle subdomeinen; "*.com" en dergelijke (geen eigen naam) en adressen als 192.168.1.1 tellen niet.
+     */
+    static String sitesNetjes(String in) throws Fout {
+        List<String> uit = new ArrayList<>();
+        for (String r : (in == null ? "" : in).toLowerCase(Locale.ROOT).split("[\\s,;]+")) {
+            String d = r.replaceFirst("^[a-z]+://", "").replaceFirst("[/?#].*$", "").replaceFirst("^www\\.", "");
+            if (d.isEmpty()) continue;
+            String kaal = d.startsWith("*.") ? d.substring(2) : d;
+            if (d.length() > 253 || !SITE.matcher(d).matches() || kaal.indexOf('.') < 0 || kaal.matches("[0-9.]+"))
+                throw new Fout(Taal.fill(Taal.T("Geen geldige site: {site}"), "site", d));
+            if (!uit.contains(d)) uit.add(d);
+        }
+        if (uit.isEmpty()) throw new Fout(Taal.T("Vul minstens één site in"));
+        if (uit.size() > MAX_SITES) throw new Fout(Taal.fill(Taal.T("Hooguit {n} sites"), "n", MAX_SITES));
+        StringBuilder b = new StringBuilder();
+        for (String d : uit) b.append(b.length() == 0 ? "" : " ").append(d);
+        return b.toString();
+    }
+
+    private static String sitesOfLeeg(String in) { try { return sitesNetjes(in); } catch (Fout e) { return ""; } }
+
+    /**
+     * Mag het inlogvenster van een bron dit adres openen, en gaan de cookies van de inlog ernaartoe? Alleen https naar een
+     * site uit {@code sites}: "aireport.nl" = aireport.nl en www.aireport.nl, "*.aireport.nl" = elk subdomein.
+     */
+    static boolean siteMag(String sites, String url) {
+        if (sites == null || url == null || !https(url)) return false;
+        String h;
+        try { h = IDN.toASCII(new URL(url).getHost()).toLowerCase(Locale.ROOT); } catch (Exception e) { return false; }
+        for (String d : sites.split(" ")) {
+            if (d.isEmpty()) continue;
+            if (d.startsWith("*.") ? h.endsWith(d.substring(1)) : h.equals(d) || h.equals("www." + d)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * De adressen waarvan Uitloggen de cookies weghaalt: elke site uit {@code sites} met en zonder www. (van een "*."-site
+     * de site zelf en www.: welke subdomeinen er nog meer zijn, weet Tools niet) plus de inlogpagina zelf.
+     */
+    static List<String> uitlogAdressen(String sites, String start) {
+        List<String> uit = new ArrayList<>();
+        if (start != null && https(start)) {
+            try { URL u = new URL(start); uit.add("https://" + u.getHost().toLowerCase(Locale.ROOT) + "/"); } catch (Exception ignored) { }
+        }
+        if (sites != null) for (String d : sites.split(" ")) {
+            String h = d.startsWith("*.") ? d.substring(2) : d;
+            if (h.isEmpty()) continue;
+            for (String u : new String[]{"https://" + h + "/", "https://www." + h + "/"}) if (!uit.contains(u)) uit.add(u);
+        }
+        return uit;
+    }
+
+    /** Hoe de link van een artikel moet beginnen, zoals Rene het intikt: zonder https:// en www., kleine letters ("" = alles). */
+    static String alleenNetjes(String in) throws Fout {
+        String s = (in == null ? "" : in).trim().toLowerCase(Locale.ROOT).replaceFirst("^[a-z]+://", "").replaceFirst("^www\\.", "");
+        if (s.length() > 200 || s.matches(".*\\s.*")) throw new Fout(Taal.T("Dit is geen geldig begin van een link"));
+        return s;
+    }
+
     private static void bewaarBronnen(File dir, JSONArray bs) throws Exception {
-        JSONObject st = new JSONObject();
+        JSONObject o = leesObject(new File(dir, "bronnen.json"));
+        bewaarBronnen(dir, bs, o == null ? null : o.optJSONObject("instellingen"));
+    }
+
+    /** Opslaan; de instellingen van bronnen die er niet meer zijn, vallen weg. */
+    private static void bewaarBronnen(File dir, JSONArray bs, JSONObject inst) throws Exception {
+        JSONObject st = new JSONObject(), in = new JSONObject();
         JSONArray eigen = new JSONArray();
         for (int i = 0; i < bs.length(); i++) {
             JSONObject b = bs.getJSONObject(i);
-            if (b.optBoolean("eigen")) eigen.put(new JSONObject().put("id", b.getString("id")).put("naam", b.optString("naam"))
+            String id = b.getString("id");
+            if (b.optBoolean("eigen")) eigen.put(new JSONObject().put("id", id).put("naam", b.optString("naam"))
                     .put("url", b.getString("url")).put("aan", b.optBoolean("aan")));
-            else st.put(b.getString("id"), b.optBoolean("aan"));
+            else st.put(id, b.optBoolean("aan"));
+            JSONObject x = inst == null ? null : inst.optJSONObject(id);
+            if (x != null && x.length() > 0) in.put(id, x);
         }
-        schrijf(new File(dir, "bronnen.json"), new JSONObject().put("v", 1).put("standaard", st).put("eigen", eigen).toString(), false);
+        schrijf(new File(dir, "bronnen.json"), new JSONObject().put("v", 2).put("standaard", st).put("eigen", eigen).put("instellingen", in).toString(), false);
+    }
+
+    /** Is {@code url} een andere feed dan nu bij de bron staat? (Dan leest de brug hem eerst, zie {@link #instellen}.) */
+    static boolean andereFeed(File dir, String id, String url) throws Exception {
+        synchronized (LOCK) {
+            JSONObject b = zoekBron(bronnen(dir), id);
+            if (b == null) throw new Fout(Taal.T("Deze bron bestaat niet meer"));
+            return !zelfde(b.getString("url"), url);
+        }
+    }
+
+    /**
+     * De instellingen van een bron aanpassen; alleen de velden in {@code in} veranderen ("standaard": true = alles terug naar
+     * de vaste waarden). Een andere feed ({@code url}) is al gelezen ({@code feed} = het echte adres); de opgehaalde artikelen
+     * van de oude feed gaan dan weg. Geeft de bron zoals hij nu is.
+     */
+    static JSONObject instellen(File dir, File cache, String id, JSONObject in, String feed) throws Exception {
+        synchronized (LOCK) {
+            JSONObject o = leesObject(new File(dir, "bronnen.json"));
+            JSONObject inst = o == null ? null : o.optJSONObject("instellingen");
+            inst = inst == null ? new JSONObject() : new JSONObject(inst.toString());
+            JSONArray bs = bronnen(dir);
+            JSONObject b = zoekBron(bs, id);
+            if (b == null) throw new Fout(Taal.T("Deze bron bestaat niet meer"));
+            String[] st = standaard(id);
+            JSONObject x = in.optBoolean("standaard") ? new JSONObject() : inst.optJSONObject(id);
+            if (x == null) x = new JSONObject();
+            boolean eigen = b.optBoolean("eigen"), andereFeed = false;
+            if (in.has("naam")) {
+                String n = NieuwsFeed.cut(NieuwsFeed.regel(in.optString("naam")).trim(), 80);
+                if (eigen) b.put("naam", n.isEmpty() ? host(b.getString("url")) : n);
+                else if (n.isEmpty() || n.equals(st[1])) x.remove("naam"); else x.put("naam", n);
+            }
+            if (feed != null) {
+                for (int i = 0; i < bs.length(); i++) {
+                    JSONObject a = bs.getJSONObject(i);
+                    if (!a.getString("id").equals(id) && zelfde(a.getString("url"), feed))
+                        throw new Fout(Taal.fill(Taal.T("Deze feed staat er al als {naam}"), "naam", a.optString("naam")));
+                }
+                andereFeed = !zelfde(b.getString("url"), feed);
+                if (eigen) b.put("url", feed);
+                else if (zelfde(feed, st[2])) x.remove("url"); else x.put("url", feed);
+            }
+            if (in.has("alleen")) {
+                String a = alleenNetjes(in.optString("alleen"));
+                if (a.equals(alleen(id))) x.remove("alleen"); else x.put("alleen", a);
+            }
+            if (in.has("pagina")) {
+                boolean p = in.optBoolean("pagina");
+                if (p == (paginaBron(id) != null)) x.remove("pagina"); else x.put("pagina", p);
+            }
+            String[] il = inlogStandaard(id);
+            if (in.has("inlog")) {
+                boolean aan = in.optBoolean("inlog");
+                if (aan == (il != null)) x.remove("inlog"); else x.put("inlog", aan);
+            }
+            if (in.has("inlogSites")) x.put("inlogSites", sitesNetjes(in.optString("inlogSites")));
+            if (in.has("inlogStart")) {
+                String u = in.optString("inlogStart").trim();
+                if (u.isEmpty()) x.remove("inlogStart"); else x.put("inlogStart", adres(u));
+            }
+            if (in.has("lezen")) {
+                String l = in.optString("lezen");
+                if (!l.equals("app") && !l.equals("browser")) throw new Fout(Taal.T("Opslaan lukt niet"));
+                x.put("lezen", l);
+            }
+            if (x.length() > 0) inst.put(id, x); else inst.remove(id);
+            // Wat er nu zou gelden: de inlogpagina moet bij de sites horen, anders opent het venster hem niet
+            JSONObject nu = instellingen(new JSONObject(b.toString()), x);
+            if (!siteMag(nu.getString("inlogSites"), nu.getString("inlogStart")))
+                throw new Fout(Taal.T("De inlogpagina hoort niet bij de toegestane sites. Voeg de site van de inlogpagina toe."));
+            if (in.has("inlogSites") && x.optString("inlogSites").equals(il != null ? il[2] : standaardSites(nu.getString("inlogStart")))) x.remove("inlogSites");
+            if (x.length() > 0) inst.put(id, x); else inst.remove(id);
+            bewaarBronnen(dir, bs, inst);
+            if (andereFeed || in.optBoolean("standaard")) cacheBestand(cache, id).delete();
+            return new JSONObject(zoekBron(bronnen(dir), id).toString());
+        }
     }
 
     private static JSONObject zoekBron(JSONArray bs, String id) {
@@ -524,7 +743,8 @@ final class Nieuws {
                     .put("url", url).put("aan", true).put("eigen", true);
             bs.put(b);
             bewaarBronnen(dir, bs);
-            return new JSONObject(b.toString());
+            JSONObject nu = zoekBron(bronnen(dir), b.getString("id"));
+            return new JSONObject((nu != null ? nu : b).toString());
         }
     }
 
@@ -630,7 +850,8 @@ final class Nieuws {
             nieuwsteEerst(lijst);
             JSONArray arr = new JSONArray();
             for (int i = 0; i < lijst.size() && i < MAX_PER_BRON; i++) arr.put(lijst.get(i));
-            JSONObject o = new JSONObject().put("t", nu).put("poging", nu).put("titel", f.titel).put("artikelen", arr);
+            // het echte feedadres (een site waarop Tools de feed zocht): de volgende keer meteen daar
+            JSONObject o = new JSONObject().put("t", nu).put("poging", nu).put("titel", f.titel).put("feed", basis).put("artikelen", arr);
             if (!f.beeldStand.isEmpty()) o.put("beeldStand", f.beeldStand);
             if (!f.beeldReden.isEmpty()) o.put("beeldReden", f.beeldReden);
             schrijf(cf, o.toString(), false);
@@ -935,7 +1156,8 @@ final class Nieuws {
                 if (pagina) h.setRequestProperty("Accept-Language", talen(telefoonTalen()));
                 h.setRequestProperty("Accept", pagina ? "text/html, application/xhtml+xml;q=0.9, */*;q=0.2"
                         : "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.9, text/html;q=0.5, */*;q=0.2");
-                String ck = pagina && k != null && koekjesNaar(u) ? k.voor(u) : null;
+                // k beslist per adres (ook na een doorverwijzing) of er cookies meegaan: zie ververs
+                String ck = k != null ? k.voor(u) : null;
                 if (ck != null && !ck.isEmpty()) h.setRequestProperty("Cookie", ck);
                 int code = h.getResponseCode();
                 if (code >= 300 && code < 400) {
@@ -1005,19 +1227,48 @@ final class Nieuws {
     private static NieuwsFeed.Feed parse(Antwoord a) throws Exception { return NieuwsFeed.parse(new ByteArrayInputStream(a.data), a.charset); }
 
     /** Een feed lezen; is het adres een webpagina, dan de feed die die pagina noemt. */
-    static Gelezen lees(String adres, long tot) throws Exception {
-        Antwoord a = haal(adres, tot);
+    static Gelezen lees(String adres, long tot) throws Exception { return lees(adres, tot, null, UA); }
+
+    /**
+     * Zo ook met de cookies van een inlog ({@code k}, beslist per adres) en als {@code ua}. Noemt de webpagina geen feed,
+     * dan de gangbare feedadressen op dezelfde site ({@link #kandidaten}).
+     */
+    static Gelezen lees(String adres, long tot, Koekjes k, String ua) throws Exception {
+        Antwoord a = haal(adres, tot, false, k, ua);
         try { return new Gelezen(parse(a), a.url); }
         catch (NieuwsFeed.GeenFeed g) {
             int n = Math.min(a.data.length, 1_000_000);
             String html = new String(a.data, 0, n, PodcastFeed.charset(a.data, n, a.charset));
             String alt = zoekFeed(html, a.url);
-            if (alt == null && HTML.matcher(html.length() > 4096 ? html.substring(0, 4096) : html).find())
+            boolean isHtml = HTML.matcher(html.length() > 4096 ? html.substring(0, 4096) : html).find();
+            if (alt == null && isHtml) {
+                for (String u : kandidaten(a.url)) {
+                    if (System.currentTimeMillis() >= tot) break;
+                    try { Antwoord b = haal(u, tot, false, k, ua); return new Gelezen(parse(b), b.url); }
+                    catch (TeTraag t) { break; }
+                    catch (Exception volgende) { /* niet hier */ }
+                }
                 throw new Fout(Taal.T("Op deze pagina staat geen nieuwsfeed. Zoek op de site naar RSS en vul dat adres in."));
+            }
             if (alt == null) throw g;
-            Antwoord b = haal(alt, tot);
+            Antwoord b = haal(alt, tot, false, k, ua);
             return new Gelezen(parse(b), b.url);
         }
+    }
+
+    /** Gangbare feedadressen (WordPress, Substack, Ghost, beehiiv, Hugo, Jekyll), alleen op de site van {@code pagina}. */
+    static final String[] FEED_PADEN = {"/feed", "/rss", "/feed.xml", "/rss.xml", "/atom.xml", "/index.xml"};
+
+    static List<String> kandidaten(String pagina) {
+        List<String> uit = new ArrayList<>();
+        try {
+            URL p = new URL(pagina);
+            for (String pad : FEED_PADEN) {
+                String u = new URL(p, pad).toString();
+                if (https(u) && !zelfde(u, pagina)) uit.add(u);
+            }
+        } catch (Exception ignored) { }
+        return uit;
     }
 
     private static final Set<String> EIGEN_TEKST = new HashSet<>(Arrays.asList(
@@ -1042,13 +1293,32 @@ final class Nieuws {
      * {@code eind}, het eind van de hele ronde.
      */
     static int haalBron(File dir, File cache, String id, String url, Pagina pagina, long eind) {
-        long nu = System.currentTimeMillis();
         try {
-            Gelezen g = lees(url, nu + MAX_HAAL);
-            filter(id, g.url, g.feed);
+            JSONObject b;
+            synchronized (LOCK) { b = zoekBron(bronnen(dir), id); }
+            if (b == null) b = new JSONObject().put("id", id).put("alleen", alleen(id)).put("pagina", paginaBron(id) != null);
+            return haalBron(dir, cache, b.put("url", url), pagina, null, UA, eind);
+        } catch (JSONException e) { return -1; }
+    }
+
+    /**
+     * Zo ook met de instellingen van de bron ({@code b}: url, alleen, pagina) en voor de feed de cookies van de inlog
+     * ({@code k}) als {@code ua}. Vond Tools de vorige keer de feed op een webpagina, dan eerst meteen die feed.
+     */
+    static int haalBron(File dir, File cache, JSONObject b, Pagina pagina, Koekjes k, String ua, long eind) {
+        long nu = System.currentTimeMillis();
+        String id = b.optString("id"), url = b.optString("url");
+        try {
             JSONObject oud;
             synchronized (LOCK) { oud = leesObject(cacheBestand(cache, id)); }
-            beelden(id, g.url, g.feed, oud, Math.min(nu + MAX_HAAL, eind), pagina);
+            String eerder = oud == null ? "" : oud.optString("feed");
+            Gelezen g = null;
+            if (!eerder.isEmpty() && https(eerder) && !zelfde(eerder, url)) {
+                try { g = lees(eerder, nu + MAX_HAAL / 2, k, ua); } catch (Exception opnieuwZoeken) { g = null; }
+            }
+            if (g == null) g = lees(url, nu + MAX_HAAL, k, ua);
+            filterOp(b.optString("alleen"), g.url, g.feed);
+            beelden(id, g.url, g.feed, oud, Math.min(nu + MAX_HAAL, eind), pagina, b.optBoolean("pagina"));
             synchronized (LOCK) { return zoekBron(bronnen(dir), id) != null ? bewaarFeed(cache, id, g.url, g.feed, nu) : -1; }
         } catch (Throwable e) {
             synchronized (LOCK) {
@@ -1092,8 +1362,15 @@ final class Nieuws {
         try { return android.webkit.CookieManager.getInstance().getCookie(url); } catch (Throwable e) { return null; }
     }
 
+    /** De cookies van de inlog bij een bron, alleen naar de sites van die inlog; null als inloggen uit staat. */
+    static Koekjes inlogKoekjes(JSONObject b) {
+        if (!b.optBoolean("inlog")) return null;
+        String sites = b.optString("inlogSites");
+        return u -> siteMag(sites, u) ? koekjes(u) : null;
+    }
+
     /** De User-Agent van de WebView op deze telefoon (die van het venster voor de cookiekeuze), of null. */
-    private static String webUa(Context c) {
+    static String webUa(Context c) {
         try { return android.webkit.WebSettings.getDefaultUserAgent(c); } catch (Throwable e) { return null; }
     }
 
@@ -1108,9 +1385,24 @@ final class Nieuws {
             if (!todo.isEmpty()) {
                 ExecutorService ex = Executors.newFixedThreadPool(Math.min(4, todo.size()));
                 List<Future<Integer>> fs = new ArrayList<>();
-                WebPagina pagina = beelden ? web(Nieuws::koekjes, webUa(c)) : null;
+                String ua = webUa(c);
+                Map<String, WebPagina> paginas = new HashMap<>();
+                JSONArray alle;
+                synchronized (LOCK) { alle = bronnen(dir); }
                 long eind = start + MAX_DUUR - 5_000L;
-                for (String[] b : todo) fs.add(ex.submit(() -> haalBron(dir, cache, b[0], b[1], pagina, eind)));
+                for (String[] t : todo) {
+                    JSONObject b = zoekBron(alle, t[0]);
+                    if (b == null) continue;
+                    boolean inlog = b.optBoolean("inlog"), keuze = b.optBoolean("cookiekeuze");
+                    String sites = b.optString("inlogSites");
+                    // Cookies alleen naar de sites van de inlog (feed en pagina's) en bij Tweakers naar de site met de cookiekeuze (pagina's)
+                    Koekjes feedK = inlogKoekjes(b);
+                    Koekjes pagK = u -> (inlog && siteMag(sites, u)) || (keuze && koekjesNaar(u)) ? koekjes(u) : null;
+                    WebPagina pagina = beelden && b.optBoolean("pagina") ? web(pagK, ua) : null;
+                    if (pagina != null) paginas.put(t[0], pagina);
+                    String feedUa = inlog ? paginaUa(ua) : UA;
+                    fs.add(ex.submit(() -> haalBron(dir, cache, b, pagina, feedK, feedUa, eind)));
+                }
                 ex.shutdown();
                 for (Future<Integer> f : fs) {
                     try {
@@ -1120,10 +1412,11 @@ final class Nieuws {
                 }
                 ex.shutdownNow();
                 App.log(c, "NIEUWS", "bijgewerkt: " + ok + " van " + todo.size() + " bronnen");
-                if (beelden) for (String[] b : todo) if (paginaBron(b[0]) != null) {
+                if (beelden) for (String[] b : todo) if (paginas.containsKey(b[0])) {
                     JSONObject cb;
                     synchronized (LOCK) { cb = leesObject(cacheBestand(cache, b[0])); }
-                    String regel = cb == null ? "" : beeldLog(cb.optString("beeldStand"), cb.optString("beeldReden"), pagina != null && pagina.alsTools());
+                    WebPagina pagina = paginas.get(b[0]);
+                    String regel = cb == null ? "" : beeldLog(cb.optString("beeldStand"), cb.optString("beeldReden"), pagina.alsTools());
                     if (!regel.isEmpty()) App.log(c, "NIEUWS", regel);
                 }
             }

@@ -600,26 +600,43 @@ in de buurt, ook plekken waar er meestal een is (tankstations, verzorgingsplaats
   `ToilettenSamenTest`, `ToilettenOsmTest`.
 
 ## Nieuws (feeds lezen)
-Nieuws (schermen `s-nieuws`, `s-nieuwsart`, `s-nieuwsset`; `web/src/script/75-nieuws.js`, `Nieuws*.java`) toont koppen en
+Nieuws (schermen `s-nieuws`, `s-nieuwsart`, `s-nieuwsset`, `s-nieuwsbron`; `web/src/script/75-nieuws.js`, `Nieuws*.java`) toont koppen en
 artikelen uit RSS-, Atom- en RDF-feeds.
 - **Ophalen alleen in Java** (de WebView heeft `connect-src 'none'`): `Nieuws.haal` volgt doorverwijzingen zelf en alleen
   naar https op openbare adressen (`NieuwsFeed.httpsOpenbaar`, en na het opzoeken van de naam `Nieuws.intern`: niet het
   toestel of het thuisnetwerk), met een vaste eindtijd per feed (een wachter verbreekt de verbinding) en een groottegrens;
-  geen account, geen tussendienst en geen leesmodus die de webpagina van een
-  artikel ophaalt (cookiemuren). De tekst komt uit de feed; "Lees op de website" opent de link in de browser.
+  geen tussendienst en geen leesmodus die de webpagina van een artikel ophaalt (cookiemuren). De tekst komt uit de feed;
+  "Lees op de website" opent de link in de browser, of bij een bron met inloggen (en Lezen in Tools) in `NieuwsInlogActivity`.
+- **Feed vinden**: een adres mag een feed of een webpagina zijn. Noemt de pagina geen feed (`<link rel="alternate">`), dan
+  probeert `Nieuws.lees` de gangbare adressen op dezelfde site (`FEED_PADEN`: /feed, /rss, …). Het echte feedadres staat
+  daarna in de cache (`feed`) en wordt de volgende keer eerst geprobeerd.
 - **Lezen** (`NieuwsFeed`, zuiver, getest in `NieuwsFeedTest`): SAX zonder externe entiteiten; een DOCTYPE met eigen
   declaraties weigert `PodcastFeed.EntityGuard` al vóór de parser (de parser van Android geeft declaraties niet door).
   Opschoonpatronen moeten lineair blijven (Android kan een zoekopdracht niet afbreken; `NieuwsFeedTest` meet het). HTML uit
   de feed wordt alinea's en tussenkoppen (platte tekst), de interface zet het altijd met `textContent`/`esc` neer, nooit als HTML.
   Afbeeldingen alleen via https, zonder referrer, uit te zetten (Instellingen van Nieuws).
-- **Bronnen**: vaste lijst in `Nieuws.STANDAARD` (id, naam, feed, standaard aan, sites en eventueel hoe de link van een
+- **Bronnen**: vaste lijst in `Nieuws.STANDAARD` (id, naam, feed of site, standaard aan, sites en eventueel hoe de link van een
   artikel moet beginnen: `Nieuws.filter`, zoals Tweakers alleen `tweakers.net/nieuws/` uit de gemengde feed; de andere
   feeds van Tweakers weigert de firewall van DPG vanaf servers, dus ook als een agent een feed controleert); een eigen bron (id `e…`) is een
-  https-feed of een pagina met `<link rel="alternate">`. Een bekende site (bijv. nos.nl) zet de bekende bron aan.
+  https-feed of een pagina met een feed. Een bekende site (bijv. nos.nl) zet de bekende bron aan.
   Nieuwe vaste bron = een regel in `STANDAARD` én in de testbrug (`_nwInit`); controleer dat de feed echt leest.
-- **Opslag**: `nieuws/` (bronnen, gelezen, bewaard) gaat mee in "Alle appgegevens", niet in de Android-backup; de opgehaalde
-  artikelen staan in de cache. Logsoort `NIEUWS` alleen met aantallen.
-- Tests: `tests/ui/nieuws.test.js`; Java: `NieuwsFeedTest`, `NieuwsTest`.
+- **Instellingen per bron, voor elke bron hetzelfde** (wens van Rene: alles configureerbaar, eenduidig, ook inloggen):
+  scherm `s-nieuwsbron` (tik op een bron). `Nieuws.bronnen` geeft elke bron met dezelfde velden: `naam`, `url`, `alleen`,
+  `pagina` (afbeeldingen van de artikelpagina), `cookiekeuze`, `inlog`, `inlogStart`, `inlogSites`, `lezen` (app/browser) en
+  `aangepast`. De vaste waarden (`STANDAARD`, `BEELD_VAN_PAGINA`, `INLOG_STANDAARD`) zijn alleen het begin; wat Rene verandert
+  staat in `bronnen.json` → `instellingen` (alleen afwijkingen; v2; naam en adres van een eigen bron bij `eigen`).
+  `Nieuws.instellen` controleert alles (een ander adres leest de brug eerst; `"standaard": true` zet terug). Nieuwe instelling
+  = een veld in `Nieuws.instellingen`/`instellen`, op `s-nieuwsbron`, in de testbrug (`_nwStd`, `nieuwsInstellen`) en in de tests.
+- **Inloggen** (`NieuwsInlogActivity`, ook "Lees op de website" met de inlog): Rene logt zelf in op de echte site (geen
+  wachtwoord in Tools; een inloglink uit de mail via "Link uit e-mail", van het klembord). Het venster opent pagina's alleen op
+  `inlogSites` (`Nieuws.siteMag`: "site.nl" = site.nl en www., "*.site.nl" = subdomeinen; `sitesNetjes` weigert "*.com" en
+  IP-adressen); wat een pagina laadt mag van elke https-site, cookies van derden niet. De cookies van de inlog gaan alleen naar
+  `inlogSites` mee (`Nieuws.inlogKoekjes`, per adres ook na doorverwijzingen), voor de feed en de artikelpagina's; die van de
+  cookiekeuze (Tweakers) alleen naar de artikelpagina's. Uitloggen (`NieuwsInlogActivity.wis`) laat de cookies van die sites
+  verlopen. Cookies van de WebView gaan nergens mee in backups: na terugzetten opnieuw inloggen. Eerste bron met inloggen: AI Report (aireport.nl, beehiiv).
+- **Opslag**: `nieuws/` (bronnen met instellingen, gelezen, bewaard) gaat mee in "Alle appgegevens", niet in de Android-backup; de opgehaalde
+  artikelen staan in de cache. Logsoort `NIEUWS` alleen met aantallen en vaste woorden.
+- Tests: `tests/ui/nieuws.test.js`, `tests/ui/nieuws-bron.test.js`; Java: `NieuwsFeedTest`, `NieuwsTest`.
 
 ## Berichten aan Rene
 Kort en in het Nederlands: wat er nu anders is, waar hij het vindt en of hij iets moet doen (bijv. een nieuwe APK

@@ -210,6 +210,12 @@
             android:label="Facturen ophalen"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" />
         <activity
+            android:name=".NieuwsInlogActivity"
+            android:exported="false"
+            android:label="Nieuws"
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" />
+        <activity
             android:name=".NieuwsCookiesActivity"
             android:exported="false"
             android:label="Nieuws"

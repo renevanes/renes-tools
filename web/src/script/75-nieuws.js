@@ -186,7 +186,13 @@ function nwBewaarArt(){
   a.isBewaard = aan; nwLaad(); nwBewaarKnop();
   toast(aan ? t('Bewaard') : t('Niet meer bewaard'));
 }
-function nwWeb(){ const a = nw.open; if (a && a.link) Android.openUrl(a.link); }
+/* Lees op de website: bij een bron met inloggen (en Lezen in Tools) in het venster van de bron, anders in de browser. */
+function nwWeb(){
+  const a = nw.open; if (!a || !a.link) return;
+  const b = nwBronnen().find(x => x.id === a.bron);
+  if (b && b.inlog && b.lezen === 'app' && typeof Android.nieuwsLees === 'function' && Android.nieuwsLees(b.id, a.link) !== 'extern') return;
+  Android.openUrl(a.link);
+}
 function nwDeel(a){ Android.nieuwsDeel(a.titel, a.link); }
 function nwArtMenu(){
   const a = nw.open; if (!a) return;
@@ -219,7 +225,7 @@ function nwHost(url){ try { return new URL(url).hostname.replace(/^www\./, ''); 
 function nwSetRender(){
   const html = nwBronnen().map(b => {
     const k = 'nws-b-' + b.id, fout = b.aan && b.fout && (b.poging || 0) >= (b.t || 0);
-    return '<div class="srow"><span class="stxt"><b id="' + esc(k) + '" translate="no">' + esc(b.naam) + '</b><small translate="no"' + (fout ? ' class="nws-fout"' : '') + '>' + esc(nwBronStand(b)) + '</small></span>' +
+    return '<div class="srow"><button class="nws-open" onclick="nwBronOpen(' + jsq(b.id) + ')"><span class="stxt"><b id="' + esc(k) + '" translate="no">' + esc(b.naam) + '</b><small translate="no"' + (fout ? ' class="nws-fout"' : '') + '>' + esc(nwBronStand(b)) + '</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>' +
       (b.eigen ? '<button class="icon-btn nws-weg" data-icon="trash" onclick="nwVerwijder(' + jsq(b.id) + ')" aria-label="' + esc(t('{naam} verwijderen', { naam: b.naam })) + '"></button>' : '') +
       '<button class="tg' + (b.aan ? ' on' : '') + '" role="switch" aria-checked="' + (b.aan ? 'true' : 'false') + '" aria-labelledby="' + esc(k) + '" translate="no" onclick="togUi(this); nwBronAan(' + jsq(b.id) + ', this.classList.contains(\'on\'))"></button></div>';
   }).join('');
@@ -227,7 +233,7 @@ function nwSetRender(){
   nwCookieRender();
 }
 /* Eenmalig instellen: de cookiekeuze voor een bron die de afbeeldingen van de artikelpagina haalt (Tweakers). */
-function nwCookieBron(){ return nwBeeldenAan() ? nwBronnen().find(b => b.aan && b.cookiekeuze) : null; }
+function nwCookieBron(){ return nwBeeldenAan() ? nwBronnen().find(b => b.aan && b.cookiekeuze && b.pagina !== false) : null; }
 function nwCookieRender(){
   const el = $('#nws-cookie'), b = nwCookieBron();
   el.hidden = !b;
@@ -285,6 +291,7 @@ function nwCookies(){
   window.onResumeApp = function(){
     if (typeof prev === 'function') prev();
     if (nw.cookie) { nw.cookie = false; nwVerversen(true); }
+    if (nw.inlog) { nw.inlog = false; if (current === 'nieuwsbron') nwbVul(false); nwVerversen(true); }
   };
 })();
 function nwBronAan(id, aan){
@@ -293,13 +300,14 @@ function nwBronAan(id, aan){
   if (nwLaad()) nwSetRender();
   if (!fout && aan) nwVerversen(false);
 }
-function nwVerwijder(id){
+function nwVerwijder(id, daarna){
   const b = nwBronnen().find(x => x.id === id); if (!b) return;
   askConfirm(t('Bron verwijderen?'), t('{naam} en de opgehaalde artikelen verdwijnen uit Nieuws. Wat je bewaard hebt, blijft staan.', { naam: b.naam }), t('Verwijderen'), () => {
     const fout = Android.nieuwsVerwijder(id);
     if (fout) { toast(fout); return; }
     if (nwLaad()) nwSetRender();
     toast(t('Bron verwijderd'));
+    if (daarna) daarna();
   });
 }
 function nwToevoegen(){
@@ -320,3 +328,106 @@ window.onNieuwsBron = function(r){
   if (b.al) nwVerversen(false);
 };
 function nwBeelden(on){ store.set('nwBeelden', !!on); if (nw.data) nwCookieRender(); }
+
+/* ---------- één bron: alle instellingen, voor elke bron op dezelfde manier (ook inloggen) ---------- */
+function nwBronOpen(id){ nw.bron = id; show('nieuwsbron'); }
+function nwbBron(){ return nwBronnen().find(b => b.id === nw.bron); }
+function nwbKlaar(){ return nwKlaar() && typeof Android.nieuwsInstellen === 'function'; }
+function nwbStatus(tekst){ const e = $('#nwb-status'); e.textContent = tekst || ''; e.hidden = !tekst; }
+function enterNieuwsBron(){
+  nwbStatus('');
+  if (!nwbKlaar()) { nwbStatus(t('Installeer de nieuwste APK om de bron in te stellen')); $('#nwb-opslaan').disabled = true; }
+  else $('#nwb-opslaan').disabled = !!nw.instellen;
+  if (!nwKlaar() || !nwLaad()) return;
+  nwbVul(true);
+}
+function nwbSchakel(sel, aan){ const b = $(sel); b.classList.toggle('on', !!aan); b.setAttribute('aria-checked', aan ? 'true' : 'false'); }
+/* velden = ook de invoervelden opnieuw vullen (bij binnenkomen en na Opslaan; niet na een schakelaar, dan blijft wat je aan het typen bent). */
+function nwbVul(velden){
+  const b = nwbBron();
+  if (!b) { if (current === 'nieuwsbron') show('nieuwsset'); return; }
+  $('#nwb-titel').textContent = b.naam;
+  const st = $('#nwb-stand'), fout = b.aan && b.fout && (b.poging || 0) >= (b.t || 0);
+  st.textContent = nwBronStand(b); st.classList.toggle('nws-fout', !!fout);
+  nwbSchakel('#nwb-aan', b.aan); nwbSchakel('#nwb-inlog', b.inlog); nwbSchakel('#nwb-pagina', b.pagina);
+  if (velden) {
+    $('#nwb-naam').value = b.naam; $('#nwb-url').value = b.url; $('#nwb-alleen').value = b.alleen || '';
+    $('#nwb-start').value = b.inlogStart || ''; $('#nwb-sites').value = b.inlogSites || '';
+  }
+  const std = $('#nwb-url-std'), anders = !b.eigen && b.standaardUrl && b.url !== b.standaardUrl;
+  std.hidden = !anders; std.textContent = anders ? t('Standaard: {adres}', { adres: b.standaardUrl }) : '';
+  $('#nwb-inlog-deel').hidden = !b.inlog;
+  $('#nwb-lezen').value = b.lezen === 'app' ? 'app' : 'browser';
+  if (b.inlog) {
+    let n = 0;
+    try { n = typeof Android.nieuwsInlogStand === 'function' ? (JSON.parse(Android.nieuwsInlogStand(b.id)).koekjes || 0) : 0; } catch(e){ n = 0; }
+    $('#nwb-inlog-st').textContent = n ? t('De site heeft je inlog bewaard (cookies op je telefoon).') : t('Nog niet ingelogd.');
+    $('#nwb-uitloggen').disabled = !n;
+  }
+  const ps = $('#nwb-pagina-st'), stand = b.beeldStand || '';
+  const ptekst = !b.pagina || !nwBeeldenAan() ? (b.pagina ? t('Afbeeldingen tonen staat uit bij de instellingen van Nieuws.') : '')
+    : stand === 'cookiekeuze' ? (b.cookiekeuze ? t('Eerst een cookiekeuze maken.') : t('De site stuurt eerst naar een andere site, bijvoorbeeld een cookiemuur.'))
+    : stand === 'fout' ? (nwBeeldReden(b) || t('Ophalen lukte niet')) : '';
+  ps.textContent = ptekst; ps.hidden = !ptekst;
+  $('#nwb-cookie').hidden = !(b.cookiekeuze && b.pagina);
+  $('#nwb-standaard').hidden = !b.aangepast;
+  $('#nwb-weg').hidden = !b.eigen;
+}
+/* Een schakelaar of keuzelijst: meteen opslaan. Aan/uit gaat zoals in de lijst met bronnen. */
+function nwbZet(wijz){
+  const b = nwbBron(); if (!b) return;
+  if ('aan' in wijz) { nwBronAan(b.id, wijz.aan); nwbVul(false); return; }
+  nwbStuur(wijz);
+}
+function nwbOpslaan(){
+  const b = nwbBron(); if (!b) return;
+  const w = { naam: $('#nwb-naam').value, url: $('#nwb-url').value.trim(), alleen: $('#nwb-alleen').value };
+  if (b.inlog) { w.inlogStart = $('#nwb-start').value.trim(); w.inlogSites = $('#nwb-sites').value; }
+  if (!w.url) { nwbStatus(t('Vul het adres van een nieuwssite of feed in')); $('#nwb-url').focus(); return; }
+  nwbStuur(w, true);
+}
+function nwbStuur(wijz, velden){
+  if (nw.instellen || !nwbKlaar()) return;
+  nw.instellen = { wijz, velden: !!velden };
+  $('#nwb-opslaan').disabled = true; $('#nwb-status').hidden = false;
+  uiWachtTekst($('#nwb-status'), 'url' in wijz ? t('Feed nakijken…') : t('Opslaan…'));
+  Android.nieuwsInstellen(nw.bron, JSON.stringify(wijz));
+}
+window.onNieuwsInstellen = function(r){
+  r = r || {};
+  const was = nw.instellen || { wijz: {} };
+  nw.instellen = null; $('#nwb-opslaan').disabled = false;
+  nwLaad();
+  if (r.error) { nwbStatus(r.error); if (current === 'nieuwsbron') nwbVul(false); return; }
+  nwbStatus(was.wijz.standaard ? t('Standaard teruggezet.') : t('Opgeslagen'));
+  if (current === 'nieuwsbron') nwbVul(!!was.velden || !!was.wijz.standaard || 'inlog' in was.wijz);
+  if (current === 'nieuwsset') nwSetRender();
+  // een andere feed, filter of inlog: meteen opnieuw ophalen (de oude artikelen van die bron zijn weg)
+  if (r.bron && r.bron.aan && ['url', 'alleen', 'inlog', 'inlogSites', 'pagina', 'standaard'].some(k => k in was.wijz)) nwVerversen(true);
+};
+function nwbInloggen(){
+  const b = nwbBron(); if (!b) return;
+  const fout = Android.nieuwsInloggen(b.id);
+  if (fout) { toast(fout); return; }
+  nw.inlog = true;
+}
+function nwbUitloggen(){
+  const b = nwbBron(); if (!b) return;
+  askConfirm(t('Uitloggen bij {naam}?', { naam: b.naam }), t('De cookies en websitegegevens van de toegestane sites gaan weg van je telefoon. Daarna haalt Tools alleen nog op wat iedereen mag zien.'), t('Uitloggen'), () => {
+    const fout = Android.nieuwsUitloggen(b.id);
+    if (fout) { toast(fout); return; }
+    toast(t('Uitgelogd')); nwbVul(false);
+  });
+}
+function nwbCookies(){
+  const b = nwbBron(); if (!b) return;
+  const fout = Android.nieuwsCookies(b.id);
+  if (fout) { toast(fout); return; }
+  nw.cookie = true;
+}
+function nwbStandaard(){
+  const b = nwbBron(); if (!b) return;
+  askConfirm(t('Standaard terugzetten?'), b.eigen ? t('Je instellingen van {naam} gaan terug naar het begin: inloggen, afbeeldingen en welke artikelen. Naam en adres blijven. Je inlog bij de site blijft bewaard.', { naam: b.naam })
+    : t('Je wijzigingen aan {naam} gaan weg: naam, adres, inloggen en de rest. Je inlog bij de site blijft bewaard.', { naam: b.naam }), t('Terugzetten'), () => nwbStuur({ standaard: true }, true));
+}
+function nwbVerwijder(){ const b = nwbBron(); if (b && b.eigen) nwVerwijder(b.id, () => { if (current === 'nieuwsbron') goBack(); }); }

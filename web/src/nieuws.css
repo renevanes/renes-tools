@@ -35,3 +35,10 @@
 details.card.setup.done.nws-mis>summary small{color:var(--warn)}
 /* Bijwerken: de lopende balk onder de regel zonder dat de lijst verspringt (in de ruimte onder de regel). */
 .nw-stand.wacht{padding-bottom:0;overflow:visible;clip-path:inset(0 0 -8px 0)}.nw-stand.wacht::before,.nw-stand.wacht::after{bottom:-6px}
+.nws-bronnen .nws-open{flex:1;min-width:0;display:flex;align-items:center;gap:4px;text-align:left;min-height:44px;border-radius:8px}
+.nws-bronnen .nws-open:active{background:var(--hi)}
+#nwb-stand.nws-fout{color:var(--bad)}
+#nwb-inlog-deel{margin-top:4px}
+#nwb-inlog-deel .big{margin-top:8px}
+#s-nieuwsbron .card .big{width:100%}
+#s-nieuwsbron [hidden],#s-nieuwsart [hidden]{display:none!important}

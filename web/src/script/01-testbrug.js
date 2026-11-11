@@ -50,8 +50,9 @@ if (!window.Android) window.Android = (function(){
       const bronnen = [['nos', 'NOS Nieuws', 'https://feeds.nos.nl/nosnieuwsalgemeen', true], ['rijnmond', 'Rijnmond', 'https://www.rijnmond.nl/rss/index.xml', true],
         ['nos-sport', 'NOS Sport', 'https://feeds.nos.nl/nossportalgemeen'], ['nu', 'NU.nl', 'https://www.nu.nl/rss/Algemeen'], ['rtl', 'RTL Nieuws', 'https://www.rtl.nl/rss.xml'],
         ['nrc', 'NRC', 'https://www.nrc.nl/rss/'], ['volkskrant', 'de Volkskrant', 'https://www.volkskrant.nl/voorpagina/rss.xml'], ['ad', 'AD', 'https://www.ad.nl/home/rss.xml'],
-        ['tweakers', 'Tweakers Nieuws', 'https://tweakers.net/feeds/mixed.xml'], ['bbc', 'BBC News', 'https://feeds.bbci.co.uk/news/rss.xml'], ['guardian', 'The Guardian', 'https://www.theguardian.com/world/rss']]
-        .map(([id, naam, url, aan]) => ({ id, naam, url, aan: !!aan, eigen: false }));
+        ['tweakers', 'Tweakers Nieuws', 'https://tweakers.net/feeds/mixed.xml'], ['bbc', 'BBC News', 'https://feeds.bbci.co.uk/news/rss.xml'], ['guardian', 'The Guardian', 'https://www.theguardian.com/world/rss'],
+        ['aireport', 'AI Report', 'https://www.aireport.nl/', true]]
+        .map(([id, naam, url, aan]) => this._nwStd({ id, naam, url, aan: !!aan, eigen: false, standaardNaam: naam, standaardUrl: url }));
       let n = 0;
       const art = (bron, titel, wanneer, blokken, extra) => Object.assign({ id: 'n' + (0xa000 + ++n).toString(16).padStart(16, '0'), bron, titel,
         link: (bron === 'nos' ? 'https://nos.nl/l/' : 'https://www.rijnmond.nl/nieuws/') + (2638600 + n), datum: nu - wanneer, blokken: blokken.map(b => typeof b === 'string' ? { t: b } : b) }, extra || {});
@@ -70,12 +71,20 @@ if (!window.Android) window.Android = (function(){
       this._nw = { bronnen, artikelen, stand, gelezen: new Set([artikelen[5].id]), bewaard: [], calls: [], mislukt: {}, erbij: [], wacht: 200 };
       return this._nw;
     },
+    /* De instellingen zoals Nieuws.bronnen ze geeft: standaard, en daarna wat de test of nieuwsInstellen erboven zet. */
+    _nwStd(b){
+      const site = b.id === 'tweakers' ? 'tweakers.net' : b.id === 'aireport' ? 'aireport.nl' : new URL(b.url).hostname.replace(/^www\./, '').replace(/^(feeds?|rss)\.(?=[^.]+\.)/, '');
+      const inlog = b.id === 'aireport';
+      return Object.assign(b, { alleen: b.id === 'tweakers' ? 'tweakers.net/nieuws/' : '', pagina: b.id === 'tweakers', cookiekeuze: b.id === 'tweakers', inlog,
+        inlogStart: inlog ? 'https://www.aireport.nl/' : 'https://' + site + '/', inlogSites: inlog ? 'aireport.nl *.aireport.nl *.beehiiv.com' : site + ' *.' + site,
+        lezen: inlog ? 'app' : 'browser', aangepast: false });
+    },
     _nwKort(a){ const o = Object.assign({}, a), p = (a.blokken || []).find(b => !b.k); o.sam = p && p.t !== a.titel ? p.t.slice(0, 240) : ''; o.lang = (a.blokken || []).reduce((n, b) => n + b.t.length, 0); delete o.blokken; return o; },
     nieuwsLijst(){
       const s = this._nwInit();
       if (s.lijstFout) return JSON.stringify({ error: s.lijstFout });
       const aan = new Set(s.bronnen.filter(b => b.aan).map(b => b.id));
-      const bronnen = s.bronnen.map(b => Object.assign({}, b, s.stand[b.id] || {}, b.id === 'tweakers' ? { cookiekeuze: true } : {},
+      const bronnen = s.bronnen.map(b => Object.assign({}, b, s.stand[b.id] || {},
         { aantal: aan.has(b.id) ? s.artikelen.filter(a => a.bron === b.id).length : 0 }));
       const artikelen = s.artikelen.filter(a => aan.has(a.bron)).sort((x, y) => y.datum - x.datum).map(a => this._nwKort(a));
       return JSON.stringify({ bronnen, artikelen, bewaard: s.bewaard.map(a => this._nwKort(a)), gelezen: [...s.gelezen], bezig: !!s.bezig });
@@ -112,7 +121,7 @@ if (!window.Android) window.Android = (function(){
         const url = 'https://' + kaal, host = kaal.split('/')[0];
         if (s.bronnen.some(b => b.url === url)) { const b = s.bronnen.find(x => x.url === url); b.aan = true; onNieuwsBron({ bron: Object.assign({}, b, { al: true }) }); return; }
         const id = 'e' + [...url].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7).toString(16), nu = Date.now();
-        const b = { id, naam: host, url, aan: true, eigen: true };
+        const b = this._nwStd({ id, naam: host, url, aan: true, eigen: true });
         s.bronnen.push(b); s.stand[id] = { t: nu, poging: nu };
         s.artikelen.push({ id: 'n' + id.slice(1).padStart(16, '0'), bron: id, titel: 'Eerste artikel van ' + host, link: url + '/artikel', datum: nu - 60000, blokken: [{ t: 'Een kort stukje tekst uit de feed.' }] });
         onNieuwsBron({ bron: Object.assign({}, b) });
@@ -135,6 +144,29 @@ if (!window.Android) window.Android = (function(){
       return '';
     },
     nieuwsDeel(titel, link){ this._nwInit().gedeeld = [titel, link]; },
+    /* Instellingen van een bron (zoals Nieuws.instellen): adressen met "geenfeed" lukken niet, "*.com" als site ook niet. */
+    nieuwsInstellen(id, json){
+      const s = this._nwInit(), w = JSON.parse(json || '{}'); s.calls.push(['instellen', id, json]);
+      setTimeout(() => {
+        const b = s.bronnen.find(x => x.id === id);
+        if (!b) { onNieuwsInstellen({ error: 'Deze bron bestaat niet meer' }); return; }
+        if (w.url && w.url !== b.url && /geenfeed/.test(w.url)) { onNieuwsInstellen({ error: 'Op deze pagina staat geen nieuwsfeed. Zoek op de site naar RSS en vul dat adres in.' }); return; }
+        if ('inlogSites' in w && /(^|\s)\*\.com(\s|$)|^\s*$/.test(w.inlogSites)) { onNieuwsInstellen({ error: 'Geen geldige site: *.com' }); return; }
+        const andereUrl = !!w.url && w.url.trim() !== b.url;
+        if (w.standaard) { const n = b.eigen ? { naam: b.naam, url: b.url } : { naam: b.standaardNaam, url: b.standaardUrl }; this._nwStd(Object.assign(b, n)); }
+        ['naam', 'url', 'alleen', 'pagina', 'inlog', 'inlogStart', 'inlogSites', 'lezen'].forEach(k => { if (k in w) b[k] = typeof b[k] === 'string' ? String(w[k]).trim() : w[k]; });
+        if ('inlog' in w && !('lezen' in w)) b.lezen = w.inlog ? 'app' : 'browser';
+        if (!w.standaard) b.aangepast = true;
+        if (andereUrl) { delete s.stand[id]; s.artikelen = s.artikelen.filter(a => a.bron !== id); }
+        onNieuwsInstellen({ bron: Object.assign({}, b) });
+      }, 120);
+    },
+    _nwKoek: {},
+    nieuwsInloggen(id){ const s = this._nwInit(), b = s.bronnen.find(x => x.id === id); s.calls.push(['inloggen', id]); if (!b || !b.inlog) return 'Zet eerst Inloggen bij de website aan'; return ''; },
+    nieuwsLees(id, link){ const s = this._nwInit(), b = s.bronnen.find(x => x.id === id); s.calls.push(['lezen', id, link]);
+      return b && b.inlog && b.lezen === 'app' && /^https:\/\/(www\.)?aireport\.nl\//.test(link) ? '' : 'extern'; },
+    nieuwsUitloggen(id){ this._nwInit().calls.push(['uitloggen', id]); this._nwKoek[id] = 0; return ''; },
+    nieuwsInlogStand(id){ return JSON.stringify({ koekjes: this._nwKoek[id] || 0 }); },
     /* Het venster voor de cookiekeuze: de test zet _nw.cookie zelf en roept onResumeApp aan, zoals na het sluiten. */
     nieuwsCookies(id){ const s = this._nwInit(); s.calls.push(['cookies', id]); return id === 'tweakers' ? '' : 'Bijwerken lukt niet'; },
     version:()=>JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts','masterdata']}),
