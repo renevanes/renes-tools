@@ -32,7 +32,14 @@ function cmpKies(slot){
   openSheet(slot ? t('Document B') : t('Document A'), '', [
     [t('Bestand op de telefoon'), () => cmpBestand(slot), 'folder'],
     ...(!isPlay() ? [[t('Uit de documentenkluis'), () => cmpUitKluis(slot), 'lock']] : []),
-    ...(outs.length ? [[t('Een gemaakte PDF'), () => cmpUitGemaakt(slot, outs), 'document']] : [])]);
+    ...(outs.length ? [[t('Een gemaakte PDF'), () => cmpUitGemaakt(slot, outs), 'document']] : []),
+    ...(bronFacturen({ soort: 'pdf' }).length ? [[t('Uit het facturendossier'), () => cmpUitFacturen(slot), 'wallet']] : [])]);
+}
+/* Een factuur uit het facturendossier (de kopie in de app), via Bron: de gewone kiezer van vergelijken krijgt dat bestand */
+function cmpUitFacturen(slot){
+  const o = { soort: 'pdf', bestand: () => cmpBestand(slot) };
+  openSheet(t('Uit het facturendossier'), '', bronFacturen(o).slice(0, BRON_MAX).map(s => [s.leverancierNaam ? t('{leverancier} · {bestand}', { leverancier: s.leverancierNaam, bestand: s.naam || '' }) : (s.naam || ''),
+    () => bronNeem(o, [{ bron: 'factuur', id: s.sha, versie: 0 }])]));
 }
 function cmpBestand(slot){ cmpWacht(t('Document kiezen…')); Android.cmpPick(slot); }
 function cmpUitKluis(slot){

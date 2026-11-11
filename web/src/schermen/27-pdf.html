@@ -9,7 +9,7 @@
   <main>
     <div class="card pdfopen" id="pdf-view-card">
       <h2 class="sr-only">PDF bekijken</h2>
-      <button class="big" id="pdf-view-open" onclick="Android.pdfViewPick()"><span class="ui-icon" data-icon="document" aria-hidden="true"></span>PDF openen</button>
+      <button class="big" id="pdf-view-open" onclick="pdfOpenKies()"><span class="ui-icon" data-icon="document" aria-hidden="true"></span>PDF openen</button>
       <p class="note">Lezen, zoeken en afdrukken in de app.</p>
     </div>
 
@@ -110,7 +110,7 @@
     <div class="card">
       <p class="note pdfintro">Foto's of scans samen in één PDF, in de volgorde die je kiest.</p>
       <div id="pdf-imgs" class="pdfimgs"></div>
-      <button class="big" id="pdf-img-pick" onclick="Android.pdfPickImages()">＋ Plaatjes kiezen</button>
+      <button class="big" id="pdf-img-pick" onclick="pdfPlaatjesKies()">＋ Plaatjes kiezen</button>
       <div id="pdf-img-opts" style="display:none">
         <div class="aeopts" id="pdf-size" role="radiogroup" aria-label="Paginaformaat" style="margin-top:10px">
           <button data-v="a4" role="radio" class="on" aria-checked="true"><span class="ui-icon" data-icon="document" aria-hidden="true"></span><b>A4</b><small>Elk plaatje op een A4-pagina, met een witte rand</small></button>

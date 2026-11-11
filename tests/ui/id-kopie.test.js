@@ -9,7 +9,7 @@ const path=require('path');
   await p.goto('file://'+path.join(__dirname,'ui','index.html'));await p.waitForTimeout(300);
   await p.evaluate(()=>show('pdf'));await p.getByRole('button',{name:'ID-kopie afschermen',exact:true}).click();
   assert.equal(await p.evaluate(()=>current),'idcopy');assert.equal(await p.evaluate(()=>Android._idc.secure),true);
-  await p.click('#id-pick');await p.waitForFunction(()=>idc.pages.length===2&&!idc.loading);
+  await p.click('#id-pick');await (async()=>{if(await p.isVisible('#sheet.on'))await p.click('#sheet-acts >> text=Bestand op de telefoon');})();await p.waitForFunction(()=>idc.pages.length===2&&!idc.loading);
   assert.equal(await p.locator('#id-save').isDisabled(),true);
   assert.equal(await p.evaluate(()=>uiCanReload()),false,'actieve bron blokkeert automatische herlading');
   const ratio=await p.locator('#id-image').evaluate(e=>e.getBoundingClientRect().width/e.getBoundingClientRect().height);assert.ok(Math.abs(ratio-1.6)<.02,'verhouding bron blijft behouden');

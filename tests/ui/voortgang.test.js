@@ -9,7 +9,7 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>{Android._vgMs=250;Android._erBooks=Android._erBooks||[];Android._erPick={book:{id:'nieuw',title:'Nieuw boek',author:'',chapters:['Een'],chapter:0,offset:0,last:1,format:'EPUB'}};Android._erTexts=Android._erTexts||{};Android._erTexts.nieuw=['Tekst'];Android._erBooks.push({id:'nieuw',title:'Nieuw boek',author:'',chapters:['Een'],chapter:0,offset:0,last:1,format:'EPUB'});});
   const seen=[];await p.exposeFunction('vgZag',s=>seen.push(s));
   await p.evaluate(()=>{new MutationObserver(()=>{if(!$('#vg').hidden)vgZag($('#vg-wat').textContent+' | '+$('#vg-stand').textContent+' | '+($('#vg-prog').getAttribute('aria-valuenow')||'-')+' | '+$('#vg-prog').classList.contains('busy'));}).observe($('#vg'),{subtree:true,childList:true,characterData:true,attributes:true});});
-  await p.click('#er-add');
+  await p.click('#er-add');await (async()=>{if(await p.isVisible('#sheet.on'))await p.click('#sheet-acts >> text=Bestand op de telefoon');})();
   assert.equal(await p.isVisible('#vg'),false,'niet meteen (kleine bestanden flitsen niet)');
   await p.waitForSelector('#vg',{state:'visible'});
   await p.waitForFunction(()=>/Opslaan… 12 van 12/.test($('#vg-stand').textContent));

@@ -33,12 +33,12 @@ const assert = require('node:assert');
     // plaatjes kiezen, volgorde wijzigen, weghalen (eigen scherm)
     await pg.click('#pdf-t-img'); assert.strictEqual(await pg.evaluate(() => current), 'pdfimg');
     assert.strictEqual(await pg.evaluate(() => $('#pdf-img-pick').classList.contains('ghost')), false, 'kiezen is de hoofdknop');
-    await pg.click('text=＋ Plaatjes kiezen'); await pg.waitForTimeout(150);
+    await pg.click('text=＋ Plaatjes kiezen');await (async()=>{if(await pg.isVisible('#sheet.on'))await pg.click('#sheet-acts >> text=Bestand op de telefoon');})(); await pg.waitForTimeout(150);
     assert.strictEqual(await pg.$$eval('#pdf-imgs .pdfimg', x => x.length), 2);
     assert.match(await pg.textContent('#pdf-img-make'), /2 pagina's/);
     await pg.click('[aria-label="Plaatje 1 naar achteren"]'); await pg.waitForTimeout(80);
     assert.deepStrictEqual((await P()).imgs.map(m => m.w), [400, 300], 'verwisseld');
-    await pg.click('text=＋ Plaatjes kiezen'); await pg.waitForTimeout(150);
+    await pg.click('text=＋ Plaatjes kiezen');await (async()=>{if(await pg.isVisible('#sheet.on'))await pg.click('#sheet-acts >> text=Bestand op de telefoon');})(); await pg.waitForTimeout(150);
     assert.strictEqual(await pg.$$eval('#pdf-imgs .pdfimg', x => x.length), 4);
     await pg.click('[aria-label="Plaatje 4 weghalen"]'); await pg.waitForTimeout(80);
     assert.strictEqual(await pg.$$eval('#pdf-imgs .pdfimg', x => x.length), 3);
@@ -67,7 +67,7 @@ const assert = require('node:assert');
 
     // splitsen: PDF kiezen, pagina's aantikken, tekstvak volgt
     await pg.click('#pdf-t-split'); assert.strictEqual(await pg.evaluate(() => current), 'pdfsplit');
-    await pg.click('#pdf-split-pick'); await pg.waitForTimeout(150);
+    await pg.click('#pdf-split-pick');await (async()=>{if(await pg.isVisible('#sheet.on'))await pg.click('#sheet-acts >> text=Bestand op de telefoon');})(); await pg.waitForTimeout(150);
     assert.strictEqual(await pg.textContent('#pdf-split-pick'), 'Andere PDF kiezen');
     assert.strictEqual(await pg.isVisible('#pdf-split'), true);
     assert.match(await pg.textContent('#pdf-split-info'), /Contract · 8 pagina's/);
@@ -131,7 +131,7 @@ const assert = require('node:assert');
     assert.deepStrictEqual((await P()).text, ['Reservering', 'Tafel voor 2 om 19:00']);
     assert.strictEqual(await pg.inputValue('#pdf-text'), '');
     // e-mailbestand kiezen
-    await pg.click('#pdf-doc-pick'); await pg.waitForTimeout(150);
+    await pg.click('#pdf-doc-pick');await (async()=>{if(await pg.isVisible('#sheet.on'))await pg.click('#sheet-acts >> text=Bestand op de telefoon');})(); await pg.waitForTimeout(150);
     assert.strictEqual((await P()).outs[0].name, 'Afspraak.pdf');
     assert.strictEqual(await pg.evaluate(() => current), 'pdftext', 'blijft op het taakscherm');
 

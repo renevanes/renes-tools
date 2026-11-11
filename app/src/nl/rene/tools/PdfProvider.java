@@ -10,7 +10,10 @@ import android.provider.OpenableColumns;
 
 import java.io.File;
 
-/** Geeft een gemaakte of geopende PDF (alleen lezen) aan de app waarmee je hem deelt, opent of afdrukt. */
+/**
+ * Geeft een gemaakte of geopende PDF (alleen lezen) aan de app waarmee je hem deelt, opent of afdrukt. Ook een bestand dat
+ * Bron klaarzette voor een tool in de app zelf (pad b/&lt;uuid&gt;/&lt;naam&gt;, elke soort; niet geëxporteerd).
+ */
 public final class PdfProvider extends ContentProvider {
     static final String AUTH = "nl.rene.tools.pdf";
 
@@ -19,6 +22,7 @@ public final class PdfProvider extends ContentProvider {
         Uri.Builder b = new Uri.Builder().scheme("content").authority(AUTH);
         File p = f.getParentFile();
         if (p != null && Kluis.VIEW_DIR.equals(p.getName())) return b.appendPath("k").appendPath(f.getName()).build(); // tijdelijk geopend kluisdocument
+        if (p != null && p.getParentFile() != null && Bron.DIR.equals(p.getParentFile().getName())) return b.appendPath("b").appendPath(p.getName()).appendPath(f.getName()).build();
         if (p != null && p.getParentFile() != null && PdfViewActivity.DIR.equals(p.getParentFile().getName())) b.appendPath("v").appendPath(p.getName());
         return b.appendPath(f.getName()).build();
     }
@@ -33,6 +37,12 @@ public final class PdfProvider extends ContentProvider {
             if (!Kluis.isOpen()) { Kluis.clearViews(c); throw new Exception("niet gevonden"); }
             File d = Kluis.viewDir(c).getCanonicalFile(), f = new File(d, seg.get(1)).getCanonicalFile();
             if (!d.equals(f.getParentFile()) || !f.isFile() || !f.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) throw new Exception("niet gevonden");
+            return f;
+        }
+        if (seg.size() == 3 && "b".equals(seg.get(0))) {
+            // Een bestand dat Bron voor een tool klaarzette (cache/bron/<uuid>/<naam>)
+            File root = Bron.dir(c).getCanonicalFile(), d = new File(root, seg.get(1)).getCanonicalFile(), f = new File(d, seg.get(2)).getCanonicalFile();
+            if (!root.equals(d.getParentFile()) || !d.equals(f.getParentFile()) || !f.isFile()) throw new Exception("niet gevonden");
             return f;
         }
         if (seg.size() == 3 && "v".equals(seg.get(0))) {
@@ -57,7 +67,10 @@ public final class PdfProvider extends ContentProvider {
         catch (Exception e) { return null; }
     }
 
-    @Override public String getType(Uri uri) { return "application/pdf"; }
+    @Override public String getType(Uri uri) {
+        java.util.List<String> seg = uri.getPathSegments();
+        return seg.size() == 3 && "b".equals(seg.get(0)) ? Bron.mime(seg.get(2)) : "application/pdf";
+    }
     @Override public Uri insert(Uri uri, ContentValues v) { throw new UnsupportedOperationException(); }
     @Override public int delete(Uri uri, String s, String[] a) { throw new UnsupportedOperationException(); }
     @Override public int update(Uri uri, ContentValues v, String s, String[] a) { throw new UnsupportedOperationException(); }

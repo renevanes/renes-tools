@@ -851,6 +851,17 @@ final class FacturenDossier {
     }
 
     /** Een kort overzicht voor het scherm: [{…stuk, zonder grote velden}], nieuwste eerst. */
+    /** De kopie van een factuur in de app zelf (facturen/pdf/…), om hem in een andere tool te gebruiken (Bron). */
+    static File appBestand(Context c, String sha) throws Exception {
+        JSONObject s = alle(c).optJSONObject(sha == null ? "" : sha);
+        JSONObject app = s == null || s.optJSONObject("plekken") == null ? null : s.optJSONObject("plekken").optJSONObject("app");
+        if (app == null || app.has("weg") || app.optString("pad").isEmpty()) throw new Exception(Taal.T("Deze factuur staat niet meer in de app"));
+        File d = new File(Facturen.dir(c), "pdf").getCanonicalFile(), f = new File(app.optString("pad")).getCanonicalFile();
+        if (!f.getPath().startsWith(d.getPath() + File.separator) || !f.isFile() || !f.getName().toLowerCase(Locale.ROOT).endsWith(".pdf"))
+            throw new Exception(Taal.T("Deze factuur staat niet meer in de app"));
+        return f;
+    }
+
     static JSONArray lijst(Context c) {
         JSONArray out = new JSONArray();
         JSONObject all = alle(c);

@@ -187,6 +187,13 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   De interface toont dan vanzelf de balk onderin (`uiVoortgang` in `02-patronen.js`; nieuwe soort = een kop in `uiVgWat`).
   Alleen stappen en aantallen, nooit namen. Test: `tests/ui/voortgang.test.js`, `VoortgangTest`.
   Duurt een stap hooguit een bekende tijd (herkennen met een tijdslimiet): `v.tijd("herkennen", ms)`, de balk loopt dan met de klok mee.
+- **Bestand kiezen**: vraagt een tool om een bestand (PDF, foto, boek, document), laat Rene dan eerst kiezen waar het
+  vandaan komt: `bronKies({ titel, soort, bestand: () => Android.…Pick() })` (`02-bron.js`): de documentenkluis, Gemaakt,
+  het facturendossier of "Bestand op de telefoon" (geen andere plek = meteen de kiezer van Android). Een bestand uit de app
+  zet Java klaar (`bronVolgende`, `Bron.java`) en de gewone kiezer van de tool krijgt het dan in plaats van de kiezer van
+  Android (`MainActivity.startActivityForResult`), dus de tool verwerkt het als elk gekozen bestand. Nieuwe kiezer = zijn
+  `REQ_…` in `MainActivity.bronMag` (niet bij Stamgegevens, Bankzaken, de handtekening of back-ups). Iets eigens voor de kluis
+  (een nieuwe versie bewerken, bekijken in de viewer van de kluis): `eigen: { kluis: doc => … }`. Test: `tests/ui/bron.test.js`, `BronTest`.
 - **Wachten: altijd zichtbaar waarom.** Moet Rene langer dan een tel wachten, dan ziet hij wat er gebeurt, niet alleen een
   melding of een stilstaande tekst. Kies (in `02-patronen.js`, test `tests/ui/wachten.test.js`):
   een statusregel die al zegt waarop je wacht → `uiWachtTekst(el, t('Zoeken…'))` (lopende balk eronder, gaat vanzelf weg zodra

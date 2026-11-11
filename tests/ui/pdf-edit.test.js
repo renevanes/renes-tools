@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
   for(const scheme of ['light','dark']){
     const p=await b.newPage({viewport:{width:390,height:844},colorScheme:scheme});const errors=[];p.on('pageerror',e=>errors.push(e.message));
     await p.goto('file://'+require('path').join(__dirname,'ui','index.html'));await p.evaluate(()=>store.set('pdfKluisVanzelf',false)); // over de PDF-tools zelf; vanzelf naar de kluis: kluis-centraal.test.js
-    await p.evaluate(()=>openTool('pdf'));await p.click('#pdf-t-edit');assert.equal(await p.evaluate(()=>current),'pdfedit');await p.click('#pdf-edit-pick');
+    await p.evaluate(()=>openTool('pdf'));await p.click('#pdf-t-edit');assert.equal(await p.evaluate(()=>current),'pdfedit');await p.click('#pdf-edit-pick');await (async()=>{if(await p.isVisible('#sheet.on'))await p.click('#sheet-acts >> text=Bestand op de telefoon');})();
     await p.waitForFunction(()=>pdfEd.revision&&!pdfEd.loading&&pdfEd.meta[0]);
     assert.equal(await p.isDisabled('#pdf-edit-save'),true);
     await p.fill('#pdf-edit-text','René <akkoord> €\nRotterdam');await p.click('#pdf-edit-add-text');
@@ -64,7 +64,7 @@ const assert = require('node:assert/strict');
     // Annuleren van documentvervanging behoudt het werk.
     await p.click('#pdf-edit-pick');await p.getByRole('button',{name:'Annuleren',exact:true}).click();
     assert.equal(await p.evaluate(()=>pdfEd.items.length),4);
-    await p.click('#pdf-edit-pick');await p.locator('#modal-ok').click();
+    await p.click('#pdf-edit-pick');await p.locator('#modal-ok').click();await (async()=>{if(await p.isVisible('#sheet.on'))await p.click('#sheet-acts >> text=Bestand op de telefoon');})();
     await p.waitForFunction(()=>pdfEd.items.length===0&&!pdfEd.loading);
     await p.evaluate(()=>{Android._pdf.previewError='Deze PDF kan niet veilig bewerkt worden';pdfEditLoad();});
     await p.waitForFunction(()=>!pdfEd.loading);

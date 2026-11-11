@@ -73,6 +73,7 @@ script/02-landen.js
 script/02-taal.js
 script/02-thema.js
 script/02-patronen.js
+script/02-bron.js
 script/02-handtekening.js
 script/03-auto-redial.js
 script/04-whatsapp-backup.js

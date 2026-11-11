@@ -6,7 +6,9 @@ function pdfEditPendingInput(){
   return !!value && (!selected || selected.type !== 'text' || value !== selected.text);
 }
 function pdfChooseSource(){
-  const choose = () => Android.pdfPickPdf();
+  // Bij Bewerken wordt een kluisdocument een nieuwe versie van dat document (zoals Bewerken in de kluis)
+  const choose = () => bronKies({ titel: t('PDF kiezen'), soort: 'pdf', bestand: () => Android.pdfPickPdf(),
+    eigen: current === 'pdfedit' ? { kluis: d => klBewerk(d.id) } : undefined, weg: () => { pdfEd.want = false; } });
   if (pdfEditDirty()) askConfirm('Andere PDF kiezen?', 'Je niet-opgeslagen toevoegingen worden vervangen als je een andere PDF opent.', 'PDF kiezen', choose); else choose();
 }
 function pdfEditChoose(){ pdfEd.want = true; pdfChooseSource(); }

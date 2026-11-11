@@ -640,6 +640,19 @@ public class FeatureBridge {
                 return new JSONObject().put("docs", Kluis.linked(ctx, kind, ref)).toString();
             } catch (Exception e) { return errJson(e); }
         }
+        /**
+         * Een bestand uit de app zelf klaarzetten voor de volgende bestandskiezer van een tool (Bron): [{bron, id, versie}].
+         * Een kluisdocument alleen als de kluis nu open is (net als bij vergelijken). Antwoord: "" of een foutmelding.
+         */
+        @JavascriptInterface public String bronVolgende(String json) {
+            try {
+                java.util.List<Bron.Item> items = Bron.lees(json);
+                boolean kluis = false; for (Bron.Item it : items) if ("kluis".equals(it.bron)) kluis = true;
+                if (kluis && (!PlayPolicy.allows(ctx, "kluis") || !a.kluisOk())) return Taal.T("De kluis is op slot");
+                Bron.zet(items, android.os.SystemClock.elapsedRealtime(), kluis);
+                return "";
+            } catch (Exception e) { return e.getMessage() == null ? Taal.T("Onbekend bestand") : e.getMessage(); }
+        }
         // ----- Documenten vergelijken (PdfCompare): A en B uit een bestand, de kluis of Gemaakt -----
 
         /** Document A (0) of B (1) kiezen met de bestandskiezer; antwoord via onCmp. */

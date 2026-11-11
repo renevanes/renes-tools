@@ -134,7 +134,7 @@ const SHOTS = process.env.PDF_SHOTS || path.join(__dirname, 'shots');
     await pg.evaluate(() => goBack()); assert.equal(await cur(), 'home');
 
     // "Net gemaakt" hoort bij het scherm waar de klus begon, ook als je intussen verder gaat
-    await pg.evaluate(() => { pdfLast = null; show('pdf'); }); await pg.click('#pdf-t-img'); await pg.click('#pdf-img-pick'); await pg.waitForTimeout(100);
+    await pg.evaluate(() => { pdfLast = null; show('pdf'); }); await pg.click('#pdf-t-img'); await pg.click('#pdf-img-pick');await (async()=>{if(await pg.isVisible('#sheet.on'))await pg.click('#sheet-acts >> text=Bestand op de telefoon');})(); await pg.waitForTimeout(100);
     await pg.fill('#pdf-img-name', 'Kassabon');
     await pg.click('#pdf-img-make'); await pg.evaluate(() => { goBack(); show('pdfsplit'); });
     await pg.waitForFunction(() => !pdfBusy);

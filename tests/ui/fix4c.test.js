@@ -47,7 +47,7 @@ const { chromium } = require('playwright');
       await page.click('#ts-open');
       await page.waitForSelector('#kl-open', { state: 'visible' });
       assert.match(await page.textContent('#kl-list'), /Paspoort\.pdf/);
-      await page.click('#kl-open button:has-text("Document toevoegen")');
+      await page.click('#kl-open button:has-text("Document toevoegen")');await (async()=>{if(await page.isVisible('#sheet.on'))await page.click('#sheet-acts >> text=Bestand op de telefoon');})();
       await page.waitForFunction(() => document.querySelectorAll('#kl-list .trip').length === 2);
       assert.equal(await page.locator('#kl-list b').filter({ hasText: 'Polis <b>.pdf' }).count(), 1, 'naam wordt niet als HTML gelezen');
       await page.evaluate(() => goBack());
