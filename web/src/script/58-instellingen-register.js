@@ -408,7 +408,7 @@ const SET_REG = [
     set: v => { const m = JSON.parse(Android.speechModels()); const e = Android.speechConfigure(m.voice || '', m.speed || 1, setOnV(v)); if (!e && setOnV(v) && typeof Android.speechNotifAsk === 'function') Android.speechNotifAsk(); /* zoals spBackground: zonder meldingen geen pauzeknop */ if (typeof spRefreshAll === 'function') spRefreshAll(); setIf('spraak', svRender); if (typeof erSpeakRender === 'function') erSpeakRender(); return e || ''; } }
 ];
 
-const SET_SRC_PRIV = ['sms', 'wa', 'calls', 'contacts', 'tx', 'sleep', 'checkin', 'gebruik', 'apparaten'];
+const SET_SRC_PRIV = ['sms', 'wa', 'calls', 'contacts', 'tx', 'sleep', 'checkin', 'gebruik', 'apparaten', 'agenda'];
 /* Lijsten die per item een instelling hebben (automatiseringen, bronnen van de AI, onderdelen van de backup) */
 const SET_GEN = [
   { cover: '#au-list .tg', gen: () => { auLoad(); return (auState.rules || []).map(r => ({ id: 'auto.regel.' + setHash(r.id), scr: 'auto', label: t('Automatisering "{naam}"', { naam: r.name || t('Zonder naam') }),

@@ -2298,6 +2298,7 @@ public class MainActivity extends Activity {
                     case "camera": p = new String[]{Manifest.permission.CAMERA}; break; // Gebruik: foto bij ontgrendelen; QR-code scannen
                     case "notif": if (Build.VERSION.SDK_INT >= 33) p = new String[]{Manifest.permission.POST_NOTIFICATIONS}; break;
                     case "calendar": p = new String[]{Manifest.permission.READ_CALENDAR}; break; // alleen lezen (Check-in)
+                    case "agendasync": p = new String[]{Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR}; break; // Agenda: lezen en in een eigen agenda zetten
                     case "nearby": p = ApparatenBridge.nearby(); break; // Apparaten: Bluetooth en wifi in de buurt
                     case "files": a.requestFilesAccess(); return;
                     case "install": a.openInstallSettings(); return;

@@ -11,18 +11,19 @@ const GS = {
   checkin:  ['🙂', 'Check-in', 'checkin', '', () => {}],
   gebruik:  ['📊', 'Gebruik', 'gebruik', '', () => {}],
   music:    ['🎵', 'Muziek', 'music', 'mu-search', () => muRenderHistory()],
-  history:  ['🔔', 'Meldingsgeschiedenis', 'history', 'history-search', () => { historyLimit = 200; loadHistory(); }]
+  history:  ['🔔', 'Meldingsgeschiedenis', 'history', 'history-search', () => { historyLimit = 200; loadHistory(); }],
+  agenda:   ['📅', 'Agenda', 'agenda', 'ag-zoek', () => { if (typeof agZoekNu === 'function') agZoekNu(); }]
 };
 /* ---------- zoeken in de app zelf: schermen, kaarten en instellingen ---------- */
 const GS_SYN = {'e-reader': 'epub ebook eboek e-boek boeken lezen tekst reader bibliotheek voorlezen voorlees helderheid nachtfilter blauw licht blauwlicht prettig ogen volle scherm', nieuws: 'nieuwsfeed rss atom feed krant kranten koppen artikelen nos nu.nl rijnmond news',toiletten: 'wc toilet plassen urinoir douche douchen openbaar tankstation verzorgingsplaats camping rolstoel invalidentoilet hoge nood', 'leesbare chats': 'whatsapp sleutel 64 cijfers versleuteld lezen', 'pdf bekijken': 'pdf lezen viewer openen afdrukken', formulieren: 'formulier toestemming reistoestemming invulhulp', 'tekst naar pdf': 'e-mail mail eml bericht', 'id-kopie': 'identiteitsbewijs identiteitskaart idkaart id-kaart paspoort BSN documentnummer afschermen anonimiseren watermerk identity passport redact redaction watermark', meldingen: 'notificaties melding geluid trillen stil dempen uitzetten', 'app-slot': 'vingerafdruk pincode slot vergrendelen beveiliging wachtwoord',
   backup: 'reservekopie back-up opslaan bewaren', 'telefoon-skin': 'startscherm launcher thuisscherm skin', weergave: 'tekstgrootte letters groot thema donker dark mode licht nachtmodus',
-  foutrapport: 'fout crash probleem bug', modellen: 'taalmodel spraakmodel zoekmodel ai opslag ruimte downloaden verwijderen wifi', slaappraat: 'slapen slaap praten nacht snurken dromen microfoon', apparaten: 'bluetooth wifi airtag tracker smarttag tile scanner zoeken kwijt oortjes netwerk router apparaat buurt', 'check-in': 'checkin stemming humeur gevoel score cijfer dagboek bijhouden vraag werk hoe voel', versleutel: 'wachtwoord encryptie geheim', batterij: 'accu energie stroom'};
+  foutrapport: 'fout crash probleem bug', modellen: 'taalmodel spraakmodel zoekmodel ai opslag ruimte downloaden verwijderen wifi', slaappraat: 'slapen slaap praten nacht snurken dromen microfoon', apparaten: 'bluetooth wifi airtag tracker smarttag tile scanner zoeken kwijt oortjes netwerk router apparaat buurt', 'check-in': 'checkin stemming humeur gevoel score cijfer dagboek bijhouden vraag werk hoe voel', agenda: 'kalender afspraak afspraken weeknummer weeknummers calendar appointment google', versleutel: 'wachtwoord encryptie geheim', batterij: 'accu energie stroom'};
 let gsIndex = null;
 function gsBuildIndex(){
   gsIndex = [];
   const fold = tt => norm2(tt);
   // Detailschermen (één notitie, chat, route …) hebben iets nodig om te tonen: die niet los openen
-  const DETAIL = ['erbook', 'ercontents', 'erset', 'nieuwsart', 'note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'podlijst', 'sleepnight', 'checkined', 'checkinq', 'apdev'];
+  const DETAIL = ['erbook', 'ercontents', 'erset', 'nieuwsart', 'note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'podlijst', 'sleepnight', 'checkined', 'checkinq', 'apdev', 'agafspraak'];
   const tiles = []; // tegels op een overzicht (bijv. PDF): {to, title, key, sub}
   document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {
     const scr = sec.id.slice(2);
@@ -93,12 +94,18 @@ function gsInput(){
   $('#gs-hint').style.display = on ? 'none' : '';
   if (!on) { if (gsQ) Android.searchAll(''); gsQ = ''; gsData = {}; return; }
   // Vorige treffers blijven (gedimd) staan tot de nieuwe binnen zijn: geen verspringende pagina.
-  const prev = gsData; gsQ = q; gsData = { app: gsApp(q), notes: gsDicht('notes') ? null : gsNotes(q), history: gsDicht('history') ? null : gsHistory(q), pending: !isPlay(), stale: {} };
-  for (const k of Object.keys(GS)) if (!['notes', 'app', 'history'].includes(k) && prev[k]) gsData.stale[k] = prev[k];
+  const prev = gsData; gsQ = q; gsData = { app: gsApp(q), notes: gsDicht('notes') ? null : gsNotes(q), history: gsDicht('history') ? null : gsHistory(q), agenda: gsDicht('agenda') ? null : gsAgenda(q), pending: !isPlay(), stale: {} };
+  for (const k of Object.keys(GS)) if (!['notes', 'app', 'history', 'agenda'].includes(k) && prev[k]) gsData.stale[k] = prev[k];
   gsRender();
   if (isPlay()) return;
   gsTmr = setTimeout(() => { gsId = Android.searchAll(q); }, 300);
   if (typeof aiSearchSoon === 'function') aiSearchSoon(q); // op betekenis (als het zoekmodel er is)
+}
+function gsAgenda(q){
+  if (typeof Android.agendaZoek !== 'function') return null;
+  let d; try { d = JSON.parse(Android.agendaZoek(q, '', '')); } catch (e) { return null; }
+  const all = d && d.items || [];
+  return { items: all.slice(0, 5).map(it => ({ id: it.id, title: it.titel, dag: it.dag, van: it.van, heleDag: it.heleDag, plek: it.plek })), total: all.length };
 }
 function gsNotes(q){
   const ql = q.toLowerCase(), out = [];
@@ -113,7 +120,7 @@ function gsNotes(q){
 window.onSearchAll = function(r){
   if (!r || r.id !== gsId || r.q !== gsQ) return;
   gsData.stale = gsData.stale || {};
-  for (const k of Object.keys(GS)) if (!['notes', 'app', 'history'].includes(k)) { if (r[k]) gsData[k] = r[k]; if (r.done || r[k]) delete gsData.stale[k]; }
+  for (const k of Object.keys(GS)) if (!['notes', 'app', 'history', 'agenda'].includes(k)) { if (r[k]) gsData[k] = r[k]; if (r.done || r[k]) delete gsData.stale[k]; }
   if (r.done) { gsData.pending = false; gsData.stale = {}; }
   gsRender();
 };
@@ -137,6 +144,7 @@ function gsItem(kind, x, ql){
     case 'checkin': return gi(esc(x.title) + ' <small style="display:inline">· ' + esc(typeof ciKeyLabel === 'function' ? ciKeyLabel(x.p) : fmtD(x.t)) + '</small>', gsSnip(x.text, ql), {q: x.q, p: x.p});
     case 'app': return gi(hl(t(x.title), ql), esc(t(x.sub)), {i: x.i}, true);
     case 'history': return gi(esc(x.app) + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', (x.title ? esc(x.title) + ': ' : '') + gsSnip(x.text, ql), {});
+    case 'agenda': return gi(hl(x.title, ql), esc((x.heleDag ? t('Hele dag') : (x.van ? fmtHm(x.van) : '')) + (x.dag ? ' · ' + fmtDate(x.dag, 'kort') : '') + (x.plek ? ' · ' + x.plek : '')), { id: x.id });
   }
   return '';
 }
@@ -172,6 +180,7 @@ function gsOpen(el){
   else if (k === 'sleep') { slNightId = String(x.night || ''); slFocusClip = x.clip || (x.t ? 't:' + x.t : ''); slFilterV = 'praten'; jumpTo('sleepnight'); }
   else if (k === 'checkin') ciFromHit(x);
   else if (k === 'history') gsMore('history');
+  else if (k === 'agenda' && typeof agOpen === 'function') jumpTo('agafspraak', () => agOpen(x.id));
   else if (k === 'app') {
     const it = gsIndex && gsIndex[x.i]; if (!it) return;
     jumpTo(it.scr);

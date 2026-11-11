@@ -11,7 +11,7 @@ const AI_EN_NUM = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six
 /* Wat iemand voor je is: "mum" → "mama" (zoals AiCommands.people het kent) */
 const AI_EN_REL = { mum: 'mama', mom: 'mama', mummy: 'mama', mommy: 'mama', mother: 'moeder', dad: 'papa', daddy: 'papa', father: 'vader', parents: 'ouders', parent: 'ouder', daughter: 'dochter', son: 'zoon', child: 'kind', kid: 'kind', wife: 'vrouw', husband: 'man', partner: 'partner', girlfriend: 'vriendin', boyfriend: 'vriend', brother: 'broer', sister: 'zus', grandma: 'oma', granny: 'oma', grandmother: 'oma', grandpa: 'opa', grandfather: 'opa', aunt: 'tante', uncle: 'oom', neighbour: 'buurman', neighbor: 'buurman', colleague: 'collega' };
 /* Engelse namen van tools die niet letterlijk in TOOLS staan */
-const AI_EN_TOOL = { settings: 'instellingen', 'the settings': 'instellingen', assistant: 'assistent', home: 'startscherm', 'home screen': 'startscherm', 'radio alarm': 'radiowekker', 'screen time': 'gebruik', 'sleep talk': 'slaappraat', banking: 'bankzaken', invoices: 'facturen', notes: 'notities', contacts: 'contacten', calls: 'oproepen', devices: 'apparaten', usage: 'gebruik' };
+const AI_EN_TOOL = { settings: 'instellingen', 'the settings': 'instellingen', assistant: 'assistent', home: 'startscherm', 'home screen': 'startscherm', 'radio alarm': 'radiowekker', 'screen time': 'gebruik', 'sleep talk': 'slaappraat', banking: 'bankzaken', invoices: 'facturen', notes: 'notities', contacts: 'contacten', calls: 'oproepen', devices: 'apparaten', usage: 'gebruik', calendar: 'agenda', 'my calendar': 'agenda' };
 function aiEnNum(w){ w = String(w || '').trim(); return /^\d+([.,]\d+)?$/.test(w) ? w.replace(',', '.') : AI_EN_NUM[w] != null ? String(AI_EN_NUM[w]) : null; }
 /* "5 minutes", "an hour and a half", "90 seconds" → "5 minuten", "anderhalf uur", "90 seconden" */
 function aiEnDur(x){
@@ -104,6 +104,9 @@ function aiEn(q){
   if ((m = /^is (.+?) (?:turned |switched )?(on|off|enabled|disabled)$/.exec(s))) return 'staat ' + it(m[1]) + ' aan';
   if (/^what (?:have you|did you) change(?:d)?(?: for me)?$/.test(s) || /^what changed$/.test(s)) return 'wat heb je veranderd';
   if ((m = /^what (?:can i (?:set|change|adjust)|settings are there) (?:in|for) (.+)$/.exec(s))) return 'wat kan ik instellen bij ' + aiEnName(m[1]);
+  // Agenda: "what's on my calendar tomorrow", "search my calendar for dentist" (een afspraak zetten blijft de agenda-app)
+  if ((m = /^(?:what(?:'s| is) (?:on|in) my calendar|what appointments do i have)(?: (today|tomorrow|yesterday))?$/.exec(s))) return 'wat staat er ' + ({ today: 'vandaag', tomorrow: 'morgen', yesterday: 'gisteren' }[m[1] || 'today']) + ' in mijn agenda';
+  if ((m = /^search my calendar for (.+)$/.exec(s))) return 'zoek ' + m[1] + ' in mijn agenda';
   return null;
 }
 /* taal-vast-eind */

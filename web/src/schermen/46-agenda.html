@@ -1,0 +1,94 @@
+<!-- ============ AGENDA ============ -->
+<section class="screen" id="s-agenda">
+  <div class="hdr"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1>Agenda</h1>
+    <button class="icon-btn" id="ag-sync" data-icon="refresh" onclick="agSync()" aria-label="Bijwerken"></button>
+    <button class="icon-btn hset" id="ag-set" data-to="agaset" aria-label="Instellingen van Agenda"></button>
+  </div>
+  <main>
+    <p class="hint" id="ag-priv">Afspraken die alleen in Tools staan blijven op je telefoon. Zet je een afspraak in een Google-agenda, dan stuurt de agenda-app van je telefoon hem naar Google.</p>
+    <p class="note" id="ag-oud" hidden>Installeer de nieuwste versie van Tools om Agenda te gebruiken.</p>
+    <button class="bar1" id="ag-perm" hidden onclick="agPerm()"><span><b id="ag-perm-t">Agenda van je telefoon</b><small id="ag-perm-s">Geef toestemming om agenda's op je telefoon te zien en er afspraken in te zetten.</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    <div class="chips" id="ag-views" role="radiogroup" aria-label="Weergave">
+      <button type="button" role="radio" data-v="dag" onclick="agZicht('dag')">Dag</button>
+      <button type="button" role="radio" data-v="week" onclick="agZicht('week')">Week</button>
+      <button type="button" role="radio" data-v="maand" onclick="agZicht('maand')">Maand</button>
+      <button type="button" role="radio" data-v="lijst" onclick="agZicht('lijst')">Lijst</button>
+    </div>
+    <input class="search" id="ag-zoek" type="search" placeholder="Zoek in al je afspraken" aria-label="Zoek in al je afspraken" oninput="agZoek()">
+    <p class="hint">Ook afspraken van vroeger.</p>
+    <div class="ag-nav" id="ag-nav">
+      <button type="button" class="icon-btn" data-icon="chevron-left" onclick="agStap(-1)" aria-label="Vorige"></button>
+      <p class="ag-periode" id="ag-periode"></p>
+      <button type="button" class="icon-btn" data-icon="chevron-right" onclick="agStap(1)" aria-label="Volgende"></button>
+      <button type="button" class="ag-vandaag" onclick="agVandaag()">Vandaag</button>
+    </div>
+    <div id="ag-lijst"></div>
+    <button class="big" id="ag-nieuw" type="button" onclick="agNieuw()">Afspraak toevoegen</button>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Dag, week, maand en lijst. Het weeknummer is het ISO-weeknummer, zoals in Nederland. De week zelf begint op de dag die je bij Regio en taal koos.</p>
+      <p>Zoeken kijkt in al je afspraken, ook van jaren geleden. De assistent doet dat alleen als je het zelf aanzet, hier bij Instellingen of bij Assistent → Gegevens.</p>
+      <p>Een afspraak zonder agenda blijft op je telefoon. Kies je een agenda van Google, dan zet Tools hem in de agenda van je telefoon en stuurt die app hem naar Google. Tools zelf praat niet met Google.</p>
+    </div></details>
+  </main>
+</section>
+<section class="screen" id="s-agafspraak">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 id="agf-kop">Afspraak</h1></div>
+  <main class="ag-form">
+    <label for="agf-titel">Titel</label>
+    <input id="agf-titel" type="text" maxlength="200" autocomplete="off">
+    <div class="sw"><span>Hele dag?</span><button type="button" class="tg" id="agf-heel" role="switch" aria-checked="false" aria-label="Hele dag" onclick="agHeel()"></button></div>
+    <div class="row">
+      <label for="agf-dag">Begint</label>
+      <label for="agf-eind">Eindigt</label>
+    </div>
+    <div class="row">
+      <input id="agf-dag" type="date" aria-label="Begindatum">
+      <input id="agf-eind" type="date" aria-label="Einddatum">
+    </div>
+    <div class="row" id="agf-tijden">
+      <input id="agf-van" type="time" aria-label="Begintijd">
+      <input id="agf-tot" type="time" aria-label="Eindtijd">
+    </div>
+    <label for="agf-herhaal">Herhalen</label>
+    <select class="sel" id="agf-herhaal" onchange="agTotZien()">
+      <option value="">Niet herhalen</option>
+      <option value="d">Elke dag</option>
+      <option value="w">Elke week</option>
+      <option value="m">Elke maand</option>
+      <option value="y">Elk jaar</option>
+    </select>
+    <label for="agf-totdag" id="agf-tot-l" hidden>Tot en met</label>
+    <input id="agf-totdag" type="date" aria-label="Herhalen tot en met" hidden>
+    <label for="agf-plek">Plek</label>
+    <input id="agf-plek" type="text" maxlength="200" autocomplete="off">
+    <label for="agf-notitie">Notitie</label>
+    <textarea id="agf-notitie" maxlength="4000"></textarea>
+    <label for="agf-kal">Agenda</label>
+    <select class="sel" id="agf-kal" translate="no" onchange="agKalHint()"></select>
+    <p class="hint" id="agf-google" hidden>Deze afspraak gaat naar Google via de agenda-app van je telefoon.</p>
+    <p class="hint" id="agf-los" hidden>De kopie in de agenda van je telefoon blijft staan.</p>
+    <p class="hint" id="agf-reeks" hidden>Dit is een herhaling. Bewerken wijzigt de hele reeks in de agenda van je telefoon.</p>
+    <button class="big" type="button" onclick="agBewaar()">Opslaan</button>
+    <button class="big ghost" type="button" id="agf-wis" onclick="agWis()">Verwijderen</button>
+  </main>
+</section>
+<section class="screen" id="s-agaset">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1>Agenda</h1></div>
+  <main>
+    <p class="hint">Afspraken die alleen in Tools staan blijven op je telefoon. Zet je een afspraak in een Google-agenda, dan stuurt de agenda-app van je telefoon hem naar Google.</p>
+    <div class="card" id="ag-toestem">
+      <h2>Agenda van je telefoon</h2>
+      <p class="note" id="ag-toestem-t">Zonder toestemming zie je alleen afspraken die je in Tools zelf zet.</p>
+      <button class="big tonal" type="button" id="ag-toestem-b" onclick="agPerm()">Toestemming geven</button>
+    </div>
+    <h2>Agenda's</h2>
+    <div id="ag-kals"></div>
+    <label for="ag-standaard">Standaard voor een nieuwe afspraak</label>
+    <select class="sel" id="ag-standaard" translate="no" onchange="agStandaard()"></select>
+    <div class="sw"><span>Assistent mag afspraken doorzoeken<small>Standaard uit. Alles blijft op je telefoon. Zoeken in Agenda zelf kan altijd, ook als dit uit staat.</small></span><button type="button" class="tg" id="ag-ai" role="switch" aria-checked="false" aria-label="Assistent mag afspraken doorzoeken" onclick="agAi()"></button></div>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Een agenda uit zetten verbergt hem hier. Nieuwe agenda's op je telefoon komen er vanzelf bij en staan aan.</p>
+      <p>Bijwerken haalt gekoppelde afspraken opnieuw op. Is een afspraak daar weg, dan blijft je kopie in Tools staan, zonder koppeling.</p>
+    </div></details>
+  </main>
+</section>

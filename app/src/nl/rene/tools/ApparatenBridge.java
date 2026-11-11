@@ -12,11 +12,11 @@ import org.json.JSONObject;
 
 /**
  * Brugfuncties voor Apparaten (Android.apXxx): Bluetooth, wifi-netwerken, apparaten op je eigen wifi, trackers,
- * bekende apparaten en de geschiedenis. Tussen FeatureBridge en CheckinBridge. Het zoeken zelf staat in ApparatenScan
+ * bekende apparaten en de geschiedenis. Tussen AgendaBridge en CheckinBridge. Het zoeken zelf staat in ApparatenScan
  * en ApparatenLan, de achtergrond en de trackerwaarschuwing in ApparatenJob, de opslag in ApparatenStore en de
  * rekenregels (getest) in Apparaten. Er gaat niets naar internet.
  */
-public class ApparatenBridge extends FeatureBridge {
+public class ApparatenBridge extends AgendaBridge {
 
     static final int REQ_PERM = 4501;
 

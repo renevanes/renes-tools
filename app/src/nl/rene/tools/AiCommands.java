@@ -59,6 +59,7 @@ final class AiCommands {
             {"auto", "automatiseringen"},
             {"aiset", "lokale ai"},
             {"home", "startscherm"},
+            {"agenda", "agenda", "kalender", "mijn agenda"},
     };
 
     static boolean validTool(String id) { if (id == null) return false; for (String[] t : TOOLS) if (t[0].equals(id)) return true; return false; }

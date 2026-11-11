@@ -26,9 +26,9 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(n => (Android._ai.asked || 0) === n && !Android._ai.calls.some(c => c[0] === 'data'), asked0), 'bron uit: niets gelezen, niet naar het model');
     await pg.click(last + ' .setopen button'); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => current === 'aisetdata'), 'de knop opent Gegevens');
-    ok((await pg.$$('#aid-list .tg')).length === 10 && (await pg.textContent('#aid-list')).includes('Gebruik') && (await pg.textContent('#aid-list')).includes('Apparaten'), 'Gebruik en Apparaten staan bij de bronnen');
+    ok((await pg.$$('#aid-list .tg')).length === 11 && (await pg.textContent('#aid-list')).includes('Gebruik') && (await pg.textContent('#aid-list')).includes('Apparaten') && (await pg.textContent('#aid-list')).includes('Agenda'), 'Gebruik, Apparaten en Agenda staan bij de bronnen');
     // Aanzetten is een privacykeuze: de assistent zet het zelf niet aan (register)
-    ok(await pg.evaluate(() => ['gebruik', 'apparaten', 'sleep', 'checkin'].every(k => { const e = setEntry('ai.bron.' + k); return e && setSafe(e, 'aan') && !setSafe(e, 'uit'); })), 'register: aanzetten zelf doen (privacy), uitzetten mag');
+    ok(await pg.evaluate(() => ['gebruik', 'apparaten', 'sleep', 'checkin', 'agenda'].every(k => { const e = setEntry('ai.bron.' + k); return e && setSafe(e, 'aan') && !setSafe(e, 'uit'); })), 'register: aanzetten zelf doen (privacy), uitzetten mag');
     await pg.click('#aid-list .tg[aria-label="Gebruik"]'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._ai.src.gebruik === true && Android._ai.calls.some(c => c[0] === 'src' && c[1] === 'gebruik' && c[2] === true)), 'Gebruik aangezet');
     ok(!(await pg.textContent('#toast')).includes('zoekindex'), 'Gebruik gaat niet in de zoekindex');

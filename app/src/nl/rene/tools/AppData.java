@@ -68,7 +68,7 @@ final class AppData {
      * terugzetten oude waarden opruimt). Andere bestanden gaan ook mee: die vindt de app in shared_prefs/.
      */
     static final List<String> PREFS_KNOWN = Collections.unmodifiableList(Arrays.asList(
-            "allbackup", "alarm", "apparaten", "backupmap", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "facturen", "gebruik", "launcher",
+            "agenda", "allbackup", "alarm", "apparaten", "backupmap", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "facturen", "gebruik", "launcher",
             "voorlezen", "localai", "lock", "mockloc", "models", "music", "notepins", "notification_history", "notifcenter", "pdf",
             "pdfview", "pinned_shortcuts", "player", "podcast", "podcast_dl", "radio", "redial", "redialplan", "regio", "reminders",
             "sleeptalk", "sms", "solo", "spotify", "toolslot", "tracks", "transcribe", "txdur", "txmeta", "ui", "vpn", "wabackup",
@@ -156,7 +156,7 @@ final class AppData {
      * FILE_SKIP staat, zodat er bij een nieuwe tool een bewuste keuze is; zonder die keuze gaat hij in Alle appgegevens toch mee.
      */
     static final List<String> FILE_KNOWN = Collections.unmodifiableList(Arrays.asList(
-            "notes.json", "notes.json.bak", "music.json", "ai", "apparaten", "call-recordings", "checkin", "contacts", "ereader", "facturen", "gebruik", "nieuws", "podcasts",
+            "notes.json", "notes.json.bak", "music.json", "agenda", "ai", "apparaten", "call-recordings", "checkin", "contacts", "ereader", "facturen", "gebruik", "nieuws", "podcasts",
             "shortcut-icons", "sleep", "spotify", "toiletten", "tracks", "transcripts"));
 
     /** Hooguit zoveel instellingenbestanden uit een backup (bescherming tegen een gemaakt bestand met duizenden namen). */
