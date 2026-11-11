@@ -853,7 +853,7 @@ function fsToon(sha){
 /* Zelf toevoegen, verwijderen en (ontwikkelen) alles leegmaken */
 function fdToevoegen(){
   const levs = (faSt.leveranciers || []).filter(l => l.soort !== 'mail' && !l.overslaan); // de mailbron zelf verdeelt alleen
-  const kies = (id, naam) => { toast(t('Kies de PDF')); Android.facturenDossierToevoegen(id || '', naam || ''); };
+  const kies = (id, naam) => bronKies({ titel: t('Factuur toevoegen'), soort: 'pdf', kiezer: 'factuur', zonder: ['factuur'], bestand: () => { toast(t('Kies de PDF')); Android.facturenDossierToevoegen(id || '', naam || ''); } });
   openSheet(t('Factuur toevoegen'), t('Van welke leverancier is de factuur?'), levs.map(l => [faNaam(l), () => kies(l.id, '')]).concat([[t('Andere leverancier…'), () =>
     askInput(t('Andere leverancier'), t('De naam van de leverancier'), '', t('PDF kiezen'), v => { if (String(v || '').trim()) kies('', String(v).trim()); else toast(t('Vul een naam in')); })]]));
 }

@@ -157,6 +157,8 @@ function klOpen(id){
   setTimeout(klaar, 60000);
   Android.kluisOpen(id, 0);
 }
+/* Document toevoegen: van de telefoon, uit Gemaakt of uit het facturendossier (Bron); de kluis is hier al open */
+function klToevoegen(){ bronKies({ titel: t('Document toevoegen'), soort: 'alles', kiezer: 'kluis', zonder: ['kluis'], bestand: () => Android.kluisAdd() }); }
 function klBewerk(id){ pdfSetBusy('Document uit de kluis openen…'); Android.kluisEdit(id); }
 window.onKluisEdit = function(r){
   pdfSetBusy('');

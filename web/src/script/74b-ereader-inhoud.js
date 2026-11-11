@@ -84,7 +84,7 @@ function erMediaStyle(el,style){
   el.classList.add('er-media-container');
 }
 function erUpgrade(){
-  if(erBusy||!erBook)return;erSave();erUpgrading=true;erPick();
+  if(erBusy||!erBook)return;erSave();erPick(true);
 }
 function erUpgradeBanner(){const old=erBook&&erBook.format==='EPUB'&&!(erBook.edition>=3);$('#er-upgrade').hidden=!old;}
 function erLinkButton(){$('#er-link-back').hidden=!erLinks.length;}

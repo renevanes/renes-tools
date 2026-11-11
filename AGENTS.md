@@ -164,6 +164,11 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   `<button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>`
   (geen `ui-icon`-pijl of "‹"). Een scherm dat je vanuit een ander scherm opent (een item, een instellingenscherm) heeft
   `class="hdr sm"`; zet het ook in de lijst `DETAIL` van de test. Nieuw scherm = ook in `BACK` (02-kern.js).
+  Zit je dieper dan één stap, dan staat naast de pijl ook Start (raster, zoals het tabblad Start). Die gaat meteen naar
+  het startscherm van Tools. In een losse app heet de knop Hoofdscherm en gaat die naar het eerste scherm van die app.
+  `navPlaats` zet hem in elke kop; een nieuw scherm krijgt hem vanzelf zodra het in `BACK` staat. Hij ontbreekt als één
+  stap terug al het begin is (het startscherm, een tabblad, of het eerste scherm van een losse app). De Telefoon-skin
+  gebruikt dezelfde pijl; Apps kiezen vanuit Look aanpassen heeft daar ook Hoofdscherm.
 - **Hoe werkt dit?**: uitleg van meer dan twee regels gaat ingeklapt:
   `<details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>…</p></div></details>`
   (in een kaart `class="help in"`; een eigen kop mag, bijv. "Waarvoor is dit?"). Vanuit JavaScript: `uiHelp(t('…'), html, inKaart)`.
@@ -187,6 +192,15 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   De interface toont dan vanzelf de balk onderin (`uiVoortgang` in `02-patronen.js`; nieuwe soort = een kop in `uiVgWat`).
   Alleen stappen en aantallen, nooit namen. Test: `tests/ui/voortgang.test.js`, `VoortgangTest`.
   Duurt een stap hooguit een bekende tijd (herkennen met een tijdslimiet): `v.tijd("herkennen", ms)`, de balk loopt dan met de klok mee.
+- **Bestand kiezen**: vraagt een tool om een bestand (PDF, foto, boek, document), laat Rene dan eerst kiezen waar het
+  vandaan komt: `bronKies({ titel, soort, bestand: () => Android.…Pick() })` (`02-bron.js`): de documentenkluis, Gemaakt,
+  het facturendossier of "Bestand op de telefoon" (geen andere plek = meteen de kiezer van Android). Een bestand uit de app
+  zet Java klaar voor één kiezer van dat venster (`bronVolgende(json, kiezer)`, `Bron.java`) en precies die kiezer krijgt dan
+  een content-uri (`PdfProvider` b/, onraadbaar token, 2 minuten; een kluisdocument wordt pas bij het openen helemaal ontsleuteld
+  en het pad meteen gewist, nooit leesbaar op schijf) in plaats van de kiezer van Android (`MainActivity.startActivityForResult`), dus de
+  tool verwerkt het als elk gekozen bestand. Nieuwe kiezer = een naam in `MainActivity.bronReq` en `kiezer` in `bronKies`
+  (niet bij Stamgegevens, Bankzaken, de handtekening of back-ups). Iets eigens voor de kluis
+  (een nieuwe versie bewerken, bekijken in de viewer van de kluis): `eigen: { kluis: doc => … }`. Test: `tests/ui/bron.test.js`, `BronTest`.
 - **Wachten: altijd zichtbaar waarom.** Moet Rene langer dan een tel wachten, dan ziet hij wat er gebeurt, niet alleen een
   melding of een stilstaande tekst. Kies (in `02-patronen.js`, test `tests/ui/wachten.test.js`):
   een statusregel die al zegt waarop je wacht → `uiWachtTekst(el, t('Zoeken…'))` (lopende balk eronder, gaat vanzelf weg zodra

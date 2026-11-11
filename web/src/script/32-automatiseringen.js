@@ -155,7 +155,7 @@ function aeRender(){
   $('#ae-redialbox').style.display = act === 'redial' ? 'block' : 'none';
   $('#ae-vpnbox').style.display = act === 'vpn_on' ? 'block' : 'none';
   if (act === 'vpn_on') { const ts = rdJson(Android.vpnTunnels(), []); $('#ae-vpn').innerHTML = '<option value="">' + t(ts.length ? 'Kies een tunnel…' : 'Stel eerst een tunnel in bij VPN') + '</option>' + ts.map(tt => '<option value="' + esc(tt.id) + '"' + (r.vpn && r.vpn.id === tt.id ? ' selected' : '') + '>' + esc(tt.name) + '</option>').join(''); }
-  if (act === 'note') { const ns = (notesGet() || []).filter(n => !n.deleted); $('#ae-note').innerHTML = '<option value="">' + t('Kies een notitie…') + '</option>' + ns.map(n => '<option value="' + esc(n.id) + '"' + (r.note && r.note.id === n.id ? ' selected' : '') + ' translate="no">' + esc(n.title || t('Zonder titel')) + '</option>').join(''); }
+  if (act === 'note') { const ns = (notesGet() || []).filter(n => !n.deleted); $('#ae-note').innerHTML = '<option value="">' + t('Kies een notitie…') + '</option>' + ns.map(n => '<option value="' + esc(n.id) + '"' + (r.note && r.note.id === n.id ? ' selected' : '') + ' translate="no">' + esc(noteLabel(n) || t('Zonder titel')) + '</option>').join(''); }
   if (act === 'radio') { const fs = rdJson(Android.radioFavorites(), []); $('#ae-radio').innerHTML = '<option value="">' + t('Kies een zender (uit je favorieten)…') + '</option>' + fs.map((f, i) => '<option value="' + i + '"' + (r.radio && r.radio.url === f.url ? ' selected' : '') + '>' + esc(f.name) + '</option>').join(''); }
   if (act === 'redial') $('#ae-number').value = r.number || '';
   document.querySelector('#ae-mode [data-v="auto"] small').textContent = internal ? 'Meteen doen, zonder te vragen' : 'App openen en de knoppen indrukken, zonder te vragen';
@@ -231,7 +231,7 @@ function aeRender(){
   $('#ae-del').style.display = aeIsNew ? 'none' : 'flex';
 }
 
-function aeSetNote(id){ const n = (notesGet() || []).find(x => x.id === id); aeRule.note = n ? { id: n.id, title: n.title || 'Notitie' } : null; }
+function aeSetNote(id){ const n = (notesGet() || []).find(x => x.id === id); aeRule.note = n ? { id: n.id, title: noteLabel(n) || 'Notitie' } : null; }
 function aeSetVpn(id){ const tt = rdJson(Android.vpnTunnels(), []).find(x => x.id === id); aeRule.vpn = tt ? { id: tt.id, name: tt.name } : null; }
 function aeSetRadio(i){ const fs = rdJson(Android.radioFavorites(), []); const f = fs[+i]; aeRule.radio = f && i !== '' ? f : null; }
 function aeStepLabel(s){

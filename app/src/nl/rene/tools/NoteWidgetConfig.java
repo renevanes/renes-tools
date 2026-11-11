@@ -39,7 +39,7 @@ public class NoteWidgetConfig extends Activity {
         if (Lock.wouldLock(this)) {
             // Alleen voor dit scherm bevestigen; de app zelf blijft op slot zoals hij was
             if (Lock.busy()) { finish(); return; }
-            Lock.prompt(this, "Lijstje kiezen", (ok, msg) -> runOnUiThread(() -> { if (ok) show(); else finish(); }));
+            Lock.prompt(this, Taal.t(this, "Notitie kiezen"), (ok, msg) -> runOnUiThread(() -> { if (ok) show(); else finish(); }));
         } else show();
     }
 
@@ -57,7 +57,7 @@ public class NoteWidgetConfig extends Activity {
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(20), dp(18), dp(20), dp(12));
         TextView t = new TextView(this);
-        t.setText("Welk lijstje op het startscherm?");
+        t.setText(Taal.t(this, "Welke notitie op het startscherm?"));
         t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 19);
         t.setPadding(0, 0, 0, dp(10));
         box.addView(t);
@@ -79,14 +79,14 @@ public class NoteWidgetConfig extends Activity {
         }
         box.addView(styles);
         TextView ll = new TextView(this);
-        ll.setText("Lijstje");
+        ll.setText(Taal.t(this, "Notitie"));
         ll.setPadding(0, dp(10), 0, dp(4));
         box.addView(ll);
 
         List<String[]> notes = Notes.list(this);
         if (notes.isEmpty()) {
             TextView e = new TextView(this);
-            e.setText("Je hebt nog geen notities. Maak in Tools een notitie met een lijstje (bijv. boodschappen) en plaats de widget daarna opnieuw.");
+            e.setText(Taal.t(this, "Je hebt nog geen notities. Schrijf er een in Tools en plaats de widget daarna opnieuw."));
             e.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             box.addView(e);
             Button open = new Button(this);

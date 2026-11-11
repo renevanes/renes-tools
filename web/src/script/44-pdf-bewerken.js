@@ -5,11 +5,14 @@ function pdfEditPendingInput(){
   const value = $('#pdf-edit-text').value.trim(), selected = pdfEd.items[pdfEd.selected];
   return !!value && (!selected || selected.type !== 'text' || value !== selected.text);
 }
-function pdfChooseSource(){
-  const choose = () => Android.pdfPickPdf();
+function pdfChooseSource(bewerk){
+  // Bij Bewerken wordt een kluisdocument een nieuwe versie van dat document (zoals Bewerken in de kluis); pas bij een keuze
+  // geldt "openen in de bewerker" (pdfEd.want), zodat afbreken niets laat hangen
+  const choose = () => bronKies({ titel: t('PDF kiezen'), soort: 'pdf', kiezer: 'pdf', bestand: () => { if (bewerk) pdfEd.want = true; Android.pdfPickPdf(); },
+    eigen: bewerk ? { kluis: d => { pdfEd.want = true; klBewerk(d.id); } } : undefined });
   if (pdfEditDirty()) askConfirm('Andere PDF kiezen?', 'Je niet-opgeslagen toevoegingen worden vervangen als je een andere PDF opent.', 'PDF kiezen', choose); else choose();
 }
-function pdfEditChoose(){ pdfEd.want = true; pdfChooseSource(); }
+function pdfEditChoose(){ pdfChooseSource(true); }
 function pdfEditSource(){
   const ready = !!(pdfIn.pages && pdfIn.revision);
   if (pdfEd.revision && pdfEd.revision !== pdfIn.revision) {

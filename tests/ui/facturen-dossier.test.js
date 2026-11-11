@@ -191,7 +191,7 @@ const { chromium } = require('playwright');
     await pg.click('#fd-nieuw'); await pg.waitForTimeout(120);
     ok((await tekst('#sheet')).includes('KPN Zakelijk') && (await tekst('#sheet')).includes('Andere leverancier'), 'toevoegen: kies de leverancier');
     await pg.click('#sheet button:has-text("Andere leverancier")'); await pg.waitForTimeout(120);
-    await pg.fill('#modal input', 'Gemeente Rotterdam'); await pg.click('#modal button:has-text("PDF kiezen")'); await pg.waitForTimeout(400);
+    await pg.fill('#modal input', 'Gemeente Rotterdam'); await pg.click('#modal button:has-text("PDF kiezen")');await (async()=>{if(await pg.isVisible('#sheet.on'))await pg.click('#sheet-acts >> text=Bestand op de telefoon');})(); await pg.waitForTimeout(400);
     ok(await scherm() === 'facstuk' && await pg.inputValue('#fs-lev') === 'Gemeente Rotterdam', 'toegevoegd en geopend');
     ok(await pg.evaluate(() => Android._fa.calls.some(c => c[0] === 'toevoegen' && c[2] === 'Gemeente Rotterdam')), 'toevoegen met eigen leverancier');
     await pg.fill('#fs-lev', 'Gemeente Rotterdam (belasting)'); await pg.click('#s-facstuk button:has-text("Bewaren")'); await pg.waitForTimeout(120);

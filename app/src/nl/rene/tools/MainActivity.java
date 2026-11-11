@@ -555,6 +555,7 @@ public class MainActivity extends Activity {
             // Uit de app: ontsleutelde kluisdocumenten bij Vergelijken en klaargezette kaartfoto's niet laten liggen
             if (cmp.dropKluis()) { try { js("onCmp", cmp.info().put("kluisWeg", true).toString()); } catch (Exception ignored) { } }
             idMasterClear();
+            bronWacht = null; Bron.vergeetKluis(); // klaargezette kluisdocumenten niet meer te lezen
         }
         if (!isSolo()) {
             Lock.onHidden();
@@ -580,6 +581,12 @@ public class MainActivity extends Activity {
     /** Elk scherm dat de app zelf opent (behalve links naar andere apps) telt als "binnen de app". */
     @Override
     public void startActivityForResult(Intent intent, int requestCode, android.os.Bundle options) {
+        // Een bestand uit de app zelf (Bron: kluis, Gemaakt, facturendossier) in plaats van de bestandskiezer van Android
+        if (intent != null && Intent.ACTION_OPEN_DOCUMENT.equals(intent.getAction())) {
+            Bron.Wacht w = bronWacht; bronWacht = null; // één keer, en alleen voor de kiezer waarvoor het klaarstaat
+            if (w != null && w.req == requestCode && android.os.SystemClock.elapsedRealtime() <= w.tot) { bronGeef(requestCode, intent, w); return; }
+            if (w != null) Bron.vergeet(w.bestanden);
+        }
         boolean external = intent != null && Intent.ACTION_VIEW.equals(intent.getAction()) && intent.getData() != null
                 && ("http".equals(intent.getData().getScheme()) || "https".equals(intent.getData().getScheme()));
         // De eigen PDF-viewer is ook "binnen de app", ook met startActivity (-1); hij houdt het app-slot zelf bij
@@ -591,6 +598,46 @@ public class MainActivity extends Activity {
         if (!external && (requestCode >= 0 || viewer) && requestCode != Lock.REQ_CONFIRM) eigenScherm = true; // de vraag om te ontgrendelen: zie onStop
         try { super.startActivityForResult(intent, requestCode, options); }
         catch (RuntimeException e) { eigenScherm = wasEigen; throw e; }
+    }
+
+    /** Wat de volgende bestandskiezer van dit venster krijgt (Bron.bronVolgende); null = de kiezer van Android. */
+    volatile Bron.Wacht bronWacht;
+    /** De kiezers die een bestand uit de app zelf mogen krijgen (Bron), op naam; niet bij Stamgegevens, Bankzaken, back-ups of de handtekening. */
+    static int bronReq(String kiezer) {
+        switch (kiezer == null ? "" : kiezer) {
+            case "pdfbeeld": return REQ_PDF_IMG;
+            case "pdf": return REQ_PDF_FILE;
+            case "pdfdoc": return REQ_PDF_DOC;
+            case "pdfview": return REQ_PDF_VIEW;
+            case "idkopie": return REQ_ID_COPY;
+            case "vergelijken": return REQ_CMP;
+            case "kluis": return REQ_KLUIS;
+            case "factuur": return REQ_FACT_PDF;
+            case "boek": return EreaderBridge.REQ_BOOK;
+            default: return -1;
+        }
+    }
+    /** De tool het klaargezette bestand geven alsof het gekozen was; past het niet bij de kiezer: onBron({error}) en geannuleerd. */
+    private void bronGeef(int req, Intent vraag, Bron.Wacht w) {
+        final String type = vraag.getType(); final String[] mimes = vraag.getStringArrayExtra(Intent.EXTRA_MIME_TYPES);
+        final boolean meer = vraag.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
+        Intent data = null; String fout = null;
+        java.util.List<Bron.Bestand> l = meer ? w.bestanden : w.bestanden.subList(0, 1);
+        for (Bron.Bestand b : l) if (!Bron.past(b.mime, type, mimes)) fout = "Dit bestand past hier niet";
+        if (fout == null) {
+            data = new Intent().setData(PdfProvider.bronUri(l.get(0))).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            if (l.size() > 1) {
+                android.content.ClipData cd = android.content.ClipData.newRawUri("", PdfProvider.bronUri(l.get(0)));
+                for (int i = 1; i < l.size(); i++) cd.addItem(new android.content.ClipData.Item(PdfProvider.bronUri(l.get(i))));
+                data.setClipData(cd);
+            }
+        } else Bron.vergeet(w.bestanden);
+        final Intent d = data; final String f = fout;
+        h.post(() -> {
+            if (isDestroyed()) return;
+            if (f != null) { try { js("onBron", new JSONObject().put("error", f).toString()); } catch (Exception ignored) { } }
+            onActivityResult(req, d != null ? RESULT_OK : RESULT_CANCELED, d);
+        });
     }
 
     /** Bankzaken in beeld: geen automatisch invullen (Autofill-diensten) en het toetsenbord leert niets van wat je typt. */

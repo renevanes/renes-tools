@@ -54,7 +54,9 @@ function erRender(){
 function erFilter(value){store.set('erFilter',value);erRender();}
 function erSort(value){store.set('erSort',value);erRender();}
 function erLayout(){store.set('erLayout',store.get('erLayout','grid')==='list'?'grid':'list');erRender();}
-function erPick(){if(erBusy||typeof Android.ereaderPick!=='function')return;erBusy=true;$('#er-add').disabled=true;erStatus(t('Boek toevoegen…'));Android.ereaderPick();}
+/* nieuw = een nieuwe versie van het open boek (74b); dat geldt pas als er echt iets gekozen wordt */
+function erPick(nieuw){if(erBusy||typeof Android.ereaderPick!=='function')return;bronKies({titel:t('Boek toevoegen'),soort:'boek',kiezer:'boek',bestand:()=>erKiezer(nieuw===true)});}
+function erKiezer(nieuw){if(erBusy)return;erUpgrading=nieuw;erBusy=true;$('#er-add').disabled=true;erStatus(t('Boek toevoegen…'));Android.ereaderPick();}
 window.onEreaderImport=function(r){const upgrading=erUpgrading,opened=erBook&&erBook.id;erUpgrading=false;erBusy=false;$('#er-add').disabled=false;erStatus(r.error||'');if(r.error||r.cancelled){if(r.error&&current!=='ereader')toast(r.error);return;}if(r.book)erAdopt(r.book);if(upgrading&&r.book&&r.book.id===opened){erOpen(opened,true);toast(t('Afbeeldingen en opmaak hersteld'));}else if(current==='ereader'){enterEreader();if(r.book)erOpen(r.book.id);}else toast(t('Boek toegevoegd aan de e-reader'));};
 function erAdopt(b){if(b.error){toast(b.error);return false;}const i=erBooks.findIndex(x=>x.id===b.id);if(i>=0)erBooks[i]=b;else erBooks.push(b);if(erBook&&erBook.id===b.id)erBook=b;return true;}
 function erUpdate(id,patch){if(typeof Android.ereaderUpdate!=='function'){toast(t('Installeer de nieuwste APK om alle leesfuncties te gebruiken'));return false;}return erAdopt(erData(Android.ereaderUpdate(id,JSON.stringify(patch))));}

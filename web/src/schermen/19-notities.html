@@ -7,19 +7,25 @@
 <div class="card notes-save-state" role="status" hidden><p></p><button class="big" onclick="notesSaveNow()">Opnieuw opslaan</button></div>
 
   <main>
+    <div class="card" id="note-compose">
+      <label class="f" for="note-quick">Nieuwe notitie</label>
+      <textarea class="ntext" id="note-quick" placeholder="Schrijf een notitie…"></textarea>
+      <button type="button" class="big" id="note-quick-save" onclick="saveQuickNote()">Notitie bewaren</button>
+      <p class="hint">Een lijst met vinkjes maak je met Nieuwe lijst, rechtsonder.</p>
+    </div>
     <div class="notes-dashboard" aria-label="Overzicht van je notities">
-      <div><strong id="notes-total">0</strong><span>Notities</span></div><div><strong id="notes-open-total">0</strong><span>Open items</span></div><div><strong id="notes-child-total">0</strong><span>Sublijsten</span></div>
+      <div><strong id="notes-total">0</strong><span>Notities</span></div><div><strong id="notes-list-total">0</strong><span>Lijsten</span></div><div><strong id="notes-open-total">0</strong><span>Open items</span></div>
     </div>
     <input class="search notes-search" id="notes-search" aria-label="Zoek in notities en lijsten" type="search" placeholder="Zoek een notitie of item…" oninput="renderNotes()">
-    <div class="notes-scopes" role="group" aria-label="Welke lijsten tonen">
-      <button data-scope="all" aria-pressed="true" onclick="notesFilter('all')">Alles</button><button data-scope="main" aria-pressed="false" onclick="notesFilter('main')">Hoofdlijsten</button><button data-scope="children" aria-pressed="false" onclick="notesFilter('children')">Sublijsten</button>
+    <div class="notes-scopes" role="group" aria-label="Welke notities en lijsten tonen">
+      <button data-scope="all" aria-pressed="true" onclick="notesFilter('all')">Alles</button><button data-scope="notes" aria-pressed="false" onclick="notesFilter('notes')">Notities</button><button data-scope="lists" aria-pressed="false" onclick="notesFilter('lists')">Lijsten</button><button data-scope="main" aria-pressed="false" onclick="notesFilter('main')">Hoofdlijsten</button><button data-scope="children" aria-pressed="false" onclick="notesFilter('children')">Sublijsten</button>
     </div>
     <div class="card nlist" id="notes-list"></div>
     <div class="notes-quick-actions"><button onclick="voiceOpen(null)" aria-label="Spraaknotitie inspreken" data-icon="mic">Inspreken</button><button onclick="notesBackup()">Backup maken</button></div>
-    <details class="notes-help"><summary>Over opslag en backups</summary><p class="note">Je notities staan op deze telefoon. Met Backup maken komt er een kopie in de map <b>Notities</b> van je backup-map. Tik op het pijltje naast een lijst om de sublijsten te tonen.</p></details>
+    <details class="notes-help"><summary>Over opslag en backups</summary><p class="note">Je notities staan op deze telefoon. Schrijf bovenaan een notitie, of maak een lijst met vinkjes. Met Backup maken komt er een kopie in de map <b>Notities</b> van je backup-map. Tik op het pijltje naast een lijst om de sublijsten te tonen.</p></details>
     <div style="height:70px"></div>
   </main>
-  <button class="fab note-new" onclick="newNote()" aria-label="Nieuwe notitie">+ Nieuwe lijst</button>
+  <button class="fab note-new" onclick="newNote()" aria-label="Nieuwe lijst">+ Nieuwe lijst</button>
 </section>
 
 <section class="screen notes-modern" id="s-note">
@@ -37,11 +43,16 @@
       <div class="note-progress"><span id="note-progress" role="status"></span><progress id="note-progress-bar" aria-label="Afgeronde items" max="1" value="0"></progress></div>
     </div>
     <div class="note-section-tabs" role="tablist" aria-label="Onderdelen van de notitie">
-      <button id="note-tab-list" data-panel="list" role="tab" aria-selected="true" aria-controls="note-panel-list" onclick="noteUiShow('list')">Lijst</button>
+      <button id="note-tab-list" data-panel="list" role="tab" aria-selected="true" aria-controls="note-panel-list" onclick="noteUiShow('list')">Notitie</button>
       <button id="note-tab-children" data-panel="children" role="tab" aria-selected="false" aria-controls="note-panel-children" tabindex="-1" onclick="noteUiShow('children')">Sublijsten <span id="note-child-count" aria-hidden="true">0</span></button>
       <button id="note-tab-extra" data-panel="extra" role="tab" aria-selected="false" aria-controls="note-panel-extra" tabindex="-1" onclick="noteUiShow('extra')">Extra</button>
     </div>
     <div id="note-panel-list" role="tabpanel" aria-labelledby="note-tab-list">
+    <div class="card" id="note-free">
+      <h2 id="note-free-title">Vrije notitie</h2>
+      <textarea class="ntext" id="note-text" placeholder="Schrijf je notitie…" oninput="noteEdit('text', this.value)"></textarea>
+      <button type="button" class="big ghost" id="note-make-list" hidden onclick="noteMakeList()">Lijstje toevoegen</button>
+    </div>
       <div class="card note-content-card">
         <div class="note-section-heading"><h2>Items</h2><button onclick="noteUiExtra('edit')">Lijstopties</button></div>
       <p class="note" id="note-empty">Voeg hieronder je eerste item toe. Via <b>Items indelen</b> zet je bestaande items onder elkaar.</p>
@@ -57,10 +68,6 @@
       <div class="donehdr" id="note-donehdr"><span id="note-donecount"></span><button onclick="clearDone()">Afgevinkte verwijderen</button></div>
       <ul class="items" id="note-done"></ul>
       </div>
-    <div class="card">
-      <h2>Vrije notitie</h2>
-      <textarea class="ntext" id="note-text" placeholder="Vrije tekst (optioneel)" oninput="noteEdit('text', this.value)"></textarea>
-    </div>
     </div>
     <div id="note-panel-children" role="tabpanel" aria-labelledby="note-tab-children" hidden>
     <div class="card note-child-card">
@@ -121,7 +128,7 @@
       <details class="note-option-group" id="note-extra-pins"><summary><span><strong>Snelkoppelingen</strong><small id="note-pin-summary">Snel openen vanaf je startscherm</small></span></summary><div class="note-option-body">
       <label class="chk"><input type="checkbox" id="note-pin-app" onchange="notePinApp(this.checked)"> Op het startscherm van Tools</label>
       <button class="big ghost" style="margin-top:8px" id="note-pin-phone" onclick="notePinPhone()">Op het startscherm van je telefoon</button>
-      <p class="note" id="note-pin-info">Zo open je dit lijstje (bijvoorbeeld je boodschappen) met één tik.</p>
+      <p class="note" id="note-pin-info">Zo open je deze notitie of dit lijstje met één tik.</p>
       </div></details>
       <button class="big ghost note-share-action" onclick="noteShareNow()">Delen (WhatsApp, mail …)</button>
     </div>

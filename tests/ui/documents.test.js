@@ -12,7 +12,7 @@ const assert=require('node:assert/strict');
     await menu(first.id,'Categorie en toelichting');await p.fill('#kl-edit-category','Identiteit');await p.fill('#kl-edit-note','Paspoort geldig tot december');await p.check('#kl-edit-favorite');await p.click('#kl-edit-save');
     let doc=await p.evaluate(id=>Android._kl.docs.find(d=>d.id===id),first.id);
     assert.equal(doc.category,'Identiteit');assert.equal(doc.favorite,true);assert.equal(doc.note,'Paspoort geldig tot december');assert.equal(doc.size,first.size);assert.equal(doc.mime,first.mime);
-    await p.getByRole('button',{name:'＋ Document toevoegen',exact:true}).click();await p.waitForFunction(()=>Android._kl.docs.length===2);
+    await p.getByRole('button',{name:'＋ Document toevoegen',exact:true}).click();await (async()=>{if(await p.isVisible('#sheet.on'))await p.click('#sheet-acts >> text=Bestand op de telefoon');})();await p.waitForFunction(()=>Android._kl.docs.length===2);
     assert.equal(await p.locator('#kl-list b b').count(),0,'documentnaam blijft tekst');
     await p.fill('#kl-search','december');assert.equal(await p.locator('#kl-list .trip').count(),1);
     await p.fill('#kl-search','');await p.selectOption('#kl-category','category:Identiteit');assert.equal(await p.locator('#kl-list .trip').count(),1);

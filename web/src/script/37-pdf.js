@@ -43,7 +43,10 @@ function pdfLostNotice(name){
 }
 /* Een gedeelde PDF landt op Splitsen: van daaruit ook bewerken */
 function pdfSplitEdit(){ if (pdfBusy || !pdfIn.revision) return; pdfEd.want = true; show('pdfedit'); pdfEditSource(); }
-function pdfPickDoc(){ pdfJobScr = current; Android.pdfPickDoc(); }
+function pdfPickDoc(){ bronKies({ titel: t('E-mail of tekstbestand kiezen'), soort: 'tekst', kiezer: 'pdfdoc', bestand: () => { pdfJobScr = current; Android.pdfPickDoc(); } }); }
+/* PDF openen (bekijken): een kluisdocument in de viewer van de kluis, een gemaakte PDF zoals op Gemaakt */
+function pdfOpenKies(){ bronKies({ titel: t('PDF openen'), soort: 'pdf', kiezer: 'pdfview', bestand: () => Android.pdfViewPick(), kluisOpen: true, eigen: { kluis: d => klOpen(d.id), gemaakt: n => Android.pdfOpen(n) } }); }
+function pdfPlaatjesKies(){ bronKies({ titel: t('Plaatjes kiezen'), soort: 'beeld', kiezer: 'pdfbeeld', bestand: () => Android.pdfPickImages() }); }
 function enterPdf(){
   const r = pdfTakePending();
   if (r) onPdf(r);

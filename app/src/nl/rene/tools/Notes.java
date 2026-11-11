@@ -66,10 +66,12 @@ final class Notes {
                         nOpen++;
                         if (open.length() < 5) open.put(row.indent() + it.optString("text"));
                     }
-                    String title = n.optString("title").trim();
+                    String title = showTitle(n);
+                    String body = showText(n);
+                    if (body.length() > 120) body = body.substring(0, 120);
                     out.put(new JSONObject().put("id", id).put("title", title.isEmpty() ? "Notitie" : title)
                             .put("open", nOpen).put("total", total).put("items", open)
-                            .put("text", n.optString("text").length() > 120 ? n.optString("text").substring(0, 120) : n.optString("text")));
+                            .put("text", body));
                 }
             }
         } catch (Exception ignored) { }
@@ -183,6 +185,36 @@ final class Notes {
         return null;
     }
 
+    /** Titel in lijsten en de widget: de ingevulde titel, anders de eerste regel van de tekst. */
+    static String showTitle(JSONObject n) {
+        if (n == null) return "";
+        String title = n.optString("title").trim();
+        if (!title.isEmpty()) return shorten(title, 80);
+        return shorten(firstLine(n.optString("text")), 80);
+    }
+
+    /** Tekst onder de titel. Is de titel de eerste regel, dan zonder die regel. */
+    static String showText(JSONObject n) {
+        if (n == null) return "";
+        String text = n.optString("text").trim();
+        if (text.isEmpty() || !n.optString("title").trim().isEmpty()) return text;
+        int nl = text.indexOf('\n');
+        return nl < 0 ? "" : text.substring(nl + 1).trim();
+    }
+
+    static String firstLine(String text) {
+        if (text == null) return "";
+        String s = text.trim();
+        int nl = s.indexOf('\n');
+        return (nl < 0 ? s : s.substring(0, nl)).trim();
+    }
+
+    static String shorten(String s, int max) {
+        if (s == null || s.length() <= max) return s == null ? "" : s;
+        int sp = s.lastIndexOf(' ', max);
+        return (sp >= 40 ? s.substring(0, sp) : s.substring(0, max)).trim();
+    }
+
     /** Alle notities: [{id, title, open}] (voor het kiezen in de widget), nieuwste eerst. */
     static java.util.List<String[]> list(Context c) {
         java.util.List<String[]> out = new java.util.ArrayList<>();
@@ -196,12 +228,14 @@ final class Notes {
                 JSONArray items = n.optJSONArray("items");
                 int open = 0, total = items == null ? 0 : items.length();
                 if (items != null) for (int j = 0; j < items.length(); j++) { JSONObject it = items.optJSONObject(j); if (it != null && !it.optBoolean("done")) open++; }
-                String t = n.optString("title").trim();
+                String t = showTitle(n);
                 long u = n.optLong("updated");
                 int at = 0;
                 while (at < when.size() && when.get(at) >= u) at++;
                 when.add(at, u);
-                out.add(at, new String[]{n.optString("id"), t.isEmpty() ? "Notitie" : t, total == 0 ? "geen lijstje" : open + " van " + total + " open"});
+                String sub = total > 0 ? open + " van " + total + " open"
+                        : (n.optString("text").trim().isEmpty() ? "geen lijstje" : "notitie");
+                out.add(at, new String[]{n.optString("id"), t.isEmpty() ? "Notitie" : t, sub});
             }
         } catch (Exception ignored) { }
         return out;
@@ -287,9 +321,10 @@ final class Notes {
             w.write("Notities - Tools - " + df.format(new Date()) + "\r\n\r\n");
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject n = arr.getJSONObject(i);
-                String title = n.optString("title", "").trim();
-                w.write("== " + (title.isEmpty() ? "Zonder titel" : title) + " ==\r\n");
-                String text = n.optString("text", "");
+                String stored = n.optString("title", "").trim();
+                String heading = stored.isEmpty() ? firstLine(n.optString("text", "")) : stored;
+                w.write("== " + (heading.isEmpty() ? "Zonder titel" : heading) + " ==\r\n");
+                String text = stored.isEmpty() ? showText(n) : n.optString("text", "");
                 if (!text.isEmpty()) w.write(text.replace("\n", "\r\n") + "\r\n");
                 JSONArray items = n.optJSONArray("items");
                 if (items != null) for (NoteTree.Row row : NoteTree.rows(items)) {

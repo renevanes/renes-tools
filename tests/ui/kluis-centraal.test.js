@@ -25,7 +25,7 @@ for(const colorScheme of ['light','dark']){
   };
   // 1. Plaatjes naar PDF: de kluis is op slot, ontgrendelen gaat vanzelf; daarna staat de PDF in de kluis en niet meer onder Gemaakt
   await p.evaluate(()=>{Android._kl.open=false;Android._kl.docs=[];openTool('pdf');});await p.waitForTimeout(150);
-  await p.click('#pdf-t-img');await p.click('text=＋ Plaatjes kiezen');await p.waitForTimeout(150);
+  await p.click('#pdf-t-img');await p.click('text=＋ Plaatjes kiezen');await (async()=>{if(await p.isVisible('#sheet.on'))await p.click('#sheet-acts >> text=Bestand op de telefoon');})();await p.waitForTimeout(150);
   await p.fill('#pdf-img-name','Bonnetjes');await p.click('#pdf-img-make');await rust();await p.waitForTimeout(60);
   let kl=await p.evaluate(()=>JSON.parse(JSON.stringify(Android._kl)));
   assert.equal(kl.docs.length,1,'in de kluis');assert.equal(kl.docs[0].name,'Bonnetjes.pdf');assert.equal(kl.docs[0].category,'PDF');assert.equal(kl.docs[0].source,'pdf');

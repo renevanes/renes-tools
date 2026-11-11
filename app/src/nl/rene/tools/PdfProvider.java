@@ -10,7 +10,11 @@ import android.provider.OpenableColumns;
 
 import java.io.File;
 
-/** Geeft een gemaakte of geopende PDF (alleen lezen) aan de app waarmee je hem deelt, opent of afdrukt. */
+/**
+ * Geeft een gemaakte of geopende PDF (alleen lezen) aan de app waarmee je hem deelt, opent of afdrukt. Ook een bestand dat
+ * Bron klaarzette voor een tool in de app zelf (pad b/&lt;token&gt;/&lt;naam&gt;, elke soort, alleen zolang het token geldt): een
+ * kluisdocument wordt dan pas bij het openen ontsleuteld en het pad meteen gewist (geen leesbaar bestand op schijf).
+ */
 public final class PdfProvider extends ContentProvider {
     static final String AUTH = "nl.rene.tools.pdf";
 
@@ -43,21 +47,58 @@ public final class PdfProvider extends ContentProvider {
         throw new Exception("niet gevonden");
     }
 
+    /** Uri voor een bestand dat Bron klaarzette. */
+    static Uri bronUri(Bron.Bestand b) { return new Uri.Builder().scheme("content").authority(AUTH).appendPath("b").appendPath(b.token).appendPath(b.naam).build(); }
+    private static Bron.Bestand bron(Uri uri) {
+        java.util.List<String> seg = uri.getPathSegments();
+        return AUTH.equals(uri.getAuthority()) && seg.size() == 3 && "b".equals(seg.get(0)) ? Bron.zoek(seg.get(1), seg.get(2), android.os.SystemClock.elapsedRealtime()) : null;
+    }
+    private static boolean bronPad(Uri uri) { java.util.List<String> seg = uri.getPathSegments(); return !seg.isEmpty() && "b".equals(seg.get(0)); }
+
+    /**
+     * Een kluisdocument helemaal ontsleutelen (een fout in een blok = geen bestand, nooit iets halfs), het tijdelijke bestand
+     * openen en meteen het pad wissen: de lezer houdt de open fd, op schijf staat niets leesbaars meer.
+     */
+    private ParcelFileDescriptor kluis(Bron.Bestand b) throws Exception {
+        File tmp = new File(getContext().getCacheDir(), "bron-" + Bron.token() + ".tmp");
+        try {
+            Kluis.decryptTo(getContext(), b.id, b.versie, tmp);
+            return ParcelFileDescriptor.open(tmp, ParcelFileDescriptor.MODE_READ_ONLY);
+        } finally { tmp.delete(); }
+    }
+
     @Override public boolean onCreate() { return true; }
 
     private File resolve(Uri uri) throws Exception { return file(getContext(), uri); }
 
     @Override public ParcelFileDescriptor openFile(Uri uri, String mode) throws java.io.FileNotFoundException {
-        try { if (!"r".equals(mode)) throw new Exception("alleen lezen"); return ParcelFileDescriptor.open(resolve(uri), ParcelFileDescriptor.MODE_READ_ONLY); }
+        try {
+            if (!"r".equals(mode)) throw new Exception("alleen lezen");
+            if (bronPad(uri)) {
+                Bron.Bestand b = bron(uri);
+                if (b == null) throw new Exception("niet gevonden");
+                if (b.bestand == null) return kluis(b);
+                if (!b.bestand.isFile()) throw new Exception("niet gevonden");
+                return ParcelFileDescriptor.open(b.bestand, ParcelFileDescriptor.MODE_READ_ONLY);
+            }
+            return ParcelFileDescriptor.open(resolve(uri), ParcelFileDescriptor.MODE_READ_ONLY);
+        }
         catch (Exception e) { throw new java.io.FileNotFoundException("PDF niet gevonden"); }
     }
 
     @Override public Cursor query(Uri uri, String[] p, String s, String[] a, String o) {
-        try { File f = resolve(uri); MatrixCursor c = new MatrixCursor(new String[]{OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE}); c.addRow(new Object[]{f.getName(), f.length()}); return c; }
+        try {
+            MatrixCursor c = new MatrixCursor(new String[]{OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE});
+            if (bronPad(uri)) { Bron.Bestand b = bron(uri); if (b == null) return null; c.addRow(new Object[]{b.naam, b.grootte >= 0 ? b.grootte : null}); return c; }
+            File f = resolve(uri); c.addRow(new Object[]{f.getName(), f.length()}); return c;
+        }
         catch (Exception e) { return null; }
     }
 
-    @Override public String getType(Uri uri) { return "application/pdf"; }
+    @Override public String getType(Uri uri) {
+        if (bronPad(uri)) { Bron.Bestand b = bron(uri); return b == null ? null : b.mime; }
+        return "application/pdf";
+    }
     @Override public Uri insert(Uri uri, ContentValues v) { throw new UnsupportedOperationException(); }
     @Override public int delete(Uri uri, String s, String[] a) { throw new UnsupportedOperationException(); }
     @Override public int update(Uri uri, ContentValues v, String s, String[] a) { throw new UnsupportedOperationException(); }

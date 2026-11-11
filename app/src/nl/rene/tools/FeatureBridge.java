@@ -640,6 +640,34 @@ public class FeatureBridge {
                 return new JSONObject().put("docs", Kluis.linked(ctx, kind, ref)).toString();
             } catch (Exception e) { return errJson(e); }
         }
+        /**
+         * Een bestand uit de app zelf klaarzetten voor de volgende bestandskiezer van een tool (Bron): json = [{bron, id, versie}],
+         * kiezer = welke kiezer (MainActivity.bronReq). Leeg = niets klaarzetten (de kiezer van Android). Een kluisdocument alleen
+         * als de kluis nu open is; het wordt nu ingeschreven en pas bij het lezen ontsleuteld. Antwoord: "" of een foutmelding.
+         */
+        @JavascriptInterface public String bronVolgende(String json, String kiezer) {
+            java.util.List<Bron.Bestand> klaar = new java.util.ArrayList<>();
+            try {
+                Bron.Wacht oud = a.bronWacht; a.bronWacht = null; if (oud != null) Bron.vergeet(oud.bestanden);
+                if (json == null || json.isEmpty()) return "";
+                int req = MainActivity.bronReq(kiezer);
+                if (req < 0) return Taal.T("Onbekend bestand");
+                java.util.List<Bron.Item> items = Bron.lees(json);
+                long nu = android.os.SystemClock.elapsedRealtime();
+                for (Bron.Item it : items) {
+                    if ("kluis".equals(it.bron) && (!PlayPolicy.allows(ctx, "kluis") || !a.kluisOk())) throw new Exception(Taal.T("De kluis is op slot"));
+                    if ("factuur".equals(it.bron) && !PlayPolicy.allows(ctx, "facturen")) throw new Exception(Taal.T("Onbekend bestand"));
+                    klaar.add(Bron.inschrijven(ctx, it, nu));
+                }
+                a.bronWacht = new Bron.Wacht(klaar, req, nu + Bron.GELDIG_MS);
+                return "";
+            } catch (Exception e) {
+                Bron.vergeet(klaar);
+                String m = e.getMessage();
+                return m != null && (m.equals(Taal.T("De kluis is op slot")) || m.equals(Taal.T("Document niet gevonden")) || m.equals(Taal.T("Onbekend bestand"))
+                        || m.equals(Taal.T("Kies een bestand")) || m.equals(Taal.T("Deze factuur staat niet meer in de app"))) ? m : Taal.T("Openen lukt niet");
+            }
+        }
         // ----- Documenten vergelijken (PdfCompare): A en B uit een bestand, de kluis of Gemaakt -----
 
         /** Document A (0) of B (1) kiezen met de bestandskiezer; antwoord via onCmp. */

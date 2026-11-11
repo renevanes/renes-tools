@@ -50,7 +50,7 @@ for(const colorScheme of ['light','dark']){
   // 2. PDF ziet dezelfde handtekening en kan hem plaatsen
   await p.evaluate(()=>show('pdfedit'));assert.equal(await p.isVisible('#pdf-signature-preview'),true);assert.ok(await inkt('#pdf-signature-preview')>50);
   assert.match(await p.textContent('#pdf-signature-status'),/versleuteld bewaard/);
-  await p.click('#pdf-edit-pick');await p.waitForFunction(()=>pdfEd.meta[0]&&!pdfEd.loading);await p.click('#pdf-signature-use');
+  await p.click('#pdf-edit-pick');await (async()=>{if(await p.isVisible('#sheet.on'))await p.click('#sheet-acts >> text=Bestand op de telefoon');})();await p.waitForFunction(()=>pdfEd.meta[0]&&!pdfEd.loading);await p.click('#pdf-signature-use');
   assert.deepEqual(await p.evaluate(()=>pdfEd.items[0].paths),sigBewaard.paths);assert.equal(await p.evaluate(()=>pdfEd.items[0].color),'#1649b8');
   await p.evaluate(()=>{pdfEd.items=[];});
   // Formulieren tekent dezelfde, vers uit de opslag

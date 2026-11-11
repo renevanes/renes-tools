@@ -7,7 +7,7 @@ const assert=require('node:assert/strict');
     await p.goto('file://'+require('path').join(__dirname,'ui','index.html'));await p.evaluate(()=>show('pdfedit'));
     assert.equal(await p.isDisabled('#pdf-signature-use'),true);assert.equal(await p.isVisible('#pdf-signature-delete'),false,'niets te verwijderen');
     assert.equal(await p.textContent('#pdf-signature-draw'),'Tekenen en bewaren');assert.match(await p.textContent('#pdf-signature-status'),/Formulieren en in Stamgegevens/);
-    await p.click('#pdf-edit-pick');await p.waitForFunction(()=>pdfEd.meta[0]&&!pdfEd.loading);
+    await p.click('#pdf-edit-pick');await (async()=>{if(await p.isVisible('#sheet.on'))await p.click('#sheet-acts >> text=Bestand op de telefoon');})();await p.waitForFunction(()=>pdfEd.meta[0]&&!pdfEd.loading);
     const draw=async(offset=0)=>{
       await p.waitForSelector('#sigdlg.on');const r=await p.locator('#sig-pad').boundingBox();
       await p.mouse.move(r.x+15,r.y+30+offset);await p.mouse.down();await p.mouse.move(r.x+70,r.y+60,{steps:5});await p.mouse.move(r.x+130,r.y+15+offset,{steps:5});await p.mouse.up();
@@ -28,7 +28,7 @@ const assert=require('node:assert/strict');
     // De bewaarde data blijft onafhankelijk van de toevoeging en wordt opnieuw uit de native opslag geladen.
     await p.evaluate(()=>{pdfEd.items[0].paths[0][0][0]=.99;sig.value=null;sigLoad();});
     assert.deepEqual(await p.evaluate(()=>sig.value.paths),signature.paths);
-    await p.click('#pdf-edit-pick');await p.click('#modal-ok');await p.waitForFunction(()=>!pdfEd.loading&&pdfEd.items.length===0);
+    await p.click('#pdf-edit-pick');await p.click('#modal-ok');await (async()=>{if(await p.isVisible('#sheet.on'))await p.click('#sheet-acts >> text=Bestand op de telefoon');})();await p.waitForFunction(()=>!pdfEd.loading&&pdfEd.items.length===0);
     assert.deepEqual(await p.evaluate(()=>sig.value),signature);await p.click('#pdf-signature-use');
     // Tekenen in de editor: met een bewaarde handtekening alleen plaatsen, tenzij je "Ook bewaren" aanzet.
     await p.getByRole('button',{name:'Handtekening tekenen',exact:true}).click();

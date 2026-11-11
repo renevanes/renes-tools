@@ -30,9 +30,16 @@ function cmpKies(slot){
   if (cmp.bezig) return;
   const outs = rdJson(Android.pdfOutputs(), []);
   openSheet(slot ? t('Document B') : t('Document A'), '', [
-    [t('Bestand op de telefoon'), () => cmpBestand(slot), 'folder'],
+    [t('Bestand op de telefoon'), () => bronTelefoon({ bestand: () => cmpBestand(slot) }), 'smartphone'],
     ...(!isPlay() ? [[t('Uit de documentenkluis'), () => cmpUitKluis(slot), 'lock']] : []),
-    ...(outs.length ? [[t('Een gemaakte PDF'), () => cmpUitGemaakt(slot, outs), 'document']] : [])]);
+    ...(outs.length ? [[t('Uit Gemaakt (PDF-tools)'), () => cmpUitGemaakt(slot, outs), 'document']] : []),
+    ...(bronFacturen({ soort: 'pdf' }).length ? [[t('Uit het facturendossier'), () => cmpUitFacturen(slot), 'wallet']] : [])]);
+}
+/* Een factuur uit het facturendossier (de kopie in de app), via Bron: de gewone kiezer van vergelijken krijgt dat bestand */
+function cmpUitFacturen(slot){
+  const o = { soort: 'pdf', kiezer: 'vergelijken', bestand: () => cmpBestand(slot) };
+  openSheet(t('Uit het facturendossier'), '', bronFacturen(o).slice(0, BRON_MAX).map(s => [s.leverancierNaam ? t('{leverancier} · {bestand}', { leverancier: s.leverancierNaam, bestand: s.naam || '' }) : (s.naam || ''),
+    () => bronNeem(o, [{ bron: 'factuur', id: s.sha, versie: 0 }])]));
 }
 function cmpBestand(slot){ cmpWacht(t('Document kiezen…')); Android.cmpPick(slot); }
 function cmpUitKluis(slot){
@@ -43,12 +50,14 @@ function cmpUitKluis(slot){
     openSheet(t('Uit de documentenkluis'), '', bruikbaar.slice(0, 40).map(d => [d.name, () => cmpVanKluis(slot, d.id, 0)]));
   });
 }
-function cmpUitGemaakt(slot, outs){ openSheet(t('Een gemaakte PDF'), '', outs.slice(0, 40).map(o => [o.name, () => cmpVanGemaakt(slot, o.name)])); }
+function cmpUitGemaakt(slot, outs){ openSheet(t('Uit Gemaakt (PDF-tools)'), '', outs.slice(0, 40).map(o => [o.name, () => cmpVanGemaakt(slot, o.name)])); }
 function cmpVanKluis(slot, id, version){ cmpWacht(t('Document uit de kluis openen…')); klMetKluis(() => { Android.cmpKluis(slot, id, version); setTimeout(klDichtBuiten, 0); }); }
 function cmpVanGemaakt(slot, name){ cmpWacht(t('Document openen…')); Android.cmpMade(slot, name); }
 /** Een oudere versie (A) met de huidige (B) van hetzelfde kluisdocument */
 function cmpVersies(id, n){ cmpWacht(t('Document uit de kluis openen…')); klMetKluis(() => { Android.cmpKluis(0, id, n); Android.cmpKluis(1, id, 0); setTimeout(klDichtBuiten, 0); }); }
 function cmpWacht(tekst){ document.querySelectorAll('#s-pdfcmp .pdfbusy').forEach(e => uiWachtTekst(e, tekst)); }
+/* Een klaargezet bestand dat niet past: de kiezer keert terug zonder bestand, dan ook de wachtbalk weg */
+const cmpOnBron = window.onBron; window.onBron = function(r){ document.querySelectorAll('#s-pdfcmp .pdfbusy').forEach(e => { e.textContent = ''; }); cmpOnBron(r); };
 window.onCmp = function(r){
   document.querySelectorAll('#s-pdfcmp .pdfbusy').forEach(e => { e.textContent = ''; });
   if (!r || r.error) { toast(t(r && r.error || 'Openen lukt niet')); return; }
