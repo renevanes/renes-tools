@@ -451,7 +451,8 @@ function aiSrcHtml(src){
   return '<div class="aisrc">' + src.map((h, i) => {
     // Feiten uit een tool (Gebruik, Slaappraat …): de knop opent die tool
     if (h && !h.id && AI_DATA_TOOL[h.kind]) return '<button class="aichip sm" onclick="jumpTo(\'' + AI_DATA_TOOL[h.kind] + '\')" aria-label="' + esc(t('Bron: {titel}, openen', { titel: h.title })) + '">' + uiIcon(aiKindIcon(h.kind)) + esc(h.title) + '</button>';
-    const g = aiHitGs(h); return '<button class="aichip sm" onclick="gsOpen(this)" data-k="' + esc(g[0]) + '" data-x="' + esc(JSON.stringify(g[1])) + '">[' + (i + 1) + '] ' + uiIcon(aiKindIcon(h.kind)) + esc(h.title) + '</button>'; }).join('') + '</div>';
+    const g = aiHitGs(h), naam = h.kind === 'notes' ? '<span translate="no">' + esc(h.title) + '</span>' : esc(h.title);
+    return '<button class="aichip sm" onclick="gsOpen(this)" data-k="' + esc(g[0]) + '" data-x="' + esc(JSON.stringify(g[1])) + '">[' + (i + 1) + '] ' + uiIcon(aiKindIcon(h.kind)) + naam + '</button>'; }).join('') + '</div>';
 }
 function aiMsgHtml(m, i){
   if (!m) return '';
@@ -657,7 +658,8 @@ function aiSearchHtml(ql){
   const it = (aiSearchRes.items || []).filter(h => typeof gsDicht !== 'function' || !gsDicht(aiHitGs(h)[0]));
   if (!it.length) return '';
   return '<div class="card gsg aigs"><h3>' + uiIcon('sparkle') + 'Op betekenis <span class="n">' + it.length + '</span></h3>' + it.map(h => { const g = aiHitGs(h);
-    return '<button class=gi data-k="' + esc(g[0]) + '" data-x="' + esc(JSON.stringify(g[1])) + '" onclick="gsOpen(this)"><b>' + uiIcon(aiKindIcon(h.kind)) + ' ' + esc(h.title) + '</b><small>' + esc(String(h.snip || '').slice(0, 160)) + (String(h.snip || '').length > 160 ? '…' : '') + '</small></button>'; }).join('') +
+    const note = h.kind === 'notes', snip = String(h.snip || ''), naam = note ? '<span translate="no">' + esc(h.title) + '</span>' : esc(h.title);
+    return '<button class=gi data-k="' + esc(g[0]) + '" data-x="' + esc(JSON.stringify(g[1])) + '" onclick="gsOpen(this)"><b>' + uiIcon(aiKindIcon(h.kind)) + ' ' + naam + '</b><small' + (note ? ' translate="no"' : '') + '>' + esc(snip.slice(0, 160)) + (snip.length > 160 ? '…' : '') + '</small></button>'; }).join('') +
     (aiSearchRes.updating ? '<p class="note" style="margin:4px 0">De zoekindex wordt nog bijgewerkt: misschien ontbreekt er nog iets.</p>' : '') + '</div>';
 }
 

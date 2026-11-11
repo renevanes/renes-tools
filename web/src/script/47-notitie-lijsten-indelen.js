@@ -92,6 +92,7 @@ function noteMoveChoices(){
     const b=document.createElement('button');b.className='note-move-choice';b.dataset.target=c.id===null?'':c.id;
     b.setAttribute('aria-pressed',String(s.selected===c.id));b.disabled=c.current;
     const title=document.createElement('strong');title.textContent=(s.selected===c.id?'✓ ':'')+c.title;
+    if(c.id!==null)title.setAttribute('translate','no');
     const sub=document.createElement('small');sub.textContent=c.current?t('Huidige plek'):('› '.repeat(Math.min(c.depth||0,4))+c.sub);
     b.append(title,sub);b.onclick=()=>{
       s.selected=c.id;
