@@ -518,9 +518,9 @@ public class NieuwsTest {
         check(Nieuws.intern(Inet6Address.getByAddress(null, mapped, -1)), "IPv6-vorm van 10.0.0.1: niet ophalen");
         mapped[12] = 8; mapped[13] = 8; mapped[14] = 8; mapped[15] = 8;
         check(!Nieuws.intern(Inet6Address.getByAddress(null, mapped, -1)), "IPv6-vorm van 8.8.8.8: openbaar");
-        for (String ip : new String[]{"198.18.0.1", "198.19.255.254", "192.0.0.8", "64:ff9b::7f00:1", "64:ff9b::c0a8:101", "64:ff9b:1::808:808", "2002:7f00:1::1", "2002:c0a8:101::1", "2002:a00:1::", "::127.0.0.1", "::10.0.0.1"})
+        for (String ip : new String[]{"198.18.0.1", "198.19.255.254", "192.0.0.8", "64:ff9b::7f00:1", "64:ff9b::c0a8:101", "64:ff9b:1::808:808", "2002:7f00:1::1", "2002:c0a8:101::1", "2002:a00:1::", "::127.0.0.1", "::10.0.0.1", "::ffff:0:808:808", "100::1", "2001:0:4136:e378::1", "2001:db8::1"})
             check(Nieuws.intern(InetAddress.getByName(ip)), "niet openbaar (testnet, NAT64, 6to4 of ingebed IPv4): " + ip);
-        for (String ip : new String[]{"145.58.29.30", "8.8.8.8", "2a00:1450::1", "100.128.0.1", "198.20.0.1", "198.17.255.1", "192.0.2.1", "64:ff9b::808:808", "2002:808:808::1"}) check(!Nieuws.intern(InetAddress.getByName(ip)), "openbaar adres " + ip);
+        for (String ip : new String[]{"145.58.29.30", "8.8.8.8", "2a00:1450::1", "100.128.0.1", "198.20.0.1", "198.17.255.1", "64:ff9b::808:808", "2001:4860::8888", "2606:4700::1111", "100:1::1", "2002:808:808::1"}) check(!Nieuws.intern(InetAddress.getByName(ip)), "openbaar adres " + ip);
         check("nu".equals(Nieuws.bekendeSite("https://www.nu.nl/")) && "nos-sport".equals(Nieuws.bekendeSite("https://nos.nl/sport")) && Nieuws.bekendeSite("https://nu.nl/rss/Sport") == null, "bekende sites");
         check("https://a.example.org/x?id=1&b=2#k".equals(Nieuws.schoon("https://a.example.org/x?utm_source=rss&id=1&at_medium=RSS&b=2&fbclid=z#k")), "volgparameters weg, de rest blijft");
         check("https://a.example.org/x".equals(Nieuws.schoon("https://a.example.org/x?utm_campaign=y")), "alleen volgparameters: geen ? meer");

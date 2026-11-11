@@ -849,6 +849,12 @@ final class Nieuws {
         if (v4 || nat64) return intern4(Arrays.copyOfRange(b, 12, 16));
         // 64:ff9b:1::/48 (NAT64 voor eigen gebruik): niet openbaar
         if (b[0] == 0 && b[1] == 0x64 && b[2] == (byte) 0xff && b[3] == (byte) 0x9b && b[4] == 0 && b[5] == 1) return true;
+        // ::ffff:0:a.b.c.d (SIIT), 100::/64 (weggooien), 2001::/32 (Teredo) en 2001:db8::/32 (voorbeelden): geen nieuwssites
+        boolean acht = true; // de eerste 8 bytes na het begin (0 of 01 00) nul?
+        for (int i = 1; i < 8 && acht; i++) acht = b[i] == 0;
+        if (acht && b[0] == 0 && b[8] == (byte) 0xff && b[9] == (byte) 0xff && b[10] == 0 && b[11] == 0) return true;
+        if (acht && b[0] == 0x01) return true;
+        if (b[0] == 0x20 && b[1] == 0x01 && ((b[2] == 0 && b[3] == 0) || (b[2] == 0x0d && b[3] == (byte) 0xb8))) return true;
         // 2002::/16 (6to4): het IPv4-adres staat in byte 2 t/m 5
         if (b[0] == 0x20 && b[1] == 0x02) return intern4(Arrays.copyOfRange(b, 2, 6));
         return (b[0] & 0xfe) == 0xfc;

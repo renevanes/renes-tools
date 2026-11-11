@@ -126,21 +126,24 @@ public class PodcastLatestTest {
         Podcasts.forgetFetched(null);
         Podcasts.forgetFetched("pblijft");
 
-        // Ontvolgen terwijl een fetch van die feed loopt: vergeten wacht op het slot van de feed (anders zet fetch het terug)
+        // Ontvolgen terwijl een fetch van die feed loopt: vergeten wacht niet (de brug blijft vrij), maar de fetch vergeet aan het eind
         Object slot = Podcasts.FEED_LOCKS.computeIfAbsent("pbezig", k -> new Object());
         java.lang.reflect.Field wf = Podcasts.class.getDeclaredField("WRITTEN"); wf.setAccessible(true);
         @SuppressWarnings("unchecked") java.util.Map<String, Object> written = (java.util.Map<String, Object>) wf.get(null);
         final boolean[] klaar = { false };
-        Thread vergeet;
-        synchronized (slot) {
-            vergeet = new Thread(() -> { Podcasts.forgetFetched("pbezig"); synchronized (klaar) { klaar[0] = true; } });
+        synchronized (slot) { // de lopende fetch houdt het slot vast
+            Thread vergeet = new Thread(() -> { Podcasts.forgetFetched("pbezig"); synchronized (klaar) { klaar[0] = true; } });
             vergeet.start();
-            Thread.sleep(150);
-            synchronized (klaar) { check(!klaar[0], "vergeten wacht tot de lopende fetch klaar is"); }
-            written.put("pbezig", new Object[] { "z", 1L, 2L }); // wat de lopende fetch nog schrijft
+            vergeet.join(5000);
+            synchronized (klaar) { check(klaar[0], "ontvolgen wacht niet op een lopende fetch"); }
+            written.put("pbezig", new Object[] { "z", 1L, 2L }); // wat de lopende fetch daarna nog schrijft
+            Podcasts.naFetch("pbezig"); // einde van die fetch
         }
-        vergeet.join(5000);
         check(!Podcasts.remembersFetch("pbezig"), "na de fetch vergeten: geen blijvende ingang");
+        written.put("pbezig", new Object[] { "z", 1L, 2L }); // een latere fetch (weer gevolgd) onthoudt gewoon
+        Podcasts.naFetch("pbezig");
+        check(Podcasts.remembersFetch("pbezig"), "een volgende fetch onthoudt de feed weer");
+        Podcasts.forgetFetched("pbezig"); Podcasts.naFetch("pbezig");
         Podcasts.FEED_LOCKS.remove("pbezig");
 
         // Alleen bekeken (niet gevolgd): bij het bijwerken van de nieuwste afleveringen uit het geheugen

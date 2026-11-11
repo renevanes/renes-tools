@@ -7,27 +7,34 @@ const { chromium } = require('playwright');
   await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(400);
   const zender = (naam, url) => JSON.stringify({ name: naam, url });
 
+  // De tijd wordt in de pagina gemeten (niet met waitForTimeout): de herkansing rekt die wachttijden op.
+
   // Stoppen vóór de startmelding: blijft gestopt
-  await pg.evaluate(z => { Android.radioPlay(z); Android.radioStop(); }, zender('Radio A', 'https://a.example.org/s'));
-  await pg.waitForTimeout(900);
-  const na = await pg.evaluate(() => ({ status: Android._rd.st.status, last: (Android._rd.st.last || {}).name, title: Android._rd.st.title }));
+  const na = await pg.evaluate(z => new Promise(klaar => {
+    Android.radioPlay(z); Android.radioStop();
+    setTimeout(() => klaar({ status: Android._rd.st.status, naam: (Android._rd.st.last || {}).name, title: Android._rd.st.title }), 900);
+  }), zender('Radio A', 'https://a.example.org/s'));
   console.log('stoppen voor de melding', JSON.stringify(na));
-  if (na.status !== 'stopped' || na.last !== 'Radio A' || na.title) errs.push('na stoppen weer aan: ' + JSON.stringify(na));
+  if (na.status !== 'stopped' || na.naam !== 'Radio A' || na.title) errs.push('na stoppen weer aan: ' + JSON.stringify(na));
 
-  // Twee keer snel na elkaar: de tweede zender speelt, de oude melding schrijft niet in de nieuwe toestand
-  await pg.evaluate(([x, y]) => { Android.radioPlay(x); setTimeout(() => Android.radioPlay(y), 300); }, [zender('Radio A', 'https://a.example.org/s'), zender('Radio B', 'https://b.example.org/s')]);
-  await pg.waitForTimeout(700); // de melding van A is geweest, die van B nog niet
-  const tussen = await pg.evaluate(() => ({ status: Android._rd.st.status, naam: Android._rd.st.station.name }));
-  console.log('tussendoor', JSON.stringify(tussen));
-  if (tussen.status !== 'connecting' || tussen.naam !== 'Radio B') errs.push('oude startmelding raakte de nieuwe zender: ' + JSON.stringify(tussen));
-  await pg.waitForTimeout(500);
-  const eind = await pg.evaluate(() => ({ status: Android._rd.st.status, naam: Android._rd.st.station.name }));
-  console.log('daarna', JSON.stringify(eind));
-  if (eind.status !== 'playing' || eind.naam !== 'Radio B') errs.push('tweede zender speelt niet: ' + JSON.stringify(eind));
+  // Twee keer snel na elkaar: de tweede zender speelt, de oude melding (na 600 ms) schrijft niet in de nieuwe toestand
+  const r = await pg.evaluate(([x, y]) => new Promise(klaar => {
+    const st = () => ({ status: Android._rd.st.status, naam: (Android._rd.st.station || {}).name });
+    let tussen;
+    Android.radioPlay(x);
+    setTimeout(() => Android.radioPlay(y), 200);   // B start op 200 ms, zijn melding komt op ±800 ms
+    setTimeout(() => { tussen = st(); }, 700);     // na de melding van A, vóór die van B
+    setTimeout(() => klaar({ tussen, eind: st() }), 1300);
+  }), [zender('Radio A', 'https://a.example.org/s'), zender('Radio B', 'https://b.example.org/s')]);
+  console.log('tussendoor', JSON.stringify(r.tussen), 'daarna', JSON.stringify(r.eind));
+  if (r.tussen.status !== 'connecting' || r.tussen.naam !== 'Radio B') errs.push('oude startmelding raakte de nieuwe zender: ' + JSON.stringify(r.tussen));
+  if (r.eind.status !== 'playing' || r.eind.naam !== 'Radio B') errs.push('tweede zender speelt niet: ' + JSON.stringify(r.eind));
 
-  // Gewoon afspelen en daarna stoppen werkt nog
+  // Daarna gewoon stoppen werkt nog
   await pg.evaluate(() => Android.radioStop());
-  console.log('gestopt', await pg.evaluate(() => Android._rd.st.status));
+  const gestopt = await pg.evaluate(() => Android._rd.st.status);
+  console.log('gestopt', gestopt);
+  if (gestopt !== 'stopped') errs.push('stoppen na afspelen: ' + gestopt);
   console.log('errors', errs);
   await b.close();
 })();

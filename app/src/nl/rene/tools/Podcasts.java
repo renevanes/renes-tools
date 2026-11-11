@@ -156,6 +156,7 @@ final class Podcasts {
     }
 
     private static JSONObject fetchLocked(Context c, String feedUrl) throws Exception {
+        VERGETEN.remove(podId(feedUrl)); // een ontvolging van vóór deze fetch is al verwerkt
         HttpURLConnection h = open(feedUrl, 20000);
         PodcastFeed.Feed f;
         String ct = h.getContentType(), cs = null;
@@ -195,6 +196,7 @@ final class Podcasts {
             FETCHED.remove(id);
             LATEST.put(id, cf, latestFeed(pod, items)); // al in het geheugen: niet opnieuw lezen
         }
+        naFetch(id);
         updateSub(c, pod, items);
         return o;
     }
@@ -273,16 +275,21 @@ final class Podcasts {
         forgetFetched(id);
     }
 
+    /** Ontvolgd terwijl er misschien een fetch liep: die vergeet de feed aan het eind (naFetch), nog binnen zijn slot. */
+    private static final java.util.Set<String> VERGETEN = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<String, Boolean>());
+
     /**
-     * Niet meer gevolgd: wat fetch over deze feed onthield, hoeft niet in het geheugen te blijven. Onder het slot van de feed,
-     * zodat een fetch die tegelijk loopt het daarna niet weer terugzet.
+     * Niet meer gevolgd: wat fetch over deze feed onthield, hoeft niet in het geheugen te blijven. Wacht niet op een fetch die
+     * tegelijk loopt (de brug zou dan stilstaan), maar laat die het aan het eind vergeten, zodat hij het niet weer terugzet.
      */
     static void forgetFetched(String id) {
         if (id == null) return;
-        Object lock = FEED_LOCKS.get(id);
-        if (lock == null) { WRITTEN.remove(id); FETCHED.remove(id); return; }
-        synchronized (lock) { WRITTEN.remove(id); FETCHED.remove(id); }
+        if (FEED_LOCKS.containsKey(id)) VERGETEN.add(id);
+        WRITTEN.remove(id); FETCHED.remove(id);
     }
+
+    /** Aan het eind van een fetch (binnen het slot van de feed): is hij intussen ontvolgd, dan niets onthouden. */
+    static void naFetch(String id) { if (VERGETEN.remove(id)) { WRITTEN.remove(id); FETCHED.remove(id); } }
 
     /**
      * Alleen onthouden voor gevolgde feeds (zoals LATEST.retain): feeds die alleen bekeken zijn, gaan weer uit het geheugen,
