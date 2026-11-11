@@ -17,7 +17,7 @@ const assert = require('node:assert');
     assert.strictEqual(await pg.isVisible('#pdf-split'), false);
 
     // viewer: openen en standaard-app
-    await pg.click('#pdf-view-card >> text=PDF openen');
+    await pg.click('#pdf-view-card >> text=PDF openen');await pg.click('#sheet-acts >> text=Bestand op de telefoon');
     assert.strictEqual((await P()).viewPick, 1);
     assert.match(await pg.textContent('#pdf-def'), /kies Tools en dan Altijd/);
     await pg.click('#pdf-def-btn');
