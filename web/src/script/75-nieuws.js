@@ -387,7 +387,7 @@ function nwbOpslaan(){
   nwbStuur(w, true);
 }
 function nwbStuur(wijz, velden){
-  if (nw.instellen || !nwbKlaar()) return;
+  if (nw.instellen || !nwbKlaar()) { nwbVul(false); return; } // een schakelaar die al omging, terug zoals hij is
   nw.instellen = { wijz, velden: !!velden };
   $('#nwb-opslaan').disabled = true; $('#nwb-status').hidden = false;
   uiWachtTekst($('#nwb-status'), 'url' in wijz ? t('Feed nakijken…') : t('Opslaan…'));
@@ -400,7 +400,11 @@ window.onNieuwsInstellen = function(r){
   nwLaad();
   if (r.error) { nwbStatus(r.error); if (current === 'nieuwsbron') nwbVul(false); return; }
   nwbStatus(was.wijz.standaard ? t('Standaard teruggezet.') : t('Opgeslagen'));
-  if (current === 'nieuwsbron') nwbVul(!!was.velden || !!was.wijz.standaard || 'inlog' in was.wijz);
+  if (current === 'nieuwsbron') {
+    nwbVul(!!was.velden || !!was.wijz.standaard);
+    // inloggen aan of uit: alleen de velden van het inloggen opnieuw (wat je verder aan het typen bent, blijft)
+    if ('inlog' in was.wijz && r.bron) { $('#nwb-start').value = r.bron.inlogStart || ''; $('#nwb-sites').value = r.bron.inlogSites || ''; }
+  }
   if (current === 'nieuwsset') nwSetRender();
   // een andere feed, filter of inlog: meteen opnieuw ophalen (de oude artikelen van die bron zijn weg)
   if (r.bron && r.bron.aan && ['url', 'alleen', 'inlog', 'inlogSites', 'pagina', 'standaard'].some(k => k in was.wijz)) nwVerversen(true);

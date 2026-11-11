@@ -652,6 +652,20 @@ public class NieuwsTest {
         f = new JSONObject(new String(Files.readAllBytes(new File(dir, "bronnen.json").toPath()), StandardCharsets.UTF_8));
         check(!f.optJSONObject("instellingen").has(eid), "eigen bron weg: zijn instellingen ook");
         check(geeftFout(() -> Nieuws.instellen(dir, cache, "bestaat-niet", new JSONObject(), null)), "onbekende bron: fout");
+        // Na een ander adres: dezelfde oude feed opnieuw toevoegen geeft een nieuwe bron (geen botsend id)
+        JSONObject e1 = Nieuws.voegToe(dir, "https://oud.example.org/rss", "Oud");
+        Nieuws.instellen(dir, cache, e1.getString("id"), new JSONObject().put("url", "x"), "https://nieuw.example.org/rss");
+        JSONObject e2 = Nieuws.voegToe(dir, "https://oud.example.org/rss", "Oud");
+        check(!e2.getString("id").equals(e1.getString("id")) && bron(Nieuws.bronnen(dir), e2.getString("id")) != null && !e2.optBoolean("al"), "oud adres opnieuw toevoegen: een eigen, nieuwe bron");
+        // Een eigen bron op een site met een IDN-naam: hernoemen lukt (de standaardsites zijn punycode)
+        JSONObject idn = Nieuws.voegToe(dir, "https://xn--bcher-kva.example/feed", "Bücher");
+        check("xn--bcher-kva.example *.xn--bcher-kva.example".equals(Nieuws.standaardSites("https://bücher.example/")), "standaardsites in punycode");
+        check(!geeftFout(() -> Nieuws.instellen(dir, cache, idn.getString("id"), new JSONObject().put("naam", "Boeken"), null)), "IDN-site: hernoemen lukt");
+        // Opslaan met de standaardwaarden van inloggen: niets aangepast
+        JSONObject ai2 = Nieuws.instellen(dir, cache, "aireport", new JSONObject().put("naam", "AI Report").put("url", "x").put("inlogStart", "https://www.aireport.nl/")
+                .put("inlogSites", "aireport.nl *.aireport.nl *.beehiiv.com").put("lezen", "app"), null);
+        check(!ai2.optBoolean("aangepast"), "opslaan zonder wijziging: geen afwijking bewaard");
+        check(geeftFout(() -> Nieuws.sitesNetjes("*.co.uk")) && geeftFout(() -> Nieuws.sitesNetjes("*.github.io")) && !geeftFout(() -> Nieuws.sitesNetjes("bbc.co.uk")), "algemene achtervoegsels geweigerd, een echte site niet");
 
         // Een bron met een andere feed dan het opgegeven adres: de volgende keer meteen die feed
         NieuwsFeed.Feed rf = rss();

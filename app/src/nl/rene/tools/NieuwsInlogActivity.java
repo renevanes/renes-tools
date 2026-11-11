@@ -179,7 +179,11 @@ public class NieuwsInlogActivity extends Activity {
     }
 
     /** Een andere site: in de browser (lezen) of melden welke site er bij Toegestane sites moet (inloggen). */
+    private String laatsteAndere = "";
+
     void andereSite(String url) {
+        if (url.equals(laatsteAndere)) return; // doorverwijzing: zowel onderschept als overgenomen
+        laatsteAndere = url;
         if (soort.equals(LEZEN)) {
             try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); } catch (Throwable ignored) { }
             return;

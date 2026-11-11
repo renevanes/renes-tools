@@ -472,5 +472,6 @@ const SET_EXCLUDE = [
   ['#wc-chips', 'Filters in Toiletten en douches, geen instelling'],
   ['#nw-filter, #nw-bron', 'Filters in de lijst van Nieuws, geen instelling'],
   ['#s-wcbewerk select, #s-wcbewerk input', 'Hoort bij één plek van Toiletten en douches (aanpassen of toevoegen); bewaard met Bewaren'],
-  ['#s-wcbron .tg, #s-wcbron select, #s-wcbron input', 'Hoort bij één bron van Toiletten en douches; je stelt het in en bewaart het op het scherm van die bron']
+  ['#s-wcbron .tg, #s-wcbron select, #s-wcbron input', 'Hoort bij één bron van Toiletten en douches; je stelt het in en bewaart het op het scherm van die bron'],
+  ['#s-nieuwsbron .tg, #s-nieuwsbron select, #s-nieuwsbron input', 'Hoort bij één bron van Nieuws (inloggen, afbeeldingen, lezen); je stelt het in op het scherm van die bron. Aan/uit staat al in het register (nieuws.bron.…)']
 ];

@@ -527,10 +527,18 @@ final class Nieuws {
     }
 
     /** De sites bij een inlogpagina: de site zelf en alle subdomeinen ervan. */
-    static String standaardSites(String start) { String h = host(start); return h + " *." + h; }
+    static String standaardSites(String start) {
+        String h = host(start);
+        try { h = IDN.toASCII(h).toLowerCase(Locale.ROOT); } catch (Exception ignored) { }
+        return h + " *." + h;
+    }
 
     private static final Pattern SITE = Pattern.compile("(?:\\*\\.)?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+");
     static final int MAX_SITES = 12;
+    /** Achtervoegsels waaronder iedereen een site kan hebben (geen eigen naam): niet als toegestane site. */
+    static final Set<String> ALGEMEEN = new HashSet<>(Arrays.asList("co.uk", "org.uk", "ac.uk", "com.au", "net.au", "co.nz", "co.jp", "com.br",
+            "github.io", "gitlab.io", "blogspot.com", "wordpress.com", "substack.com", "netlify.app", "vercel.app", "pages.dev",
+            "herokuapp.com", "appspot.com", "web.app", "firebaseapp.com", "azurewebsites.net", "cloudfront.net", "amazonaws.com"));
 
     /**
      * De sites die Rene intikt (spaties of komma's ertussen), netjes: kleine letters, zonder https:// en zonder pad. Een
@@ -542,7 +550,7 @@ final class Nieuws {
             String d = r.replaceFirst("^[a-z]+://", "").replaceFirst("[/?#].*$", "").replaceFirst("^www\\.", "");
             if (d.isEmpty()) continue;
             String kaal = d.startsWith("*.") ? d.substring(2) : d;
-            if (d.length() > 253 || !SITE.matcher(d).matches() || kaal.indexOf('.') < 0 || kaal.matches("[0-9.]+"))
+            if (d.length() > 253 || !SITE.matcher(d).matches() || kaal.indexOf('.') < 0 || kaal.matches("[0-9.]+") || ALGEMEEN.contains(kaal))
                 throw new Fout(Taal.fill(Taal.T("Geen geldige site: {site}"), "site", d));
             if (!uit.contains(d)) uit.add(d);
         }
@@ -682,9 +690,16 @@ final class Nieuws {
             if (x.length() > 0) inst.put(id, x); else inst.remove(id);
             // Wat er nu zou gelden: de inlogpagina moet bij de sites horen, anders opent het venster hem niet
             JSONObject nu = instellingen(new JSONObject(b.toString()), x);
-            if (!siteMag(nu.getString("inlogSites"), nu.getString("inlogStart")))
+            boolean inlogVelden = in.has("inlog") || in.has("inlogStart") || in.has("inlogSites");
+            if (nu.optBoolean("inlog") && inlogVelden && !siteMag(nu.getString("inlogSites"), nu.getString("inlogStart")))
                 throw new Fout(Taal.T("De inlogpagina hoort niet bij de toegestane sites. Voeg de site van de inlogpagina toe."));
-            if (in.has("inlogSites") && x.optString("inlogSites").equals(il != null ? il[2] : standaardSites(nu.getString("inlogStart")))) x.remove("inlogSites");
+            // gelijk aan wat er zonder keuze zou gelden: niet bewaren (dan volgt het een ander adres van de bron)
+            for (String k : new String[]{"inlogStart", "inlogSites", "lezen"}) {
+                if (!x.has(k)) continue;
+                JSONObject zonder = new JSONObject(x.toString());
+                zonder.remove(k);
+                if (x.optString(k).equals(instellingen(new JSONObject(b.toString()), zonder).optString(k))) x.remove(k);
+            }
             if (x.length() > 0) inst.put(id, x); else inst.remove(id);
             bewaarBronnen(dir, bs, inst);
             if (andereFeed || in.optBoolean("standaard")) cacheBestand(cache, id).delete();
@@ -739,7 +754,10 @@ final class Nieuws {
             }
             if (eigen >= MAX_EIGEN) throw new Fout(Taal.fill(Taal.T("Je hebt al {n} eigen bronnen"), "n", MAX_EIGEN));
             String naam = NieuwsFeed.cut(NieuwsFeed.regel(titel == null ? "" : titel), 80);
-            JSONObject b = new JSONObject().put("id", "e" + Podcasts.hash(url)).put("naam", naam.isEmpty() ? host(url) : naam)
+            // een eigen bron houdt zijn id als het adres verandert: een nieuwe bron met dat oude adres krijgt een ander id
+            String id = "e" + Podcasts.hash(url);
+            for (int n = 1; zoekBron(bs, id) != null && n < 100; n++) id = "e" + Podcasts.hash(url + "#" + n);
+            JSONObject b = new JSONObject().put("id", id).put("naam", naam.isEmpty() ? host(url) : naam)
                     .put("url", url).put("aan", true).put("eigen", true);
             bs.put(b);
             bewaarBronnen(dir, bs);
@@ -1242,7 +1260,8 @@ final class Nieuws {
             String alt = zoekFeed(html, a.url);
             boolean isHtml = HTML.matcher(html.length() > 4096 ? html.substring(0, 4096) : html).find();
             if (alt == null && isHtml) {
-                for (String u : kandidaten(a.url)) {
+                // op de site die Rene opgaf (niet een cookiemuur of andere site waarheen de pagina doorstuurde)
+                for (String u : kandidaten(host(a.url).equals(host(adres)) ? a.url : adres)) {
                     if (System.currentTimeMillis() >= tot) break;
                     try { Antwoord b = haal(u, tot, false, k, ua); return new Gelezen(parse(b), b.url); }
                     catch (TeTraag t) { break; }

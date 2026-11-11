@@ -75,12 +75,12 @@
     <div class="card">
       <div class="sw"><span>Bron aan<small id="nwb-aan-n">Artikelen van deze bron ophalen en tonen in Nieuws.</small></span><button class="tg" id="nwb-aan" role="switch" aria-checked="false" aria-label="Bron aan" aria-describedby="nwb-aan-n" onclick="togUi(this); nwbZet({ aan: this.classList.contains('on') })"></button></div>
       <label class="f" for="nwb-naam">Naam</label>
-      <input class="aein" id="nwb-naam" autocomplete="off" maxlength="80" translate="no">
+      <input class="aein" id="nwb-naam" autocomplete="off" maxlength="80">
       <label class="f" for="nwb-url">Adres van de feed of de site</label>
-      <input class="aein" id="nwb-url" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" translate="no">
+      <input class="aein" id="nwb-url" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false">
       <p class="hint" id="nwb-url-std" translate="no" hidden></p>
       <label class="f" for="nwb-alleen">Alleen artikelen waarvan de link begint met</label>
-      <input class="aein" id="nwb-alleen" placeholder="Leeg = alle artikelen" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="nwb-alleen-n" translate="no">
+      <input class="aein" id="nwb-alleen" placeholder="Leeg = alle artikelen" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="nwb-alleen-n">
       <p class="hint" id="nwb-alleen-n">Bijvoorbeeld tweakers.net/nieuws/ voor alleen het nieuws uit een gemengde feed.</p>
     </div>
     <div class="card">
@@ -96,9 +96,9 @@
           <option value="browser">In je browser</option>
         </select>
         <label class="f" for="nwb-start">Inlogpagina</label>
-        <input class="aein" id="nwb-start" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" translate="no">
+        <input class="aein" id="nwb-start" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false">
         <label class="f" for="nwb-sites">Toegestane sites</label>
-        <input class="aein" id="nwb-sites" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="nwb-sites-n" translate="no">
+        <input class="aein" id="nwb-sites" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="nwb-sites-n">
         <p class="hint" id="nwb-sites-n">Met spaties ertussen; *.site.nl = alle subdomeinen. Alleen deze sites openen in het inlogvenster en krijgen je cookies.</p>
       </div>
     </div>
