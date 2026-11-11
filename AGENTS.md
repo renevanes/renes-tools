@@ -20,7 +20,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   `kop.html`, `stijl.css` (Material 3-kleurrollen: `--bg --card --hi --ink --muted --line --outline --primary --on-primary --tonal --chip --on-chip …`),
   `schermen/NN-*.html` (één `<section class="screen" id="s-naam">` per scherm), `script/NN-*.js`, `vensters.html` (dialogen, tabbalk).
 - `web/src/script/01-testbrug.js` — de nagebootste Android-brug voor de tests (in de app zelf weggelaten).
-- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends ReadAloudBridge extends NieuwsBridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends FeatureBridge`.
+- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends ReadAloudBridge extends NieuwsBridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends AgendaBridge extends FeatureBridge`.
 - `web/start.html` — de Telefoon-skin (eigen startscherm); `tests/` — Java- en interfacetests; `tools/` — hulpscripts.
 - **Iedere nieuwe schermtool ondersteunt standaard losse apps.** Registreer hem in `web/src/script/00-tools.js`: het
   openen, het overzicht Losse apps en het native register volgen daaruit. Subschermen krijgen een `BACK`-verwijzing
@@ -598,6 +598,21 @@ in de buurt, ook plekken waar er meestal een is (tankstations, verzorgingsplaats
   namen of adressen.
 - Tests: `tests/ui/toiletten.test.js`, `toiletten-bronnen.test.js`, `toiletten-eigen.test.js`; Java: `ToilettenTest`,
   `ToilettenSamenTest`, `ToilettenOsmTest`.
+
+## Agenda
+Agenda (schermen `s-agenda`, `s-agafspraak`, `s-agaset`; `web/src/script/76-agenda.js`, `Agenda*.java`) is een eigen agenda
+op de telefoon: dag, week, maand en lijst, met ISO-weeknummers. De week begint op de dag uit Regio en taal (`weekStart`).
+Zoeken kijkt in alle afspraken, ook van jaren geleden.
+- **Eigen afspraken** staan in `agenda/agenda.json` (mee in Alle appgegevens, niet in de Android-backup). De weergave, de
+  standaardagenda en uitgezette agenda's staan in het instellingenbestand `agenda`.
+- **Google** gaat alleen via de agenda van de telefoon (`CalendarContract`, lezen en schrijven). Tools praat niet met Google.
+  Zet Rene een afspraak in een Google-agenda, dan stuurt de agenda-app van de telefoon hem naar Google. Dat staat zichtbaar
+  op het scherm. Een afspraak zonder agenda blijft alleen in Tools. Haalt Bijwerken een gekoppelde afspraak niet meer op,
+  dan blijft de kopie in Tools staan, zonder koppeling.
+- **Assistent**: bron `agenda` staat standaard uit (`srcDefault`). Aan zetten kan bij Agenda → Instellingen of bij
+  Assistent → Gegevens; de assistent zet hem niet zelf aan. "Zet … in mijn agenda" opent nog steeds de agenda-app
+  (`AiActions` / `aiCalendarAdd`): `Agenda.gaatOver` is onwaar bij een opdracht om iets te zetten.
+- Tests: `tests/ui/agenda.test.js`; Java: `AgendaTest` (en een stuk in `AiDataTest`).
 
 ## Nieuws (feeds lezen)
 Nieuws (schermen `s-nieuws`, `s-nieuwsart`, `s-nieuwsset`, `s-nieuwsbron`; `web/src/script/75-nieuws.js`, `Nieuws*.java`) toont koppen en

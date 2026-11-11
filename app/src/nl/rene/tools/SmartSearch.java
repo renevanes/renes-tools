@@ -104,6 +104,7 @@ final class SmartSearch {
             case "contacts": return "Contact ";
             case "sleep": return "Slaappraat ";
             case "checkin": return "Check-in ";
+            case "agenda": return "Afspraak: ";
             default: return "Notitie: ";
         }
     }
@@ -178,6 +179,7 @@ final class SmartSearch {
         if (LocalAi.srcOn(c, "contacts") && Search.has(c, android.Manifest.permission.READ_CONTACTS)) try { contactDocs(c, out); } catch (Throwable e) { App.log(c, "AI", "contacten: " + e); }
         if (LocalAi.srcOn(c, "sleep")) try { sleepDocs(c, out); } catch (Throwable e) { App.log(c, "AI", "slaappraat: " + e); }
         if (LocalAi.srcOn(c, "checkin")) try { checkinDocs(c, out); } catch (Throwable e) { App.log(c, "AI", "check-in: " + e); }
+        if (LocalAi.srcOn(c, "agenda")) try { agendaDocs(c, out); } catch (Throwable e) { App.log(c, "AI", "agenda: " + e.getClass().getSimpleName()); }
         return out;
     }
 
@@ -320,6 +322,18 @@ final class SmartSearch {
         for (Object[] m : CheckinStore.monthDocs(c)) {
             Doc d = linesDoc("checkin", (String) m[0], (String) m[1], (List<String>) m[2], (List<Long>) m[3], (Long) m[4]);
             if (d != null) out.add(d);
+        }
+    }
+
+    /** Eigen afspraken (niet de tekst van andermans agenda's). Alleen titel, datum, plek en notitie. */
+    private static void agendaDocs(Context c, List<Doc> out) {
+        JSONArray a = AgendaStore.zichtbaar(c);
+        if (a == null) return;
+        for (int i = 0; i < a.length() && out.size() < 5000; i++) {
+            Agenda.Item it = Agenda.item(a.optJSONObject(i));
+            String text = Agenda.document(it);
+            if (text.length() < 3 || it.id.isEmpty()) continue;
+            out.add(new Doc("agenda", it.id, it.titel, text, 0, null));
         }
     }
 

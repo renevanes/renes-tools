@@ -12,7 +12,7 @@
  * bronKies({ titel, soort: 'pdf'|'beeld'|'pdfbeeld'|'boek'|'tekst'|'alles', kiezer: (MainActivity.bronReq), bestand: () => …,
  *            zonder: ['kluis'|'gemaakt'|'factuur'],
  *            eigen: { kluis: doc => …, gemaakt: naam => … }, kluisOpen: true (de kluis niet meteen weer op slot),
- *            weg: () => … (het menu dicht zonder keuze) }) */
+ *            weg: () => … (het menu dicht zonder keuze), voor: [[tekst, fn, pictogram]] (een eigen plek bovenaan) }) */
 const BRON_SOORT = {
   pdf: { ext: /\.pdf$/i, mime: /pdf/ },
   beeld: { ext: /\.(jpe?g|png|webp|gif|heic|heif|bmp)$/i, mime: /^image\// },
@@ -41,13 +41,13 @@ function bronFacturen(o){
     .sort((a, b) => (b.opgehaald || 0) - (a.opgehaald || 0));
 }
 function bronKies(o){
-  const keuzes = [[t('Bestand op de telefoon'), () => bronTelefoon(o), 'smartphone']];
+  const keuzes = [...(o.voor || []), [t('Bestand op de telefoon'), () => bronTelefoon(o), 'smartphone']];
   if (bronMag(o, 'kluis') && typeof Android.kluisList === 'function') keuzes.push([t('Uit de documentenkluis'), () => bronUitKluis(o), 'lock']);
   const gemaakt = bronGemaakt(o), facturen = bronFacturen(o);
   if (gemaakt.length) keuzes.push([t('Uit Gemaakt (PDF-tools)'), () => bronLijst(o, t('Uit Gemaakt (PDF-tools)'), gemaakt.slice(0, BRON_MAX).map(x => [x.name, () => bronVanGemaakt(o, x.name)])), 'document']);
   if (facturen.length) keuzes.push([t('Uit het facturendossier'), () => bronLijst(o, t('Uit het facturendossier'), facturen.slice(0, BRON_MAX).map(s => [
     s.leverancierNaam ? t('{leverancier} · {bestand}', { leverancier: s.leverancierNaam, bestand: s.naam || '' }) : (s.naam || ''), () => bronNeem(o, [{ bron: 'factuur', id: s.sha, versie: 0 }])])), 'wallet']);
-  if (keuzes.length === 1) { bronTelefoon(o); return; }
+  if (keuzes.length === 1 && !(o.voor || []).length) { bronTelefoon(o); return; }
   openSheet(o.titel || t('Bestand kiezen'), t('Waar staat het bestand?'), keuzes, o.weg);
 }
 function bronLijst(o, titel, acts){ openSheet(titel, '', acts, o.weg); }

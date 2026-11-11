@@ -1,0 +1,1 @@
+Agenda: dag, week, maand en lijst, met weeknummers. Zoeken kan ook in afspraken van vroeger, en de assistent ook als je dat aanzet. Een Google-agenda gaat via de agenda van je telefoon.

@@ -666,7 +666,7 @@ if (!window.Android) window.Android = (function(){
     apOpenSettings(w){ this._ap.opened.push(w); if (w === 'bt') this._ap.perms.btOn = true; if (w === 'loc') this._ap.perms.locOn = true; setTimeout(() => onApChanged(), 50); },
     _ai: { st: { klein: { state: 'none' }, groot: { state: 'none' }, klein35: { state: 'none' }, groot35: { state: 'none' }, zoek: { state: 'none' } }, chat: 'klein', wifiOnly: true, notes: true, chats: [], ram: 8e9, calls: [], seq: 0,
       mem: [], learnFacts: ['Woont in Rotterdam.'],
-      src: { notes: true, tx: true, sms: false, wa: false, calls: false, contacts: false, sleep: false, checkin: false, gebruik: false, apparaten: false }, perm: { notes: true, tx: true, sms: true, wa: false, calls: true, contacts: false, sleep: true, checkin: true, gebruik: true, apparaten: true },
+      src: { notes: true, tx: true, sms: false, wa: false, calls: false, contacts: false, sleep: false, checkin: false, gebruik: false, apparaten: false, agenda: false }, perm: { notes: true, tx: true, sms: true, wa: false, calls: true, contacts: false, sleep: true, checkin: true, gebruik: true, apparaten: true, agenda: true },
       // [id, naam, beschrijving, grootte, vervangt, waarom, aangeraden geheugen] zoals LocalAi.MODELS
       models: [['klein', 'Klein en snel', 'Qwen3 1.7B · werkt op de meeste telefoons', 1282439584], ['groot', 'Groter en slimmer', 'Qwen3 4B · beter Nederlands, trager', 2497280256, '', '', 7.5e9],
         ['klein35', 'Klein en snel (Qwen3.5)', 'Qwen3.5 2B · werkt op de meeste telefoons', 1396198496, 'klein', 'Nieuwer en beter in Nederlands, iets groter (1,4 GB)'],
@@ -786,6 +786,53 @@ if (!window.Android) window.Android = (function(){
       const before=sp.ms;sp.ms=t.ms;this.speechStart(text,id,'ai',true);sp.ms=before;},
     aiSpeakStop(){const t=this._tts;t.stops++;clearTimeout(t.sysTimer);if(t.cur&&this._speech.active?.request!==t.cur){const id=t.cur;t.cur='';onAiSpeak({state:'stop',id,system:true});}if(this._speech.active?.source==='ai')this.speechStop(this._speech.active.request);},
     aiCalendarAdd(j){ if (this._calErr) return this._calErr; this._cal = JSON.parse(j); return ''; },
+    _agInit(){
+      if (this._ag) return this._ag;
+      const nu = typeof rgToday === 'function' ? rgToday() : '2026-11-11', plus = n => typeof rgDayAdd === 'function' ? rgDayAdd(nu, n) : nu;
+      this._ag = { view: 'week', standaard: '', uit: [], perm: false, schrijf: false, _n: 2,
+        kalenders: [
+          { id: '1', naam: 'Agenda', account: 'rene@gmail.com', google: true, schrijf: true, kleur: '#1A73E8' },
+          { id: '2', naam: 'Werk', account: 'Werk', google: false, schrijf: true, kleur: '#0B8043' },
+          { id: '3', naam: 'Feestdagen', account: 'rene@gmail.com', google: true, schrijf: false, kleur: '#F4511E' }
+        ],
+        items: [
+          { id: 'aoud', titel: 'Tandarts', plek: 'Rotterdam', notitie: 'controle', dag: '2024-03-12', eind: '2024-03-12', van: '14:00', tot: '14:30', heleDag: false, herhaal: '', totDag: '', kalender: '', ext: 0, naam: '', kleur: '' },
+          { id: 'amorgen', titel: 'Overleg', plek: '', notitie: '', dag: plus(1), eind: plus(1), van: '11:00', tot: '11:30', heleDag: false, herhaal: '', totDag: '', kalender: '', ext: 0, naam: '', kleur: '' }
+        ],
+        extern: [{ id: 'x50_' + plus(1), titel: 'Stand-up', plek: '', notitie: '', dag: plus(1), eind: plus(1), van: '09:00', tot: '09:15', heleDag: false, herhaal: '', totDag: '', kalender: '1', naam: 'Agenda', kleur: '#1A73E8', ext: 50 }] };
+      return this._ag;
+    },
+    agendaStaat(){ const st = this._agInit(), uit = new Set(st.uit || []);
+      return JSON.stringify({ perm: !!st.perm, schrijf: !!st.schrijf, view: st.view || 'week', standaard: st.standaard || '', ai: !!(this._ai.src && this._ai.src.agenda), aantal: (st.items || []).length,
+        kalenders: st.perm ? st.kalenders.map(k => Object.assign({}, k, { aan: !uit.has(String(k.id)) })) : [] }); },
+    agendaToon(view, anker, weekStart){ const st = this._agInit(); return JSON.stringify(agSpiegelToon(Object.assign({}, st, { extern: st.perm ? st.extern : [] }), view, anker, weekStart)); },
+    agendaZoek(q, van, tot){ const st = this._agInit(); return JSON.stringify(agSpiegelZoek(Object.assign({}, st, { extern: st.perm ? st.extern : [] }), q, van, tot)); },
+    agendaHaal(id){ const st = this._agInit(), s = String(id || '');
+      const it = s.charAt(0) === 'x' ? (st.extern || []).find(x => x.id === s) : (st.items || []).find(x => x.id === s);
+      return it ? JSON.stringify({ ok: true, item: it }) : JSON.stringify({ ok: false, fout: 'Die afspraak staat er niet.' }); },
+    agendaBewaar(j){ return JSON.stringify(agSpiegelBewaar(this._agInit(), JSON.parse(j || '{}'))); },
+    agendaWis(id){ const st = this._agInit(), it = (st.items || []).find(x => x.id === id);
+      if (!it) return JSON.stringify({ ok: false, fout: 'Die afspraak staat er niet.' });
+      if (it.ext > 0 && !st.schrijf) return JSON.stringify({ ok: false, fout: 'Geen toestemming om de agenda van je telefoon te wijzigen.' });
+      st.items = st.items.filter(x => x.id !== id);
+      if (it.ext > 0) st.extern = (st.extern || []).filter(x => x.ext !== it.ext);
+      return JSON.stringify({ ok: true, id }); },
+    agendaZet(j){ const st = this._agInit(), inn = JSON.parse(j || '{}');
+      if (inn.view) st.view = ['dag', 'week', 'maand', 'lijst'].includes(inn.view) ? inn.view : 'week';
+      if ('standaard' in inn) st.standaard = /^[1-9]\d{0,17}$/.test(String(inn.standaard || '')) ? String(inn.standaard) : '';
+      if (inn.uit) st.uit = (inn.uit || []).map(String).filter(id => /^[1-9]\d{0,17}$/.test(id)).slice(0, 40);
+      return this.agendaStaat(); },
+    agendaSync(){ const st = this._agInit();
+      if (!st.perm) return JSON.stringify({ ok: false, fout: 'Geen toestemming om de agenda van je telefoon te wijzigen.' });
+      let bij = 0, los = 0;
+      (st.items || []).forEach(it => {
+        if (!(it.ext > 0)) return;
+        const ev = (st.extern || []).find(x => x.ext === it.ext);
+        if (!ev) { it.ext = 0; it.kalender = ''; it.naam = ''; los++; return; }
+        ['titel', 'plek', 'notitie', 'dag', 'eind', 'van', 'tot', 'heleDag', 'herhaal', 'totDag', 'kalender', 'naam', 'kleur'].forEach(k => { if (ev[k] != null) it[k] = ev[k]; });
+        bij++;
+      });
+      return JSON.stringify({ ok: true, bijgewerkt: bij, los, mislukt: 0 }); },
     aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },
     aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },
     _aiCfgDef: { style: 'normaal', creative: 'normaal', lang: 'app', history: '24', power: 'normaal', idle: '4', mem: 'aan', learn: 'vragen', talkSilence: '1300', about: '', instr: '' },
@@ -822,14 +869,15 @@ if (!window.Android) window.Android = (function(){
       sleep: 'Nacht van do 29 okt (23:10–07:30): je zei 2 keer iets:\n- 02:14 "Waar is de fiets?"\n- 04:40 "Nee, morgen."',
       checkin: 'Zo gaat het volgens je Check-in (afgelopen 7 dagen):\n- 🙂 Hoe voel je je?: gemiddeld 4,1 (van 1 tot 5) over 7 antwoorden; de week ervoor 2: beter',
       apparaten: 'Je **Mijn Jabra** is het laatst gezien gisteren om 18:05, buiten huis (rond 51,92 N, 4,48 O, ±1 km).' },
-    aiData(q){ const s = String(q || '').toLowerCase(), A = this._ai, L = { gebruik: 'Gebruik', sleep: 'Slaappraat', checkin: 'Check-in', apparaten: 'Apparaten' };
-      const topic = /slaappraat|vannacht|in mijn slaap|gesnurkt/.test(s) ? 'sleep' : /check-?in|stemming/.test(s) ? 'checkin' : /schermtijd|ontgrendel|op mijn telefoon/.test(s) ? 'gebruik' : /oortje|apparaten|in de buurt|bluetooth/.test(s) ? 'apparaten' : '';
+    aiData(q){ const s = String(q || '').toLowerCase(), A = this._ai, L = { gebruik: 'Gebruik', sleep: 'Slaappraat', checkin: 'Check-in', apparaten: 'Apparaten', agenda: 'Agenda' };
+      const topic = /slaappraat|vannacht|in mijn slaap|gesnurkt/.test(s) ? 'sleep' : /check-?in|stemming/.test(s) ? 'checkin' : /schermtijd|ontgrendel|op mijn telefoon/.test(s) ? 'gebruik' : /oortje|apparaten|in de buurt|bluetooth/.test(s) ? 'apparaten' : (typeof agGaatOver === 'function' && agGaatOver(s) ? 'agenda' : '');
       if (!topic) return ''; const o = { topic, label: L[topic] };
       // Een duidelijke feitenvraag (zoals AiData.answer); anders het taalmodel met de feiten
-      const fact = !/waarom|hoe kan ik|minder|advies|uitleg|instellen|instelling/.test(s) && ({ gebruik: /hoeveel|hoe vaak|hoe lang|welke app|mislukt/, sleep: /wat zei|gezegd|gepraat|nachten|gesnurkt/, checkin: /ingevuld|laatst|gaat het|trend|gemiddeld/, apparaten: /waar (?:was|is)|in de buurt/ })[topic].test(s);
+      const fact = !/waarom|hoe kan ik|minder|advies|uitleg|instellen|instelling/.test(s) && ({ gebruik: /hoeveel|hoe vaak|hoe lang|welke app|mislukt/, sleep: /wat zei|gezegd|gepraat|nachten|gesnurkt/, checkin: /ingevuld|laatst|gaat het|trend|gemiddeld/, apparaten: /waar (?:was|is)|in de buurt/, agenda: /wat|wanneer|welke|hoeveel|zoek|toon|laat|staat|stond|heb|had|planning/ })[topic].test(s);
       if (window.__testSolo) return fact ? JSON.stringify(Object.assign(o, { solo: true })) : '';
       if (!A.src[topic]) return fact ? JSON.stringify(Object.assign(o, { off: true })) : '';
       A.calls.push(['data', topic]);
+      if (topic === 'agenda') { const text = typeof agSpiegelAntwoord === 'function' ? agSpiegelAntwoord(this._agInit(), q) : ''; return JSON.stringify(fact && text ? Object.assign(o, { text, title: 'Agenda' }) : o); }
       return JSON.stringify(fact ? Object.assign(o, { text: this._aiData[topic], title: L[topic] + (topic === 'gebruik' ? ' vandaag' : '') }) : o); },
     // ----- Opdrachten zoals AiCommands (alleen de zinnen van de tests) -----
     aiCmd(q){ const s = String(q || '').trim().replace(/[?.!]+$/, ''), l = s.toLowerCase(); let m; const J = o => JSON.stringify(o);
@@ -841,7 +889,7 @@ if (!window.Android) window.Android = (function(){
       if ((m = /^speel de podcast (.+)$/i.exec(s))) return J({ type: 'podcast', q: m[1] });
       if (/^(?:start|zet) slaappraat(?: aan)?$/.test(l)) return J({ type: 'slaap' });
       if (/^(?:stop|zet) slaappraat(?: uit)?$/.test(l)) return J({ type: 'slaap', stop: true });
-      const T = { apparaten: 'apparaten', gebruik: 'gebruik', slaappraat: 'sleep', notities: 'notes', radio: 'radio', podcasts: 'podcasts', podcast: 'podcasts', instellingen: 'settings', radiowekker: 'ralarm', startscherm: 'home' }; // zoals AiCommands.TOOLS
+      const T = { apparaten: 'apparaten', gebruik: 'gebruik', slaappraat: 'sleep', notities: 'notes', radio: 'radio', podcasts: 'podcasts', podcast: 'podcasts', instellingen: 'settings', radiowekker: 'ralarm', startscherm: 'home', agenda: 'agenda', kalender: 'agenda', 'mijn agenda': 'agenda' }; // zoals AiCommands.TOOLS
       if ((m = /^open (.+)$/.exec(l)) && T[m[1]]) return J({ type: 'open', tool: T[m[1]] });
       if ((m = /^stuur een sms naar ([^:]+?)(?::| dat) (.+)$/i.exec(s))) { const nr = /^[0-9 +-]{6,}$/.test(m[1]) ? m[1].replace(/[ -]/g, '') : ''; return J(Object.assign({ type: 'sms', text: / dat /.test(s) ? m[2].charAt(0).toUpperCase() + m[2].slice(1) : m[2] }, nr ? { number: nr } : { to: m[1] })); }
       if ((m = /^bel (?:met |naar )?(.+)$/i.exec(s)) && !/^(?:me|mij)\b/i.test(m[1])) { const to = m[1].replace(/^(?:de|het) /i, ''), nr = /^[0-9 +-]{6,}$/.test(to) ? to.replace(/[ -]/g, '') : ''; return J(nr ? { type: 'bel', number: nr } : { type: 'bel', to: to.charAt(0).toUpperCase() + to.slice(1) }); }
@@ -1200,7 +1248,7 @@ if (!window.Android) window.Android = (function(){
     _st:{lock:false,timeout:60000,crashes:0},
     settingsInfo(){ const t=this._st; return JSON.stringify({dest:this._wa.info.dest,destName:'USB-stick',audd:this._mu.token?'abc…xyz':'',crashes:t.crashes,lock:JSON.parse(this.lockState()),
       perms:[{id:'phone',name:'Bellen',used:'Auto redial',ok:true},{id:'mic',name:'Microfoon',used:'Muziek herkennen',ok:this._mu.mic},{id:'camera',name:'Camera',used:'QR-code scannen (VPN), foto bij ontgrendelen (Gebruik)',ok:!this._gb||this._gb.camera!==false},{id:'files',name:'Alle bestanden',used:'WhatsApp backup, Gesprekken',ok:false}]}); },
-    permRequest(id){ if(id==='mic') { this._mu.mic=true; if (this._sl) this._sl.mic = true; } if (id==='notif' && this._sl) this._sl.notif = true; if (id==='notif' && this._ci) this._ci.notifOk = true; if (id==='calendar' && this._ci) this._ci.calOk = true; if (id==='camera' && this._gb) this._gb.camera = true; const ap = { contacts: 'contacts', contactsread: 'contacts', calllog: 'calls', sms: 'sms' }; if (ap[id] && this._ai) this._ai.perm[ap[id]] = true; (this._permAsked = this._permAsked || []).push(id); setTimeout(()=>onSettingsChanged(''),100); },
+    permRequest(id){ if(id==='mic') { this._mu.mic=true; if (this._sl) this._sl.mic = true; } if (id==='notif' && this._sl) this._sl.notif = true; if (id==='notif' && this._ci) this._ci.notifOk = true; if (id==='calendar' && this._ci) this._ci.calOk = true; if (id==='camera' && this._gb) this._gb.camera = true; if (id==='agendasync') { const a = this._agInit(); a.perm = true; a.schrijf = true; } const ap = { contacts: 'contacts', contactsread: 'contacts', calllog: 'calls', sms: 'sms' }; if (ap[id] && this._ai) this._ai.perm[ap[id]] = true; (this._permAsked = this._permAsked || []).push(id); setTimeout(()=>onSettingsChanged(''),100); },
     crashShare(){ toast('(delen foutrapport)'); }, notesVersion(){ return this._nv || 1; }, historyStamp(){ return [this._historyRows.length, this._historyEnabled, this._historyAllowed].join(':'); }, overnight(){ return this._seen ? '{}' : JSON.stringify({since: Date.now() - 8 * 36e5, backup: {t: Date.now() - 4 * 36e5, failed: 0}, missed: [{who: 'Tandarts', t: Date.now() - 2 * 36e5}], auto: [{t: Date.now() - 36e5, name: 'Parkeren', what: 'Gestart vanuit de melding'}]}); }, overnightSeen(){ this._seen = true; },
     backupCheckLast(){ return this._chk || '{}'; }, backupCheckRun(){ this._chk = JSON.stringify({t: Date.now(), ok: true, items: [{what: 'Backup-map', ok: true, msg: 'Backup'}, {what: 'Proef-terugzetten', ok: true, msg: '✓ Notities leesbaar (12).'}], summary: 'ok'}); setTimeout(() => onBackupCheck(JSON.parse(this._chk)), 50); },
     webStoreSave(j){ this._webStore = j; }, webStorePending(){ return ''; },

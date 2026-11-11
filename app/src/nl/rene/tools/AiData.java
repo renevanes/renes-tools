@@ -16,7 +16,8 @@ import java.util.regex.Pattern;
 
 /**
  * Vragen van de assistent over je eigen gegevens in de app: Gebruik (schermtijd, ontgrendelen), Slaappraat (wat je
- * vannacht zei), Check-in (antwoorden en hoe het gaat) en Apparaten (waar je eigen apparaten het laatst waren).
+ * vannacht zei), Check-in (antwoorden en hoe het gaat), Apparaten (waar je eigen apparaten het laatst waren)
+ * en Agenda (afspraken, ook van vroeger).
  *
  * Elke bron doet alleen mee als Rene hem zelf aanzette (Lokale AI → Gegevens, LocalAi.srcOn). Alles blijft op de telefoon.
  * Kleine taalmodellen rekenen en tellen slecht: daarom rekent de app alles zelf uit. Een duidelijke vraag ("hoeveel
@@ -30,8 +31,8 @@ import java.util.regex.Pattern;
 final class AiData {
     private AiData() { }
 
-    static final String[] TOPICS = {"gebruik", "sleep", "checkin", "apparaten"};
-    static final String[] LABEL = {"Gebruik", "Slaappraat", "Check-in", "Apparaten"};
+    static final String[] TOPICS = {"gebruik", "sleep", "checkin", "apparaten", "agenda"};
+    static final String[] LABEL = {"Gebruik", "Slaappraat", "Check-in", "Apparaten", "Agenda"};
 
     static String label(String topic) { for (int i = 0; i < TOPICS.length; i++) if (TOPICS[i].equals(topic)) return LABEL[i]; return ""; }
 
@@ -119,6 +120,7 @@ final class AiData {
         if (T_APP.matcher(s).find()) return "apparaten";
         Matcher m = T_WHERE.matcher(s);
         if (m.find() && nicks != null) for (String n : nicks) if (nameHit(m.group(1), n)) return "apparaten";
+        if (Agenda.gaatOver(s)) return "agenda";
         return "";
     }
     static String topic(String q) { return topic(q, null); }
@@ -621,8 +623,20 @@ final class AiData {
             case "sleep": return sleepAnswer(q, f, now, tz);
             case "checkin": return checkinAnswer(q, f, now, tz);
             case "apparaten": return apparatenAnswer(q, f, now, tz);
+            case "agenda": return agendaAnswer(q, f, now, tz);
             default: return null;
         }
+    }
+
+    private static Answer agendaAnswer(String q, JSONObject f, long now, TimeZone tz) {
+        if (!Agenda.isVraag(q) || explain(norm(q))) return null;
+        String vandaag = f.optString("vandaag");
+        if (!Agenda.dagOk(vandaag)) vandaag = Regio.dayKey(tz, now);
+        String text = Agenda.antwoord(f.optJSONArray("lokaal"), f.optJSONArray("extern"), q, vandaag);
+        if (text.isEmpty()) return null;
+        Answer a = new Answer();
+        a.text = text; a.topic = "agenda"; a.title = "Agenda";
+        return a;
     }
 
     /** Is dit een duidelijke feitenvraag (die de app zelf zou beantwoorden)? Om te zeggen dat de bron eerst aan moet,
@@ -635,6 +649,7 @@ final class AiData {
                 case "sleep": f = new JSONObject().put("nights", new JSONArray().put(new JSONObject())).put("last", new JSONObject()); break;
                 case "checkin": f = new JSONObject().put("qs", new JSONArray().put(new JSONObject().put("title", "x"))); break;
                 case "apparaten": f = new JSONObject().put("mine", new JSONArray()); break;
+                case "agenda": f = new JSONObject().put("vandaag", "2026-11-11").put("lokaal", new JSONArray()).put("extern", new JSONArray()); break;
                 default: return false;
             }
             return answer(topic, q, f, 0, TimeZone.getTimeZone("UTC")) != null;
@@ -650,6 +665,12 @@ final class AiData {
             case "sleep": body = sleepContext(f, now, tz); break;
             case "checkin": body = checkinContext(f, now, tz); break;
             case "apparaten": body = apparatenContext(f, now, tz); break;
+            case "agenda": {
+                String vandaag = f.optString("vandaag");
+                if (!Agenda.dagOk(vandaag)) vandaag = Regio.dayKey(tz, now);
+                body = Agenda.context(f.optJSONArray("lokaal"), f.optJSONArray("extern"), f.optString("q"), vandaag);
+                break;
+            }
             default: return "";
         }
         if (body.length() > 2400) body = body.substring(0, 2400) + "…";
@@ -674,7 +695,9 @@ final class AiData {
         return out;
     }
 
-    static JSONObject facts(Context c, String topic, long now) {
+    static JSONObject facts(Context c, String topic, long now) { return facts(c, topic, now, ""); }
+
+    static JSONObject facts(Context c, String topic, long now, String q) {
         try {
             TimeZone tz = Regio.zone(c);
             switch (topic) {
@@ -692,11 +715,22 @@ final class AiData {
                 }
                 case "checkin": return checkinFacts(CheckinStore.questions(c), CheckinStore.answers(c), CheckinStore.remarks(c), now);
                 case "apparaten": return apparatenFacts(ApparatenStore.histOverview(c), ApparatenScan.btJson(c), ApparatenStore.histOn(c), now);
+                case "agenda": return agendaFacts(c, q, now);
                 default: return null;
             }
         } catch (Throwable t) {
-            App.log(c, "AI", "gegevens " + topic + ": " + t);
+            App.log(c, "AI", "gegevens " + topic + ": " + t.getClass().getSimpleName());
             return null;
         }
+    }
+
+    private static JSONObject agendaFacts(Context c, String q, long now) throws Exception {
+        String vandaag = Regio.dayKey(c, now);
+        String vraag = q == null ? "" : q;
+        Agenda.Venster v = Agenda.venster(vraag, vandaag);
+        JSONArray lokaal = AgendaStore.zichtbaar(c);
+        if (lokaal == null) lokaal = new JSONArray();
+        JSONArray extern = AgendaCal.zoek(c, v.van, v.tot, AgendaStore.uit(c), Agenda.zoekwoorden(v), 400);
+        return new JSONObject().put("q", vraag).put("vandaag", vandaag).put("lokaal", lokaal).put("extern", extern);
     }
 }

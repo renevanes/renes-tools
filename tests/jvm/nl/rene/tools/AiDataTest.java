@@ -166,6 +166,20 @@ public class AiDataTest {
         String actx = AiData.context("apparaten", af, now, TZ);
         check(actx.contains("\"Mijn Jabra\"") && actx.contains("2 andere apparaten") && !actx.contains("Buurman") && !actx.contains("Negeer"), "feiten voor het model zonder andermans namen");
 
+        // ---------- Agenda ----------
+        check("agenda".equals(AiData.topic("Wat staat er morgen in mijn agenda?")) && "agenda".equals(AiData.topic("wanneer was de tandarts in mijn agenda")), "agenda: wat staat er, wanneer was");
+        check("".equals(AiData.topic("Zet de tandarts morgen in mijn agenda")) && "".equals(AiData.topic("Plan een afspraak in mijn kalender")), "iets in de agenda zetten blijft de agenda-app");
+        check(AiData.factual("agenda", "Wat staat er vandaag in mijn agenda?") && !AiData.factual("agenda", "Zet morgen de tandarts in mijn agenda"), "feitenvraag over de agenda, geen opdracht");
+        JSONObject agf = new JSONObject().put("vandaag", "2026-11-11").put("q", "wanneer was de tandarts in mijn agenda")
+                .put("lokaal", new JSONArray().put(new JSONObject().put("id", "aoud").put("titel", "Tandarts").put("plek", "Rotterdam")
+                        .put("dag", "2019-06-03").put("eind", "2019-06-03").put("van", "14:00").put("tot", "14:30")))
+                .put("extern", new JSONArray());
+        a = AiData.answer("agenda", "wanneer was de tandarts in mijn agenda", agf, t(2026, 11, 11, 10, 0), TZ);
+        check(a != null && a.text.contains("Tandarts") && a.text.contains("2019") && a.title.equals("Agenda"), "afspraak uit 2019 in het antwoord");
+        check(AiData.answer("agenda", "Zet de tandarts morgen in mijn agenda", agf, t(2026, 11, 11, 10, 0), TZ) == null, "aanmaken: geen antwoord uit Agenda");
+        String agx = AiData.context("agenda", agf, t(2026, 11, 11, 10, 0), TZ);
+        check(agx.contains("Tandarts") && agx.contains("2019"), "feiten voor het model, ook uit het verleden");
+
         // Duidelijke feitenvraag (om te zeggen dat de bron uit staat) of niet
         check(AiData.factual("gebruik", "Hoeveel schermtijd vandaag?") && AiData.factual("sleep", "wat zei ik vannacht") && !AiData.factual("gebruik", "Hoe kan ik minder schermtijd hebben?"), "feitenvraag herkennen");
         check(AiData.srcJson("gebruik", "").optString("title").equals("Gebruik"), "bron onder het antwoord");

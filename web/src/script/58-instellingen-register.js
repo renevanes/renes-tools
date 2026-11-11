@@ -362,6 +362,18 @@ const SET_REG = [
     get: () => setB(wcKaartAan()), set: v => { store.set('wcKaart', setOnV(v)); setIf('wcset', wcsRender); return ''; } },
   { id: 'nieuws.afbeeldingen', scr: 'nieuwsset', ctl: '#nws-img', label: 'Nieuws: afbeeldingen tonen', desc: 'Afbeeldingen bij de artikelen tonen; ze komen van de nieuwssite, die dan ziet dat je ze bekijkt. Uit: alleen tekst.', syn: 'nieuws afbeeldingen plaatjes foto beelden tonen artikelen', synEn: 'news images pictures photos articles',
     get: () => setB(nwBeeldenAan()), set: v => { nwBeelden(setOnV(v)); setIf('nieuwsset', enterNieuwsSet); setIf('nieuws', nwRender); return ''; } },
+  { id: 'agenda.weergave', scr: 'agenda', ctl: '#ag-views', type: 'keuze', vals: [['dag', 'Dag'], ['week', 'Week'], ['maand', 'Maand'], ['lijst', 'Lijst']],
+    label: 'Weergave van de agenda', desc: 'Dag, week, maand of lijst. Het weeknummer is het ISO-weeknummer. De week begint op de dag uit Regio en taal.',
+    syn: 'agenda weergave dag week maand lijst kalender weeknummer', synEn: 'calendar view day week month list week number',
+    alias: { dag: 'dag', day: 'dag', week: 'week', maand: 'maand', month: 'maand', lijst: 'lijst', list: 'lijst' },
+    get: () => (rdJson(Android.agendaStaat(), {}) || {}).view || 'week',
+    set: v => { if (!['dag', 'week', 'maand', 'lijst'].includes(v)) return 'Kies dag, week, maand of lijst'; agZicht(v); return ''; } },
+  { id: 'agenda.standaard', scr: 'agaset', ctl: '#ag-standaard', type: 'keuze',
+    vals: () => { const s = rdJson(typeof Android.agendaStaat === 'function' ? Android.agendaStaat() : '{}', {}) || {}; return [['', 'Alleen in Tools']].concat((s.kalenders || []).filter(k => k.schrijf).map(k => [String(k.id), k.naam || String(k.id)])); },
+    label: 'Standaardagenda voor een nieuwe afspraak', desc: 'Waar een nieuwe afspraak in komt: alleen in Tools, of een agenda op je telefoon. Een Google-agenda gaat via de agenda-app van je telefoon naar Google.',
+    syn: 'agenda standaard kalender nieuwe afspraak google', synEn: 'calendar default new appointment google',
+    get: () => (rdJson(Android.agendaStaat(), {}) || {}).standaard || '',
+    set: v => { const s = rdJson(Android.agendaStaat(), {}) || {}; if (v && !(s.kalenders || []).some(k => String(k.id) === String(v) && k.schrijf)) return 'Die agenda staat er niet, of je mag er niet in schrijven'; Android.agendaZet(JSON.stringify({ standaard: v || '' })); if (typeof agStaat === 'object' && agStaat) agStaat.standaard = v || ''; setIf('agaset', agSetRender); return ''; } },
   /* ---------- E-reader: lezen en voorlezen (helderheid en filter gelden alleen in de e-reader) ---------- */
   { id: 'ereader.helderheid', scr: 'erset', type: 'keuze', vals: [['telefoon', 'Zoals de telefoon'], ['10', '10%'], ['25', '25%'], ['50', '50%'], ['75', '75%'], ['100', '100%']],
     label: 'Helderheid in de e-reader', desc: 'Een eigen helderheid van het scherm tijdens het lezen; buiten de e-reader volgt het scherm weer de telefoon. Ook te kiezen met Aa in een boek.',
@@ -408,13 +420,13 @@ const SET_REG = [
     set: v => { const m = JSON.parse(Android.speechModels()); const e = Android.speechConfigure(m.voice || '', m.speed || 1, setOnV(v)); if (!e && setOnV(v) && typeof Android.speechNotifAsk === 'function') Android.speechNotifAsk(); /* zoals spBackground: zonder meldingen geen pauzeknop */ if (typeof spRefreshAll === 'function') spRefreshAll(); setIf('spraak', svRender); if (typeof erSpeakRender === 'function') erSpeakRender(); return e || ''; } }
 ];
 
-const SET_SRC_PRIV = ['sms', 'wa', 'calls', 'contacts', 'tx', 'sleep', 'checkin', 'gebruik', 'apparaten'];
+const SET_SRC_PRIV = ['sms', 'wa', 'calls', 'contacts', 'tx', 'sleep', 'checkin', 'gebruik', 'apparaten', 'agenda'];
 /* Lijsten die per item een instelling hebben (automatiseringen, bronnen van de AI, onderdelen van de backup) */
 const SET_GEN = [
   { cover: '#au-list .tg', gen: () => { auLoad(); return (auState.rules || []).map(r => ({ id: 'auto.regel.' + setHash(r.id), scr: 'auto', label: t('Automatisering "{naam}"', { naam: r.name || t('Zonder naam') }),
     desc: 'Deze automatisering aan of uit.', syn: 'automatisering automatiseren regel ' + (r.name || '') /* taal-vast: zoekwoorden */, get: () => { auLoad(); const x = auState.rules.find(y => y.id === r.id); return setB(!x || x.on !== false); },
     set: v => { Android.autoSetOn(r.id, setOnV(v)); auLoad(); setIf('auto', auRender); return ''; } })); } },
-  { cover: '#aid-list .tg', gen: () => AI_SRC.map(s => ({ id: 'ai.bron.' + s[0], scr: 'aisetdata', label: t('Assistent mag kijken in: {bron}', { bron: t(s[1]) }), desc: s[3], syn: 'gegevens bron assistent zoekindex slim zoeken ' + s[1], // taal-vast: syn zijn zoekwoorden, geen tekst in beeld
+  { cover: '#aid-list .tg, #ag-ai', gen: () => AI_SRC.map(s => ({ id: 'ai.bron.' + s[0], scr: 'aisetdata', label: t('Assistent mag kijken in: {bron}', { bron: t(s[1]) }), desc: s[3], syn: 'gegevens bron assistent zoekindex slim zoeken ' + s[1], // taal-vast: syn zijn zoekwoorden, geen tekst in beeld
     // Berichten en gegevens van anderen (zoals AI_OTHERS) en wat elders privé is (Slaappraat, Check-in): aanzetten doe je zelf
     weak: SET_SRC_PRIV.includes(s[0]) ? (v => v === 'aan') : null, safe: SET_SRC_PRIV.includes(s[0]) ? 'privacy' : '', why: 'Of de assistent in berichten van anderen of in privé-gegevens mag kijken, zet je zelf aan bij Gegevens.',
     get: () => { setAi(); return setB(aiSrcOn(s[0])); }, set: v => { setAi(); if (aiSrcOn(s[0]) !== setOnV(v)) aiSrcToggle(s[0]); return ''; } })) },
@@ -428,7 +440,10 @@ const SET_GEN = [
     get: () => setB((setBk().parts || {})[k] === true), set: v => { Android.backupSetPart(k, setOnV(v)); setIf(BK_SCR, enterBackup); return ''; } })) },
   { cover: '#nws-bronnen .tg', gen: () => (nwKlaar() && (nw.data || nwLaad()) ? nwBronnen() : []).map(b => ({ id: 'nieuws.bron.' + b.id, scr: 'nieuwsset', label: t('Nieuwsbron: {naam}', { naam: b.naam }), desc: 'Artikelen van deze bron ophalen en tonen in Nieuws.', syn: 'nieuws bron nieuwsbron feed krant ' + b.naam /* taal-vast: zoekwoorden */,
     get: () => setB(!!(nwBronnen().find(x => x.id === b.id) || {}).aan),
-    set: v => { const f = Android.nieuwsBron(b.id, setOnV(v)); if (f) return f; const x = nwBronnen().find(y => y.id === b.id); if (x) x.aan = setOnV(v); setIf('nieuwsset', enterNieuwsSet); setIf('nieuws', () => enterNieuws()); return ''; } })) }
+    set: v => { const f = Android.nieuwsBron(b.id, setOnV(v)); if (f) return f; const x = nwBronnen().find(y => y.id === b.id); if (x) x.aan = setOnV(v); setIf('nieuwsset', enterNieuwsSet); setIf('nieuws', () => enterNieuws()); return ''; } })) },
+  { cover: '#ag-kals .tg', gen: () => { const s = rdJson(typeof Android.agendaStaat === 'function' ? Android.agendaStaat() : '{}', {}) || {}; return (s.kalenders || []).map(k => ({ id: 'agenda.kalender.' + setHash(k.id), scr: 'agaset', label: t('Agenda tonen: {naam}', { naam: k.naam || k.id }), desc: 'Deze agenda van je telefoon tonen in Agenda. Uit: verborgen, de afspraken blijven op je telefoon staan.', syn: 'agenda tonen verbergen kalender ' + (k.naam || '') /* taal-vast: zoekwoorden */,
+    get: () => { const n = rdJson(Android.agendaStaat(), {}) || {}; const x = (n.kalenders || []).find(y => String(y.id) === String(k.id)); return setB(!x || x.aan !== false); },
+    set: v => { const n = rdJson(Android.agendaStaat(), {}) || {}; const set = new Set((n.kalenders || []).filter(y => y.aan === false).map(y => String(y.id))); if (setOnV(v)) set.delete(String(k.id)); else set.add(String(k.id)); Android.agendaZet(JSON.stringify({ uit: [...set] })); setIf('agaset', agSetRender); setIf('agenda', agLaad); return ''; } })); } }
 ];
 
 /* Woorden die in de vraag moeten staan om een instelling van die tool te bedoelen (anders telt hij minder zwaar mee):
@@ -436,7 +451,8 @@ const SET_GEN = [
 const SET_NEED = [['wa.leesbaar', /whatsapp|whats app|leesba|chats/], ['wa.', /whatsapp|whats app|\bwa\b/], ['redial.', /redial|bellen|beller|pogingen/], ['slaap.', /slaap|slapen|bedtijd|snurk|nachten/],
   ['spotify.', /spotify/], ['vpn.', /vpn|tunnel/], ['auto.ritten', /auto|rit/], ['auto.rittype', /auto|rit/], ['auto.bluetooth', /auto|bluetooth|carkit/], ['tx.', /uitschrijv|transcri|spraak|whisper|taal|gesprek/],
   ['meldingen.geschiedenis', /geschiedenis|bewaren|bewaar/], ['wekker.', /wekker|alarm/], ['opnemen.', /opnem|opname/], ['locatie.', /locatie|gps|plek/], ['start.', /startscherm|tegel|home|groep|compact|overzicht/],
-  ['ai.wifi', /model|download/], ['radio.', /radio|terugspoel|pauzeer|buffer/], ['podcast.', /podcast|afspeel/], ['toiletten.', /toilet|douche|\bwc\b/], ['backup.deel.', /backup|back-up|back up|mee/], ['backup.prive.', /backup|back-up|back up|privé|prive/]];
+  ['ai.wifi', /model|download/], ['radio.', /radio|terugspoel|pauzeer|buffer/], ['podcast.', /podcast|afspeel/], ['toiletten.', /toilet|douche|\bwc\b/], ['backup.deel.', /backup|back-up|back up|mee/], ['backup.prive.', /backup|back-up|back up|privé|prive/],
+  ['agenda.', /agenda|kalender|afspraak/]];
 
 /* Schakelaars en keuzes die bewust niet in het register staan, met de reden */
 const SET_EXCLUDE = [
@@ -471,6 +487,7 @@ const SET_EXCLUDE = [
   ['#history-search, #gs-q', 'Zoekveld'],
   ['#wc-chips', 'Filters in Toiletten en douches, geen instelling'],
   ['#nw-filter, #nw-bron', 'Filters in de lijst van Nieuws, geen instelling'],
+  ['#s-agafspraak .tg, #s-agafspraak select, #s-agafspraak input', 'Hoort bij één afspraak; je vult het in en bewaart het op dat scherm'],
   ['#s-wcbewerk select, #s-wcbewerk input', 'Hoort bij één plek van Toiletten en douches (aanpassen of toevoegen); bewaard met Bewaren'],
   ['#s-wcbron .tg, #s-wcbron select, #s-wcbron input', 'Hoort bij één bron van Toiletten en douches; je stelt het in en bewaart het op het scherm van die bron'],
   ['#s-nieuwsbron .tg, #s-nieuwsbron select, #s-nieuwsbron input', 'Hoort bij één bron van Nieuws (inloggen, afbeeldingen, lezen); je stelt het in op het scherm van die bron. Aan/uit staat al in het register (nieuws.bron.…)']

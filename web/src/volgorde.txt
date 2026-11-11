@@ -9,6 +9,7 @@ bankzaken.css
 formulieren.css
 ereader.css
 nieuws.css
+agenda.css
 body-begin.html
 schermen/01-home.html
 schermen/02-auto-redial.html
@@ -59,6 +60,7 @@ schermen/43-toiletten.html
 schermen/44-ereader.html
 schermen/45-voorlezen.html
 schermen/45-nieuws.html
+schermen/46-agenda.html
 speler.html
 vensters.html
 taal/en.json
@@ -167,5 +169,6 @@ script/65-bankzaken-ai.js
 script/60-apparaten.js
 script/73-toiletten.js
 script/75-voorlezen.js
+script/76-agenda.js
 script/29-start.js
 einde.html

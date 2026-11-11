@@ -427,7 +427,8 @@ const AI_SRC = [
   ['sleep', 'Slaappraat', 'moon', 'Wat je in je slaap zei (wat als praten is uitgeschreven), ook van de nacht die nog loopt als hij meteen uitschrijft (bijv. "Wat zei ik vannacht?").', 'Wat je in je slaap zei (wat als praten is uitgeschreven).'],
   ['checkin', 'Check-in', 'smile', 'Je antwoorden bij Check-in, met notities en labels: per maand samengevat, en hoe het deze week gaat vergeleken met de week ervoor (bijv. "Hoe gaat het met mijn stemming?").', 'Je antwoorden bij Check-in, per maand samengevat.'],
   ['gebruik', 'Gebruik', 'clock', 'Je schermtijd, ontgrendelingen en mislukte pogingen, vandaag en deze week, per app (bijv. "Hoeveel schermtijd vandaag?"). Nooit de foto\'s bij ontgrendelen, alleen hoeveel er zijn.', 'Schermtijd en ontgrendelingen per app; nooit de foto\'s.'],
-  ['apparaten', 'Apparaten', 'nearby', 'Waar je eigen apparaten het laatst gezien zijn en wat er bij de laatste zoekronde in de buurt was (bijv. "Waar was mijn oortje het laatst?"). Van apparaten van anderen alleen hoeveel.', 'Waar je eigen apparaten het laatst waren; van anderen alleen hoeveel.']
+  ['apparaten', 'Apparaten', 'nearby', 'Waar je eigen apparaten het laatst gezien zijn en wat er bij de laatste zoekronde in de buurt was (bijv. "Waar was mijn oortje het laatst?"). Van apparaten van anderen alleen hoeveel.', 'Waar je eigen apparaten het laatst waren; van anderen alleen hoeveel.'],
+  ['agenda', 'Agenda', 'calendar', 'Je afspraken, ook van vroeger: titel, datum, plek en notitie. Standaard uit. Alles blijft op je telefoon.', 'Afspraken, ook van vroeger. Standaard uit.']
 ];
 /* Bronnen die niet in de zoekindex gaan: de app rekent zelf de feiten uit (AiData) */
 const AI_SRC_FACTS = ['gebruik', 'apparaten'];
@@ -444,6 +445,7 @@ function aiHitGs(h){
   if (h.kind === 'wa') return ['wa', { chat: /^\d+$/.test(id) ? +id : id, name: h.title || '' }];
   if (h.kind === 'calls') return ['calls', { number: id }];
   if (h.kind === 'contacts') { const i = id.lastIndexOf('|'); return ['contacts', { k: i < 0 ? id : id.slice(0, i), id: i < 0 ? '' : id.slice(i + 1) }]; }
+  if (h.kind === 'agenda') return ['agenda', { id }];
   return ['notes', { id }];
 }
 function aiSrcHtml(src){
@@ -599,7 +601,7 @@ const AI_PERM = { sms: 'sms', calls: 'calllog', contacts: 'contactsread' };
 function aiRenderData(){
   const list = $('#aid-list'); if (!list) return;
   const perm = aiSt.perm || {}, zoek = aiReady('zoek');
-  $('#aid-need').innerHTML = zoek ? '' : '<p class="note">' + esc(t('Voor zoeken in notities, gesprekken en berichten is het model voor slim zoeken nodig ({staat}).', { staat: t(((aiSt.models || []).find(m => m.id === 'zoek') || {}).state === 'running' ? 'wordt gedownload' : 'nog niet gedownload') })) + ' <button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'aisetsearch\')">Naar Slim zoeken</button> Vragen over Gebruik, Apparaten, wat je vannacht zei en je Check-in werken ook zonder.</p>';
+    $('#aid-need').innerHTML = zoek ? '' : '<p class="note">' + esc(t('Voor zoeken in notities, gesprekken en berichten is het model voor slim zoeken nodig ({staat}).', { staat: t(((aiSt.models || []).find(m => m.id === 'zoek') || {}).state === 'running' ? 'wordt gedownload' : 'nog niet gedownload') })) + ' <button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'aisetsearch\')">Naar Slim zoeken</button> ' + esc(t('Vragen over Gebruik, Apparaten, Agenda, wat je vannacht zei en je Check-in werken ook zonder.')) + '</p>';
   list.innerHTML = AI_SRC.map(s => {
     const k = s[0], on = aiSrcOn(k), ok = perm[k] !== false;
     const need = !ok ? (k === 'wa' ? '<button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'chats\')">Maak eerst je chats leesbaar</button>'

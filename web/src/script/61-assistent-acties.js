@@ -9,7 +9,7 @@
  * Een bericht wordt alleen klaargezet in Berichten of WhatsApp: versturen doe je daar zelf. Waar het kan: Ongedaan maken. */
 
 /* ---------- je eigen gegevens ---------- */
-const AI_DATA_TOOL = { gebruik: 'gebruik', apparaten: 'apparaten', sleep: 'sleep', checkin: 'checkin' };
+const AI_DATA_TOOL = { gebruik: 'gebruik', apparaten: 'apparaten', sleep: 'sleep', checkin: 'checkin', agenda: 'agenda' };
 function aiDataFor(q){
   if (typeof Android.aiData !== 'function') return null;
   const r = rdJson(Android.aiData(q), null);

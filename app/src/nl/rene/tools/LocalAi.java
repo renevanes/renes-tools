@@ -183,7 +183,7 @@ final class LocalAi {
 
     /** Gegevens die de assistent (en slim zoeken) mag gebruiken. Notities en gesprekken staan standaard aan, de rest uit.
      *  Gebruik en Apparaten zitten niet in de zoekindex: daarvoor rekent de app zelf de feiten uit (AiData). */
-    static final String[] SOURCES = {"notes", "tx", "sms", "wa", "calls", "contacts", "sleep", "checkin", "gebruik", "apparaten"};
+    static final String[] SOURCES = {"notes", "tx", "sms", "wa", "calls", "contacts", "sleep", "checkin", "gebruik", "apparaten", "agenda"};
     static boolean indexed(String kind) { return !"gebruik".equals(kind) && !"apparaten".equals(kind); }
     static boolean srcDefault(String kind) { return "notes".equals(kind) || "tx".equals(kind); }
     static boolean srcOn(Context c, String kind) {
@@ -938,7 +938,7 @@ final class LocalAi {
             String dataTopic = req.optBoolean("solo") || hasAtt || remember != null || forgetWhat != null || setWanted || actWanted ? "" : AiData.topic(question, srcOn(c, "apparaten") ? AiData.nicks(c) : null);
             if (!dataTopic.isEmpty() && srcOn(c, dataTopic)) {
                 long nowD = System.currentTimeMillis();
-                String facts = AiData.context(dataTopic, AiData.facts(c, dataTopic, nowD), nowD, Regio.zone(c));
+                String facts = AiData.context(dataTopic, AiData.facts(c, dataTopic, nowD, question), nowD, Regio.zone(c));
                 if (!facts.isEmpty()) {
                     last.put("content", last.optString("content") + "\n\n" + facts);
                     learnWanted = false; // feiten uit de app zijn geen dingen om over je te onthouden
@@ -1432,7 +1432,7 @@ final class LocalAi {
         for (String k : SOURCES) src.put(k, srcOn(c, k));
         perm.put("sms", Search.has(c, android.Manifest.permission.READ_SMS)).put("calls", Search.has(c, android.Manifest.permission.READ_CALL_LOG))
                 .put("contacts", Search.has(c, android.Manifest.permission.READ_CONTACTS)).put("wa", WaChats.dbFile(c).isFile())
-                .put("notes", true).put("tx", true).put("sleep", true).put("checkin", true).put("gebruik", GebruikStore.collecting(c)).put("apparaten", true);
+                .put("notes", true).put("tx", true).put("sleep", true).put("checkin", true).put("gebruik", GebruikStore.collecting(c)).put("apparaten", true).put("agenda", true);
         o.put("src", src).put("perm", perm);
         return o;
     }

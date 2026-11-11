@@ -1,0 +1,26 @@
+/* Agenda: weeknummers, dag/week/maand/lijst. Kleur van een agenda alleen als streep; de tekst blijft --ink. */
+#s-agenda [hidden], #s-agafspraak [hidden], #s-agaset [hidden]{display:none!important}
+.ag-nav{display:flex;align-items:center;gap:4px;margin:0 0 12px}
+.ag-nav .icon-btn,.ag-vandaag{width:44px;height:44px;min-width:44px;min-height:44px;flex:none}
+.ag-vandaag{width:auto;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:650}
+.ag-periode{flex:1;min-width:0;margin:0;font-weight:650;line-height:1.3;overflow-wrap:anywhere}
+.ag-maand{display:grid;grid-template-columns:24px repeat(7,minmax(0,1fr));gap:1px;margin:0 -12px 12px}
+.ag-kop,.ag-wk{color:var(--muted);font-size:11px;text-align:center;min-height:22px;display:flex;align-items:center;justify-content:center}
+.ag-dag{min-height:44px;min-width:0;border:0;background:transparent;color:var(--ink);border-radius:8px;padding:2px 1px;display:flex;flex-direction:column;align-items:stretch;gap:1px;font-size:12px}
+.ag-dag .n{font-weight:650;line-height:1.2}
+.ag-dag.is-today{background:var(--tonal);color:var(--on-tonal)}
+.ag-dag.other{opacity:.5}
+.ag-stip{display:block;height:4px;border-radius:2px;background:var(--ag,var(--primary));min-width:0}
+.ag-item{display:block;width:100%;text-align:left;min-height:44px;padding:8px 10px;border:0;border-left:4px solid var(--ag,var(--primary));background:var(--hi);color:var(--ink);border-radius:8px;margin:0 0 6px}
+.ag-item b,.ag-item small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-item small{color:var(--muted);font-weight:500}
+.ag-dagkop{margin:14px 0 6px;font-size:13px;font-weight:650;color:var(--muted)}
+.ag-form label{display:block;margin:12px 0 4px;font-weight:650}
+.ag-form input[type=text],.ag-form input[type=date],.ag-form input[type=time],.ag-form textarea,.ag-form select.sel{width:100%;box-sizing:border-box}
+.ag-form input[type=text],.ag-form input[type=date],.ag-form input[type=time],.ag-form textarea{min-height:44px;padding:10px 12px;border-radius:8px;border:1px solid var(--outline);background:var(--card);color:var(--ink);font:inherit;font-size:15px}
+.ag-form textarea{min-height:96px;resize:vertical}
+.ag-form .row{display:flex;gap:8px}
+.ag-form .row>*{flex:1;min-width:0}
+.ag-form .row label{margin-top:0}
+#s-agaset h2{font-size:15px;margin:16px 0 8px}
+#ag-kals .strow{width:100%}
