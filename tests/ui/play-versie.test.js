@@ -19,6 +19,10 @@ const TEGEL = Object.fromEntries(WEG.map(t => [t, 'tile-' + t]));
     const zichtbaar = id => pg.$eval('#' + id, el => el.checkVisibility()).catch(() => false);
     for (const t of WEG) assert((await zichtbaar(TEGEL[t])) === !play, naam + ': tegel ' + t + (play ? ' verborgen' : ' zichtbaar'));
     assert(await zichtbaar('tile-notes'), naam + ': notities zichtbaar');
+    // Podcasts zit in beide: de instellingen (na een aflevering, downloaden) openen ook in Play
+    await pg.evaluate(() => { show('podcasts'); pcDlSettings(); }); await pg.waitForTimeout(150);
+    assert(await pg.evaluate(() => current === 'podset' && !!document.querySelector('#s-podset.on')), naam + ': Instellingen van Podcasts open');
+    await pg.evaluate(() => show('home'));
     // Openen (ook een subscherm zoals een sms-gesprek)
     for (const s of WEG.concat(['smschat'])) {
       await pg.evaluate(() => show('home')); await pg.evaluate(n => show(n), s); await pg.waitForTimeout(80);

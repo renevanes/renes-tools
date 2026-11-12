@@ -185,9 +185,12 @@ public class PodcastBridge extends AiBridge {
     @JavascriptInterface public String podNa() {
         try {
             android.content.SharedPreferences pr = Podcasts.prefs(ctx);
-            String mode = PodcastService.naMode(ctx);
+            // Op de Chromecast: zijn aflevering en slaaptimer
+            Player.Now cn = Cast.active() ? Cast.now() : null;
+            boolean podCast = cn != null && Player.PODCAST.equals(cn.src);
+            String mode = podCast ? PodcastService.naMode(ctx, cn.sleepAt > 0, cn.sleepEnd) : PodcastService.naMode(ctx);
             JSONObject o = new JSONObject().put("na", PodcastNa.norm(pr.getString("na", PodcastNa.STANDAARD))).put("naSlaap", pr.getBoolean("naSlaap", true)).put("nu", mode);
-            JSONObject st = new JSONObject(podState()), ep = st.optJSONObject("ep"), pod = st.optJSONObject("pod");
+            JSONObject st = podCast ? null : new JSONObject(podState()), ep = podCast ? cn.ep : st.optJSONObject("ep"), pod = podCast ? cn.pod : st.optJSONObject("pod");
             if (ep != null && !PodcastNa.STOP.equals(mode)) {
                 JSONObject nx = Podcasts.nextFor(ctx, mode, ep, pod == null ? new JSONObject() : pod, false);
                 if (nx != null) o.put("next", nx);

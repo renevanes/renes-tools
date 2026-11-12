@@ -411,8 +411,12 @@ final class Cast {
                 mediaSession = -1;
                 if (Player.PODCAST.equals(it.src)) {
                     Podcasts.saveProgress(c, it.key, 0, Math.round(dur * 1000), true);
-                    if (sleepAt == -1) { sleepAt = 0; return; } // "na deze aflevering"
-                    JSONObject nx = Podcasts.queuePop(c); // Hierna: de volgende op de Chromecast
+                    // Net als op de telefoon (Instellingen van Podcasts): Hierna, en volgens de instelling de volgende
+                    // van de podcast of een nieuwe aflevering; "na deze aflevering" stopt
+                    String mode = PodcastService.naMode(c, sleepAt > 0, sleepAt == -1);
+                    if (sleepAt == -1) sleepAt = 0;
+                    JSONObject nx = null;
+                    try { nx = Podcasts.nextFor(c, mode, it.ep, it.pod, true); } catch (Throwable ignored) { }
                     if (nx != null && nx.optJSONObject("ep") != null) { try { load(fromEpisode(c, nx.getJSONObject("ep"), nx.optJSONObject("pod"), false)); } catch (Exception ignored) { } }
                 }
             } else if ("ERROR".equals(reason)) { error = "Afspelen op " + dev.name + " lukt niet"; state = "error"; }

@@ -204,7 +204,8 @@ function plRender(){
 
 /* Hierna: podcasts = wachtrij; radio = favorieten (tik = die zender) */
 function plRenderQueue(m, force){
-  const sig = m.src + '|' + m.key + '|' + (m.src === 'radio' ? JSON.stringify(rdFavs.map(f => f.url)) : '');
+  // Bij podcasts ook de slaaptimer: die bepaalt of er daarna vanzelf iets komt
+  const sig = m.src + '|' + m.key + '|' + (m.src === 'radio' ? JSON.stringify(rdFavs.map(f => f.url)) : (m.sleepAt > 0) + '|' + !!m.sleepEnd);
   if (!force && sig === plQueueSig) return;
   plQueueSig = sig;
   const box = $('#pl-queue');

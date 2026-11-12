@@ -671,7 +671,8 @@ final class Podcasts {
             if (q != null) return q.put("via", PodcastNa.HIERNA);
             if (PodcastNa.HIERNA.equals(mode)) return null;
             if (PodcastNa.PODCAST.equals(mode) || PodcastNa.NIEUW.equals(mode)) {
-                JSONObject r = inPodcast(c, ep, pod);
+                // Bij "nieuw" alleen de nieuwere van deze podcast; anders komen je nieuwe afleveringen pas na de hele achterstand
+                JSONObject r = inPodcast(c, ep, pod, PodcastNa.PODCAST.equals(mode));
                 if (r != null) return r.put("via", PodcastNa.PODCAST);
             }
             if (PodcastNa.NIEUW.equals(mode)) {
@@ -713,7 +714,7 @@ final class Podcasts {
      * De volgende van dezelfde podcast: eerst de nieuwere afleveringen (in de volgorde waarin ze verschenen), dan de
      * oudere; beluisterde slaat hij over. Uit de bewaarde lijst (geen netwerk).
      */
-    private static JSONObject inPodcast(Context c, JSONObject ep, JSONObject pod) throws Exception {
+    private static JSONObject inPodcast(Context c, JSONObject ep, JSONObject pod, boolean olderToo) throws Exception {
         if (ep == null || pod == null) return null;
         JSONObject feed = readJson(cacheFile(c, pod.optString("id", podId(pod.optString("feed")))));
         JSONArray items = feed == null ? null : feed.optJSONArray("items");
@@ -721,15 +722,12 @@ final class Podcasts {
         String key = ep.optString("key");
         int at = -1;
         for (int i = 0; i < items.length(); i++) if (key.equals(items.getJSONObject(i).optString("key"))) { at = i; break; }
-        if (at < 0) return null;
-        // De lijst staat nieuwste eerst: eerst de nieuwere (at - 1, at - 2, …), dan de oudere (at + 1, …)
-        for (int dir : new int[]{-1, 1})
-            for (int i = at + dir, n = 0; i >= 0 && i < items.length() && n < 50; i += dir, n++) {
-                JSONObject e = items.getJSONObject(i), p = progressOf(c, e.optString("key"));
-                if ((p != null && p.optBoolean("done")) || !httpUrl(e.optString("url"))) continue;
-                return new JSONObject().put("ep", e).put("pod", pod);
-            }
-        return null;
+        final JSONArray list = items;
+        int i = PodcastNa.nextIndex(items.length(), at, olderToo, k -> {
+            JSONObject e = list.optJSONObject(k), p = e == null ? null : progressOf(c, e.optString("key"));
+            return e == null || (p != null && p.optBoolean("done")) || !httpUrl(e.optString("url"));
+        });
+        return i < 0 ? null : new JSONObject().put("ep", items.getJSONObject(i)).put("pod", pod);
     }
 
     /**

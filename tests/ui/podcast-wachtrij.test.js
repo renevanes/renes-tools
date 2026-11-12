@@ -45,7 +45,14 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => Android._pc.naSlaap === false) && (await txt('#ps-next')).includes('stopt de speler'), 'zonder doorgaan-met-slaaptimer: stoppen');
     await pg.evaluate(() => { Android.podSleep(-1); Android.podNaSet('nieuw', true); enterPodSet(); }); await pg.waitForTimeout(80);
     ok((await txt('#ps-next')).includes('stopt de speler'), '"stoppen na deze aflevering" stopt altijd');
-    await pg.evaluate(() => { Android.podSleep(0); Android.podNaSet('podcast', true); });
+    // Speler open met Stoppen; daarna een slaaptimer zetten: "Daarna vanzelf" komt erbij zonder de speler te sluiten
+    await pg.evaluate(() => { Android.podSleep(0); Android.podNaSet('stop', true); pcPoll(true); }); await pg.waitForTimeout(200);
+    await pg.evaluate(() => { plOpen(); plQueueSig = ''; plRender(); }); await pg.waitForTimeout(200);
+    ok((await txt('#pl-queue')).includes('stopt de speler'), 'speler: stoppen');
+    await pg.evaluate(() => { Android.podSleep(30); pcPoll(true); }); await pg.waitForFunction(() => pcSt.sleepAt > 0, null, { timeout: 5000 });
+    await pg.evaluate(() => plRender()); await pg.waitForTimeout(150);
+    ok((await txt('#pl-queue')).includes('Daarna vanzelf: Aflevering 60'), 'speler ververst na het zetten van de slaaptimer (' + await txt('#pl-queue') + ')');
+    await pg.evaluate(() => { plClose(); Android.podSleep(0); Android.podNaSet('podcast', true); });
 
     // Bufferen: de speler zegt waarom het stil is
     await pg.evaluate(() => { Android._pc.st.buffering = true; Android._pc.st.status = 'playing'; plOpen(); }); await pg.waitForTimeout(1300);

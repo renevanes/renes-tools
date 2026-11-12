@@ -47,6 +47,34 @@ public class PodcastNaTest {
         check(!PodcastNa.prematureEnd(10 * 60_000, 0), "lengte onbekend: echt afgelopen");
         check(PodcastNa.sameSpot(600_000, 610_000) && !PodcastNa.sameSpot(600_000, 640_000) && !PodcastNa.sameSpot(-1, 600_000), "zelfde plek binnen 20 s");
 
+        // Bufferen: langer geduld
+        PodcastNa.Stall b = new PodcastNa.Stall();
+        b.reset(0); b.check(0, 1000, true, false, true);
+        check(!b.check(20_000, 1000, true, false, true), "bufferen: 20 s stil is nog geen hapering");
+        check(b.check(41_000, 1000, true, false, true), "bufferen: na 40 s wel");
+
+        // Sprongen samenvoegen
+        PodcastNa.Seek k = new PodcastNa.Seek();
+        check(k.ask(60_000) && k.busy() && k.where() == 60_000, "eerste sprong: meteen");
+        check(!k.ask(45_000) && !k.ask(30_000) && k.where() == 30_000, "nog twee keer terug tijdens de sprong: alleen de laatste onthouden");
+        check(k.done() == 30_000 && k.busy(), "na de eerste sprong: naar de laatste plek");
+        check(k.done() == -1 && !k.busy() && k.where() == -1, "daarna klaar");
+        k.ask(10_000); k.clear();
+        check(!k.busy() && k.ask(5000), "na loslaten: opnieuw meteen");
+
+        // De volgende van dezelfde podcast (lijst nieuwste eerst: index 0 is de nieuwste)
+        final boolean[] done = new boolean[10];
+        PodcastNa.Done d = i -> done[i];
+        check(PodcastNa.nextIndex(10, 5, true, d) == 4, "eerst de nieuwere (at - 1)");
+        done[4] = true; done[3] = true;
+        check(PodcastNa.nextIndex(10, 5, true, d) == 2, "beluisterde nieuwere overslaan");
+        done[2] = true; done[1] = true; done[0] = true;
+        check(PodcastNa.nextIndex(10, 5, true, d) == 6, "alle nieuwere beluisterd: de oudere");
+        check(PodcastNa.nextIndex(10, 5, false, d) == -1, "alleen nieuwere (bij nieuw): geen");
+        check(PodcastNa.nextIndex(10, 0, true, i -> false) == 1, "de nieuwste: dan de oudere");
+        check(PodcastNa.nextIndex(10, -1, true, i -> false) == -1 && PodcastNa.nextIndex(0, 0, true, i -> false) == -1, "onbekende aflevering: geen");
+        check(PodcastNa.nextIndex(10, 5, true, i -> i == 5 || i != 7) == 7, "de huidige wordt nooit gekozen");
+
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("alles goed");
     }
