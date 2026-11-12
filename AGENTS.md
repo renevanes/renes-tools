@@ -662,8 +662,9 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   cookiekeuze (Tweakers) alleen naar de artikelpagina's. Uitloggen (`NieuwsInlogActivity.wis`) laat de cookies van die sites
   verlopen. **Wat gebeurt er?** (knop ? in de balk): `NieuwsDiagnose` houdt in het geheugen bij wat de pagina opvraagt,
   HTTP- en laadfouten, JS-fouten en -waarschuwingen en weggeklikte vensters (adressen zonder ?…/#…, geen e-mailadressen,
-  sleutels of cookiewaarden; `NieuwsDiagnoseTest`); kopiëren gaat alleen op Renes tik. Meekijken zet
-  `setWebContentsDebuggingEnabled` aan tot het venster sluit (chrome://inspect over USB). Cookies van de WebView gaan nergens mee in backups: na terugzetten opnieuw inloggen. Eerste bron met inloggen: AI Report (aireport.nl, beehiiv).
+  sleutels of cookiewaarden; `NieuwsDiagnoseTest`); kopiëren gaat alleen op Renes tik. Meekijken (chrome://inspect over USB) zet
+  `setWebContentsDebuggingEnabled` aan, en dat geldt voor de hele app: alleen na een waarschuwing, met een vaste regel in
+  de balk, en uit na 15 minuten, bij `onStop` en bij sluiten (alleen door het venster dat het aanzette). Cookies van de WebView gaan nergens mee in backups: na terugzetten opnieuw inloggen. Eerste bron met inloggen: AI Report (aireport.nl, beehiiv).
 - **Opslag**: `nieuws/` (bronnen met instellingen, gelezen, bewaard) gaat mee in "Alle appgegevens", niet in de Android-backup; de opgehaalde
   artikelen staan in de cache. Logsoort `NIEUWS` alleen met aantallen en vaste woorden.
 - Tests: `tests/ui/nieuws.test.js`, `tests/ui/nieuws-bron.test.js`; Java: `NieuwsFeedTest`, `NieuwsTest`.

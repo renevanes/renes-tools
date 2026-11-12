@@ -71,8 +71,14 @@ public class NieuwsInlogActivity extends Activity {
     boolean derden;
     /** Wat er in dit venster gebeurt (Wat gebeurt er?): alleen in het geheugen, zonder geheimen. */
     final NieuwsDiagnose log = new NieuwsDiagnose(SystemClock.elapsedRealtime());
-    /** Meekijken vanaf de computer (chrome://inspect) staat aan zolang dit venster open is. */
+    /** Meekijken vanaf de computer (chrome://inspect): geldt voor de hele app, dus alleen kort, alleen in beeld en met waarschuwing. */
     private boolean meekijken;
+    /** Welk venster meekijken aanzette (een ouder venster zet het niet uit voor een nieuwer). */
+    private static int meekijkVan, teller;
+    private final int nummer = ++teller;
+    static final long MEEKIJK_MS = 15 * 60_000L;
+    private TextView meekijkRegel;
+    private final Runnable meekijkTijd = () -> meekijken(false);
 
     void log(String soort, String tekst) { log.log(SystemClock.elapsedRealtime(), soort, tekst); }
 
@@ -134,6 +140,13 @@ public class NieuwsInlogActivity extends Activity {
         status.setText(lezen ? Nieuws.host(url) : Taal.t(this, "Log in op de site zelf. Krijg je een link per e-mail? Kopieer die en tik op Link uit e-mail."));
         tekst.addView(titel);
         tekst.addView(status);
+        // zolang meekijken aan staat altijd zichtbaar (een melding in de statusregel kan het niet overschrijven)
+        meekijkRegel = new TextView(this);
+        meekijkRegel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        meekijkRegel.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        meekijkRegel.setText(Taal.t(this, "● Meekijken staat aan: een computer via USB kan alle schermen van Tools zien en bedienen."));
+        meekijkRegel.setVisibility(android.view.View.GONE);
+        tekst.addView(meekijkRegel);
         bar.addView(tekst, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         // Wat gebeurt er?: het logboek van dit venster (voor als het inloggen of laden blijft hangen)
         Button diag = new Button(this, null, android.R.attr.borderlessButtonStyle);
@@ -274,7 +287,7 @@ public class NieuwsInlogActivity extends Activity {
                 .setTitle(Taal.t(this, "Wat gebeurt er?"))
                 .setView(sv)
                 .setPositiveButton(Taal.t(this, "Kopiëren"), (d, w) -> kopieer(log.tekst(kop())))
-                .setNeutralButton(meekijken ? Taal.t(this, "Meekijken uit") : Taal.t(this, "Meekijken vanaf computer"), (d, w) -> meekijken(!meekijken))
+                .setNeutralButton(meekijken ? Taal.t(this, "Meekijken uit") : Taal.t(this, "Meekijken vanaf computer"), (d, w) -> { if (meekijken) meekijken(false); else vraagMeekijken(); })
                 .setNegativeButton(Taal.t(this, "Sluiten"), null)
                 .show();
     }
@@ -287,13 +300,38 @@ public class NieuwsInlogActivity extends Activity {
         } catch (Throwable ignored) { }
     }
 
-    /** Meekijken: de pagina is te bekijken met chrome://inspect op een computer met een USB-kabel (alleen zolang dit venster open is). */
+    /** Eerst zeggen wat meekijken openzet: Android kan het alleen voor de hele app aanzetten, niet voor één venster. */
+    void vraagMeekijken() {
+        new AlertDialog.Builder(this)
+                .setTitle(Taal.t(this, "Meekijken vanaf computer"))
+                .setMessage(Taal.t(this, "Zolang dit aan staat, kan een computer die met USB is aangesloten (met USB-foutopsporing aan) alle schermen van Tools bekijken en bedienen, niet alleen deze website. Het gaat vanzelf uit na 15 minuten of als je dit venster verlaat. Sluit alleen je eigen computer aan."))
+                .setPositiveButton(Taal.t(this, "Aanzetten"), (d, w) -> meekijken(true))
+                .setNegativeButton(Taal.t(this, "Annuleren"), null)
+                .show();
+    }
+
+    /** Meekijken: de pagina is te bekijken met chrome://inspect op een computer met een USB-kabel. */
     void meekijken(boolean aan) {
-        try { WebView.setWebContentsDebuggingEnabled(aan); } catch (Throwable e) { return; }
+        h.removeCallbacks(meekijkTijd);
+        if (!aan && !meekijken) return;
+        try {
+            // uit: alleen als niet een ander (nieuwer) venster het intussen heeft aangezet
+            if (aan || meekijkVan == nummer) WebView.setWebContentsDebuggingEnabled(aan);
+        } catch (Throwable e) { return; }
         meekijken = aan;
+        if (aan) { meekijkVan = nummer; h.postDelayed(meekijkTijd, MEEKIJK_MS); }
+        else if (meekijkVan == nummer) meekijkVan = 0;
+        if (meekijkRegel != null) meekijkRegel.setVisibility(aan ? android.view.View.VISIBLE : android.view.View.GONE);
         log("tools", "meekijken " + (aan ? "aan" : "uit"));
-        zet(aan ? Taal.t(this, "Meekijken staat aan tot je dit venster sluit. Sluit de telefoon met USB aan (USB-foutopsporing aan) en open chrome://inspect in Chrome op de computer.")
+        zet(aan ? Taal.t(this, "Sluit de telefoon met USB aan en open chrome://inspect in Chrome op de computer.")
                 : Taal.t(this, "Meekijken staat uit."));
+    }
+
+    @Override
+    protected void onStop() {
+        // uit beeld (Home, andere app, scherm uit): meekijken meteen uit, want het geldt voor de hele app
+        meekijken(false);
+        super.onStop();
     }
 
     void sluit() {
@@ -355,7 +393,7 @@ public class NieuwsInlogActivity extends Activity {
     @Override
     protected void onDestroy() {
         h.removeCallbacksAndMessages(null);
-        if (meekijken) try { WebView.setWebContentsDebuggingEnabled(false); } catch (Throwable ignored) { }
+        meekijken(false);
         try { CookieManager.getInstance().flush(); } catch (Throwable ignored) { }
         if (wv != null) {
             try { wv.stopLoading(); } catch (Throwable ignored) { }
@@ -373,11 +411,11 @@ public class NieuwsInlogActivity extends Activity {
         @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest req) {
             try {
                 String u = req.getUrl().toString();
-                boolean mag = req.isForMainFrame() ? Nieuws.siteMag(a.sites, u) : Nieuws.ladenMag(u);
-                a.log(mag ? "laad" : "STOP", req.getMethod() + (req.isForMainFrame() ? " pagina " : " ") + NieuwsDiagnose.schoon(u));
                 // de pagina zelf alleen op de sites van de bron; wat ze laadt van elke https-site, en wat ze zelf maakt
                 // (blob:, data:, about:: werkers en vensters van een robotcontrole of het inlogformulier); geen http of bestanden
-                if (req.isForMainFrame() ? Nieuws.siteMag(a.sites, u) : Nieuws.ladenMag(u)) return null;
+                boolean mag = req.isForMainFrame() ? Nieuws.siteMag(a.sites, u) : Nieuws.ladenMag(u);
+                a.log(mag ? "laad" : "STOP", req.getMethod() + (req.isForMainFrame() ? " pagina " : " ") + NieuwsDiagnose.schoon(u));
+                if (mag) return null;
                 // iets wat de pagina nodig heeft, maar niet mag (http): zeggen wat, zodat een hangende pagina te verklaren is
                 if (!req.isForMainFrame()) a.h.post(() -> a.tegengehouden(u));
                 // een doorverwijzing naar een andere site (de pagina zelf): zeggen welke, of in de browser bij lezen
@@ -387,10 +425,12 @@ public class NieuwsInlogActivity extends Activity {
         }
         @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
             String u = req.getUrl().toString();
-            a.log("naar", (req.isForMainFrame() ? "pagina " : "frame ") + (req.isRedirect() ? "(doorverwijzing) " : "") + NieuwsDiagnose.schoon(u));
-            if (!req.isForMainFrame()) return !Nieuws.ladenMag(u);
-            if (Nieuws.siteMag(a.sites, u)) return false;
-            if (u.regionMatches(true, 0, "https://", 0, 8)) a.andereSite(u);
+            String wat = (req.isForMainFrame() ? "pagina " : "frame ") + (req.isRedirect() ? "(doorverwijzing) " : "") + NieuwsDiagnose.schoon(u);
+            boolean https = u.regionMatches(true, 0, "https://", 0, 8);
+            boolean mag = req.isForMainFrame() ? Nieuws.siteMag(a.sites, u) : Nieuws.ladenMag(u);
+            a.log(mag ? "naar" : "STOP", (mag ? "" : req.isForMainFrame() && https ? (a.soort.equals(LEZEN) ? "naar browser: " : "andere site: ") : "tegengehouden: ") + wat);
+            if (mag) return false;
+            if (req.isForMainFrame() && https) a.andereSite(u);
             return true;
         }
         @Override public void onPageStarted(WebView v, String url, android.graphics.Bitmap icon) { a.log("begin", NieuwsDiagnose.schoon(url)); }
