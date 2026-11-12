@@ -91,6 +91,7 @@
         <p class="hint" id="nwb-inlog-st" role="status" translate="no"></p>
         <button class="big tonal" id="nwb-inloggen" data-icon="user" onclick="nwbInloggen()">Inloggen</button>
         <button class="big ghost" id="nwb-uitloggen" onclick="nwbUitloggen()">Uitloggen</button>
+        <div class="sw"><span>Cookies van andere sites toestaan<small id="nwb-derden-n">Nodig als het inloggen via een andere dienst loopt (zoals beehiiv bij AI Report, of een controle "ik ben geen robot"); zonder blijft het inloggen dan hangen. Die diensten kunnen je in dit venster herkennen.</small></span><button class="tg" id="nwb-derden" role="switch" aria-checked="false" aria-label="Cookies van andere sites toestaan" aria-describedby="nwb-derden-n" onclick="togUi(this); nwbZet({ derden: this.classList.contains('on') })"></button></div>
         <label class="f" for="nwb-lezen">Lees op de website</label>
         <select class="sel" id="nwb-lezen" onchange="nwbZet({ lezen: this.value })">
           <option value="app">In Tools, ingelogd</option>

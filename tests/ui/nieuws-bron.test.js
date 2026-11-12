@@ -30,7 +30,8 @@ const path = require('path');
     await page.locator('#nws-bronnen .srow:has-text("AI Report") .nws-open').click();
     await page.waitForTimeout(100);
     ok(await page.evaluate(() => current === 'nieuwsbron') && await tekst('#nwb-titel') === 'AI Report', 'scherm van de bron');
-    ok(await aan('#nwb-aan') && await aan('#nwb-inlog') && !(await aan('#nwb-pagina')), 'aan, inloggen aan, geen afbeeldingen van de pagina');
+    ok(await aan('#nwb-aan') && await aan('#nwb-inlog') && !(await aan('#nwb-pagina')) && await aan('#nwb-derden'), 'aan, inloggen aan (met cookies van andere sites), geen afbeeldingen van de pagina');
+    ok((await tekst('#nwb-derden-n')).includes('Die diensten kunnen je in dit venster herkennen'), 'zichtbaar wat cookies van andere sites betekent');
     ok(await page.inputValue('#nwb-naam') === 'AI Report' && await page.inputValue('#nwb-url') === 'https://www.aireport.nl/sitemap.xml' && await page.inputValue('#nwb-alleen') === 'aireport.nl/p/', 'naam, adres en welke artikelen');
     ok(await page.locator('#nwb-inlog-deel').isVisible() && await page.inputValue('#nwb-start') === 'https://www.aireport.nl/' && await page.inputValue('#nwb-sites') === 'aireport.nl *.aireport.nl *.beehiiv.com'
       && await page.inputValue('#nwb-lezen') === 'app', 'inloggen: inlogpagina, toegestane sites, lezen in Tools');
@@ -38,6 +39,9 @@ const path = require('path');
     ok(await page.locator('#nwb-standaard').isHidden() && await page.locator('#nwb-weg').isHidden() && await page.locator('#nwb-cookie').isHidden(), 'bekende bron zonder wijzigingen: geen terugzetten, geen verwijderen');
     ok((await tekst('#nwb-inlog-n')).includes('de site ziet dan dat jij het bent'), 'zichtbaar wat inloggen betekent voor je privacy');
     ok(await page.evaluate(() => document.querySelectorAll('#s-nieuwsbron .big:not(.tonal):not(.ghost)').length === 1), 'één hoofdknop (Opslaan)');
+    await leeg(); await page.click('#nwb-derden'); await page.waitForTimeout(300);
+    ok((await calls()).some(c => c === 'instellen:aireport:{"derden":false}') && !(await aan('#nwb-derden')), 'cookies van andere sites uit: meteen opgeslagen');
+    await page.click('#nwb-derden'); await page.waitForTimeout(300);
 
     // Inloggen: het venster, en terug in de app de stand en een nieuwe ronde
     await leeg();

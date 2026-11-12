@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.195",
+    "date": "2026-11-12",
+    "changes": [
+      "Nieuws: inloggen bij AI Report bleef hangen. Per bron kun je nu cookies van andere sites toestaan in het inlogvenster (bij AI Report staat het standaard aan, want het inloggen loopt via beehiiv)."
+    ]
+  },
+  {
     "version": "1.194",
     "date": "2026-11-12",
     "changes": [

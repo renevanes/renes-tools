@@ -81,11 +81,19 @@ final class Nieuws {
     /**
      * Bronnen waarbij Inloggen bij de website standaard aan staat: id, de pagina waar het inlogvenster begint en de sites die
      * dat venster mag openen en waarheen de cookies van de inlog meegaan ({@link #siteMag}). Net als alles van een bron is dit
-     * per bron aan te passen; bij de andere bronnen staat inloggen standaard uit, met de site van de bron als begin.
+     * per bron aan te passen; bij de andere bronnen staat inloggen standaard uit, met de site van de bron als begin. Het
+     * vierde veld: "1" = cookies van andere sites toestaan in het inlogvenster ({@code derden}; beehiiv logt in via eigen
+     * diensten en een controle tegen robots, die zonder die cookies blijven hangen).
      */
     static final String[][] INLOG_STANDAARD = {
-        {"aireport", "https://www.aireport.nl/", "aireport.nl *.aireport.nl *.beehiiv.com"},
+        {"aireport", "https://www.aireport.nl/", "aireport.nl *.aireport.nl *.beehiiv.com", "1"},
     };
+
+    /** Staan cookies van andere sites in het inlogvenster van deze bron standaard aan? */
+    static boolean derdenStandaard(String id) {
+        String[] il = inlogStandaard(id);
+        return il != null && il.length > 3 && "1".equals(il[3]);
+    }
 
     /** De bekende bron bij een site die Rene intikt ("nu.nl", "https://www.nos.nl/"), of null. */
     static String bekendeSite(String adres) {
@@ -523,7 +531,7 @@ final class Nieuws {
         boolean aangepast = x.length() > 0;
         return b.put("alleen", alleen).put("pagina", x.has("pagina") ? x.optBoolean("pagina") : paginaBron(id) != null)
                 .put("cookiekeuze", paginaBron(id) != null).put("inlog", inlog).put("inlogStart", start).put("inlogSites", sites)
-                .put("lezen", lezen).put("aangepast", aangepast);
+                .put("lezen", lezen).put("derden", x.has("derden") ? x.optBoolean("derden") : derdenStandaard(id)).put("aangepast", aangepast);
     }
 
     /** De sites bij een inlogpagina: de site zelf en alle subdomeinen ervan. */
@@ -681,6 +689,10 @@ final class Nieuws {
             if (in.has("inlogStart")) {
                 String u = in.optString("inlogStart").trim();
                 if (u.isEmpty()) x.remove("inlogStart"); else x.put("inlogStart", adres(u));
+            }
+            if (in.has("derden")) {
+                boolean aan = in.optBoolean("derden");
+                if (aan == derdenStandaard(id)) x.remove("derden"); else x.put("derden", aan);
             }
             if (in.has("lezen")) {
                 String l = in.optString("lezen");

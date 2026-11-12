@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.194",
-  "versionCode": 195,
-  "nativeLevel": 173,
+  "versionName": "1.195",
+  "versionCode": 196,
+  "nativeLevel": 174,
   "web": "index.html",
-  "webSha256": "d4d363a0421f228c71701aa01c8d733617657a71c85d5cb35f991ce8cbf7f6be",
+  "webSha256": "08cd03a47e0523013d3872e49285de9a54fa17230c756ed90aeb4e18b8073227",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3edf5d4ecef07f562cd7dcd654cc9cf3a96352a432dcb896dc72b1182a361582",
+  "apkSha256": "f96968dfd8533b19f1d9f24c62961fe29366d05fb8b3aed958390f049c874727",
   "changelog": [
+    {
+      "version": "1.195",
+      "date": "2026-11-12",
+      "changes": [
+        "Nieuws: inloggen bij AI Report bleef hangen. Per bron kun je nu cookies van andere sites toestaan in het inlogvenster (bij AI Report staat het standaard aan, want het inloggen loopt via beehiiv)."
+      ]
+    },
     {
       "version": "1.194",
       "date": "2026-11-12",
@@ -1721,5 +1728,5 @@
       ]
     }
   ],
-  "webSig2": "rXGu8NNqZ4azgHy3soykTs1JREQrvX5oSGmLnpql6A8yzgGA5Myq5O4VuhfwgG58PbdUskuJQBS0AWppZX+7xMz1rnlMVn3uHXIN9v3lEmo1c7q6vlzlWieecJvobqensgktM4vutb4k1wCTk32Cu6mLs10kSZLFSyI6SlVa3msrm9noS+XlmEF3TFaCRikCoipj9tMT8FYcMWUdM2AZt6OIyo2NBp9UyENdTtAYO6Y0NDSRJsJ1jsbiZeyHfjPax0YKsWuYy9XlpU4p6NmGCNCtUrQjOUxqzkrLiI4xsn7usB9vIMdYYyZFEHhvbCX+sa2jYoUL+tKsmY0AANZdbHJUdDksLtjVn0FI9L1plRLTeN8Pn0VsEj7sqWGfddy7Womk2CXE+Db7xotzaBFGIeHSilKHRkYt0NH8UzuafxXdM9vWhTY5y3F6QyDfwV/ZXDfPUzD7EWnKuYJo+QLTUspReV1JPJc013up67erb/RqcvTvfHZJqgJV9zNXafaL"
+  "webSig2": "cmVX6ofj9hERnmGmurNpnjAc4ano5AVZ3yoVM1GGMgzOkrWGAetD/5MOdSNn7ejZ7DW5S8x3cd2WmYFRs+Aev56EQboWcxRfQOIrOAlb3x8XgRz11nYBYga8J0Lwd2+DLjQTXLQ/zr6tlWmPazivGv/nwOqvn0EUHP47s1lls0pp+dhF/RDTkEpA3Cy1bgphuM2scAheyVo1/YATK2WkqyPIFYGueawjH4fEdgIf/CYp3KWhFJX8Oa2R/jOVXNoLSGSYkizKnSouPB3gmyZnvoOuEn3xVQURORlqCQAw/yGC7LMEL7u9caMrsdO3Mj5dIW9iSway2xQrm4fFORnV212eKtkP9+LgPQ29CpV0aq2nR8v36aNI3f4xcIERfu9ts3+E36vz9Goo0tP0lTuexjvR8RbzCvh794TQYRid2OTuP5yVAuUrAU/7TzObhQlxS97eYApXBeN1j1FY+oJ2X072OoA9NnTrNyj+9LEHEx8gOPPDPY1NZt6UdSk3ktPi"
 }

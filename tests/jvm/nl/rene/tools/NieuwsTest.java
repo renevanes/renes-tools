@@ -580,7 +580,7 @@ public class NieuwsTest {
         for (int i = 0; i < bs.length(); i++) {
             JSONObject b = bs.getJSONObject(i);
             boolean alles = true;
-            for (String k : new String[]{"id", "naam", "url", "aan", "eigen", "alleen", "pagina", "cookiekeuze", "inlog", "inlogStart", "inlogSites", "lezen", "aangepast"}) alles &= b.has(k);
+            for (String k : new String[]{"id", "naam", "url", "aan", "eigen", "alleen", "pagina", "cookiekeuze", "inlog", "inlogStart", "inlogSites", "lezen", "derden", "aangepast"}) alles &= b.has(k);
             check(alles && Nieuws.siteMag(b.optString("inlogSites"), b.optString("inlogStart")), "bron " + b.optString("id") + ": alle instellingen, inlogpagina hoort bij de sites");
         }
         check("https://nos.nl/".equals(bron(bs, "nos").optString("inlogStart")) && "nos.nl *.nos.nl".equals(bron(bs, "nos").optString("inlogSites")) && !bron(bs, "nos").optBoolean("inlog")
@@ -637,6 +637,12 @@ public class NieuwsTest {
         check(!ai.optBoolean("inlog") && "browser".equals(ai.optString("lezen")) && ai.optBoolean("aangepast"), "AI Report: inloggen uit");
         ai = Nieuws.instellen(dir, cache, "aireport", new JSONObject().put("inlog", true), null);
         check(ai.optBoolean("inlog") && !ai.optBoolean("aangepast"), "AI Report: inloggen weer aan = standaard");
+        // Cookies van andere sites in het inlogvenster: bij AI Report standaard aan (beehiiv), elders uit; per bron in te stellen
+        check(ai.optBoolean("derden") && !bron(Nieuws.bronnen(dir), "nu").optBoolean("derden"), "cookies van andere sites: AI Report aan, de rest uit");
+        ai = Nieuws.instellen(dir, cache, "aireport", new JSONObject().put("derden", false), null);
+        check(!ai.optBoolean("derden") && ai.optBoolean("aangepast"), "AI Report: cookies van andere sites uit kan");
+        ai = Nieuws.instellen(dir, cache, "aireport", new JSONObject().put("derden", true), null);
+        check(ai.optBoolean("derden") && !ai.optBoolean("aangepast"), "weer aan = standaard");
 
         // Een eigen bron: dezelfde instellingen; naam en adres staan bij de eigen bron
         JSONObject e = Nieuws.voegToe(dir, "https://feeds.example.org/blog.xml", "Blog");
