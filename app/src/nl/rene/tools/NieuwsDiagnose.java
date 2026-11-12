@@ -23,7 +23,9 @@ final class NieuwsDiagnose {
     /** Kandidaat voor een sleutel of code: 24 of meer letters, cijfers, - of _ achter elkaar (wat het is, beslist {@link #sleutel}). */
     private static final Pattern REEKS = Pattern.compile("[A-Za-z0-9_-]{24,}");
     /** Een adres in vrije tekst (een foutmelding van de pagina). */
-    private static final Pattern ADRES = Pattern.compile("(?i)\\b(?:https?|wss?|blob):[^\\s\"'<>()]{1,2000}");
+    private static final Pattern ADRES = Pattern.compile("(?i)\\b(?:https?|wss?|blob):[^\\s\"'<>]{1,2000}");
+    /** Een eigen adres zonder site (een melding van de pagina zelf, zoals "POST /api/otp?code=…"): de vraag weg. */
+    private static final Pattern PAD = Pattern.compile("(^|[\\s'\"(=])(/[^\\s\"'<>?#]{0,500})[?#][^\\s\"'<>]{0,2000}");
 
     private final ArrayDeque<String> regels = new ArrayDeque<>(), fouten = new ArrayDeque<>();
     private final ArrayList<String> begin = new ArrayList<>();
@@ -46,6 +48,8 @@ final class NieuwsDiagnose {
             int i = laatste.lastIndexOf(" (×");
             String nieuw = (i > 0 && laatste.endsWith(")") ? laatste.substring(0, i) : laatste) + " (×" + (herhaald + 1) + ")";
             if (inBegin) begin.add(nieuw); else regels.addLast(nieuw);
+            // een fout die terugkomt: ook in het overzicht van de fouten de teller bijwerken
+            if (!fouten.isEmpty() && fouten.peekLast().equals(laatste)) { fouten.removeLast(); fouten.addLast(nieuw); }
             return;
         }
         vorige = sleutel;
@@ -110,10 +114,23 @@ final class NieuwsDiagnose {
         String t = s.length() > 4 * MAX_IN ? s.substring(0, 4 * MAX_IN) : s;
         Matcher m = ADRES.matcher(t);
         StringBuffer sb = new StringBuffer();
-        while (m.find()) m.appendReplacement(sb, Matcher.quoteReplacement(schoon(m.group())));
+        while (m.find()) {
+            // leestekens en een sluithaakje achter het adres horen bij de zin, niet bij het adres
+            String a = m.group();
+            int e = a.length();
+            while (e > 0) {
+                char c = a.charAt(e - 1);
+                if (c == '.' || c == ',' || c == ':' || c == ';') { e--; continue; }
+                if (c == ')' && tel(a.substring(0, e), ')') > tel(a.substring(0, e), '(')) { e--; continue; }
+                break;
+            }
+            m.appendReplacement(sb, Matcher.quoteReplacement(schoon(a.substring(0, e)) + a.substring(e)));
+        }
         m.appendTail(sb);
-        return masker(sb.toString());
+        return masker(PAD.matcher(sb.toString()).replaceAll("$1$2?…"));
     }
+
+    static int tel(String s, char c) { int n = 0; for (int i = 0; i < s.length(); i++) if (s.charAt(i) == c) n++; return n; }
 
     /** E-mailadressen (ook met %40) en reeksen die op een sleutel lijken weg. */
     static String masker(String s) {

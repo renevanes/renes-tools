@@ -35,12 +35,21 @@ public class NieuwsDiagnoseTest {
         // adressen in vrije tekst (foutmeldingen van Chromium) zonder inlogcode
         String fout = NieuwsDiagnose.verberg("Failed to load https://api.beehiiv.com/v2/otp?code=123456&email=r: net::ERR_FAILED");
         check(!fout.contains("123456") && fout.contains("https://api.beehiiv.com/v2/otp?…") && fout.contains("ERR_FAILED"), "adres in een foutmelding geschoond: " + fout);
+        String h1 = NieuwsDiagnose.verberg("fout (https://x.nl/a?code=11) daarna"), h2 = NieuwsDiagnose.verberg("Access to fetch at 'https://a.b/c(d)?code=99' blocked");
+        check(!h1.contains("code") && h1.contains("(https://x.nl/a?…) daarna"), "adres tussen haakjes geschoond: " + h1);
+        check(!h2.contains("code") && h2.contains("https://a.b/c(d)?…"), "adres met haakjes erin geschoond: " + h2);
+        String rel = NieuwsDiagnose.verberg("POST /api/otp?code=123456 404");
+        check(!rel.contains("123456") && rel.contains("/api/otp?…") && rel.endsWith("404"), "eigen adres zonder site geschoond: " + rel);
+        NieuwsDiagnose g = new NieuwsDiagnose(0);
+        g.log(1, "HTTP", "403 x"); g.log(2, "HTTP", "403 x");
+        String gt = g.tekst("");
+        check(gt.substring(0, gt.indexOf("== Alles")).contains("403 x (×2)"), "herhaalde fout ook in het overzicht geteld");
         check(!NieuwsDiagnose.schoon("https://x.nl/unsubscribe/rene%40example.nl").contains("rene"), "e-mailadres met %40 weg");
         check(!NieuwsDiagnose.schoon("https://user:p!w@x.nl/a b?c=1").contains("p!w") && !NieuwsDiagnose.schoon("https://user:p!w@x.nl/a b").contains("user"), "wachtwoord in een onleesbaar adres weg");
         check(NieuwsDiagnose.schoon("https://x.nl/verify/abcdefghijklmnopqrstuvwxyzABCDEF").equals("https://x.nl/verify/…"), "sleutel zonder cijfer (hoofd- en kleine letters) weg");
         check(NieuwsDiagnose.schoon("https://www.aireport.nl/p/de-beste-ai-tools-voor-je-administratie").endsWith("administratie"), "lange titel in kleine letters blijft");
         NieuwsDiagnose e = new NieuwsDiagnose(0);
-        e.log(1, "js", new String(new char[1190]).replace('\0', 'x') + " rene.van.es@example.nl");
+        e.log(1, "js", new String(new char[290]).replace('\0', 'x') + " rene.van.es@example.nl");
         check(!e.tekst("").contains("rene.van"), "e-mailadres op de knip half weg is toch weg");
         long t1 = System.nanoTime();
         String groot = "https://x.nl/" + new String(new char[2_000_000]).replace('\0', 'a');

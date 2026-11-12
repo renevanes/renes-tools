@@ -304,7 +304,7 @@ public class NieuwsInlogActivity extends Activity {
     void vraagMeekijken() {
         new AlertDialog.Builder(this)
                 .setTitle(Taal.t(this, "Meekijken vanaf computer"))
-                .setMessage(Taal.t(this, "Zolang dit aan staat, kan een computer die met USB is aangesloten (met USB-foutopsporing aan) alle schermen van Tools bekijken en bedienen, niet alleen deze website. Het gaat vanzelf uit na 15 minuten of als je dit venster verlaat. Sluit alleen je eigen computer aan."))
+                .setMessage(Taal.t(this, "Zolang dit aan staat, kan een computer die met USB is aangesloten (met USB-foutopsporing aan) alle schermen van Tools bekijken en bedienen, niet alleen deze website. Het gaat vanzelf uit na 15 minuten of als je dit venster verlaat (houd het scherm dus aan). Sluit alleen je eigen computer aan."))
                 .setPositiveButton(Taal.t(this, "Aanzetten"), (d, w) -> meekijken(true))
                 .setNegativeButton(Taal.t(this, "Annuleren"), null)
                 .show();
