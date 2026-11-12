@@ -597,6 +597,21 @@ final class Nieuws {
     }
 
     /**
+     * Een pagina op een site van de inlog via http (zoals beehiiv na het inloggen terugstuurt naar http://www.aireport.nl/…):
+     * hetzelfde adres via https, zoals een browser het ook omzet; anders null. Tools laadt zelf nooit iets via http.
+     */
+    static String httpsVersie(String sites, String url) {
+        if (url == null || !url.regionMatches(true, 0, "http://", 0, 7)) return null;
+        try {
+            java.net.URI x = new java.net.URI(url);
+            if (x.getRawUserInfo() != null || x.getHost() == null || (x.getPort() != -1 && x.getPort() != 80)) return null;
+            String u = "https://" + x.getHost().toLowerCase(Locale.ROOT) + (x.getRawPath() == null || x.getRawPath().isEmpty() ? "/" : x.getRawPath())
+                    + (x.getRawQuery() != null ? "?" + x.getRawQuery() : "") + (x.getRawFragment() != null ? "#" + x.getRawFragment() : "");
+            return siteMag(sites, u) ? u : null;
+        } catch (Exception e) { return null; }
+    }
+
+    /**
      * De adressen waarvan Uitloggen de cookies weghaalt: elke site uit {@code sites} met en zonder www. (van een "*."-site
      * de site zelf en www.: welke subdomeinen er nog meer zijn, weet Tools niet) plus de inlogpagina zelf.
      */

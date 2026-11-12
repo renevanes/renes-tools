@@ -356,6 +356,23 @@ public class NieuwsInlogActivity extends Activity {
         zet(Taal.t(this, "Tools hield een onderdeel van de pagina tegen: {site}. Blijft het inloggen hangen, meld dan deze regel.", "site", host));
     }
 
+    private String laatsteHttps = "";
+    private long laatsteHttpsTijd;
+
+    /** Een pagina van de inlog via http (terugsturen na het inloggen): hetzelfde adres via https laden, één keer. */
+    boolean naarHttps(String url) {
+        String u = Nieuws.httpsVersie(sites, url);
+        if (u == null) return false;
+        long nu = SystemClock.elapsedRealtime();
+        // doorverwijzing: zowel onderschept als overgenomen (binnen een paar tellen dezelfde = één keer laden)
+        if (u.equals(laatsteHttps) && nu - laatsteHttpsTijd < 3000) return true;
+        laatsteHttps = u;
+        laatsteHttpsTijd = nu;
+        log("https", "http omgezet naar " + NieuwsDiagnose.schoon(u));
+        h.post(() -> { if (wv != null) wv.loadUrl(u); });
+        return true;
+    }
+
     /** Een andere site: in de browser (lezen) of melden welke site er bij Toegestane sites moet (inloggen). */
     private String laatsteAndere = "";
 
@@ -416,6 +433,11 @@ public class NieuwsInlogActivity extends Activity {
                 boolean mag = req.isForMainFrame() ? Nieuws.siteMag(a.sites, u) : Nieuws.ladenMag(u);
                 a.log(mag ? "laad" : "STOP", req.getMethod() + (req.isForMainFrame() ? " pagina " : " ") + NieuwsDiagnose.schoon(u));
                 if (mag) return null;
+                // de pagina zelf via http op een site van de inlog: via https (zoals een browser)
+                if (req.isForMainFrame() && "GET".equalsIgnoreCase(req.getMethod()) && Nieuws.httpsVersie(a.sites, u) != null) {
+                    a.h.post(() -> a.naarHttps(u));
+                    return new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream(new byte[0]));
+                }
                 // iets wat de pagina nodig heeft, maar niet mag (http): zeggen wat, zodat een hangende pagina te verklaren is
                 if (!req.isForMainFrame()) a.h.post(() -> a.tegengehouden(u));
                 // een doorverwijzing naar een andere site (de pagina zelf): zeggen welke, of in de browser bij lezen
@@ -428,6 +450,7 @@ public class NieuwsInlogActivity extends Activity {
             String wat = (req.isForMainFrame() ? "pagina " : "frame ") + (req.isRedirect() ? "(doorverwijzing) " : "") + NieuwsDiagnose.schoon(u);
             boolean https = u.regionMatches(true, 0, "https://", 0, 8);
             boolean mag = req.isForMainFrame() ? Nieuws.siteMag(a.sites, u) : Nieuws.ladenMag(u);
+            if (!mag && req.isForMainFrame() && a.naarHttps(u)) return true;
             a.log(mag ? "naar" : "STOP", (mag ? "" : req.isForMainFrame() && https ? (a.soort.equals(LEZEN) ? "naar browser: " : "andere site: ") : "tegengehouden: ") + wat);
             if (mag) return false;
             if (req.isForMainFrame() && https) a.andereSite(u);

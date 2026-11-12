@@ -590,6 +590,12 @@ public class NieuwsTest {
         // Sites
         check("aireport.nl *.beehiiv.com".equals(geen(() -> Nieuws.sitesNetjes(" https://www.AIreport.nl/login, *.beehiiv.com aireport.nl "))), "sites netjes: zonder https://, www. en pad, geen dubbele");
         for (String fout : new String[]{"", "*.com", "localhost", "192.168.1.1", "a b.c/ *.", "voor beeld", "x..nl", "-a.nl"}) check(geeftFout(() -> Nieuws.sitesNetjes(fout)), "ongeldige sites geweigerd: '" + fout + "'");
+        check("https://www.aireport.nl/?token=a1&x=2".equals(Nieuws.httpsVersie("aireport.nl *.beehiiv.com", "http://www.aireport.nl/?token=a1&x=2"))
+                && "https://aireport.nl/".equals(Nieuws.httpsVersie("aireport.nl", "HTTP://AIREPORT.NL"))
+                && "https://aireport.nl/p/x".equals(Nieuws.httpsVersie("aireport.nl", "http://aireport.nl:80/p/x")), "inlog: http op een toegestane site wordt https");
+        check(Nieuws.httpsVersie("aireport.nl", "http://example.org/") == null && Nieuws.httpsVersie("aireport.nl", "http://aireport.nl:8080/") == null
+                && Nieuws.httpsVersie("aireport.nl", "http://u:p@aireport.nl/") == null && Nieuws.httpsVersie("aireport.nl", "https://aireport.nl/") == null
+                && Nieuws.httpsVersie("aireport.nl", "ftp://aireport.nl/") == null && Nieuws.httpsVersie("aireport.nl", null) == null, "inlog: geen https van een andere site, poort of gebruiker");
         check(Nieuws.siteMag("aireport.nl *.beehiiv.com", "https://www.aireport.nl/p/x") && Nieuws.siteMag("aireport.nl", "https://aireport.nl/")
                 && Nieuws.siteMag("*.beehiiv.com", "https://link.mail.beehiiv.com/ss/c/1") && !Nieuws.siteMag("aireport.nl", "https://login.aireport.nl/")
                 && !Nieuws.siteMag("aireport.nl", "http://aireport.nl/") && !Nieuws.siteMag("aireport.nl", "https://aireport.nl.example.org/")
