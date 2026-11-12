@@ -72,7 +72,7 @@ final class Thema {
             // Tijdelijk andersom (knop maan/zon in een tool): [donker 0/1, tot (ms), stand van de telefoon 0/1]
             JSONArray t = in.optJSONArray("tmp");
             if (t != null && t.length() == 3 && t.optLong(1, 0) > 0)
-                o.put("tmp", new JSONArray().put(t.optInt(0, 0) == 1 ? 1 : 0).put(t.optLong(1, 0)).put(t.optInt(2, 0) == 1 ? 1 : 0));
+                o.put("tmp", new JSONArray().put(t.optInt(0, 0) != 0 ? 1 : 0).put(t.optLong(1, 0)).put(t.optInt(2, 0) != 0 ? 1 : 0));
             return o.toString();
         } catch (Exception e) {
             return null;
