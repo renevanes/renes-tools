@@ -1,3 +1,0 @@
-Podcasts: nieuw scherm Instellingen (schuifjes rechtsboven). Kies wat er na een aflevering gebeurt: stoppen, verder met Hierna, of daarna de volgende van dezelfde podcast (standaard) of je nieuwe afleveringen.
-Podcasts: met een slaaptimer gaat de speler door met de volgende aflevering tot de timer afloopt (instelbaar); in de speler staat wat er daarna vanzelf komt.
-Podcastspeler stabieler: terugspoelen en herverbinden gaan sneller, snel na elkaar terugspoelen loopt niet meer vast, "Bufferen…" is zichtbaar en bij een hapering verbindt hij vanzelf opnieuw op dezelfde plek.

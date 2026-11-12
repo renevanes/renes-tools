@@ -1,1 +1,0 @@
-Nieuws: lezen op de website (ingelogd) geeft meer ruimte aan het artikel: geen dubbele titelbalk meer, één smalle balk met sluiten, en die balk verdwijnt als je verder leest en komt terug als je terug scrolt.

@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.193",
-  "versionCode": 194,
-  "nativeLevel": 172,
+  "versionName": "1.194",
+  "versionCode": 195,
+  "nativeLevel": 173,
   "web": "index.html",
-  "webSha256": "a2bd6bb1d0d18558508a024c4657f8cdebd3b851696b66c9ddf0d35a8fad566f",
+  "webSha256": "d4d363a0421f228c71701aa01c8d733617657a71c85d5cb35f991ce8cbf7f6be",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "e4bbd1429ea4616436cdda699bcfec306edcd74097281c7edd686b8b8a8bb502",
+  "apkSha256": "3edf5d4ecef07f562cd7dcd654cc9cf3a96352a432dcb896dc72b1182a361582",
   "changelog": [
+    {
+      "version": "1.194",
+      "date": "2026-11-12",
+      "changes": [
+        "Nieuws: lezen op de website (ingelogd) geeft meer ruimte aan het artikel: geen dubbele titelbalk meer, één smalle balk met sluiten, en die balk verdwijnt als je verder leest en komt terug als je terug scrolt.",
+        "Podcasts: nieuw scherm Instellingen (schuifjes rechtsboven). Kies wat er na een aflevering gebeurt: stoppen, verder met Hierna, of daarna de volgende van dezelfde podcast (standaard) of je nieuwe afleveringen.",
+        "Podcasts: met een slaaptimer gaat de speler door met de volgende aflevering tot de timer afloopt (instelbaar); in de speler staat wat er daarna vanzelf komt.",
+        "Podcastspeler stabieler: terugspoelen en herverbinden gaan sneller, snel na elkaar terugspoelen loopt niet meer vast, \"Bufferen…\" is zichtbaar en bij een hapering verbindt hij vanzelf opnieuw op dezelfde plek."
+      ]
+    },
     {
       "version": "1.193",
       "date": "2026-11-12",
@@ -1711,5 +1721,5 @@
       ]
     }
   ],
-  "webSig2": "dIMyrE0E709RPyKF9EbUTEvCF1QecjUM812NcViojIiqXc0snmZJefGrML1UI9IeE4bK+u3mSpzLhSnW1540NJCNCa6qxhfRqf6FXC1HerXB2NmflCDdEwPvPzjfbEMA4qShRp/y2e7kj3PdgSor0ISub1QnI6eGfH+tpzvNaac+YaqZbqRvV+exqb7d0X6ANOGy0mIsOy4G+XFQQmzY8DrQf81OeBH1ZiLLXWGnWo973nEFBi6gAgMCSsj6E7gNjhjcjoEoQAXV/t9x618CNDzFxvXUfz8+ucqjj5j8IuvkWp86NSn8zAhexIaenk7SOjEApELvrgpv++qabUjb/7+maw1cWB8oxV4Yh2XgoAZXOa3UNr5s4wkW+ptgu9G/7/bSSzGGPus5MzYvXSgDoyAeCHH5a0OW/PYgSL3gKw/pwWJSV+bEEq0ytJ1UnSCiPtvDLDAPUJjTfeqPvMoPvfZW3oNBGUF31x7lTijOrTq8UfNkMNc9Fi05u9ZAmSEi"
+  "webSig2": "rXGu8NNqZ4azgHy3soykTs1JREQrvX5oSGmLnpql6A8yzgGA5Myq5O4VuhfwgG58PbdUskuJQBS0AWppZX+7xMz1rnlMVn3uHXIN9v3lEmo1c7q6vlzlWieecJvobqensgktM4vutb4k1wCTk32Cu6mLs10kSZLFSyI6SlVa3msrm9noS+XlmEF3TFaCRikCoipj9tMT8FYcMWUdM2AZt6OIyo2NBp9UyENdTtAYO6Y0NDSRJsJ1jsbiZeyHfjPax0YKsWuYy9XlpU4p6NmGCNCtUrQjOUxqzkrLiI4xsn7usB9vIMdYYyZFEHhvbCX+sa2jYoUL+tKsmY0AANZdbHJUdDksLtjVn0FI9L1plRLTeN8Pn0VsEj7sqWGfddy7Womk2CXE+Db7xotzaBFGIeHSilKHRkYt0NH8UzuafxXdM9vWhTY5y3F6QyDfwV/ZXDfPUzD7EWnKuYJo+QLTUspReV1JPJc013up67erb/RqcvTvfHZJqgJV9zNXafaL"
 }
