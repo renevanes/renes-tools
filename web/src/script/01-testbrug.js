@@ -51,7 +51,7 @@ if (!window.Android) window.Android = (function(){
         ['nos-sport', 'NOS Sport', 'https://feeds.nos.nl/nossportalgemeen'], ['nu', 'NU.nl', 'https://www.nu.nl/rss/Algemeen'], ['rtl', 'RTL Nieuws', 'https://www.rtl.nl/rss.xml'],
         ['nrc', 'NRC', 'https://www.nrc.nl/rss/'], ['volkskrant', 'de Volkskrant', 'https://www.volkskrant.nl/voorpagina/rss.xml'], ['ad', 'AD', 'https://www.ad.nl/home/rss.xml'],
         ['tweakers', 'Tweakers Nieuws', 'https://tweakers.net/feeds/mixed.xml'], ['bbc', 'BBC News', 'https://feeds.bbci.co.uk/news/rss.xml'], ['guardian', 'The Guardian', 'https://www.theguardian.com/world/rss'],
-        ['aireport', 'AI Report', 'https://www.aireport.nl/', true]]
+        ['aireport', 'AI Report', 'https://www.aireport.nl/sitemap.xml', true]]
         .map(([id, naam, url, aan]) => this._nwStd({ id, naam, url, aan: !!aan, eigen: false, standaardNaam: naam, standaardUrl: url }));
       let n = 0;
       const art = (bron, titel, wanneer, blokken, extra) => Object.assign({ id: 'n' + (0xa000 + ++n).toString(16).padStart(16, '0'), bron, titel,
@@ -75,7 +75,7 @@ if (!window.Android) window.Android = (function(){
     _nwStd(b){
       const site = b.id === 'tweakers' ? 'tweakers.net' : b.id === 'aireport' ? 'aireport.nl' : new URL(b.url).hostname.replace(/^www\./, '').replace(/^(feeds?|rss)\.(?=[^.]+\.)/, '');
       const inlog = b.id === 'aireport';
-      return Object.assign(b, { alleen: b.id === 'tweakers' ? 'tweakers.net/nieuws/' : '', pagina: b.id === 'tweakers', cookiekeuze: b.id === 'tweakers', inlog,
+      return Object.assign(b, { alleen: b.id === 'tweakers' ? 'tweakers.net/nieuws/' : b.id === 'aireport' ? 'aireport.nl/p/' : '', pagina: b.id === 'tweakers', cookiekeuze: b.id === 'tweakers', inlog,
         inlogStart: inlog ? 'https://www.aireport.nl/' : 'https://' + site + '/', inlogSites: inlog ? 'aireport.nl *.aireport.nl *.beehiiv.com' : site + ' *.' + site,
         lezen: inlog ? 'app' : 'browser', aangepast: false });
     },
@@ -115,7 +115,7 @@ if (!window.Android) window.Android = (function(){
       setTimeout(() => {
         const v = String(adres || '').trim().toLowerCase(), kaal = v.replace(/^[a-z]+:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
         if (!v.includes('.')) { onNieuwsBron({ error: 'Dit is geen geldig webadres' }); return; }
-        if (kaal.includes('geenfeed')) { onNieuwsBron({ error: 'Op deze pagina staat geen nieuwsfeed. Zoek op de site naar RSS en vul dat adres in.' }); return; }
+        if (kaal.includes('geenfeed')) { onNieuwsBron({ error: 'Op deze site staat geen nieuwsfeed of sitemap. Zoek op de site naar RSS en vul dat adres in.' }); return; }
         const bekend = { 'nu.nl': 'nu', 'tweakers.net': 'tweakers', 'nos.nl': 'nos', 'rijnmond.nl': 'rijnmond' }[kaal];
         if (bekend) { const b = s.bronnen.find(x => x.id === bekend); b.aan = true; onNieuwsBron({ bron: Object.assign({}, b, { al: true }) }); return; }
         const url = 'https://' + kaal, host = kaal.split('/')[0];
@@ -150,7 +150,7 @@ if (!window.Android) window.Android = (function(){
       setTimeout(() => {
         const b = s.bronnen.find(x => x.id === id);
         if (!b) { onNieuwsInstellen({ error: 'Deze bron bestaat niet meer' }); return; }
-        if (w.url && w.url !== b.url && /geenfeed/.test(w.url)) { onNieuwsInstellen({ error: 'Op deze pagina staat geen nieuwsfeed. Zoek op de site naar RSS en vul dat adres in.' }); return; }
+        if (w.url && w.url !== b.url && /geenfeed/.test(w.url)) { onNieuwsInstellen({ error: 'Op deze site staat geen nieuwsfeed of sitemap. Zoek op de site naar RSS en vul dat adres in.' }); return; }
         if ('inlogSites' in w && /(^|\s)\*\.com(\s|$)|^\s*$/.test(w.inlogSites)) { onNieuwsInstellen({ error: 'Geen geldige site: *.com' }); return; }
         const andereUrl = !!w.url && w.url.trim() !== b.url;
         if (w.standaard) { const n = b.eigen ? { naam: b.naam, url: b.url } : { naam: b.standaardNaam, url: b.standaardUrl }; this._nwStd(Object.assign(b, n)); }

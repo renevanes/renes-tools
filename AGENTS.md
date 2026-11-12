@@ -624,7 +624,12 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   "Lees op de website" opent de link in de browser, of bij een bron met inloggen (en Lezen in Tools) in `NieuwsInlogActivity`.
 - **Feed vinden**: een adres mag een feed of een webpagina zijn. Noemt de pagina geen feed (`<link rel="alternate">`), dan
   probeert `Nieuws.lees` de gangbare adressen op dezelfde site (`FEED_PADEN`: /feed, /rss, …). Het echte feedadres staat
-  daarna in de cache (`feed`) en wordt de volgende keer eerst geprobeerd.
+  daarna in de cache (`feed`) en wordt de volgende keer eerst geprobeerd. **Geen feed** (zoals AI Report: beehiiv zet RSS
+  alleen aan als de uitgever het kiest): dan de sitemap (`SITEMAP_PADEN`, of een sitemap als adres; `NieuwsFeed.sitemap`, zelfde
+  veilige SAX; een sitemapindex: hooguit 3 delen van dezelfde site, nieuwsachtig eerst). `Nieuws.uitKaart` maakt er artikelen
+  van (nieuwste eerst, zonder voorpagina); `Nieuws.aanvullen` haalt titel, begin, afbeelding, auteur en datum uit de kop van
+  de pagina (`paginaKop`, og:/twitter:/article:, met de cookies van de inlog), hooguit `MAX_PAGINAS` nieuwe per ronde; wat al
+  bekend is komt uit de cache. Zet bij zo'n bron `alleen` op de artikelen (AI Report: `aireport.nl/p/`, niet de podcast).
 - **Lezen** (`NieuwsFeed`, zuiver, getest in `NieuwsFeedTest`): SAX zonder externe entiteiten; een DOCTYPE met eigen
   declaraties weigert `PodcastFeed.EntityGuard` al vóór de parser (de parser van Android geeft declaraties niet door).
   Opschoonpatronen moeten lineair blijven (Android kan een zoekopdracht niet afbreken; `NieuwsFeedTest` meet het). HTML uit

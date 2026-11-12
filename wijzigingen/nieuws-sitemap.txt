@@ -1,0 +1,2 @@
+Nieuws: AI Report werkt nu. De site heeft geen nieuwsfeed, dus Tools leest de sitemap en haalt titel, begin en afbeelding van de artikelen zelf op (alleen de artikelen, niet de podcast).
+Nieuws: elke site zonder nieuwsfeed maar met een sitemap kan nu ook als bron; Tools zoekt de sitemap vanzelf.

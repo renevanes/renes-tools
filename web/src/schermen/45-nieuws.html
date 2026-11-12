@@ -76,7 +76,7 @@
       <div class="sw"><span>Bron aan<small id="nwb-aan-n">Artikelen van deze bron ophalen en tonen in Nieuws.</small></span><button class="tg" id="nwb-aan" role="switch" aria-checked="false" aria-label="Bron aan" aria-describedby="nwb-aan-n" onclick="togUi(this); nwbZet({ aan: this.classList.contains('on') })"></button></div>
       <label class="f" for="nwb-naam">Naam</label>
       <input class="aein" id="nwb-naam" autocomplete="off" maxlength="80">
-      <label class="f" for="nwb-url">Adres van de feed of de site</label>
+      <label class="f" for="nwb-url">Adres van de feed, de sitemap of de site</label>
       <input class="aein" id="nwb-url" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false">
       <p class="hint" id="nwb-url-std" translate="no" hidden></p>
       <label class="f" for="nwb-alleen">Alleen artikelen waarvan de link begint met</label>
@@ -112,7 +112,7 @@
     </div>
     <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
       <p>Elke bron heeft dezelfde instellingen. Bij een bekende bron zijn naam, adres en de rest alleen een begin: wat je hier verandert, gaat erboven. Met Standaard terugzetten haal je je wijzigingen weg.</p>
-      <p>Adres: de feed (RSS of Atom) of de site zelf. Bij een site zoekt Tools de feed die de site noemt, of een gangbaar adres zoals /feed of /rss op dezelfde site. Een nieuw adres wordt eerst gelezen; lukt dat niet, dan blijft het oude staan.</p>
+      <p>Adres: de feed (RSS of Atom), de sitemap of de site zelf. Bij een site zoekt Tools de feed die de site noemt, of een gangbaar adres zoals /feed of /rss op dezelfde site. Heeft de site geen feed, dan gebruikt Tools de sitemap: titel, begin en afbeelding komen dan van de artikelpagina's zelf (hooguit 20 nieuwe per keer). Een nieuw adres wordt eerst gelezen; lukt dat niet, dan blijft het oude staan.</p>
       <p>Inloggen: tik op Inloggen en log in op de echte site, in een eigen venster. Tools vult niets in en bewaart geen wachtwoord; de site bewaart je inlog in een cookie op je telefoon. Mailt de site je een inloglink, kopieer die link dan en tik in het venster op Link uit e-mail. Het venster opent alleen de toegestane sites; een andere site (bijvoorbeeld inloggen met Google) voeg je zelf toe.</p>
       <p>Daarna gaan de cookies van je inlog mee als Tools de feed en artikelpagina's van die sites ophaalt, en met Lees op de website lees je het hele artikel ingelogd in Tools. Uitloggen haalt de cookies en websitegegevens van die sites weg. Na een nieuwe telefoon of het terugzetten van een backup log je opnieuw in: de inlog gaat niet mee in de backup.</p>
     </div></details>

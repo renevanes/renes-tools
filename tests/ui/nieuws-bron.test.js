@@ -31,7 +31,7 @@ const path = require('path');
     await page.waitForTimeout(100);
     ok(await page.evaluate(() => current === 'nieuwsbron') && await tekst('#nwb-titel') === 'AI Report', 'scherm van de bron');
     ok(await aan('#nwb-aan') && await aan('#nwb-inlog') && !(await aan('#nwb-pagina')), 'aan, inloggen aan, geen afbeeldingen van de pagina');
-    ok(await page.inputValue('#nwb-naam') === 'AI Report' && await page.inputValue('#nwb-url') === 'https://www.aireport.nl/' && await page.inputValue('#nwb-alleen') === '', 'naam, adres en welke artikelen');
+    ok(await page.inputValue('#nwb-naam') === 'AI Report' && await page.inputValue('#nwb-url') === 'https://www.aireport.nl/sitemap.xml' && await page.inputValue('#nwb-alleen') === 'aireport.nl/p/', 'naam, adres en welke artikelen');
     ok(await page.locator('#nwb-inlog-deel').isVisible() && await page.inputValue('#nwb-start') === 'https://www.aireport.nl/' && await page.inputValue('#nwb-sites') === 'aireport.nl *.aireport.nl *.beehiiv.com'
       && await page.inputValue('#nwb-lezen') === 'app', 'inloggen: inlogpagina, toegestane sites, lezen in Tools');
     ok(await tekst('#nwb-inlog-st') === 'Nog niet ingelogd.' && await page.locator('#nwb-uitloggen').isDisabled(), 'nog niet ingelogd: uitloggen kan niet');
@@ -58,11 +58,11 @@ const path = require('path');
     ok(await page.evaluate(() => { const n = () => Android._nw.calls.filter(c => c[0] === 'instellen').length, voor = n(); nwbOpslaan(); const bezig = document.querySelector('#nwb-opslaan').disabled; nwbOpslaan(); return bezig && n() === voor + 1; }), 'tijdens opslaan: niet nog eens');
     await page.waitForTimeout(300);
     const verzonden = await page.evaluate(() => JSON.parse(Android._nw.calls.filter(c => c[0] === 'instellen').pop()[2]));
-    ok(verzonden.naam === 'AI Report NL' && verzonden.url === 'https://www.aireport.nl/' && /accounts\.google\.com/.test(verzonden.inlogSites) && 'inlogStart' in verzonden, 'opslaan stuurt alle velden van de bron');
+    ok(verzonden.naam === 'AI Report NL' && verzonden.url === 'https://www.aireport.nl/sitemap.xml' && /accounts\.google\.com/.test(verzonden.inlogSites) && 'inlogStart' in verzonden, 'opslaan stuurt alle velden van de bron');
     ok(await tekst('#nwb-status') === 'Opgeslagen' && await tekst('#nwb-titel') === 'AI Report NL' && await page.locator('#nwb-standaard').isVisible(), 'opgeslagen: nieuwe naam, terugzetten kan nu');
     await page.fill('#nwb-url', 'https://www.aireport.nl/geenfeed');
     await page.click('#nwb-opslaan'); await page.waitForTimeout(300);
-    ok((await tekst('#nwb-status')).startsWith('Op deze pagina staat geen nieuwsfeed'), 'adres zonder feed: de oude blijft, met uitleg');
+    ok((await tekst('#nwb-status')).startsWith('Op deze site staat geen nieuwsfeed'), 'adres zonder feed: de oude blijft, met uitleg');
 
     // Inloggen uit: het deel verdwijnt; lezen gaat dan in de browser
     await leeg(); await page.click('#nwb-inlog'); await page.waitForTimeout(300);
