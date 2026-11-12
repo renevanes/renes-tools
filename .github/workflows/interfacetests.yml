@@ -86,8 +86,8 @@ jobs:
       - name: Playwright installeren
         if: steps.voorbereid.outputs.vingerafdruk != 'geen'
         run: |
-          npm ci
-          npx playwright install --with-deps chromium
+          # valt terug op een andere pakketserver van Ubuntu als die van Azure niet bereikbaar is
+          .github/scripts/playwright-installeren.sh
 
       - name: Interfacetests (Playwright, licht en donker)
         if: steps.voorbereid.outputs.vingerafdruk != 'geen'

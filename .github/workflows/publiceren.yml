@@ -103,8 +103,8 @@ jobs:
         if: steps.gate.outputs.ok == 'true'
         run: |
           ./setup-tools.sh
-          npm ci
-          npx playwright install --with-deps chromium
+          # valt terug op een andere pakketserver van Ubuntu als die van Azure niet bereikbaar is
+          .github/scripts/playwright-installeren.sh
 
       - name: Sleutel uitpakken
         if: steps.gate.outputs.ok == 'true'
