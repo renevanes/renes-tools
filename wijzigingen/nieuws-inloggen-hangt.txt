@@ -1,0 +1,1 @@
+Nieuws: inloggen bij AI Report bleef hangen op "Je code wordt verstuurd". Het inlogvenster laat nu alles toe wat de inlogpagina zelf maakt (zoals de controle tegen robots); houdt Tools toch iets tegen, dan staat dat bovenin.

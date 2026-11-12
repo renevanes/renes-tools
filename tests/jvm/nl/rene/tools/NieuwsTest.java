@@ -596,6 +596,10 @@ public class NieuwsTest {
                 && !Nieuws.siteMag("*.beehiiv.com", "https://beehiiv.com.example.org/") && !Nieuws.siteMag("*.aireport.nl", "https://xaireport.nl/"), "siteMag: alleen https naar de sites zelf");
         List<String> uit = Nieuws.uitlogAdressen("aireport.nl *.beehiiv.com", "https://login.aireport.nl/start");
         check(uit.contains("https://login.aireport.nl/") && uit.contains("https://aireport.nl/") && uit.contains("https://www.aireport.nl/") && uit.contains("https://beehiiv.com/"), "uitloggen: de inlogpagina en de sites: " + uit);
+        // Inlogvenster: wat een pagina mag laden
+        check(Nieuws.ladenMag("https://challenges.cloudflare.com/x") && Nieuws.ladenMag("blob:https://www.aireport.nl/1-2") && Nieuws.ladenMag("data:image/png;base64,AA")
+                && Nieuws.ladenMag("about:blank") && Nieuws.ladenMag("wss://x.example.org/") && !Nieuws.ladenMag("http://x.example.org/") && !Nieuws.ladenMag("file:///sdcard/a")
+                && !Nieuws.ladenMag("content://x/y") && !Nieuws.ladenMag("javascript:alert(1)") && !Nieuws.ladenMag("intent://x") && !Nieuws.ladenMag(null), "inlogvenster: https, wss, blob, data en about wel; http, bestanden en apps niet");
         check("tweakers.net/nieuws/".equals(geen(() -> Nieuws.alleenNetjes(" https://www.Tweakers.net/nieuws/ "))) && "".equals(geen(() -> Nieuws.alleenNetjes(""))) && geeftFout(() -> Nieuws.alleenNetjes("a b")), "begin van de link netjes");
         check(Nieuws.kandidaten("https://www.aireport.nl/").contains("https://www.aireport.nl/feed") && Nieuws.kandidaten("https://www.aireport.nl/").contains("https://www.aireport.nl/rss")
                 && Nieuws.kandidaten("https://www.aireport.nl/nieuws/").get(0).equals("https://www.aireport.nl/feed") && Nieuws.kandidaten("http://x.example.org/").isEmpty(), "gangbare feedadressen op dezelfde site");

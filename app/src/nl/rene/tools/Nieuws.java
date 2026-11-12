@@ -286,6 +286,16 @@ final class Nieuws {
         try { return android.os.LocaleList.getDefault().toLanguageTags(); } catch (Throwable e) { return null; }
     }
 
+    /**
+     * Mag een pagina in het inlogvenster dit laden (geen hoofdpagina)? https en wss van elke site, en wat de pagina zelf maakt:
+     * blob:, data: en about: (werkers, plaatjes en lege vensters, bijv. van een robotcontrole). Geen http, bestanden of apps.
+     */
+    static boolean ladenMag(String u) {
+        if (u == null) return false;
+        String l = u.toLowerCase(Locale.ROOT);
+        return l.startsWith("https://") || l.startsWith("wss://") || l.startsWith("blob:") || l.startsWith("data:") || l.startsWith("about:");
+    }
+
     /** De User-Agent voor artikelpagina's: die van de WebView, of {@link #UA} als die er niet is of niet in een kopregel past. */
     static String paginaUa(String webUa) {
         if (webUa == null) return UA;

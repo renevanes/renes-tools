@@ -228,6 +228,17 @@ public class NieuwsInlogActivity extends Activity {
         else sluit();
     }
 
+    private final java.util.Set<String> gemeld = new java.util.HashSet<>();
+
+    /** Een onderdeel van de pagina dat Tools tegenhield (zoals http): één keer per site melden, alleen bij inloggen. */
+    void tegengehouden(String url) {
+        if (!soort.equals(INLOGGEN)) return;
+        String host;
+        try { host = Uri.parse(url).getScheme() + "://" + Uri.parse(url).getHost(); } catch (Throwable e) { return; }
+        if (!gemeld.add(host)) return;
+        zet(Taal.t(this, "Tools hield een onderdeel van de pagina tegen: {site}. Blijft het inloggen hangen, meld dan deze regel.", "site", host));
+    }
+
     /** Een andere site: in de browser (lezen) of melden welke site er bij Toegestane sites moet (inloggen). */
     private String laatsteAndere = "";
 
@@ -282,8 +293,11 @@ public class NieuwsInlogActivity extends Activity {
         @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest req) {
             try {
                 String u = req.getUrl().toString();
-                // de pagina zelf alleen op de sites van de bron; wat ze laadt van elke https-site (geen http, geen bestanden)
-                if (req.isForMainFrame() ? Nieuws.siteMag(a.sites, u) : u.regionMatches(true, 0, "https://", 0, 8)) return null;
+                // de pagina zelf alleen op de sites van de bron; wat ze laadt van elke https-site, en wat ze zelf maakt
+                // (blob:, data:, about:: werkers en vensters van een robotcontrole of het inlogformulier); geen http of bestanden
+                if (req.isForMainFrame() ? Nieuws.siteMag(a.sites, u) : Nieuws.ladenMag(u)) return null;
+                // iets wat de pagina nodig heeft, maar niet mag (http): zeggen wat, zodat een hangende pagina te verklaren is
+                if (!req.isForMainFrame()) a.h.post(() -> a.tegengehouden(u));
                 // een doorverwijzing naar een andere site (de pagina zelf): zeggen welke, of in de browser bij lezen
                 if (req.isForMainFrame() && u.regionMatches(true, 0, "https://", 0, 8)) a.h.post(() -> a.andereSite(u));
             } catch (Throwable ignored) { }
@@ -291,7 +305,7 @@ public class NieuwsInlogActivity extends Activity {
         }
         @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
             String u = req.getUrl().toString();
-            if (!req.isForMainFrame()) return !u.regionMatches(true, 0, "https://", 0, 8);
+            if (!req.isForMainFrame()) return !Nieuws.ladenMag(u);
             if (Nieuws.siteMag(a.sites, u)) return false;
             if (u.regionMatches(true, 0, "https://", 0, 8)) a.andereSite(u);
             return true;
