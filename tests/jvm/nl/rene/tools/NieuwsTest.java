@@ -596,6 +596,14 @@ public class NieuwsTest {
         check(Nieuws.httpsVersie("aireport.nl", "http://example.org/") == null && Nieuws.httpsVersie("aireport.nl", "http://aireport.nl:8080/") == null
                 && Nieuws.httpsVersie("aireport.nl", "http://u:p@aireport.nl/") == null && Nieuws.httpsVersie("aireport.nl", "https://aireport.nl/") == null
                 && Nieuws.httpsVersie("aireport.nl", "ftp://aireport.nl/") == null && Nieuws.httpsVersie("aireport.nl", null) == null, "inlog: geen https van een andere site, poort of gebruiker");
+        check("https://www.aireport.nl/?a={x}|y^z".equals(Nieuws.httpsVersie("aireport.nl", "http://www.aireport.nl/?a={x}|y^z"))
+                && "https://link.mail.beehiiv.com/ss/c/1".equals(Nieuws.httpsVersie("aireport.nl *.beehiiv.com", "http://link.mail.beehiiv.com/ss/c/1"))
+                && Nieuws.httpsVersie("aireport.nl", "http://aireport.nl.example.org/") == null
+                && "https://aireport.nl/?x=1".equals(Nieuws.httpsVersie("aireport.nl", "http://aireport.nl?x=1")), "inlog: http met bijzondere tekens, subdomein en zonder pad");
+        java.util.ArrayDeque<Long> tijden = new java.util.ArrayDeque<>();
+        boolean grens = true;
+        for (int i = 0; i < 5; i++) grens &= Nieuws.binnenGrens(tijden, 1000 + i, 5, 60_000);
+        check(grens && !Nieuws.binnenGrens(tijden, 2000, 5, 60_000) && Nieuws.binnenGrens(tijden, 61_001, 5, 60_000), "inlog: hooguit 5 keer per minuut omzetten (tegen een lus)");
         check(Nieuws.siteMag("aireport.nl *.beehiiv.com", "https://www.aireport.nl/p/x") && Nieuws.siteMag("aireport.nl", "https://aireport.nl/")
                 && Nieuws.siteMag("*.beehiiv.com", "https://link.mail.beehiiv.com/ss/c/1") && !Nieuws.siteMag("aireport.nl", "https://login.aireport.nl/")
                 && !Nieuws.siteMag("aireport.nl", "http://aireport.nl/") && !Nieuws.siteMag("aireport.nl", "https://aireport.nl.example.org/")

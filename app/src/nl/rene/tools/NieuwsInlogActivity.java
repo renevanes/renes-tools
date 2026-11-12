@@ -358,6 +358,7 @@ public class NieuwsInlogActivity extends Activity {
 
     private String laatsteHttps = "";
     private long laatsteHttpsTijd;
+    private final java.util.ArrayDeque<Long> httpsTijden = new java.util.ArrayDeque<>();
 
     /** Een pagina van de inlog via http (terugsturen na het inloggen): hetzelfde adres via https laden, één keer. */
     boolean naarHttps(String url) {
@@ -366,6 +367,12 @@ public class NieuwsInlogActivity extends Activity {
         long nu = SystemClock.elapsedRealtime();
         // doorverwijzing: zowel onderschept als overgenomen (binnen een paar tellen dezelfde = één keer laden)
         if (u.equals(laatsteHttps) && nu - laatsteHttpsTijd < 3000) return true;
+        if (!Nieuws.binnenGrens(httpsTijden, nu, 5, 60_000)) {
+            // de https-pagina stuurt steeds terug naar http: stoppen in plaats van eindeloos laden
+            log("STOP", "lus: https stuurt terug naar http " + NieuwsDiagnose.schoon(url));
+            zet(Taal.t(this, "De site stuurt steeds terug naar een onbeveiligd adres (http). Tools stopt hier; probeer het later opnieuw."));
+            return true;
+        }
         laatsteHttps = u;
         laatsteHttpsTijd = nu;
         log("https", "http omgezet naar " + NieuwsDiagnose.schoon(u));

@@ -2264,6 +2264,7 @@
  "De site heeft je inlog bewaard (cookies op je telefoon).": "The site has kept your login (cookies on your phone).",
  "De site reageerde te traag.": "The site responded too slowly.",
  "De site stuurt eerst naar een andere site, bijvoorbeeld een cookiemuur.": "The site first redirects to another site, for example a cookie wall.",
+ "De site stuurt steeds terug naar een onbeveiligd adres (http). Tools stopt hier; probeer het later opnieuw.": "The site keeps sending you back to an unsecured address (http). Tools stops here; please try again later.",
  "De sleutel blijft alleen op je telefoon, in deze app. Bewaar hem ook zelf goed. De leesbare webpagina's in je backup-map zijn niet versleuteld.": "The key stays on your phone only, in this app. Keep a copy of it somewhere safe yourself. The readable web pages in your backup folder are not encrypted.",
  "De sleutel klopt niet": "The key is not correct",
  "De sleutel moet 64 tekens hebben; je hebt er {n}": "The key must be 64 characters; you have {n}",

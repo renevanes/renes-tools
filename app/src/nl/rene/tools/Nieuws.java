@@ -603,12 +603,24 @@ final class Nieuws {
     static String httpsVersie(String sites, String url) {
         if (url == null || !url.regionMatches(true, 0, "http://", 0, 7)) return null;
         try {
-            java.net.URI x = new java.net.URI(url);
-            if (x.getRawUserInfo() != null || x.getHost() == null || (x.getPort() != -1 && x.getPort() != 80)) return null;
-            String u = "https://" + x.getHost().toLowerCase(Locale.ROOT) + (x.getRawPath() == null || x.getRawPath().isEmpty() ? "/" : x.getRawPath())
-                    + (x.getRawQuery() != null ? "?" + x.getRawQuery() : "") + (x.getRawFragment() != null ? "#" + x.getRawFragment() : "");
+            // URL is soepel zoals Chromium ({, |, ^ in een vraag); de rest van het adres blijft precies zoals het was
+            URL x = new URL(url);
+            if (x.getUserInfo() != null || x.getHost() == null || x.getHost().isEmpty() || (x.getPort() != -1 && x.getPort() != 80)) return null;
+            int r = 7;
+            while (r < url.length() && "/?#".indexOf(url.charAt(r)) < 0) r++;
+            String rest = url.substring(r);
+            if (url.substring(7, r).indexOf('@') >= 0 || url.substring(7, r).indexOf('\\') >= 0) return null;
+            String u = "https://" + x.getHost().toLowerCase(Locale.ROOT) + (rest.startsWith("/") ? rest : "/" + rest);
             return siteMag(sites, u) ? u : null;
         } catch (Exception e) { return null; }
+    }
+
+    /** Hooguit {@code max} keer per {@code venster} ms (tegen een lus); telt deze keer mee als hij mag. */
+    static boolean binnenGrens(java.util.ArrayDeque<Long> tijden, long nu, int max, long venster) {
+        while (!tijden.isEmpty() && nu - tijden.peekFirst() >= venster) tijden.removeFirst();
+        if (tijden.size() >= max) return false;
+        tijden.addLast(nu);
+        return true;
     }
 
     /**
