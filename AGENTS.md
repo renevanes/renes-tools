@@ -346,7 +346,7 @@ alles kunnen lezen, dat controleert Bouwen en testen):
 | Android build-tools (d8, apksigner, zipalign) | `setup-tools.sh` (`BUILD_TOOLS`, URL, SHA-1 en grootte van Google, dl.google.com) | Onderhoud: Google (repository2-3.xml) | agent; wisselen van d8 vraagt een test op een telefoon. Is Google niet bereikbaar (afgeschermde cloudsessie), dan valt `setup-tools.sh` lokaal terug op androidide-tools 34.0.4, alleen om te testen; in CI (`CI` gezet) moet de download lukken en `./publish.sh` bouwt alleen met de vastgezette versie |
 | android.jar en targetSdk | `setup-tools.sh`, `build.sh` | Onderhoud: Google | agent; gedragswijzigingen van de nieuwe Android-versie nalopen en op een telefoon testen |
 | aapt2 | `setup-tools.sh` (aaptjs3) | Onderhoud: npm | agent |
-| Playwright (alleen tests) | `package.json` en `package-lock.json` | Onderhoud: npm | agent |
+| Playwright (alleen tests) | `package.json` en `package-lock.json`; in CI geïnstalleerd met `.github/scripts/playwright-installeren.sh` (systeempakketten via apt, elke poging hooguit 4 minuten; zijn de servers van ubuntu.com onbereikbaar, dan via spiegelservers buiten ubuntu.com (`SPIEGELS`: kernel.org, NLUUG), en anders door met de lettertypen van het image als Chromium start) | Onderhoud: npm | agent |
 | Node en Java (alleen CI-gereedschap) | `node-version`/`java-version` in de workflows | Onderhoud: Node-schema, Adoptium | agent, naar de nieuwste LTS |
 | AI-modellen (Qwen3/Qwen3.5 GGUF) | `LocalAi.java` (vaste commit + SHA-256) | Onderhoud: Hugging Face (zelfde maker, zelfde grootte) | agent voegt een nieuw `Model` toe na overleg met Rene (1–3 GB); Rene kiest zelf of hij downloadt |
 | Lokale voorleesbibliotheken (sherpa-onnx/Piper, ONNX Runtime, Apache Ant-codecs) | `tools/voorlezen/deps.json` (URL's, SHA-256, ONNX Runtime-versie; `deps.py` controleert die), licenties in `app/voorlezen/` | Onderhoud: nieuwste sherpa-onnx 1.x (GitHub) + OSV (sherpa-onnx, onnxruntime, ant); sherpa 2 heeft de eSpeak-fonemizer niet meer | agent: vastgezette archieven, SHA-256 en `VoiceEngine.ENGINE` bijwerken; Play-controle (echte Android-synthesetest op API 24/36) moet slagen |
@@ -624,7 +624,12 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   "Lees op de website" opent de link in de browser, of bij een bron met inloggen (en Lezen in Tools) in `NieuwsInlogActivity`.
 - **Feed vinden**: een adres mag een feed of een webpagina zijn. Noemt de pagina geen feed (`<link rel="alternate">`), dan
   probeert `Nieuws.lees` de gangbare adressen op dezelfde site (`FEED_PADEN`: /feed, /rss, …). Het echte feedadres staat
-  daarna in de cache (`feed`) en wordt de volgende keer eerst geprobeerd.
+  daarna in de cache (`feed`) en wordt de volgende keer eerst geprobeerd. **Geen feed** (zoals AI Report: beehiiv zet RSS
+  alleen aan als de uitgever het kiest): dan de sitemap (`SITEMAP_PADEN`, of een sitemap als adres; `NieuwsFeed.sitemap`, zelfde
+  veilige SAX; een sitemapindex: hooguit 3 delen van dezelfde site, nieuwsachtig eerst). `Nieuws.uitKaart` maakt er artikelen
+  van (nieuwste eerst, zonder voorpagina); `Nieuws.aanvullen` haalt titel, begin, afbeelding, auteur en datum uit de kop van
+  de pagina (`paginaKop`, og:/twitter:/article:, met de cookies van de inlog), hooguit `MAX_PAGINAS` nieuwe per ronde; wat al
+  bekend is komt uit de cache. Zet bij zo'n bron `alleen` op de artikelen (AI Report: `aireport.nl/p/`, niet de podcast).
 - **Lezen** (`NieuwsFeed`, zuiver, getest in `NieuwsFeedTest`): SAX zonder externe entiteiten; een DOCTYPE met eigen
   declaraties weigert `PodcastFeed.EntityGuard` al vóór de parser (de parser van Android geeft declaraties niet door).
   Opschoonpatronen moeten lineair blijven (Android kan een zoekopdracht niet afbreken; `NieuwsFeedTest` meet het). HTML uit

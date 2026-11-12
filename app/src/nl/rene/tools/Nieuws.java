@@ -74,8 +74,8 @@ final class Nieuws {
         {"tweakers", "Tweakers Nieuws", "https://tweakers.net/feeds/mixed.xml", "", "tweakers.net tweakers.net/nieuws", "tweakers.net/nieuws/"},
         {"bbc", "BBC News", "https://feeds.bbci.co.uk/news/rss.xml", "", "bbc.co.uk bbc.com bbc.co.uk/news bbc.com/news"},
         {"guardian", "The Guardian", "https://www.theguardian.com/world/rss", "", "theguardian.com theguardian.com/world"},
-        // Het adres van de site: Tools zoekt de feed zelf (link rel="alternate" of een gangbaar feedadres, zie kandidaten)
-        {"aireport", "AI Report", "https://www.aireport.nl/", "1", "aireport.nl"},
+        // Geen RSS (beehiiv zet die alleen aan als de uitgever het kiest): de sitemap, alleen de artikelen (/p/), niet de podcast
+        {"aireport", "AI Report", "https://www.aireport.nl/sitemap.xml", "1", "aireport.nl", "aireport.nl/p/"},
     };
 
     /**
@@ -126,7 +126,7 @@ final class Nieuws {
             "tweakers.net *.tweakers.net tweakimg.net *.tweakimg.net myprivacy.dpgmedia.nl myprivacy-static.dpgmedia.net pg.dpgmedia.nl",
             "myprivacy.dpgmedia.nl pg.dpgmedia.nl"},
     };
-    static final int MAX_PAGINA = 64 * 1024, MAX_PAGINAS = 20;
+    static final int MAX_PAGINA = 128 * 1024, MAX_PAGINAS = 20;
     static final long MAX_PER_PAGINA = 10_000L;
 
     static String[] paginaBron(String id) {
@@ -315,7 +315,7 @@ final class Nieuws {
         int gehaald = 0;
         boolean stop = p == null;
         for (NieuwsFeed.Artikel a : f.artikelen) {
-            if (!a.beeld.isEmpty()) continue;
+            if (!a.beeld.isEmpty() || a.zonderBeeld) continue;
             String id = artikelId(bron, a.sleutel), b = bekend.get(id);
             if (b != null) { a.beeld = b; a.zonderBeeld = b.isEmpty(); continue; }
             String l = link(a.link, basis);
@@ -852,7 +852,11 @@ final class Nieuws {
             if (oud != null && later(oud, nu)) return 0;
             Map<String, Long> bekend = new HashMap<>();
             JSONArray oa = oud == null ? null : oud.optJSONArray("artikelen");
-            if (oa != null) for (int i = 0; i < oa.length(); i++) { JSONObject a = oa.optJSONObject(i); if (a != null) bekend.put(a.optString("id"), datum(a)); }
+            long nieuwste = 0;
+            if (oa != null) for (int i = 0; i < oa.length(); i++) {
+                JSONObject a = oa.optJSONObject(i);
+                if (a != null) { bekend.put(a.optString("id"), datum(a)); nieuwste = Math.max(nieuwste, datum(a)); }
+            }
             List<JSONObject> lijst = new ArrayList<>();
             Set<String> gezien = new HashSet<>();
             int nieuw = 0;
@@ -862,7 +866,8 @@ final class Nieuws {
                 Long eerder = bekend.get(id);
                 long d = a.datum;
                 if (d <= 0 || d > nu + 3_600_000L) d = eerder != null ? eerder : nu;
-                if (eerder == null) nieuw++;
+                // uit een sitemap komen oudere artikelen er per ronde bij: die tellen niet als nieuw
+                if (eerder == null && !(f.uitSitemap && d < nieuwste)) nieuw++;
                 lijst.add(json(a, bron, d, basis));
             }
             nieuwsteEerst(lijst);
@@ -1255,23 +1260,211 @@ final class Nieuws {
         Antwoord a = haal(adres, tot, false, k, ua);
         try { return new Gelezen(parse(a), a.url); }
         catch (NieuwsFeed.GeenFeed g) {
+            Gelezen kaart = alsSitemap(a, tot, k, ua);
+            if (kaart != null) return kaart;
             int n = Math.min(a.data.length, 1_000_000);
             String html = new String(a.data, 0, n, PodcastFeed.charset(a.data, n, a.charset));
             String alt = zoekFeed(html, a.url);
             boolean isHtml = HTML.matcher(html.length() > 4096 ? html.substring(0, 4096) : html).find();
             if (alt == null && isHtml) {
                 // op de site die Rene opgaf (niet een cookiemuur of andere site waarheen de pagina doorstuurde)
-                for (String u : kandidaten(host(a.url).equals(host(adres)) ? a.url : adres)) {
+                String site = host(a.url).equals(host(adres)) ? a.url : adres;
+                for (String u : kandidaten(site)) {
                     if (System.currentTimeMillis() >= tot) break;
                     try { Antwoord b = haal(u, tot, false, k, ua); return new Gelezen(parse(b), b.url); }
                     catch (TeTraag t) { break; }
                     catch (Exception volgende) { /* niet hier */ }
                 }
-                throw new Fout(Taal.T("Op deze pagina staat geen nieuwsfeed. Zoek op de site naar RSS en vul dat adres in."));
+                // Geen feed: dan de sitemap van de site (artikelen met adres en datum; de rest komt van de pagina's)
+                for (String u : sitemaps(site)) {
+                    if (System.currentTimeMillis() >= tot) break;
+                    try { Gelezen g2 = alsSitemap(haal(u, tot, false, k, ua), tot, k, ua); if (g2 != null) return g2; }
+                    catch (TeTraag t) { break; }
+                    catch (Exception volgende) { /* niet hier */ }
+                }
+                throw new Fout(Taal.T("Op deze site staat geen nieuwsfeed of sitemap. Zoek op de site naar RSS en vul dat adres in."));
             }
             if (alt == null) throw g;
             Antwoord b = haal(alt, tot, false, k, ua);
             return new Gelezen(parse(b), b.url);
+        }
+    }
+
+    /** Waar een site zijn sitemap meestal heeft (op dezelfde site). */
+    static final String[] SITEMAP_PADEN = {"/sitemap.xml", "/sitemap_index.xml"};
+    static final int MAX_DEELKAARTEN = 3;
+
+    static List<String> sitemaps(String pagina) {
+        List<String> uit = new ArrayList<>();
+        try { URL p = new URL(pagina); for (String pad : SITEMAP_PADEN) { String u = new URL(p, pad).toString(); if (https(u)) uit.add(u); } }
+        catch (Exception ignored) { }
+        return uit;
+    }
+
+    /** Is dit antwoord een sitemap? Dan de artikelen eruit (nieuwste eerst); anders null. Een sitemapindex: hooguit 3 delen van dezelfde site. */
+    static Gelezen alsSitemap(Antwoord a, long tot, Koekjes k, String ua) throws Exception {
+        NieuwsFeed.Sitemap kaart;
+        try { kaart = NieuwsFeed.sitemap(new ByteArrayInputStream(a.data), a.charset); }
+        catch (NieuwsFeed.GeenFeed geen) { return null; }
+        if (kaart.index) {
+            NieuwsFeed.Sitemap alles = new NieuwsFeed.Sitemap();
+            for (String u : deelkaarten(kaart, a.url)) {
+                if (System.currentTimeMillis() >= tot) break;
+                try {
+                    NieuwsFeed.Sitemap deel = NieuwsFeed.sitemap(new ByteArrayInputStream(haal(u, tot, false, k, ua).data), null);
+                    if (!deel.index) alles.urls.addAll(deel.urls);
+                } catch (TeTraag t) { break; } catch (Exception volgende) { /* een ander deel */ }
+            }
+            kaart = alles;
+        }
+        return new Gelezen(uitKaart(kaart, a.url), a.url);
+    }
+
+    /** De delen van een sitemapindex die het meest op nieuws lijken (post, news, nieuws, article, blog), dan de nieuwste; alleen van dezelfde site. */
+    static List<String> deelkaarten(NieuwsFeed.Sitemap index, String basis) {
+        List<Object[]> l = new ArrayList<>();
+        for (Object[] u : index.urls) {
+            String loc = link((String) u[0], basis);
+            if (https(loc) && host(loc).equals(host(basis))) l.add(new Object[]{loc, u[1]});
+        }
+        Collections.sort(l, (x, y) -> {
+            int nx = nieuwsachtig((String) x[0]) ? 0 : 1, ny = nieuwsachtig((String) y[0]) ? 0 : 1;
+            return nx != ny ? Integer.compare(nx, ny) : Long.compare((Long) y[1], (Long) x[1]);
+        });
+        List<String> uit = new ArrayList<>();
+        for (int i = 0; i < l.size() && uit.size() < MAX_DEELKAARTEN; i++) uit.add((String) l.get(i)[0]);
+        return uit;
+    }
+
+    private static final Pattern NIEUWSACHTIG = Pattern.compile("(?i)post|news|nieuws|article|artikel|blog");
+    private static boolean nieuwsachtig(String u) { return NIEUWSACHTIG.matcher(u).find(); }
+
+    /** Een sitemap als feed: de pagina's (niet de voorpagina), nieuwste eerst, hooguit NieuwsFeed.MAX_ITEMS; titel en tekst vult {@link #aanvullen} aan. */
+    static NieuwsFeed.Feed uitKaart(NieuwsFeed.Sitemap kaart, String basis) {
+        NieuwsFeed.Feed f = new NieuwsFeed.Feed();
+        f.uitSitemap = true;
+        f.titel = host(basis);
+        List<Object[]> l = new ArrayList<>();
+        Set<String> gezien = new HashSet<>();
+        for (Object[] u : kaart.urls) {
+            String loc = link((String) u[0], basis);
+            String pad;
+            try { pad = zonderSlash(new URL(loc).getPath()); } catch (Exception e) { continue; }
+            // alleen pagina's van de site zelf: Tools haalt ze op, en een andere site hoeft niet te zien dat je leest
+            if (!https(loc) || !host(loc).equals(host(basis)) || pad.isEmpty() || !gezien.add(loc)) continue;
+            l.add(new Object[]{loc, u[1], u.length > 2 ? u[2] : ""});
+        }
+        Collections.sort(l, (x, y) -> Long.compare((Long) y[1], (Long) x[1]));
+        for (int i = 0; i < l.size() && f.artikelen.size() < NieuwsFeed.MAX_ITEMS; i++) {
+            NieuwsFeed.Artikel a = new NieuwsFeed.Artikel();
+            a.link = (String) l.get(i)[0];
+            a.sleutel = a.link;
+            a.datum = (Long) l.get(i)[1];
+            a.titel = (String) l.get(i)[2];
+            f.artikelen.add(a);
+        }
+        return f;
+    }
+
+    /** Wat de kop van een artikelpagina over het artikel zegt (og:, twitter:, article:, title). */
+    static final class Kop { String titel = "", tekst = "", beeld = "", auteur = ""; long datum; }
+
+    private static final Pattern TITLE = Pattern.compile("(?i)<title\\b[^>]{0,200}>([^<]{1,500})</title");
+
+    static Kop paginaKop(String html, String basis) {
+        Kop k = new Kop();
+        String s = html.length() > MAX_PAGINA ? html.substring(0, MAX_PAGINA) : html;
+        String ogT = "", twT = "", ogD = "", twD = "", d = "", tijd = "", auteur = "";
+        Matcher m = META.matcher(s);
+        while (m.find()) {
+            String soort = "", inhoud = "";
+            Matcher a = META_ATTR.matcher(m.group());
+            while (a.find()) {
+                String v = a.group(2);
+                if (v.startsWith("\"") || v.startsWith("'")) v = v.substring(1, v.length() - 1);
+                v = NieuwsFeed.ontsnap(v).trim();
+                if (a.group(1).equalsIgnoreCase("content")) inhoud = v; else soort = v.toLowerCase(Locale.ROOT);
+            }
+            if (inhoud.isEmpty()) continue;
+            switch (soort) {
+                case "og:title": if (ogT.isEmpty()) ogT = inhoud; break;
+                case "twitter:title": if (twT.isEmpty()) twT = inhoud; break;
+                case "og:description": if (ogD.isEmpty()) ogD = inhoud; break;
+                case "twitter:description": if (twD.isEmpty()) twD = inhoud; break;
+                case "description": if (d.isEmpty()) d = inhoud; break;
+                case "article:published_time": if (tijd.isEmpty()) tijd = inhoud; break;
+                case "author": case "article:author": if (auteur.isEmpty() && !inhoud.startsWith("http")) auteur = inhoud; break;
+                default: break;
+            }
+        }
+        String titel = !ogT.isEmpty() ? ogT : !twT.isEmpty() ? twT : "";
+        if (titel.isEmpty()) { Matcher t = TITLE.matcher(s); if (t.find()) titel = NieuwsFeed.ontsnap(t.group(1)); }
+        k.titel = NieuwsFeed.cut(NieuwsFeed.regel(titel).trim(), 300);
+        k.tekst = NieuwsFeed.cut(NieuwsFeed.regel(!ogD.isEmpty() ? ogD : !twD.isEmpty() ? twD : d).trim(), 2000);
+        k.auteur = NieuwsFeed.cut(NieuwsFeed.regel(auteur).trim(), 120);
+        k.beeld = paginaBeeld(html, basis);
+        k.datum = NieuwsFeed.datum(tijd);
+        return k;
+    }
+
+    /**
+     * Artikelen uit een sitemap aanvullen met titel, samenvatting, afbeelding en datum van de pagina zelf ({@code p}, met de
+     * cookies van de inlog). Wat de vorige ronde al vond, komt uit de cache ({@code oud}); daarna hooguit MAX_PAGINAS nieuwe
+     * pagina's, nieuwste eerst. Een pagina zonder titel (geen artikel, of een muur) valt weg. Lukt geen enkele, dan een fout.
+     */
+    static void aanvullen(String bron, NieuwsFeed.Feed f, JSONObject oud, long tot, Pagina p) throws Fout {
+        if (!f.uitSitemap) return;
+        Map<String, JSONObject> bekend = new HashMap<>();
+        JSONArray oa = oud == null ? null : oud.optJSONArray("artikelen");
+        if (oa != null) for (int i = 0; i < oa.length(); i++) { JSONObject a = oa.optJSONObject(i); if (a != null) bekend.put(a.optString("id"), a); }
+        List<NieuwsFeed.Artikel> uit = new ArrayList<>();
+        int gehaald = 0;
+        boolean stop = p == null;
+        for (NieuwsFeed.Artikel a : f.artikelen) {
+            if (uit.size() >= MAX_PER_BRON) break;
+            JSONObject o = bekend.get(artikelId(bron, a.sleutel));
+            if (o != null && !o.optString("titel").isEmpty()) { vanCache(a, o); uit.add(a); continue; }
+            if (stop || gehaald >= MAX_PAGINAS || System.currentTimeMillis() >= tot || !https(a.link)) continue;
+            gehaald++;
+            long paginaTot = Math.min(tot, System.currentTimeMillis() + MAX_PER_PAGINA);
+            try {
+                String html = p.haal(a.link, paginaTot);
+                Kop k = paginaKop(html, a.link);
+                if (!k.titel.isEmpty()) a.titel = k.titel;
+                if (!k.tekst.isEmpty()) a.blokken.add(new NieuwsFeed.Blok(k.tekst, false));
+                a.auteur = k.auteur;
+                a.beeld = k.beeld;
+                // "geen afbeelding" alleen als de hele kop er was (anders probeert beelden() het later nog eens)
+                a.zonderBeeld = k.beeld.isEmpty() && artikelKop(html);
+                if (k.datum > 0) a.datum = k.datum;
+            } catch (Doorverwezen | Elders | HttpFout e) {
+                // naar een andere site of pagina, of weg: geen artikel
+            } catch (Throwable e) {
+                if (e instanceof TeTraag || e instanceof java.net.SocketTimeoutException) stop = true;
+            }
+            a.ingekort = true;
+            if (!a.titel.isEmpty()) uit.add(a);
+        }
+        boolean waren = !f.artikelen.isEmpty();
+        f.artikelen.clear();
+        f.artikelen.addAll(uit);
+        if (waren && uit.isEmpty()) throw new Fout(Taal.T("De artikelpagina's van deze site zijn niet te lezen"));
+    }
+
+    /** Een artikel zoals de vorige ronde het van de pagina haalde (de datum uit de sitemap gaat voor als die er is). */
+    private static void vanCache(NieuwsFeed.Artikel a, JSONObject o) {
+        a.titel = o.optString("titel");
+        a.auteur = o.optString("auteur");
+        a.beeld = o.optString("beeld");
+        a.zonderBeeld = o.optBoolean("zonderBeeld");
+        a.ingekort = true;
+        // de datum van de vorige ronde (van de pagina zelf): een nieuwere lastmod (een bewerking) zet het artikel niet opnieuw bovenaan
+        long d = o.optLong("datum");
+        if (d > 0) a.datum = d;
+        JSONArray bl = o.optJSONArray("blokken");
+        if (bl != null) for (int i = 0; i < bl.length(); i++) {
+            JSONObject b = bl.optJSONObject(i);
+            if (b != null) a.blokken.add(new NieuwsFeed.Blok(b.optString("t"), b.optInt("k") == 1));
         }
     }
 
@@ -1316,15 +1509,16 @@ final class Nieuws {
             JSONObject b;
             synchronized (LOCK) { b = zoekBron(bronnen(dir), id); }
             if (b == null) b = new JSONObject().put("id", id).put("alleen", alleen(id)).put("pagina", paginaBron(id) != null);
-            return haalBron(dir, cache, b.put("url", url), pagina, null, UA, eind);
+            return haalBron(dir, cache, b.put("url", url), pagina, web(null, null), null, UA, eind);
         } catch (JSONException e) { return -1; }
     }
 
     /**
      * Zo ook met de instellingen van de bron ({@code b}: url, alleen, pagina) en voor de feed de cookies van de inlog
-     * ({@code k}) als {@code ua}. Vond Tools de vorige keer de feed op een webpagina, dan eerst meteen die feed.
+     * ({@code k}) als {@code ua}. Vond Tools de vorige keer de feed op een webpagina, dan eerst meteen die feed. Een sitemap
+     * vult {@code kop} aan met titel en tekst van de artikelpagina's (ook als Rene geen afbeeldingen wil).
      */
-    static int haalBron(File dir, File cache, JSONObject b, Pagina pagina, Koekjes k, String ua, long eind) {
+    static int haalBron(File dir, File cache, JSONObject b, Pagina pagina, Pagina kop, Koekjes k, String ua, long eind) {
         long nu = System.currentTimeMillis();
         String id = b.optString("id"), url = b.optString("url");
         try {
@@ -1337,6 +1531,7 @@ final class Nieuws {
             }
             if (g == null) g = lees(url, nu + MAX_HAAL, k, ua);
             filterOp(b.optString("alleen"), g.url, g.feed);
+            aanvullen(id, g.feed, oud, Math.min(nu + MAX_HAAL, eind), kop);
             beelden(id, g.url, g.feed, oud, Math.min(nu + MAX_HAAL, eind), pagina, b.optBoolean("pagina"));
             synchronized (LOCK) { return zoekBron(bronnen(dir), id) != null ? bewaarFeed(cache, id, g.url, g.feed, nu) : -1; }
         } catch (Throwable e) {
@@ -1419,8 +1614,10 @@ final class Nieuws {
                     Koekjes pagK = u -> (inlog && siteMag(sites, u)) || (keuze && koekjesNaar(u)) ? koekjes(u) : null;
                     WebPagina pagina = beelden && b.optBoolean("pagina") ? web(pagK, ua) : null;
                     if (pagina != null) paginas.put(t[0], pagina);
+                    // titel en tekst van de pagina's bij een sitemap: dezelfde cookies, maar zonder de keuze voor afbeeldingen
+                    WebPagina kop = pagina != null ? pagina : web(pagK, ua);
                     String feedUa = inlog ? paginaUa(ua) : UA;
-                    fs.add(ex.submit(() -> haalBron(dir, cache, b, pagina, feedK, feedUa, eind)));
+                    fs.add(ex.submit(() -> haalBron(dir, cache, b, pagina, kop, feedK, feedUa, eind)));
                 }
                 ex.shutdown();
                 for (Future<Integer> f : fs) {
@@ -1462,6 +1659,7 @@ final class Nieuws {
         JSONObject b = voegToe(dir(c), g.url, g.feed.titel);
         try {
             filter(b.getString("id"), g.url, g.feed);
+            aanvullen(b.getString("id"), g.feed, null, System.currentTimeMillis() + MAX_HAAL, web(null, webUa(c)));
             bewaarFeed(cache(c), b.getString("id"), g.url, g.feed, System.currentTimeMillis());
         } catch (Fout geenNieuws) { } // de bron staat aan; bijwerken haalt hem later
         App.log(c, "NIEUWS", "bron toegevoegd");

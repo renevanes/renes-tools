@@ -147,7 +147,7 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
     ok((await page.locator('#nws-status').innerText()).startsWith('Vul het adres'), 'leeg adres: uitleg');
     await page.fill('#nws-url', 'geenfeed.example.org');
     await page.click('#nws-add'); await page.waitForTimeout(250);
-    ok((await page.locator('#nws-status').innerText()).startsWith('Op deze pagina staat geen nieuwsfeed') && await page.locator('#nws-add').isEnabled(), 'pagina zonder feed: uitleg, opnieuw proberen kan');
+    ok((await page.locator('#nws-status').innerText()).startsWith('Op deze site staat geen nieuwsfeed') && await page.locator('#nws-add').isEnabled(), 'pagina zonder feed: uitleg, opnieuw proberen kan');
     await page.evaluate(() => { Android._nw.bronnen.find(b => b.id === 'tweakers').aan = false; });
     await page.fill('#nws-url', 'tweakers.net');
     await page.press('#nws-url', 'Enter'); await page.waitForTimeout(250);

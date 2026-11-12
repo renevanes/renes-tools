@@ -66,6 +66,7 @@ public class NieuwsCookiesActivity extends Activity {
         bron = id;
         start = cfg[2];
 
+        requestWindowFeature(android.view.Window.FEATURE_NO_TITLE); // de eigen balk zegt al waar je bent
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setOnApplyWindowInsetsListener((v, ins) -> {

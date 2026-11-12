@@ -49,6 +49,8 @@ final class NieuwsFeed {
         /** Bij beeldStand "fout": waarom (een HTTP-code, "geenkop", "traag", "verbinding", "beveiliging" of "anders"). */
         String beeldReden = "";
         final List<Artikel> artikelen = new ArrayList<>();
+        /** Uit een sitemap: de artikelen hebben alleen een adres en datum; titel en tekst komen van de pagina ({@link Nieuws#aanvullen}). */
+        boolean uitSitemap;
     }
 
     /** Geen nieuwsfeed (bijv. een gewone webpagina): dan kan de aanroeper op die pagina naar een feed zoeken. */
@@ -101,6 +103,22 @@ final class NieuwsFeed {
     }
 
     static Feed parse(InputStream raw, String httpCharset) throws Exception {
+        SAXParser p = parser();
+        Handler h = new Handler();
+        try { p.setProperty("http://xml.org/sax/properties/declaration-handler", h); } catch (Exception ignored) { }
+        try { p.parse(new org.xml.sax.InputSource(lezer(raw, httpCharset)), h); }
+        catch (PodcastFeed.Enough ignored) { }
+        catch (Onveilig e) { throw e; }
+        catch (SAXException e) {
+            if (!h.feedRoot) throw new GeenFeed();
+            if (h.feed.artikelen.isEmpty()) throw e;
+        }
+        if (!h.feedRoot) throw new GeenFeed();
+        return h.feed;
+    }
+
+    /** De tekst van een XML-bestand: tekenset uit de kop (of van de site), zonder BOM, zonder eigen entiteiten en foute tekens. */
+    private static java.io.Reader lezer(InputStream raw, String httpCharset) throws java.io.IOException {
         java.io.BufferedInputStream in = new java.io.BufferedInputStream(raw, 1 << 16);
         in.mark(4096);
         byte[] head = new byte[4096];
@@ -111,6 +129,11 @@ final class NieuwsFeed {
         long bom = n >= 3 && (head[0] & 0xff) == 0xEF && (head[1] & 0xff) == 0xBB && (head[2] & 0xff) == 0xBF ? 3
                 : n >= 2 && (((head[0] & 0xff) == 0xFE && (head[1] & 0xff) == 0xFF) || ((head[0] & 0xff) == 0xFF && (head[1] & 0xff) == 0xFE)) ? 2 : 0;
         while (bom > 0) { long k = in.skip(bom); if (k <= 0) break; bom -= k; }
+        return new PodcastFeed.EntityGuard(new XmlTekens(new java.io.InputStreamReader(in, cs)));
+    }
+
+    /** SAX zonder externe entiteiten of DTD's. */
+    private static SAXParser parser() throws Exception {
         SAXParserFactory f = SAXParserFactory.newInstance();
         f.setNamespaceAware(false);
         for (String feat : new String[]{"http://xml.org/sax/features/external-general-entities", "http://xml.org/sax/features/external-parameter-entities",
@@ -118,18 +141,92 @@ final class NieuwsFeed {
             try { f.setFeature(feat, false); } catch (Exception ignored) { }
         }
         try { f.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true); } catch (Exception ignored) { }
-        SAXParser p = f.newSAXParser();
-        Handler h = new Handler();
+        return f.newSAXParser();
+    }
+
+    // ---------------------------------------------------------------- sitemap
+
+    static final int MAX_SITEMAP = 50_000;
+
+    /**
+     * Een sitemap (sitemaps.org): voor een site zonder nieuwsfeed, zoals AI Report (beehiiv zet de feed alleen aan als de
+     * uitgever dat kiest). {@code index} = een sitemapindex: de adressen zijn dan andere sitemaps.
+     */
+    static final class Sitemap {
+        boolean index;
+        /** {adres, datum in ms (0 = onbekend), titel uit news:title ("" = geen)}, in de volgorde van het bestand. */
+        final List<Object[]> urls = new ArrayList<>();
+    }
+
+    /** Een sitemap lezen; geen sitemap = {@link GeenFeed}. Hooguit MAX_SITEMAP adressen. */
+    static Sitemap sitemap(InputStream raw, String httpCharset) throws Exception {
+        SAXParser p = parser();
+        SitemapHandler h = new SitemapHandler();
         try { p.setProperty("http://xml.org/sax/properties/declaration-handler", h); } catch (Exception ignored) { }
-        try { p.parse(new org.xml.sax.InputSource(new PodcastFeed.EntityGuard(new XmlTekens(new java.io.InputStreamReader(in, cs)))), h); }
+        try { p.parse(new org.xml.sax.InputSource(lezer(raw, httpCharset)), h); }
         catch (PodcastFeed.Enough ignored) { }
         catch (Onveilig e) { throw e; }
         catch (SAXException e) {
-            if (!h.feedRoot) throw new GeenFeed();
-            if (h.feed.artikelen.isEmpty()) throw e;
+            if (!h.root || h.kaart.urls.isEmpty()) throw new GeenFeed();
         }
-        if (!h.feedRoot) throw new GeenFeed();
-        return h.feed;
+        if (!h.root) throw new GeenFeed();
+        return h.kaart;
+    }
+
+    private static final Pattern DAG = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
+
+    /** De datum in een sitemap: ISO 8601, ook alleen een dag (dan 12:00 UTC, zodat hij in Nederland op die dag valt). */
+    static long kaartDatum(String s) {
+        if (s == null) return 0;
+        String t = s.trim();
+        if (DAG.matcher(t).matches()) return datum(t + "T12:00:00Z");
+        return datum(t);
+    }
+
+    static final class SitemapHandler extends org.xml.sax.ext.DefaultHandler2 {
+        final Sitemap kaart = new Sitemap();
+        boolean root, started;
+        /** Diepte: 1 = urlset/sitemapindex, 2 = url/sitemap, 3 = loc en lastmod (dieper: image:loc en dergelijke tellen niet). */
+        int diepte;
+        String loc = "", mod = "", titel = "";
+        final StringBuilder text = new StringBuilder();
+
+        @Override public void internalEntityDecl(String name, String value) throws SAXException { throw new Onveilig(); }
+        @Override public void externalEntityDecl(String name, String pub, String sys) throws SAXException { throw new Onveilig(); }
+
+        private static String naam(String q) { int i = q.indexOf(':'); return (i < 0 ? q : q.substring(i + 1)).toLowerCase(Locale.ROOT); }
+
+        @Override public void startElement(String uri, String local, String q, Attributes a) throws SAXException {
+            String n = naam(q);
+            if (!started) {
+                started = true;
+                root = n.equals("urlset") || n.equals("sitemapindex");
+                kaart.index = n.equals("sitemapindex");
+                if (!root) throw new SAXException("geen sitemap");
+            }
+            diepte++;
+            if (diepte == 2 && (n.equals("url") || n.equals("sitemap"))) { loc = ""; mod = ""; titel = ""; }
+            text.setLength(0);
+        }
+
+        @Override public void characters(char[] ch, int start, int len) {
+            if (text.length() < 4000) text.append(ch, start, Math.min(len, 4000 - text.length()));
+        }
+
+        @Override public void endElement(String uri, String local, String q) throws SAXException {
+            String n = naam(q), lq = q.toLowerCase(Locale.ROOT);
+            boolean eigen = lq.indexOf(':') < 0; // loc en lastmod van de sitemap zelf, niet image:loc of video:title
+            int d = diepte--;
+            if (d == 3 && eigen && n.equals("loc")) loc = text.toString().trim();
+            else if (d == 3 && eigen && n.equals("lastmod")) mod = text.toString().trim();
+            else if (lq.startsWith("news:") && n.equals("publication_date") && mod.isEmpty()) mod = text.toString().trim();
+            else if (lq.startsWith("news:") && n.equals("title")) titel = cut(regel(ontsnap(text.toString())).trim(), 300);
+            else if (d == 2 && (n.equals("url") || n.equals("sitemap")) && !loc.isEmpty()) {
+                kaart.urls.add(new Object[]{loc, kaartDatum(mod), titel});
+                if (kaart.urls.size() >= MAX_SITEMAP) throw new PodcastFeed.Enough();
+            }
+            text.setLength(0);
+        }
     }
 
     static final class Handler extends org.xml.sax.ext.DefaultHandler2 {

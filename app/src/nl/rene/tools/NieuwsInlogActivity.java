@@ -58,6 +58,9 @@ public class NieuwsInlogActivity extends Activity {
     final Handler h = new Handler(Looper.getMainLooper());
     WebView wv;
     private TextView status;
+    private LinearLayout balk;
+    /** Hoeveel er sinds de laatste richtingswissel gescrold is (positief = naar beneden). */
+    private int gescrold;
     String sites = "", soort = INLOGGEN, naam = "";
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -74,6 +77,9 @@ public class NieuwsInlogActivity extends Activity {
         naam = bron.optString("naam");
         if (url == null || !Nieuws.siteMag(sites, url)) { finish(); return; }
 
+        // Geen titelbalk van Android: de eigen balk zegt al waar je bent (scheelt bij het lezen een hele balk)
+        requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+        boolean lezen = soort.equals(LEZEN);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setOnApplyWindowInsetsListener((v, ins) -> {
@@ -82,36 +88,55 @@ public class NieuwsInlogActivity extends Activity {
         });
         int p = dp(12);
         LinearLayout bar = new LinearLayout(this);
+        balk = bar;
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(p, p / 2, p / 2, p / 2);
+        // lezen: één smalle regel (sluiten, naam en site); inloggen: ruimer, met uitleg en Link uit e-mail
+        if (lezen) bar.setPadding(0, 0, p, 0); else bar.setPadding(p, p / 2, p / 2, p / 2);
+        if (lezen) {
+            Button dicht = new Button(this, null, android.R.attr.borderlessButtonStyle);
+            dicht.setText("✕");
+            dicht.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+            dicht.setContentDescription(Taal.t(this, "Sluiten"));
+            dicht.setMinWidth(dp(48));
+            dicht.setMinimumWidth(dp(48));
+            dicht.setOnClickListener(v -> sluit());
+            dicht.setMinHeight(dp(48));
+            dicht.setMinimumHeight(dp(48));
+            bar.addView(dicht, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
         LinearLayout tekst = new LinearLayout(this);
         tekst.setOrientation(LinearLayout.VERTICAL);
         TextView titel = new TextView(this);
-        titel.setText(soort.equals(LEZEN) ? naam : Taal.t(this, "Inloggen bij {naam}", "naam", naam));
+        titel.setText(lezen ? naam : Taal.t(this, "Inloggen bij {naam}", "naam", naam));
         titel.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        titel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        titel.setTextSize(TypedValue.COMPLEX_UNIT_SP, lezen ? 14 : 16);
+        titel.setSingleLine(true);
+        titel.setEllipsize(android.text.TextUtils.TruncateAt.END);
         status = new TextView(this);
-        status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        status.setTextSize(TypedValue.COMPLEX_UNIT_SP, lezen ? 12 : 13);
         status.setAccessibilityLiveRegion(android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE);
-        status.setText(soort.equals(LEZEN) ? Nieuws.host(url) : Taal.t(this, "Log in op de site zelf. Krijg je een link per e-mail? Kopieer die en tik op Link uit e-mail."));
+        if (lezen) { status.setSingleLine(true); status.setEllipsize(android.text.TextUtils.TruncateAt.END); }
+        status.setText(lezen ? Nieuws.host(url) : Taal.t(this, "Log in op de site zelf. Krijg je een link per e-mail? Kopieer die en tik op Link uit e-mail."));
         tekst.addView(titel);
         tekst.addView(status);
         bar.addView(tekst, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        if (soort.equals(INLOGGEN)) {
+        if (!lezen) {
             Button link = new Button(this);
             link.setText(Taal.t(this, "Link uit e-mail"));
             link.setOnClickListener(v -> plak());
             bar.addView(link);
+            Button knop = new Button(this);
+            knop.setText(Taal.t(this, "Klaar"));
+            knop.setOnClickListener(v -> sluit());
+            bar.addView(knop);
         }
-        Button knop = new Button(this);
-        knop.setText(Taal.t(this, "Klaar"));
-        knop.setOnClickListener(v -> sluit());
-        bar.addView(knop);
         root.addView(bar);
         wv = new WebView(this);
         root.addView(wv, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
         setContentView(root);
+        // Lezen: de balk gaat weg als je verder leest (naar beneden scrolt) en komt terug als je terug scrolt of bovenaan bent
+        if (lezen) wv.setOnScrollChangeListener((v, x, y, ox, oy) -> balkBijScrollen(y, oy));
 
         WebSettings s = wv.getSettings();
         s.setJavaScriptEnabled(true);
@@ -143,9 +168,31 @@ public class NieuwsInlogActivity extends Activity {
         return null;
     }
 
+    /** De balk bij het lezen: weg na een stuk naar beneden scrollen, terug na een stuk omhoog of helemaal bovenaan. */
+    void balkBijScrollen(int y, int oud) {
+        if (balk == null) return;
+        int d = y - oud;
+        // onderaan de pagina schuift de WebView terug als hij groter wordt (balk weg): dat is geen terug scrollen
+        if (d < 0 && wv != null && !wv.canScrollVertically(1)) return;
+        gescrold = (d > 0) == (gescrold > 0) ? gescrold + d : d;
+        boolean zichtbaar = balk.getVisibility() == android.view.View.VISIBLE;
+        int drempel = Math.max(dp(48), balk.getHeight());
+        if (!zichtbaar && (y <= 0 || gescrold < -drempel)) { balk.setVisibility(android.view.View.VISIBLE); gescrold = 0; }
+        else if (zichtbaar && gescrold > drempel && y > 2 * drempel) { balk.setVisibility(android.view.View.GONE); gescrold = 0; }
+    }
+
     int dp(int v) { return (int) (v * getResources().getDisplayMetrics().density + .5f); }
 
-    void zet(String t) { h.post(() -> { if (status != null) status.setText(t); }); }
+    /** Een melding in de balk: altijd zichtbaar en helemaal leesbaar, ook bij het lezen (waar de balk weg kan zijn). */
+    void zet(String t) {
+        h.post(() -> {
+            if (status == null) return;
+            status.setSingleLine(false);
+            status.setMaxLines(3);
+            status.setText(t);
+            if (balk != null) { balk.setVisibility(android.view.View.VISIBLE); gescrold = 0; }
+        });
+    }
 
     private static final Pattern LINK = Pattern.compile("https://[^\\s<>\"']{1,2000}");
 

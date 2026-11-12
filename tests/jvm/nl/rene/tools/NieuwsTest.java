@@ -560,6 +560,7 @@ public class NieuwsTest {
         check(!br.contains(heelWv) && !dr.contains(heelWv), "de rest van app_webview/ (localStorage met de instellingen van de interface) gaat wel mee");
 
         instellingen();
+        sitemap();
 
         System.out.println(fails == 0 ? "alles goed" : fails + " fout(en)");
         System.exit(fails == 0 ? 0 : 1);
@@ -682,6 +683,122 @@ public class NieuwsTest {
                 (u, tot) -> { gehaald[0]++; return "<head><meta property=\"og:image\" content=\"https://tweakers.net/i/x.jpg\"></head>"; }, true);
         check(gehaald[0] == 2 && "https://tweakers.net/i/x.jpg".equals(t1.artikelen.get(0).beeld), "afbeeldingen van de pagina aan bij een andere bron: werkt hetzelfde (" + gehaald[0] + ")");
     }
+
+    static InputStream tekst(String s) { return new java.io.ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)); }
+
+    /** Een site zonder feed (AI Report, beehiiv): de sitemap als bron, aangevuld met de kop van de artikelpagina's. */
+    static void sitemap() throws Exception {
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:news=\"http://www.google.com/schemas/sitemap-news/0.9\">"
+                + "<url><loc>https://www.aireport.nl/</loc><lastmod>2026-11-12</lastmod></url>"
+                + "<url><loc>https://www.aireport.nl/p/oud</loc><lastmod>2026-11-07</lastmod></url>"
+                + "<url><loc>https://www.aireport.nl/p/nieuw</loc><lastmod>2026-11-12T08:30:00+01:00</lastmod></url>"
+                + "<url><loc>https://www.aireport.nl/podcast/s/x/aflevering</loc><lastmod>2026-11-11</lastmod></url>"
+                + "<url><loc>https://www.aireport.nl/p/nieuws</loc><news:news><news:publication_date>2026-11-10T10:00:00Z</news:publication_date><news:title>Nieuws &amp; meer</news:title></news:news></url>"
+                + "<url><loc>https://www.aireport.nl/p/zonder-datum</loc></url>"
+                + "<url><loc>http://www.aireport.nl/p/http</loc><lastmod>2026-11-12</lastmod></url>"
+                + "</urlset>";
+        NieuwsFeed.Sitemap k = NieuwsFeed.sitemap(tekst(xml), null);
+        check(!k.index && k.urls.size() == 7, "sitemap gelezen: " + k.urls.size());
+        check(geeftGeenFeed(() -> NieuwsFeed.sitemap(tekst("<html><body>x</body></html>"), null)) && geeftGeenFeed(() -> NieuwsFeed.sitemap(tekst("<rss><channel/></rss>"), null)), "geen sitemap: GeenFeed");
+        boolean onveilig = false;
+        try { NieuwsFeed.sitemap(tekst("<?xml version=\"1.0\"?><!DOCTYPE u [<!ENTITY x \"y\">]><urlset><url><loc>&x;</loc></url></urlset>"), null); }
+        catch (Exception e) { onveilig = true; }
+        check(onveilig, "sitemap met eigen entiteiten: geweigerd");
+        check(NieuwsFeed.kaartDatum("2026-11-12") == java.time.Instant.parse("2026-11-12T12:00:00Z").toEpochMilli(), "alleen een dag: 12:00 UTC");
+
+        NieuwsFeed.Feed f = Nieuws.uitKaart(k, "https://www.aireport.nl/sitemap.xml");
+        StringBuilder volg = new StringBuilder();
+        for (NieuwsFeed.Artikel a : f.artikelen) volg.append(a.link.replace("https://www.aireport.nl", "")).append(' ');
+        check(f.uitSitemap && "/p/nieuw /podcast/s/x/aflevering /p/nieuws /p/oud /p/zonder-datum ".equals(volg.toString()), "uit de sitemap: nieuwste eerst, zonder voorpagina en http: " + volg);
+        check("Nieuws & meer".equals(f.artikelen.get(2).titel), "news:title wordt de titel");
+        Nieuws.filterOp("aireport.nl/p/", "https://www.aireport.nl/sitemap.xml", f);
+        check(f.artikelen.size() == 4, "alleen /p/: de podcast valt weg");
+        check("aireport.nl/p/".equals(Nieuws.alleen("aireport")) && "https://www.aireport.nl/sitemap.xml".equals(Nieuws.standaard("aireport")[2]), "AI Report: de sitemap, alleen de artikelen");
+
+        // Afbeeldingen in de sitemap (Yoast): image:loc en image:title zijn niet het artikel
+        NieuwsFeed.Sitemap img = NieuwsFeed.sitemap(tekst("<urlset xmlns:image=\"http://www.google.com/schemas/sitemap-image/1.1\"><url><loc>https://ex.example.org/post/a/</loc><lastmod>2026-11-01</lastmod>"
+                + "<image:image><image:loc>https://ex.example.org/wp-content/a.jpg</image:loc><image:title>Foto</image:title></image:image></url></urlset>"), null);
+        check(img.urls.size() == 1 && "https://ex.example.org/post/a/".equals(img.urls.get(0)[0]) && "".equals(img.urls.get(0)[2]), "image:loc en image:title tellen niet: " + img.urls.get(0)[0]);
+        NieuwsFeed.Feed ander = Nieuws.uitKaart(NieuwsFeed.sitemap(tekst("<urlset><url><loc>https://ander.example.org/p/x</loc><lastmod>2026-11-12</lastmod></url>"
+                + "<url><loc>https://www.aireport.nl/p/y</loc><lastmod>2026-11-11</lastmod></url></urlset>"), null), "https://www.aireport.nl/sitemap.xml");
+        check(ander.artikelen.size() == 1 && ander.artikelen.get(0).link.endsWith("/p/y"), "alleen pagina's van de site zelf");
+        // Lineair: een lange, rare kop is snel klaar
+        StringBuilder raar = new StringBuilder("<head>");
+        while (raar.length() < Nieuws.MAX_PAGINA) raar.append("<title <meta property=og:title content=\"");
+        long t0 = System.nanoTime();
+        Nieuws.paginaKop(raar.toString(), "https://x.example.org/");
+        StringBuilder post = new StringBuilder("https://x.example.org/");
+        while (post.length() < 2000) post.append("pos");
+        Nieuws.deelkaarten(NieuwsFeed.sitemap(tekst("<sitemapindex><sitemap><loc>" + post + "</loc></sitemap></sitemapindex>"), null), "https://x.example.org/");
+        check((System.nanoTime() - t0) / 1_000_000 < 2000, "kop en sitemapindex: lineair (" + (System.nanoTime() - t0) / 1_000_000 + " ms)");
+
+        // Sitemapindex: de nieuwsachtige delen van dezelfde site eerst
+        NieuwsFeed.Sitemap idx = NieuwsFeed.sitemap(tekst("<sitemapindex><sitemap><loc>https://x.example.org/pages.xml</loc><lastmod>2026-11-12</lastmod></sitemap>"
+                + "<sitemap><loc>https://x.example.org/post-sitemap.xml</loc><lastmod>2026-11-01</lastmod></sitemap>"
+                + "<sitemap><loc>https://ander.example.org/news.xml</loc></sitemap></sitemapindex>"), null);
+        List<String> delen = Nieuws.deelkaarten(idx, "https://x.example.org/sitemap_index.xml");
+        check(idx.index && delen.size() == 2 && delen.get(0).endsWith("post-sitemap.xml") && !String.join(" ", delen).contains("ander."), "sitemapindex: nieuws eerst, alleen dezelfde site: " + delen);
+        check(Nieuws.sitemaps("https://www.aireport.nl/iets").get(0).equals("https://www.aireport.nl/sitemap.xml"), "sitemap op dezelfde site");
+
+        // De kop van een artikelpagina
+        String kop = "<html><head><title>Titel uit title | AI Report</title><meta property=\"og:title\" content=\"Claude &amp; prompts\">"
+                + "<meta name=\"description\" content=\"Korte omschrijving\"><meta property=\"og:description\" content=\"Wat je moet weten.\">"
+                + "<meta property=\"og:image\" content=\"https://media.beehiiv.com/x.png\"><meta property=\"article:published_time\" content=\"2026-11-12T07:00:00Z\">"
+                + "<meta name=\"author\" content=\"Alexander\"></head><body></body></html>";
+        Nieuws.Kop pk = Nieuws.paginaKop(kop, "https://www.aireport.nl/p/a");
+        check("Claude & prompts".equals(pk.titel) && "Wat je moet weten.".equals(pk.tekst) && "https://media.beehiiv.com/x.png".equals(pk.beeld) && "Alexander".equals(pk.auteur)
+                && pk.datum == java.time.Instant.parse("2026-11-12T07:00:00Z").toEpochMilli(), "kop: og-titel, -tekst, -beeld, auteur en datum");
+        check("Alleen title".equals(Nieuws.paginaKop("<head><title>Alleen title</title></head>", "https://x.example.org/a").titel), "zonder og:title: de title");
+
+        // Aanvullen: pagina's ophalen, de cache hergebruiken, hooguit MAX_PAGINAS per ronde
+        File cache = tmp("kaart-cache");
+        NieuwsFeed.Feed g = Nieuws.uitKaart(k, "https://www.aireport.nl/sitemap.xml");
+        Nieuws.filterOp("aireport.nl/p/", "https://www.aireport.nl/sitemap.xml", g);
+        List<String> opgehaald = new ArrayList<>();
+        Nieuws.aanvullen("aireport", g, null, System.currentTimeMillis() + 10_000, (u, tot) -> {
+            opgehaald.add(u);
+            if (u.endsWith("/oud")) return "<head><meta name=\"robots\" content=\"x\"></head>"; // geen titel: valt weg
+            return "<head><meta property=\"og:title\" content=\"Over " + u.substring(u.lastIndexOf('/') + 1) + "\"><meta property=\"og:description\" content=\"Begin.\"></head>";
+        });
+        check(opgehaald.size() == 4 && g.artikelen.size() == 3 && "Over nieuw".equals(g.artikelen.get(0).titel) && g.artikelen.get(0).ingekort
+                && "Begin.".equals(g.artikelen.get(0).blokken.get(0).tekst), "aangevuld: titel en begin, pagina zonder titel weg (" + g.artikelen.size() + ")");
+        Nieuws.bewaarFeed(cache, "aireport", "https://www.aireport.nl/sitemap.xml", g, System.currentTimeMillis());
+        JSONObject oud = new JSONObject(new String(Files.readAllBytes(Nieuws.cacheBestand(cache, "aireport").toPath()), StandardCharsets.UTF_8));
+        NieuwsFeed.Feed h = Nieuws.uitKaart(k, "https://www.aireport.nl/sitemap.xml");
+        Nieuws.filterOp("aireport.nl/p/", "https://www.aireport.nl/sitemap.xml", h);
+        opgehaald.clear();
+        Nieuws.aanvullen("aireport", h, oud, System.currentTimeMillis() + 10_000, (u, tot) -> { opgehaald.add(u); return "<head></head>"; });
+        check(opgehaald.size() == 1 && opgehaald.get(0).endsWith("/oud") && h.artikelen.size() == 3 && "Over nieuw".equals(h.artikelen.get(0).titel), "volgende ronde: bekende pagina's uit de cache, alleen de rest opnieuw");
+        // De datum van de pagina blijft, ook als de sitemap later een nieuwere lastmod geeft (een bewerking)
+        NieuwsFeed.Feed met = Nieuws.uitKaart(NieuwsFeed.sitemap(tekst("<urlset><url><loc>https://www.aireport.nl/p/a</loc><lastmod>2026-11-01</lastmod></url></urlset>"), null), "https://www.aireport.nl/sitemap.xml");
+        Nieuws.aanvullen("e9", met, null, System.currentTimeMillis() + 10_000, (u, tot) -> "<head><meta property=\"og:title\" content=\"A\"><meta property=\"article:published_time\" content=\"2026-10-30T09:00:00Z\"></head>");
+        File c9 = tmp("kaart-datum");
+        Nieuws.bewaarFeed(c9, "e9", "https://www.aireport.nl/sitemap.xml", met, System.currentTimeMillis());
+        JSONObject o9 = new JSONObject(new String(Files.readAllBytes(Nieuws.cacheBestand(c9, "e9").toPath()), StandardCharsets.UTF_8));
+        NieuwsFeed.Feed later = Nieuws.uitKaart(NieuwsFeed.sitemap(tekst("<urlset><url><loc>https://www.aireport.nl/p/a</loc><lastmod>2026-11-12</lastmod></url></urlset>"), null), "https://www.aireport.nl/sitemap.xml");
+        Nieuws.aanvullen("e9", later, o9, System.currentTimeMillis() + 10_000, (u, tot) -> { throw new AssertionError("uit de cache"); });
+        check(later.artikelen.get(0).datum == java.time.Instant.parse("2026-10-30T09:00:00Z").toEpochMilli(), "bewerkt artikel: de datum van de pagina blijft");
+        // Oudere artikelen die er in een latere ronde bij komen, tellen niet als nieuw
+        NieuwsFeed.Feed erbij = Nieuws.uitKaart(NieuwsFeed.sitemap(tekst("<urlset><url><loc>https://www.aireport.nl/p/a</loc><lastmod>2026-11-12</lastmod></url>"
+                + "<url><loc>https://www.aireport.nl/p/ouder</loc><lastmod>2026-09-01</lastmod></url><url><loc>https://www.aireport.nl/p/vers</loc><lastmod>2026-11-12T10:00:00Z</lastmod></url></urlset>"), null), "https://www.aireport.nl/sitemap.xml");
+        Nieuws.aanvullen("e9", erbij, o9, System.currentTimeMillis() + 10_000, (u, tot) -> "<head><title>T</title></head>");
+        check(Nieuws.bewaarFeed(c9, "e9", "https://www.aireport.nl/sitemap.xml", erbij, System.currentTimeMillis()) == 1, "alleen het echt nieuwe artikel telt als nieuw");
+        NieuwsFeed.Feed veel = new NieuwsFeed.Feed();
+        veel.uitSitemap = true;
+        for (int i = 0; i < 50; i++) { NieuwsFeed.Artikel a = new NieuwsFeed.Artikel(); a.link = "https://x.example.org/p/" + i; a.sleutel = a.link; veel.artikelen.add(a); }
+        int[] n = {0};
+        Nieuws.aanvullen("e1", veel, null, System.currentTimeMillis() + 10_000, (u, tot) -> { n[0]++; return "<head><title>T</title></head>"; });
+        check(n[0] == Nieuws.MAX_PAGINAS && veel.artikelen.size() == Nieuws.MAX_PAGINAS, "hooguit " + Nieuws.MAX_PAGINAS + " pagina's per ronde");
+        NieuwsFeed.Feed muur = Nieuws.uitKaart(k, "https://www.aireport.nl/sitemap.xml");
+        muur.artikelen.removeIf(a -> !a.titel.isEmpty());
+        check(geeftFout(() -> Nieuws.aanvullen("aireport", muur, null, System.currentTimeMillis() + 10_000, (u, tot) -> { throw new Nieuws.HttpFout(403); })), "geen enkele pagina te lezen: een fout bij de bron");
+        NieuwsFeed.Feed rssFeed = rss();
+        int voor = rssFeed.artikelen.size();
+        Nieuws.aanvullen("nos", rssFeed, null, System.currentTimeMillis() + 10_000, (u, tot) -> { throw new AssertionError("niet ophalen"); });
+        check(rssFeed.artikelen.size() == voor, "een gewone feed: niets aangevuld");
+    }
+
+    static boolean geeftGeenFeed(Doe d) { try { d.doe(); return false; } catch (NieuwsFeed.GeenFeed e) { return true; } catch (Exception e) { return false; } }
 
     interface Geef { String geef() throws Exception; }
     static String geen(Geef g) { try { return g.geef(); } catch (Exception e) { return "FOUT: " + e.getMessage(); } }
