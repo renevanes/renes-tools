@@ -1,0 +1,1 @@
+Nieuws: inloggen bij AI Report bleef hangen. Per bron kun je nu cookies van andere sites toestaan in het inlogvenster (bij AI Report staat het standaard aan, want het inloggen loopt via beehiiv).

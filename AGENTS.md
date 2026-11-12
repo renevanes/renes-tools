@@ -650,7 +650,8 @@ artikelen uit RSS-, Atom- en RDF-feeds.
 - **Inloggen** (`NieuwsInlogActivity`, ook "Lees op de website" met de inlog): Rene logt zelf in op de echte site (geen
   wachtwoord in Tools; een inloglink uit de mail via "Link uit e-mail", van het klembord). Het venster opent pagina's alleen op
   `inlogSites` (`Nieuws.siteMag`: "site.nl" = site.nl en www., "*.site.nl" = subdomeinen; `sitesNetjes` weigert "*.com" en
-  IP-adressen); wat een pagina laadt mag van elke https-site, cookies van derden niet. De cookies van de inlog gaan alleen naar
+  IP-adressen); wat een pagina laadt mag van elke https-site; cookies van derden alleen als `derden` bij de bron aan staat
+  (standaard alleen bij AI Report: beehiiv logt in via eigen diensten en een robotcontrole, die zonder blijven hangen). De cookies van de inlog gaan alleen naar
   `inlogSites` mee (`Nieuws.inlogKoekjes`, per adres ook na doorverwijzingen), voor de feed en de artikelpagina's; die van de
   cookiekeuze (Tweakers) alleen naar de artikelpagina's. Uitloggen (`NieuwsInlogActivity.wis`) laat de cookies van die sites
   verlopen. Cookies van de WebView gaan nergens mee in backups: na terugzetten opnieuw inloggen. Eerste bron met inloggen: AI Report (aireport.nl, beehiiv).

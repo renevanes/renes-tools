@@ -349,7 +349,7 @@ function nwbVul(velden){
   $('#nwb-titel').textContent = b.naam;
   const st = $('#nwb-stand'), fout = b.aan && b.fout && (b.poging || 0) >= (b.t || 0);
   st.textContent = nwBronStand(b); st.classList.toggle('nws-fout', !!fout);
-  nwbSchakel('#nwb-aan', b.aan); nwbSchakel('#nwb-inlog', b.inlog); nwbSchakel('#nwb-pagina', b.pagina);
+  nwbSchakel('#nwb-aan', b.aan); nwbSchakel('#nwb-inlog', b.inlog); nwbSchakel('#nwb-pagina', b.pagina); nwbSchakel('#nwb-derden', !!b.derden);
   if (velden) {
     $('#nwb-naam').value = b.naam; $('#nwb-url').value = b.url; $('#nwb-alleen').value = b.alleen || '';
     $('#nwb-start').value = b.inlogStart || ''; $('#nwb-sites').value = b.inlogSites || '';

@@ -77,7 +77,7 @@ if (!window.Android) window.Android = (function(){
       const inlog = b.id === 'aireport';
       return Object.assign(b, { alleen: b.id === 'tweakers' ? 'tweakers.net/nieuws/' : b.id === 'aireport' ? 'aireport.nl/p/' : '', pagina: b.id === 'tweakers', cookiekeuze: b.id === 'tweakers', inlog,
         inlogStart: inlog ? 'https://www.aireport.nl/' : 'https://' + site + '/', inlogSites: inlog ? 'aireport.nl *.aireport.nl *.beehiiv.com' : site + ' *.' + site,
-        lezen: inlog ? 'app' : 'browser', aangepast: false });
+        lezen: inlog ? 'app' : 'browser', derden: inlog, aangepast: false });
     },
     _nwKort(a){ const o = Object.assign({}, a), p = (a.blokken || []).find(b => !b.k); o.sam = p && p.t !== a.titel ? p.t.slice(0, 240) : ''; o.lang = (a.blokken || []).reduce((n, b) => n + b.t.length, 0); delete o.blokken; return o; },
     nieuwsLijst(){
@@ -154,7 +154,7 @@ if (!window.Android) window.Android = (function(){
         if ('inlogSites' in w && /(^|\s)\*\.com(\s|$)|^\s*$/.test(w.inlogSites)) { onNieuwsInstellen({ error: 'Geen geldige site: *.com' }); return; }
         const andereUrl = !!w.url && w.url.trim() !== b.url;
         if (w.standaard) { const n = b.eigen ? { naam: b.naam, url: b.url } : { naam: b.standaardNaam, url: b.standaardUrl }; this._nwStd(Object.assign(b, n)); }
-        ['naam', 'url', 'alleen', 'pagina', 'inlog', 'inlogStart', 'inlogSites', 'lezen'].forEach(k => { if (k in w) b[k] = typeof b[k] === 'string' ? String(w[k]).trim() : w[k]; });
+        ['naam', 'url', 'alleen', 'pagina', 'inlog', 'inlogStart', 'inlogSites', 'lezen', 'derden'].forEach(k => { if (k in w) b[k] = typeof b[k] === 'string' ? String(w[k]).trim() : w[k]; });
         if ('inlog' in w && !('lezen' in w)) b.lezen = w.inlog ? 'app' : 'browser';
         if (!w.standaard) b.aangepast = true;
         if (andereUrl) { delete s.stand[id]; s.artikelen = s.artikelen.filter(a => a.bron !== id); }

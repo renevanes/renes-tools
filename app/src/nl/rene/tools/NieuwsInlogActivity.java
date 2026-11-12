@@ -62,6 +62,7 @@ public class NieuwsInlogActivity extends Activity {
     /** Hoeveel er sinds de laatste richtingswissel gescrold is (positief = naar beneden). */
     private int gescrold;
     String sites = "", soort = INLOGGEN, naam = "";
+    boolean derden;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -74,6 +75,7 @@ public class NieuwsInlogActivity extends Activity {
         JSONObject bron = bron(this, id);
         if (bron == null || !bron.optBoolean("inlog")) { finish(); return; }
         sites = bron.optString("inlogSites");
+        derden = bron.optBoolean("derden");
         naam = bron.optString("naam");
         if (url == null || !Nieuws.siteMag(sites, url)) { finish(); return; }
 
@@ -149,7 +151,8 @@ public class NieuwsInlogActivity extends Activity {
         s.setSaveFormData(false);
         s.setGeolocationEnabled(false);
         CookieManager.getInstance().setAcceptCookie(true);
-        CookieManager.getInstance().setAcceptThirdPartyCookies(wv, false);
+        // Cookies van andere sites alleen als dat bij deze bron aan staat (nodig als het inloggen via een andere dienst loopt)
+        CookieManager.getInstance().setAcceptThirdPartyCookies(wv, derden);
         wv.setWebViewClient(new Client(this));
         wv.setWebChromeClient(new Chrome());
         if (Build.VERSION.SDK_INT >= 33)
