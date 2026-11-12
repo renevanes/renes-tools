@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.195",
-  "versionCode": 196,
-  "nativeLevel": 174,
+  "versionName": "1.196",
+  "versionCode": 197,
+  "nativeLevel": 175,
   "web": "index.html",
-  "webSha256": "08cd03a47e0523013d3872e49285de9a54fa17230c756ed90aeb4e18b8073227",
+  "webSha256": "7bcef54a1352de4e4a800694d72b75ef4e40c6adf6660e7e2e7e3f095a5ee8c2",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "f96968dfd8533b19f1d9f24c62961fe29366d05fb8b3aed958390f049c874727",
+  "apkSha256": "889e3febe8185b8036ca5c6386d13161bafacbab68d7283dab53c38cffee42b7",
   "changelog": [
+    {
+      "version": "1.196",
+      "date": "2026-11-12",
+      "changes": [
+        "Nieuws, Podcasts en Radio hebben een knop maan/zon in de kop (de grote speler: \"Licht en donker\" in het menu ⋯): zet het scherm meteen donker of licht, met een directe link naar de instellingen voor weergave.",
+        "Staat het thema op automatisch, dan geldt \"nu donker\" (of licht) tijdelijk tot de volgende automatische wissel; daarna gaat het weer vanzelf. Ook het opstarten blijft dan donker, zonder witte flits."
+      ]
+    },
     {
       "version": "1.195",
       "date": "2026-11-12",
@@ -1728,5 +1736,5 @@
       ]
     }
   ],
-  "webSig2": "cmVX6ofj9hERnmGmurNpnjAc4ano5AVZ3yoVM1GGMgzOkrWGAetD/5MOdSNn7ejZ7DW5S8x3cd2WmYFRs+Aev56EQboWcxRfQOIrOAlb3x8XgRz11nYBYga8J0Lwd2+DLjQTXLQ/zr6tlWmPazivGv/nwOqvn0EUHP47s1lls0pp+dhF/RDTkEpA3Cy1bgphuM2scAheyVo1/YATK2WkqyPIFYGueawjH4fEdgIf/CYp3KWhFJX8Oa2R/jOVXNoLSGSYkizKnSouPB3gmyZnvoOuEn3xVQURORlqCQAw/yGC7LMEL7u9caMrsdO3Mj5dIW9iSway2xQrm4fFORnV212eKtkP9+LgPQ29CpV0aq2nR8v36aNI3f4xcIERfu9ts3+E36vz9Goo0tP0lTuexjvR8RbzCvh794TQYRid2OTuP5yVAuUrAU/7TzObhQlxS97eYApXBeN1j1FY+oJ2X072OoA9NnTrNyj+9LEHEx8gOPPDPY1NZt6UdSk3ktPi"
+  "webSig2": "FYOBFMuO3CODXikDI9sriT8hx4VmXTu1wMClSYCVA+H1T0uG+rxNCQKbmS+j2jncY+gkboqee90Y2x8l2oNG46/lkSBUqj8IOwRlCBkKv/wmVubx2r+tmwpJ26JQ8m31nrJlemlWPMYiJ2EAwpnpDJUc/ni9axMB9bdfk0GM9GOQZITiOiZF3fOFtiszs8y/GuFwcW6QwQaaKU0d/pJ6cu0Fs4n/FSvEGzdd5gvnqUorKJiEvWpvr/fU445eDhDkSEGiRZX27PhBnhH76BzjUjD/90x7uCTZsGmXaVB14oDi6MgJ0bD2PNz3bFotHIQG2qRK8ydj89uTN1E55A6LoxviUqU+KQPLG0fJTjhn5pZAWi+Km/uSJgxE1/2opzGw4G7ia6BBdyDi8kUvNFEB0A5Ix07lpAGDp5h1M027qzgRc1/PgJaISv3k0ghcPHF84xaZSmVVWIeRy16hXNK//3HqokCQaqtd+SecsRFX/P/5q1vJu/J9nzuzGMvovXq7"
 }
