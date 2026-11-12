@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.192",
-  "versionCode": 193,
-  "nativeLevel": 171,
+  "versionName": "1.193",
+  "versionCode": 194,
+  "nativeLevel": 172,
   "web": "index.html",
-  "webSha256": "90b7084cbd1271a343f3a1d88ad759c6744599e7b40b8377d0167cbb99fa9476",
+  "webSha256": "a2bd6bb1d0d18558508a024c4657f8cdebd3b851696b66c9ddf0d35a8fad566f",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "a851f9cc1bd89bd114eb7cfb687097e4ccf7510ea8f71230b75e270126c93cf7",
+  "apkSha256": "e4bbd1429ea4616436cdda699bcfec306edcd74097281c7edd686b8b8a8bb502",
   "changelog": [
+    {
+      "version": "1.193",
+      "date": "2026-11-12",
+      "changes": [
+        "Nieuws: AI Report werkt nu. De site heeft geen nieuwsfeed, dus Tools leest de sitemap en haalt titel, begin en afbeelding van de artikelen zelf op (alleen de artikelen, niet de podcast).",
+        "Nieuws: elke site zonder nieuwsfeed maar met een sitemap kan nu ook als bron; Tools zoekt de sitemap vanzelf."
+      ]
+    },
     {
       "version": "1.192",
       "date": "2026-11-12",
@@ -1703,5 +1711,5 @@
       ]
     }
   ],
-  "webSig2": "DLCtleq7Igsosoa4O3mCIgIEvr5u+QtIcz818Rb1XH6PFxl4GBOlcK52som8sdf4qBMYQqzXlGXvwXXDyg4/m1isChPRokRmDl3S8KQ38Vobtl2Od2y9my8cJDmzg07VSu/1JvAcp8EYF1yeEUXwBQIV0nqJk8ywnChfBGxoUce+NOIaumcsxM3sxsxS/z7LMtFR2+SBq6q8fuRonNEkuWxwFzozsJ0ZJBsZEOzmlMHwWSwCPn0P/3t244dw5L0iSdXtDFYk3psEjAt/ZmvG9gUSWKgi+4KFqO0D3g/DKPxphLTGXcHuCO+qFLGrZyr3wUSjPs1OMl3J3TcRX4IqztTUv+IgS/unqwSf7VrB5LU2O939BecD1SEcI6kXNmOw7v4XTViwvyfHVeELNe1ZA9HymPdRuPr1hx+wZ1Wlcg5Az8E+FiSGdRZtS9acFlzqxC/CM0VaYLg0NM0Z1HwfJm3VsC5HLmCmXCuI4suSD70x9G+D+wnbIYHsqg9dBW2/"
+  "webSig2": "dIMyrE0E709RPyKF9EbUTEvCF1QecjUM812NcViojIiqXc0snmZJefGrML1UI9IeE4bK+u3mSpzLhSnW1540NJCNCa6qxhfRqf6FXC1HerXB2NmflCDdEwPvPzjfbEMA4qShRp/y2e7kj3PdgSor0ISub1QnI6eGfH+tpzvNaac+YaqZbqRvV+exqb7d0X6ANOGy0mIsOy4G+XFQQmzY8DrQf81OeBH1ZiLLXWGnWo973nEFBi6gAgMCSsj6E7gNjhjcjoEoQAXV/t9x618CNDzFxvXUfz8+ucqjj5j8IuvkWp86NSn8zAhexIaenk7SOjEApELvrgpv++qabUjb/7+maw1cWB8oxV4Yh2XgoAZXOa3UNr5s4wkW+ptgu9G/7/bSSzGGPus5MzYvXSgDoyAeCHH5a0OW/PYgSL3gKw/pwWJSV+bEEq0ytJ1UnSCiPtvDLDAPUJjTfeqPvMoPvfZW3oNBGUF31x7lTijOrTq8UfNkMNc9Fi05u9ZAmSEi"
 }
