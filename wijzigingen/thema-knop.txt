@@ -1,0 +1,2 @@
+Nieuws, Podcasts, Radio en de grote speler hebben een knop maan/zon in de kop: zet het scherm meteen donker of licht, met een directe link naar de instellingen voor weergave.
+Staat het thema op automatisch, dan geldt "nu donker" (of licht) tijdelijk tot de volgende automatische wissel; daarna gaat het weer vanzelf.

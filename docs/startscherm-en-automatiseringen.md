@@ -9,6 +9,7 @@
 
 ## Toegankelijkheid
 - **Tekstgrootte** (Instellingen → Weergave): volgt standaard de lettergrootte van de telefoon, of kies kleiner tot maximaal (175%). Via `WebSettings.setTextZoom`; de indeling loopt mee zonder horizontaal scrollen.
+- **Licht en donker vanuit een tool** (`02-thema.js`: `thMenu`, `thNu`, `thKnoppen`): een knop maan/zon (`<button class="icon-btn hthema">`, vult zichzelf) staat in de kop van Nieuws, een nieuwsartikel, Podcasts, een podcast, Radio en de grote speler. Het menu: nu donker of licht, weer automatisch, en Instellingen voor weergave (niet in een losse app). Bij een automatisch thema (Systeem, op tijd, zonsondergang) is dat **tijdelijk**: `store` `themeTmp` (`{dark, mode, until, sys}`, niet in backups via `WS_SKIP`) geldt tot de volgende automatische wissel (Systeem: tot de telefoon zelf wisselt, hooguit 12 uur; `thTmpGeldig`, `thTmpTot`), daarna weer vanzelf. Bij een vast thema wisselt de knop het thema zelf. Nieuw scherm met media of lezen: de knop erbij zetten.
 - **TalkBack**: alle knoppen en velden hebben een naam; schakelaars zijn `role=switch` met aan/uit, keuzeknoppen melden of ze gekozen zijn; meldingen (`role=status`), dialogen (`role=dialog`) en bij elk scherm springt de focus naar de titel.
 
 ## Automatiseringen

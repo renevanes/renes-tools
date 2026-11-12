@@ -8,7 +8,7 @@ const store = {
   set(k, v){ try { localStorage.setItem('rt.'+k, JSON.stringify(v)); } catch(e){} webStoreSync(); }
 };
 /* Instellingen van de interface (startschermindeling, keuzes) ook in de app bewaren, zodat ze mee kunnen in Alles back-uppen. */
-const WS_SKIP = /^(autoDraft|seenVersion|askedPerms|themeNow|homeRecent|.*Asked)$/; // themeNow: laatst berekende themastand, hoort bij dit moment; homeRecent: welke tools je laatst opende (gebruik, geen instelling)
+const WS_SKIP = /^(autoDraft|seenVersion|askedPerms|themeNow|themeTmp|homeRecent|.*Asked)$/; // themeNow: laatst berekende themastand, hoort bij dit moment; homeRecent: welke tools je laatst opende (gebruik, geen instelling)
 let webStoreTmr = null;
 function webStoreSync(){
   clearTimeout(webStoreTmr);

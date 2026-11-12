@@ -88,8 +88,19 @@ function thClean(o){
   return { mode: c.mode, amoled: c.amoled, dark: c.dark.padStart(5, '0'), light: c.light.padStart(5, '0'), off: c.off, place: c.place };
 }
 
+/* Tijdelijk andersom (knop maan/zon in Nieuws, Podcasts, Radio, de speler): geldt tot `until`, zolang de themakeuze dezelfde
+ * is en (bij Systeem) de telefoon niet zelf wisselde. Daarna weer automatisch. Zuiver. */
+function thTmpGeldig(tmp, mode, now, sysDark){
+  if (!tmp || typeof tmp !== 'object' || typeof tmp.dark !== 'boolean' || !(+tmp.until > now) || tmp.mode !== mode) return false;
+  if (mode === 'light' || mode === 'dark') return false;
+  return mode !== 'system' || tmp.sys === !!sysDark;
+}
+/* Tot wanneer "tijdelijk andersom" geldt: tot de volgende automatische wissel, anders (Systeem, poolnacht) 12 uur. Zuiver. */
+function thTmpTot(mode, next, now){ return (mode === 'time' || mode === 'sun') && next > now ? next : now + 12 * 36e5; }
+
 /* ---------- in de app ---------- */
 function thCfg(){ return thClean(store.get('theme', null)); }
+function thTmp(){ return store.get('themeTmp', null); }
 let thState = null, thLocC = null;
 /* Plek voor de zon: gekozen plaats, of de laatst bekende plek (grof, als de app locatie mag gebruiken), anders Rotterdam */
 function thLoc(c){
@@ -113,9 +124,13 @@ function uiDark(){ return (thState || thApply(true)).dark; }
 /* Opnieuw uitrekenen en toepassen. quiet = zonder overgang (bij het starten). */
 function thApply(quiet){
   const c = thCfg(), now = Date.now(), loc = c.mode === 'sun' ? thLoc(c) : null;
-  const r = thDecide(c, now, thSys(), loc), forced = c.mode === 'system' ? null : r.dark, amoled = c.amoled && r.dark;
+  let r = thDecide(c, now, thSys(), loc);
+  // Tijdelijk andersom: tot de volgende wissel. Is het automatisch al zo geworden (of verlopen), dan weer weg.
+  const tmp = thTmp();
+  if (tmp) { if (thTmpGeldig(tmp, c.mode, now, thSys()) && tmp.dark !== r.dark) r = { dark: tmp.dark, next: tmp.until, tmp: true }; else store.set('themeTmp', null); }
+  const forced = c.mode === 'system' && !r.tmp ? null : r.dark, amoled = c.amoled && r.dark;
   const prev = thState;
-  thState = { dark: r.dark, next: r.next, forced, amoled, mode: c.mode, loc };
+  thState = { dark: r.dark, next: r.next, forced, amoled, mode: c.mode, loc, tmp: !!r.tmp };
   const changed = !prev || prev.dark !== r.dark || prev.forced !== forced || prev.amoled !== amoled;
   if (changed) {
     if (prev && !quiet && prev.dark !== r.dark) thAnim();
@@ -123,7 +138,7 @@ function thApply(quiet){
     document.documentElement.dataset.thema = r.dark ? 'donker' : 'licht';
   }
   // Voor body-begin.html bij de volgende start (niet in backups: zie WS_SKIP): de stand en tot wanneer die geldt
-  const auto = c.mode === 'time' || c.mode === 'sun', pre = JSON.stringify({ dark: forced, until: auto ? (r.next || thDay(now, 1).getTime()) : 0 });
+  const auto = c.mode === 'time' || c.mode === 'sun' || r.tmp, pre = JSON.stringify({ dark: forced, until: auto ? (r.next || thDay(now, 1).getTime()) : 0 });
   try { if (thApply.pre === undefined) thApply.pre = localStorage.getItem('rt.themeNow'); if (pre !== thApply.pre) { localStorage.setItem('rt.themeNow', pre); thApply.pre = pre; } } catch (e) { }
   thNative(c, now, loc, r.dark);
   // Precies op de volgende wissel (naast de minuuttik), hooguit 6 uur vooruit
@@ -183,6 +198,7 @@ function thModeName(v){ const x = TH_MODES.find(m => m[0] === v); return x ? x[1
 /* "Nu: licht · wordt donker om 19:42" */
 function thStatus(){
   const s = thState || thApply(true), now = s.dark ? t('donker') : t('licht');
+  if (s.tmp) return t('Nu: {nu} tot {wanneer}, daarna weer automatisch', { nu: now, wanneer: thWhen(s.next) });
   if (s.mode === 'system') return t('Nu: {nu}, zoals je telefoon', { nu: now });
   if (s.mode === 'light' || s.mode === 'dark') return t('Nu: {nu} (altijd)', { nu: now });
   if (s.next) return t(s.dark ? 'Nu: {nu} · wordt licht {wanneer}' : 'Nu: {nu} · wordt donker {wanneer}', { nu: now, wanneer: thWhen(s.next) });
@@ -222,10 +238,49 @@ function thQuick(){
   undoToast(t('Thema: {thema}', { thema: t(to === 'dark' ? 'donker' : 'licht') }), () => thSave({ mode: prev }));
 }
 function thQuickIcon(){
-  const b = document.getElementById('st-th-quick'); if (!b || !thState) return;
-  const i = b.querySelector('.ui-icon'); if (i) i.dataset.icon = thState.dark ? 'sun' : 'moon';
-  b.setAttribute('aria-label', thState.dark ? 'Licht thema' : 'Donker thema');
+  if (!thState) return;
+  const b = document.getElementById('st-th-quick');
+  if (b) { const i = b.querySelector('.ui-icon'); if (i) i.dataset.icon = thState.dark ? 'sun' : 'moon'; b.setAttribute('aria-label', thState.dark ? 'Licht thema' : 'Donker thema'); }
+  thKnoppen();
 }
+
+/* ---------- Knop maan/zon in de kop (Nieuws, Podcasts, Radio, de speler): <button class="icon-btn hthema"> ----------
+ * Vult zichzelf (pictogram en naam); tikken opent thMenu: nu donker of licht (bij een automatisch thema tijdelijk, tot de
+ * volgende wissel), weer automatisch, en de instellingen voor weergave. */
+function thKnoppen(root){
+  if (!thState) return;
+  (root || document).querySelectorAll('button.hthema').forEach(b => {
+    b.dataset.icon = thState.dark ? 'sun' : 'moon';
+    b.setAttribute('aria-label', t('Licht en donker'));
+    b.setAttribute('aria-haspopup', 'dialog');
+    if (!b.onclick) b.onclick = () => thMenu();
+  });
+}
+/* Nu donker (of licht) zetten: vast thema = gewoon wisselen; automatisch = tijdelijk tot de volgende wissel. */
+function thNu(dark){
+  const c = thCfg(), now = Date.now();
+  if (c.mode === 'light' || c.mode === 'dark') { thSave({ mode: dark ? 'dark' : 'light' }); store.set('themeTmp', null); }
+  else {
+    const auto = thDecide(c, now, thSys(), c.mode === 'sun' ? thLoc(c) : null);
+    store.set('themeTmp', auto.dark === dark ? null : { dark, mode: c.mode, until: thTmpTot(c.mode, auto.next, now), sys: thSys() });
+    thApply();
+  }
+  if (current === 'setlook') thRender();
+}
+function thMenu(){
+  const s = thState || thApply(true), c = thCfg(), vast = c.mode === 'light' || c.mode === 'dark', acts = [];
+  const om = !s.dark;
+  if (vast) acts.push([om ? t('Donker') : t('Licht'), () => thNu(om)]);
+  else {
+    const auto = thDecide(c, Date.now(), thSys(), c.mode === 'sun' ? thLoc(c) : null);
+    const tot = thTmpTot(c.mode, auto.next, Date.now()), wanneer = c.mode === 'system' ? t('tot je telefoon wisselt') : t('tot {wanneer}', { wanneer: thWhen(tot) });
+    acts.push([om ? t('Nu donker ({tot})', { tot: wanneer }) : t('Nu licht ({tot})', { tot: wanneer }), () => thNu(om)]);
+    if (s.tmp) acts.push([t('Weer automatisch'), () => { store.set('themeTmp', null); thApply(); }]);
+  }
+  acts.push([t('Instellingen voor weergave'), () => jumpTo('setlook')]);
+  openSheet(t('Licht en donker'), thStatus(), acts);
+}
+document.addEventListener('DOMContentLoaded', () => thKnoppen());
 
 thApply(true);
 try { const mq = matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', () => thApply()); else if (mq.addListener) mq.addListener(() => thApply()); } catch (e) { }
