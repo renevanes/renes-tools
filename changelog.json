@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.192",
+    "date": "2026-11-12",
+    "changes": [
+      "Agenda: dag, week, maand en lijst, met weeknummers. Zoeken kan ook in afspraken van vroeger, en de assistent ook als je dat aanzet. Een Google-agenda gaat via de agenda van je telefoon.",
+      "Nieuws: AI Report (aireport.nl) staat erbij als bron. Tools zoekt de feed zelf op de site; lukt dat niet, vul dan het feedadres in bij de instellingen van de bron.",
+      "Nieuws: tik op een bron voor al zijn instellingen, voor elke bron hetzelfde: naam, adres, welke artikelen, afbeeldingen van de artikelpagina en inloggen.",
+      "Nieuws: inloggen bij een nieuwssite kan nu per bron, in een eigen venster op de echte site (ook met een inloglink uit de e-mail). Daarna lees je artikelen ingelogd in Tools; uitloggen kan ook."
+    ]
+  },
+  {
     "version": "1.191",
     "date": "2026-11-11",
     "changes": [

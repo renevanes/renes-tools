@@ -1,3 +1,0 @@
-Nieuws: AI Report (aireport.nl) staat erbij als bron. Tools zoekt de feed zelf op de site; lukt dat niet, vul dan het feedadres in bij de instellingen van de bron.
-Nieuws: tik op een bron voor al zijn instellingen, voor elke bron hetzelfde: naam, adres, welke artikelen, afbeeldingen van de artikelpagina en inloggen.
-Nieuws: inloggen bij een nieuwssite kan nu per bron, in een eigen venster op de echte site (ook met een inloglink uit de e-mail). Daarna lees je artikelen ingelogd in Tools; uitloggen kan ook.

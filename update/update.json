@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.191",
-  "versionCode": 192,
-  "nativeLevel": 170,
+  "versionName": "1.192",
+  "versionCode": 193,
+  "nativeLevel": 171,
   "web": "index.html",
-  "webSha256": "c450dfb877253d8a3b65b3d6df97c19627c4159d75ed64b6377d6b242d282c5b",
+  "webSha256": "90b7084cbd1271a343f3a1d88ad759c6744599e7b40b8377d0167cbb99fa9476",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "69de26b35994db593f7237b28c67a449202f0a8035412121e3261154fc9725e4",
+  "apkSha256": "a851f9cc1bd89bd114eb7cfb687097e4ccf7510ea8f71230b75e270126c93cf7",
   "changelog": [
+    {
+      "version": "1.192",
+      "date": "2026-11-12",
+      "changes": [
+        "Agenda: dag, week, maand en lijst, met weeknummers. Zoeken kan ook in afspraken van vroeger, en de assistent ook als je dat aanzet. Een Google-agenda gaat via de agenda van je telefoon.",
+        "Nieuws: AI Report (aireport.nl) staat erbij als bron. Tools zoekt de feed zelf op de site; lukt dat niet, vul dan het feedadres in bij de instellingen van de bron.",
+        "Nieuws: tik op een bron voor al zijn instellingen, voor elke bron hetzelfde: naam, adres, welke artikelen, afbeeldingen van de artikelpagina en inloggen.",
+        "Nieuws: inloggen bij een nieuwssite kan nu per bron, in een eigen venster op de echte site (ook met een inloglink uit de e-mail). Daarna lees je artikelen ingelogd in Tools; uitloggen kan ook."
+      ]
+    },
     {
       "version": "1.191",
       "date": "2026-11-11",
@@ -1693,5 +1703,5 @@
       ]
     }
   ],
-  "webSig2": "DVTfkqEoWJJf3QX4og1NnTjfKBFQcQYKct1cZ9lEIpBtnGLJg0kGkwLMybxB+5IWWQ1YhOe+YN9ObwEcq0hBOrLhnFOo7nIiR8eXyfaH6VHe7aymjjIrEMA1KjLR2OcKpITL4qXJXe3jlYGs+PWKkOuxQb+JpyqCIwXjLK8YMWJW5kG4zW2Gjht10cNtOJbBRb1fha2xXsN13XIWO0dy1wvBpYZwb/WH5rI1qTcTiy1IUYH7Q51KjRGyM4KGxH6liC14XWvSsvuyvHdTaX7B+udFlafoo/EIyESqe0Guv0Wy0csCtZgu1o3mKRLyCSxrkvPc1gWJB/ep9qi3imtVOrbb4h5L7/Ema3msHyMc4JxYdRI5bnewz4TwacaFEvKeae9O267xTKJzgJ9pRrHLVzCrktnDTjAbMhbg+dOWCiYwX+lT+3y1ci2+d0Q7aaEv7bz3DNkNtHauVvq8p0iBONcJ50Z6XJIS55RFLoFs8RkFDg6ibBwDECA90wVwRCqu"
+  "webSig2": "DLCtleq7Igsosoa4O3mCIgIEvr5u+QtIcz818Rb1XH6PFxl4GBOlcK52som8sdf4qBMYQqzXlGXvwXXDyg4/m1isChPRokRmDl3S8KQ38Vobtl2Od2y9my8cJDmzg07VSu/1JvAcp8EYF1yeEUXwBQIV0nqJk8ywnChfBGxoUce+NOIaumcsxM3sxsxS/z7LMtFR2+SBq6q8fuRonNEkuWxwFzozsJ0ZJBsZEOzmlMHwWSwCPn0P/3t244dw5L0iSdXtDFYk3psEjAt/ZmvG9gUSWKgi+4KFqO0D3g/DKPxphLTGXcHuCO+qFLGrZyr3wUSjPs1OMl3J3TcRX4IqztTUv+IgS/unqwSf7VrB5LU2O939BecD1SEcI6kXNmOw7v4XTViwvyfHVeELNe1ZA9HymPdRuPr1hx+wZ1Wlcg5Az8E+FiSGdRZtS9acFlzqxC/CM0VaYLg0NM0Z1HwfJm3VsC5HLmCmXCuI4suSD70x9G+D+wnbIYHsqg9dBW2/"
 }
