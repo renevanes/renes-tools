@@ -961,6 +961,18 @@ if (!window.Android) window.Android = (function(){
       const q = this._pc.q || []; if (!q.length) return 'Geen volgende aflevering. Zet er een in Hierna via ⋯ bij een aflevering.';
       const n = q.shift(); this.podPlay(JSON.stringify(n)); return ''; },
     podQueue(){ return JSON.stringify(this._pc.q || []); },
+    // Na een aflevering (zoals PodcastNa en Podcasts.nextFor met take = false)
+    podNa(){ const P = this._pc, st = P.st, na = ['stop', 'hierna', 'podcast', 'nieuw'].includes(P.na) ? P.na : 'podcast', slaap = P.naSlaap !== false;
+      const rank = m => ['stop', 'hierna', 'podcast', 'nieuw'].indexOf(m);
+      const nu = st.sleepEnd ? 'stop' : st.sleepAt > 0 && slaap && rank(na) < 2 ? 'podcast' : na, o = { na, naSlaap: slaap, nu };
+      if (st.ep && nu !== 'stop') {
+        const q = (P.q || []).find(r => r.ep.key !== st.ep.key);
+        if (q) o.next = Object.assign({ via: 'hierna' }, q);
+        else if (nu !== 'hierna' && st.pod && st.pod.feed) { const f = this._pcFeed(st.pod.feed), it = f.items, at = it.findIndex(e => e.key === st.ep.key);
+          if (at >= 0) for (const dir of [-1, 1]) { let hit = null; for (let i = at + dir; i >= 0 && i < it.length; i += dir) if (!it[i].done) { hit = it[i]; break; } if (hit) { o.next = { ep: hit, pod: f.pod, via: 'podcast' }; break; } } }
+      }
+      return JSON.stringify(o); },
+    podNaSet(na, slaap){ this._pc.na = ['stop', 'hierna', 'podcast', 'nieuw'].includes(na) ? na : 'podcast'; this._pc.naSlaap = !!slaap; },
     podQueueAdd(j, next){ const o = JSON.parse(j); if (this._pc.st.ep && this._pc.st.ep.key === o.ep.key && this._pc.st.status !== 'ended') return 'Deze aflevering speelt al';
       const q = (this._pc.q || []).filter(r => r.ep.key !== o.ep.key); if (next) q.unshift(o); else q.push(o); this._pc.q = q; return ''; },
     podQueueRemove(k){ this._pc.q = (this._pc.q || []).filter(r => r.ep.key !== k); },

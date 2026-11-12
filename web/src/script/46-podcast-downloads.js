@@ -89,14 +89,8 @@ function pcDlMenu(i){
   if (d.pod && d.pod.feed) acts.push(['Naar de podcast', () => pdOpen(d.pod)]);
   openSheet(d.ep.title || 'Aflevering', [d.pod && d.pod.title, pcDlTxt(d)].filter(Boolean).join(' · '), acts.concat(pcDlActs(d.ep, d.pod)));
 }
-function pcDlSettings(){
-  const pr = rdJson(Android.podDlPrefs(), {});
-  openSheet('Downloads', 'Voor offline luisteren', [
-    [(pr.wifiOnly ? '✓ ' : '') + t('Alleen via wifi downloaden'), () => { Android.podDlPref('wifiOnly', !pr.wifiOnly); toast(!pr.wifiOnly ? 'Downloaden alleen via wifi' : 'Downloaden ook via mobiel internet'); }],
-    [(pr.autoDelete ? '✓ ' : '') + t('Beluisterde afleveringen vanzelf verwijderen'), () => { Android.podDlPref('autoDelete', !pr.autoDelete); toast(!pr.autoDelete ? 'Beluisterd: download gaat vanzelf weg' : 'Downloads blijven staan'); }],
-    ['Alle downloads verwijderen…', () => askConfirm('Alle downloads verwijderen?', 'De afleveringen blijven gewoon te beluisteren via internet. Podcasts met "nieuwe afleveringen downloaden" halen de nieuwste later opnieuw op.', 'Verwijderen', () => { Android.podDlClear(); pcDlRefresh(); toast('Downloads verwijderd'); })]
-  ]);
-}
+function pcDlSettings(){ jumpTo('podset'); } // de instellingen voor downloaden staan op Instellingen van Podcasts
+function pcDlClearAsk(){ askConfirm('Alle downloads verwijderen?', 'De afleveringen blijven gewoon te beluisteren via internet. Podcasts met "nieuwe afleveringen downloaden" halen de nieuwste later opnieuw op.', 'Verwijderen', () => { Android.podDlClear(); pcDlRefresh(); toast('Downloads verwijderd'); }); }
 
 /* Eén podcast: nieuwe afleveringen vanzelf downloaden (knop naast Volgend, en in het menu ⋯) */
 function pdDlOn(){ const s = rdJson(Android.podSubs(), []).find(x => pdPod && x.id === pdPod.id); return !!(s && s.dl); }
@@ -116,3 +110,32 @@ function pdDlToggle(){
   const pr = rdJson(Android.podDlPrefs(), {});
   toast(on ? t(pr.wifiOnly ? '↓ De nieuwste 3 die je nog niet beluisterde, worden gedownload (via wifi)' : '↓ De nieuwste 3 die je nog niet beluisterde, worden gedownload') : t('Niet meer vanzelf downloaden'));
 }
+
+/* ---------- Instellingen van Podcasts (scherm podset): na een aflevering, en downloaden ---------- */
+/** Uitleg bij de keuze "na een aflevering". */
+function psUitleg(na){
+  return na === 'stop' ? t('De speler stopt na elke aflevering.')
+    : na === 'hierna' ? t('De speler gaat verder met Hierna; is die leeg, dan stopt hij.')
+    : na === 'nieuw' ? t('Eerst Hierna, dan de volgende van dezelfde podcast, en daarna de nieuwste aflevering die je nog niet hoorde van wat je volgt.')
+    : t('Eerst Hierna; is die leeg, dan de volgende aflevering van dezelfde podcast.');
+}
+function psNa(){ return typeof Android.podNa === 'function' ? rdJson(Android.podNa(), {}) : {}; }
+function enterPodSet(){ psRender(); }
+function psRender(){
+  const n = psNa(), pr = rdJson(Android.podDlPrefs(), {}), na = n.na || 'podcast';
+  $('#ps-na').value = na;
+  $('#ps-na-uitleg').textContent = psUitleg(na);
+  const tg = (id, on) => { const b = $(id); b.classList.toggle('on', !!on); b.setAttribute('aria-checked', on ? 'true' : 'false'); };
+  tg('#ps-naslaap', n.naSlaap !== false); tg('#ps-wifi', !!pr.wifiOnly); tg('#ps-autodel', !!pr.autoDelete);
+  $('#ps-next').textContent = psNextTxt(n);
+}
+/** "Daarna: <titel> (<podcast>)" of waarom er niets komt. Zuiver. */
+function psNextTxt(n){
+  if (!n || !n.nu) return '';
+  const e = n.next && n.next.ep, p = n.next && n.next.pod;
+  if (e) return t('Na deze aflevering: {titel}', { titel: e.title + (p && p.title ? ' · ' + p.title : '') });
+  return n.nu === 'stop' ? t('Na deze aflevering stopt de speler.') : '';
+}
+function psSave(){ const n = psNa(); Android.podNaSet($('#ps-na').value, n.naSlaap !== false); psRender(); if (typeof plQueueSig !== 'undefined') { plQueueSig = ''; if (typeof plRender === 'function') plRender(); } }
+function psSlaap(){ const n = psNa(); Android.podNaSet(n.na || 'podcast', n.naSlaap === false); psRender(); }
+function psDl(k){ const pr = rdJson(Android.podDlPrefs(), {}); Android.podDlPref(k, !pr[k]); psRender(); }

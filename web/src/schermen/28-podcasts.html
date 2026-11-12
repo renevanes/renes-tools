@@ -3,6 +3,7 @@
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Podcasts</h1>
+    <button class="icon-btn hset" id="pc-set-btn" data-to="podset" aria-label="Instellingen van Podcasts"></button>
     <button class="icon-btn" id="pc-menu" onclick="pcMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
   </div>
   <main>
@@ -59,6 +60,40 @@
         <button class="linkish" onclick="pcDlSettings()">Instellingen voor downloaden</button>
       </div>
     </div>
+  </main>
+</section>
+
+<!-- Instellingen van Podcasts: afspelen (wat er na een aflevering komt) en downloaden -->
+<section class="screen" id="s-podset">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Instellingen van Podcasts</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="play" aria-hidden="true"></span>Na een aflevering</h2>
+      <label class="f" for="ps-na">Als een aflevering afgelopen is</label>
+      <select class="sel" id="ps-na" onchange="psSave()">
+        <option value="stop">Stoppen</option>
+        <option value="hierna">Verder met Hierna</option>
+        <option value="podcast">Hierna, daarna de volgende van dezelfde podcast</option>
+        <option value="nieuw">Hierna, de volgende van de podcast, daarna nieuwe afleveringen</option>
+      </select>
+      <p class="hint" id="ps-na-uitleg" role="status"></p>
+      <div class="sw"><span>Doorgaan zolang de slaaptimer loopt<small>Met een slaaptimer op tijd gaat hij in elk geval door met de volgende van dezelfde podcast, ook als Hierna leeg is of je hierboven Stoppen koos. "Stoppen na deze aflevering" stopt altijd.</small></span><button class="tg" id="ps-naslaap" role="switch" aria-checked="true" onclick="psSlaap()" aria-label="Doorgaan zolang de slaaptimer loopt"></button></div>
+      <p class="hint" id="ps-next" translate="no"></p>
+    </div>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="download" aria-hidden="true"></span>Downloaden</h2>
+      <div class="sw"><span>Alleen via wifi downloaden<small>Voor offline luisteren en Vanzelf downloaden</small></span><button class="tg" id="ps-wifi" role="switch" aria-checked="false" onclick="psDl('wifiOnly')" aria-label="Alleen via wifi downloaden"></button></div>
+      <div class="sw"><span>Beluisterde afleveringen vanzelf verwijderen<small>Van je telefoon; in de podcast blijven ze staan</small></span><button class="tg" id="ps-autodel" role="switch" aria-checked="false" onclick="psDl('autoDelete')" aria-label="Beluisterde afleveringen vanzelf verwijderen"></button></div>
+      <button class="big ghost" onclick="pcDlClearAsk()">Alle downloads verwijderen</button>
+    </div>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Hierna is je wachtrij: zet afleveringen erin via ⋯ bij een aflevering (Als volgende afspelen of Toevoegen aan Hierna). Na een aflevering speelt de speler de bovenste uit Hierna en haalt hem eruit.</p>
+      <p>Is Hierna leeg, dan kiest hij volgens de instelling de volgende van dezelfde podcast: eerst de nieuwere afleveringen in de volgorde waarin ze verschenen, dan de oudere; wat je al beluisterde slaat hij over. Bij "nieuwe afleveringen" kiest hij daarna de nieuwste die je nog niet hoorde van alles wat je volgt.</p>
+      <p>Hapert de verbinding (de speler staat 15 seconden stil, of een sprong blijft hangen), dan verbindt hij vanzelf opnieuw op dezelfde plek.</p>
+    </div></details>
   </main>
 </section>
 

@@ -54,6 +54,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     static volatile long pos = 0, dur = 0;        // ms
     static volatile float speed = 1f;
     static volatile long sleepAt = 0;             // 0 = geen slaaptimer
+    static volatile boolean buffering;            // speelt, maar wacht op gegevens (de interface toont "Bufferen…")
     static volatile boolean sleepEnd = false;     // stoppen aan het einde van de aflevering
     private long sleepFadeMs = SleepFade.MAX_MS;  // hoe lang het uitfaden duurt (hangt af van de lengte van de timer)
     static volatile PodcastService inst;
@@ -78,6 +79,21 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     private long saveAt, shownAt;
     private Bitmap art;
     private String artFor, metaSig;
+    // Stabiliteit (zie PodcastNa): sprongen samenvoegen, vastlopen herkennen en opnieuw verbinden
+    private long seekTarget = -1, seekPending = -1, endRetryAt = -1;
+    private final PodcastNa.Stall stall = new PodcastNa.Stall();
+    private int beginSeq;
+    private String warmedFor;
+    private final Runnable prepWatch = this::prepTimeout, seekWatch = this::seekTimeout;
+    /** Netwerk (adres opzoeken) en een speler loslaten: nooit op de hoofdthread (dat kan seconden blokkeren). */
+    static final java.util.concurrent.ExecutorService NET = java.util.concurrent.Executors.newSingleThreadExecutor(r -> new Thread(r, "podcast-net"));
+    static final java.util.concurrent.ExecutorService RELEASER = java.util.concurrent.Executors.newSingleThreadExecutor(r -> new Thread(r, "podcast-release"));
+
+    /** Wat er na deze aflevering gebeurt (instelling bij Podcasts → Instellingen; zie PodcastNa). */
+    static String naMode(Context c) {
+        android.content.SharedPreferences pr = Podcasts.prefs(c);
+        return PodcastNa.effective(pr.getString("na", PodcastNa.STANDAARD), sleepAt > 0, sleepEnd, pr.getBoolean("naSlaap", true));
+    }
 
     /** Opdracht vanuit de app. Afspelen start de service; de rest gaat naar de lopende service. */
     static void send(Context c, String action, String extra) {
@@ -107,7 +123,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     static String stateJson() {
         try {
             JSONObject o = new JSONObject().put("status", status).put("pos", pos).put("dur", dur).put("speed", speed)
-                    .put("sleepAt", sleepAt).put("sleepEnd", sleepEnd);
+                    .put("sleepAt", sleepAt).put("sleepEnd", sleepEnd).put("buffering", buffering && "playing".equals(status));
             if (ep != null) o.put("ep", new JSONObject(ep));
             if (pod != null) o.put("pod", new JSONObject(pod));
             if (error != null) o.put("error", error);
@@ -317,35 +333,99 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         session.setActive(true);
         update();
         loadArt(e.optString("image").isEmpty() ? optPod("image") : e.optString("image"));
+        holdAutoWake(); // laden en opzoeken met het scherm uit: de telefoon wakker houden tot hij speelt
+        stall.reset(SystemClock.elapsedRealtime());
+        final int seq = ++beginSeq;
+        final String url = e.optString("url"), local = PodcastDownloads.localPath(this, e.optString("key")); // gedownload: offline afspelen
+        if (local != null) { startPlayer(local, seq); return; }
+        String quick = PodcastUrl.cached(url);
+        if (!quick.equals(url)) { startPlayer(quick, seq); return; }
+        // Het echte adres eerst opzoeken (doorverwijzingen van tellers), dan rechtstreeks: sneller springen en herverbinden
+        NET.execute(() -> {
+            String u;
+            try { u = PodcastUrl.resolve(url); } catch (Throwable t) { u = url; }
+            final String src = u;
+            h.post(() -> { if (seq == beginSeq && inst == this && "connecting".equals(status) && player == null) startPlayer(src, seq); });
+        });
+    }
+
+    private void startPlayer(String src, int seq) {
         try {
             MediaPlayer p = new MediaPlayer();
             player = p;
+            prepared = false;
             p.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
             p.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
             java.util.Map<String, String> hdr = new java.util.HashMap<>();
             hdr.put("User-Agent", Radio.UA);
-            String local = PodcastDownloads.localPath(this, e.optString("key")); // gedownload: offline afspelen
-            if (local != null) p.setDataSource(local);
-            else p.setDataSource(this, android.net.Uri.parse(e.optString("url")), hdr);
+            if (src.startsWith("/")) p.setDataSource(src);
+            else p.setDataSource(this, android.net.Uri.parse(src), hdr);
             p.setOnPreparedListener(mp -> {
                 if (mp != player) return;
+                h.removeCallbacks(prepWatch);
                 prepared = true;
                 long d = mp.getDuration();
                 if (d > 0) dur = d;
                 long at = pos; // ook als er tijdens het laden geschoven is
-                if (at > 5000 && (dur <= 0 || at < dur - 5000)) mp.seekTo((int) at);
+                if (at > 5000 && (dur <= 0 || at < dur - 5000)) doSeek(mp, at);
                 play();
             });
-            p.setOnCompletionListener(mp -> { if (mp == player) onEnded(); });
+            p.setOnCompletionListener(mp -> {
+                if (mp != player) return;
+                long at = pos;
+                // Verbinding afgebroken (Android meldt dat soms als "afgelopen"): één keer opnieuw op die plek
+                if (PodcastNa.prematureEnd(at, dur) && !PodcastNa.sameSpot(at, endRetryAt)) { endRetryAt = at; reconnect(at, "afgebroken"); return; }
+                endRetryAt = -1;
+                onEnded();
+            });
+            p.setOnSeekCompleteListener(mp -> {
+                if (mp != player) return;
+                h.removeCallbacks(seekWatch);
+                seekTarget = -1;
+                stall.reset(SystemClock.elapsedRealtime());
+                if (seekPending >= 0) { long n = seekPending; seekPending = -1; doSeek(mp, n); } // nog een keer gedrukt intussen: alleen de laatste
+                else update();
+            });
+            p.setOnInfoListener((mp, what, extra) -> {
+                if (mp != player) return false;
+                if (what == MediaPlayer.MEDIA_INFO_BUFFERING_START && !buffering) { buffering = true; update(); }
+                else if (what == MediaPlayer.MEDIA_INFO_BUFFERING_END && buffering) { buffering = false; update(); }
+                return false;
+            });
             p.setOnErrorListener((mp, what, extra) -> {
                 if (mp != player) return true;
                 onError("Aflevering niet te bereiken (" + what + "/" + extra + ")");
                 return true;
             });
             p.prepareAsync();
+            h.removeCallbacks(prepWatch); h.postDelayed(prepWatch, PodcastNa.PREPARE_MS);
         } catch (Exception x) {
             onError("Afspelen lukt niet: " + (x.getMessage() == null ? x.getClass().getSimpleName() : x.getMessage()));
         }
+    }
+
+    /** Laden duurt te lang (de verbinding hangt): als een fout behandelen (dat probeert het nog twee keer). */
+    private void prepTimeout() { if (player != null && !prepared && "connecting".equals(status)) onError("De aflevering laadt niet"); }
+
+    /** Een sprong blijft hangen: opnieuw verbinden op de plek waar je heen wilde. */
+    private void seekTimeout() {
+        if (player == null || seekTarget < 0) return;
+        long at = seekPending >= 0 ? seekPending : seekTarget;
+        reconnect(at, "sprong");
+    }
+
+    /**
+     * Opnieuw verbinden op een plek (vastgelopen, sprong blijft hangen, verbinding afgebroken). Hooguit een paar keer
+     * achter elkaar; daarna een melding, en Afspelen gaat verder waar hij was.
+     */
+    private void reconnect(long at, String why) {
+        App.log(this, "PODCAST", "speler: opnieuw verbinden (" + why + ")");
+        if (stall.reconnects >= PodcastNa.MAX_RECONNECT) { retries = 2; pos = at; onError("De verbinding met de aflevering blijft haperen"); return; }
+        stall.reconnects++;
+        PodcastUrl.forget(optEp("url"));
+        pos = at;
+        if ("paused".equals(status)) { release(); prepared = false; saveNow(); update(); return; } // Afspelen laadt hem opnieuw, op deze plek
+        begin(at);
     }
 
     private void play() {
@@ -361,6 +441,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         status = "playing";
         retries = 0;
         holdWifi();
+        stall.reset(SystemClock.elapsedRealtime());
         h.removeCallbacks(tickRun); h.post(tickRun);
         if (sleepAt > 0) { h.removeCallbacks(sleepTick); h.post(sleepTick); }
         update();
@@ -383,8 +464,10 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         resumeOnFocus = byFocus;
         if ("connecting".equals(status) && !prepared) { release(); prepared = false; }
         status = "paused";
+        buffering = false;
         saveNow();
         releaseWifi();
+        releaseAutoWake();
         h.removeCallbacks(tickRun);
         update();
         if (!byFocus) {
@@ -408,13 +491,25 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         long d = dur > 0 ? dur : Long.MAX_VALUE;
         ms = Math.max(0, Math.min(ms, d - 1000));
         pos = ms;
+        endRetryAt = -1;
         MediaPlayer p = player;
-        if (p != null && prepared) { try { p.seekTo((int) ms); } catch (Exception ignored) { } }
+        if (p != null && prepared) {
+            // Loopt er nog een sprong (een paar keer snel terug): alleen de laatste plek onthouden, die volgt daarna
+            if (seekTarget >= 0) seekPending = ms; else doSeek(p, ms);
+        }
         else if (ep != null && !"connecting".equals(status)) { saveNow(); }
         update();
     }
 
+    private void doSeek(MediaPlayer p, long ms) {
+        seekTarget = ms;
+        try { p.seekTo((int) ms); } catch (Exception e) { seekTarget = -1; return; }
+        h.removeCallbacks(seekWatch); h.postDelayed(seekWatch, PodcastNa.SEEK_MS);
+    }
+
+    /** De plek: tijdens een sprong de plek waar hij heen gaat (zo telt nog eens 15 s terug vanaf daar). */
     private long curPos() {
+        if (seekTarget >= 0) return seekPending >= 0 ? seekPending : seekTarget;
         MediaPlayer p = player;
         if (p != null && prepared) { try { return p.getCurrentPosition(); } catch (Exception ignored) { } }
         return pos;
@@ -426,13 +521,18 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         status = "ended"; // eerst: dan telt hij niet meer als "speelt nog" en kan een download weg
         try { JSONObject e = new JSONObject(ep); Podcasts.saveProgress(this, e.optString("key"), 0, dur, true); } catch (Exception ignored) { }
         h.removeCallbacks(tickRun);
-        if (!sleepEnd) {
-            // Hierna: meteen de volgende (een slaaptimer op tijd loopt gewoon door). Het bestand lezen gebeurt op
-            // de achtergrond; zolang houdt een korte wakelock de telefoon wakker (het scherm staat vaak uit).
+        final String mode = naMode(this);
+        if (!PodcastNa.STOP.equals(mode)) {
+            // De volgende (Hierna, en volgens de instelling de volgende van deze podcast of een nieuwe aflevering); een
+            // slaaptimer op tijd loopt gewoon door. Het bestand lezen gebeurt op de achtergrond; zolang houdt een korte
+            // wakelock de telefoon wakker (het scherm staat vaak uit).
             holdAutoWake();
             final Context app = getApplicationContext();
+            final JSONObject curEp = jsonOr(ep), curPod = jsonOr(pod);
             Podcasts.IO.execute(() -> {
-                final JSONObject nx = Podcasts.queuePop(app);
+                JSONObject found = null;
+                try { found = Podcasts.nextFor(app, mode, curEp, curPod, true); } catch (Throwable ignored) { }
+                final JSONObject nx = found;
                 h.post(() -> {
                     if (inst != this || !"ended".equals(status)) { releaseAutoWake(); return; } // intussen iets anders gekozen
                     if (nx != null) handle(PLAY, nx.toString()); // de wakelock gaat los zodra het speelt (of mislukt)
@@ -457,6 +557,8 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         stopSelfResult(lastStartId);
     }
 
+    private static JSONObject jsonOr(String s) { try { return s == null ? null : new JSONObject(s); } catch (Exception e) { return null; } }
+
     private PowerManager.WakeLock autoWl;
 
     private void holdAutoWake() {
@@ -478,6 +580,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         }
         if (retries < 2 && ep != null) {
             retries++;
+            PodcastUrl.forget(optEp("url")); // het opgezochte adres kan verlopen zijn: opnieuw via het gewone
             status = "connecting";
             update();
             final long back = at;
@@ -502,6 +605,12 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         if (!"playing".equals(status)) return;
         pos = curPos();
         long now = SystemClock.elapsedRealtime();
+        // Staat de plek te lang stil (hapering, verbinding hangt): opnieuw verbinden op dezelfde plek
+        if (prepared && stall.check(now, pos, true, seekTarget >= 0)) {
+            if (dur > 0 && pos >= dur - 5000) { onEnded(); return; } // stil aan het einde: gewoon afgelopen
+            reconnect(pos, "vastgelopen"); return;
+        }
+        warmNext();
         if (now - saveAt > 10_000) { saveAt = now; saveNow(); }
         if (now - shownAt > 30_000) { shownAt = now; Player.changed(this); } // voortgang in de widget
         // Slaaptimer "aan het einde van deze aflevering": de laatste minuut langzaam zachter
@@ -510,6 +619,24 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
             if (endLeft() < endFade() + 1000) { h.postDelayed(tickRun, SleepFade.STEP_MS); return; }
         }
         h.postDelayed(tickRun, 1000);
+    }
+
+    /** De laatste twee minuten: alvast het adres van de volgende opzoeken, dan begint die meteen. */
+    private void warmNext() {
+        if (dur <= 0 || dur - pos > 120_000 || ep == null) return;
+        final String key = optEp("key");
+        if (key.equals(warmedFor)) return;
+        warmedFor = key;
+        final String mode = naMode(this);
+        if (PodcastNa.STOP.equals(mode)) return;
+        final Context app = getApplicationContext();
+        final JSONObject curEp = jsonOr(ep), curPod = jsonOr(pod);
+        NET.execute(() -> {
+            try {
+                JSONObject nx = Podcasts.nextFor(app, mode, curEp, curPod, false), ne = nx == null ? null : nx.optJSONObject("ep");
+                if (ne != null && PodcastDownloads.localPath(app, ne.optString("key")) == null) PodcastUrl.resolve(ne.optString("url"));
+            } catch (Throwable ignored) { }
+        });
     }
 
     /** Hoeveel speeltijd de aflevering nog heeft (rekening houdend met de snelheid). */
@@ -561,8 +688,15 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         } catch (Exception ignored) { }
     }
 
+    /** De speler loslaten op een eigen draad: reset() op een speler die nog laadt kan seconden blokkeren. */
     private void release() {
-        if (player != null) { try { player.reset(); player.release(); } catch (Exception ignored) { } player = null; }
+        MediaPlayer p = player;
+        player = null;
+        seekTarget = -1; seekPending = -1; buffering = false;
+        h.removeCallbacks(prepWatch); h.removeCallbacks(seekWatch);
+        if (p == null) return;
+        try { p.setVolume(0f, 0f); } catch (Throwable ignored) { } // meteen stil, ook als loslaten even duurt
+        RELEASER.execute(() -> { try { p.reset(); } catch (Throwable ignored) { } try { p.release(); } catch (Throwable ignored) { } });
     }
 
     // ---------- audiofocus ----------
@@ -636,7 +770,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
             if (art != null) mb.putBitmap(MediaMetadata.METADATA_KEY_ART, art);
             session.setMetadata(mb.build());
         }
-        int st = "playing".equals(status) ? PlaybackState.STATE_PLAYING : "connecting".equals(status) ? PlaybackState.STATE_BUFFERING
+        int st = "playing".equals(status) && buffering ? PlaybackState.STATE_BUFFERING : "playing".equals(status) ? PlaybackState.STATE_PLAYING : "connecting".equals(status) ? PlaybackState.STATE_BUFFERING
                 : "paused".equals(status) ? PlaybackState.STATE_PAUSED : "error".equals(status) ? PlaybackState.STATE_ERROR : PlaybackState.STATE_STOPPED;
         // Android 13+ bouwt de knoppen in de melding uit de mediasessie: de eerste twee eigen acties komen op de
         // plekken van vorige/volgende (links en rechts van afspelen), de rest ernaast

@@ -653,28 +653,82 @@ final class Podcasts {
     }
 
     /**
-     * Volgende aflevering (vegen op de hoes, ⏭): eerst Hierna; anders in dezelfde podcast de nieuwere aflevering,
-     * en als die er niet is (of al beluisterd) de oudere. {ep, pod} of null.
+     * Volgende aflevering (vegen op de hoes, ⏭): eerst Hierna; anders de volgende van dezelfde podcast. {ep, pod} of null.
      */
-    static JSONObject next(Context c, JSONObject ep, JSONObject pod) {
-        JSONObject q = queuePop(c);
-        if (q != null) return q;
-        if (ep == null || pod == null) return null;
+    static JSONObject next(Context c, JSONObject ep, JSONObject pod) { return nextFor(c, PodcastNa.PODCAST, ep, pod, true); }
+
+    /**
+     * Wat er na deze aflevering komt, volgens de instelling (PodcastNa): Hierna, dan (bij "podcast") de volgende van
+     * dezelfde podcast, of (bij "nieuw") de nieuwste aflevering die je nog niet beluisterde van wat je volgt.
+     * take = uit Hierna halen (afspelen); anders alleen kijken (voor "Daarna" in de speler). {ep, pod, via} of null.
+     */
+    static JSONObject nextFor(Context c, String mode, JSONObject ep, JSONObject pod, boolean take) {
+        mode = PodcastNa.norm(mode);
+        if (PodcastNa.STOP.equals(mode)) return null;
+        String cur = ep == null ? "" : ep.optString("key");
         try {
-            JSONObject feed = readJson(cacheFile(c, pod.optString("id", podId(pod.optString("feed")))));
-            JSONArray items = feed == null ? null : feed.optJSONArray("items");
-            if (items == null) return null;
-            String key = ep.optString("key");
-            int at = -1;
-            for (int i = 0; i < items.length(); i++) if (key.equals(items.getJSONObject(i).optString("key"))) { at = i; break; }
-            if (at < 0) return null;
-            for (int i : new int[]{at - 1, at + 1}) { // de lijst staat nieuwste eerst
-                if (i < 0 || i >= items.length()) continue;
-                JSONObject e = items.getJSONObject(i), p = progressOf(c, e.optString("key"));
-                if (p != null && p.optBoolean("done")) continue;
-                return new JSONObject().put("ep", e).put("pod", pod);
+            JSONObject q = take ? queuePopExcept(c, cur) : queuePeekExcept(c, cur);
+            if (q != null) return q.put("via", PodcastNa.HIERNA);
+            if (PodcastNa.HIERNA.equals(mode)) return null;
+            if (PodcastNa.PODCAST.equals(mode) || PodcastNa.NIEUW.equals(mode)) {
+                JSONObject r = inPodcast(c, ep, pod);
+                if (r != null) return r.put("via", PodcastNa.PODCAST);
+            }
+            if (PodcastNa.NIEUW.equals(mode)) {
+                JSONArray a = latest(c, 10);
+                for (int i = 0; i < a.length(); i++) {
+                    JSONObject r = a.optJSONObject(i), e = r == null ? null : r.optJSONObject("ep");
+                    if (e == null || cur.equals(e.optString("key")) || !httpUrl(e.optString("url"))) continue;
+                    JSONObject p = progressOf(c, e.optString("key"));
+                    if (p != null && p.optBoolean("done")) continue;
+                    return r.put("via", PodcastNa.NIEUW);
+                }
             }
         } catch (Exception ignored) { }
+        return null;
+    }
+
+    /** Eerste uit Hierna die niet de huidige is (die hoort er niet meer in): weghalen en teruggeven. */
+    private static synchronized JSONObject queuePopExcept(Context c, String cur) {
+        JSONArray a = queue(c);
+        while (a.length() > 0) {
+            JSONObject r = a.optJSONObject(0);
+            a.remove(0);
+            if (r != null && r.optJSONObject("ep") != null && !keyOf(r).equals(cur)) { saveQueue(c, a); return r; }
+        }
+        saveQueue(c, a);
+        return null;
+    }
+
+    private static synchronized JSONObject queuePeekExcept(Context c, String cur) throws Exception {
+        JSONArray a = queue(c);
+        for (int i = 0; i < a.length(); i++) {
+            JSONObject r = a.optJSONObject(i);
+            if (r != null && r.optJSONObject("ep") != null && !keyOf(r).equals(cur)) return new JSONObject(r.toString());
+        }
+        return null;
+    }
+
+    /**
+     * De volgende van dezelfde podcast: eerst de nieuwere afleveringen (in de volgorde waarin ze verschenen), dan de
+     * oudere; beluisterde slaat hij over. Uit de bewaarde lijst (geen netwerk).
+     */
+    private static JSONObject inPodcast(Context c, JSONObject ep, JSONObject pod) throws Exception {
+        if (ep == null || pod == null) return null;
+        JSONObject feed = readJson(cacheFile(c, pod.optString("id", podId(pod.optString("feed")))));
+        JSONArray items = feed == null ? null : feed.optJSONArray("items");
+        if (items == null) return null;
+        String key = ep.optString("key");
+        int at = -1;
+        for (int i = 0; i < items.length(); i++) if (key.equals(items.getJSONObject(i).optString("key"))) { at = i; break; }
+        if (at < 0) return null;
+        // De lijst staat nieuwste eerst: eerst de nieuwere (at - 1, at - 2, …), dan de oudere (at + 1, …)
+        for (int dir : new int[]{-1, 1})
+            for (int i = at + dir, n = 0; i >= 0 && i < items.length() && n < 50; i += dir, n++) {
+                JSONObject e = items.getJSONObject(i), p = progressOf(c, e.optString("key"));
+                if ((p != null && p.optBoolean("done")) || !httpUrl(e.optString("url"))) continue;
+                return new JSONObject().put("ep", e).put("pod", pod);
+            }
         return null;
     }
 

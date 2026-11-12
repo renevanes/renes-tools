@@ -181,6 +181,24 @@ public class PodcastBridge extends AiBridge {
         return "";
     }
 
+    /** Na een aflevering (PodcastNa): de instelling, wat er nu echt gebeurt (slaaptimer) en wat er als volgende komt. */
+    @JavascriptInterface public String podNa() {
+        try {
+            android.content.SharedPreferences pr = Podcasts.prefs(ctx);
+            String mode = PodcastService.naMode(ctx);
+            JSONObject o = new JSONObject().put("na", PodcastNa.norm(pr.getString("na", PodcastNa.STANDAARD))).put("naSlaap", pr.getBoolean("naSlaap", true)).put("nu", mode);
+            JSONObject st = new JSONObject(podState()), ep = st.optJSONObject("ep"), pod = st.optJSONObject("pod");
+            if (ep != null && !PodcastNa.STOP.equals(mode)) {
+                JSONObject nx = Podcasts.nextFor(ctx, mode, ep, pod == null ? new JSONObject() : pod, false);
+                if (nx != null) o.put("next", nx);
+            }
+            return o.toString();
+        } catch (Throwable t) { return "{}"; }
+    }
+    @JavascriptInterface public void podNaSet(String na, boolean naSlaap) {
+        Podcasts.prefs(ctx).edit().putString("na", PodcastNa.norm(na)).putBoolean("naSlaap", naSlaap).apply();
+    }
+
     @JavascriptInterface public String podState() {
         String s = PodcastService.stateJson();
         if (PodcastService.inst == null && PodcastService.ep == null) {

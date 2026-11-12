@@ -54,7 +54,7 @@ function plModel(){
     const s = pcSt, e = s.ep || {}, p = s.pod || {}, status = s.status === 'idle' ? 'paused' : s.status;
     return { src, status, playing: status === 'playing' || status === 'connecting', key: e.key, title: e.title || 'Aflevering', sub: p.title || '',
       kind: 'Podcast', from: p.title || 'Podcast', art: pcImg(e.image) || pcImg(p.image), ini: '🎧', pos: +s.pos || 0, dur: +s.dur || 0,
-      error: s.error, sleepAt: +s.sleepAt || 0, sleepEnd: !!s.sleepEnd, speed: s.speed || 1, desc: e.desc || '' };
+      error: s.error, sleepAt: +s.sleepAt || 0, sleepEnd: !!s.sleepEnd, speed: s.speed || 1, desc: e.desc || '', buffering: !!s.buffering };
   }
   if (src === 'radio') {
     const s = rdState, st = s.station || {}, inf = s.info || {}, status = s.status || 'stopped';
@@ -158,7 +158,7 @@ function plRender(){
     }
   }
   $('#pl-left').classList.toggle('live', m.src === 'radio' && atLive);
-  plSetText($('#pl-state'), m.status === 'connecting' ? 'Laden…' : m.status === 'error' && m.src === 'podcast' ? (m.error || 'Fout') : m.status === 'ended' ? 'Afgelopen' : '');
+  plSetText($('#pl-state'), m.status === 'connecting' ? 'Laden…' : m.buffering ? t('Bufferen…') : m.status === 'error' && m.src === 'podcast' ? (m.error || 'Fout') : m.status === 'ended' ? 'Afgelopen' : '');
   $('#pl-state').classList.toggle('bad', m.status === 'error');
 
   // Knoppen
@@ -218,6 +218,13 @@ function plRenderQueue(m, force){
         '<span class="pltxt"><b>' + esc(e.title || 'Aflevering') + '</b><small>' + esc(p.title || '') + (e.dur ? ' · ' + esc(fmtMin(e.dur / 60)) : '') + '</small></span></button>' +
         '<button class="pl-ic" onclick="plQueueMenu(' + i + ')" aria-label="' + t('Meer over {titel}', { titel: esc(e.title || t('aflevering')) }) + '"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button></div>';
     }).join('') || '<p class="pl-empty">Nog niets. Kies bij een aflevering ⋯ → <b>Als volgende afspelen</b> of <b>Toevoegen aan Hierna</b>. Zonder Hierna gaat ⏭ naar de volgende aflevering van deze podcast.</p>';
+    // Wat er vanzelf komt als Hierna leeg is (volgens Instellingen van Podcasts)
+    const na = typeof psNa === 'function' ? psNa() : {}, auto = !plQueue.length && na.next && na.next.via !== 'hierna' ? na.next : null;
+    if (auto || na.nu === 'stop') {
+      const p = document.createElement('p'); p.className = 'pl-auto'; p.setAttribute('translate', 'no');
+      p.textContent = auto ? t('Daarna vanzelf: {titel}', { titel: (auto.ep.title || t('aflevering')) + (auto.pod && auto.pod.title ? ' · ' + auto.pod.title : '') }) : t('Na deze aflevering stopt de speler.');
+      box.append(p);
+    }
   } else {
     plSetText($('#pl-qtitle'), 'Je zenders');
     $('#pl-qclear').style.display = 'none';

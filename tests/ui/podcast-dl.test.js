@@ -57,12 +57,14 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => closeSheet());
     // Instellingen
     await pg.click('#pc-tab-dl'); await pg.waitForTimeout(100);
-    await pg.click('#pc-dl-wrap button:has-text("Instellingen")'); await pg.waitForTimeout(100);
-    await pg.click('#sheet-acts button:has-text("Alleen via wifi")');
+    // Instellingen voor downloaden staan op Instellingen van Podcasts
+    await pg.click('#pc-dl-wrap button:has-text("Instellingen")'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => current === 'podset'), 'Instellingen opent Instellingen van Podcasts');
+    await pg.click('#ps-wifi'); await pg.waitForTimeout(80);
     ok(await pg.evaluate(() => Android._dl.prefs.wifiOnly === false), 'alleen via wifi uit te zetten');
-    await pg.click('#pc-dl-wrap button:has-text("Instellingen")'); await pg.waitForTimeout(100);
-    await pg.click('#sheet-acts button:has-text("Alle downloads verwijderen")'); await pg.waitForTimeout(100);
+    await pg.click('#s-podset button:has-text("Alle downloads verwijderen")'); await pg.waitForTimeout(100);
     await pg.click('#modal-ok'); await pg.waitForTimeout(200);
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
     ok(!(await pg.isVisible('#pc-dl-wrap')) && await pg.evaluate(() => Android._dl.list.length === 0), 'alles verwijderd');
     await pg.close();
   }
