@@ -14,7 +14,11 @@ import android.os.Looper;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.ViewGroup;
+import android.app.AlertDialog;
+import android.os.SystemClock;
+import android.webkit.ConsoleMessage;
 import android.webkit.CookieManager;
+import android.webkit.PermissionRequest;
 import android.webkit.JsPromptResult;
 import android.webkit.JsResult;
 import android.webkit.RenderProcessGoneDetail;
@@ -27,6 +31,8 @@ import android.webkit.WebStorage;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.ScrollView;
+import android.widget.Toast;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -63,6 +69,12 @@ public class NieuwsInlogActivity extends Activity {
     private int gescrold;
     String sites = "", soort = INLOGGEN, naam = "";
     boolean derden;
+    /** Wat er in dit venster gebeurt (Wat gebeurt er?): alleen in het geheugen, zonder geheimen. */
+    final NieuwsDiagnose log = new NieuwsDiagnose(SystemClock.elapsedRealtime());
+    /** Meekijken vanaf de computer (chrome://inspect) staat aan zolang dit venster open is. */
+    private boolean meekijken;
+
+    void log(String soort, String tekst) { log.log(SystemClock.elapsedRealtime(), soort, tekst); }
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -123,6 +135,17 @@ public class NieuwsInlogActivity extends Activity {
         tekst.addView(titel);
         tekst.addView(status);
         bar.addView(tekst, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        // Wat gebeurt er?: het logboek van dit venster (voor als het inloggen of laden blijft hangen)
+        Button diag = new Button(this, null, android.R.attr.borderlessButtonStyle);
+        diag.setText("?");
+        diag.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        diag.setContentDescription(Taal.t(this, "Wat gebeurt er?"));
+        diag.setMinWidth(dp(48));
+        diag.setMinimumWidth(dp(48));
+        diag.setMinHeight(dp(48));
+        diag.setMinimumHeight(dp(48));
+        diag.setOnClickListener(v -> toonLog());
+        bar.addView(diag, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         if (!lezen) {
             Button link = new Button(this);
             link.setText(Taal.t(this, "Link uit e-mail"));
@@ -154,7 +177,8 @@ public class NieuwsInlogActivity extends Activity {
         // Cookies van andere sites alleen als dat bij deze bron aan staat (nodig als het inloggen via een andere dienst loopt)
         CookieManager.getInstance().setAcceptThirdPartyCookies(wv, derden);
         wv.setWebViewClient(new Client(this));
-        wv.setWebChromeClient(new Chrome());
+        wv.setWebChromeClient(new Chrome(this));
+        log("start", soort + ", derden " + (derden ? "aan" : "uit") + ", sites " + sites + ", " + NieuwsDiagnose.schoon(url));
         if (Build.VERSION.SDK_INT >= 33)
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, (android.window.OnBackInvokedCallback) this::terug);
         wv.loadUrl(url);
@@ -217,6 +241,61 @@ public class NieuwsInlogActivity extends Activity {
         if (wv != null) wv.loadUrl(u);
     }
 
+    /** Wat Tools over het venster weet: versies en instellingen (geen gegevens van Rene). */
+    String kop() {
+        StringBuilder sb = new StringBuilder("Tools " + Version.NAME + " (" + Version.NATIVE_LEVEL + "), Android " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ")");
+        try {
+            if (Build.VERSION.SDK_INT >= 26) {
+                android.content.pm.PackageInfo pi = WebView.getCurrentWebViewPackage();
+                if (pi != null) sb.append(", WebView ").append(pi.packageName).append(' ').append(pi.versionName);
+            }
+        } catch (Throwable ignored) { }
+        try { if (wv != null) sb.append("\nUA ").append(wv.getSettings().getUserAgentString()); } catch (Throwable ignored) { }
+        sb.append("\nbron ").append(naam).append(", ").append(soort).append(", cookies van derden ").append(derden ? "aan" : "uit")
+                .append(", meekijken ").append(meekijken ? "aan" : "uit");
+        try { if (wv != null && wv.getUrl() != null) sb.append("\nnu ").append(NieuwsDiagnose.schoon(wv.getUrl())); } catch (Throwable ignored) { }
+        return sb.toString();
+    }
+
+    /** Wat gebeurt er?: het logboek, te kopiëren, en meekijken vanaf een computer. */
+    void toonLog() {
+        String t = log.tekst(kop());
+        TextView tv = new TextView(this);
+        tv.setText(t);
+        tv.setTextIsSelectable(true);
+        tv.setTypeface(android.graphics.Typeface.MONOSPACE);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        int p = dp(16);
+        tv.setPadding(p, p / 2, p, p / 2);
+        ScrollView sv = new ScrollView(this);
+        sv.addView(tv);
+        sv.post(() -> sv.fullScroll(ScrollView.FOCUS_DOWN));
+        new AlertDialog.Builder(this)
+                .setTitle(Taal.t(this, "Wat gebeurt er?"))
+                .setView(sv)
+                .setPositiveButton(Taal.t(this, "Kopiëren"), (d, w) -> kopieer(log.tekst(kop())))
+                .setNeutralButton(meekijken ? Taal.t(this, "Meekijken uit") : Taal.t(this, "Meekijken vanaf computer"), (d, w) -> meekijken(!meekijken))
+                .setNegativeButton(Taal.t(this, "Sluiten"), null)
+                .show();
+    }
+
+    void kopieer(String t) {
+        try {
+            ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Tools", t));
+            Toast.makeText(this, Taal.t(this, "Logboek gekopieerd. Kijk het na voor je het deelt: er staan de adressen in die de pagina opvroeg."), Toast.LENGTH_LONG).show();
+        } catch (Throwable ignored) { }
+    }
+
+    /** Meekijken: de pagina is te bekijken met chrome://inspect op een computer met een USB-kabel (alleen zolang dit venster open is). */
+    void meekijken(boolean aan) {
+        try { WebView.setWebContentsDebuggingEnabled(aan); } catch (Throwable e) { return; }
+        meekijken = aan;
+        log("tools", "meekijken " + (aan ? "aan" : "uit"));
+        zet(aan ? Taal.t(this, "Meekijken staat aan tot je dit venster sluit. Sluit de telefoon met USB aan (USB-foutopsporing aan) en open chrome://inspect in Chrome op de computer.")
+                : Taal.t(this, "Meekijken staat uit."));
+    }
+
     void sluit() {
         try { CookieManager.getInstance().flush(); } catch (Throwable ignored) { }
         setResult(RESULT_OK);
@@ -276,6 +355,7 @@ public class NieuwsInlogActivity extends Activity {
     @Override
     protected void onDestroy() {
         h.removeCallbacksAndMessages(null);
+        if (meekijken) try { WebView.setWebContentsDebuggingEnabled(false); } catch (Throwable ignored) { }
         try { CookieManager.getInstance().flush(); } catch (Throwable ignored) { }
         if (wv != null) {
             try { wv.stopLoading(); } catch (Throwable ignored) { }
@@ -293,6 +373,8 @@ public class NieuwsInlogActivity extends Activity {
         @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest req) {
             try {
                 String u = req.getUrl().toString();
+                boolean mag = req.isForMainFrame() ? Nieuws.siteMag(a.sites, u) : Nieuws.ladenMag(u);
+                a.log(mag ? "laad" : "STOP", req.getMethod() + (req.isForMainFrame() ? " pagina " : " ") + NieuwsDiagnose.schoon(u));
                 // de pagina zelf alleen op de sites van de bron; wat ze laadt van elke https-site, en wat ze zelf maakt
                 // (blob:, data:, about:: werkers en vensters van een robotcontrole of het inlogformulier); geen http of bestanden
                 if (req.isForMainFrame() ? Nieuws.siteMag(a.sites, u) : Nieuws.ladenMag(u)) return null;
@@ -305,15 +387,31 @@ public class NieuwsInlogActivity extends Activity {
         }
         @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
             String u = req.getUrl().toString();
+            a.log("naar", (req.isForMainFrame() ? "pagina " : "frame ") + (req.isRedirect() ? "(doorverwijzing) " : "") + NieuwsDiagnose.schoon(u));
             if (!req.isForMainFrame()) return !Nieuws.ladenMag(u);
             if (Nieuws.siteMag(a.sites, u)) return false;
             if (u.regionMatches(true, 0, "https://", 0, 8)) a.andereSite(u);
             return true;
         }
+        @Override public void onPageStarted(WebView v, String url, android.graphics.Bitmap icon) { a.log("begin", NieuwsDiagnose.schoon(url)); }
+        @Override public void onPageFinished(WebView v, String url) {
+            String namen = "";
+            try { namen = Nieuws.koekjesNamen(CookieManager.getInstance().getCookie(url)); } catch (Throwable ignored) { }
+            a.log("klaar", NieuwsDiagnose.schoon(url) + " · cookies: " + (namen.isEmpty() ? "geen" : namen.replace(";", ", ")));
+        }
+        @Override public void onReceivedHttpError(WebView v, WebResourceRequest req, WebResourceResponse r) {
+            a.log("HTTP", (r == null ? "?" : r.getStatusCode() + " " + r.getReasonPhrase()) + " " + req.getMethod() + " " + NieuwsDiagnose.schoon(req.getUrl().toString()));
+        }
+        @Override public void onReceivedSslError(WebView v, android.webkit.SslErrorHandler hd, android.net.http.SslError e) {
+            a.log("SSL", "fout " + (e == null ? "?" : e.getPrimaryError() + " " + NieuwsDiagnose.schoon(e.getUrl())));
+            hd.cancel();
+        }
         @Override public void onReceivedError(WebView v, WebResourceRequest req, WebResourceError err) {
+            a.log("FOUT", (err == null ? "?" : err.getErrorCode() + " " + err.getDescription()) + " " + NieuwsDiagnose.schoon(req.getUrl().toString()));
             if (req.isForMainFrame()) a.zet(Taal.t(a, "De pagina laden lukte niet. Controleer de verbinding en probeer het opnieuw."));
         }
         @Override public boolean onRenderProcessGone(WebView v, RenderProcessGoneDetail d) {
+            a.log("FOUT", "website vastgelopen" + (d != null && d.didCrash() ? " (crash)" : ""));
             a.zet(Taal.t(a, "De website liep vast. Probeer het opnieuw."));
             try { ((ViewGroup) v.getParent()).removeView(v); v.destroy(); } catch (Throwable ignored) { }
             a.wv = null;
@@ -321,10 +419,23 @@ public class NieuwsInlogActivity extends Activity {
         }
     }
 
-    /** Geen vensters van de pagina die ongezien iets bevestigen. */
+    /** Geen vensters van de pagina die ongezien iets bevestigen (wel in het logboek, zodat te zien is dat het gebeurde). */
     static final class Chrome extends WebChromeClient {
-        @Override public boolean onJsAlert(WebView v, String url, String m, JsResult res) { res.confirm(); return true; }
-        @Override public boolean onJsConfirm(WebView v, String url, String m, JsResult res) { res.cancel(); return true; }
-        @Override public boolean onJsPrompt(WebView v, String url, String m, String d, JsPromptResult res) { res.cancel(); return true; }
+        final NieuwsInlogActivity a;
+        Chrome(NieuwsInlogActivity a) { this.a = a; }
+        @Override public boolean onJsAlert(WebView v, String url, String m, JsResult res) { a.log("venster", "alert weggeklikt: " + m); res.confirm(); return true; }
+        @Override public boolean onJsConfirm(WebView v, String url, String m, JsResult res) { a.log("venster", "vraag geweigerd: " + m); res.cancel(); return true; }
+        @Override public boolean onJsPrompt(WebView v, String url, String m, String d, JsPromptResult res) { a.log("venster", "invoervraag geweigerd: " + m); res.cancel(); return true; }
+        @Override public void onPermissionRequest(PermissionRequest r) {
+            try { a.log("venster", "toestemming geweigerd: " + java.util.Arrays.toString(r.getResources())); r.deny(); } catch (Throwable ignored) { }
+        }
+        @Override public boolean onConsoleMessage(ConsoleMessage m) {
+            if (m == null) return false;
+            // alleen fouten en waarschuwingen: gewone meldingen van een site zeggen weinig en kunnen gegevens bevatten
+            ConsoleMessage.MessageLevel l = m.messageLevel();
+            if (l != ConsoleMessage.MessageLevel.ERROR && l != ConsoleMessage.MessageLevel.WARNING) return true;
+            a.log(l == ConsoleMessage.MessageLevel.ERROR ? "JS-FOUT" : "js-let", m.message() + " (" + NieuwsDiagnose.schoon(m.sourceId()) + ":" + m.lineNumber() + ")");
+            return true;
+        }
     }
 }

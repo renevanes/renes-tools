@@ -660,7 +660,10 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   (standaard alleen bij AI Report: beehiiv logt in via eigen diensten en een robotcontrole, die zonder blijven hangen). De cookies van de inlog gaan alleen naar
   `inlogSites` mee (`Nieuws.inlogKoekjes`, per adres ook na doorverwijzingen), voor de feed en de artikelpagina's; die van de
   cookiekeuze (Tweakers) alleen naar de artikelpagina's. Uitloggen (`NieuwsInlogActivity.wis`) laat de cookies van die sites
-  verlopen. Cookies van de WebView gaan nergens mee in backups: na terugzetten opnieuw inloggen. Eerste bron met inloggen: AI Report (aireport.nl, beehiiv).
+  verlopen. **Wat gebeurt er?** (knop ? in de balk): `NieuwsDiagnose` houdt in het geheugen bij wat de pagina opvraagt,
+  HTTP- en laadfouten, JS-fouten en -waarschuwingen en weggeklikte vensters (adressen zonder ?…/#…, geen e-mailadressen,
+  sleutels of cookiewaarden; `NieuwsDiagnoseTest`); kopiëren gaat alleen op Renes tik. Meekijken zet
+  `setWebContentsDebuggingEnabled` aan tot het venster sluit (chrome://inspect over USB). Cookies van de WebView gaan nergens mee in backups: na terugzetten opnieuw inloggen. Eerste bron met inloggen: AI Report (aireport.nl, beehiiv).
 - **Opslag**: `nieuws/` (bronnen met instellingen, gelezen, bewaard) gaat mee in "Alle appgegevens", niet in de Android-backup; de opgehaalde
   artikelen staan in de cache. Logsoort `NIEUWS` alleen met aantallen en vaste woorden.
 - Tests: `tests/ui/nieuws.test.js`, `tests/ui/nieuws-bron.test.js`; Java: `NieuwsFeedTest`, `NieuwsTest`.

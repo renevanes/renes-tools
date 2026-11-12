@@ -1,0 +1,1 @@
+Nieuws: in het inlog- en leesvenster staat nu een ?-knop (Wat gebeurt er?). Die toont een logboek van wat de website opvraagt, welke fouten ze geeft en welke vensters Tools wegklikt; te kopiëren als het inloggen blijft hangen. Ook kun je het venster vanaf een computer bekijken met chrome://inspect.
