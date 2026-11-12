@@ -1,1 +1,0 @@
-Nieuws: inloggen bij AI Report bleef hangen omdat de site na het inloggen terugstuurt naar een http-adres; Tools zet zo'n adres op een site van de inlog nu om naar https.

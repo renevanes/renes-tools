@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.199",
+    "date": "2026-11-12",
+    "changes": [
+      "Nieuws: inloggen bij AI Report bleef hangen omdat de site na het inloggen terugstuurt naar een http-adres; Tools zet zo'n adres op een site van de inlog nu om naar https."
+    ]
+  },
+  {
     "version": "1.198",
     "date": "2026-11-12",
     "changes": [
