@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.196",
-  "versionCode": 197,
-  "nativeLevel": 175,
+  "versionName": "1.197",
+  "versionCode": 198,
+  "nativeLevel": 176,
   "web": "index.html",
-  "webSha256": "7bcef54a1352de4e4a800694d72b75ef4e40c6adf6660e7e2e7e3f095a5ee8c2",
+  "webSha256": "8ac53c2253febcecd05ef8ccad4da715e16128163cc3d8a558aeb6854f5df7fc",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "889e3febe8185b8036ca5c6386d13161bafacbab68d7283dab53c38cffee42b7",
+  "apkSha256": "b8f859c7f6c30ef7bdf45ccda8776435f96691ae29df62fa8034cceebb978052",
   "changelog": [
+    {
+      "version": "1.197",
+      "date": "2026-11-12",
+      "changes": [
+        "Nieuws: inloggen bij AI Report bleef hangen op \"Je code wordt verstuurd\". Het inlogvenster laat nu alles toe wat de inlogpagina zelf maakt (zoals de controle tegen robots); houdt Tools toch iets tegen, dan staat dat bovenin."
+      ]
+    },
     {
       "version": "1.196",
       "date": "2026-11-12",
@@ -1736,5 +1743,5 @@
       ]
     }
   ],
-  "webSig2": "FYOBFMuO3CODXikDI9sriT8hx4VmXTu1wMClSYCVA+H1T0uG+rxNCQKbmS+j2jncY+gkboqee90Y2x8l2oNG46/lkSBUqj8IOwRlCBkKv/wmVubx2r+tmwpJ26JQ8m31nrJlemlWPMYiJ2EAwpnpDJUc/ni9axMB9bdfk0GM9GOQZITiOiZF3fOFtiszs8y/GuFwcW6QwQaaKU0d/pJ6cu0Fs4n/FSvEGzdd5gvnqUorKJiEvWpvr/fU445eDhDkSEGiRZX27PhBnhH76BzjUjD/90x7uCTZsGmXaVB14oDi6MgJ0bD2PNz3bFotHIQG2qRK8ydj89uTN1E55A6LoxviUqU+KQPLG0fJTjhn5pZAWi+Km/uSJgxE1/2opzGw4G7ia6BBdyDi8kUvNFEB0A5Ix07lpAGDp5h1M027qzgRc1/PgJaISv3k0ghcPHF84xaZSmVVWIeRy16hXNK//3HqokCQaqtd+SecsRFX/P/5q1vJu/J9nzuzGMvovXq7"
+  "webSig2": "m6cG/AZJhnvaYD/J4VWo9GYIuFixZctrpi0LuL4RLlWZce2UT9YrpOYETRzVphH0K7bW8cJ7IxHYRTco1E/9dDkgj+xCOgvdeYVFGpGxcUR702mx2A5b2YZxd8hl8C3QxLam/rYxszR4kqsgkG/PFsXOL6fTl7A251zrpuFVUswrJiGErYupQvngX/t8kVE2y8FHtbiMdrY1cN7hFxm71sQaWjAzRI1R3B4+Ewd07Xl5wADgR3D1wUJhvetN/B34RiavvZGNcZK9ARCHjacSAMlxoqyh9+n9lwYBYD413PiFz64p2ZXkwwG5sanbBhmCCcwiT5Exi8Bd6s6j1IyCp2/VJoSo521z97GztyfEWk0wD+YrzfejkpcszoqiDWMvgI16kT/tMgBmg6uWS89c0I49Wi6YJIcqA/3ALz/G/OJljMuuMJfJCqhGaCACJf0/eidljKvqsm0lBs62XO913PMXuKdp6PYJJYprO7HaNhIBSvbg/o9+/Ywqk2T4QCFv"
 }
