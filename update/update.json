@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.197",
-  "versionCode": 198,
-  "nativeLevel": 176,
+  "versionName": "1.198",
+  "versionCode": 199,
+  "nativeLevel": 177,
   "web": "index.html",
-  "webSha256": "8ac53c2253febcecd05ef8ccad4da715e16128163cc3d8a558aeb6854f5df7fc",
+  "webSha256": "eecb5e0fc037df65220a27fd61dc322a0c3d5e7f88fc3eecb183100b9995119f",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "b8f859c7f6c30ef7bdf45ccda8776435f96691ae29df62fa8034cceebb978052",
+  "apkSha256": "14f7918c2c0d7648a86fbd638c20f0a84f84d47d36cda376935de2aa38cdcfba",
   "changelog": [
+    {
+      "version": "1.198",
+      "date": "2026-11-12",
+      "changes": [
+        "Nieuws: in het inlog- en leesvenster staat nu een ?-knop (Wat gebeurt er?). Die toont een logboek van wat de website opvraagt, welke fouten ze geeft en welke vensters Tools wegklikt; te kopiëren als het inloggen blijft hangen. Ook kun je het venster vanaf een computer bekijken met chrome://inspect."
+      ]
+    },
     {
       "version": "1.197",
       "date": "2026-11-12",
@@ -1743,5 +1750,5 @@
       ]
     }
   ],
-  "webSig2": "m6cG/AZJhnvaYD/J4VWo9GYIuFixZctrpi0LuL4RLlWZce2UT9YrpOYETRzVphH0K7bW8cJ7IxHYRTco1E/9dDkgj+xCOgvdeYVFGpGxcUR702mx2A5b2YZxd8hl8C3QxLam/rYxszR4kqsgkG/PFsXOL6fTl7A251zrpuFVUswrJiGErYupQvngX/t8kVE2y8FHtbiMdrY1cN7hFxm71sQaWjAzRI1R3B4+Ewd07Xl5wADgR3D1wUJhvetN/B34RiavvZGNcZK9ARCHjacSAMlxoqyh9+n9lwYBYD413PiFz64p2ZXkwwG5sanbBhmCCcwiT5Exi8Bd6s6j1IyCp2/VJoSo521z97GztyfEWk0wD+YrzfejkpcszoqiDWMvgI16kT/tMgBmg6uWS89c0I49Wi6YJIcqA/3ALz/G/OJljMuuMJfJCqhGaCACJf0/eidljKvqsm0lBs62XO913PMXuKdp6PYJJYprO7HaNhIBSvbg/o9+/Ywqk2T4QCFv"
+  "webSig2": "WGmTMoz2cru4gkPZ7jKIrgCC+/VDvKgQsIZiBLdzf9n+Lcn+k7SpmSWanDqzhA72zaQuHO/C0GFDIlpoXfS/Nz1BtSFuWJ8jtS8kJTHBm4YeecqnJCjWEAuYx928TFAFIAaVi68AqmZUnG6b/oKe2nruh6WXZE6W/XBzwtMvrb9ABk7vq4E/4r8rCHLU4/7iNuxHfzmbbBXXzg7tUf6LfQAQdKj6bb7+3oVEKEYhCBtFohspsfetOU3frMTY+fXk8s5fwgEZaJ/Su3A8ZXPhIiMOOteTjqLReCwpi9p7+OYoMPzK6Unq+rnkMO7e39PSNLj3kO6B4fAoK7cAWtzcMDpIIYllu4ElXqeDAzM1Mmps6L9dsLzy+ro6ZLGhStFaEZh7GOK7AhM2Bxt/03TGL6JrfiM337dj8vYtSOWYIs65Z87qLis7OztPbQgwtOD08a/GQjx8O+4MQ17kBcTVQyH2LneI0WRFV+H2o/BGxwAPkCvLbp2bFGlE0GXnaEZw"
 }
