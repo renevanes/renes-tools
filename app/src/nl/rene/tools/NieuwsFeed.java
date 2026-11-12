@@ -186,6 +186,8 @@ final class NieuwsFeed {
     static final class SitemapHandler extends org.xml.sax.ext.DefaultHandler2 {
         final Sitemap kaart = new Sitemap();
         boolean root, started;
+        /** Diepte: 1 = urlset/sitemapindex, 2 = url/sitemap, 3 = loc en lastmod (dieper: image:loc en dergelijke tellen niet). */
+        int diepte;
         String loc = "", mod = "", titel = "";
         final StringBuilder text = new StringBuilder();
 
@@ -202,7 +204,8 @@ final class NieuwsFeed {
                 kaart.index = n.equals("sitemapindex");
                 if (!root) throw new SAXException("geen sitemap");
             }
-            if (n.equals("url") || n.equals("sitemap")) { loc = ""; mod = ""; titel = ""; }
+            diepte++;
+            if (diepte == 2 && (n.equals("url") || n.equals("sitemap"))) { loc = ""; mod = ""; titel = ""; }
             text.setLength(0);
         }
 
@@ -211,11 +214,14 @@ final class NieuwsFeed {
         }
 
         @Override public void endElement(String uri, String local, String q) throws SAXException {
-            String n = naam(q);
-            if (n.equals("loc")) loc = text.toString().trim();
-            else if (n.equals("lastmod") || (n.equals("publication_date") && mod.isEmpty())) mod = text.toString().trim();
-            else if (n.equals("title")) titel = cut(regel(ontsnap(text.toString())).trim(), 300);
-            else if ((n.equals("url") || n.equals("sitemap")) && !loc.isEmpty()) {
+            String n = naam(q), lq = q.toLowerCase(Locale.ROOT);
+            boolean eigen = lq.indexOf(':') < 0; // loc en lastmod van de sitemap zelf, niet image:loc of video:title
+            int d = diepte--;
+            if (d == 3 && eigen && n.equals("loc")) loc = text.toString().trim();
+            else if (d == 3 && eigen && n.equals("lastmod")) mod = text.toString().trim();
+            else if (lq.startsWith("news:") && n.equals("publication_date") && mod.isEmpty()) mod = text.toString().trim();
+            else if (lq.startsWith("news:") && n.equals("title")) titel = cut(regel(ontsnap(text.toString())).trim(), 300);
+            else if (d == 2 && (n.equals("url") || n.equals("sitemap")) && !loc.isEmpty()) {
                 kaart.urls.add(new Object[]{loc, kaartDatum(mod), titel});
                 if (kaart.urls.size() >= MAX_SITEMAP) throw new PodcastFeed.Enough();
             }

@@ -126,7 +126,7 @@ final class Nieuws {
             "tweakers.net *.tweakers.net tweakimg.net *.tweakimg.net myprivacy.dpgmedia.nl myprivacy-static.dpgmedia.net pg.dpgmedia.nl",
             "myprivacy.dpgmedia.nl pg.dpgmedia.nl"},
     };
-    static final int MAX_PAGINA = 64 * 1024, MAX_PAGINAS = 20;
+    static final int MAX_PAGINA = 128 * 1024, MAX_PAGINAS = 20;
     static final long MAX_PER_PAGINA = 10_000L;
 
     static String[] paginaBron(String id) {
@@ -852,7 +852,11 @@ final class Nieuws {
             if (oud != null && later(oud, nu)) return 0;
             Map<String, Long> bekend = new HashMap<>();
             JSONArray oa = oud == null ? null : oud.optJSONArray("artikelen");
-            if (oa != null) for (int i = 0; i < oa.length(); i++) { JSONObject a = oa.optJSONObject(i); if (a != null) bekend.put(a.optString("id"), datum(a)); }
+            long nieuwste = 0;
+            if (oa != null) for (int i = 0; i < oa.length(); i++) {
+                JSONObject a = oa.optJSONObject(i);
+                if (a != null) { bekend.put(a.optString("id"), datum(a)); nieuwste = Math.max(nieuwste, datum(a)); }
+            }
             List<JSONObject> lijst = new ArrayList<>();
             Set<String> gezien = new HashSet<>();
             int nieuw = 0;
@@ -862,7 +866,8 @@ final class Nieuws {
                 Long eerder = bekend.get(id);
                 long d = a.datum;
                 if (d <= 0 || d > nu + 3_600_000L) d = eerder != null ? eerder : nu;
-                if (eerder == null) nieuw++;
+                // uit een sitemap komen oudere artikelen er per ronde bij: die tellen niet als nieuw
+                if (eerder == null && !(f.uitSitemap && d < nieuwste)) nieuw++;
                 lijst.add(json(a, bron, d, basis));
             }
             nieuwsteEerst(lijst);
@@ -1345,7 +1350,8 @@ final class Nieuws {
             String loc = link((String) u[0], basis);
             String pad;
             try { pad = zonderSlash(new URL(loc).getPath()); } catch (Exception e) { continue; }
-            if (!https(loc) || pad.isEmpty() || !gezien.add(loc)) continue;
+            // alleen pagina's van de site zelf: Tools haalt ze op, en een andere site hoeft niet te zien dat je leest
+            if (!https(loc) || !host(loc).equals(host(basis)) || pad.isEmpty() || !gezien.add(loc)) continue;
             l.add(new Object[]{loc, u[1], u.length > 2 ? u[2] : ""});
         }
         Collections.sort(l, (x, y) -> Long.compare((Long) y[1], (Long) x[1]));
@@ -1422,12 +1428,14 @@ final class Nieuws {
             gehaald++;
             long paginaTot = Math.min(tot, System.currentTimeMillis() + MAX_PER_PAGINA);
             try {
-                Kop k = paginaKop(p.haal(a.link, paginaTot), a.link);
+                String html = p.haal(a.link, paginaTot);
+                Kop k = paginaKop(html, a.link);
                 if (!k.titel.isEmpty()) a.titel = k.titel;
                 if (!k.tekst.isEmpty()) a.blokken.add(new NieuwsFeed.Blok(k.tekst, false));
                 a.auteur = k.auteur;
                 a.beeld = k.beeld;
-                a.zonderBeeld = k.beeld.isEmpty();
+                // "geen afbeelding" alleen als de hele kop er was (anders probeert beelden() het later nog eens)
+                a.zonderBeeld = k.beeld.isEmpty() && artikelKop(html);
                 if (k.datum > 0) a.datum = k.datum;
             } catch (Doorverwezen | Elders | HttpFout e) {
                 // naar een andere site of pagina, of weg: geen artikel
@@ -1450,7 +1458,9 @@ final class Nieuws {
         a.beeld = o.optString("beeld");
         a.zonderBeeld = o.optBoolean("zonderBeeld");
         a.ingekort = true;
-        if (a.datum <= 0) a.datum = o.optLong("datum");
+        // de datum van de vorige ronde (van de pagina zelf): een nieuwere lastmod (een bewerking) zet het artikel niet opnieuw bovenaan
+        long d = o.optLong("datum");
+        if (d > 0) a.datum = d;
         JSONArray bl = o.optJSONArray("blokken");
         if (bl != null) for (int i = 0; i < bl.length(); i++) {
             JSONObject b = bl.optJSONObject(i);
