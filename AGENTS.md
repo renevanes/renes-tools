@@ -187,6 +187,10 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   `<button class="icon-btn hset" id="…" data-to="carset" aria-label="Instellingen van Mijn auto"></button>`
   (pictogram en klik vult `uiPatterns()` in; geen eigen onclick of inhoud). Zo bij Gebruik, Apparaten en Mijn auto. Ontbreekt er iets waardoor de tool niet
   werkt (een toestemming), laat dan op de tool zelf een korte balk zien die naar de instellingen gaat.
+- **Licht en donker in een tool** (media en lezen: Nieuws, Podcasts, Radio): `<button class="icon-btn hthema" id="…" aria-label="Licht en donker"></button>`
+  in de kop (pictogram, naam en klik vult `thKnoppen()` in `02-thema.js`; geen eigen onclick). Het menu (`thMenu`): bij een
+  automatisch thema tijdelijk donker of licht tot de volgende wissel (`themeTmp`, ook naar Java via `thNative` → `Thema.dark`),
+  weer automatisch, en Instellingen voor weergave. Op een vast donker scherm (de grote speler) als keuze in het menu ⋯.
 - **Voortgang bij bestanden toevoegen**: leest of verwerkt de app een gekozen bestand (boek, document, factuur,
   afschriften, foto's), gebruik dan `Voortgang` in Java: `try (Voortgang v = Voortgang.van(a, "soort", aantal)) { … v.open(c, uri) … v.stap("verwerken", 0, 0) … }`.
   De interface toont dan vanzelf de balk onderin (`uiVoortgang` in `02-patronen.js`; nieuwe soort = een kop in `uiVgWat`).

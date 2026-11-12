@@ -327,7 +327,7 @@ function plMenu(){
   if (m.src === 'podcast') { pcNowMenu(); return; }
   const acts = [['Naar Radio', () => show('radio')], ['Zender op startscherm', () => rdPinStation()], ['Verder luisteren op startscherm', () => pinTool('player')]];
   if (m.shift) acts.push(['Fragment bewaren', () => rdClipMenu()]);
-  acts.push(plFloatAct(), ['Stoppen', () => plStop()]);
+  acts.push(plFloatAct(), [t('Licht en donker'), () => setTimeout(thMenu, 0)], ['Stoppen', () => plStop()]);
   openSheet(m.from, 'Radio', acts);
 }
 /* Zwevende speler boven andere apps */

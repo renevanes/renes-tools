@@ -95,8 +95,16 @@ function thTmpGeldig(tmp, mode, now, sysDark){
   if (mode === 'light' || mode === 'dark') return false;
   return mode !== 'system' || tmp.sys === !!sysDark;
 }
-/* Tot wanneer "tijdelijk andersom" geldt: tot de volgende automatische wissel, anders (Systeem, poolnacht) 12 uur. Zuiver. */
-function thTmpTot(mode, next, now){ return (mode === 'time' || mode === 'sun') && next > now ? next : now + 12 * 36e5; }
+/* Tot wanneer "tijdelijk andersom" geldt: tot de volgende automatische wissel. Is die er niet (Systeem, poolnacht), dan
+ * donker tot de volgende ochtend (07:00) en licht tot de volgende avond (20:00); bij Systeem eerder als de telefoon zelf
+ * wisselt. Zuiver. */
+function thTmpTot(mode, next, now, dark){
+  if ((mode === 'time' || mode === 'sun') && next > now) return next;
+  const hm = dark ? TH_DEF.light : TH_DEF.dark, k = thKey(now);
+  let at = thAt(k, hm);
+  if (at <= now) at = thAt(thAdd(k, 1), hm);
+  return at;
+}
 
 /* ---------- in de app ---------- */
 function thCfg(){ return thClean(store.get('theme', null)); }
@@ -138,7 +146,7 @@ function thApply(quiet){
     document.documentElement.dataset.thema = r.dark ? 'donker' : 'licht';
   }
   // Voor body-begin.html bij de volgende start (niet in backups: zie WS_SKIP): de stand en tot wanneer die geldt
-  const auto = c.mode === 'time' || c.mode === 'sun' || r.tmp, pre = JSON.stringify({ dark: forced, until: auto ? (r.next || thDay(now, 1).getTime()) : 0 });
+  const auto = c.mode === 'time' || c.mode === 'sun' || r.tmp, pre = JSON.stringify(Object.assign({ dark: forced, until: auto ? (r.next || thDay(now, 1).getTime()) : 0 }, r.tmp && c.mode === 'system' ? { sys: thSys() } : {}));
   try { if (thApply.pre === undefined) thApply.pre = localStorage.getItem('rt.themeNow'); if (pre !== thApply.pre) { localStorage.setItem('rt.themeNow', pre); thApply.pre = pre; } } catch (e) { }
   thNative(c, now, loc, r.dark);
   // Precies op de volgende wissel (naast de minuuttik), hooguit 6 uur vooruit
@@ -171,10 +179,12 @@ function thAmoled(on){
 function thNative(c, now, loc, dark){
   if (typeof Android === 'undefined' || typeof Android.themeSet !== 'function') return;
   // Ook bij elke wissel opnieuw: dan zet Java meteen de achtergrond (en de afdeklaag van het app-slot) in de nieuwe kleur
-  const key = JSON.stringify([c, loc && [loc.lat, loc.lon], rgDayKey(now), rgZone(), !!dark]);
+  const tmp = thState && thState.tmp ? thTmp() : null;
+  const key = JSON.stringify([c, loc && [loc.lat, loc.lon], rgDayKey(now), rgZone(), !!dark, tmp]);
   if (key === thNative.key) return;
   thNative.key = key;
   const o = { mode: c.mode, amoled: c.amoled };
+  if (tmp) o.tmp = [tmp.dark ? 1 : 0, +tmp.until, tmp.sys ? 1 : 0]; // tijdelijk andersom: ook de achtergrond bij het opstarten
   if (c.mode === 'time') o.win = [thMin(c.dark), thMin(c.light)];
   if (c.mode === 'sun' && loc) {
     const tr = thTrans(c, now, loc, -1, 31), mod = ms => rgMinOfDay(ms);
@@ -190,6 +200,11 @@ function thNative(c, now, loc, dark){
 
 /* ---------- scherm Weergave ---------- */
 function thHm(ms){ return fmtTime(ms); }
+/* "tot 07:00", "tot morgen 07:00", "tot over 2 dagen 07:00" */
+function thTot(ms){
+  const k = Math.round((thDay(ms, 0) - thDay(Date.now(), 0)) / 864e5), tijd = thHm(ms);
+  return k <= 0 ? t('tot {tijd}', { tijd }) : k === 1 ? t('tot morgen {tijd}', { tijd }) : t('tot over {n} dagen {tijd}', { n: k, tijd });
+}
 function thWhen(ms){
   const k = Math.round((thDay(ms, 0) - thDay(Date.now(), 0)) / 864e5), tijd = thHm(ms);
   return k === 0 ? t('om {tijd}', { tijd }) : k === 1 ? t('morgen om {tijd}', { tijd }) : t('over {n} dagen om {tijd}', { n: k, tijd });
@@ -198,7 +213,7 @@ function thModeName(v){ const x = TH_MODES.find(m => m[0] === v); return x ? x[1
 /* "Nu: licht · wordt donker om 19:42" */
 function thStatus(){
   const s = thState || thApply(true), now = s.dark ? t('donker') : t('licht');
-  if (s.tmp) return t('Nu: {nu} tot {wanneer}, daarna weer automatisch', { nu: now, wanneer: thWhen(s.next) });
+  if (s.tmp) return t('Nu: {nu} {tot}, daarna weer automatisch', { nu: now, tot: thTot(s.next) });
   if (s.mode === 'system') return t('Nu: {nu}, zoals je telefoon', { nu: now });
   if (s.mode === 'light' || s.mode === 'dark') return t('Nu: {nu} (altijd)', { nu: now });
   if (s.next) return t(s.dark ? 'Nu: {nu} · wordt licht {wanneer}' : 'Nu: {nu} · wordt donker {wanneer}', { nu: now, wanneer: thWhen(s.next) });
@@ -225,7 +240,11 @@ function thRender(cfg){
   const a = $('#st-amoled'); a.classList.toggle('on', c.amoled); a.setAttribute('aria-checked', c.amoled ? 'true' : 'false');
   const st = $('#st-th-now'), tt = thStatus(); if (st.textContent !== tt) st.textContent = tt;
 }
-function thSave(patch){ store.set('theme', thClean(Object.assign(thCfg(), patch))); thApply(); if (current !== 'setlook') thRender(); }
+function thSave(patch){
+  // Een andere keuze (modus, tijden, plaats): de tijdelijke stand hoort bij de oude, dus weg
+  if (Object.keys(patch || {}).some(k => k !== 'amoled')) store.set('themeTmp', null);
+  store.set('theme', thClean(Object.assign(thCfg(), patch))); thApply(); if (current !== 'setlook') thRender();
+}
 function thSetMode(v){ thSave({ mode: v }); toast(t('Thema: {thema}', { thema: t(thModeName(thCfg().mode)).replace(/ \(.*\)$/, '').toLowerCase() })); }
 function thSetVal(k, v){
   if ((k === 'dark' || k === 'light') && thMin(v) < 0) { thRender(); return; }
@@ -256,26 +275,27 @@ function thKnoppen(root){
     if (!b.onclick) b.onclick = () => thMenu();
   });
 }
-/* Nu donker (of licht) zetten: vast thema = gewoon wisselen; automatisch = tijdelijk tot de volgende wissel. */
+/* Nu donker (of licht) zetten: vast thema = wisselen (met Ongedaan maken); automatisch = tijdelijk tot de volgende wissel. */
 function thNu(dark){
   const c = thCfg(), now = Date.now();
-  if (c.mode === 'light' || c.mode === 'dark') { thSave({ mode: dark ? 'dark' : 'light' }); store.set('themeTmp', null); }
-  else {
+  if (c.mode === 'light' || c.mode === 'dark') {
+    const prev = c.mode;
+    thSave({ mode: dark ? 'dark' : 'light' });
+    undoToast(t('Thema: {thema}', { thema: t(dark ? 'donker' : 'licht') }), () => thSave({ mode: prev }));
+  } else {
     const auto = thDecide(c, now, thSys(), c.mode === 'sun' ? thLoc(c) : null);
-    store.set('themeTmp', auto.dark === dark ? null : { dark, mode: c.mode, until: thTmpTot(c.mode, auto.next, now), sys: thSys() });
+    store.set('themeTmp', auto.dark === dark ? null : { dark, mode: c.mode, until: thTmpTot(c.mode, auto.next, now, dark), sys: thSys() });
     thApply();
   }
   if (current === 'setlook') thRender();
 }
 function thMenu(){
-  const s = thState || thApply(true), c = thCfg(), vast = c.mode === 'light' || c.mode === 'dark', acts = [];
-  const om = !s.dark;
-  if (vast) acts.push([om ? t('Donker') : t('Licht'), () => thNu(om)]);
+  const s = thState || thApply(true), c = thCfg(), vast = c.mode === 'light' || c.mode === 'dark', acts = [], om = !s.dark;
+  if (vast) acts.push([om ? t('Altijd donker') : t('Altijd licht'), () => thNu(om)]);
+  else if (s.tmp) acts.push([t('Weer automatisch'), () => { store.set('themeTmp', null); thApply(); }]);
   else {
-    const auto = thDecide(c, Date.now(), thSys(), c.mode === 'sun' ? thLoc(c) : null);
-    const tot = thTmpTot(c.mode, auto.next, Date.now()), wanneer = c.mode === 'system' ? t('tot je telefoon wisselt') : t('tot {wanneer}', { wanneer: thWhen(tot) });
-    acts.push([om ? t('Nu donker ({tot})', { tot: wanneer }) : t('Nu licht ({tot})', { tot: wanneer }), () => thNu(om)]);
-    if (s.tmp) acts.push([t('Weer automatisch'), () => { store.set('themeTmp', null); thApply(); }]);
+    const auto = thDecide(c, Date.now(), thSys(), c.mode === 'sun' ? thLoc(c) : null), tot = thTot(thTmpTot(c.mode, auto.next, Date.now(), om));
+    acts.push([om ? t('Nu donker ({tot})', { tot }) : t('Nu licht ({tot})', { tot }), () => thNu(om)]);
   }
   acts.push([t('Instellingen voor weergave'), () => jumpTo('setlook')]);
   openSheet(t('Licht en donker'), thStatus(), acts);

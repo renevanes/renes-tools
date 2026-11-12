@@ -100,7 +100,7 @@ function pcNowMenu(){
   acts.push(['Delen', () => Android.podShare(st.ep.title + (st.pod && st.pod.title ? ' · ' + st.pod.title : ''), (st.pod && st.pod.link) || st.ep.url)]);
   if (st.pod && st.pod.feed) acts.push(['Deze podcast op startscherm', () => pcPinPod(st.pod)]);
   acts.push(['Verder luisteren op startscherm', () => pinTool('player')]);
-  acts.push(plFloatAct(), ['Stoppen', () => plStop()]);
+  acts.push(plFloatAct(), [t('Licht en donker'), () => setTimeout(thMenu, 0)], ['Stoppen', () => plStop()]);
   openSheet(st.ep.title || 'Aflevering', (st.pod && st.pod.title) || '', acts);
 }
 /* Tekst om te lezen: met Afspelen + Sluiten, of alleen Sluiten (geen Annuleren: er valt niets te annuleren) */

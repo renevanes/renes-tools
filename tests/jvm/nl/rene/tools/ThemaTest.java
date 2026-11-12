@@ -18,6 +18,19 @@ public class ThemaTest {
         check(!Thema.dark("", 0, 0, false) && Thema.dark("", 0, 0, true), "niets ingesteld: zoals de telefoon");
         check(Thema.dark("{\"mode\":\"system\"}", 0, 0, true) && !Thema.dark("{\"mode\":\"system\"}", 0, 0, false), "systeem volgt de telefoon");
         check(!Thema.dark("{\"mode\":\"light\"}", 0, 0, true), "licht, ook als de telefoon donker is");
+        // Tijdelijk andersom (knop maan/zon): tot de eindtijd; bij Systeem alleen zolang de telefoon niet zelf wisselde
+        String tijd = "{\"mode\":\"time\",\"win\":[1200,420],\"tmp\":[1,5000,0]}";
+        check(Thema.dark(tijd, 4000, 600, false) && !Thema.dark(tijd, 6000, 600, false), "op tijd: tijdelijk donker tot de eindtijd, daarna weer het venster");
+        String sys = "{\"mode\":\"system\",\"tmp\":[1,5000,0]}";
+        check(Thema.dark(sys, 4000, 0, false) && !Thema.dark(sys, 6000, 0, false), "systeem: tijdelijk donker, verlopen = de telefoon");
+        check(Thema.dark(sys, 4000, 0, true), "systeem: telefoon zelf gewisseld = de telefoon (hier donker)");
+        check(!Thema.dark("{\"mode\":\"system\",\"tmp\":[0,5000,1]}", 4000, 0, false), "systeem: telefoon zelf naar licht gewisseld = licht");
+        check(Thema.dark("{\"mode\":\"system\",\"tmp\":[0,5000,1]}", 4000, 0, true) == false, "systeem: tijdelijk licht terwijl de telefoon donker is");
+        check(!Thema.dark("{\"mode\":\"light\",\"tmp\":[1,5000,0]}", 4000, 0, true), "vast licht: tijdelijk telt niet");
+        String tc = Thema.clean("{\"mode\":\"sun\",\"tmp\":[1,99,0,\"x\"]}");
+        check(tc != null && !tc.contains("tmp"), "tijdelijk met verkeerde vorm valt weg");
+        tc = Thema.clean("{\"mode\":\"sun\",\"tmp\":[7,99,3]}");
+        check(tc != null && tc.contains("\"tmp\":[1,99,1]"), "tijdelijk netjes overgenomen (" + tc + ")");
         check(Thema.dark("{\"mode\":\"dark\"}", 0, 0, false), "donker, ook als de telefoon licht is");
         check(Thema.dark("kapot{", 0, 0, true) && !Thema.dark("kapot{", 0, 0, false), "onleesbaar: zoals de telefoon");
 

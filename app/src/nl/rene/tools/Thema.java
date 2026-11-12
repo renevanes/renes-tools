@@ -69,6 +69,10 @@ final class Thema {
                 o.put("sched", out);
                 o.put("end", in.optLong("end", 0));
             }
+            // Tijdelijk andersom (knop maan/zon in een tool): [donker 0/1, tot (ms), stand van de telefoon 0/1]
+            JSONArray t = in.optJSONArray("tmp");
+            if (t != null && t.length() == 3 && t.optLong(1, 0) > 0)
+                o.put("tmp", new JSONArray().put(t.optInt(0, 0) == 1 ? 1 : 0).put(t.optLong(1, 0)).put(t.optInt(2, 0) == 1 ? 1 : 0));
             return o.toString();
         } catch (Exception e) {
             return null;
@@ -104,6 +108,10 @@ final class Thema {
         String mode = o.optString("mode", "system");
         if ("light".equals(mode)) return false;
         if ("dark".equals(mode)) return true;
+        // Tijdelijk andersom: tot de eindtijd, en bij Systeem alleen zolang de telefoon niet zelf wisselde
+        JSONArray t = o.optJSONArray("tmp");
+        if (t != null && t.length() == 3 && now < t.optLong(1, 0) && (!"system".equals(mode) || (t.optInt(2, 0) == 1) == sys))
+            return t.optInt(0, 0) == 1;
         if (!"time".equals(mode) && !"sun".equals(mode)) return sys;
         JSONArray s = o.optJSONArray("sched");
         if (s != null && s.length() > 0 && now < o.optLong("end", 0)) {

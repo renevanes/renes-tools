@@ -32,7 +32,10 @@ function thCss(forced){
   try {
     const n = JSON.parse(localStorage.getItem('rt.themeNow') || 'null');
     if (n && typeof n.dark === 'boolean') {
-      if (!n.until || Date.now() < n.until) d = n.dark;
+      // Tijdelijk andersom bij Systeem (sys): alleen als de telefoon intussen niet zelf wisselde, anders de telefoon volgen
+      let sysOk = true; if (typeof n.sys === 'boolean') { try { sysOk = matchMedia('(prefers-color-scheme: dark)').matches === n.sys; } catch (e) { } }
+      if (!sysOk) d = null;
+      else if (!n.until || Date.now() < n.until) d = n.dark;
       // Automatisch en intussen gewisseld (bijv. de eerste keer 's avonds): de app weet hoe het nu moet
       else if (typeof Android !== 'undefined' && typeof Android.themeDark === 'function') d = !!Android.themeDark();
     }
