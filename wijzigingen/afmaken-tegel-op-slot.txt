@@ -1,0 +1,1 @@
+Startscherm: een tegel van een tool op slot toont nu "Op slot" in plaats van een lege regel

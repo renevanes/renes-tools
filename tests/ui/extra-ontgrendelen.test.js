@@ -244,6 +244,9 @@ const { chromium } = require('playwright');
     let tegels = await pg.evaluate(() => ['kluis', 'bank', 'notes'].map(k => { const el = [...document.querySelectorAll('.tile[id^="tile-"]')].find(e => TILE_TOOL[e.id] === k); return el ? { k, dicht: el.classList.contains('ts-dicht'), slotje: !!el.querySelector('.ts-tegel') } : { k }; }));
     const kt = tegels.find(x => x.k === 'kluis');
     ok(kt && kt.dicht && kt.slotje, 'tegel Kluis: op slot, net als elke tool met extra ontgrendelen (' + JSON.stringify(tegels) + ')');
+    const onder = await pg.evaluate(() => { const el = [...document.querySelectorAll('.tile[id^="tile-"]')].find(e => TILE_TOOL[e.id] === 'kluis'), sm = el.querySelector('small'), n = [...document.querySelectorAll('.tile[id^="tile-"]')].find(e => TILE_TOOL[e.id] === 'notes').querySelector('small');
+      return { tekst: getComputedStyle(sm, '::before').content, zicht: getComputedStyle(sm, '::before').visibility, eigen: getComputedStyle(sm).visibility, gewoon: n.hasAttribute('data-slot') }; });
+    ok(/Op slot/.test(onder.tekst) && onder.zicht === 'visible' && onder.eigen === 'hidden' && !onder.gewoon, 'tegel op slot: vaste regel "Op slot" in plaats van de stand; een gewone tegel niet (' + JSON.stringify(onder) + ')');
     // Aan: eerst het centrale slotscherm; daarna open met die ontgrendeling (één keer)
     await pg.evaluate(() => { show('kluis'); }); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => tsZichtbaar() && ts.tool === 'kluis' && current === 'home' && !Android._kl.open), 'aan: eerst het centrale slotscherm, Kluis blijft dicht');

@@ -253,6 +253,9 @@ function tsTegels(){
     const slot = ic && ic.querySelector('.ts-tegel');
     if (dicht && ic && !slot) ic.insertAdjacentHTML('beforeend', '<span class="ts-tegel">' + uiIcon('lock') + '</span>');
     else if (!dicht && slot) slot.remove();
+    // In plaats van de stand (die iets kan verraden) een vaste regel, zodat de tegel niet half leeg is
+    const sm = el.querySelector('small');
+    if (sm) { if (dicht) sm.setAttribute('data-slot', t('Op slot')); else sm.removeAttribute('data-slot'); }
   });
 }
 tsLaad();
