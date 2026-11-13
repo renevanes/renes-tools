@@ -31,6 +31,12 @@ public final class WebStartTest {
         check(WebStart.metAfgekeurd("11,12", 14, 12).equals("14") && WebStart.lijst("11,12", 12).isEmpty(), "een nieuwere app ruimt oude afkeuringen op");
         check(WebStart.metAfgekeurd("12", 9, 10).equals("12") && WebStart.metAfgekeurd("12", 0, 10).equals("12"), "de meegeleverde versie of ouder wordt nooit afgekeurd");
 
+        // Een versie die hier al eens goed startte, wordt niet afgekeurd (de laatste twee tellen)
+        check(WebStart.metGoed("", 12).equals("12") && WebStart.metGoed(null, 12).equals("12"), "eerste goede start");
+        check(WebStart.metGoed("12", 12).equals("12") && WebStart.metGoed("12", 14).equals("14,12") && WebStart.metGoed("14,12", 15).equals("15,14"), "de laatste twee, nieuwste vooraan");
+        check(WebStart.metGoed("14,12", 12).equals("12,14") && WebStart.metGoed("x", 0).equals("x"), "opnieuw gemeld of geen versie");
+        check(WebStart.eerderGoed("14,12", 12) && WebStart.eerderGoed("14,12", 14) && !WebStart.eerderGoed("14,12", 15) && !WebStart.eerderGoed("", 12) && !WebStart.eerderGoed("12", 0), "alleen wat zich echt gemeld heeft");
+
         File tmp = Files.createTempDirectory("tools-webstart-").toFile();
         try {
             File root = new File(tmp, "web");

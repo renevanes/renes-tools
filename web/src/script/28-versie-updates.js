@@ -112,8 +112,7 @@ window.onUpdateStatus = function(r){
   if (r.kind === 'web' && updKind === 'apk') {
     if (r.state === 'apk') updAvail = r.versionName;
     if ($('#chk-btn')) $('#chk-btn').textContent = 'Controleren op updates';
-    if (r.state === 'uptodate' && r.manual && r.overgeslagen) toast(t('De nieuwste versie startte niet op deze telefoon. Tools wacht op een nieuwere.'));
-  else if (r.state === 'uptodate' && r.manual) toast(t('Je hebt de nieuwste versie ({n}) ✓', { n: ver().webName }));
+    if (r.state === 'uptodate' && r.manual) toast(t('Je hebt de nieuwste versie ({n}) ✓', { n: ver().webName }));
     else if (r.state === 'error' && r.manual) toast(r.error);
     return;
   }
@@ -133,7 +132,8 @@ window.onUpdateStatus = function(r){
   const wasKind = updKind;
   if (r.state === 'apk') updAvail = r.versionName;
   updReset();
-  if (r.state === 'uptodate' && r.manual) toast(t('Je hebt de nieuwste versie ({n}) ✓', { n: ver().webName }));
+  if (r.state === 'uptodate' && r.manual && r.overgeslagen) toast(t('De nieuwste versie startte niet op deze telefoon. Tools wacht op een nieuwere.'));
+  else if (r.state === 'uptodate' && r.manual) toast(t('Je hebt de nieuwste versie ({n}) ✓', { n: ver().webName }));
   else if (r.state === 'needs-permission') toast('Sta "Installeren van onbekende apps" toe en tik daarna nog eens op Installeren');
   else if (r.state === 'error' && (r.manual || wasKind || r.kind === 'apk' || String(r.error).indexOf('nstall') >= 0 || String(r.error).indexOf('pdate') >= 0)) toast(r.error);
 };

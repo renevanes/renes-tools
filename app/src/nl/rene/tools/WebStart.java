@@ -58,10 +58,31 @@ final class WebStart {
     /** De afgekeurde interfaceversies (versiecodes). Een versie blijft afgekeurd tot de app zelf nieuwer is. */
     static java.util.Set<Integer> afgekeurd(Context c) { return lijst(prefs(c).getString("webAfgekeurd2", ""), Version.CODE); }
 
-    /** De pagina van deze versie heeft zich gemeld: de teller begint opnieuw. */
+    /** De laatste twee versies die zich wel gemeld hebben ("14,12"), met code vooraan. Zuiver. */
+    static String metGoed(String bewaard, int code) {
+        if (code <= 0) return bewaard == null ? "" : bewaard;
+        String vorige = "";
+        if (bewaard != null) for (String d : bewaard.split(",")) {
+            try { int g = Integer.parseInt(d.trim()); if (g > 0 && g != code) { vorige = String.valueOf(g); break; } } catch (NumberFormatException ignored) { }
+        }
+        return vorige.isEmpty() ? String.valueOf(code) : code + "," + vorige;
+    }
+
+    static boolean eerderGoed(String bewaard, int code) { return code > 0 && lijst(bewaard, 0).contains(code); }
+
+    /** Startte deze versie hier al eens goed? Dan ligt een misser niet aan de versie (bijv. de WebView wordt bijgewerkt): niet afkeuren. */
+    static boolean eerderGoed(Context c, int code) { return eerderGoed(prefs(c).getString("webGoed", ""), code); }
+
+    /** De pagina van deze versie heeft zich gemeld: de teller begint opnieuw en de versie telt als goed. */
     static void gemeld(Context c, int code) {
+        if (code <= 0) return;
         SharedPreferences p = prefs(c);
-        if (code > 0 && mislukt(p.getString("webStart", ""), code) > 0) p.edit().remove("webStart").apply();
+        String goed = p.getString("webGoed", ""), nieuw = metGoed(goed, code);
+        boolean teller = mislukt(p.getString("webStart", ""), code) > 0;
+        if (!teller && nieuw.equals(goed)) return;
+        SharedPreferences.Editor e = p.edit().putString("webGoed", nieuw);
+        if (teller) e.remove("webStart");
+        e.apply();
     }
 
     /** De pagina van deze versie meldde zich niet. Geeft true als de versie daarmee is afgekeurd. */

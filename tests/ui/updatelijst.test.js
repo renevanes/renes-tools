@@ -30,6 +30,10 @@ const { chromium } = require('playwright');
     return { h: document.querySelectorAll('#log h3').length, eigen: CHANGELOG.length, eerste: document.querySelector('#log h3').textContent };
   });
   ok(n.h === n.eigen + 2 && /9\.2/.test(n.eerste), 'Alle versies: de 2 nieuwe plus alle ' + n.eigen + ' uit de interface');
+  // Met de hand controleren terwijl de nieuwste versie hier niet wilde starten: dat zegt de melding, niet "je hebt de nieuwste"
+  await pg.evaluate(() => { window.__toasts = []; const oud = toast; toast = m => { window.__toasts.push(String(m)); return oud(m); }; onUpdateStatus({ state: 'uptodate', kind: 'web', manual: true, overgeslagen: true, versionName: VERSION_NAME }); onUpdateStatus({ state: 'uptodate', kind: 'web', manual: true, versionName: VERSION_NAME }); });
+  const ts = await pg.evaluate(() => window.__toasts);
+  ok(ts.length === 2 && /startte niet/.test(ts[0]) && /nieuwste versie \(/.test(ts[1]), 'overgeslagen versie: eigen melding; anders de gewone: ' + JSON.stringify(ts));
   console.log('errors', errs);
   await b.close();
   if (errs.length) process.exit(1);

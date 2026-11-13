@@ -418,6 +418,7 @@ public class MainActivity extends Activity {
     private void webNietGestart(int ronde) {
         if (web == null || isFinishing() || webGemeld || ronde != webRonde) return; // een nieuwere keer laden heeft zijn eigen wachter
         if (webUitBeeld || !hasWindowFocus()) return; // uit beeld (geweest) telt niet: de pagina stond dan stil
+        if (WebStart.eerderGoed(this, webGeladen)) return; // deze versie startte hier al eens goed: het ligt niet aan de versie
         boolean terug = WebStart.nietGestart(getApplicationContext(), webGeladen);
         if (terug) Toast.makeText(this, Taal.tx(this, "De nieuwe versie startte niet. Tools gebruikt de vorige versie tot er een nieuwere is."), Toast.LENGTH_LONG).show();
         coverOn(); uiReady = false;
