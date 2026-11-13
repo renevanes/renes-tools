@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.204",
-  "versionCode": 205,
+  "versionName": "1.205",
+  "versionCode": 206,
   "nativeLevel": 180,
   "web": "index.html",
-  "webSha256": "1e4166b295997c9209b893966302c75bfc1c18778343e77dfcb8ea66ce9e755b",
+  "webSha256": "f036889cba6bd6e73aab35d9fd81b65634370edc43ec8e49e35adaa78fd18d2c",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "c1b9853f0a6ae3a7e42bdc989606a293f2ef2b4fa525d62ab2cd7dffefbb2b31",
+  "apkSha256": "2c08e47e160b3819f8228ea98f20444667ee93f425e7103eb4799f694be6809c",
   "changelog": [
+    {
+      "version": "1.205",
+      "date": "2026-11-13",
+      "changes": [
+        "Startscherm: tik op de naam van een groep om hem in of uit te klappen; de app onthoudt het",
+        "Notities: de hint over Nieuwe lijst blijft zichtbaar en het invoerveld schaalt mee met grotere tekst"
+      ]
+    },
     {
       "version": "1.204",
       "date": "2026-11-13",
@@ -172,16 +180,7 @@
         "Stamgegevens: rijbewijscategorieën zet je aan en uit met knoppen",
         "Formulieren: het land van bestemming kies je uit een lijst"
       ]
-    },
-    {
-      "version": "1.185",
-      "date": "2026-11-10",
-      "changes": [
-        "Nieuw: Instellingen → Spraak, één plek voor voorlezen (stem, snelheid, achtergrond) en spraak naar tekst; de stemmen staan nu ook als gewone modellen bij Modellen.",
-        "Betere Nederlandse voorleesstemmen: Dii en Miro (hoogste kwaliteit) en Pim, in volledige kwaliteit (±67 MB). Ze klinken zuiverder dan Ronnie en rekenen zelfs sneller.",
-        "Kies je een stem in een andere taal, dan onthoudt Tools die per taal: een Engels boek krijgt vanzelf je Engelse stem."
-      ]
     }
   ],
-  "webSig2": "ofLqd9U60KEWpuxbFW6vwF8brt8/OjKn/HevJdZmt+KXjJP9Dspik9tDdSQBComxXWTLuNVPuhtrHwMGfWuGNX7ChwmpoPc4bCbMz3KI/xS+2kJtIKhP3Q0TC5hGaknHr0yL2Fw02T4tWwyZgcft2jIQzbT6/YpZUkZndE7Gp8iD/+gBV3DMqua4OH8mxJruvbYJDocdjnzUlzOh9IElmKzN9hNVbNqsjJ1rBejZjAWMzaGE4PznxGqCBUmW54UB9y5Sv6LcIxuUC7NSCQEhWA6u2OYhJIyEmRsBtb1pJjsfWlT4VjJR4iH8/G9xKYZc+RWs+o2ltVVrTAp+W19hCtvJY1cjz6S9elPxS74L6Iw/JgCc9Ya3ZoIiT/QMsC2V3i2yCnUYVbqVi0fLXCHEemL5eLgV5r1oviJL8+iRxXk62PFplgZEugcefgA6CFAE7y5hVrNabvURVI73ndhd9iCx7PjKwI+cwOG0Ij1vbgtJaS6y8l7Xz/uEjr0Xf3ub"
+  "webSig2": "gq5VJ3hqG9npbQ5WwUGgwQ0XmLvTdztatM3GNrNcGCQkPg6EfSfEPee2e/MGK12xod6jWS43m6NJiBeeWUQcj3cB9tJhGK5Le1DzC6/b0zP+7UUyfezLXlaGlcU4YhxzFBTWjmQ38SXXHMlmb0+MnukeZbNGLMoB6/VWQejUb9xGKFW7LKo8Bln6SuoQWGkNorkwWbXLEf70qsfnhj6zSHCVyUCs93DLpMcTXuShT3n3NtR0lmXpbvD1gpWQ3KOLw7vteHXeGvR3kNOWOxRmHebEySo9VBQc+nXcsfFEDlDxolB161HapdrlN5mz7z55qx8agrYTXe/qmdnHum60gPDPuxdKgnzGXxOS+GGZTjUy11GGnJoSWyfgcRK2IUv3gRiMJoB//mlj4El1cMmD+aDsW4SanAt/VAowwJkanSgnLL5ojv2TupsJ5QI2ZBpgdbrIfL+3A1tyBBZ8IbIYy/LuEUFujmgbU+rWceEZ6IvOs0Fp0tJguHV1ZaBFHNgs"
 }
