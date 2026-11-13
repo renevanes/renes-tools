@@ -470,6 +470,14 @@ Playwright, Node of Java van de CI.
 8. **Statistieken:** staat de privé repository met de weekrapporten (Instellingen → Foutrapport en statistieken, map
    `statistiek/`) open voor de sessie, lees dan de rapporten sinds vorige week. Vastlopers (soort + plek) en logsoorten die
    opeens vaak voorkomen: oplossen, of met de reden in het issue zetten. Niet bereikbaar: zeg dat in de reactie.
+9. **Branches opruimen:** verwijder op GitHub branches die al helemaal in main zitten en ouder zijn dan 14 dagen
+   (`git branch -r --merged origin/main`, datum met `git log -1 --format=%cs <branch>`; weghalen met
+   `gh api -X DELETE repos/renevanes/renes-tools/git/refs/heads/<branch>`). Nooit `main`, `publiceren-slot`,
+   `publiceren-bezig`, een branch met een open pull request of een branch die niet in main zit. Zet het aantal in het issue.
+10. **Grootte bewaken:** zet de grootte van de repository (`gh api repos/renevanes/renes-tools --jq .size`, in kB) en
+   van `update/Renes-Tools.apk` in het issue. Elke versie kost ongeveer 5 MB aan geschiedenis; groeit de repository
+   boven 2 GB, meld het Rene (mogelijke oplossing: de APK als bijlage bij een release in plaats van in git).
+Gaat er iets mis met updates, de sleutel of GitHub zelf: `docs/noodplan.md`.
 Nooit in het kader van onderhoud: de updatecontrole, de sleutel of `publiceren.yml`-beveiliging verzwakken, of
 pull requests van anderen (mensen of andere bots dan Dependabot) samenvoegen.
 

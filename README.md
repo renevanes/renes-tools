@@ -22,6 +22,7 @@ Kies het onderwerp dat je nodig hebt. De volledige uitleg is per onderwerp bewaa
 - [Startscherm en automatiseringen](docs/startscherm-en-automatiseringen.md)
 - [Backups en beveiliging](docs/backups-en-beveiliging.md)
 - [Ontwikkelen en updates](docs/ontwikkelen-en-updates.md)
+- [Noodplan](docs/noodplan.md): slechte versie, sleutel kwijt of gelekt, GitHub weg
 
 ## Ontwikkelen
 
