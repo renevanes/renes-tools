@@ -232,6 +232,8 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   de gevulde knop (Modellen, de assistent). Uitzonderingen staan met de reden in `MEER_PRIMAIR` in de test.
 - **Keuzelijsten**: `<select class="sel">` (of `class="search"` als zoekveld-breed); nooit een kale `<select>`.
 - **Menu ⋯ in de kop** voor acties die je zelden doet (exporteren, wissen): `openSheet(…)`, zoals Meldingsgeschiedenis.
+  **Volgorde rechts in de kop, in elke tool:** licht en donker (`hthema`), eigen acties (verversen, nieuw), instellingen
+  (`hset`) en als laatste het menu ⋯. `ui-patronen.test.js` bewaakt dat.
   Let op losse apps: `soloSrcOk` leest de broncode van elke menukeuze en haalt keuzes weg die naar een andere tool gaan
   (ook `Android.waPickFolder`). Zet zo'n aanroep dus in een eigen hulpfunctie, niet in de actie zelf.
 - **Schakelaar**: `<button class="tg" role="switch" aria-checked>`; moet het een `<input>` blijven: `<input type="checkbox" class="switch" role="switch">`.

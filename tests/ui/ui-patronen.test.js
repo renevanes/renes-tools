@@ -197,6 +197,20 @@ const MEER_PRIMAIR = {
     await ctx.close();
   }
 
+  // Knoppen rechts in de kop: overal dezelfde volgorde (licht en donker, eigen acties, instellingen, menu ⋯ als laatste)
+  {
+    const pg = await (await b.newContext({ viewport: { width: 390, height: FOLD } })).newPage();
+    pg.on('pageerror', e => errs.push('kop: ' + e.message));
+    await pg.goto('file://' + path.join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(400 * W);
+    const fout = await pg.evaluate(() => [...document.querySelectorAll('.screen > .hdr')].map(h => {
+      const rang = e => e.classList.contains('hthema') ? 0 : e.classList.contains('hset') ? 2 : (e.dataset.icon === 'more' || e.querySelector('[data-icon="more"]')) ? 3 : 1;
+      const r = [...h.querySelectorAll(':scope > .icon-btn')].map(rang);
+      return r.every((x, i) => !i || r[i - 1] <= x) ? '' : h.parentElement.id + ' ' + r.join('');
+    }).filter(Boolean));
+    ok(!fout.length, 'knoppen in de kop in vaste volgorde: thema, acties, instellingen, ⋯ (' + fout.join('; ') + ')');
+    await pg.close();
+  }
+
   // Telefoon-skin: rij met tools vervaagt aan de rand, statusregels 44 px
   for (const scheme of ['light', 'dark']) {
     const pg = await (await b.newContext({ viewport: { width: 390, height: FOLD }, colorScheme: scheme })).newPage();
