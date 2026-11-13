@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.199",
-  "versionCode": 200,
+  "versionName": "1.200",
+  "versionCode": 201,
   "nativeLevel": 178,
   "web": "index.html",
-  "webSha256": "d6f690ab539b631cc4e9ca62f2b4718285b45c7366302504a8ccd36935bdc97f",
+  "webSha256": "6f1b72c79e1932f8d439bebb6f790c3b78c608749e909d3799400215060ce6a0",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "e27ce19173338a98b07b27a461ec0285fc23cc913c3c949a6ec4cf5e1342b0fd",
+  "apkSha256": "64180b32f9b104c955e6c83c459181c817c12e39a17fdd1f0da928a8d3a54010",
   "changelog": [
+    {
+      "version": "1.200",
+      "date": "2026-11-13",
+      "changes": [
+        "Auto redial: de knop Start staat nu meteen onder het nummer (ook op een klein scherm zonder scrollen), met eronder kort wat er gaat gebeuren (pogingen, wachttijd, stoppen bij opnemen); de uitleg staat onder Hoe werkt dit?",
+        "Auto redial: TalkBack noemt het invoerveld, ∞ (Onbeperkt) en de dagen voluit"
+      ]
+    },
     {
       "version": "1.199",
       "date": "2026-11-12",
@@ -1757,5 +1765,5 @@
       ]
     }
   ],
-  "webSig2": "IPNipPAx/rJCUgdY8vaV4EofJpCkAypApvTFHOTqjtLwvaOC/MlXX+omHqx0evRw8RUVQpqK6T7mof3cWZCUuhdNkLtoXKZksHrlpuBUJZAdo4LWRzMIoX9uAhDefuO04ua+lujPJWgMh77UcvuG/cjyzvYbWXVTWSibf11BHzh39S684byMafOmh8B7qDH8jNCC/stYRb+vLmUyOPTVeZV5ZgReedLjYlScCeWK3OayDxq9G455IWUaf5QBGbcroBMLMtquCtI9eQZWNrCKWMKTyNHbQr9aEmF7/er4XHGwWWqC9VOphr+uugs2lfW2KA2iTC+azAQVvDQxJGtp/RbgVr88x+NN7fH99GS3pm6TOWD0f1qk/FHntmr8AC2s5bZtxKqikbhhHqPZ4X26coOoc3DeRzDJ8MUu9NBAtMVgvOWd6JHEFCeIsBaApR0sWPt8Tm8Pwb+rSw6kuWDfIm1FfDZq2cB4AOknItjVA/RfeO0Opm6ngZknWxfl+YEp"
+  "webSig2": "aajQAbYFFmYIbWYYyAH8mgF6M1tcKZ9Jwp77bhBGbRS0a38zNQVNTgEc33vnJ3luaIwiipDyVCAwe3LTbVSr5X3ZFvtzwPyRLGLpIQ1e4OQqtDPEao8FT9qDZMhDDxS9DGJi0J7KU6AOoQbUz/8ZLMeUNqABpFnFQqBDY+zGGkQpPQTmbi/7C6+nXS6uTAUIZIGvflbeTiUEM+quHNaI4YggmPM5b+rkGVfGI72jfgz2LgsvoMocDivn02JWX27hOk5JtelYVMZd9issMN4hPVp0bwfi2A8GvRH4fXYxfvdpDf/I9NXFRhRSPy0NDSZbY7y5skQ3MJLZWYeglntGaoZNLtKmFiEGoCqB+0ywv8+1czdJrFooqhxifvVCG3DFKE13qHS6U4SqqQ/UICkPOHHYIYzHCjU7sxN31338dHM+z4Ns4neNecMbyYQRzDsAf828IHTxN4y8TdmFStmXdo/ZQ7CEYuSV5QUnuvQ99TLppcioQUeNFyqA+tTxYPPa"
 }

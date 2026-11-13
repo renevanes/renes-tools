@@ -1,2 +1,0 @@
-Auto redial: de knop Start staat nu meteen onder het nummer (ook op een klein scherm zonder scrollen), met eronder kort wat er gaat gebeuren (pogingen, wachttijd, stoppen bij opnemen); de uitleg staat onder Hoe werkt dit?
-Auto redial: TalkBack noemt het invoerveld, ∞ (Onbeperkt) en de dagen voluit
