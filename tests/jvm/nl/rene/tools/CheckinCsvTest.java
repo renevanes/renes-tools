@@ -27,7 +27,8 @@ public class CheckinCsvTest {
         check(r[3].startsWith("Antwoord;(verwijderde vraag);2025-W46;") && r[3].endsWith(";;Zonder score;;"), "verwijderde vraag en geen score: " + r[3]);
         check(r[4].equals("Antwoord;\"Werk; \"\"goed\"\"?\";2025-11-13;2025-11-13 11:00;7,5;Prima;druk, thuis;'=SOM(A1) regel twee"), "aanhalingstekens, labels, komma, geen formule of regeleinde: " + r[4]);
         check(CheckinCsv.csv(qs, as, rs, TimeZone.getTimeZone("UTC")).contains("2025-11-12 10:00"), "een andere zone geeft een andere tijd");
-        check(CheckinCsv.getal(3.0).equals("3") && CheckinCsv.getal(2.25).equals("2,25") && CheckinCsv.getal(Double.NaN).isEmpty(), "getallen");
+        check(CheckinCsv.getal(3.0).equals("3") && CheckinCsv.getal(2.25).equals("2,25") && CheckinCsv.getal(Double.NaN).isEmpty()
+                && CheckinCsv.getal(1.999).equals("2") && CheckinCsv.getal(0.004).equals("0") && CheckinCsv.getal(2.5e9).equals("2500000000") && CheckinCsv.getal(-1.5).equals("-1,5") && CheckinCsv.getal(10.0).equals("10"), "getallen");
         check(CheckinCsv.csv(null, null, null, null).equals("﻿" + CheckinCsv.KOP + "\r\n"), "leeg: alleen de kop");
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }
         System.out.println("CheckinCsvTest geslaagd");

@@ -69,7 +69,7 @@ const JAVA_OK = [
   ['AiData.java', "m.group(1).replace('.', ',')", 'plek in tekst voor het taalmodel'],
   ['AiData.java', 'String.format(Locale.ROOT, "%.1f", v).replace(\'.\', \',\')', 'getal in tekst voor het taalmodel'],
   ['CheckinStore.java', 'String.format(Locale.ROOT, "%.1f", avg).replace(\'.\', \',\')', 'gemiddelde in tekst voor het taalmodel en de zoekindex'],
-  ['CheckinCsv.java', ".replaceAll(\"0+$\", \"\").replace('.', ',')", 'vast bestandsformaat: CSV met puntkomma en decimale komma, zoals het factuurdossier'],
+  ['CheckinCsv.java', "return s.replace('.', ',')", 'vast bestandsformaat: CSV met puntkomma en decimale komma, zoals het factuurdossier'],
   ['CheckinStore.java', "String.valueOf(v).replace('.', ',')", 'getal in tekst voor het taalmodel en de zoekindex'],
   ['FacturenAanlever.java', 'new java.text.SimpleDateFormat("d MMMM yyyy", new Locale("nl"))', 'datum in de brief aan de accountant (vast sjabloon met eigen tijdzone)'],
   ['FacturenDossier.java', 'String.format(Locale.ROOT, "%.2f", Double.parseDouble(v)).replace(\'.\', \',\')', 'bedrag in de CSV voor de accountant (vaste notatie)'],

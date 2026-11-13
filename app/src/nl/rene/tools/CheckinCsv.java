@@ -57,7 +57,8 @@ final class CheckinCsv {
     static String getal(double v) {
         if (Double.isNaN(v) || Double.isInfinite(v)) return "";
         if (v == Math.rint(v) && Math.abs(v) < 1e9) return Long.toString((long) v);
-        return String.format(Locale.US, "%.2f", v).replaceAll("0+$", "").replace('.', ',');
+        String s = java.math.BigDecimal.valueOf(v).setScale(2, java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
+        return s.replace('.', ',');
     }
 
     private static String regel(String soort, String vraag, String periode, String tijd, String score, String antwoord, String labels, String notitie) {
