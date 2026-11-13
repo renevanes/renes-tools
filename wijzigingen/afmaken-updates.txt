@@ -1,2 +1,0 @@
-Updates: start een nieuwe versie van de interface twee keer niet, dan gaat Tools vanzelf terug naar de vorige versie tot er een nieuwere is
-Updates: controleren op updates haalt minder gegevens op (alleen de laatste 20 versies van Wat is er nieuw; de rest zit al in de app)
