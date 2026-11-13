@@ -93,7 +93,9 @@ public class MainActivity extends Activity {
     static final int REQ_ID_COPY = 65;
     static final int REQ_CMP = 74, REQ_KLUIS_SAVE = 75;
     /** OPML (abonnementen van Podcasts, bronnen van Nieuws): bestand kiezen om te lezen of een plek om te bewaren. */
-    static final int REQ_OPML_OPEN = 76, REQ_OPML_SAVE = 77;
+    static final int REQ_OPML_OPEN = 76, REQ_OPML_SAVE = 77, REQ_CHECKIN_SAVE = 78;
+    byte[] checkinKlaar;
+    int checkinAantal;
     String opmlSoort;
     byte[] opmlKlaar;
     /** Opslaan als… vanuit de kluis: welk document en welke versie (0 = huidige) wachten op de gekozen plek. */
@@ -1133,6 +1135,24 @@ public class MainActivity extends Activity {
             return;
         }
         if (req == REQ_HOME) { js("onHomeRole", ""); return; }
+        if (req == REQ_CHECKIN_SAVE) {
+            final byte[] klaar = checkinKlaar; final int n = checkinAantal; checkinKlaar = null;
+            final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
+            final Context c = getApplicationContext();
+            if (u == null) return; // kiezer weggetikt
+            if (klaar == null) { js("onCheckinExport", CheckinStore.err(Taal.tx(c, Taal.T("Dat lukte niet. Probeer het nog een keer."))).toString()); return; }
+            new Thread(() -> {
+                String r;
+                try (java.io.OutputStream out = c.getContentResolver().openOutputStream(u, "wt")) {
+                    if (out == null) throw new java.io.IOException("geen uitvoer");
+                    out.write(klaar); out.flush();
+                    App.log(c, "CHECKIN", "csv: " + n);
+                    r = "{\"n\":" + n + "}";
+                } catch (Throwable e) { App.log(c, "CHECKIN", "csv mislukt: " + e.getClass().getSimpleName()); r = CheckinStore.err(Taal.tx(c, Taal.T("Opslaan lukt niet"))).toString(); }
+                js("onCheckinExport", r);
+            }, "checkin-csv").start();
+            return;
+        }
         if (req == REQ_OPML_OPEN || req == REQ_OPML_SAVE) {
             final String soort = opmlSoort; final byte[] klaar = opmlKlaar; opmlKlaar = null;
             final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
@@ -2720,6 +2740,26 @@ public class MainActivity extends Activity {
                 try { a.startActivityForResult(i, REQ_OPML_OPEN); }
                 catch (Exception e) { a.js("onOpml", OpmlWerk.antwoord(soort, true, 0, 0, 0, Taal.tx(ctx, Taal.T("Bestandskiezer niet beschikbaar")))); }
             });
+        }
+
+        /** Check-in als leesbaar CSV-bestand bewaren op een plek die Rene kiest (de interface waarschuwt vooraf). Antwoord via onCheckinExport: {n} of {error}. */
+        @JavascriptInterface public void checkinExport() {
+            new Thread(() -> {
+                try {
+                    org.json.JSONArray qs, as, rs;
+                    synchronized (CheckinStore.class) { qs = CheckinStore.questions(ctx); as = CheckinStore.answers(ctx); rs = CheckinStore.remarks(ctx); }
+                    final int n = CheckinCsv.aantal(as, rs);
+                    if (n == 0) { a.js("onCheckinExport", CheckinStore.err(Taal.tx(ctx, Taal.T("Er is nog niets om te exporteren"))).toString()); return; }
+                    final byte[] csv = CheckinCsv.csv(qs, as, rs, Regio.zone(ctx)).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    final Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("text/csv")
+                            .putExtra(Intent.EXTRA_TITLE, "check-in-" + new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(new java.util.Date()) + ".csv");
+                    a.h.post(() -> {
+                        a.checkinKlaar = csv; a.checkinAantal = n;
+                        try { a.startActivityForResult(i, REQ_CHECKIN_SAVE); }
+                        catch (Exception e) { a.checkinKlaar = null; a.js("onCheckinExport", CheckinStore.err(Taal.tx(ctx, Taal.T("Bestandskiezer niet beschikbaar"))).toString()); }
+                    });
+                } catch (Throwable e) { App.log(ctx, "CHECKIN", "csv maken: " + e.getClass().getSimpleName()); a.js("onCheckinExport", CheckinStore.err(Taal.tx(ctx, Taal.T("Exporteren lukt niet"))).toString()); }
+            }, "checkin-csv-maak").start();
         }
 
         // ----- Alles back-uppen en terugzetten -----

@@ -539,6 +539,10 @@ if (!window.Android) window.Android = (function(){
       const t = (id, text, emoji, color, scale, rhythm, time, labels, voice) => ({ id, n: C.next++, text, emoji, color, scale, options: cedDefaults(scale), rhythm, days: [1, 2, 3, 4, 5, 6, 7], wday: 5, dom: 1, times: [time], until: '23:59', quietWeekend: false, pauseUntil: '',
         on: false, archived: false, tpl: true, perPeriod: 'one', editable: true, backfill: true, note: true, voice, labels: true, labelList: labels, created: now, updated: now });
       C.qs.push(t('voel', 'Hoe voel je je?', '🙂', 'blue', 'smileys5', 'daily', '21:00', ['slecht geslapen', 'moe', 'druk', 'ontspannen', 'gesport'], true), t('werk', 'Hoe was je werk?', '💼', 'green', 'buttons3', 'workdays', '17:30', ['druk', 'rustig', 'veel overleg', 'thuisgewerkt'], false)); return true; },
+    /* Check-in als CSV: {n} = antwoorden en opmerkingen; niets = een melding */
+    _ciCsv: 0,
+    checkinExport(){ this._ciCsv++; this._ciSeed(); const n = this._ci.ans.length + this._ci.rem.length;
+      setTimeout(() => onCheckinExport(JSON.stringify(n ? { n } : { error: 'Er is nog niets om te exporteren' })), 30); },
     checkinState(){ const C = this._ci, now = Date.now(), first = this._ciSeed();
       const qs = C.qs.map(q0 => { const q = JSON.parse(JSON.stringify(q0)), by = this._ciBy(q.id); q.total = C.ans.filter(a => a.q === q.id).length;
         if (!q.archived) { const s = this._ciCurrent(q, now); if (s) q.cur = this._ciSlotJson(q, s, by, now); q.next = this._ciNext(q, now); q.streak = this._ciStreak(q, by, now);

@@ -424,3 +424,14 @@ function ciFromHit(x){
   ciqSelKey = x.p ? (CI_DAYRHYTHM(q.rhythm) ? x.p.slice(0, 10) : x.p) : '';
   jumpTo('checkinq');
 }
+
+/* ---------- exporteren: alles als CSV naar een plek die je kiest ---------- */
+function ciMeer(){ openSheet(t('Check-in'), '', [[t('Exporteren als CSV'), ciExportVraag]]); }
+function ciExportVraag(){
+  askConfirm(t('Check-in exporteren'), t('Je antwoorden, labels, notities en opmerkingen komen in één CSV-bestand voor een rekenblad. Dat bestand is leesbaar voor iedereen die het opent: het is niet versleuteld. Je kiest zelf waar het komt.'), t('Plek kiezen'), ciExportDoe);
+}
+function ciExportDoe(){ Android.checkinExport(); }
+window.onCheckinExport = function(r){
+  if (typeof r === 'string') { try { r = JSON.parse(r); } catch (e) { r = {}; } }
+  toast(r && r.error ? r.error : tn((r && r.n) || 0, 'Eén regel bewaard als CSV', '{n} regels bewaard als CSV'));
+};
