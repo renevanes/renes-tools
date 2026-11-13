@@ -54,6 +54,7 @@ input[type=tel],textarea.key,.ntext{border-radius:8px;border-color:var(--outline
 .hgroups.compact .tile b{font-size:12px;line-height:1.35}
 .hgroups.compact .tile small{display:none}
 .hgroups:not(.compact) .tiles.single{grid-template-columns:1fr}
+.hgroups:not(.compact) .tiles.oneven .tile:last-child{grid-column:1 / -1}
 .hgroups:not(.compact) .tiles.single .tile{min-height:78px;display:grid;grid-template-columns:32px minmax(0,1fr);gap:3px 12px;align-items:center}
 .hgroups:not(.compact) .tiles.single .ic{grid-column:1;grid-row:1 / span 2}.hgroups:not(.compact) .tiles.single b,.hgroups:not(.compact) .tiles.single small{grid-column:2}
 .dash{padding:2px 12px}.dash button{padding:12px 0;min-height:44px;font-size:14px;line-height:1.35;gap:8px}.dash .di{width:20px;color:var(--primary)}

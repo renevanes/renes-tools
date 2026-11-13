@@ -208,6 +208,13 @@ const MEER_PRIMAIR = {
       return r.every((x, i) => !i || r[i - 1] <= x) ? '' : h.parentElement.id + ' ' + r.join('');
     }).filter(Boolean));
     ok(!fout.length, 'knoppen in de kop in vaste volgorde: thema, acties, instellingen, ⋯ (' + fout.join('; ') + ')');
+    // Startscherm: een groep met een oneven aantal tegels heeft geen gat (de laatste tegel loopt over de volle breedte)
+    const gat = await pg.evaluate(() => [...document.querySelectorAll('.hgroups:not(.compact) .tiles')].map(g => {
+      const t = [...g.querySelectorAll('.tile')].filter(e => e.getClientRects().length); if (t.length < 2) return '';
+      const l = t[t.length - 1].getBoundingClientRect().width, breed = g.getBoundingClientRect().width;
+      return (t.length % 2 ? l > breed - 2 : l < breed * 0.6) ? '' : t.length + ' tegels, laatste ' + Math.round(l) + ' van ' + Math.round(breed);
+    }).filter(Boolean));
+    ok(!gat.length, 'startscherm: oneven groep zonder gat, even groep in twee kolommen (' + gat.join('; ') + ')');
     await pg.close();
   }
 

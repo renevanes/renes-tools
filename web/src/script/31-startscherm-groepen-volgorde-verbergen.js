@@ -130,7 +130,7 @@ function renderHome(){
     const vis = tools.filter(tk => !c.hidden.includes(tk) && !playWeg(tk)); if (!vis.length) return;
     const g = document.createElement('div'); g.className = 'hgroup';
     if (name) { const h = document.createElement('h3'); h.textContent = name; g.appendChild(h); }
-    const grid = document.createElement('div'); grid.className = 'tiles'+(vis.length===1?' single':'');
+    const grid = document.createElement('div'); grid.className = 'tiles'+(vis.length===1?' single':vis.length%2?' oneven':''); // oneven: de laatste tegel over de volle breedte, geen gat
     vis.forEach(tk => { const el = document.getElementById(TOOL_TILE[tk]); if (el) grid.appendChild(el); });
     g.appendChild(grid); box.appendChild(g);
   };
