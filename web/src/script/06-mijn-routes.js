@@ -10,7 +10,7 @@ function enterTracks(){
   const gps = Android.trackGpsOn();
   $('#tr-perm').style.display = perm ? 'none' : 'block';
   $('#tr-gps').style.display = (perm && !gps) ? 'block' : 'none';
-  $('#tr-perm-btn').textContent = store.get('trAsked', false) ? 'Instellingen openen' : 'Toestemming geven';
+  $('#tr-perm-btn').textContent = store.get('trAsked', false) ? 'Instellingen openen' : 'Toegang geven';
   loadTrackList();
   trackPollOnce();
   stopTrackPoll(); trackPoll = setInterval(trackPollOnce, 1000);
