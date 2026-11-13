@@ -65,9 +65,13 @@ function pdfRenderDef(){
 }
 function pdfSetBusy(tt){ if (tt && !pdfBusy) pdfJobScr = current; pdfBusy = !!tt; document.querySelectorAll('.pdfbusy').forEach(e => uiWachtTekst(e, tt ? t(tt) : '')); document.querySelectorAll('.pdfscr main button').forEach(b => b.disabled = pdfBusy); pdfEditControls(); }
 /* De app verliet het scherm: Java haalde de leesbare kopie van een kluisdocument weg (MainActivity.onStop) */
+let pdfKluisWegNa = false;
 window.onPdfKluisWeg = function(){
-  // Tijdens bewaren niet: Java haalt de kopie pas na het bewaren weg (zelfde slot), en het resultaat moet nog als versie de kluis in
-  if (!pdfIn || !pdfIn.kluis || pdfBusy) return;
+  if (!pdfIn || !pdfIn.kluis) return;
+  // Tijdens bewaren: Java haalt de kopie pas na het bewaren weg (zelfde slot), en het resultaat moet nog als versie de kluis in.
+  // Dan vergeten zodra die klus klaar is (onPdf).
+  if (pdfBusy) { pdfKluisWegNa = true; return; }
+  pdfKluisWegNa = false;
   pdfIn = {}; pdfInGen++; pdfSel = new Set();
   if (pdfScr(current)) { pdfRender(); pdfEditSource(); toast(t('Het document uit de kluis is weggehaald omdat je de app verliet. Open het opnieuw vanuit de kluis.')); }
 };
@@ -75,7 +79,7 @@ window.onPdf = function(r){
   if (!r) return;
   // Een gekozen bestand (plaatjes of PDF) beëindigt geen lopende klus; al het andere wel
   if (r.error || (r.kind !== 'images' && r.kind !== 'pdf')) pdfSetBusy('');
-  if (r.error) { toast(r.error); if (pdfScr(current)) pdfRender(); return; }
+  if (r.error) { toast(r.error); if (pdfKluisWegNa && !pdfBusy) onPdfKluisWeg(); if (pdfScr(current)) pdfRender(); return; }
   if (r.kind === 'images') { pdfImgs = rdJson(Android.pdfImages(), []); toast(tn(r.count, '{n} plaatje toegevoegd', '{n} plaatjes toegevoegd') + (r.warn ? ' · ' + t(r.warn) : '')); }
   if (r.kind === 'pdf') { pdfIn = r; pdfInGen++; pdfSel = new Set(); $('#pdf-range').value = ''; pdfEditSource(); }
   if ((r.kind === 'edited' || r.kind === 'done') && (r.made || []).length) pdfLast = { scr: pdfJobScr || current, names: r.made.slice() };
@@ -89,6 +93,7 @@ window.onPdf = function(r){
   }
   if (r.kind === 'saved') toast('✓ Opgeslagen');
   if (r.kind === 'savedAll') toast(t('✓ {n} opgeslagen in de map PDF', { n: r.count }));
+  if (pdfKluisWegNa && !pdfBusy) onPdfKluisWeg(); // de app was verlaten tijdens bewaren: nu pas het kluisdocument vergeten
   // Niet wegspringen als je intussen ergens anders bent: het resultaat staat klaar op het PDF-scherm
   if (pdfScr(current)) pdfRender();
 };

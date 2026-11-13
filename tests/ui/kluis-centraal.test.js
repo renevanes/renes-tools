@@ -82,6 +82,11 @@ for(const colorScheme of ['light','dark']){
   assert.deepEqual(await p.evaluate(()=>[!!pdfIn.kluis,pdfEd.revision,$('#pdf-edit-work').style.display]),[false,'','none'],'bewerker leeg na weggaan');
   assert.match(await p.textContent('#toast'),/weggehaald omdat je de app verliet/);
   await p.evaluate(()=>onPdfKluisWeg()); // tweede keer (geen kluisdocument meer): niets
+  // Tijdens bewaren: pas na het resultaat vergeten, zodat het nog als versie de kluis in gaat
+  await p.evaluate(()=>{pdfIn={kluis:'x',pages:1,revision:'r'};pdfBusy=true;onPdfKluisWeg();});
+  assert.equal(await p.evaluate(()=>pdfIn.kluis),'x','tijdens bewaren blijft het kluis-id');
+  await p.evaluate(()=>onPdf({kind:'saved'}));
+  assert.equal(await p.evaluate(()=>!!pdfIn.kluis||pdfKluisWegNa),false,'na het resultaat vergeten');
   // 4. Versies: lijst, vergelijken met de huidige, terugzetten
   await openKluis();
   assert.match(await rij.innerText(),/versie 2/);
