@@ -332,7 +332,8 @@ kijkt per gebied naar de hele app, ook naar code die al lang bestaat.
   radio-metadata, boeken, PDF-tekst, OCR- en whisper-uitvoer, QR-codes, mail, facturen, bank, websites, AI-antwoorden,
   bestandsnamen, app-namen, namen van Bluetooth-, wifi- en Cast-apparaten, gedeelde tekst en bestanden, het klembord.
   In tekst altijd `esc()` of `textContent`; in een `on…`-handler alleen `jsq()` (liever `data-`-attribuut met
-  `addEventListener`); adressen in `href`/`src` alleen `https:` (of een eigen vast schema), nooit `javascript:`. Het CSP
+  `addEventListener`); adressen in `href`/`src` alleen `https:`, `data:image/…`, `blob:` of een eigen vast adres, nooit
+  `javascript:`. Het CSP
   in `kop.html` en `start.html` staat inline scripts en plaatjes van elk https-adres toe en vangt dit dus niet op.
 - **Nieuwe of veranderde brugfuncties** (`@JavascriptInterface`, in de app én de skin): doen niet meer dan nodig; paden en
   bestandsnamen uit de interface alleen binnen de eigen map of een map die Rene koos (geen `..`); bellen, sms'en of
@@ -349,7 +350,8 @@ kijkt per gebied naar de hele app, ook naar code die al lang bestaat.
 - **Updates en publiceren**: de updatecontrole (`Updater`, `WebUpdateStore`), `publish.sh`, `tools/publicatie-*.sh`,
   `tools/check-publish-source.sh`, `keys/` en de workflows worden niet zwakker.
 
-**Gebieden voor de wekelijkse ronde** (het logboek zegt welk gebied, of welk deel ervan, het langst niet bekeken is):
+**Gebieden voor de wekelijkse ronde.** Om de week een deel van gebied 1 of 2 (om en om; het logboek zegt waar het gebleven
+is), de andere weken het gebied van 3 tot en met 10 dat het langst niet bekeken is:
 1. Tekst van buiten in de interface: `web/src/script` in delen van ongeveer tien scriptbestanden, en `web/start.html`.
 2. Brugfuncties, per bestand: `MainActivity` en de `*Bridge.java`-klassen, de brug `Android` van de skin (`HomeActivity`),
    `BrBrug` en `FrBrug`.
@@ -377,8 +379,9 @@ kijkt per gebied naar de hele app, ook naar code die al lang bestaat.
     bestanden aan `tools/llm/llm.cpp`, whisper en de OCR (Tesseract, Leptonica, libpng, libjpeg) doorgeeft.
 
 **Kwetsbaarheden en de openbare repository.** Ook een branch, een diff, de logs van Actions en testnamen zijn openbaar.
-- Bouw de test en de oplossing samen en zet ze in één commit. Push pas als alles klaar is en lokaal slaagt (de regel
-  "push na elke commit" geldt hier niet), en zet het naar main zodra Bouwen en testen op de branch groen is.
+- Bouw de test en de oplossing samen en zet ze in één commit. Push pas als alles klaar is en slaagt wat lokaal kan
+  draaien (zie regel 3 van de werkwijze; de regel "push na elke commit" geldt hier niet), en zet het naar main zodra
+  Bouwen en testen op de branch groen is.
 - Een aantoonbare kwetsbaarheid zonder oplossing wordt nooit gepusht, ook niet als test.
 - Branchnaam, testnamen, codecommentaar, commitberichten en wijzigingsregels blijven neutraal ("Beveiliging van X
   verbeterd"); geen uitleg hoe het te misbruiken was.
@@ -498,7 +501,7 @@ Alles wat nog moet gebeuren staat als GitHub-issue, met een label (REST: `gh api
 - `logboek` — logboek van een geplande taak (Schermcheck, Prestaties, Beveiliging, Geplande taken); geen werk, de Werklijst slaat het over.
 - Klaar = vakje afvinken (issue bijwerken) en het issue sluiten als alles af is, met de versie erbij.
 - Werk op een branch altijd regelmatig pushen (`git push -u origin <branch>`, nooit main): de omgeving van een agent
-  kan zomaar opnieuw beginnen, en wat alleen lokaal stond is dan weg.
+  kan zomaar opnieuw beginnen, en wat alleen lokaal stond is dan weg. Behalve bij een gevonden kwetsbaarheid (zie "Beveiliging").
 
 **Geplande taken (Claude, in de cloud; tijden in Amsterdamse tijd).** Vaste opdracht van Rene: alle taken lopen
 wekelijks en sturen na afloop geen melding naar zijn telefoon. Ook deze taken publiceren zelf, na geslaagde tests en
