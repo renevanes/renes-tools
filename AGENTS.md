@@ -428,11 +428,43 @@ Alles wat nog moet gebeuren staat als GitHub-issue, met een label (REST: `gh api
 - Werk op een branch altijd regelmatig pushen (`git push -u origin <branch>`, nooit main): de omgeving van een agent
   kan zomaar opnieuw beginnen, en wat alleen lokaal stond is dan weg.
 
-**Geplande taken (Claude, in de cloud):** maandag Onderhoud (hierboven); woensdag Werklijst (de belangrijkste
-`openstaand`- en `doen`-punten oppakken); om de week vrijdag Betrouwbaarheid en schermcheck (wankele tests, telefoontest,
-één scherm kritisch nalopen: indeling, gebruiksgemak, toegankelijkheid, licht/donker); de eerste van de maand
-Voorstellen (3–5 uitbreidingen als `voorstel`-issue). Vaste opdracht van Rene: ook deze taken publiceren zelf, na
-geslaagde tests en een onafhankelijke review, en melden kort wat er gepubliceerd is (en of er een nieuwe APK nodig is).
+**Geplande taken (Claude, in de cloud; tijden in Amsterdamse tijd).** Vaste opdracht van Rene: ook deze taken
+publiceren zelf, na geslaagde tests en een onafhankelijke review, en melden kort wat er gepubliceerd is (en of er een
+nieuwe APK nodig is).
+
+| Taak | Wanneer | Wat |
+|---|---|---|
+| Onderhoud | maandag 11:00 | updates, beveiliging, opruimen en statistieken (zie "Onderhoud" en "Opruimen") |
+| Werklijst | woensdag 10:37 | de belangrijkste `doen`- en `openstaand`-punten bouwen |
+| Prestaties en stabiliteit | vrijdag 11:17, oneven weken | vastlopers, haperingen, opstarttijd, geheugen, accu en trage schermen meten en het grootste probleem oplossen; logboek in het issue "Prestaties en stabiliteit: logboek" |
+| Betrouwbaarheid en schermcheck | vrijdag 13:23, even weken | wankele tests, CI en telefoontest; één scherm kritisch nalopen (logboek in het issue "Schermcheck: logboek") |
+| Voorstellen | de 1e van de maand, 09:41 | 3–5 uitbreidingen als `voorstel`-issue; bouwt niets |
+| Takencheck | de 15e van de maand, 10:13 | controleert of deze taken nog kloppen, compleet zijn en beter kunnen, en past ze aan (logboek in het issue "Geplande taken: logboek") |
+
+De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck houdt deze tabel en de taken gelijk.
+
+**Werkwijze voor geplande taken** (bovenop de rest van dit bestand):
+1. **Eerst rondkijken.** Staat er een eigen branch van een vorige run van deze taak die niet op main kwam (een sessie
+   kan stoppen door een gebruikslimiet)? Maak die af of ruim hem op, en zeg dat. Kijk welke branches van andere agents
+   (`codex/*`, `claude/*`) de afgelopen dagen veranderden (`git branch -r --sort=-committerdate`) en raak die bestanden
+   zo min mogelijk aan.
+2. **Eigen branch met de taaknaam en de datum** (onderhoud: `onderhoud/JJJJ-MM-DD`, anders bijv.
+   `claude/werklijst-JJJJ-MM-DD`); push na elke commit, zodat een volgende run verder kan.
+3. **Lokaal bouwen kan in een cloudsessie deels mislukken**: downloads van `tools/voorlezen/deps.py` geweigerd door de
+   proxy, of de reserve-d8 (34.0.4) die over geneste enums struikelt. Dat is geen reden om te stoppen: javac met de
+   Java-tests (`run-jvm.sh`), de interfacetests (`ui-pagina.sh`, `run-ui.sh`) en een groene run "Bouwen en testen" op
+   je gepushte branch zijn dan samen de controle. Push pas naar main als die run groen is.
+4. **Interfacetests op een volle machine:** `UI_JOBS=2`. Draai een mislukte test eerst los opnieuw voordat je hem
+   wankel of kapot noemt; echt wankel = repareren of in het issue "Betrouwbaarheid: tests en telefoontest" zetten.
+5. **Workflows starten** (`gh workflow run`) mag alleen voor testworkflows (Bouwen en testen, Telefoontest,
+   Play-controle) op je eigen branch; nooit Publiceren.
+6. **Na de push naar main:** zoek de run Publiceren die je commit bevat. "De bron is sinds de telefoontest veranderd"
+   betekent dat main intussen verder ging: de volgende run publiceert het, controleer die. Groeit de APK meer dan 10%,
+   dan weigert Publiceren: nooit omzeilen, maar Rene vragen Publiceren met de hand te starten met `allow_grow`, met de
+   reden van de groei.
+7. **Te groot voor één sessie:** maak het logische deel af en publiceer dat; zet de rest met een afvinklijst in een
+   `openstaand`-issue.
+8. **Altijd een kort bericht aan Rene** aan het eind (ook als er niets te doen was), zoals in "Berichten aan Rene".
 
 ## Documentenkluis: centrale opslag, versies en vergelijken
 De Documentenkluis (`Kluis`, scherm `s-kluis`) is de centrale opslag van de PDF-tools (wens van Rene). Alles blijft op de
