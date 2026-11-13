@@ -1,1 +1,0 @@
-Beveiliging van losse apps verbeterd: Alles back-uppen en Automatiseringen vragen als losse app eerst je schermvergrendeling zolang het app-slot aan staat
