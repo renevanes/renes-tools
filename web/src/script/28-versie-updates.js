@@ -6,7 +6,7 @@ function renderInfo(){
   $('#i-app').textContent = v.appName + ' (' + v.appCode + ')';
   $('#i-android').textContent = v.android;
   let log = CHANGELOG;
-  try { const m = JSON.parse(Android.lastManifest()); if (m && m.changelog && m.versionCode >= VERSION_CODE) log = m.changelog; } catch(e){}
+  try { const m = JSON.parse(Android.lastManifest()); if (m && m.changelog && m.versionCode >= VERSION_CODE) log = infoLog(m.changelog, CHANGELOG); } catch(e){}
   // Alleen de laatste versies; de rest met "Alle versies" (anders is dit scherm tientallen schermen lang)
   const shown = infoAllOn ? log : log.slice(0, INFO_RECENT);
   $('#log').innerHTML = (TAAL.on ? '<p class="note">' + t('(in het Nederlands)') + '</p>' : '') + shown.map(e => '<h3>' + t('Versie {n}', { n: esc(e.version) }) + ' <small>' + esc(e.date||'') + '</small></h3><ul translate="no">' + e.changes.map(c=>'<li>'+esc(c)+'</li>').join('') + '</ul>').join('');
@@ -14,6 +14,14 @@ function renderInfo(){
   all.hidden = log.length <= INFO_RECENT;
   all.textContent = infoAllOn ? t('Alleen de laatste versies') : t('Alle versies ({n})', { n: log.length });
   all.setAttribute('aria-expanded', infoAllOn ? 'true' : 'false');
+}
+/** De updatelijst bevat alleen de laatste versies: wat daar nieuwer is dan deze interface komt bovenaan, de rest uit de interface zelf. Zuiver. */
+function infoLog(nieuw, eigen){
+  nieuw = Array.isArray(nieuw) ? nieuw.filter(e => e && typeof e.version === 'string' && Array.isArray(e.changes)) : [];
+  if (!nieuw.length) return eigen;
+  if (!Array.isArray(eigen) || !eigen.length) return nieuw;
+  const i = nieuw.findIndex(e => e && e.version === eigen[0].version);
+  return i < 0 ? nieuw : nieuw.slice(0, i).concat(eigen);
 }
 const INFO_RECENT = 3;
 let infoAllOn = false;

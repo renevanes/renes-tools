@@ -49,6 +49,17 @@ final class WebUpdateStore {
     }
     synchronized Snapshot refresh() { cached = null; return current(); }
 
+    /** De actieve versie, maar nooit versie zonder (afgekeurd door de startbewaking): dan de vorige volledige versie, of null. */
+    synchronized Snapshot current(int zonder) {
+        if (zonder <= 0) return current();
+        if (cached != null && cached.code != zonder) return cached;
+        for (String id : pointers()) {
+            Snapshot candidate = read(id);
+            if (candidate != null && candidate.code != zonder) return candidate;
+        }
+        return null;
+    }
+
     /** Klaarzetten heeft geen invloed op de actieve versie, ook niet als het proces hierna stopt. */
     synchronized Snapshot stage(int code, String name, int nativeLevel, byte[] html, byte[] start) throws Exception {
         if (code <= 0 || nativeLevel < 0 || name == null || !name.matches("\\d{1,4}(\\.\\d{1,4}){0,3}"))

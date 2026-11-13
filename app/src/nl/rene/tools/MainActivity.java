@@ -396,10 +396,27 @@ public class MainActivity extends Activity {
         coverOff(!isSolo() && Lock.locked(this));
     }
 
+    /** Startbewaking (WebStart): versiecode van de gedownloade interface die nu laadt (0 = de meegeleverde), en of de pagina zich meldde. */
+    private int webGeladen;
+    volatile boolean webGemeld;
+
     private void loadUi() {
         String html = Updater.downloadedHtml(this);
+        webGeladen = html == null ? 0 : Updater.webCode(this);
+        webGemeld = false;
         if (html == null) html = readAsset("index.html");
         web.loadDataWithBaseURL(BASE_URL, html, "text/html", "utf-8", null);
+        if (webGeladen > 0 && !isSolo()) { final int code = webGeladen; h.postDelayed(() -> webNietGestart(code), WebStart.WACHT_MS); }
+    }
+
+    /** De gedownloade interface meldde zich niet: één keer opnieuw laden; lukt het weer niet, dan terug naar de vorige versie. */
+    private void webNietGestart(int code) {
+        if (web == null || isFinishing() || webGemeld || webGeladen != code || !hasWindowFocus()) return; // uit beeld telt niet: de pagina staat dan stil
+        boolean terug = WebStart.nietGestart(getApplicationContext(), code);
+        if (terug) Toast.makeText(this, Taal.tx(this, "De nieuwe versie startte niet. Tools gebruikt de vorige versie tot er een nieuwere is."), Toast.LENGTH_LONG).show();
+        coverOn(); uiReady = false;
+        h.postDelayed(() -> { if (!uiReady) showUi(); }, 4000);
+        loadUi();
     }
 
     private String readAsset(String name) {
@@ -2434,7 +2451,11 @@ public class MainActivity extends Activity {
         }
 
         /** De pagina is opgebouwd (en toont het slotscherm als dat moet). */
-        @JavascriptInterface public void uiReady() { a.h.postDelayed(a::showUi, 50); }
+        @JavascriptInterface public void uiReady() {
+            a.webGemeld = true;
+            a.h.post(() -> { if (!a.isSolo()) WebStart.gemeld(ctx, a.webGeladen); });
+            a.h.postDelayed(a::showUi, 50);
+        }
         /** Losse app: welke tool ("" in de gewone app). */
         @JavascriptInterface public String soloTool() { return a.solo == null ? "" : a.solo; }
         /** Welke tools als losse app mogen. */

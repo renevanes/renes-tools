@@ -126,7 +126,8 @@ m = {
   "web": "index.html", "webSha256": sha('update/index.html'),
   "start": "start.html", "startSha256": sha('update/start.html'),
   "apk": "Renes-Tools.apk", "apkSha256": sha('update/Renes-Tools.apk'),
-  "changelog": json.load(open('changelog.json'))
+  # Alleen de laatste versies: de app haalt deze lijst bij elke controle op; de volledige lijst zit in de interface zelf.
+  "changelog": json.load(open('changelog.json'))[:20]
 }
 # Handtekening over versie + controlegetallen, met dezelfde sleutel als de APK.
 # De app controleert die met zijn eigen certificaat: een vervalste interface wordt nooit gebruikt.

@@ -56,7 +56,7 @@ final class Updater {
     }
 
     private static WebUpdateStore.Snapshot snapshot(Context c) {
-        WebUpdateStore.Snapshot s = store(c).current();
+        WebUpdateStore.Snapshot s = store(c).current(WebStart.afgekeurd(c)); // nooit een versie die niet wilde starten
         return s != null && s.code > Version.CODE && s.nativeLevel <= Version.NATIVE_LEVEL ? s : null;
     }
 
@@ -78,7 +78,7 @@ final class Updater {
         WebUpdateStore.Snapshot s = snapshot(c);
         if (s != null) return s.code;
         int stored = prefs(c).getInt("webCode", 0);
-        return (stored > Version.CODE && webFile(c).exists()) ? stored : Version.CODE;
+        return (stored > Version.CODE && stored != WebStart.afgekeurd(c) && webFile(c).exists()) ? stored : Version.CODE;
     }
 
     static String webName(Context c) {
@@ -177,7 +177,7 @@ final class Updater {
             r.put("versionCode", code);
             if (nativeLevel > Version.NATIVE_LEVEL) {
                 r.put("state", "apk");
-            } else if (code > webCode(c)) {
+            } else if (code > webCode(c) && code != WebStart.afgekeurd(c)) { // een versie die hier niet wilde starten niet opnieuw ophalen
                 applyWeb(c, m, p);
                 r.put("state", "web");
             } else {
