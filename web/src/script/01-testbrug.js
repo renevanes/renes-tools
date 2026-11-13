@@ -440,6 +440,12 @@ if (!window.Android) window.Android = (function(){
     podSubscribe(j){ const p = JSON.parse(j); if (!/^https?:/.test(p.feed || '')) return 'Ongeldig feed-adres'; if (!this._pc.subs.some(x => x.feed === p.feed)) this._pc.subs.push(Object.assign({ fresh: 2 }, p)); return ''; },
     podUnsubscribe(id){ this._pc.subs = this._pc.subs.filter(x => x.id !== id); },
     podSubs(){ return JSON.stringify(this._pc.subs); },
+    /* OPML (OpmlWerk): aantallen terug; __testOpml bepaalt de uitkomst van importeren, 'weg' = de kiezer weggetikt */
+    _opml: [],
+    opmlExport(soort){ if (!['podcasts','nieuws'].includes(soort)) return; this._opml.push('export:' + soort); const n = soort === 'podcasts' ? this._pc.subs.length : 3;
+      setTimeout(() => onOpml(JSON.stringify(n ? { soort, actie: 'export', nieuw: n, al: 0, mislukt: 0 } : { soort, actie: 'export', nieuw: 0, al: 0, mislukt: 0, error: 'Er is nog niets om te exporteren' })), 30); },
+    opmlImport(soort){ if (!['podcasts','nieuws'].includes(soort)) return; this._opml.push('import:' + soort); const u = window.__testOpml || { nieuw: 2, al: 1, mislukt: 0 };
+      setTimeout(() => onOpml(JSON.stringify(u === 'weg' ? { soort, actie: 'import', nieuw: 0, al: 0, mislukt: 0, geannuleerd: true } : Object.assign({ soort, actie: 'import', nieuw: 0, al: 0, mislukt: 0 }, u))), 30); },
     // Zoals Podcasts.latest: nog niet beluisterd, uit alles wat je volgt, nieuwste eerst; isNew = de eerste "fresh" van een podcast
     // (zonder beschrijving: die haalt podEpDesc; niets ouder dan 60 dagen; weggehaald of uit Verder luisteren gehaald blijft weg)
     podLatest(n){ this._pc.calls.push(['latest', n]); const out = [], hid = this._pc.hidden || [], old = Date.now() - 60 * 864e5;

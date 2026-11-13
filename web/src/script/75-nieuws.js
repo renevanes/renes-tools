@@ -130,7 +130,8 @@ window.onNieuws = function(r){
 };
 function nwMenu(){
   const lijst = nwZichtbaar().filter(a => !nw.gelezen.has(a.id));
-  openSheet(t('Nieuws'), '', [[t('Alles als gelezen markeren'), () => nwAllesGelezen(lijst), 'check']]);
+  openSheet(t('Nieuws'), '', [[t('Alles als gelezen markeren'), () => nwAllesGelezen(lijst), 'check'],
+    [t('Bronnen importeren (OPML)'), () => opmlImport('nieuws')], [t('Bronnen exporteren (OPML)'), () => opmlExport('nieuws')]]);
 }
 function nwAllesGelezen(lijst){
   const ids = lijst.map(a => a.id);

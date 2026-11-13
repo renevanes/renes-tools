@@ -92,6 +92,10 @@ public class MainActivity extends Activity {
     static final int REQ_PDF_IMG = 28, REQ_PDF_FILE = 29, REQ_PDF_SAVE = 30, REQ_PDF_DOC = 31, REQ_PDF_VIEW = 32;
     static final int REQ_ID_COPY = 65;
     static final int REQ_CMP = 74, REQ_KLUIS_SAVE = 75;
+    /** OPML (abonnementen van Podcasts, bronnen van Nieuws): bestand kiezen om te lezen of een plek om te bewaren. */
+    static final int REQ_OPML_OPEN = 76, REQ_OPML_SAVE = 77;
+    String opmlSoort;
+    byte[] opmlKlaar;
     /** Opslaan als… vanuit de kluis: welk document en welke versie (0 = huidige) wachten op de gekozen plek. */
     volatile String kluisSaveId = "";
     volatile int kluisSaveVersion;
@@ -1129,6 +1133,20 @@ public class MainActivity extends Activity {
             return;
         }
         if (req == REQ_HOME) { js("onHomeRole", ""); return; }
+        if (req == REQ_OPML_OPEN || req == REQ_OPML_SAVE) {
+            final String soort = opmlSoort; final byte[] klaar = opmlKlaar; opmlKlaar = null;
+            final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
+            final boolean lezen = req == REQ_OPML_OPEN;
+            if (u == null || soort == null || (!lezen && klaar == null)) { js("onOpml", OpmlWerk.antwoord(soort, lezen, 0, 0, 0, "geannuleerd")); return; }
+            final Context c = getApplicationContext();
+            new Thread(() -> {
+                String r;
+                try { r = lezen ? OpmlWerk.lees(c, soort, u) : OpmlWerk.bewaar(c, soort, u, klaar); }
+                catch (Throwable e) { r = OpmlWerk.antwoord(soort, lezen, 0, 0, 0, Taal.tx(c, e.getMessage() == null ? Taal.T("Het bestand is niet te lezen") : e.getMessage())); }
+                js("onOpml", r);
+            }, "opml").start();
+            return;
+        }
         if (req == REQ_IMPORT) {
             final String kind = importKind;
             if (res != RESULT_OK || data == null || data.getData() == null || kind == null) return;
@@ -2672,6 +2690,33 @@ public class MainActivity extends Activity {
                 if (msg != null) o.put("msg", msg);
                 a.js("onToolSlot", o.toString());
             } catch (Exception ignored) { }
+        }
+
+        // ----- OPML: abonnementen en bronnen overzetten -----
+        /** Lijst als OPML bewaren op een plek die Rene kiest. soort = podcasts of nieuws. Antwoord via onOpml. */
+        @JavascriptInterface public void opmlExport(String soort) {
+            if (!OpmlWerk.soortGoed(soort)) return;
+            new Thread(() -> {
+                try {
+                    final byte[] xml = OpmlWerk.maak(ctx, soort);
+                    final Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("text/x-opml").putExtra(Intent.EXTRA_TITLE, OpmlWerk.bestandsnaam(soort));
+                    a.h.post(() -> {
+                        a.opmlSoort = soort; a.opmlKlaar = xml;
+                        try { a.startActivityForResult(i, REQ_OPML_SAVE); }
+                        catch (Exception e) { a.opmlKlaar = null; a.js("onOpml", OpmlWerk.antwoord(soort, false, 0, 0, 0, Taal.tx(ctx, Taal.T("Bestandskiezer niet beschikbaar")))); }
+                    });
+                } catch (Throwable e) { a.js("onOpml", OpmlWerk.antwoord(soort, false, 0, 0, 0, Taal.tx(ctx, e.getMessage() == null ? Taal.T("Exporteren lukt niet") : e.getMessage()))); }
+            }, "opml-maak").start();
+        }
+        /** Een OPML-bestand kiezen en de feeds eruit toevoegen. Antwoord via onOpml. */
+        @JavascriptInterface public void opmlImport(String soort) {
+            if (!OpmlWerk.soortGoed(soort)) return;
+            a.h.post(() -> {
+                a.opmlSoort = soort; a.opmlKlaar = null;
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+                try { a.startActivityForResult(i, REQ_OPML_OPEN); }
+                catch (Exception e) { a.js("onOpml", OpmlWerk.antwoord(soort, true, 0, 0, 0, Taal.tx(ctx, Taal.T("Bestandskiezer niet beschikbaar")))); }
+            });
         }
 
         // ----- Alles back-uppen en terugzetten -----

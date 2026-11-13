@@ -55,6 +55,8 @@ function pcMenu(){
   if (pcSubs.length) acts.push(['↻ Alle podcasts bijwerken', () => pcRefresh()]);
   acts.push(['Instellingen voor downloaden', () => pcDlSettings()]);
   if (!isPlay()) acts.push(['Uit Spotify overnemen', () => pspOpen()]);
+  acts.push([t('Abonnementen importeren (OPML)'), () => opmlImport('podcasts')]);
+  if (pcSubs.length) acts.push([t('Abonnementen exporteren (OPML)'), () => opmlExport('podcasts')]);
   openSheet('Podcasts', '', acts);
 }
 function enterPodcasts(){

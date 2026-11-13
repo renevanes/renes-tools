@@ -804,6 +804,9 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   de balk, en uit na 15 minuten, bij `onStop` en bij sluiten (alleen door het venster dat het aanzette). Cookies van de WebView gaan nergens mee in backups: na terugzetten opnieuw inloggen. Eerste bron met inloggen: AI Report (aireport.nl, beehiiv).
 - **Opslag**: `nieuws/` (bronnen met instellingen, gelezen, bewaard) gaat mee in "Alle appgegevens", niet in de Android-backup; de opgehaalde
   artikelen staan in de cache. Logsoort `NIEUWS` alleen met aantallen en vaste woorden.
+- **OPML** (ook voor Podcasts): menu ⋯ → importeren/exporteren. `Opml` (zuiver, `OpmlTest`) leest en schrijft, `OpmlWerk` voegt toe via
+  `Nieuws.toevoegen` / `Podcasts.subscribe` (dezelfde controles als met de hand), brug `opmlImport`/`opmlExport(soort)` → `onOpml` met alleen aantallen.
+  Logsoort `OPML` alleen met aantallen. Test: `tests/ui/opml.test.js`.
 - Tests: `tests/ui/nieuws.test.js`, `tests/ui/nieuws-bron.test.js`; Java: `NieuwsFeedTest`, `NieuwsTest`.
 
 ## Berichten aan Rene
