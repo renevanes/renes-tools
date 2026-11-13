@@ -13,12 +13,22 @@ function renderRange(){
 function rangeChanged(which){
   let mn = +$('#r-min').value, mx = +$('#r-max').value;
   if (mn > mx) { if (which==='min') mx = mn; else mn = mx; }
-  store.set('rmin', mn); store.set('rmax', mx); renderRange();
+  store.set('rmin', mn); store.set('rmax', mx); renderRange(); rdSum();
 }
 function chips(el, opts, key, def){
   const cur = store.get(key, def); el.innerHTML='';
   opts.forEach(([v,l])=>{ const b=document.createElement('button'); b.textContent=l; b.classList.toggle('on', v===cur);
-    b.onclick=()=>{ store.set(key,v); chips(el,opts,key,def); Android.vibrate(10); if (key==='interval') renderRange(); }; el.appendChild(b); });
+    if (l === '∞') b.setAttribute('aria-label', t('Onbeperkt')); // TalkBack leest anders "oneindig teken"
+    b.onclick=()=>{ store.set(key,v); chips(el,opts,key,def); Android.vibrate(10); if (key==='interval') renderRange(); rdSum(); }; el.appendChild(b); });
+}
+/* Korte samenvatting onder Start: de instellingen staan eronder, dus zonder scrollen zie je wat er gaat gebeuren */
+function rdSum(){
+  const el = $('#rd-sum'); if (!el) return;
+  const att = store.get('attempts', 10), iv = store.get('interval', 10);
+  const delen = [att ? tn(att, 'Eén poging', '{n} pogingen') : t('Onbeperkt aantal pogingen'),
+    iv === -1 ? t('willekeurig {van} tot {tot} ertussen', { van: fmtS(store.get('rmin', 10)), tot: fmtS(store.get('rmax', 60)) }) : t('{tijd} ertussen', { tijd: fmtS(iv) }),
+    store.get('t-stop', true) ? t('stopt bij opnemen') : t('belt alle pogingen af')];
+  el.textContent = delen.join(' · ');
 }
 function tog(b){ b.classList.toggle('on'); store.set(b.id, b.classList.contains('on')); Android.vibrate(10); }
 /* Schakelaar waarvan de stand in de app zelf (of in een regel) staat: niet ook nog los bewaren */
@@ -50,8 +60,8 @@ function renderPerms(){
   $('#perm-text').textContent = txt;
   $('#perm-btn').textContent = asked ? 'Instellingen openen' : 'Toestemming geven';
   $('#how-note').textContent = p.callLog
-    ? 'De app belt het nummer, wacht tot het gesprek voorbij is en kijkt in je oproepgeschiedenis of er is opgenomen. Een voicemail telt ook als opgenomen.'
-    : 'Zonder toegang tot je oproepgeschiedenis telt een gesprek van langer dan 1 minuut als opgenomen.';
+    ? t('De app belt het nummer, wacht tot het gesprek voorbij is en kijkt in je oproepgeschiedenis of er is opgenomen. Een voicemail telt ook als opgenomen.')
+    : t('Zonder toegang tot je oproepgeschiedenis telt een gesprek van langer dan 1 minuut als opgenomen.');
   return p;
 }
 function askPerms(){
@@ -66,7 +76,7 @@ function enterRedial(){
   $('#t-stop').classList.toggle('on', store.get('t-stop', true));
   $('#t-spk').classList.toggle('on', store.get('t-spk', false));
   if (!$('#num').value) { const r = store.get('recent', []); if (r[0]) { $('#num').value = r[0].number; nameFor = r[0].name||''; $('#pname').textContent = nameFor; } }
-  renderRecent(); renderPerms(); pollOnce(); rpRender();
+  renderRecent(); renderPerms(); pollOnce(); rpRender(); rdSum();
   stopPoll(); poll = setInterval(pollOnce, 500);
 }
 function stopPoll(){ if (poll) { clearInterval(poll); poll = null; } }

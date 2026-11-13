@@ -96,6 +96,7 @@ input[type=tel]:focus{outline:2px solid var(--primary);outline-offset:-1px;borde
 .name{font-size:14px;color:var(--muted);margin-top:6px;min-height:19px}
 .recent{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .recent button{background:transparent;border:1px solid var(--outline);border-radius:10px;padding:6px 12px;font-size:14px}
+#s-redial .name:empty,#s-redial .recent:empty{display:none}#s-redial .rd-sum{margin:8px 2px 4px;text-align:center}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 .chips button{min-width:48px;min-height:36px;padding:6px 14px;border-radius:10px;border:1px solid var(--outline);background:transparent;font-weight:500;font-size:14.5px;transition:background-color .15s}
 .chips button.on{background:var(--chip);color:var(--on-chip);border-color:transparent;font-weight:600}
