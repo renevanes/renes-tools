@@ -1,0 +1,3 @@
+WhatsApp backup: "Alles back-uppen" is pas te kiezen als Tools bij de bestanden kan; de uitleg over wat er gekopieerd wordt staat nu onder "Hoe werkt dit?".
+WhatsApp backup: zonder backup-map opent Starten nu ook in het Engels meteen de mapkiezer, en "Selectie back-uppen" start niet meer zonder keuze.
+WhatsApp backup: TalkBack hoort bij Selectie per onderdeel of het aangevinkt is.
