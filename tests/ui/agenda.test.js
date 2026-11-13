@@ -18,6 +18,14 @@ const path = require('path');
     ok((await page.textContent('#ag-priv')).includes('blijven op je telefoon') && (await page.textContent('#ag-priv')).includes('naar Google'), 'privacytekst zichtbaar');
     const week = await page.evaluate(() => agIsoWeek(rgToday()));
     ok((await page.textContent('#ag-periode')).includes('Week ' + week), 'weekweergave met weeknummer ' + week);
+    const leeg = await page.evaluate(() => ({ regels: document.querySelectorAll('#ag-lijst .ag-leeg').length, koppen: document.querySelectorAll('#ag-lijst .ag-dagkop').length, items: document.querySelectorAll('#ag-lijst .ag-item').length, tekst: (document.querySelector('#ag-lijst .ag-leeg') || {}).textContent || '' }));
+    ok(leeg.items > 0 ? leeg.koppen >= 1 : (leeg.regels === 1 && leeg.koppen === 0 && /t\/m .*: niets/.test(leeg.tekst)), 'week: lege dagen achter elkaar zijn één regel, alleen dagen met iets krijgen een kop (' + JSON.stringify(leeg) + ')');
+    const stuk = await page.evaluate(() => { const r = { dagen: ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13'].map(dag => ({ dag })) };
+      agDagen(r, [{ id: 'x1', titel: 'Tandarts', heleDag: true, dag: '2026-11-11' }], false);
+      const uit = [...document.querySelectorAll('#ag-lijst > *')].map(e => (e.classList.contains('ag-leeg') ? 'leeg' : e.classList.contains('ag-dagkop') ? 'kop' : e.classList.contains('ag-item') ? 'item' : 'anders') + ':' + e.textContent.slice(0, 30));
+      agLaad(); return uit; });
+    ok(stuk.map(x => x.split(':')[0]).join(' ') === 'leeg kop item leeg' && /t\/m/.test(stuk[0]) && /t\/m/.test(stuk[3]), 'lege dagen voor en na een afspraak: twee korte regels en één dagkop (' + stuk.join(' | ') + ')');
+    await page.waitForTimeout(120);
     await page.click('#ag-views [data-v="maand"]');
     await page.waitForTimeout(80);
     const maand = await page.evaluate(() => {

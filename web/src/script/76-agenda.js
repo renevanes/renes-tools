@@ -103,12 +103,22 @@ function agItemHtml(it){
 function agDagen(r, items, lijst){
   const dagen = r.dagen || [];
   if (lijst || !dagen.length) { uiHtml($('#ag-lijst'), agRegels(items)); return; }
-  let html = '';
+  let html = '', leeg = [];
+  // Lege dagen achter elkaar worden één regel ("di 10 nov t/m do 12 nov: niets"), anders is een rustige week zeven keer "Niets"
+  const leegUit = () => {
+    if (!leeg.length) return;
+    const van = fmtDate(leeg[0].dag, 'wdm'), tot = fmtDate(leeg[leeg.length - 1].dag, 'wdm');
+    html += '<p class="note ag-leeg">' + esc(leeg.length > 1 ? t('{van} t/m {tot}: niets', { van, tot }) : t('{dag}: niets', { dag: van })) + '</p>';
+    leeg = [];
+  };
   dagen.forEach(d => {
     const hier = agOpDag(items, d.dag);
+    if (!hier.length && dagen.length > 1) { leeg.push(d); return; }
+    leegUit();
     html += '<p class="ag-dagkop">' + esc(fmtDate(d.dag, 'wdm')) + (d.week ? ' · ' + esc(t('Week {n}', { n: d.week })) : '') + '</p>';
     html += hier.length ? hier.map(agItemHtml).join('') : '<p class="note">' + esc(t('Niets')) + '</p>';
   });
+  leegUit();
   uiHtml($('#ag-lijst'), html);
 }
 function agMaand(r, items){
