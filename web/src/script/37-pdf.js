@@ -66,7 +66,8 @@ function pdfRenderDef(){
 function pdfSetBusy(tt){ if (tt && !pdfBusy) pdfJobScr = current; pdfBusy = !!tt; document.querySelectorAll('.pdfbusy').forEach(e => uiWachtTekst(e, tt ? t(tt) : '')); document.querySelectorAll('.pdfscr main button').forEach(b => b.disabled = pdfBusy); pdfEditControls(); }
 /* De app verliet het scherm: Java haalde de leesbare kopie van een kluisdocument weg (MainActivity.onStop) */
 window.onPdfKluisWeg = function(){
-  if (!pdfIn || !pdfIn.kluis) return;
+  // Tijdens bewaren niet: Java haalt de kopie pas na het bewaren weg (zelfde slot), en het resultaat moet nog als versie de kluis in
+  if (!pdfIn || !pdfIn.kluis || pdfBusy) return;
   pdfIn = {}; pdfInGen++; pdfSel = new Set();
   if (pdfScr(current)) { pdfRender(); pdfEditSource(); toast(t('Het document uit de kluis is weggehaald omdat je de app verliet. Open het opnieuw vanuit de kluis.')); }
 };

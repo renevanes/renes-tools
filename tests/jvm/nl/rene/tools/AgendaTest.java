@@ -120,6 +120,14 @@ public class AgendaTest {
         List<Agenda.Item> dubbel = Agenda.lijst(new JSONArray().put(kopie), new JSONArray().put(serie), "2026-11-09", "2026-11-15", "2026-11-11", new String[0]);
         check(dubbel.size() == 1, "dezelfde reeks in Tools en op de telefoon telt één keer (" + dubbel.size() + ")");
 
+        // Backup: agenda/ gaat mee in Alle appgegevens, niet in de Android-backup (Google) of bij overzetten
+        check(AppData.FILE_KNOWN.contains("agenda") && !AppData.FILE_SKIP.containsKey("agenda"), "Alle appgegevens: agenda/ gaat mee");
+        String br = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("app/res/xml/backup_rules.xml")), java.nio.charset.StandardCharsets.UTF_8);
+        String dr = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("app/res/xml/data_rules.xml")), java.nio.charset.StandardCharsets.UTF_8);
+        String ex = "<exclude domain=\"file\" path=\"agenda/\" />";
+        int cb = dr.indexOf("<cloud-backup>"), dt = dr.indexOf("<device-transfer>");
+        check(br.contains(ex) && cb >= 0 && dt > cb && dr.substring(cb, dt).contains(ex) && dr.substring(dt).contains(ex), "Android-backup en overzetten: agenda/ uitgesloten");
+
         System.out.println(fails == 0 ? "\nAlles goed" : "\n" + fails + " mislukt");
         if (fails > 0) System.exit(1);
     }

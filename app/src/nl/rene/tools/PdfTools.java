@@ -332,7 +332,12 @@ final class PdfTools {
     /** Bij het starten: een kluiskopie van een vorig proces (vastloper, app gestopt) weghalen; inKluis is dan al leeg. */
     static void opruimKluisIn(Context c) {
         IN.lock();
-        try { if (inKluis.isEmpty() && kluisMerk(c).isFile()) { inFile(c).delete(); kluisMerk(c).delete(); inRevision = ""; inPages = 0; } }
+        try {
+            if (inKluis.isEmpty() && kluisMerk(c).isFile()) { inFile(c).delete(); kluisMerk(c).delete(); inRevision = ""; inPages = 0; }
+            // Altijd tijdelijk: ontsleuteld vlak vóór het hernoemen (kluisEdit, viewer). Ouder dan twee minuten = over van een vastloper
+            File kopie = new File(dir(c, "pdf-in"), "kopie.pdf");
+            if (kopie.isFile() && System.currentTimeMillis() - kopie.lastModified() > 120_000L) kopie.delete();
+        }
         finally { IN.unlock(); }
     }
 

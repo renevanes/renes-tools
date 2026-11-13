@@ -1,5 +1,4 @@
 {
- "Het document uit de kluis is weggehaald omdat je de app verliet. Open het opnieuw vanuit de kluis.": "The document from the vault was removed because you left the app. Open it again from the vault.",
  "– geen toegang": "– no access",
  "– nee": "– no",
  "— Geen —": "— None —",
@@ -3722,6 +3721,7 @@
  "Het contact wordt opnieuw aangemaakt op deze telefoon, met de gegevens van vóór het verwijderen.": "The contact is created again on this phone, with the details from before it was deleted.",
  "Het controlegetal van de voorleesstem klopt niet; download de stem opnieuw": "The reading voice checksum does not match; download the voice again",
  "Het dock heeft plaats voor {n} apps": "The dock has room for {n} apps",
+ "Het document uit de kluis is weggehaald omdat je de app verliet. Open het opnieuw vanuit de kluis.": "The document from the vault was removed because you left the app. Open it again from the vault.",
  "Het dossier wordt nu leeggemaakt; probeer het straks nog een keer": "The file is being emptied now; try again later",
  "Het formulier heeft een ander formaat. Installeer de nieuwste APK.": "The form has a different page size. Install the latest APK.",
  "Het gegevensbestand ontbreekt; herstel wordt niet automatisch uitgevoerd": "The data file is missing; recovery is not performed automatically",
@@ -6192,7 +6192,6 @@
  "Personeel & lonen": "Staff & wages",
  "Personen en reizen beheren": "Manage people and trips",
  "Persoon": "Person",
- "Persoon · {n} documenten": "Person · {n} documents",
  "Persoon toevoegen": "Add person",
  "Persoon: {naam}": "Person: {naam}",
  "Persoonlijk": "Personal",
