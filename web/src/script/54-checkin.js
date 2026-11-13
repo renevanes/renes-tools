@@ -12,7 +12,6 @@ function ciActive(q){ return !!(q && q.on && !q.archived); }
 function ciOpts(q){ return (q && q.options) || []; }
 /* Datums als "yyyy-MM-dd". Een tijdstip (antwoord, slot) hoort bij een dag in de app-zone: rgDayKey(t). ciDayKey en
  * ciDate rekenen met kalenderdatums (Date van 12:00 telefoontijd, nooit om te tonen); vandaag is ciToday(). */
-function ciPad(n){ return String(n).padStart(2, '0'); }
 function ciDayKey(d){ return rgCalKey(d); }
 /* Vandaag (in de app-zone) als kalenderdatum */
 function ciToday(){ return rgCalDate(rgToday()); }

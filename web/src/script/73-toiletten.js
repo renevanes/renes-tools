@@ -68,7 +68,6 @@ function wcReden(r){
 }
 function wcAfstand(d){ return d == null || d < 0 ? '' : d < 950 ? fmtMeters(Math.max(10, Math.round(d / 10) * 10)) : fmtDist(d, d < 10000 ? 1 : 0); }
 function wcMeters(a, b){ return rgMeters({ lat: a.lat, lon: a.lon }, { lat: b.la, lon: b.lo }); }
-function wcBronNaam(id){ const b = ((wcSt || {}).bronnen || []).find(x => x.id === id); return b ? b.naam : id; }
 
 /* ================= Toiletten en douches (s-wc) ================= */
 function enterWc(name, vorige){

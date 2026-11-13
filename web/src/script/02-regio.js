@@ -166,7 +166,6 @@ function rgDayDiff(a, b){ const u = k => { const m = /^(\d{4})-(\d{2})-(\d{2})/.
 function rgWeekday(key){ const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(key || '')); return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay() : NaN; }
 function rgIsToday(t){ return rgDayKey(t) === rgToday(); }
 function rgIsYesterday(t){ return rgDayKey(t) === rgDayAdd(rgToday(), -1); }
-function rgIsTomorrow(t){ return rgDayKey(t) === rgDayAdd(rgToday(), 1); }
 /* Wandklok (ms alsof het UTC is) → tijdstip in de app-zone. Bestaat de tijd twee keer (de klok gaat terug), dan de
  * eerste; bestaat hij niet (de klok springt vooruit), dan schuift hij mee met de sprong: 02:30 wordt 03:30, zoals een
  * wekker en check-in. Precies zo in Regio.java (wallToMillis). */
@@ -188,7 +187,6 @@ function rgStartOfDay(t){ return rgFromLocal(rgDayKey(t), '00:00'); }
 function rgEndOfDay(t){ return rgFromLocal(rgDayAdd(rgDayKey(t), 1), '00:00'); }
 /* 'UU:MM' van tijdstip t (zonder t: nu) in de app-zone, voor invoervelden en vergelijken met tijden uit de opslag */
 function rgHm(t){ const p = rgParts(t); return p ? rgP2(p.hh) + ':' + rgP2(p.mm) : ''; }
-function rgNowHm(){ return rgHm(Date.now()); }
 /* Minuut van de dag (0–1439) in de app-zone */
 function rgMinOfDay(t){ const p = rgParts(t); return p ? p.hh * 60 + p.mm : 0; }
 /* 'JJJJ-MM-DDTUU:MM' voor <input type=datetime-local>, en terug */
@@ -255,7 +253,6 @@ function fmtDate(t, style){ return rgFmt(t, typeof style === 'string' ? RG_DSTYL
 function fmtTime(t, o){ return rgFmt(t, o && typeof o === 'object' ? o : o ? { hour: '2-digit', minute: '2-digit', second: '2-digit' } : { hour: '2-digit', minute: '2-digit' }); }
 /* Datum met tijd; zonder opties zoals toLocaleString (3-11-2026, 14:05:07) */
 function fmtDT(t, o){ return rgFmt(t, o || { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
-function fmtDateTime(t, style){ return typeof style === 'string' ? fmtDT(t, Object.assign({}, RG_DSTYLE[style] || RG_DSTYLE.num, { hour: '2-digit', minute: '2-digit' })) : fmtDT(t, style); }
 /* "a.m." / "p.m." in de taal van de app (zonder datum of tijdzone) */
 function rgDayPeriod(h){
   try { const p = rgDtf({ hour: 'numeric', hour12: true, timeZone: 'UTC' }).formatToParts(Date.UTC(2000, 0, 1, h)).find(x => x.type === 'dayPeriod'); if (p) return p.value; } catch (e) { }

@@ -23,7 +23,6 @@ function cmkToMe(id,me){
 }
 /* "anders" is geen woord voor in een zin: dan "andere relatie". Neef of nicht kan beide kanten op: dan "jij bent … van". */
 function cmkRelName(code){return code==='anders'?t('andere relatie'):cmiRelationName(code).toLowerCase();}
-function cmkRelText(x,naam){return x.code?(x.code==='anders'?t('andere relatie met jou'):t('mijn {relatie}',{relatie:cmkRelName(x.code)})):t('jij bent {relatie} van {naam}',{relatie:cmkRelName(x.orig),naam});}
 /* De status in gewone woorden, vanuit jou: bij je kind gaat ouderlijk gezag over jou, bij je ouder over die ouder. */
 function cmkStatusText(x){
   if(!x.status)return '';if(x.code==='partner')return cmiStatusName(x.status);

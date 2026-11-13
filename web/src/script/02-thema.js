@@ -13,11 +13,6 @@ const TH_DEF = { mode: 'system', amoled: false, dark: '20:00', light: '07:00', o
 
 /* ---------- puur rekenwerk (getest in tests/ui/thema-reken.test.js) ---------- */
 function thMin(tt){ const m = /^(\d{1,2}):(\d{2})$/.exec(String(tt == null ? '' : tt)); return m && +m[1] < 24 && +m[2] < 60 ? +m[1] * 60 + +m[2] : -1; }
-/* Is minuut min (van de dag) donker, met donker vanaf darkFrom en licht vanaf lightFrom? Ook over middernacht heen. */
-function thInWindow(min, darkFrom, lightFrom){
-  if (darkFrom === lightFrom) return false;
-  return darkFrom > lightFrom ? (min >= darkFrom || min < lightFrom) : (min >= darkFrom && min < lightFrom);
-}
 /* Zonsopkomst en -ondergang (NOAA, "General Solar Position Calculations") voor een kalenderdag op lat/lon.
  * Geeft { rise, set } in ms (UTC-tijdstip), of { polar: 'night' } (zon komt niet op) / { polar: 'day' } (gaat niet onder). */
 function thSun(y, m, d, lat, lon){

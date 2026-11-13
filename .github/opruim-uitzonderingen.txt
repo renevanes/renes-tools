@@ -1,3 +1,27 @@
 # Namen die de opruimscan (.github/scripts/opruim-scan.py) niet meer moet melden: bewust laten staan.
 # Eén naam per regel (functie, methode, class of CSS-klasse zonder punt), met de reden erachter als opmerking.
 # Een naam hier geldt voor alle soorten tegelijk (een Java-methode én een JS-functie of CSS-klasse met dezelfde naam).
+
+# Agenda: nabootsing van Agenda.java voor de testbrug (01-testbrug.js); staat bij 76-agenda.js zodat hij dezelfde agendalogica gebruikt
+agSpiegelToon  # testbrug: nabootsing van Agenda.java
+agSpiegelZoek  # testbrug: nabootsing van Agenda.java
+agSpiegelBewaar  # testbrug: nabootsing van Agenda.java
+agSpiegelAntwoord  # testbrug: nabootsing van Agenda.java
+
+# Stamgegevens: brugfuncties die de interface aanroept via cmRequest (Android[method]) in 69-centrale-gegevens.js
+masterAboutMove  # via cmRequest('masterAboutMove', …)
+masterAudit  # via cmRequest('masterAudit', …)
+masterContactAction  # via cmRequest('masterContactAction', …)
+masterDelete  # via cmRequest('masterDelete', …)
+masterFormRelation  # via cmRequest('masterFormRelation', …)
+masterIdCopySource  # via cmRequest('masterIdCopySource', …)
+masterList  # via cmRequest('masterList', …)
+masterOpen  # via cmRequest('masterOpen', …)
+masterPhotoDelete  # via cmRequest('masterPhotoDelete', …)
+masterPhotoPick  # via cmRequest('masterPhotoPick', …)
+masterPhotoRead  # via cmRequest('masterPhotoRead', …)
+masterRead  # via cmRequest('masterRead', …)
+masterReset  # via cmRequest('masterReset', …)
+masterSave  # via cmRequest('masterSave', …)
+masterScanSave  # via cmRequest('masterScanSave', …)
+masterUse  # via cmRequest('masterUse', …)
