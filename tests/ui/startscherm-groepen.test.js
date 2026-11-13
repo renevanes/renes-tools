@@ -48,8 +48,16 @@ const { chromium } = require('playwright');
     // Naar de onderrand: de lijst schuift vanzelf mee tot Bellen & contacten in beeld is
     for (let i = 1; i <= 8; i++) { await pg.mouse.move(hb.x + hb.width / 2, hb.y + (825 - hb.y) * i / 8); await pg.waitForTimeout(16); }
     for (let i = 0; i < 100; i++) { const r = await (await pg.$('#he-groups .herow[data-t="redial"]')).boundingBox(); if (r.y < 600) break; await pg.waitForTimeout(50); }
-    const rb = await (await pg.$('#he-groups .herow[data-t="redial"]')).boundingBox();
+    // Uit de schuifrand en dan net boven het midden van Opnieuw bellen. Onder belasting schoof de lijst na het meten nog
+    // door (de wijzer stond nog bij de rand), waardoor Radio onder Opnieuw bellen viel: opnieuw meten tot hij stilstaat.
+    let rb = await (await pg.$('#he-groups .herow[data-t="redial"]')).boundingBox();
     for (let i = 1; i <= 6; i++) { await pg.mouse.move(hb.x + hb.width / 2, 825 + (rb.y + 6 - 825) * i / 6); await pg.waitForTimeout(16); }
+    for (let i = 0; i < 20; i++) {
+      await pg.waitForTimeout(60);
+      const nu = await (await pg.$('#he-groups .herow[data-t="redial"]')).boundingBox();
+      if (Math.abs(nu.y - rb.y) < 1) break;
+      rb = nu; await pg.mouse.move(hb.x + hb.width / 2, rb.y + 6);
+    }
     await pg.screenshot({ path: __dirname + '/shots/startscherm-slepen-' + scheme + '.png' });
     await pg.mouse.up(); await pg.waitForTimeout(150);
     const bc = await grp('Bellen & contacten');

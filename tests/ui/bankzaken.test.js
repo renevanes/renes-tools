@@ -28,6 +28,8 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => Android._bank.secure), 'schermbeveiliging aan (geen schermafdrukken)');
     await pg.evaluate(() => { Android._bank.ontgrendelFout = ''; goBack(); }); await pg.waitForTimeout(100);
     await pg.click('#tile-bank'); await pg.waitForTimeout(150); await pg.click('#ts-open'); await pg.waitForTimeout(300);
+    // Ontgrendelen loopt via een terugroepfunctie van de testbrug: onder belasting (12 tests tegelijk) soms later dan 300 ms
+    await pg.waitForFunction(() => ['#bk-los', '#bk-leeg'].every(s => document.querySelector(s)?.offsetParent), null, { timeout: 5000 }).catch(() => {});
     ok(await pg.isVisible('#bk-los') && await pg.isVisible('#bk-leeg') && !(await pg.isVisible('#bk-dicht')), 'open en nog leeg');
     ok(await pg.evaluate(() => JSON.stringify(Android._bank.calls.filter(c => c[0] === 'unlock' || c[0] === 'vanzelf' || c[0] === 'vraag'))) === '[["unlock"],["unlock"]]', 'opent alleen met de ontgrendeling van het slotscherm');
     ok((await tekst('#bk-leeg')).includes('Rabobank'), 'Rabobank automatisch ophalen aangeboden');

@@ -44,7 +44,8 @@ for(const colorScheme of ['light','dark']){
   for(const id of ['#cmc-bel','#cmc-bericht','#cmc-contact'])await p.click(id);
   await p.waitForFunction(()=>(Android._cm.intents||[]).length===3);
   assert.deepEqual(await p.evaluate(()=>Android._cm.intents),[{what:'bel',number:'0699990000'},{what:'bericht',number:'0699990000'},{what:'contact',key:'c1'}]);
-  assert.equal(await p.evaluate(()=>JSON.stringify(Android._cm.events).includes('9999')),false,'geen nummers in het logboek');
+  // Zonder tijdstip en id: Date.now() en een willekeurig id bevatten soms zelf "9999" (wankel)
+  assert.equal(await p.evaluate(()=>JSON.stringify(Android._cm.events.map(({t,id,...e})=>e)).includes('9999')),false,'geen nummers in het logboek');
   assert.ok(await p.evaluate(()=>Android._cm.events.some(e=>e.action==='contact_use')),'gebruik in het logboek');
 
   // 4. Contact niet meer gevonden: het nummer uit Stamgegevens, met een hint
@@ -85,12 +86,13 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>rgSave({lang:'nl'}));await p.waitForFunction(()=>!TAAL.on);
 
   // 8. Op slot tijdens het kiezen: het late antwoord doet niets
-  await T.kaart(anna);await p.evaluate(()=>{Android._cm.contactDelay=150;});
+  // Ruim de tijd voor het antwoord van de kiezer: onder belasting kwam een antwoord na 150 ms soms al vóór cmLock (wankel)
+  await T.kaart(anna);await p.evaluate(()=>{Android._cm.contactDelay=1500;});
   await p.click('#cm-kaart-menu');await p.waitForSelector('#sheet.on');await p.locator('#sheet-acts').getByRole('button',{name:'Loskoppelen van contact',exact:true}).click();
   await p.waitForFunction(id=>!Android._cm.records.find(r=>r.id===id).fields.contact&&!cm.mutating&&!cm.pending.size,anna);
   const los=await p.evaluate(()=>JSON.stringify(Android._cm.records));
   await p.click('#cm-kaart-menu');await p.waitForSelector('#sheet.on');await p.locator('#sheet-acts').getByRole('button',{name:'Koppelen aan contact',exact:true}).click();
-  await p.evaluate(()=>cmLock());await p.waitForTimeout(300);
+  await p.evaluate(()=>cmLock());await p.waitForTimeout(1800);
   assert.equal(await p.evaluate(()=>JSON.stringify(Android._cm.records)),los,'na vergrendelen niets gekoppeld');
   assert.equal(await p.evaluate(()=>/Anna|Rene|Kees|9999/.test($('#s-cmkaart').innerHTML+$('#s-cmedit').innerHTML+$('#s-masterdata').innerHTML)),false,'geen namen of nummers meer in beeld');
   assert.equal(await p.evaluate(()=>Object.keys(localStorage).some(k=>/stam|contact|master/.test(k))),false);
