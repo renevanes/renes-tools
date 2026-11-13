@@ -77,6 +77,8 @@ const LIGHT = '#F4F5F6', DARK = '#111619';
     await pg.evaluate(() => thSetMode('system')); await pg.waitForTimeout(100);
     ok(await bg(pg) === DARK, 'terug naar Systeem: weer donker');
     await pg.emulateMedia({ colorScheme: 'light' }); await pg.waitForTimeout(150);
+    // De wissel van de telefoon komt als 'change' van matchMedia: onder belasting soms later dan 150 ms
+    await pg.waitForFunction(L => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim().toUpperCase() === L && (Android._bars || [])[0] === L, LIGHT, { timeout: 5000 }).catch(() => {});
     ok(await bg(pg) === LIGHT && !(await pg.evaluate(() => uiDark())) && (await pg.evaluate(() => Android._bars))[0] === LIGHT, 'telefoon wordt licht: de app (en de balken) ook');
     await ctx.close();
   }

@@ -10,7 +10,10 @@ const { chromium } = require('playwright');
     const pg = await b.newPage({ viewport: { width: 390, height: 844 }, colorScheme: scheme });
     pg.on('pageerror', e => errs.push(e.message));
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
-    const ask = async (q, ms) => { await pg.fill('#ai-in', q); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(ms || 200); };
+    // Met taalmodel (ms gegeven): ook wachten tot het nagebootste antwoord helemaal binnen is (60 ms per woord), niet
+    // alleen een vaste tijd: onder belasting (12 tests tegelijk) liep die soms af vóór het laatste woord.
+    const ask = async (q, ms) => { await pg.fill('#ai-in', q); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(ms || 200);
+      if (ms) { await pg.waitForFunction(() => !Android._ai.busy, null, { timeout: 15000 }); await pg.waitForTimeout(100); } };
     const last = '#ai-msgs .aimsg:last-child';
 
     // ---- Zonder taalmodel: opdrachten en opzoeken werken al ----

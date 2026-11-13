@@ -5,7 +5,8 @@ for(const colorScheme of ['light','dark']){
  await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
  // Een nieuwe persoon (alleen het korte blok); tijdens het opslaan opent er niets anders
  const person=async(roepnaam,naam,traag)=>{
-  await p.evaluate(()=>cmNew());await T.fill('#cm-field-roepnaam',roepnaam);await T.fill('#cm-field-naam',naam);
+  // cmNew doet niets zolang de lijst na het vorige opslaan nog herlaadt: eerst daarop wachten (wankel onder belasting)
+  await p.waitForFunction(()=>cm.recordsReady&&!cm.mutating&&!cm.navigating);await p.evaluate(()=>cmNew());await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='persoon'&&!cm.edit.id);await T.fill('#cm-field-roepnaam',roepnaam);await T.fill('#cm-field-naam',naam);
   if(traag)await p.evaluate(()=>Android._cm.replyDelay=400);await p.click('#cm-save');
   if(traag){await p.evaluate(()=>cmiNew('identiteit'));assert.equal(await p.evaluate(()=>cm.edit.type),'persoon');assert.equal(await p.isDisabled('#cm-save'),true);}
   const label=roepnaam+' '+naam;await p.waitForFunction(label=>!cm.mutating&&!cm.edit&&cm.records.some(r=>r.label===label),label);await p.evaluate(()=>Android._cm.replyDelay=10);
