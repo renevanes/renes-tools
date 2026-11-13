@@ -14,7 +14,7 @@ const { chromium } = require('playwright');
       const evil = '&quot;),window.pwned=1,(&quot;';
       const evil2 = "x');window.pwned=2;//";
       await page.evaluate(([e, e2]) => {
-        Android._rd.chats = [{ id: 7, name: e, group: true, last: Date.now(), n: 1, lastText: 'hoi' }, { id: 8, name: e2, last: Date.now(), n: 1 }];
+        Android._wr.chats = [{ id: 7, name: e, group: true, last: Date.now(), n: 1, lastText: 'hoi' }, { id: 8, name: e2, last: Date.now(), n: 1 }];
         Android._sms.convs = [{ thread: 3, name: e, last: Date.now(), count: 1, lastText: 'x' }];
         show('chats'); loadChatList();
       }, [evil, evil2]);

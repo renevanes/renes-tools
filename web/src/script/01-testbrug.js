@@ -220,8 +220,8 @@ if (!window.Android) window.Android = (function(){
     waRestore(){ return this.waStart('restore'); },
     waCancel(){ const w=this._wa; clearInterval(w.t); w.st={running:false,phase:'done',mode:w.st.mode,result:'cancelled',message:'Gestopt',finishedAt:Date.now()}; },
     waStatus(){ return JSON.stringify(this._wa.st); },
-    _rd:{hasKey:false,auto:true,contacts:false,chats:[],msgs:{}},
-    _mkDemo(){ const r=this._rd; const names=['Huisarts','Familie De Boer','Jos','Pietje Puk','Sportclub']; r.chats=[]; r.msgs={};
+    _wr:{hasKey:false,auto:true,contacts:false,chats:[],msgs:{}},
+    _mkDemo(){ const r=this._wr; const names=['Huisarts','Familie De Boer','Jos','Pietje Puk','Sportclub']; r.chats=[]; r.msgs={};
       for(let i=0;i<5;i++){ const id=i+1,n=40+i*20,grp=i===1||i===4; const ms=[]; let t=Date.now()-n*36e5;
         for(let k=0;k<n;k++){ const me=k%2===0; t+=Math.random()*72e5;
           let o={id:k+1,me,t:Math.round(t),type:0,text:'Voorbeeldbericht '+(k+1)+' in '+names[i],label:'',sender:me?'Ik':(grp?['Jos','Anne','Kees'][k%3]:names[i]),media:'',mime:'',fileName:''};
@@ -231,16 +231,16 @@ if (!window.Android) window.Android = (function(){
         r.msgs[id]=ms; const last=ms[ms.length-1];
         r.chats.push({id,name:names[i],group:grp,n,last:last.t,lastText:last.text||last.label}); }
       r.chats.sort((a,b)=>b.last-a.last); },
-    waReadInfo(){ const r=this._rd; return JSON.stringify({hasKey:r.hasKey,auto:r.auto,hasDb:r.hasKey,dbFrom:r.hasKey?Date.now()-72e5:0,dest:this._wa.info.dest,contacts:r.contacts}); },
-    waSetKey(hex){ setTimeout(()=>{ const h=(hex||'').replace(/[^0-9a-f]/gi,''); if(h.length!==64){ onWaKeyResult({ok:false,error:'De sleutel moet 64 tekens hebben; je hebt er '+h.length}); return; } this._rd.hasKey=true; this._mkDemo(); onWaKeyResult({ok:true,chats:this._rd.chats.length}); },500); },
-    waForgetKey(){ this._rd.hasKey=false; this._rd.chats=[]; },
-    waSetReadableAuto(on){ this._rd.auto=on; },
+    waReadInfo(){ const r=this._wr; return JSON.stringify({hasKey:r.hasKey,auto:r.auto,hasDb:r.hasKey,dbFrom:r.hasKey?Date.now()-72e5:0,dest:this._wa.info.dest,contacts:r.contacts}); },
+    waSetKey(hex){ setTimeout(()=>{ const h=(hex||'').replace(/[^0-9a-f]/gi,''); if(h.length!==64){ onWaKeyResult({ok:false,error:'De sleutel moet 64 tekens hebben; je hebt er '+h.length}); return; } this._wr.hasKey=true; this._mkDemo(); onWaKeyResult({ok:true,chats:this._wr.chats.length}); },500); },
+    waForgetKey(){ this._wr.hasKey=false; this._wr.chats=[]; },
+    waSetReadableAuto(on){ this._wr.auto=on; },
     waMakeReadable(){ const w=this._wa; w.st={running:true,mode:'readable',phase:'export',filesTotal:5,filesDone:0}; let i=0;
       w.t=setInterval(()=>{ w.st.filesDone=++i; if(i>=5){ clearInterval(w.t); w.st={running:false,phase:'done',mode:'readable',result:'ok',message:'5 chats leesbaar gemaakt',finishedAt:Date.now()}; } },300); return ''; },
-    waChats(){ return JSON.stringify({chats:this._rd.chats,from:Date.now()-72e5}); },
-    waMessages(id,before,limit){ const all=this._rd.msgs[id]||[]; const b=+before; const f=all.filter(m=>b<=0||m.t<b); return JSON.stringify(f.slice(Math.max(0,f.length-limit))); },
-    waSearch(q){ const out=[]; const ql=q.toLowerCase(); for(const c of this._rd.chats){ for(const m of this._rd.msgs[c.id]){ if(m.text&&m.text.toLowerCase().includes(ql)){ out.push({...m,chat:c.id,chatName:c.name}); } } } return JSON.stringify(out.slice(0,200)); },
-    waRequestContacts(){ this._rd.contacts=true; setTimeout(()=>onWaChanged(),100); },
+    waChats(){ return JSON.stringify({chats:this._wr.chats,from:Date.now()-72e5}); },
+    waMessages(id,before,limit){ const all=this._wr.msgs[id]||[]; const b=+before; const f=all.filter(m=>b<=0||m.t<b); return JSON.stringify(f.slice(Math.max(0,f.length-limit))); },
+    waSearch(q){ const out=[]; const ql=q.toLowerCase(); for(const c of this._wr.chats){ for(const m of this._wr.msgs[c.id]){ if(m.text&&m.text.toLowerCase().includes(ql)){ out.push({...m,chat:c.id,chatName:c.name}); } } } return JSON.stringify(out.slice(0,200)); },
+    waRequestContacts(){ this._wr.contacts=true; setTimeout(()=>onWaChanged(),100); },
     _tr:{perm:false,gps:true,running:false,paused:false,list:[],t:null,start:0,dist:0,pts:0,just:null},
     trackHasPermission(){ return this._tr.perm; },
     trackRequestPermission(){ this._tr.perm=true; setTimeout(()=>onTrackPerm(),200); },

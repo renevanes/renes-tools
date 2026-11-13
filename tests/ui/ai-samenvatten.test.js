@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
     const pg = await b.newPage({ viewport: { width: 390, height: 844 }, colorScheme: scheme });
     pg.on('pageerror', e => errs.push(e.message));
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
-    await pg.evaluate(() => { Android._sms.perm = true; Android._smsDemo(); Android._rd.hasKey = true; Android._mkDemo(); Android._tx.done.a1 = true; });
+    await pg.evaluate(() => { Android._sms.perm = true; Android._smsDemo(); Android._wr.hasKey = true; Android._mkDemo(); Android._tx.done.a1 = true; });
 
     // Zonder taalmodel: uitleg en naar de assistent
     await pg.evaluate(() => { show('sms'); openSms(2, 'Moeder'); }); await pg.waitForTimeout(150);
@@ -57,7 +57,7 @@ const { chromium } = require('playwright');
     await pg.waitForTimeout(900);
 
     // WhatsApp: 300 gelezen (het maximum): er kunnen er meer zijn
-    await pg.evaluate(() => { const l = []; for (let k = 0; k < 320; k++) l.push({ id: k, me: false, t: Date.now() - (320 - k) * 6e4, text: 'Bericht ' + k, sender: 'Jos', label: '' }); Android._rd.msgs[3] = l; show('chats'); openChat(3, 'Jos', 0); });
+    await pg.evaluate(() => { const l = []; for (let k = 0; k < 320; k++) l.push({ id: k, me: false, t: Date.now() - (320 - k) * 6e4, text: 'Bericht ' + k, sender: 'Jos', label: '' }); Android._wr.msgs[3] = l; show('chats'); openChat(3, 'Jos', 0); });
     await pg.waitForTimeout(150); await pg.click('#chat-sum'); await pg.waitForTimeout(250);
     ok((await pg.textContent('#ai-msgs .aimsg.me .aiatt')).includes('De laatste 300 berichten') && await pg.evaluate(() => /alleen de laatste 300 berichten/.test(Android._ai.last.messages[0].content)), 'WhatsApp met 300 gelezen (het maximum): "de laatste 300", niet "300 berichten"');
     await pg.waitForTimeout(900);
