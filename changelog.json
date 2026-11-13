@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.206",
+    "date": "2026-11-13",
+    "changes": [
+      "Podcasts en Nieuws: abonnementen en bronnen importeren en exporteren als OPML-bestand (menu ⋯), om over te stappen van of naar een andere app"
+    ]
+  },
+  {
     "version": "1.205",
     "date": "2026-11-13",
     "changes": [

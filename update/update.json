@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.205",
-  "versionCode": 206,
-  "nativeLevel": 180,
+  "versionName": "1.206",
+  "versionCode": 207,
+  "nativeLevel": 181,
   "web": "index.html",
-  "webSha256": "f036889cba6bd6e73aab35d9fd81b65634370edc43ec8e49e35adaa78fd18d2c",
+  "webSha256": "e989d7d2e8b6928610d141a466f86efdbb638e90b50d0329f8b23801217337af",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "2c08e47e160b3819f8228ea98f20444667ee93f425e7103eb4799f694be6809c",
+  "apkSha256": "e6d69971b4123fab5737b919c260a1677a194d42a9de705086e3d9e0a54e312c",
   "changelog": [
+    {
+      "version": "1.206",
+      "date": "2026-11-13",
+      "changes": [
+        "Podcasts en Nieuws: abonnementen en bronnen importeren en exporteren als OPML-bestand (menu ⋯), om over te stappen van of naar een andere app"
+      ]
+    },
     {
       "version": "1.205",
       "date": "2026-11-13",
@@ -166,21 +173,7 @@
       "changes": [
         "Kluis, Bankzaken en Stamgegevens hebben geen eigen ontgrendelscherm meer: alles gaat via het slotscherm van Extra ontgrendelen. Staat dat uit, dan openen ze meteen."
       ]
-    },
-    {
-      "version": "1.186",
-      "date": "2026-11-10",
-      "changes": [
-        "Documentenkluis is nu de centrale opslag: wat je met de PDF-tools maakt (ook formulieren en ID-kopieën) gaat vanzelf versleuteld de kluis in (uit te zetten bij PDF → Gemaakt)",
-        "PDF's uit de kluis openen in de eigen PDF-viewer, en vanuit de kluis bewerken en ondertekenen; bewaren wordt een nieuwe versie, eerdere versies blijven (bekijken, vergelijken, terugzetten)",
-        "Nieuw: documenten vergelijken (PDF → Vergelijken): tekstverschillen per woord en per pagina in beeld, ook voor scans en voor twee versies uit de kluis",
-        "ID-kopie afschermen werkt samen met Stamgegevens: op het kaartje van een paspoort, ID-kaart of rijbewijs maak je meteen een afgeschermde kopie met voorgestelde vlakken, en zie je welke kopieën je aan wie gaf",
-        "Stamgegevens: nationaliteit, land en land van afgifte kies je nu uit een lijst met alle landen (of typ zelf iets bij Anders…); in Nederland staat Nederlandse al voor je klaar",
-        "Stamgegevens: dubbele nationaliteit invullen met Nog een nationaliteit",
-        "Stamgegevens: rijbewijscategorieën zet je aan en uit met knoppen",
-        "Formulieren: het land van bestemming kies je uit een lijst"
-      ]
     }
   ],
-  "webSig2": "gq5VJ3hqG9npbQ5WwUGgwQ0XmLvTdztatM3GNrNcGCQkPg6EfSfEPee2e/MGK12xod6jWS43m6NJiBeeWUQcj3cB9tJhGK5Le1DzC6/b0zP+7UUyfezLXlaGlcU4YhxzFBTWjmQ38SXXHMlmb0+MnukeZbNGLMoB6/VWQejUb9xGKFW7LKo8Bln6SuoQWGkNorkwWbXLEf70qsfnhj6zSHCVyUCs93DLpMcTXuShT3n3NtR0lmXpbvD1gpWQ3KOLw7vteHXeGvR3kNOWOxRmHebEySo9VBQc+nXcsfFEDlDxolB161HapdrlN5mz7z55qx8agrYTXe/qmdnHum60gPDPuxdKgnzGXxOS+GGZTjUy11GGnJoSWyfgcRK2IUv3gRiMJoB//mlj4El1cMmD+aDsW4SanAt/VAowwJkanSgnLL5ojv2TupsJ5QI2ZBpgdbrIfL+3A1tyBBZ8IbIYy/LuEUFujmgbU+rWceEZ6IvOs0Fp0tJguHV1ZaBFHNgs"
+  "webSig2": "MGwEQDI9ztgFxvHz/nVJC20+3gUZtVDxlKpNQF0AwZCmZh27ohU7Q4vTz/9DlJjBf9mxXahQUUXMNDWb6/e5a2uBgFiovC+zE2eRKMRJJQrSvX4iyZz39ccjsK2EWyoSmHyFOx5KKMYRbrLwqqYFb7GSWVlkRBaPRoeqcSsroWIpSSLNVKTj9phGMElXeR0AApAl8Ou393Q0FXmb5yFgXnq86AWa3Jv3cdRp+B//SrxaHl39vxvj83ccFRUOovssKz2aB4+WdtyhMUqW+Gy/NjtOx9qofYoG/JSN97EtwrCfcrPR5u4JPa8qY8DhcwYT06LqGeN3hqdhs5hZ/JBmuK6iKnQgPXL0nZxJNE/tdfGXWGGQz+sc1pzx8IPr/P8b88px7vRuy1w1Ub0ZI4ahSNOrsqwd3Q5a6NwkJ9s67qlIbUKiW/HSLvP0anmx92674ilOuCRQ0MZFF4JflG72XsjZ0iXCxecIiWph59NZLKtVgBRdSRIcYUTZyUzYadIx"
 }
