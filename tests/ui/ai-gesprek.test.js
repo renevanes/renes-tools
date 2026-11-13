@@ -28,7 +28,9 @@ const { chromium } = require('playwright');
     ok(!(await pg.isVisible('#ai-talk')) && (await pg.textContent('#toast')).includes('Slaappraat'), 'Slaappraat luistert: geen gesprek');
     await pg.evaluate(() => { Android._tkConflict = ''; });
 
-    // Starten: luisteren, scherm blijft aan, stilte 1,3 s
+    // Starten: luisteren, scherm blijft aan, stilte 1,3 s. Uitgesproken pas na de controles (_tkEndMs 0 = nog niet):
+    // anders is het luisteren op een drukke testmachine al voorbij (denkt) voordat we kijken
+    await pg.evaluate(() => { Android._tkEndMs = 0; });
     await pg.click('#ai-talk-btn'); await pg.waitForTimeout(80);
     // Onder belasting komt de start van het luisteren soms later dan 80 ms: wachten op de toestand zelf
     await waitSt('luistert'); await pg.waitForFunction(() => /luister/.test($('#ai-talk-st').textContent) && $('#ai-talk-go').textContent === 'Klaar met praten', null, { timeout: 4000 }).catch(() => {});
@@ -44,6 +46,7 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => $('#ai-talk').contains(document.activeElement)), 'Shift+Tab ook');
     await pg.screenshot({ path: __dirname + '/shots/ai-gesprek-luistert-' + scheme + '.png' });
     // Uitgesproken (stilte) → denkt → spreekt → luistert weer
+    await pg.evaluate(() => { Android._tkEndMs = 300; });
     ok(await waitSt('spreekt', 3000), 'na de stilte: denkt, dan spreekt');
     ok(await pg.evaluate(() => Android._ai.last.messages.slice(-1)[0].content === 'Hoe laat gaan we eten?'), 'de vraag ging naar de assistent');
     ok(await pg.evaluate(() => window.__spk[0] && window.__spk[0].t === 'Om zes uur.' && window.__spk[0].busy), 'de eerste zin al voorgelezen terwijl het antwoord nog geschreven werd');
@@ -66,8 +69,10 @@ const { chromium } = require('playwright');
     // Onderbreken met de knop
     ok(await waitSt('spreekt', 3000), 'nog een vraag: spreekt');
     ok((await pg.textContent('#ai-talk-go')) === 'Onderbreken', 'knop Onderbreken tijdens het voorlezen');
-    await pg.click('#ai-talk-go'); await pg.waitForTimeout(100);
-    ok(await st() === 'luistert', 'Onderbreken: luistert weer');
+    await pg.evaluate(() => { Android._tkEndMs = 0; }); // blijft luisteren tot na de controle
+    await pg.click('#ai-talk-go');
+    ok(await waitSt('luistert', 2000), 'Onderbreken: luistert weer');
+    await pg.evaluate(() => { Android._tkEndMs = 300; });
     // Onderbreken door te praten lukt niet op deze telefoon: alleen de knop, en dat staat erbij
     await pg.evaluate(() => { Android._bargeErr = 'Onderbreken door te praten lukt niet op deze telefoon'; aiTk.noBarge = false; });
     ok(await waitSt('spreekt', 3000) && (await pg.textContent('#ai-talk-hint')).includes('Tik op Onderbreken'), 'zonder onderbreken door te praten: uitleg bij de knop');
