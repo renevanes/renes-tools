@@ -32,7 +32,7 @@ const path = require('path');
       rgSave({ tz: 'America/New_York' });
       const P = s => Date.parse(s);
       return {
-        phone, zone: rgZone(), own: rgTzOwn(), today: rgToday(), time: fmtTime(Date.now()), nowHm: rgNowHm(), date: fmtDate(Date.now(), 'lang'),
+        phone, zone: rgZone(), own: rgTzOwn(), today: rgToday(), time: fmtTime(Date.now()), nowHm: rgHm(Date.now()), date: fmtDate(Date.now(), 'lang'),
         wa: [fmtD(P('2026-11-03T20:00-05:00')), fmtD(P('2026-11-02T23:30-05:00')), fmtD(P('2026-11-04T00:30+01:00'))],
         au: auWhen(P('2026-11-03T08:15-05:00')), call: fmtCallSpan({ date: P('2026-11-03T21:00-05:00'), duration: 0 }),
         ap: apAgo(P('2026-11-03T19:00-05:00')), pod: pcDate(P('2026-11-02T22:00-05:00')),

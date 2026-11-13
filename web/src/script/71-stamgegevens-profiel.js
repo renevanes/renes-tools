@@ -210,12 +210,6 @@ function cmiDocStand(r,owner){
 }
 function cmiDocLate(r){const n=cmiDays(r.geldig);return n!==null&&n<=CMI_DOC_SOON;}
 function cmiPersonLate(p){return cm.records.filter(r=>r.type==='identiteit'&&r.person===p.id&&cmiDocLate(r));}
-function cmiPersonStand(p){
-  const docs=cm.records.filter(r=>r.type==='identiteit'&&r.person===p.id),late=cmiPersonLate(p);
-  if(late.some(r=>cmiDays(r.geldig)<0))return t('Persoon · een document is verlopen');
-  if(late.length)return t('Persoon · een document verloopt binnenkort');
-  return docs.length?tn(docs.length,'Persoon · één document','Persoon · {n} documenten'):t('Persoon');
-}
 function cmiEditor(){
   const r=cm.edit;$('#cmi-form-note').hidden=r.type!=='formulier';$('#cmi-form-sign').hidden=r.type!=='formulier';$('#cmi-relation-note').hidden=r.type!=='relatie';
   if(r.type==='formulier'){sigLoad();const old=$('#cmi-form-sig');if(old)old.replaceWith(cmSigStand('cmi-form-sig',false));}

@@ -126,7 +126,6 @@ function rgPlaceList(){
   const c = rgCfg();
   return [['auto', t('Mijn locatie')], ['home', c.home ? t('Thuis') : t('Thuis (nog niet ingesteld)')], ['work', c.work ? t('Werk') : t('Werk (nog niet ingesteld)')]].concat(RG_CITIES.map(x => [x[0], t(x[1])]));
 }
-function rgName(list, v){ const x = list.find(p => p[0] === String(v)); return x ? x[1] : String(v); }
 /* "dinsdag 3-11-2026 · 14:05 · € 1.234,56 · 12,5 km · 18 °C" */
 function rgPreview(){
   const n = Date.now();

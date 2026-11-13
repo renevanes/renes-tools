@@ -4,7 +4,7 @@ process.env.TZ = 'Europe/Amsterdam';
 const fs = require('fs'), vm = require('vm'), path = require('path');
 const src = fs.readFileSync(path.join(__dirname, '..', '..', 'web', 'src', 'script', '02-thema.js'), 'utf8');
 const pure = src.split('/* ---------- in de app ---------- */')[0];
-const T = vm.runInNewContext(pure + ';({ thMin, thInWindow, thSun, thTrans, thDecide, thClean, thDay })', {});
+const T = vm.runInNewContext(pure + ';({ thMin, thSun, thTrans, thDecide, thClean, thDay })', {});
 const errs = [];
 const ok = (c, m) => { console.log((c ? '✓ ' : '✗ ') + m); if (!c) errs.push(m); };
 const hm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
@@ -30,10 +30,7 @@ ok(T.thSun(2026, 5, 21, -90, 0).polar === 'night' && T.thSun(2026, 11, 21, 90, 0
 { const s = T.thSun(2026, 11, 21, -33.87, 151.21), len = (s.set - s.rise) / 36e5; ok(len > 14 && len < 15, 'Sydney 21 december: lange dag (' + len.toFixed(1) + ' uur)'); }
 { const s = T.thSun(2026, 2, 20, 0, 0), len = (s.set - s.rise) / 36e5; ok(len > 12 && len < 12.3, 'evenaar bij de equinox: ±12 uur (' + len.toFixed(2) + ')'); }
 
-// Venster over middernacht
-ok(T.thInWindow(1200, 1200, 420) && T.thInWindow(0, 1200, 420) && T.thInWindow(419, 1200, 420) && !T.thInWindow(420, 1200, 420) && !T.thInWindow(1199, 1200, 420), 'donker 20:00–07:00 over middernacht');
-ok(T.thInWindow(60, 60, 300) && !T.thInWindow(300, 60, 300) && !T.thInWindow(30, 60, 300), 'donker 01:00–05:00 binnen één dag');
-ok(!T.thInWindow(600, 600, 600), 'zelfde tijd: nooit donker');
+// Tijden lezen
 ok(T.thMin('7:05') === 425 && T.thMin('24:00') === -1 && T.thMin('x') === -1 && T.thMin(null) === -1, 'tijden lezen');
 
 // Keuze licht/donker op een bepaald moment

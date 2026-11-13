@@ -285,5 +285,3 @@ function mdSummary(s){
   const have = (s.models || []).filter(m => m.state === 'ready'), busy = (s.models || []).filter(m => ['running', 'queued', 'paused', 'verifying'].includes(m.state));
   return (have.length ? tn(have.length, '{n} model', '{n} modellen') + ' · ' + mdGB(s.used) : t('Nog geen modellen')) + (busy.length ? ' · ' + t('{n} aan het downloaden', { n: busy.length }) : '');
 }
-/* Oude naam (Taalmodel-scherm, oudere knoppen): verder downloaden */
-function mdViaApp(id){ mdDl('ai:' + id); }
