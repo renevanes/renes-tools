@@ -18,7 +18,7 @@ function rangeChanged(which){
 function chips(el, opts, key, def){
   const cur = store.get(key, def); el.innerHTML='';
   opts.forEach(([v,l])=>{ const b=document.createElement('button'); b.textContent=l; b.classList.toggle('on', v===cur);
-    if (l === '∞') b.setAttribute('aria-label', t('Onbeperkt')); // TalkBack leest anders "oneindig teken"
+    if (key === 'attempts' && v === 0) b.setAttribute('aria-label', t('Onbeperkt')); // TalkBack leest anders "oneindig teken"
     b.onclick=()=>{ store.set(key,v); chips(el,opts,key,def); Android.vibrate(10); if (key==='interval') renderRange(); rdSum(); }; el.appendChild(b); });
 }
 /* Korte samenvatting onder Start: de instellingen staan eronder, dus zonder scrollen zie je wat er gaat gebeuren */
