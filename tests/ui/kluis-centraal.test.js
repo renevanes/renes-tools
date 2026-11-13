@@ -74,6 +74,14 @@ for(const colorScheme of ['light','dark']){
   const d=kl.docs.find(x=>x.id===id);
   assert.equal(kl.docs.length,2,'geen nieuw document');assert.equal((d.versions||[]).length,1,'oude versie bewaard');assert.equal(d.vnote,'Bewerkt');
   assert.match(await p.textContent('#s-pdfedit .pdfkeep'),/nieuwe versie/);
+  // Uit de app terwijl een kluisdocument in de bewerker staat: Java haalt de leesbare kopie weg (onStop), de bewerker vergeet het ook
+  await openKluis();
+  await rij.click();await p.locator('#sheet-acts').getByRole('button',{name:'Bewerken en ondertekenen',exact:true}).click();
+  await p.waitForFunction(id=>current==='pdfedit'&&pdfIn.kluis===id&&pdfEd.revision&&!pdfEd.loading,id);
+  await p.evaluate(()=>onPdfKluisWeg());
+  assert.deepEqual(await p.evaluate(()=>[!!pdfIn.kluis,pdfEd.revision,$('#pdf-edit-work').style.display]),[false,'','none'],'bewerker leeg na weggaan');
+  assert.match(await p.textContent('#toast'),/weggehaald omdat je de app verliet/);
+  await p.evaluate(()=>onPdfKluisWeg()); // tweede keer (geen kluisdocument meer): niets
   // 4. Versies: lijst, vergelijken met de huidige, terugzetten
   await openKluis();
   assert.match(await rij.innerText(),/versie 2/);

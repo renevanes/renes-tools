@@ -37,6 +37,7 @@
     <exclude domain="file" path="toiletten/" />
     <exclude domain="file" path="toiletten-cache/" />
     <exclude domain="file" path="nieuws/" />
+    <exclude domain="file" path="agenda/" />
     <exclude domain="root" path="app_webview/Cookies" />
     <exclude domain="root" path="app_webview/Cookies-journal" />
     <exclude domain="root" path="app_webview/Cookies-wal" />

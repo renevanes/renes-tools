@@ -1,0 +1,3 @@
+Agenda: je eigen afspraken gaan niet meer mee in de Google-backup van Android (wel in de versleutelde backup van alle appgegevens)
+PDF bewerken: verlaat je de app terwijl een document uit de kluis openstaat, dan gaat de leesbare kopie meteen weg (ook na een vastloper)
+Privacybeleid bijgewerkt: Agenda, Nieuws en het doorgeven van toiletten aan OpenStreetMap

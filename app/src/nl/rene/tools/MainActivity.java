@@ -300,6 +300,7 @@ public class MainActivity extends Activity {
         IdCopy.cleanStale(getApplicationContext());
         PdfCompare.cleanStale(getApplicationContext());
         Kluis.cleanTmp(getApplicationContext());
+        { Context app = getApplicationContext(); new Thread(() -> { try { PdfTools.opruimKluisIn(app); } catch (Throwable ignored) { } }, "pdf-kluis-oud").start(); }
         PlayPolicy.sanitizePreferences(getApplicationContext());
         if (!Updater.viaPlay(this)) {
             RedialService.createChannel(this);
@@ -556,6 +557,11 @@ public class MainActivity extends Activity {
             if (cmp.dropKluis()) { try { js("onCmp", cmp.info().put("kluisWeg", true).toString()); } catch (Exception ignored) { } }
             idMasterClear();
             bronWacht = null; Bron.vergeetKluis(); // klaargezette kluisdocumenten niet meer te lezen
+            if (!PdfTools.inKluis.isEmpty()) { // een kluisdocument in de PDF-bewerker: de leesbare kopie ook weg
+                Context app = getApplicationContext();
+                new Thread(() -> { try { PdfTools.dropKluisIn(app, null); } catch (Throwable ignored) { } }, "pdf-kluis-weg").start();
+                js("onPdfKluisWeg", "");
+            }
         }
         if (!isSolo()) {
             Lock.onHidden();

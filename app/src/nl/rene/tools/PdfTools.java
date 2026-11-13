@@ -314,14 +314,25 @@ final class PdfTools {
         IN.lock();
         try {
             String r = openPdfFileLocked(c, src, name);
-            if (!r.contains("\"error\"")) { inKluis = kluis; r = new JSONObject(r).put("kluis", kluis).toString(); }
+            if (!r.contains("\"error\"")) {
+                inKluis = kluis; r = new JSONObject(r).put("kluis", kluis).toString();
+                try { kluisMerk(c).createNewFile(); } catch (Exception ignored) { } // na een vastloper weet opruimKluisIn het nog
+            }
             return r;
         } catch (Exception e) { return err(e); } finally { IN.unlock(); }
     }
     /** De leesbare kopie van een kluisdocument als invoer weghalen (na bewaren als versie, of bij weggaan uit de app). */
     static void dropKluisIn(Context c, String kluis) {
         IN.lock();
-        try { if (!inKluis.isEmpty() && (kluis == null || kluis.equals(inKluis))) { inFile(c).delete(); inKluis = ""; inRevision = ""; inPages = 0; } }
+        try { if (!inKluis.isEmpty() && (kluis == null || kluis.equals(inKluis))) { inFile(c).delete(); kluisMerk(c).delete(); inKluis = ""; inRevision = ""; inPages = 0; } }
+        finally { IN.unlock(); }
+    }
+    /** Merkje naast de invoer: de invoer is een leesbare kopie uit de kluis (inKluis staat alleen in het geheugen). */
+    static File kluisMerk(Context c) { return new File(dir(c, "pdf-in"), "uit-kluis"); }
+    /** Bij het starten: een kluiskopie van een vorig proces (vastloper, app gestopt) weghalen; inKluis is dan al leeg. */
+    static void opruimKluisIn(Context c) {
+        IN.lock();
+        try { if (inKluis.isEmpty() && kluisMerk(c).isFile()) { inFile(c).delete(); kluisMerk(c).delete(); inRevision = ""; inPages = 0; } }
         finally { IN.unlock(); }
     }
 
@@ -332,7 +343,7 @@ final class PdfTools {
     }
 
     private static String openPdfLocked(Context c, Uri u) {
-        inRevision = ""; inKluis = "";
+        inRevision = ""; inKluis = ""; kluisMerk(c).delete();
         try {
             File f = inFile(c);
             copy(c, u, f, MAX_IN);
@@ -347,7 +358,7 @@ final class PdfTools {
     }
 
     private static String openPdfFileLocked(Context c, File src, String name) {
-        inRevision = ""; inKluis = "";
+        inRevision = ""; inKluis = ""; kluisMerk(c).delete();
         try {
             File f = inFile(c);
             if (!src.renameTo(f)) { try (InputStream in = new FileInputStream(src); OutputStream o = new FileOutputStream(f)) { byte[] b = new byte[1 << 16]; int r; while ((r = in.read(b)) > 0) o.write(b, 0, r); } src.delete(); }

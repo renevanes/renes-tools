@@ -1,6 +1,6 @@
 # Privacybeleid van Rene's Tools
 
-*Laatst bijgewerkt: 4 november 2026*
+*Laatst bijgewerkt: 13 november 2026*
 
 Rene's Tools (in de app: "Tools") is een Android-app van Rene van Es (Rotterdam) met hulpmiddelen zoals notities,
 PDF's, radio, podcasts, routes, backups, VPN, facturen, bankzaken en een lokale assistent. De app is vrije software:
@@ -36,7 +36,7 @@ Alles in deze tabel blijft op de telefoon, behalve wat onder "Wanneer er iets de
 | Locatie, ook op de achtergrond | Mijn routes, Mijn auto (parkeerplek en ritten), het weer op het startscherm, automatiseringen op een plek, Apparaten, Locatie kiezen. Op de achtergrond alleen als je een automatisering op een plek of Apparaten aanzet |
 | Microfoon | Muziekherkenning, spraaknotities, de assistent, Slaappraat |
 | Camera | QR-codes scannen (bijvoorbeeld voor de VPN) |
-| Agenda | Check-in en de agenda-widget |
+| Agenda (lezen en schrijven) | Check-in, de agenda-widget en de tool Agenda: afspraken uit de agenda's van de telefoon tonen en, als je dat kiest, een afspraak in zo'n agenda zetten. Zet je een afspraak in een Google-agenda, dan stuurt de agenda-app van de telefoon hem naar Google; Tools praat zelf niet met Google |
 | Telefoon (status, bellen) | Bellen vanuit de app en herkennen of er een gesprek is |
 | Apparaten in de buurt (Bluetooth, wifi) | Het overzicht van apparaten in de buurt |
 | Meldingen lezen (meldingstoegang) | Meldingsgeschiedenis: een overzicht van meldingen op je telefoon, dus ook berichten van anderen. Alleen voor jezelf, op de telefoon |
@@ -71,7 +71,7 @@ bij elke internetverbinding zo. Daarnaast:
 | Hugging Face | Een onderbroken download van een AI-model gaat vanzelf verder | Niets persoonlijks |
 
 **Taken die je zelf hebt aangezet, op de achtergrond:** podcasts ophalen, de Spotify-backup, facturen ophalen en
-aanleveren, en de wekelijkse statistieken (zie hieronder). Ze gebruiken de diensten uit de volgende tabel.
+aanleveren, de gegevens van Toiletten en douches bijwerken, en de wekelijkse statistieken (zie hieronder). Ze gebruiken de diensten uit de volgende tabel.
 
 **Als je een tool gebruikt of iets instelt:**
 
@@ -83,6 +83,10 @@ aanleveren, en de wekelijkse statistieken (zie hieronder). Ze gebruiken de diens
 | Je eigen mailserver of eigen cloud | Als je die instelt | Wat je daarheen laat sturen |
 | Websites van je leveranciers of bank (bijv. KPN, Ziggo, Rabobank) | Als je facturen of transacties laat ophalen | Je logt in op je eigen account (de app bewaart je inlognaam en, versleuteld, je wachtwoord voor leveranciers); wat wordt opgehaald blijft op de telefoon |
 | OpenStreetMap | Bij het tonen van een kaart | Welke kaarttegels nodig zijn (het getoonde gebied) |
+| OpenStreetMap-notities (Toiletten en douches) | Alleen als je bij een plek zelf kiest om iets door te geven | Een anonieme, openbare notitie met precies de tekst die je op het scherm ziet, op die plek; OpenStreetMap ziet je IP-adres |
+| GitHub en de bronnen die je kiest (Toiletten en douches) | Bij het ophalen van de gegevens | Niets persoonlijks: de bestanden worden in hun geheel gedownload en het zoeken gebeurt op de telefoon, dus je plek gaat niet mee |
+| Nieuwssites en feeds die je kiest | Bij het ophalen van nieuws | Een vraag om de feed, de sitemap of de kop van een artikelpagina (bij artikelpagina's met de talen van de telefoon, zoals een browser dat doet); afbeeldingen bij artikelen komen rechtstreeks van de site, tenzij je ze uitzet. Je plek, je gelezen artikelen en je bronnenlijst blijven op de telefoon |
+| Nieuwssites waar je inlogt | Als je bij een bron zelf inlogt of een cookiekeuze maakt | Je logt op de echte site zelf in (Tools bewaart geen wachtwoord); de cookies van die inlog gaan alleen mee naar de sites van die bron |
 | Apple (podcasts zoeken en de top 40) | Als je podcasts zoekt of bekijkt | Je zoekterm |
 | radio-browser.info | Als je radiozenders zoekt of afspeelt | Je zoekterm en een telling bij afspelen |
 | Radiostreams, podcastfeeds, hoesjes en zenderlogo's | Als je luistert of afleveringen ophaalt | Alleen wat nodig is om de stream of het bestand op te halen, bij de server van de zender of podcast |
@@ -110,7 +114,8 @@ uit bij Instellingen → Foutrapport en statistieken.
 - Staat de Google-backup van Android aan, dan neemt Android ook een deel van de appgegevens mee naar **je eigen**
   Google-account: onder andere je notities, je muziekgeschiedenis, je parkeerplek en ritten, opgeslagen plekken
   (automatiseringen, Locatie kiezen, weer), inlognamen bij leveranciers en je instellingen. Wachtwoorden, sleutels,
-  koppelingen, de kluis en je bankgegevens gaan daar bewust niet mee. Je zet de Google-backup uit in de instellingen
+  koppelingen, de kluis, je bankgegevens, je eigen afspraken in Agenda, je nieuwsbronnen en inlogcookies gaan daar
+  bewust niet mee (Agenda en Nieuws wel in de versleutelde backup van alle appgegevens). Je zet de Google-backup uit in de instellingen
   van Android.
 
 ## Bewaren en verwijderen
@@ -142,17 +147,19 @@ Heb je een klacht over hoe met persoonsgegevens wordt omgegaan, dan kun je ook t
 
 Rene's Tools has no server and no account. The developer does not collect, sell or share personal data, and the app
 contains no ads or third-party analytics. The app processes data on the phone (contacts, location including background
-location for place-based automations, microphone, calendar, notifications history, files of other apps for WhatsApp
+location for place-based automations, microphone, calendar (read and write, for the Agenda tool; appointments you
+put in a Google calendar are synced by the phone's own calendar app), notifications history, files of other apps for WhatsApp
 backup and call transcription, usage stats, and, in the GitHub version only, SMS, call log, call recording and an
 optional silent front-camera photo on (failed) unlock). Data leaves the phone only for services you use: AudD (short
 audio clip), Spotify, Google (read-only Gmail search for invoices, Drive, sending invoices), your own mail server or
-cloud, supplier and bank websites, OpenStreetMap, Apple's podcast search, radio-browser.info, radio streams and podcast
+cloud, supplier and bank websites, news sites and feeds you choose (optionally with your own login on the real
+site), OpenStreetMap (map tiles and, only when you choose to share a toilet location, a public anonymous note), Apple's podcast search, radio-browser.info, radio streams and podcast
 feeds, Chromecast in your network, Hugging Face (model downloads) and your VPN. Automatically: weather (approximate
 location to Open-Meteo), resuming model downloads and, in the GitHub version, update checks. Optional weekly
 statistics (counts, crash type and location in the code, app version, device make/model, Android version, random
 install id) go only to your own private GitHub repository. The assistant and transcription run on the device. Android's
 Google backup may include notes, music history, parking/trips, saved places and settings, but never passwords, keys or
-bank data. Uninstalling removes the app's data from the phone. Questions: contact@esape.nl or an issue on
+bank data, your own Agenda appointments or news sources. Uninstalling removes the app's data from the phone. Questions: contact@esape.nl or an issue on
 [GitHub](https://github.com/renevanes/renes-tools/issues).
 
 ## ID-kopie afschermen / Redacting ID copies

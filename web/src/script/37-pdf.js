@@ -64,6 +64,12 @@ function pdfRenderDef(){
   box.textContent = d.state === 'other' && d.app ? t('PDF\'s openen nu in {app}. Tik hier, kies Tools en dan Altijd.', { app: d.app }) : t('Tik hier, kies Tools en dan Altijd.');
 }
 function pdfSetBusy(tt){ if (tt && !pdfBusy) pdfJobScr = current; pdfBusy = !!tt; document.querySelectorAll('.pdfbusy').forEach(e => uiWachtTekst(e, tt ? t(tt) : '')); document.querySelectorAll('.pdfscr main button').forEach(b => b.disabled = pdfBusy); pdfEditControls(); }
+/* De app verliet het scherm: Java haalde de leesbare kopie van een kluisdocument weg (MainActivity.onStop) */
+window.onPdfKluisWeg = function(){
+  if (!pdfIn || !pdfIn.kluis) return;
+  pdfIn = {}; pdfInGen++; pdfSel = new Set();
+  if (pdfScr(current)) { pdfRender(); pdfEditSource(); toast(t('Het document uit de kluis is weggehaald omdat je de app verliet. Open het opnieuw vanuit de kluis.')); }
+};
 window.onPdf = function(r){
   if (!r) return;
   // Een gekozen bestand (plaatjes of PDF) beëindigt geen lopende klus; al het andere wel
