@@ -441,7 +441,7 @@ nieuwe APK nodig is).
 | Prestaties en stabiliteit | vrijdag 11:17, oneven weken | vastlopers, haperingen, opstarttijd, geheugen, accu en trage schermen meten en het grootste probleem oplossen; logboek in het issue "Prestaties en stabiliteit: logboek" |
 | Betrouwbaarheid en schermcheck | vrijdag 13:23, even weken | wankele tests, CI en telefoontest; één scherm kritisch nalopen (logboek in het issue "Schermcheck: logboek") |
 | Voorstellen | de 1e van de maand, 09:41 | 3–5 uitbreidingen als `voorstel`-issue; bouwt niets |
-| Takencheck | de eerste dinsdag van de maand, 10:13 | controleert of deze taken nog kloppen, compleet zijn en beter kunnen, en past ze aan (logboek in het issue "Geplande taken: logboek") |
+| Takencheck | de tweede dinsdag van de maand, 10:13 | controleert of deze taken nog kloppen, compleet zijn en beter kunnen, en past ze aan (logboek in het issue "Geplande taken: logboek") |
 
 De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck houdt deze tabel en de taken gelijk.
 
