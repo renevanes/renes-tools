@@ -198,10 +198,10 @@ stap 1-start ja -n "$PKG/$LAUNCHER" -a android.intent.action.MAIN -c android.int
 stap 3-pdf-zonder-bestand ja -n "$PKG/${LAUNCHER%.*}.PdfViewActivity" -a android.intent.action.VIEW
 stap 4-delen-pdf ja -n "$PKG/${LAUNCHER%.*}.PdfShareActivity" -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT "Rooktest"
 # Schermen van de tools zelf, via de extra "open" (zoals een snelkoppeling of melding): nieuwere schermen met veel
-# Java achter de brug, zodat een startcrash daar hier al opvalt. Korter wachten: de app draait al.
+# Java achter de brug, en daarna de overige tools (media, opslag, berichten; een tool op slot toont het slotscherm),
+# zodat een startcrash daar hier al opvalt. Korter wachten: de app draait al.
 WACHT_SCHERM=${WACHT_SCHERM:-8}
 n=5
-# Daarna de overige tools met veel Java achter het scherm (media, opslag, berichten, op slot: dan het slotscherm).
 for scherm in gebruik apparaten herstel sleep ai agenda nieuws wc facturen pdf settings \
     ereader podcasts radio spotify vpn car recorder transcripts sms wa tracks history kluis masterdata bank backup; do
   WACHT=$WACHT_SCHERM stap "$n-$scherm" ja -n "$PKG/$LAUNCHER" --es open "$scherm"

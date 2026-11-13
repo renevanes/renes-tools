@@ -92,7 +92,10 @@ for(const colorScheme of ['light','dark']){
   await p.waitForFunction(id=>!Android._cm.records.find(r=>r.id===id).fields.contact&&!cm.mutating&&!cm.pending.size,anna);
   const los=await p.evaluate(()=>JSON.stringify(Android._cm.records));
   await p.click('#cm-kaart-menu');await p.waitForSelector('#sheet.on');await p.locator('#sheet-acts').getByRole('button',{name:'Koppelen aan contact',exact:true}).click();
-  await p.evaluate(()=>cmLock());await p.waitForTimeout(1800);
+  // Wachten tot het late antwoord van de kiezer echt binnen is (niet een vaste tijd): de testbrug weigert het na cmLock
+  await p.evaluate(()=>{const o=window.onMasterContactPicked;window.onMasterContactPicked=r=>{window._cmPicked=r;return o(r);};});
+  await p.evaluate(()=>cmLock());await p.waitForFunction(()=>!!window._cmPicked,null,{timeout:10000});
+  assert.match(await p.evaluate(()=>window._cmPicked.error||''),/Ontgrendel/,'het late antwoord wordt geweigerd');
   assert.equal(await p.evaluate(()=>JSON.stringify(Android._cm.records)),los,'na vergrendelen niets gekoppeld');
   assert.equal(await p.evaluate(()=>/Anna|Rene|Kees|9999/.test($('#s-cmkaart').innerHTML+$('#s-cmedit').innerHTML+$('#s-masterdata').innerHTML)),false,'geen namen of nummers meer in beeld');
   assert.equal(await p.evaluate(()=>Object.keys(localStorage).some(k=>/stam|contact|master/.test(k))),false);
