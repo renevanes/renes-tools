@@ -320,48 +320,73 @@ nadat het gereedschap is geïnstalleerd, en haalt hem na afloop weer weg.
   Run workflow) met `allow_grow` of `major`.
 
 ## Beveiliging
-De app kan sms'en, bellen, bij contacten, locatie, meldingen en VPN-sleutels, en alles op main staat binnen ±15 minuten
-op Rene's telefoon. Daarom loopt elke wijziging langs de beveiligingslijst, en neemt de taak Beveiliging elke week één
-gebied hieronder grondig door.
+De app kan bellen en heeft toegang tot sms'jes, oproepen, contacten, agenda, locatie, microfoon, camera, alle bestanden,
+meldingen en VPN-sleutels; hij kan apps installeren, boven andere apps tekenen en heeft toegankelijkheidsdiensten en
+apparaatbeheer. Alles op main staat binnen ±15 minuten op Rene's telefoon. Daarom loopt elke wijziging langs de
+beveiligingslijst, en neemt de taak Beveiliging elke week een gebied hieronder grondig door. Taakverdeling: CodeQL-meldingen,
+versies en bekende kwetsbaarheden van bibliotheken en de code van de afgelopen 8 dagen zijn voor Onderhoud; Beveiliging
+kijkt per gebied naar de hele app, ook naar code die al lang bestaat.
 
-**Beveiligingslijst voor elke review** (de reviewer gaat elk punt na dat de wijziging raakt, en noemt het als het klopt):
-- **Tekst van buiten in de interface** (sms, oproepen, contacten, meldingen, nieuws, podcasts, boeken, PDF-tekst, agenda,
-  mail, facturen, bank, websites, AI-antwoorden, bestandsnamen): altijd via `esc()` of `textContent`, nooit rauw in
-  `innerHTML`, een attribuut of een `on…`-handler. Het CSP in `kop.html` staat inline scripts toe en vangt dat dus niet op.
-- **Nieuwe of veranderde brugfuncties** (`@JavascriptInterface`): doen niet meer dan nodig; paden en bestandsnamen uit de
-  interface worden gecontroleerd (geen `..`, alleen de eigen map); niets dat sms't, belt of gegevens wegstuurt zonder
-  dat Rene het in de app bevestigt.
-- **Nieuwe toestemmingen, geëxporteerde onderdelen** (`exported="true"`, intent-filters, providers) **en verbindingen naar
-  buiten**: bewust, met de reden erbij, en bijgewerkt in `docs/privacybeleid*.md` en `docs/play-data-safety.md`.
-- **Vensters met websites van buiten** (Bank, Facturen, Nieuws-inloggen): nooit de brug `Android` van de app, hooguit
-  hun eigen kleine brug (`BrBrug`, `FrBrug`) die alleen doet wat dat venster nodig heeft; alleen toegestane adressen;
-  geen `file://` of `content://`.
+**Beveiligingslijst voor elke review** (de reviewer zegt per punt dat de wijziging raakt: in orde, of wat er mis is):
+- **Tekst van buiten in de interface** (app en skin): sms, oproepen, contacten, meldingen, agenda, nieuws, podcasts,
+  radio-metadata, boeken, PDF-tekst, OCR- en whisper-uitvoer, QR-codes, mail, facturen, bank, websites, AI-antwoorden,
+  bestandsnamen, app-namen, namen van Bluetooth-, wifi- en Cast-apparaten, gedeelde tekst en bestanden, het klembord.
+  In tekst altijd `esc()` of `textContent`; in een `on…`-handler alleen `jsq()` (liever `data-`-attribuut met
+  `addEventListener`); adressen in `href`/`src` alleen `https:` (of een eigen vast schema), nooit `javascript:`. Het CSP
+  in `kop.html` en `start.html` staat inline scripts en plaatjes van elk https-adres toe en vangt dit dus niet op.
+- **Nieuwe of veranderde brugfuncties** (`@JavascriptInterface`, in de app én de skin): doen niet meer dan nodig; paden en
+  bestandsnamen uit de interface alleen binnen de eigen map of een map die Rene koos (geen `..`); bellen, sms'en of
+  gegevens wegsturen alleen na een handeling of instelling van Rene, en alleen naar bestemmingen die hij zelf koos.
+- **Nieuwe toestemmingen, geëxporteerde onderdelen** (`exported="true"`, intent-filters, providers, `PendingIntent`-vlaggen)
+  **en verbindingen naar buiten**: bewust, met de reden erbij, en bijgewerkt in `docs/privacybeleid*.md` en
+  `docs/play-data-safety.md`.
+- **WebView-instellingen**: geen `file://`- of `content://`-toegang, geen mixed content; `setWebContentsDebuggingEnabled`
+  alleen zoals bij Meekijken in Nieuws (na een waarschuwing, zichtbaar, en vanzelf weer uit). Vensters met websites van buiten (Bank, Facturen, Nieuws-inloggen) krijgen nooit de brug
+  `Android`, hooguit een eigen kleine brug (`BrBrug`, `FrBrug`) die alleen doet wat dat venster nodig heeft, en laden
+  alleen toegestane adressen.
 - **Sleutels, wachtwoorden en persoonlijke gegevens**: versleuteld (zie "Privacy" bij "Regels voor de code"), niet in
-  logs, niet in Android-backups, niet in de repository.
-- **Updates en publiceren**: de updatecontrole (`Updater`), `publiceren.yml`, `keys/` en de rechten van workflows worden
-  niet zwakker.
+  logs, niet in Android-backups, niet in de repository. Een backup terugzetten mag nooit `web/` of code vervangen.
+- **Updates en publiceren**: de updatecontrole (`Updater`, `WebUpdateStore`), `publish.sh`, `tools/publicatie-*.sh`,
+  `tools/check-publish-source.sh`, `keys/` en de workflows worden niet zwakker.
 
-**Gebieden voor de wekelijkse ronde** (op volgorde; het logboek zegt welk gebied het langst niet bekeken is):
-1. Tekst van buiten in de interface (alle plekken met `innerHTML` en tekst van buiten).
-2. De brugfuncties: wat elke functie kan, paden en bestandsnamen, tokens, functies die te veel toestaan.
-3. Vensters met websites van buiten: `BankLinkActivity`, `FacturenRun`, `NieuwsInlogActivity`, `NeutralActivity`.
-4. Onderdelen die andere apps kunnen aanroepen: geëxporteerde activities, ontvangers, diensten en providers,
-   intent-filters (ook `content://` die binnenkomt), `PendingIntent`-vlaggen, de meldingenlezer, de VPN-dienst.
-5. Netwerk: onversleuteld verkeer (`usesCleartextTraffic`), certificaten, wat de app naar buiten stuurt, downloads met
-   vaste SHA-256.
-6. Opslag en sleutels: `Secure.deviceKey`, de kluis, VPN-sleutels, wachtwoorden, `AppBackup` (.rtb), de Android-backupregels
-   (`app/res/xml/*backup*`, `*data_rules*`), logs, cache en exports.
-7. Updates en publiceren: `Updater` (handtekening van `update.json` en APK), de workflows (rechten, `pull_request_target`,
-   omgeving `publiceren`), vastgezette Actions.
-8. Bestanden van buiten en native code: PDF, EPUB, zip (zip slip), XML (XXE), plaatjes, audio, GGUF-modellen; hoe de
-   app bestanden aan `tools/llm/llm.cpp`, whisper en de OCR (Tesseract, Leptonica, libpng, libjpeg) doorgeeft. De versies
-   en bekende kwetsbaarheden van die bibliotheken zijn voor Onderhoud.
+**Gebieden voor de wekelijkse ronde** (het logboek zegt welk gebied, of welk deel ervan, het langst niet bekeken is):
+1. Tekst van buiten in de interface: `web/src/script` in delen van ongeveer tien scriptbestanden, en `web/start.html`.
+2. Brugfuncties, per bestand: `MainActivity` en de `*Bridge.java`-klassen, de brug `Android` van de skin (`HomeActivity`),
+   `BrBrug` en `FrBrug`.
+3. Vensters met websites van buiten: `BankLinkActivity`, `FacturenRun`, `FacturenActivity`, `NieuwsInlogActivity`,
+   `NieuwsCookiesActivity`; en de WebView-instellingen van alle vensters.
+4. Onderdelen die andere apps kunnen aanroepen: geëxporteerde activities, ontvangers, diensten en providers, intent-filters
+   (ook gedeelde tekst en `content://` die binnenkomt), `PendingIntent`-vlaggen, de meldingenlezer, de
+   toegankelijkheidsdiensten (`AutoA11y`, `CallRecordingAccess`), apparaatbeheer (`GebruikAdmin`), de VPN-dienst.
+5. Koppelingen, lokale servers en VPN-code: OAuth-terugkeer (`Spotify`, `FacturenDrive`: state en PKCE), servers op
+   127.0.0.1 (`Timeshift` en andere; elke app op de telefoon kan die bereiken), `WgDevice`/`WgCrypto`/`WgConfig` en
+   `OvpnDevice`/`OvpnCrypto`/`OvpnConfig`.
+6. Netwerk: certificaten, wat de app naar buiten stuurt (klopt met het privacybeleid), downloads met vaste SHA-256, vaste
+   adressen via https. `usesCleartextTraffic` staat bewust aan: radiozenders, podcasts en apparaten in het thuisnetwerk
+   gebruiken http naar adressen die Rene kiest.
+7. Opslag, sleutels en backups: `Secure.deviceKey`, de kluis, VPN-sleutels, wachtwoorden, de Android-backupregels
+   (`app/res/xml/*backup*`, `*data_rules*`), logs, cache en exports; backups terugzetten (`.rtb`, Toolgegevens: zip slip,
+   `FILE_SKIP`).
+8. Slot, assistent en automatiseringen: `Lock`, `ToolSlot`, de neutrale versie (`NeutralActivity`), `FLAG_SECURE`; tekst
+   van buiten (sms, meldingen, nieuws, websites) die het taalmodel als opdracht kan lezen (`AiActions`, `AiMemory`), en de
+   triggers en acties van `Auto`.
+9. Updates en publiceren: `Updater` en `WebUpdateStore` (handtekeningen), `publish.sh`, `tools/publicatie-*.sh`,
+   `tools/check-publish-source.sh`, alle workflows (rechten, `pull_request_target`, omgeving `publiceren`, vastgezette
+   Actions).
+10. Bestanden van buiten en native code: PDF, EPUB, zip (zip slip), XML (XXE), plaatjes, audio, GGUF-modellen; hoe de app
+    bestanden aan `tools/llm/llm.cpp`, whisper en de OCR (Tesseract, Leptonica, libpng, libjpeg) doorgeeft.
 
-**Kwetsbaarheden en de openbare repository.** Een gevonden kwetsbaarheid komt niet met details in een issue, reactie,
-commitbericht, pull request of wijzigingsregel zolang hij niet is opgelost en gepubliceerd. Los hem op en publiceer;
-schrijf daarna in het logboek kort wat het was. Commitberichten en wijzigingsregels blijven neutraal ("Beveiliging van
-X verbeterd"). Lukt oplossen niet in één sessie, zet dan in het logboek alleen het gebied en hoe ernstig ("1 punt open,
-details bij Rene"), en de details in het bericht aan Rene aan het eind van de sessie.
+**Kwetsbaarheden en de openbare repository.** Ook een branch, een diff, de logs van Actions en testnamen zijn openbaar.
+- Bouw de test en de oplossing samen en zet ze in één commit. Push pas als alles klaar is en lokaal slaagt (de regel
+  "push na elke commit" geldt hier niet), en zet het naar main zodra Bouwen en testen op de branch groen is.
+- Een aantoonbare kwetsbaarheid zonder oplossing wordt nooit gepusht, ook niet als test.
+- Branchnaam, testnamen, codecommentaar, commitberichten en wijzigingsregels blijven neutraal ("Beveiliging van X
+  verbeterd"); geen uitleg hoe het te misbruiken was.
+- In het logboek staat per vondst alleen gebied, ernst en de versie met de oplossing; zit de oplossing in `app/`, dan
+  werkt hij pas na de nieuwe APK. Wat open blijft: alleen "gebied + ernst, details bij Rene". De details staan in het
+  bericht aan het eind van de sessie; zet de link naar die sessie (`CLAUDE_SESSION_URL`) in het logboek.
+- Uitzondering: de workflow Onderhoud zet de open CodeQL-meldingen met plek in het issue "Onderhoud: updates en
+  beveiliging". Dat mag: iedereen kan CodeQL op deze openbare code draaien, en agents kunnen de meldingen anders niet lezen.
 
 ## Onderhoud: updates en beveiliging
 Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel dat niet vanzelf kan.
@@ -470,7 +495,7 @@ Alles wat nog moet gebeuren staat als GitHub-issue, met een label (REST: `gh api
   een review iets liggen, zet het dan hier** (bestaand issue aanvullen of een nieuw), anders raakt het kwijt.
 - `wens` — een idee of verzoek van Rene. `voorstel` — een idee van een agent; pas bouwen als Rene het label `doen`
   geeft (of "doen" reageert). `doen` — mag gebouwd worden.
-- `logboek` — logboek van een geplande taak (Schermcheck, Prestaties, Geplande taken); geen werk, de Werklijst slaat het over.
+- `logboek` — logboek van een geplande taak (Schermcheck, Prestaties, Beveiliging, Geplande taken); geen werk, de Werklijst slaat het over.
 - Klaar = vakje afvinken (issue bijwerken) en het issue sluiten als alles af is, met de versie erbij.
 - Werk op een branch altijd regelmatig pushen (`git push -u origin <branch>`, nooit main): de omgeving van een agent
   kan zomaar opnieuw beginnen, en wat alleen lokaal stond is dan weg.
@@ -486,7 +511,7 @@ een onafhankelijke review, en melden kort in hun eigen sessie wat er gepubliceer
 | Takencheck | dinsdag 10:13 | controleert of deze taken nog kloppen, compleet zijn en beter kunnen, en past ze aan (logboek in het issue "Geplande taken: logboek") |
 | Werklijst | woensdag 10:37 | de belangrijkste `doen`- en `openstaand`-punten bouwen |
 | Prestaties en stabiliteit | donderdag 11:17 | vastlopers, haperingen, opstarttijd, geheugen, accu en trage schermen meten en het grootste probleem oplossen; logboek in het issue "Prestaties en stabiliteit: logboek" |
-| Beveiliging | vrijdag 09:47 | elke week één gebied uit "Beveiliging" grondig nalopen en oplossen met tests; vangnetten bouwen (kwaadaardige tekst op elk scherm, lijst van toestemmingen en geëxporteerde onderdelen); logboek in het issue "Beveiliging: logboek" |
+| Beveiliging | vrijdag 09:47 | elke week één gebied (of deel) uit "Beveiliging" grondig nalopen en oplossen met tests; vangnetten bouwen (kwaadaardige tekst op elk scherm, lijst van toestemmingen en geëxporteerde onderdelen, vaste adressen via https); logboek in het issue "Beveiliging: logboek" |
 | Betrouwbaarheid en schermcheck | vrijdag 13:23 | wankele tests, CI en telefoontest; één scherm kritisch nalopen (logboek in het issue "Schermcheck: logboek") |
 
 De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck houdt deze tabel en de taken gelijk.
@@ -499,7 +524,7 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
    dubbel. Voeg zo'n pull request niet zelf samen; noem hem in je bericht als hij jouw onderwerp raakt.
 2. **Eigen branch `<taak>/JJJJ-MM-DD`:** `onderhoud/`, `opruimen/`, `werklijst/`, `prestaties/`, `betrouwbaarheid/`,
    `takencheck/`, `beveiliging/` (pushen buiten `claude/` werkt; lukt het toch niet, dan `claude/<taak>-JJJJ-MM-DD`). Push na elke
-   commit, zodat een volgende run verder kan.
+   commit, zodat een volgende run verder kan; behalve bij een gevonden kwetsbaarheid (zie "Beveiliging").
 3. **Lokaal bouwen kan in een cloudsessie deels mislukken.** Weigert de proxy een download van
    `tools/voorlezen/deps.py`, dan stopt `./build.sh` al vóór javac en kan `run-jvm.sh` niet draaien; struikelt de
    reserve-d8 (34.0.4) over geneste enums, dan zijn de classes er wel en draait `run-jvm.sh` gewoon. Ga door met wat
