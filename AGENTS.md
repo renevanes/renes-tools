@@ -430,18 +430,18 @@ Alles wat nog moet gebeuren staat als GitHub-issue, met een label (REST: `gh api
 - Werk op een branch altijd regelmatig pushen (`git push -u origin <branch>`, nooit main): de omgeving van een agent
   kan zomaar opnieuw beginnen, en wat alleen lokaal stond is dan weg.
 
-**Geplande taken (Claude, in de cloud; tijden in Amsterdamse tijd).** Vaste opdracht van Rene: ook deze taken
-publiceren zelf, na geslaagde tests en een onafhankelijke review, en melden kort wat er gepubliceerd is (en of er een
-nieuwe APK nodig is).
+**Geplande taken (Claude, in de cloud; tijden in Amsterdamse tijd).** Vaste opdracht van Rene: alle taken lopen
+wekelijks en sturen na afloop geen melding naar zijn telefoon. Ook deze taken publiceren zelf, na geslaagde tests en
+een onafhankelijke review, en melden kort in hun eigen sessie wat er gepubliceerd is (en of er een nieuwe APK nodig is).
 
 | Taak | Wanneer | Wat |
 |---|---|---|
 | Onderhoud | maandag 11:00 | updates, beveiliging, opruimen en statistieken (zie "Onderhoud" en "Opruimen") |
+| Voorstellen | dinsdag 09:41 | 1–3 uitbreidingen als `voorstel`-issue (geen nieuwe als er al 5 of meer zonder reactie open staan); bouwt niets |
+| Takencheck | dinsdag 10:13 | controleert of deze taken nog kloppen, compleet zijn en beter kunnen, en past ze aan (logboek in het issue "Geplande taken: logboek") |
 | Werklijst | woensdag 10:37 | de belangrijkste `doen`- en `openstaand`-punten bouwen |
-| Prestaties en stabiliteit | vrijdag 11:17, oneven weken | vastlopers, haperingen, opstarttijd, geheugen, accu en trage schermen meten en het grootste probleem oplossen; logboek in het issue "Prestaties en stabiliteit: logboek" |
-| Betrouwbaarheid en schermcheck | vrijdag 13:23, even weken | wankele tests, CI en telefoontest; één scherm kritisch nalopen (logboek in het issue "Schermcheck: logboek") |
-| Voorstellen | de 1e van de maand, 09:41 | 3–5 uitbreidingen als `voorstel`-issue; bouwt niets |
-| Takencheck | de tweede dinsdag van de maand, 10:13 | controleert of deze taken nog kloppen, compleet zijn en beter kunnen, en past ze aan (logboek in het issue "Geplande taken: logboek") |
+| Prestaties en stabiliteit | donderdag 11:17 | vastlopers, haperingen, opstarttijd, geheugen, accu en trage schermen meten en het grootste probleem oplossen; logboek in het issue "Prestaties en stabiliteit: logboek" |
+| Betrouwbaarheid en schermcheck | vrijdag 13:23 | wankele tests, CI en telefoontest; één scherm kritisch nalopen (logboek in het issue "Schermcheck: logboek") |
 
 De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck houdt deze tabel en de taken gelijk.
 
@@ -475,8 +475,8 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
    van de groei. Dan staan ook de publicaties van anderen stil: zet dat bovenaan je bericht.
 7. **Te groot voor één sessie:** maak het logische deel af en publiceer dat; zet de rest met een afvinklijst in een
    `openstaand`-issue.
-8. **Altijd een kort bericht aan Rene** aan het eind (ook als er niets te doen was; niet in een week of op een dag die
-   de taak overslaat), zoals in "Berichten aan Rene".
+8. **Altijd een kort bericht aan Rene** aan het eind van de sessie (ook als er niets te doen was), zoals in
+   "Berichten aan Rene".
 9. **GitHub alleen via de REST-API** (`gh api repos/renevanes/renes-tools/…`): GraphQL (dus `gh issue …`, `gh pr …`) en
    de Security-API's werken in een cloudsessie niet.
 10. **De repository is openbaar.** Zet in issues en logboeken geen persoonlijke gegevens of geheimen; uit de privé
