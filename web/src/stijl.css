@@ -233,6 +233,10 @@ textarea.key:focus{outline:2px solid var(--primary);outline-offset:-1px;border-c
 #note-compose[hidden]{display:none}
 #note-quick{min-height:120px;margin:0 0 10px}
 #note-compose .hint{margin:8px 0 0}
+/* Rust: het invoerveld is één regel tot je iets schrijft; zo staan je notities en lijsten bovenaan. Niet op focus:
+   dan verspringt de lijst op het moment dat je erop tikt. */
+#note-compose .ntext:placeholder-shown{min-height:48px;height:48px;resize:none}
+#note-compose .ntext:placeholder-shown~.big,#note-compose .ntext:placeholder-shown~.hint{display:none}
 .note-section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.note-section-heading h2{margin:0}.note-section-heading button{min-height:44px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--primary);border-radius:16px;background:var(--hi)}
 .note-content-card .additem{position:static;margin-top:14px}.note-workspace .ntext{min-height:110px;max-height:360px}
 .note-option-group{background:var(--card);border:1px solid var(--line);border-radius:20px;margin:10px 0;overflow:hidden}

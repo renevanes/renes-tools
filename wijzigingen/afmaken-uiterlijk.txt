@@ -3,3 +3,4 @@ Knoppen rechtsboven staan in elke tool in dezelfde volgorde: licht en donker, ac
 Toegang geven: dezelfde tekst en dezelfde knop in alle tools
 Agenda: lege dagen achter elkaar staan in de weekweergave als één regel in plaats van per dag "Niets"
 E-reader: het scherm begint meteen met Boek toevoegen, zonder de slogan erboven
+Notities: het invoerveld is één regel tot je iets schrijft, zodat je notities en lijsten hoger op het scherm staan
