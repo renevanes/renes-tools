@@ -197,8 +197,16 @@ stap 1-start ja -n "$PKG/$LAUNCHER" -a android.intent.action.MAIN -c android.int
 # Een paar andere schermen die van buitenaf te openen zijn
 stap 3-pdf-zonder-bestand ja -n "$PKG/${LAUNCHER%.*}.PdfViewActivity" -a android.intent.action.VIEW
 stap 4-delen-pdf ja -n "$PKG/${LAUNCHER%.*}.PdfShareActivity" -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT "Rooktest"
+# Schermen van de tools zelf, via de extra "open" (zoals een snelkoppeling of melding): nieuwere schermen met veel
+# Java achter de brug, zodat een startcrash daar hier al opvalt. Korter wachten: de app draait al.
+WACHT_SCHERM=${WACHT_SCHERM:-8}
+n=6
+for scherm in gebruik apparaten herstel sleep ai agenda nieuws wc facturen pdf settings; do
+  WACHT=$WACHT_SCHERM stap "$n-$scherm" ja -n "$PKG/$LAUNCHER" --es open "$scherm"
+  n=$((n + 1))
+done
 # Tot slot terug naar het gewone startscherm van Tools: draait de app nog?
-stap 5-terug ja -n "$PKG/$LAUNCHER" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
+stap "$n-terug" ja -n "$PKG/$LAUNCHER" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
 
 if [ "$FOUTEN" -gt 0 ]; then
   echo "Telefoontest (API $SDK): $FOUTEN stap(pen) mislukt; logcat en schermafdrukken staan in het artifact."
