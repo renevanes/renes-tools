@@ -452,7 +452,7 @@ final class Nieuws {
 
     // ---------------------------------------------------------------- bestanden
 
-    private static JSONObject leesObject(File f) {
+    static JSONObject leesObject(File f) {
         try { return f.isFile() ? new JSONObject(Contacts.readText(f, false)) : null; } catch (Exception e) { return null; }
     }
 

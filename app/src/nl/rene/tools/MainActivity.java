@@ -1137,12 +1137,15 @@ public class MainActivity extends Activity {
             final String soort = opmlSoort; final byte[] klaar = opmlKlaar; opmlKlaar = null;
             final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
             final boolean lezen = req == REQ_OPML_OPEN;
-            if (u == null || soort == null || (!lezen && klaar == null)) { js("onOpml", OpmlWerk.antwoord(soort, lezen, 0, 0, 0, "geannuleerd")); return; }
             final Context c = getApplicationContext();
+            if (u == null) { js("onOpml", OpmlWerk.antwoord(soort, lezen, 0, 0, 0, "geannuleerd")); return; }
+            // het venster is tijdens het kiezen opnieuw gemaakt: niet stil blijven
+            if (soort == null || (!lezen && klaar == null)) { js("onOpml", OpmlWerk.antwoord(soort, lezen, 0, 0, 0, Taal.tx(c, Taal.T("Dat lukte niet. Probeer het nog een keer.")))); return; }
+            if (lezen) js("onOpmlBezig", JSONObject.quote(soort));
             new Thread(() -> {
                 String r;
                 try { r = lezen ? OpmlWerk.lees(c, soort, u) : OpmlWerk.bewaar(c, soort, u, klaar); }
-                catch (Throwable e) { r = OpmlWerk.antwoord(soort, lezen, 0, 0, 0, Taal.tx(c, e.getMessage() == null ? Taal.T("Het bestand is niet te lezen") : e.getMessage())); }
+                catch (Throwable e) { r = OpmlWerk.antwoord(soort, lezen, 0, 0, 0, Taal.tx(c, OpmlWerk.melding(e, lezen ? Taal.T("Het bestand is niet te lezen") : Taal.T("Opslaan lukt niet")))); }
                 js("onOpml", r);
             }, "opml").start();
             return;
@@ -2705,7 +2708,7 @@ public class MainActivity extends Activity {
                         try { a.startActivityForResult(i, REQ_OPML_SAVE); }
                         catch (Exception e) { a.opmlKlaar = null; a.js("onOpml", OpmlWerk.antwoord(soort, false, 0, 0, 0, Taal.tx(ctx, Taal.T("Bestandskiezer niet beschikbaar")))); }
                     });
-                } catch (Throwable e) { a.js("onOpml", OpmlWerk.antwoord(soort, false, 0, 0, 0, Taal.tx(ctx, e.getMessage() == null ? Taal.T("Exporteren lukt niet") : e.getMessage()))); }
+                } catch (Throwable e) { a.js("onOpml", OpmlWerk.antwoord(soort, false, 0, 0, 0, Taal.tx(ctx, OpmlWerk.melding(e, Taal.T("Exporteren lukt niet"))))); }
             }, "opml-maak").start();
         }
         /** Een OPML-bestand kiezen en de feeds eruit toevoegen. Antwoord via onOpml. */
