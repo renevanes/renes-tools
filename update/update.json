@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.200",
-  "versionCode": 201,
-  "nativeLevel": 178,
+  "versionName": "1.201",
+  "versionCode": 202,
+  "nativeLevel": 179,
   "web": "index.html",
-  "webSha256": "6f1b72c79e1932f8d439bebb6f790c3b78c608749e909d3799400215060ce6a0",
+  "webSha256": "851c7fecbfc6986f981d268d8ff68c680d63c917de5bfe6dd7809d653a32cbee",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "64180b32f9b104c955e6c83c459181c817c12e39a17fdd1f0da928a8d3a54010",
+  "apkSha256": "44437bee210f284df4d247c9d3b1d238cc5f58c86994d372bcf3de074b8b47d0",
   "changelog": [
+    {
+      "version": "1.201",
+      "date": "2026-11-13",
+      "changes": [
+        "Agenda: je eigen afspraken gaan niet meer mee in de Google-backup van Android (wel in de versleutelde backup van alle appgegevens)",
+        "PDF bewerken: verlaat je de app terwijl een document uit de kluis openstaat, dan gaat de leesbare kopie meteen weg (ook na een vastloper); wat je nog niet bewaarde, ben je dan kwijt",
+        "Privacybeleid bijgewerkt: Agenda, Nieuws en het doorgeven van toiletten aan OpenStreetMap",
+        "Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"
+      ]
+    },
     {
       "version": "1.200",
       "date": "2026-11-13",
@@ -1765,5 +1775,5 @@
       ]
     }
   ],
-  "webSig2": "aajQAbYFFmYIbWYYyAH8mgF6M1tcKZ9Jwp77bhBGbRS0a38zNQVNTgEc33vnJ3luaIwiipDyVCAwe3LTbVSr5X3ZFvtzwPyRLGLpIQ1e4OQqtDPEao8FT9qDZMhDDxS9DGJi0J7KU6AOoQbUz/8ZLMeUNqABpFnFQqBDY+zGGkQpPQTmbi/7C6+nXS6uTAUIZIGvflbeTiUEM+quHNaI4YggmPM5b+rkGVfGI72jfgz2LgsvoMocDivn02JWX27hOk5JtelYVMZd9issMN4hPVp0bwfi2A8GvRH4fXYxfvdpDf/I9NXFRhRSPy0NDSZbY7y5skQ3MJLZWYeglntGaoZNLtKmFiEGoCqB+0ywv8+1czdJrFooqhxifvVCG3DFKE13qHS6U4SqqQ/UICkPOHHYIYzHCjU7sxN31338dHM+z4Ns4neNecMbyYQRzDsAf828IHTxN4y8TdmFStmXdo/ZQ7CEYuSV5QUnuvQ99TLppcioQUeNFyqA+tTxYPPa"
+  "webSig2": "J6wqDwc9hFyXur43ufT6L3EB6a9vEb3arYneyB7DTbmxBnwUFF6LrqM6tbHF25h8F2fyrl6KqV5VN/VuWqL+SOVJfme4bqftgVf2s8RDGwdxpgdj+iwwec2gOoJeLWnsPK32b52rrgOyT3q+1zlRvvUn0zgzraTtE0np9Dpx9/R9RqJGiLy4ewvQr4ulIOK9SuVPZ1DW4leYZev4WIIhfplUWN7mzxXb0usjTf4sxp3jCqie9hfhdwqgAjy04Z+vIALk6zvI+E4bNkQyi2boXX/Nwc+ClOhFzWX8a6QF8kGSyjP/pCWEgq1IbAUX6snw2QEuF3m8m8blqjXwbmTPLa5vrLVz+97I0n7og31LtJloFZOJVfbBEUd0VgV3Y9oTUuxfekd8i+SdtiPf/eJZEhWre/1tsupUPBcy+3XQbcQre+O89EvBdlGOI+Dnu3t19nMm1Q4EC2GGFTD13omzgNps0+cbI3X2kKz5Z3Gpy+SYXxXPo/LDM8rzOpA2D0yX"
 }
