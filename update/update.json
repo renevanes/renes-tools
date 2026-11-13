@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.202",
-  "versionCode": 203,
+  "versionName": "1.203",
+  "versionCode": 204,
   "nativeLevel": 180,
   "web": "index.html",
-  "webSha256": "4a89eb154775291a21fcbdad6e2d21e939ad03955289b268c68a076f2fad2129",
+  "webSha256": "1383b56b237a5f8a754f7c1314441beaf888ca9254550a192624c1fcf7864f0a",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "fc5c720778f33b8f1130c4fd27ba95931bb5299fbc660cc2987a0035b2139f4f",
+  "apkSha256": "80cfcf4a48d22aa7b43f61a60dcbdb12b6085c50a79ae356282825a195c7ec7e",
   "changelog": [
+    {
+      "version": "1.203",
+      "date": "2026-11-13",
+      "changes": [
+        "Startscherm: een tegel van een tool op slot toont nu \"Op slot\" in plaats van een lege regel"
+      ]
+    },
     {
       "version": "1.202",
       "date": "2026-11-13",
@@ -171,14 +178,7 @@
         "Stamgegevens: bij het herkennen van een kaartfoto (ook Opnieuw herkennen en Grondig zoeken) staat onderin een balk met hoe lang het nog hooguit duurt.",
         "Overal in de app zie je nu waarop je wacht: bij terugzetten en backups openen, exporteren, zoeken, PDF maken, de lokale AI, facturen, Bankzaken, Toiletten, Nieuws en meer loopt een balk mee in plaats van alleen een melding."
       ]
-    },
-    {
-      "version": "1.183",
-      "date": "2026-11-10",
-      "changes": [
-        "Extra ontgrendelen: nu ook voor Kluis, Bankzaken en Stamgegevens aan of uit te zetten (Instellingen → Extra ontgrendelen, of de tegel lang indrukken). Uit = geen eigen vraag meer: de kluis opent meteen en blijft versleuteld; Bankzaken en Stamgegevens openen zonder vraag als je telefoon net ontgrendeld is, anders vragen ze het toch."
-      ]
     }
   ],
-  "webSig2": "BdSLE+2KNPtxuU8I0dTUFe0I8C1hAjb4HmE3ifTMxT/LuH1pXJhCqrl6k9X1Ihci2EuPDMWsVToHM1N397GFq1XB1eFIFjgq/XbVT4+Z6dCgpR1p15DlV7HSAelXHQpYtYSi56rYOJLKpgR+R6ya6iiooEQEK9vveqrU+XLpWZc4zDoWdcajTxWlYm4NThT2BtGBjIyd3VUCmIubUpQlflA4mF9tr0uPvKyEthYnt01pyOz4DR3haaL66hmZf8KqrpjIIZOA9dlAoGVyi92h+l3of0za9sxzmfsbn8GFgaBdbBtAKmFFBtRjxpcp6pBR8WRYEdYxkagP5xxPyfvaVwbCA7IczjGARhVR5S8T95bi6egrik4Do06uWkMz/D9Q+XT6pduqhpx+lb7HQ3ODpMp7ot/YN+NV/AhE8/W9uS2lOe7R9PCyzdYlDg9ZgK2aiwlCU852zRljCrr5NJlonn2DZHw9x4hLc2rb2D0kF5LfaHYolm1JOGsEHJy3OwFO"
+  "webSig2": "JGS6RZMIY27YY3g0K8lduICITHnkFPPYFpXpjG7lDidrMl7vP0JYft3SceJFQ2GRvwLSZMmyIf7waJr0urFxnCqAvRMsN9BzM1G7eRvyY9dS0mPrnnd1a+i63lsagUuhoqfGgmpZ8HoLa4c2cYKBVcCqJgIul5FqeWdGEecJy5S2/QzoJDgMweVxrPuUh6cBAsnEJQY2Tsxu6w4aa/pM3wTBMucbXlnrU8R3w0RQx9vYI9f9bvCiKJDvBCuY+XzXk5HEeXPne4mTwQa36YHKuOfs3hg04vsLc898fGl8IBvEvZFPNz//StumhRtC7SmynwfSMkICznH08iBxs3RqPtK7ZznLbmvd0b8chFiv5CtrOvL8KuvqNxDoOwExq+O+4Cz5hSMnBmkPC+/9Wd37SmLcIKzpif2uZoocvCGAONyxGw47zx4a8uQrn94WQ8xh8Pc93MSv1Cu92y4xIZ9WzAja0QMCH5WWuhiCnJooxThdKtat5k7oGMX913UaHNqh"
 }

@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.203",
+    "date": "2026-11-13",
+    "changes": [
+      "Startscherm: een tegel van een tool op slot toont nu \"Op slot\" in plaats van een lege regel"
+    ]
+  },
+  {
     "version": "1.202",
     "date": "2026-11-13",
     "changes": [
