@@ -22,8 +22,8 @@ function renderWa(rescan){
   waSel = new Set((i.sel || '').split(',').filter(Boolean));
   $('#wa-perm').style.display = i.filesAccess ? 'none' : 'block';
   $('#wa-nosrc').style.display = i.filesAccess && !(i.sources||[]).length ? 'block' : 'none';
-  $('#wa-dest').textContent = i.dest ? (i.destName || 'Gekozen map') : 'Nog niet gekozen';
-  $('#wa-dest-btn').textContent = i.dest ? 'Andere map' : 'Kies map';
+  $('#wa-dest').textContent = i.dest ? (i.destName || t('Gekozen map')) : t('Nog niet gekozen');
+  $('#wa-dest-btn').textContent = t(i.dest ? 'Andere map' : 'Kies map');
   // Terugzetten: uit welke map, en of de app er wel bij kan (anders eerst toegang of een map)
   $('#wa-rs-dest').textContent = i.dest ? (i.destName || t('Gekozen map')) : t('Nog niet gekozen');
   $('#wa-rs-btn').textContent = t(!i.filesAccess ? 'Toegang geven' : i.dest ? 'Andere map' : 'Map kiezen');
@@ -31,6 +31,8 @@ function renderWa(rescan){
   $('#wa-rs-warn').textContent = !i.filesAccess ? t('Zonder toegang tot alle bestanden kan de app niets in de WhatsApp-map terugzetten.') : !i.dest ? t('Kies eerst de map waarin de backup staat.') : '';
   $('#wa-restore-btn').disabled = !(i.filesAccess && i.dest);
   $('#wa-last').textContent = i.lastOk ? fmtD(i.lastOk) : t('Nog niet gemaakt');
+  // Zonder toegang of zonder WhatsApp-map kan er niets: dan is de kaart erboven de volgende stap, niet deze knop
+  $('#wa-all').disabled = !i.filesAccess || !(i.sources || []).length;
   $('#wa-sum-auto').textContent = i.auto ? t((i.autoMode || 'all') === 'selection' ? 'Elke nacht · mijn selectie' : 'Elke nacht · alles') + (i.autoCharging !== false ? ' · ' + t('tijdens opladen') : '') : t('Uit');
   $('#wa-auto').classList.toggle('on', !!i.auto);
   $('#wa-charging').classList.toggle('on', i.autoCharging !== false);
@@ -60,12 +62,17 @@ function renderWaCats(){
     const z = waSizesC && waSizesC[k];
     if (z && WA_ALL.includes(k)) { all += z.bytes; allF += z.files; }
     const b = document.createElement('button'); b.className = 'cat' + (waSel.has(k) ? ' on' : '');
+    b.setAttribute('role', 'checkbox'); b.setAttribute('aria-checked', String(waSel.has(k)));
     b.innerHTML = '<i class="cb"></i><span>' + esc(t(label)) + (sub ? '<br><small style="white-space:normal">' + esc(t(sub)) + '</small>' : '') + '</span><small>' + (z ? fmtB(z.bytes) : '') + '</small>';
     b.onclick = () => { waSel.has(k) ? waSel.delete(k) : waSel.add(k); Android.vibrate(10); waSave(); renderWaCats(); };
     el.appendChild(b);
   });
-  $('#wa-sum-sel').textContent = t('{n} van {totaal}', { n: WA_CATS.filter(c => waSel.has(c[0])).length, totaal: WA_CATS.length });
-  $('#wa-all-size').textContent = t('Chats en alle media, zonder statussen') + (waSizesC ? ' · ' + t('{grootte} in {n} bestanden', { grootte: fmtB(all), n: fmtNum(allF) }) : '');
+  const nSel = WA_CATS.filter(c => waSel.has(c[0])).length;
+  $('#wa-sum-sel').textContent = t('{n} van {totaal}', { n: nSel, totaal: WA_CATS.length });
+  $('#wa-sel-run').disabled = !nSel;
+  // De grootte als één geheel (niet "9,4" op de ene regel en "GB" op de volgende)
+  const sz = $('#wa-all-size'); sz.textContent = t('Chats en alle media, zonder statussen');
+  if (waSizesC) { const w = document.createElement('span'); w.style.whiteSpace = 'nowrap'; w.textContent = ' · ' + t('{grootte} in {n} bestanden', { grootte: fmtB(all), n: fmtNum(allF) }); sz.appendChild(w); }
 }
 function waSave(){
   const sel = WA_CATS.map(c=>c[0]).filter(k=>waSel.has(k)).join(',');
@@ -74,8 +81,10 @@ function waSave(){
 }
 function waStart(mode){
   const cats = mode === 'all' ? WA_ALL.join(',') : WA_CATS.map(c=>c[0]).filter(k=>waSel.has(k)).join(',');
+  // Nog geen backup-map: meteen laten kiezen (niet afleiden uit de fouttekst: die is in het Engels anders)
+  if (waInfoC.filesAccess && !waInfoC.dest) { toast(t('Kies eerst een backup-map')); Android.waPickFolder(); return; }
   const err = Android.waStart(mode, cats);
-  if (err) { toast(err); if (err.indexOf('map') >= 0 && !waInfoC.dest) Android.waPickFolder(); return; }
+  if (err) { toast(err); return; }
   waLastKey = ''; $('#wa-result').className = 'result'; Android.vibrate(25); waToHub(); setTimeout(waPollOnce, 200);
 }
 /* Terugzetten: eerst toegang tot bestanden, dan de map (eigen hulpfunctie: ook in de losse app bruikbaar) */

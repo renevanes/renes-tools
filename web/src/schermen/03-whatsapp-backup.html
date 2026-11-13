@@ -31,10 +31,9 @@
           <span class="stic"><span class="ui-icon" data-icon="backup" aria-hidden="true"></span></span>
           <span class="sttxt"><b>Laatste backup</b><small id="wa-last">Nog niet gemaakt</small></span>
         </div>
-        <div class="dest"><span><small>Backup-map</small><b id="wa-dest">Nog niet gekozen</b></span><button id="wa-dest-btn" onclick="Android.waPickFolder()">Kies map</button></div>
+        <div class="dest"><span><small>Backup-map</small><b id="wa-dest" translate="no">Nog niet gekozen</b></span><button id="wa-dest-btn" onclick="Android.waPickFolder()">Kies map</button></div>
         <button class="big" id="wa-all" onclick="waStart('all')">Alles back-uppen</button>
         <div class="sub" id="wa-all-size">Chats en alle media, zonder statussen</div>
-        <p class="hint">Alleen nieuwe en gewijzigde bestanden worden gekopieerd. In de backup wordt nooit iets verwijderd.</p>
         <p class="hint" id="wa-plain-hint">Foto's, video's en documenten staan onversleuteld in je backup-map.</p>
       </div>
 
@@ -47,6 +46,7 @@
 
       <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
         <p>Kies of maak een backup-map, bijvoorbeeld op een USB-stick of SD-kaart, of in OneDrive of Dropbox. De backup komt daarin in de map <b>WhatsApp backup</b>. De eerste keer duurt het het langst.</p>
+        <p>Alleen nieuwe en gewijzigde bestanden worden gekopieerd. In de backup wordt nooit iets verwijderd.</p>
         <p>De chats zijn versleuteld door WhatsApp. Alleen WhatsApp kan ze terugzetten; lezen in de app kan met Leesbare chats. Foto's, video's en documenten zijn gewone bestanden die je overal kunt openen.</p>
       </div></details>
     </div>
@@ -62,7 +62,7 @@
   <main>
     <p class="hint">Kies zelf wat er mee gaat. Automatisch gebruikt deze keuze bij Mijn selectie.</p>
     <div class="card">
-      <div class="cats" id="wa-cats"></div>
+      <div class="cats" id="wa-cats" role="group" aria-label="Wat gaat er mee"></div>
       <button class="big" id="wa-sel-run" onclick="waStart('selection')">Selectie back-uppen</button>
     </div>
   </main>
@@ -78,8 +78,8 @@
     <div class="card">
       <div class="sw"><span>Elke nacht automatisch<small>Na 03:00, als WhatsApp zijn eigen backup heeft gemaakt</small></span><button class="tg" id="wa-auto" onclick="togUi(this); waSave()"></button></div>
       <div class="sw"><span>Alleen tijdens opladen<small>Aanbevolen: de eerste backup kan lang duren</small></span><button class="tg on" id="wa-charging" onclick="togUi(this); waSave()"></button></div>
-      <div class="sw" style="display:block"><span>Wat<small>Wat er automatisch wordt meegenomen</small></span>
-        <div class="chips" id="wa-automode" style="margin:10px 0 0"></div></div>
+      <div class="sw" style="display:block"><span id="wa-automode-h">Wat gaat er mee<small>Mijn selectie: wat je bij Selectie hebt aangevinkt</small></span>
+        <div class="chips" id="wa-automode" role="group" aria-labelledby="wa-automode-h" style="margin:10px 0 0"></div></div>
       <p class="note" id="wa-next"></p>
     </div>
     <div class="card" id="wa-hist-card" style="display:none">
@@ -97,7 +97,7 @@
   </div>
   <main>
     <div class="card" id="wa-rs-src">
-      <div class="dest"><span><small>Terugzetten uit</small><b id="wa-rs-dest">Nog niet gekozen</b></span><button id="wa-rs-btn" onclick="waRestoreFix()">Map kiezen</button></div>
+      <div class="dest"><span><small>Terugzetten uit</small><b id="wa-rs-dest" translate="no">Nog niet gekozen</b></span><button id="wa-rs-btn" onclick="waRestoreFix()">Map kiezen</button></div>
       <p class="note warn" id="wa-rs-warn" hidden></p>
     </div>
     <div class="card">
