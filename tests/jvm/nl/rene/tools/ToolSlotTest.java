@@ -30,6 +30,18 @@ public class ToolSlotTest {
                 "een oude vermelding in de gewone lijst zet een uitgezette eigen ontgrendeling niet weer aan");
         check(ToolSlot.samen(null, ToolSlot.EIGEN).isEmpty(), "alle drie uit: niets aan");
 
+        // Losse app van Alles back-uppen of Automatiseringen: met het app-slot aan altijd extra ontgrendelen in dat venster
+        for (String l : ToolSlot.LOS_SLOT) {
+            check(Solo.known(l), "echte tool: " + l);
+            check(ToolSlot.voorVenster(standaard, l, true).contains(l), "losse app met app-slot: op slot: " + l);
+            check(!ToolSlot.voorVenster(standaard, l, false).contains(l), "zonder app-slot: niet vanzelf op slot: " + l);
+            check(!ToolSlot.voorVenster(standaard, null, true).contains(l), "gewone app: het app-slot beschermt al: " + l);
+            check(ToolSlot.losGeweigerd(l, true, false) && !ToolSlot.losGeweigerd(l, true, true) && !ToolSlot.losGeweigerd(l, false, false), "zonder schermvergrendeling geen losse app naast het app-slot: " + l);
+        }
+        check(!ToolSlot.voorVenster(standaard, "notes", true).contains("notes"), "andere losse apps blijven zonder slot");
+        check(ToolSlot.voorVenster(null, "../home", true).isEmpty() && !ToolSlot.losGeweigerd("notes", true, false) && !ToolSlot.losGeweigerd(null, true, false), "onbekende naam verandert niets");
+        check(ToolSlot.voorVenster(standaard, "backup", true).containsAll(standaard), "de gekozen tools blijven erbij");
+
         check(ToolSlot.naam("Notities").equals("Notities"), "gewone naam blijft");
         check(ToolSlot.naam(" Not\u202Eities\n ").equals("Notities"), "geen stuur- of richtingtekens in de vraag");
         check(ToolSlot.naam(null).isEmpty(), "geen naam");

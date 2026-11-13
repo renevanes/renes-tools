@@ -214,6 +214,26 @@ const { chromium } = require('playwright');
     ok((await stand(pg)).slot && await pg.evaluate(() => goBack()) === false, 'uit beeld: weer op slot; terug sluit de losse app');
     await pg.close();
 
+    // 11b. Losse app Alles back-uppen en Automatiseringen: met het app-slot aan altijd eerst ontgrendelen, zonder app-slot niet
+    for (const los of ['backup', 'auto']) {
+      pg = await b.newPage({ viewport: { width: 390, height: 844 }, colorScheme: scheme });
+      pg.on('pageerror', e => errs.push(e.message));
+      await pg.addInitScript(l => { window.__testSolo = l; window.__testAppSlot = true; }, los);
+      await pg.goto(url); await pg.waitForTimeout(400);
+      ok((await stand(pg)).slot && !(await pg.evaluate(l => $('#s-' + l).classList.contains('on'), los)), 'losse app ' + los + ' met app-slot: eerst het slotscherm');
+      await pg.click('#ts-open'); await pg.waitForTimeout(250);
+      ok(await pg.evaluate(() => current) === los && !(await stand(pg)).slot, 'losse app ' + los + ': open na ontgrendelen');
+      await pg.evaluate(() => onToolSlotWeg()); await pg.waitForTimeout(80);
+      ok((await stand(pg)).slot, 'losse app ' + los + ': uit beeld = weer op slot');
+      await pg.close();
+      pg = await b.newPage({ viewport: { width: 390, height: 844 }, colorScheme: scheme });
+      pg.on('pageerror', e => errs.push(e.message));
+      await pg.addInitScript(l => { window.__testSolo = l; }, los);
+      await pg.goto(url); await pg.waitForTimeout(400);
+      ok(!(await stand(pg)).slot && await pg.evaluate(() => current) === los, 'losse app ' + los + ' zonder app-slot: opent meteen');
+      await pg.close();
+    }
+
     // 12. Kluis, Bankzaken en Stamgegevens: één centraal slotscherm (geen eigen ontgrendelscherm of eigen vraag);
     // extra ontgrendelen uit = openen zonder vraag, zonder dat er even iets van een slot te zien is
     pg = await b.newPage({ viewport: { width: 390, height: 844 }, colorScheme: scheme });

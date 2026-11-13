@@ -1295,7 +1295,8 @@ if (!window.Android) window.Android = (function(){
     /* Extra ontgrendelen per tool; _tslot.nee = de volgende vraag mislukt (tests), _tslot.vragen = wat er gevraagd is.
      * Kluis, Bankzaken en Stamgegevens staan standaard aan (ToolSlot.EIGEN); __testEigenUit zet ze uit. */
     _tslot:{aan:[...new Set(['bank','kluis','masterdata'].filter(k=>!(window.__testEigenUit||[]).includes(k)).concat(window.__testToolSlot||[]))],nee:'',vragen:[],scherm:false},
-    toolSlotState(){ const s=this._tslot; return JSON.stringify({aan:s.aan.slice().sort(),secure:this._st.secure!==false}); },
+    toolSlotState(){ const s=this._tslot, los=window.__testSolo||''; /* ToolSlot.voorVenster: losse app van backup of auto met het app-slot aan */
+      const aan=s.aan.concat(window.__testAppSlot&&['auto','backup'].includes(los)&&!s.aan.includes(los)?[los]:[]); return JSON.stringify({aan:aan.sort(),secure:this._st.secure!==false}); },
     _tsVraag(tool, soort, ja){ const s=this._tslot; s.vragen.push(soort+':'+tool); const fout=s.nee; s.nee=''; setTimeout(()=>{ if(!fout) ja(); onToolSlot(fout?{tool,soort,ok:false,msg:fout}:{tool,soort,ok:true}); },120); },
     toolSlotSet(tool, on, naam){ const s=this._tslot; if(!TOOLS[tool]||tool==='skin'){ setTimeout(()=>onToolSlot({tool,soort:on?'aan':'uit',ok:false,msg:'Onbekende tool'}),20); return; }
       if(on){ if(this._st.secure===false){ setTimeout(()=>onToolSlot({tool,soort:'aan',ok:false,msg:'Stel eerst een schermvergrendeling in op je telefoon (pincode, patroon of vingerafdruk)'}),20); return; }

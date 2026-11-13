@@ -26,6 +26,25 @@ final class ToolSlot {
 
     static final Set<String> EIGEN = Collections.unmodifiableSet(new TreeSet<>(Arrays.asList("bank", "kluis", "masterdata")));
 
+    /**
+     * Losse apps die bij een actief app-slot toch eerst de schermvergrendeling vragen. Een losse app slaat het app-slot
+     * over; in deze twee stel je dingen in die het slot juist beschermt (het backupwachtwoord, regels die zelf apps bedienen).
+     */
+    static final Set<String> LOS_SLOT = Collections.unmodifiableSet(new TreeSet<>(Arrays.asList("auto", "backup")));
+
+    /** De lijst voor één venster: in een losse app uit LOS_SLOT hoort die tool er met het app-slot aan altijd bij. */
+    static Set<String> voorVenster(Collection<String> aan, String los, boolean appSlot) {
+        Set<String> s = new TreeSet<>();
+        if (aan != null) s.addAll(aan);
+        if (appSlot && los != null && LOS_SLOT.contains(los) && Solo.known(los)) s.add(los);
+        return s;
+    }
+
+    /** Zo'n losse app kan niet veilig open als het app-slot aan staat en de telefoon geen schermvergrendeling heeft (eigen code). */
+    static boolean losGeweigerd(String los, boolean appSlot, boolean toestelSlot) {
+        return appSlot && !toestelSlot && los != null && LOS_SLOT.contains(los);
+    }
+
     /** Zo lang mag een eigen scherm van de app (kiezer, PDF-viewer, de vraag om te ontgrendelen) open staan zonder dat de tool op slot gaat. */
     static final long KIES_MS = 120_000L;
 

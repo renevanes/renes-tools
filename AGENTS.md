@@ -34,7 +34,9 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
  ze dan met `tsVerborgen(tool)` zolang die tool op slot is. Opent code na `show(tool)` meteen iets in die tool (een vraag
  uit een melding, een zoekactie), zet dat in `tsDaarna(tool, () => …)`: dan wacht het tot na ontgrendelen. Een nieuw
  venster dat over een tool kan liggen, hoort in `TS_LAGEN` (terug op het slotscherm sluit het); inert onder een venster
- zet je met `dialogFocus.base(el, aan)`.
+ zet je met `dialogFocus.base(el, aan)`. Een losse app slaat het app-slot over: een tool waarin je iets instelt wat
+ het app-slot beschermt (nu Alles back-uppen en Automatiseringen) hoort in `ToolSlot.LOS_SLOT`; die vraagt als losse app
+ met het app-slot aan altijd eerst de schermvergrendeling.
   Alleen de telefoon-skin gebruikt zijn bestaande `HomeActivity`. Zie `docs/startscherm-en-automatiseringen.md`.
 - **Iedere tool doet standaard mee in de backup** (nu en later): zie "Backups: elke tool doet mee" hieronder.
 

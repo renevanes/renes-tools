@@ -212,7 +212,7 @@ public class MainActivity extends Activity {
 
     /** Losse app die intussen is uitgezet: naar de gewone app (met app-slot) en dit venster sluiten. */
     boolean soloRevoked() {
-        if (!isSolo() || Solo.allowed(this, solo)) return false;
+        if (!isSolo() || (Solo.allowed(this, solo) && !ToolSlot.losGeweigerd(solo, Lock.active(this), Lock.deviceSecure(this)))) return false;
         Intent i = new Intent(this, MainActivity.class).setAction(Intent.ACTION_VIEW)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         if (Solo.known(solo)) i.putExtra("open", solo);
@@ -2587,7 +2587,11 @@ public class MainActivity extends Activity {
 
         /** Welke tools extra ontgrendelen vragen, en of de telefoon een schermvergrendeling heeft (zonder werkt het niet). */
         @JavascriptInterface public String toolSlotState() {
-            try { return new JSONObject().put("aan", new JSONArray(ToolSlot.aan(ctx))).put("secure", Lock.deviceSecure(ctx)).toString(); }
+            try {
+                // Losse app van Alles back-uppen of Automatiseringen: met het app-slot aan altijd eerst ontgrendelen (ToolSlot.LOS_SLOT)
+                java.util.Set<String> aan = ToolSlot.voorVenster(ToolSlot.aan(ctx), a.isSolo() ? a.solo : null, Lock.active(ctx));
+                return new JSONObject().put("aan", new JSONArray(aan)).put("secure", Lock.deviceSecure(ctx)).toString();
+            }
             catch (Exception e) { return "{\"aan\":[],\"secure\":false}"; }
         }
 
