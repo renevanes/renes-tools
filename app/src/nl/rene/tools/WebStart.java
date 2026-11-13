@@ -6,7 +6,8 @@ import android.content.SharedPreferences;
 /**
  * Startbewaking van een gedownloade interface. De pagina meldt zich bij het starten (Android.uiReady). Blijft dat bij een
  * gedownloade versie twee keer achter elkaar uit, dan is die versie afgekeurd: de app gebruikt de vorige volledige versie
- * (of de meegeleverde) tot er een nieuwere is. De afgekeurde versie wordt niet opnieuw gedownload.
+ * (of de meegeleverde) tot er een nieuwere is. De afgekeurde versie wordt niet opnieuw gedownload. De lijst met afgekeurde
+ * versies groeit alleen: twee versies die allebei niet starten wisselen elkaar dus nooit af, dan komt de meegeleverde.
  * Het zuivere deel (stand lezen en tellen) is getest in WebStartTest.
  */
 final class WebStart {
@@ -36,8 +37,26 @@ final class WebStart {
 
     private static SharedPreferences prefs(Context c) { return Updater.prefs(c); }
 
-    /** De afgekeurde interfaceversie (versiecode), of 0. */
-    static int afgekeurd(Context c) { return prefs(c).getInt("webAfgekeurd", 0); }
+    /** Welke versiecodes in de bewaarde lijst ("12,14") staan; alleen geldige getallen boven de meegeleverde versie tellen. Zuiver. */
+    static java.util.Set<Integer> lijst(String bewaard, int meegeleverd) {
+        java.util.Set<Integer> s = new java.util.TreeSet<>();
+        if (bewaard != null) for (String d : bewaard.split(",")) {
+            try { int c = Integer.parseInt(d.trim()); if (c > meegeleverd && c > 0) s.add(c); } catch (NumberFormatException ignored) { }
+        }
+        return s;
+    }
+
+    /** De lijst met versie code erbij; de lijst groeit alleen (wat de meegeleverde versie heeft ingehaald valt eraf). Zuiver. */
+    static String metAfgekeurd(String bewaard, int code, int meegeleverd) {
+        java.util.Set<Integer> s = lijst(bewaard, meegeleverd);
+        if (code > meegeleverd && code > 0) s.add(code);
+        StringBuilder b = new StringBuilder();
+        for (int c : s) { if (b.length() > 0) b.append(','); b.append(c); }
+        return b.toString();
+    }
+
+    /** De afgekeurde interfaceversies (versiecodes). Een versie blijft afgekeurd tot de app zelf nieuwer is. */
+    static java.util.Set<Integer> afgekeurd(Context c) { return lijst(prefs(c).getString("webAfgekeurd2", ""), Version.CODE); }
 
     /** De pagina van deze versie heeft zich gemeld: de teller begint opnieuw. */
     static void gemeld(Context c, int code) {
@@ -52,7 +71,7 @@ final class WebStart {
         String stand = naMislukt(p.getString("webStart", ""), code);
         boolean weg = afgekeurd(stand, code);
         SharedPreferences.Editor e = p.edit().putString("webStart", stand);
-        if (weg) e.putInt("webAfgekeurd", code);
+        if (weg) e.putString("webAfgekeurd2", metAfgekeurd(p.getString("webAfgekeurd2", ""), code, Version.CODE));
         e.commit();
         App.log(c, "UPDATE", weg ? "interface " + code + " start niet: terug naar de vorige versie" : "interface " + code + " meldde zich niet");
         return weg;

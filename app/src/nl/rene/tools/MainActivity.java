@@ -396,23 +396,29 @@ public class MainActivity extends Activity {
         coverOff(!isSolo() && Lock.locked(this));
     }
 
-    /** Startbewaking (WebStart): versiecode van de gedownloade interface die nu laadt (0 = de meegeleverde), en of de pagina zich meldde. */
-    private int webGeladen;
+    /**
+     * Startbewaking (WebStart): versiecode van de gedownloade interface die nu laadt (0 = de meegeleverde), de hoeveelste
+     * keer laden dit is, of de pagina zich meldde en of de app intussen uit beeld was. Alleen de hoofdthread schrijft
+     * webGeladen en webRonde; de brug (eigen thread) zet alleen webGemeld.
+     */
+    private int webGeladen, webRonde;
     volatile boolean webGemeld;
+    private boolean webUitBeeld;
 
     private void loadUi() {
-        String html = Updater.downloadedHtml(this);
-        webGeladen = html == null ? 0 : Updater.webCode(this);
-        webGemeld = false;
-        if (html == null) html = readAsset("index.html");
-        web.loadDataWithBaseURL(BASE_URL, html, "text/html", "utf-8", null);
-        if (webGeladen > 0 && !isSolo()) { final int code = webGeladen; h.postDelayed(() -> webNietGestart(code), WebStart.WACHT_MS); }
+        Updater.Web w = Updater.geladen(this);
+        webGeladen = w == null ? 0 : w.code;
+        webGemeld = false; webUitBeeld = false;
+        final int ronde = ++webRonde;
+        web.loadDataWithBaseURL(BASE_URL, w == null ? readAsset("index.html") : w.html, "text/html", "utf-8", null);
+        if (webGeladen > 0 && !isSolo()) h.postDelayed(() -> webNietGestart(ronde), WebStart.WACHT_MS);
     }
 
     /** De gedownloade interface meldde zich niet: één keer opnieuw laden; lukt het weer niet, dan terug naar de vorige versie. */
-    private void webNietGestart(int code) {
-        if (web == null || isFinishing() || webGemeld || webGeladen != code || !hasWindowFocus()) return; // uit beeld telt niet: de pagina staat dan stil
-        boolean terug = WebStart.nietGestart(getApplicationContext(), code);
+    private void webNietGestart(int ronde) {
+        if (web == null || isFinishing() || webGemeld || ronde != webRonde) return; // een nieuwere keer laden heeft zijn eigen wachter
+        if (webUitBeeld || !hasWindowFocus()) return; // uit beeld (geweest) telt niet: de pagina stond dan stil
+        boolean terug = WebStart.nietGestart(getApplicationContext(), webGeladen);
         if (terug) Toast.makeText(this, Taal.tx(this, "De nieuwe versie startte niet. Tools gebruikt de vorige versie tot er een nieuwere is."), Toast.LENGTH_LONG).show();
         coverOn(); uiReady = false;
         h.postDelayed(() -> { if (!uiReady) showUi(); }, 4000);
@@ -560,6 +566,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onStop() {
+        webUitBeeld = true; // startbewaking: een pagina die uit beeld laadt, hoeft zich niet op tijd te melden
         // Extra ontgrendelen: uit beeld = tools weer op slot, behalve voor een eigen scherm of de vraag om te ontgrendelen
         // (die laatste alleen met het scherm aan; de interface beslist of die vraag de open tool openhoudt)
         android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);

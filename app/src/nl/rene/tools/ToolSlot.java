@@ -42,7 +42,7 @@ final class ToolSlot {
 
     /** Zo'n losse app kan niet veilig open als het app-slot aan staat en de telefoon geen schermvergrendeling heeft (eigen code). */
     static boolean losGeweigerd(String los, boolean appSlot, boolean toestelSlot) {
-        return appSlot && !toestelSlot && los != null && LOS_SLOT.contains(los);
+        return appSlot && !toestelSlot && los != null && LOS_SLOT.contains(los) && Solo.known(los);
     }
 
     /** Zo lang mag een eigen scherm van de app (kiezer, PDF-viewer, de vraag om te ontgrendelen) open staan zonder dat de tool op slot gaat. */

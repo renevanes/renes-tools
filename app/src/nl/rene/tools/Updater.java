@@ -78,7 +78,7 @@ final class Updater {
         WebUpdateStore.Snapshot s = snapshot(c);
         if (s != null) return s.code;
         int stored = prefs(c).getInt("webCode", 0);
-        return (stored > Version.CODE && stored != WebStart.afgekeurd(c) && webFile(c).exists()) ? stored : Version.CODE;
+        return (stored > Version.CODE && !WebStart.afgekeurd(c).contains(stored) && webFile(c).exists()) ? stored : Version.CODE;
     }
 
     static String webName(Context c) {
@@ -101,6 +101,25 @@ final class Updater {
         }
         if (webCode(c) <= Version.CODE || !startFile(c).isFile()) return null;
         try { return new String(readAll(new java.io.FileInputStream(startFile(c))), StandardCharsets.UTF_8); }
+        catch (Exception e) { return null; }
+    }
+
+    /** Een gedownloade interface met de versiecode die er echt bij hoort (uit dezelfde versiemap). */
+    static final class Web {
+        final String html; final int code;
+        Web(String html, int code) { this.html = html; this.code = code; }
+    }
+
+    /** De interface om te laden, of null voor de meegeleverde. */
+    static Web geladen(Context c) {
+        WebUpdateStore.Snapshot s = snapshot(c);
+        for (int attempt = 0; s != null && attempt < 2; attempt++) {
+            try { return new Web(s.readHtml(), s.code); }
+            catch (Exception e) { store(c).refresh(); s = snapshot(c); }
+        }
+        int code = webCode(c);
+        if (code <= Version.CODE) return null;
+        try { return new Web(new String(readAll(new java.io.FileInputStream(webFile(c))), StandardCharsets.UTF_8), code); }
         catch (Exception e) { return null; }
     }
 
@@ -177,7 +196,9 @@ final class Updater {
             r.put("versionCode", code);
             if (nativeLevel > Version.NATIVE_LEVEL) {
                 r.put("state", "apk");
-            } else if (code > webCode(c) && code != WebStart.afgekeurd(c)) { // een versie die hier niet wilde starten niet opnieuw ophalen
+            } else if (code > webCode(c) && WebStart.afgekeurd(c).contains(code)) { // een versie die hier niet wilde starten niet opnieuw ophalen
+                r.put("state", "uptodate"); r.put("overgeslagen", true);
+            } else if (code > webCode(c)) {
                 applyWeb(c, m, p);
                 r.put("state", "web");
             } else {
@@ -257,7 +278,7 @@ final class Updater {
         WebUpdateStore versions = store(c);
         WebUpdateStore.Snapshot next = versions.stage(m.getInt("versionCode"), m.getString("versionName"),
                 m.getInt("nativeLevel"), html, st);
-        versions.activate(next);
+        versions.activate(next, WebStart.afgekeurd(c));
     }
 
     /** Downloadt de nieuwe APK en start de installatie. Geeft null of een foutmelding terug ("busy": al bezig). */

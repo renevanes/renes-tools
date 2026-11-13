@@ -47,16 +47,24 @@ final class WebUpdateStore {
         }
         return null; // een onvolledige versie nooit laden; de aanroeper valt terug op de gebundelde interface
     }
-    synchronized Snapshot refresh() { cached = null; return current(); }
+    synchronized Snapshot refresh() { cached = null; alle = null; return current(); }
 
-    /** De actieve versie, maar nooit versie zonder (afgekeurd door de startbewaking): dan de vorige volledige versie, of null. */
-    synchronized Snapshot current(int zonder) {
-        if (zonder <= 0) return current();
-        if (cached != null && cached.code != zonder) return cached;
-        for (String id : pointers()) {
-            Snapshot candidate = read(id);
-            if (candidate != null && candidate.code != zonder) return candidate;
+    /** Alle complete versies waar de verwijzing naar wijst (actief eerst), één keer gelezen tot de volgende wissel. */
+    private java.util.List<Snapshot> alle;
+    private java.util.List<Snapshot> alle() {
+        if (alle == null) {
+            java.util.List<Snapshot> l = new java.util.ArrayList<>();
+            for (String id : pointers()) { Snapshot s = read(id); if (s != null) l.add(s); }
+            alle = l;
         }
+        return alle;
+    }
+
+    /** De actieve versie, maar nooit een versie uit zonder (afgekeurd door de startbewaking): dan de vorige volledige versie, of null. */
+    synchronized Snapshot current(java.util.Set<Integer> zonder) {
+        if (zonder == null || zonder.isEmpty()) return current();
+        if (cached != null && !zonder.contains(cached.code)) return cached;
+        for (Snapshot s : alle()) if (!zonder.contains(s.code)) return s;
         return null;
     }
 
@@ -84,16 +92,20 @@ final class WebUpdateStore {
     }
 
     /** Code, naam en beide bestanden wisselen samen. De vorige volledige versie blijft voor herstel bestaan. */
-    synchronized void activate(Snapshot next) throws Exception {
+    synchronized void activate(Snapshot next) throws Exception { activate(next, null); }
+
+    /** Als vorige versie blijft de nieuwste bewaard die niet in zonder staat: een afgekeurde versie is geen herstelkopie. */
+    synchronized void activate(Snapshot next, java.util.Set<Integer> zonder) throws Exception {
         Snapshot checked = read(next.dir.getName());
         if (checked == null || !next.dir.getCanonicalFile().equals(checked.dir.getCanonicalFile()))
             throw new IOException("De interfaceversie is niet compleet");
-        Snapshot previous = refresh(); // een inmiddels onleesbare gecachte versie is geen bruikbare herstelkopie
+        refresh(); // een inmiddels onleesbare gecachte versie is geen bruikbare herstelkopie
+        Snapshot previous = current(zonder);
         String refs = next.dir.getName() + "\n" + (previous == null ? "" : previous.dir.getName()) + "\n";
         File tmp = new File(root, "actief.tmp");
         write(tmp, refs.getBytes(StandardCharsets.UTF_8));
         if (!tmp.renameTo(new File(root, "actief"))) throw new IOException("Activeren van de interface lukt niet");
-        cached = checked;
+        cached = checked; alle = null;
         File[] dirs = root.listFiles();
         if (dirs != null) for (File dir : dirs) {
             if (dir.isDirectory() && validId(dir.getName()) && !dir.equals(next.dir)
