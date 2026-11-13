@@ -30,6 +30,8 @@ const { chromium } = require('playwright');
 
     // Starten: luisteren, scherm blijft aan, stilte 1,3 s
     await pg.click('#ai-talk-btn'); await pg.waitForTimeout(80);
+    // Onder belasting komt de start van het luisteren soms later dan 80 ms: wachten op de toestand zelf
+    await waitSt('luistert'); await pg.waitForFunction(() => /luister/.test($('#ai-talk-st').textContent) && $('#ai-talk-go').textContent === 'Klaar met praten', null, { timeout: 4000 }).catch(() => {});
     ok(await pg.isVisible('#ai-talk') && await st() === 'luistert' && (await pg.textContent('#ai-talk-st')).includes('luister'), 'luistert, groot in beeld');
     ok(await pg.evaluate(() => Android._tkScreen === true && Android._tkCalls[0][1] === 1300), 'scherm blijft aan; stilte 1,3 s');
     ok((await pg.textContent('#ai-talk-go')) === 'Klaar met praten' && await pg.isVisible('#ai-talk-stop'), 'knoppen: Klaar met praten en Stop');
