@@ -106,8 +106,16 @@ const path = require('path');
     await page.evaluate(() => show('search'));
     await page.fill('#gs-q', 'tandarts');
     await page.waitForTimeout(200);
+    // Zoeken tekent de lijst na een korte pauze (opnieuw) en de agenda-resultaten komen later: wachten tot ze er zijn
+    await page.waitForFunction(() => /Tandarts/.test($('#gs-res').textContent), null, { timeout: 5000 }).catch(() => {});
     ok((await page.textContent('#gs-res')).includes('Tandarts'), 'overal zoeken vindt een afspraak van vroeger');
-    await page.locator('#gs-res .gi:has-text("Tandarts")').first().click();
+    await page.waitForTimeout(300);
+    // Alleen het resultaat van Agenda: ":has-text" vond soms eerst een sms, WhatsApp-bericht of oproep met "tandarts".
+    // Komen die eerst binnen, dan staat de afspraak onderaan achter de tabbalk: eerst naar het midden schuiven.
+    const agHit = page.locator('#gs-res .gi[data-k="agenda"]', { hasText: 'Tandarts' }).first();
+    await agHit.evaluate(e => e.scrollIntoView({ block: 'center' })); await page.waitForTimeout(100);
+    await agHit.click();
+    await page.waitForFunction(() => current === 'agafspraak', null, { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(150);
     ok(await page.evaluate(() => current === 'agafspraak') && await page.inputValue('#agf-titel') === 'Tandarts', 'vanuit zoeken de afspraak openen');
 
