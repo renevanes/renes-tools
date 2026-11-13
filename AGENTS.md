@@ -302,7 +302,8 @@ Actions, of `gh api repos/renevanes/renes-tools/actions/runs`) en meld Rene de n
    verbindingen naar buiten, het doorsturen van gegevens of het verzwakken van de updatecontrole.
 7. **Nooit** force-pushen naar main of gepubliceerde geschiedenis herschrijven (`rebase`/`amend` van wat op main staat):
    telefoons en andere agents bouwen erop voort. Samenvoegen gaat met `merge`.
-8. Laat vóór het publiceren een onafhankelijke review doen (een tweede agent) en los de bevindingen op.
+8. Laat vóór het publiceren een onafhankelijke review doen (een tweede agent) en los de bevindingen op. Geef de
+   reviewer altijd ook de **beveiligingslijst** uit "Beveiliging" mee.
 
 ## De ondertekeningssleutel
 Alle versies moeten met **dezelfde** sleutel ondertekend worden, anders kan de telefoon de update niet installeren.
@@ -317,6 +318,50 @@ nadat het gereedschap is geïnstalleerd, en haalt hem na afloop weer weg.
   `pull_request_target` met het geheim en zet nergens anders `environment: publiceren`.
 - Groeit de APK meer dan 10% of moet de hoofdversie omhoog: start de workflow met de hand (Actions → Publiceren →
   Run workflow) met `allow_grow` of `major`.
+
+## Beveiliging
+De app kan sms'en, bellen, bij contacten, locatie, meldingen en VPN-sleutels, en alles op main staat binnen ±15 minuten
+op Rene's telefoon. Daarom loopt elke wijziging langs de beveiligingslijst, en neemt de taak Beveiliging elke week één
+gebied hieronder grondig door.
+
+**Beveiligingslijst voor elke review** (de reviewer gaat elk punt na dat de wijziging raakt, en noemt het als het klopt):
+- **Tekst van buiten in de interface** (sms, oproepen, contacten, meldingen, nieuws, podcasts, boeken, PDF-tekst, agenda,
+  mail, facturen, bank, websites, AI-antwoorden, bestandsnamen): altijd via `esc()` of `textContent`, nooit rauw in
+  `innerHTML`, een attribuut of een `on…`-handler. Het CSP in `kop.html` staat inline scripts toe en vangt dat dus niet op.
+- **Nieuwe of veranderde brugfuncties** (`@JavascriptInterface`): doen niet meer dan nodig; paden en bestandsnamen uit de
+  interface worden gecontroleerd (geen `..`, alleen de eigen map); niets dat sms't, belt of gegevens wegstuurt zonder
+  dat Rene het in de app bevestigt.
+- **Nieuwe toestemmingen, geëxporteerde onderdelen** (`exported="true"`, intent-filters, providers) **en verbindingen naar
+  buiten**: bewust, met de reden erbij, en bijgewerkt in `docs/privacybeleid*.md` en `docs/play-data-safety.md`.
+- **Vensters met websites van buiten** (Bank, Facturen, Nieuws-inloggen): nooit de brug `Android` van de app, hooguit
+  hun eigen kleine brug (`BrBrug`, `FrBrug`) die alleen doet wat dat venster nodig heeft; alleen toegestane adressen;
+  geen `file://` of `content://`.
+- **Sleutels, wachtwoorden en persoonlijke gegevens**: versleuteld (zie "Privacy" bij "Regels voor de code"), niet in
+  logs, niet in Android-backups, niet in de repository.
+- **Updates en publiceren**: de updatecontrole (`Updater`), `publiceren.yml`, `keys/` en de rechten van workflows worden
+  niet zwakker.
+
+**Gebieden voor de wekelijkse ronde** (op volgorde; het logboek zegt welk gebied het langst niet bekeken is):
+1. Tekst van buiten in de interface (alle plekken met `innerHTML` en tekst van buiten).
+2. De brugfuncties: wat elke functie kan, paden en bestandsnamen, tokens, functies die te veel toestaan.
+3. Vensters met websites van buiten: `BankLinkActivity`, `FacturenRun`, `NieuwsInlogActivity`, `NeutralActivity`.
+4. Onderdelen die andere apps kunnen aanroepen: geëxporteerde activities, ontvangers, diensten en providers,
+   intent-filters (ook `content://` die binnenkomt), `PendingIntent`-vlaggen, de meldingenlezer, de VPN-dienst.
+5. Netwerk: onversleuteld verkeer (`usesCleartextTraffic`), certificaten, wat de app naar buiten stuurt, downloads met
+   vaste SHA-256.
+6. Opslag en sleutels: `Secure.deviceKey`, de kluis, VPN-sleutels, wachtwoorden, `AppBackup` (.rtb), de Android-backupregels
+   (`app/res/xml/*backup*`, `*data_rules*`), logs, cache en exports.
+7. Updates en publiceren: `Updater` (handtekening van `update.json` en APK), de workflows (rechten, `pull_request_target`,
+   omgeving `publiceren`), vastgezette Actions.
+8. Bestanden van buiten en native code: PDF, EPUB, zip (zip slip), XML (XXE), plaatjes, audio, GGUF-modellen; hoe de
+   app bestanden aan `tools/llm/llm.cpp`, whisper en de OCR (Tesseract, Leptonica, libpng, libjpeg) doorgeeft. De versies
+   en bekende kwetsbaarheden van die bibliotheken zijn voor Onderhoud.
+
+**Kwetsbaarheden en de openbare repository.** Een gevonden kwetsbaarheid komt niet met details in een issue, reactie,
+commitbericht, pull request of wijzigingsregel zolang hij niet is opgelost en gepubliceerd. Los hem op en publiceer;
+schrijf daarna in het logboek kort wat het was. Commitberichten en wijzigingsregels blijven neutraal ("Beveiliging van
+X verbeterd"). Lukt oplossen niet in één sessie, zet dan in het logboek alleen het gebied en hoe ernstig ("1 punt open,
+details bij Rene"), en de details in het bericht aan Rene aan het eind van de sessie.
 
 ## Onderhoud: updates en beveiliging
 Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel dat niet vanzelf kan.
@@ -441,6 +486,7 @@ een onafhankelijke review, en melden kort in hun eigen sessie wat er gepubliceer
 | Takencheck | dinsdag 10:13 | controleert of deze taken nog kloppen, compleet zijn en beter kunnen, en past ze aan (logboek in het issue "Geplande taken: logboek") |
 | Werklijst | woensdag 10:37 | de belangrijkste `doen`- en `openstaand`-punten bouwen |
 | Prestaties en stabiliteit | donderdag 11:17 | vastlopers, haperingen, opstarttijd, geheugen, accu en trage schermen meten en het grootste probleem oplossen; logboek in het issue "Prestaties en stabiliteit: logboek" |
+| Beveiliging | vrijdag 09:47 | elke week één gebied uit "Beveiliging" grondig nalopen en oplossen met tests; vangnetten bouwen (kwaadaardige tekst op elk scherm, lijst van toestemmingen en geëxporteerde onderdelen); logboek in het issue "Beveiliging: logboek" |
 | Betrouwbaarheid en schermcheck | vrijdag 13:23 | wankele tests, CI en telefoontest; één scherm kritisch nalopen (logboek in het issue "Schermcheck: logboek") |
 
 De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck houdt deze tabel en de taken gelijk.
@@ -452,7 +498,7 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
    welke pull requests open staan (`gh api "repos/renevanes/renes-tools/pulls?state=open"`), en doe dat werk niet
    dubbel. Voeg zo'n pull request niet zelf samen; noem hem in je bericht als hij jouw onderwerp raakt.
 2. **Eigen branch `<taak>/JJJJ-MM-DD`:** `onderhoud/`, `opruimen/`, `werklijst/`, `prestaties/`, `betrouwbaarheid/`,
-   `takencheck/` (pushen buiten `claude/` werkt; lukt het toch niet, dan `claude/<taak>-JJJJ-MM-DD`). Push na elke
+   `takencheck/`, `beveiliging/` (pushen buiten `claude/` werkt; lukt het toch niet, dan `claude/<taak>-JJJJ-MM-DD`). Push na elke
    commit, zodat een volgende run verder kan.
 3. **Lokaal bouwen kan in een cloudsessie deels mislukken.** Weigert de proxy een download van
    `tools/voorlezen/deps.py`, dan stopt `./build.sh` al vóór javac en kan `run-jvm.sh` niet draaien; struikelt de
