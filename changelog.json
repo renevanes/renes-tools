@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.207",
+    "date": "2026-11-13",
+    "changes": [
+      "Check-in: al je antwoorden en opmerkingen exporteren als CSV-bestand voor een rekenblad (menu ⋯ rechtsboven)"
+    ]
+  },
+  {
     "version": "1.206",
     "date": "2026-11-13",
     "changes": [

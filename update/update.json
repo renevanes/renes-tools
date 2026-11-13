@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.206",
-  "versionCode": 207,
-  "nativeLevel": 181,
+  "versionName": "1.207",
+  "versionCode": 208,
+  "nativeLevel": 182,
   "web": "index.html",
-  "webSha256": "e989d7d2e8b6928610d141a466f86efdbb638e90b50d0329f8b23801217337af",
+  "webSha256": "215b4d4e6b6651839c9e3a825e933340ab80226cc9f75e3ddef596b9d5f1624e",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "e6d69971b4123fab5737b919c260a1677a194d42a9de705086e3d9e0a54e312c",
+  "apkSha256": "15a8623576545d8919d6dd5512bd543f693e3111c0190bae9f58d34e2184bd30",
   "changelog": [
+    {
+      "version": "1.207",
+      "date": "2026-11-13",
+      "changes": [
+        "Check-in: al je antwoorden en opmerkingen exporteren als CSV-bestand voor een rekenblad (menu ⋯ rechtsboven)"
+      ]
+    },
     {
       "version": "1.206",
       "date": "2026-11-13",
@@ -166,14 +173,7 @@
         "Podcasts: na ontvolgen blijft er niets meer van die podcast in het geheugen hangen, ook niet als hij net aan het bijwerken was",
         "Stamgegevens: een ID-kopie of formulier met je stamgegevens wordt alleen gemaakt terwijl Tools in beeld is"
       ]
-    },
-    {
-      "version": "1.187",
-      "date": "2026-11-10",
-      "changes": [
-        "Kluis, Bankzaken en Stamgegevens hebben geen eigen ontgrendelscherm meer: alles gaat via het slotscherm van Extra ontgrendelen. Staat dat uit, dan openen ze meteen."
-      ]
     }
   ],
-  "webSig2": "MGwEQDI9ztgFxvHz/nVJC20+3gUZtVDxlKpNQF0AwZCmZh27ohU7Q4vTz/9DlJjBf9mxXahQUUXMNDWb6/e5a2uBgFiovC+zE2eRKMRJJQrSvX4iyZz39ccjsK2EWyoSmHyFOx5KKMYRbrLwqqYFb7GSWVlkRBaPRoeqcSsroWIpSSLNVKTj9phGMElXeR0AApAl8Ou393Q0FXmb5yFgXnq86AWa3Jv3cdRp+B//SrxaHl39vxvj83ccFRUOovssKz2aB4+WdtyhMUqW+Gy/NjtOx9qofYoG/JSN97EtwrCfcrPR5u4JPa8qY8DhcwYT06LqGeN3hqdhs5hZ/JBmuK6iKnQgPXL0nZxJNE/tdfGXWGGQz+sc1pzx8IPr/P8b88px7vRuy1w1Ub0ZI4ahSNOrsqwd3Q5a6NwkJ9s67qlIbUKiW/HSLvP0anmx92674ilOuCRQ0MZFF4JflG72XsjZ0iXCxecIiWph59NZLKtVgBRdSRIcYUTZyUzYadIx"
+  "webSig2": "Ad/WqnWa0Ujgzdl/X6IRKT1KfwcvQz1Rcuw7a73XRbwBLUNyJMZqrm2EbkIFcVs133ntwjm0aDrNHGW0PFk6324amfAZND7yuPb9nVIOs8GNVFpZFFMD8UyLu9nsnrhqP+jrZ2YH0FXl93O2yxN8V7lntz1sPSFKNUEKllqkkg+qzeR5aLElcd2VUCIqZIuW9se9MRy7oiX4wi8D0UyCGUseCBoTeLWZlkPTmi85fzWuJMOQfbmQk9bmAeFDx7urvLii/QyFk0fZTxwdvcDbgNabe6n7qDax5oSrFiiiC1empQYT76HYiHTFqDZot3iyBUGuwXllD0IblSJNQOwpDLyv49Fa7lvmFhtwvsbfN+tOo2oZFfw7qmbU5mnhNk6yoqoKmCreY+e4Nu/TcADpOWuTElLdyh9EY5W+9yL7/4r5zG6GUMnz3X2vgdVmlUSjDkbP16TAAvlIQcAamK191uJbRfbXVBF8cfmFFPHrSlmpoav/c7pD88jUZS9LqGcz"
 }
