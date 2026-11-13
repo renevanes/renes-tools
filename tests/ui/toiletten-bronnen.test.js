@@ -48,10 +48,12 @@ const W = +process.env.UI_WACHT || 1;
     await pg.selectOption('#wcn-schema', 'week');
 
     // scannen die mislukt: de vorige versie blijft
-    await pg.evaluate(() => { Android._wc.scanFout = 'Geen verbinding'; });
+    // De scan duurt hier bewust langer: onder belasting was een scan van 120 ms al klaar vóór de controle (wankel)
+    await pg.evaluate(() => { Android._wc.scanFout = 'Geen verbinding'; Android._wc.scanMs = 1500; });
     await pg.click('#wcn-scan'); await pg.waitForTimeout(30 * W);
     ok(await pg.isDisabled('#wcn-scan'), 'tijdens het scannen: knop uit');
-    await pg.waitForTimeout(300 * W);
+    await pg.waitForFunction(() => !Android._wc.bezig, null, { timeout: 10000 }).catch(() => {}); await pg.waitForTimeout(300 * W);
+    await pg.evaluate(() => { Android._wc.scanMs = 0; });
     ok(/lukte niet: Geen verbinding/.test(await txt('#wcn-stand')) && /De vorige versie blijft staan/.test(await txt('#wcn-stand')), 'mislukte scan: fout en de vorige versie blijft');
     ok(/Ophalen lukte niet: Geen verbinding/.test(await toast()), 'melding bij een mislukte scan');
     ok((await wc()).calls.some(c => c[0] === 'bewaar' && c[1] === 'osm-nl') && (await wc()).calls.some(c => c[0] === 'scan' && c[1] === 'osm-nl'), 'Nu scannen bewaart eerst en scant dan alleen deze bron');

@@ -1686,7 +1686,7 @@ if (!window.Android) window.Android = (function(){
           const r = { id: b.id, ok: true, aantal: nieuw.length, nieuw: nieuw.filter(p => !oud.some(o => o[0] === p[0])).length, gewijzigd: 0, weg: oud.filter(o => !nieuw.some(p => p[0] === o[0])).length };
           W.cache[b.id] = nieuw.map(p => p.slice()); Object.assign(t, { lastOk: Date.now(), fout: '', aantal: r.aantal, nieuw: r.nieuw, gewijzigd: 0, weg: r.weg, datum: '2026-11-03' });
           t.log.unshift({ t: Date.now(), ok: true, aantal: r.aantal, nieuw: r.nieuw, gewijzigd: 0, weg: r.weg }); t.log = t.log.slice(0, 10); res.push(r); }
-        W.bezig = false; onWcScan({ id: id || '', resultaat: res }); }, 120); return ''; },
+        W.bezig = false; onWcScan({ id: id || '', resultaat: res }); }, W.scanMs || 120); return ''; },
     wcBewaar(json){ const W = this._wc, i = JSON.parse(json); if (W.eigenKapot) return JSON.stringify({ error: 'Je eigen wijzigingen zijn niet leesbaar; er is niets overschreven' });
       let f = (i.f || 1) & ~4; if (!(f & 3)) f |= i.s === 'douche' ? 2 : 1; if (f & 8) f &= ~16; if (f & 32) f &= ~64;
       const v = { s: i.s || 'toilet', f, n: String(i.n || '').slice(0, 80), u: String(i.u || '').slice(0, 200), notitie: String(i.notitie || '').slice(0, 300) };
