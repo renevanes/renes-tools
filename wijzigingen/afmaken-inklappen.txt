@@ -1,0 +1,2 @@
+Startscherm: tik op de naam van een groep om hem in of uit te klappen; de app onthoudt het
+Notities: de hint over Nieuwe lijst blijft zichtbaar en het invoerveld schaalt mee met grotere tekst

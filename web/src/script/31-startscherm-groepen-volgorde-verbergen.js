@@ -120,6 +120,19 @@ function homeV1Restore(){
 function homeV1Dismiss(){ const o = homeV1(); if (o) store.set('homeV1', Object.assign(o, { kaart: false })); renderHomeNew(); }
 function renderHomeNew(){ const el = $('#home-new'); if (el) el.hidden = !(homeV1() && homeV1().kaart); }
 function homeSave(c){ store.set('home', c); renderHome(); renderDash(); }
+function homeDicht(){ const d = store.get('homeDicht', []); return Array.isArray(d) ? d.filter(x => typeof x === 'string') : []; }
+/** Groep in- of uitklappen; namen van groepen die niet meer bestaan vallen eraf. */
+function homeKlap(name){
+  if (!name) return;
+  const namen = ['★ Favorieten'].concat(homeCfg().groups.map(g => g.name)), d = homeDicht().filter(x => namen.includes(x));
+  store.set('homeDicht', d.includes(name) ? d.filter(x => x !== name) : d.concat(name));
+  renderHome();
+  const h = [...document.querySelectorAll('#home-groups .hgroup h3')].find(e => e.dataset.g === name); if (h) h.focus({ preventScroll: true });
+}
+(function(){ const box = document.getElementById('home-groups'); if (!box) return;
+  box.addEventListener('click', e => { const h = e.target.closest && e.target.closest('.hgroup h3[data-g]'); if (h) homeKlap(h.dataset.g); });
+  box.addEventListener('keydown', e => { const h = e.target.closest && e.target.closest('.hgroup h3[data-g]'); if (h && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); homeKlap(h.dataset.g); } });
+})();
 function renderHome(){
   const c = homeCfg(), box = $('#home-groups'), pool = $('#tile-pool');
   // Tegels eerst terug in de verborgen pool, dan opnieuw verdelen (de tegels zelf blijven dezelfde knoppen)
@@ -129,7 +142,10 @@ function renderHome(){
   const mk = (name, tools) => {
     const vis = tools.filter(tk => !c.hidden.includes(tk) && !playWeg(tk)); if (!vis.length) return;
     const g = document.createElement('div'); g.className = 'hgroup';
-    if (name) { const h = document.createElement('h3'); h.textContent = name; g.appendChild(h); }
+    // Een groep met een naam klap je in en uit met een tik op de kop (onthouden per groep, homeDicht)
+    const dicht = !!name && homeDicht().includes(name);
+    if (name) { const h = document.createElement('h3'); h.textContent = name; h.dataset.g = name; h.tabIndex = 0; h.setAttribute('role', 'button'); h.setAttribute('aria-expanded', dicht ? 'false' : 'true'); g.appendChild(h); }
+    if (dicht) g.classList.add('dicht');
     const grid = document.createElement('div'); grid.className = 'tiles'+(vis.length===1?' single':vis.length%2?' oneven':''); // oneven: de laatste tegel over de volle breedte, geen gat
     vis.forEach(tk => { const el = document.getElementById(TOOL_TILE[tk]); if (el) grid.appendChild(el); });
     g.appendChild(grid); box.appendChild(g);
