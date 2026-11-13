@@ -1,15 +1,27 @@
 {
   "app": "Tools",
-  "versionName": "1.203",
-  "versionCode": 204,
+  "versionName": "1.204",
+  "versionCode": 205,
   "nativeLevel": 180,
   "web": "index.html",
-  "webSha256": "1383b56b237a5f8a754f7c1314441beaf888ca9254550a192624c1fcf7864f0a",
+  "webSha256": "1e4166b295997c9209b893966302c75bfc1c18778343e77dfcb8ea66ce9e755b",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "80cfcf4a48d22aa7b43f61a60dcbdb12b6085c50a79ae356282825a195c7ec7e",
+  "apkSha256": "c1b9853f0a6ae3a7e42bdc989606a293f2ef2b4fa525d62ab2cd7dffefbb2b31",
   "changelog": [
+    {
+      "version": "1.204",
+      "date": "2026-11-13",
+      "changes": [
+        "Startscherm: een groep met een oneven aantal tegels heeft geen gat meer; de laatste tegel loopt over de volle breedte",
+        "Knoppen rechtsboven staan in elke tool in dezelfde volgorde: licht en donker, acties, instellingen en als laatste het menu ⋯ (Nieuws en Toiletten aangepast)",
+        "Toegang geven: dezelfde tekst en dezelfde knop in alle tools",
+        "Agenda: lege dagen achter elkaar staan in de weekweergave als één regel in plaats van per dag \"Niets\"",
+        "E-reader: het scherm begint meteen met Boek toevoegen, zonder de slogan erboven",
+        "Notities: het invoerveld is één regel tot je iets schrijft, zodat je notities en lijsten hoger op het scherm staan"
+      ]
+    },
     {
       "version": "1.203",
       "date": "2026-11-13",
@@ -169,16 +181,7 @@
         "Betere Nederlandse voorleesstemmen: Dii en Miro (hoogste kwaliteit) en Pim, in volledige kwaliteit (±67 MB). Ze klinken zuiverder dan Ronnie en rekenen zelfs sneller.",
         "Kies je een stem in een andere taal, dan onthoudt Tools die per taal: een Engels boek krijgt vanzelf je Engelse stem."
       ]
-    },
-    {
-      "version": "1.184",
-      "date": "2026-11-10",
-      "changes": [
-        "Handtekening uit een foto: je ziet nu een voortgangsbalk tijdens het lezen en het zoeken van de handtekening, en de app blijft bedienbaar.",
-        "Stamgegevens: bij het herkennen van een kaartfoto (ook Opnieuw herkennen en Grondig zoeken) staat onderin een balk met hoe lang het nog hooguit duurt.",
-        "Overal in de app zie je nu waarop je wacht: bij terugzetten en backups openen, exporteren, zoeken, PDF maken, de lokale AI, facturen, Bankzaken, Toiletten, Nieuws en meer loopt een balk mee in plaats van alleen een melding."
-      ]
     }
   ],
-  "webSig2": "JGS6RZMIY27YY3g0K8lduICITHnkFPPYFpXpjG7lDidrMl7vP0JYft3SceJFQ2GRvwLSZMmyIf7waJr0urFxnCqAvRMsN9BzM1G7eRvyY9dS0mPrnnd1a+i63lsagUuhoqfGgmpZ8HoLa4c2cYKBVcCqJgIul5FqeWdGEecJy5S2/QzoJDgMweVxrPuUh6cBAsnEJQY2Tsxu6w4aa/pM3wTBMucbXlnrU8R3w0RQx9vYI9f9bvCiKJDvBCuY+XzXk5HEeXPne4mTwQa36YHKuOfs3hg04vsLc898fGl8IBvEvZFPNz//StumhRtC7SmynwfSMkICznH08iBxs3RqPtK7ZznLbmvd0b8chFiv5CtrOvL8KuvqNxDoOwExq+O+4Cz5hSMnBmkPC+/9Wd37SmLcIKzpif2uZoocvCGAONyxGw47zx4a8uQrn94WQ8xh8Pc93MSv1Cu92y4xIZ9WzAja0QMCH5WWuhiCnJooxThdKtat5k7oGMX913UaHNqh"
+  "webSig2": "ofLqd9U60KEWpuxbFW6vwF8brt8/OjKn/HevJdZmt+KXjJP9Dspik9tDdSQBComxXWTLuNVPuhtrHwMGfWuGNX7ChwmpoPc4bCbMz3KI/xS+2kJtIKhP3Q0TC5hGaknHr0yL2Fw02T4tWwyZgcft2jIQzbT6/YpZUkZndE7Gp8iD/+gBV3DMqua4OH8mxJruvbYJDocdjnzUlzOh9IElmKzN9hNVbNqsjJ1rBejZjAWMzaGE4PznxGqCBUmW54UB9y5Sv6LcIxuUC7NSCQEhWA6u2OYhJIyEmRsBtb1pJjsfWlT4VjJR4iH8/G9xKYZc+RWs+o2ltVVrTAp+W19hCtvJY1cjz6S9elPxS74L6Iw/JgCc9Ya3ZoIiT/QMsC2V3i2yCnUYVbqVi0fLXCHEemL5eLgV5r1oviJL8+iRxXk62PFplgZEugcefgA6CFAE7y5hVrNabvURVI73ndhd9iCx7PjKwI+cwOG0Ij1vbgtJaS6y8l7Xz/uEjr0Xf3ub"
 }
