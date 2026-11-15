@@ -37,7 +37,7 @@ const URL = 'file://' + path.join(__dirname, 'ui', 'index.html');
 
     // Automatisch op tijd, nu licht: "Nu donker (tot 15:00)" maakt het donker tot de volgende wissel
     const hm = await pg.evaluate(() => { const h = new Date().getHours(), f = x => String((x + 24) % 24).padStart(2, '0') + ':00';
-      thSave({ mode: 'time', dark: f(h + 3), light: f(h - 3) }); store.set('themeTmp', null); thApply(true); show('podcasts'); return f(h + 3); });
+      thSave({ mode: 'time', dark: f(h + 3), light: f(h - 3) }); store.set('themeTmp', null); thApply(true); show('podcasts'); return (h + 3 >= 24 ? 'morgen ' : '') + f(h + 3); });
     ok(!(await dark()), 'automatisch: nu licht');
     ok(await pg.evaluate(() => $('#pc-thema').dataset.icon === 'moon'), 'maan als het licht is');
     await pg.click('#pc-thema'); await pg.waitForTimeout(150);
@@ -62,7 +62,7 @@ const URL = 'file://' + path.join(__dirname, 'ui', 'index.html');
     await pg.evaluate(() => { const x = store.get('themeTmp'); x.until = Date.now() - 1; store.set('themeTmp', x); thApply(true); });
     ok(!(await dark()) && await pg.evaluate(() => store.get('themeTmp', null) === null), 'verlopen: weer automatisch');
     // Een andere keuze in Instellingen: de tijdelijke stand vervalt
-    await pg.evaluate(() => { thNu(true); thSave({ dark: '23:00' }); });
+    await pg.evaluate(() => { thNu(true); thSave({ dark: String((new Date().getHours() + 4) % 24).padStart(2, '0') + ':00' }); }); // een andere tijd waarbij het nu licht blijft, op elk uur van de dag
     ok(await pg.evaluate(() => store.get('themeTmp', null) === null && !thState.tmp), 'andere tijden: tijdelijk weg');
     await pg.evaluate(() => { thNu(true); thSave({ amoled: true }); });
     ok(await pg.evaluate(() => thState.tmp), 'zwart (AMOLED) aan: tijdelijk blijft');

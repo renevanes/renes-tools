@@ -118,6 +118,32 @@ function homeV1Restore(){
   undoToast(t('Vorige indeling teruggezet'), () => heSaveEdit(nu));
 }
 function homeV1Dismiss(){ const o = homeV1(); if (o) store.set('homeV1', Object.assign(o, { kaart: false })); renderHomeNew(); }
+/* ---------- Aan de slag: na een nieuwe installatie (terugzetten overgeslagen) drie stappen op het startscherm ----------
+ * Favorieten kiezen, een backup-map kiezen en het app-slot aanzetten. Elke rij laat de stand zien en gaat naar het
+ * scherm waar je het regelt; de kaart gaat weg als alles gedaan is of met "Niet meer tonen". */
+function homeStartStappen(){
+  const bk = rdJson(Android.backupState(true), {}), lk = rdJson(Android.lockState(), {}), fav = homeCfg().fav.length;
+  const bkKlaar = !!bk.dest && !!(bk.auto || bk.last), slotWerkt = !!lk.on && !!(lk.secure || lk.code);
+  return [
+    { id: 'fav', icon: 'star', naar: 'homeedit', klaar: fav > 0, titel: t('Kies je favorieten'), stand: fav ? tn(fav, 'Eén favoriet bovenaan', '{n} favorieten bovenaan') : t('Zet bovenaan wat je vaak gebruikt') },
+    { id: 'backup', icon: 'shield', naar: 'backup', klaar: bkKlaar, titel: t('Stel je backup in'),
+      stand: bkKlaar ? t('Backup ingesteld') : bk.dest ? t('Map gekozen: maak nu je eerste backup of zet automatisch aan') : t('Nog niet: zonder backup ben je alles kwijt bij een nieuwe telefoon') },
+    { id: 'slot', icon: 'lock', naar: 'setlock', klaar: slotWerkt, titel: t('Zet het app-slot aan'),
+      stand: slotWerkt ? t('App-slot staat aan') : lk.on ? t('Aan, maar werkt pas met een schermvergrendeling of een eigen code') : t('Uit: iedereen die je ontgrendelde telefoon vasthoudt, kan Tools openen') }
+  ].filter(s => document.getElementById('s-' + s.naar) && !(typeof playWeg === 'function' && playWeg(s.naar)));
+}
+function homeStartKlaar(){ store.set('homeStart', 0); renderHomeStart(); }
+function homeStartNaar(naar){ jumpTo(naar); }
+function renderHomeStart(){
+  const el = $('#home-start'); if (!el) return;
+  if (!store.get('homeStart', 0) || SOLO) { el.hidden = true; return; }
+  let st; try { st = homeStartStappen(); } catch (e) { el.hidden = true; return; }
+  if (!st.length || st.every(s => s.klaar)) { store.set('homeStart', 0); el.hidden = true; return; }
+  $('#home-start-list').innerHTML = st.map(s => '<button class="strow" data-naar="' + s.naar + '" data-klaar="' + (s.klaar ? 1 : 0) + '"><span class="stic"><span class="ui-icon" data-icon="' + (s.klaar ? 'check' : s.icon) + '" aria-hidden="true"></span></span>'
+    + '<span class="sttxt"><b>' + esc(s.titel) + '</b><small>' + esc(s.stand) + '</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>').join('');
+  $('#home-start-list').querySelectorAll('.strow').forEach(b => b.addEventListener('click', () => homeStartNaar(b.dataset.naar)));
+  el.hidden = false;
+}
 function renderHomeNew(){ const el = $('#home-new'); if (el) el.hidden = !(homeV1() && homeV1().kaart); }
 function homeSave(c){ store.set('home', c); renderHome(); renderDash(); }
 function homeGroepenDicht(){ const d = store.get('homeGroepenDicht', []); return Array.isArray(d) ? d.filter(x => typeof x === 'string') : []; }
@@ -157,6 +183,7 @@ function renderHome(){
   pool.style.display = 'none';
   renderHomeRecent();
   renderHomeNew();
+  renderHomeStart();
 }
 /* ---------- Recent gebruikt: de laatste vier tools die Rene opende ----------
  * Alleen welke tool (bijv. "pdf"), geen tijden of wat erin gebeurde; alleen in deze WebView (localStorage rt.homeRecent).
@@ -191,7 +218,7 @@ function heRecent(on){ const c = homeCfg(); c.recent = !!on; if (!on) store.set(
   const inner = show;
   show = function(name){
     const r = inner.apply(this, arguments);
-    try { if (current === name) { if (name === 'home') renderHomeRecent(); else homeRecentAdd(name); } } catch (e) { }
+    try { if (current === name) { if (name === 'home') { renderHomeRecent(); renderHomeStart(); } else homeRecentAdd(name); } } catch (e) { }
     return r;
   };
   try { if (current !== 'home') homeRecentAdd(current); } catch (e) { } // al geopend bij het starten (snelkoppeling, widget)
