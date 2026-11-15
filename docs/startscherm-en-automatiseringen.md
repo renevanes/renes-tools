@@ -84,3 +84,5 @@
 ## Favorieten
 - Houd een tegel ingedrukt → "★ Favoriet (bovenaan)", of tik op ☆ bij Startscherm aanpassen. Favorieten staan bovenaan het startscherm in de groep *★ Favorieten* (zonder groepen: vooraan), in de volgorde die je kiest bij Startscherm aanpassen, en zijn ook de eerste keuzes bij lang indrukken van het app-icoon. Een verborgen tool favoriet maken zet hem weer aan; een favoriet verbergen haalt hem uit de favorieten. *Standaard herstellen* laat de favorieten staan.
 
+
+**Aan de slag** (`renderHomeStart`, `store` `homeStart`): slaat iemand op een nieuwe installatie het terugzetten over, dan staat op het startscherm een kaart met drie stappen (favorieten kiezen, backup-map kiezen, app-slot aanzetten). Elke rij toont de stand en gaat naar het scherm waar je het regelt; de kaart verdwijnt als alles gedaan is of met "Niet meer tonen". Niet in losse apps en niet na terugzetten. Test: `tests/ui/aan-de-slag.test.js`.
