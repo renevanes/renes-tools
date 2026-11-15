@@ -122,12 +122,15 @@ function homeV1Dismiss(){ const o = homeV1(); if (o) store.set('homeV1', Object.
  * Favorieten kiezen, een backup-map kiezen en het app-slot aanzetten. Elke rij laat de stand zien en gaat naar het
  * scherm waar je het regelt; de kaart gaat weg als alles gedaan is of met "Niet meer tonen". */
 function homeStartStappen(){
-  const info = rdJson(Android.settingsInfo(), {}), lk = info.lock || rdJson(Android.lockState(), {}), fav = homeCfg().fav.length;
+  const bk = rdJson(Android.backupState(true), {}), lk = rdJson(Android.lockState(), {}), fav = homeCfg().fav.length;
+  const bkKlaar = !!bk.dest && !!(bk.auto || bk.last), slotWerkt = !!lk.on && !!(lk.secure || lk.code);
   return [
     { id: 'fav', icon: 'star', naar: 'homeedit', klaar: fav > 0, titel: t('Kies je favorieten'), stand: fav ? tn(fav, 'Eén favoriet bovenaan', '{n} favorieten bovenaan') : t('Zet bovenaan wat je vaak gebruikt') },
-    { id: 'backup', icon: 'shield', naar: 'backup', klaar: !!info.dest, titel: t('Kies een backup-map'), stand: info.dest ? t('Backup-map gekozen') : t('Nog niet: zonder backup ben je alles kwijt bij een nieuwe telefoon') },
-    { id: 'slot', icon: 'lock', naar: 'setlock', klaar: !!lk.on, titel: t('Zet het app-slot aan'), stand: lk.on ? t('App-slot staat aan') : t('Uit: iedereen met je telefoon kan Tools openen') }
-  ].filter(s => document.getElementById('s-' + s.naar));
+    { id: 'backup', icon: 'shield', naar: 'backup', klaar: bkKlaar, titel: t('Stel je backup in'),
+      stand: bkKlaar ? t('Backup ingesteld') : bk.dest ? t('Map gekozen: maak nu je eerste backup of zet automatisch aan') : t('Nog niet: zonder backup ben je alles kwijt bij een nieuwe telefoon') },
+    { id: 'slot', icon: 'lock', naar: 'setlock', klaar: slotWerkt, titel: t('Zet het app-slot aan'),
+      stand: slotWerkt ? t('App-slot staat aan') : lk.on ? t('Aan, maar werkt pas met een schermvergrendeling of een eigen code') : t('Uit: iedereen die je ontgrendelde telefoon vasthoudt, kan Tools openen') }
+  ].filter(s => document.getElementById('s-' + s.naar) && !(typeof playWeg === 'function' && playWeg(s.naar)));
 }
 function homeStartKlaar(){ store.set('homeStart', 0); renderHomeStart(); }
 function homeStartNaar(naar){ jumpTo(naar); }
