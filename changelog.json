@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.208",
+    "date": "2026-11-15",
+    "changes": [
+      "Nieuwe installatie: na het overslaan van terugzetten staat op het startscherm 'Aan de slag' met drie stappen (favorieten, backup, app-slot)"
+    ]
+  },
+  {
     "version": "1.207",
     "date": "2026-11-13",
     "changes": [
