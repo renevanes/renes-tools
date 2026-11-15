@@ -140,7 +140,8 @@ input[type=tel],textarea.key,.ntext{border-radius:8px;border-color:var(--outline
 .plbar-btn{border-radius:7px}.player{background:#12181B}.pl-scroll{background:#12181B}
 .pl-card{background:#1E282E;border:1px solid #303E46;border-radius:9px}.pl-titles h2{font-size:23px;font-weight:650;letter-spacing:-.5px}
 .pl-cover .plart{border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.24)}
-.pl-pill,.pl-wide,.pl-castbar{border-radius:7px;font-size:13px;background:#26343C;min-height:44px}
+.pl-wide,.pl-castbar{border-radius:7px;font-size:13px;background:#26343C;min-height:44px}
+.pl-opt{border-radius:9px}.pl-opt.on{background:#26343C}
 .pl-play{box-shadow:none}.pl-link{text-decoration:none}.pl-ic{border-radius:8px}
 .pl-art .ui-icon,.plart .ui-icon{width:60%;height:60%;max-width:100px;max-height:100px}.plart.ini{display:flex;align-items:center;justify-content:center}
 .sf-ok .ico{color:var(--ok)}.sf-warn .ico{color:var(--warn)}.sf-fail .ico{color:var(--bad)}.sf-skip .ico{color:var(--muted)}

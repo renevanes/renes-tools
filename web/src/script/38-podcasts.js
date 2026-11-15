@@ -532,26 +532,31 @@ function pdSubToggle(){
 /* ---------- slaaptimer (gedeeld door Podcasts en Radio) ---------- */
 let slTarget = 'pod';
 function sleepState(){ return slTarget === 'pod' ? rdJson(Android.podState(), {}) : rdJson(Android.radioState(), {}); }
+const SL_SNEL = [10, 15, 20, 30, 45, 60, 90, 120];
 function sleepOpen(target){
   slTarget = target === 'radio' ? 'radio' : 'pod';
   const st = sleepState(), active = !!(st.sleepAt || st.sleepEnd);
   $('#sl-range').value = Math.max(1, Math.min(240, +store.get('sleepMin', 30) || 30));
-  $('#sl-quick').innerHTML = [10, 15, 20, 30, 45, 60, 90, 120].map(m => '<button data-m="' + m + '" onclick="$(\'#sl-range\').value=' + m + ';sleepShow()">' + fmtMin(m) + '</button>').join('');
+  // Eén tik op een tijd start de timer meteen
+  $('#sl-quick').innerHTML = SL_SNEL.map(m => '<button data-m="' + m + '" onclick="sleepKies(' + m + ')" aria-label="' + esc(t('{n} minuten', { n: m })) + '"><b>' + m + '</b><small>min</small></button>').join('');
   $('#sl-end').style.display = slTarget === 'pod' ? '' : 'none';
-  $('#sl-state').textContent = st.sleepAt ? t('Stopt nu om {tijd} (nog {duur}).', { tijd: fmtTime(st.sleepAt, { hour: '2-digit', minute: '2-digit' }), duur: fmtMin((st.sleepAt - Date.now()) / 6e4) })
-    : t(st.sleepEnd ? 'Stopt nu aan het einde van deze aflevering.' : slTarget === 'pod' ? 'Stop de podcast na…' : 'Stop de radio na…');
-  $('#sl-add').style.display = st.sleepAt ? 'flex' : 'none';
-  $('#sl-off').textContent = active ? 'Uitzetten' : 'Annuleren';
+  $('#sl-nu').hidden = !active;
+  $('#sl-state').textContent = st.sleepAt ? t('Stopt om {tijd} · nog {duur}', { tijd: fmtTime(st.sleepAt, { hour: '2-digit', minute: '2-digit' }), duur: fmtMin((st.sleepAt - Date.now()) / 6e4) })
+    : st.sleepEnd ? t('Stopt aan het einde van deze aflevering') : '';
+  $('#sl-add').style.display = st.sleepAt ? '' : 'none';
+  $('#sl-off').style.display = active ? '' : 'none';
+  $('#sl-vraag').textContent = active ? t('Of stop na') : t(slTarget === 'pod' ? 'Stop de podcast na' : 'Stop de radio na');
+  $('#sl-eigen').open = false;
   const d = rgParts(Date.now() + 60 * 6e4); // over een uur, in de app-zone
   $('#sl-time').value = String(d.hh).padStart(2, '0') + ':' + String(Math.floor(d.mm / 5) * 5).padStart(2, '0');
   sleepShow();
   $('#sleepdlg').classList.add('on');
 }
+function sleepKies(m){ $('#sl-range').value = m; sleepStart(); }
 function sleepClose(){ $('#sleepdlg').classList.remove('on'); }
 function sleepShow(){
   const m = +$('#sl-range').value;
   $('#sl-min').textContent = m;
-  document.querySelectorAll('#sl-quick button').forEach(b => b.classList.toggle('on', +b.dataset.m === m));
 }
 function sleepStep(d){ $('#sl-range').value = Math.max(1, Math.min(240, +$('#sl-range').value + d)); sleepShow(); }
 function sleepApply(m){
@@ -563,9 +568,9 @@ function sleepStart(){
   const m = +$('#sl-range').value;
   store.set('sleepMin', m);
   sleepClose();
-  if (sleepApply(m)) toast(t('⏾ Stopt over {duur}', { duur: fmtMin(m) }));
+  if (sleepApply(m)) toast(t('Slaaptimer: stopt over {duur}', { duur: fmtMin(m) }));
 }
-function sleepEnd(){ if (slTarget !== 'pod') return; sleepClose(); if (sleepApply(-1)) toast('⏾ Stopt aan het einde van deze aflevering'); }
+function sleepEnd(){ if (slTarget !== 'pod') return; sleepClose(); if (sleepApply(-1)) toast('Slaaptimer: stopt aan het einde van deze aflevering'); }
 function sleepAt(){
   const v = /^(\d{1,2}):(\d{2})$/.exec($('#sl-time').value || '');
   if (!v) { toast('Kies een tijd'); return; }
@@ -573,14 +578,14 @@ function sleepAt(){
   const when = new Date(rgNextAt(v[1].padStart(2, '0') + ':' + v[2], Date.now()));
   const m = Math.max(1, Math.ceil((when.getTime() - Date.now()) / 6e4));
   sleepClose();
-  if (sleepApply(m)) toast(t('⏾ Stopt om {tijd}', { tijd: fmtTime(when, { hour: '2-digit', minute: '2-digit' }) }));
+  if (sleepApply(m)) toast(t('Slaaptimer: stopt om {tijd}', { tijd: fmtTime(when, { hour: '2-digit', minute: '2-digit' }) }));
 }
 function sleepAdd(n){
   const st = sleepState();
   sleepClose();
   if (slTarget === 'pod') { const e = Android.podSleepAdd(n); if (e) { toast(e); return; } }
   else Android.radioSleep(Math.max(1, Math.ceil(((st.sleepAt || Date.now()) - Date.now()) / 6e4)) + n);
-  toast(t('⏾ {n} minuten erbij', { n }));
+  toast(t('Slaaptimer: {n} minuten erbij', { n }));
   setTimeout(() => { if (slTarget === 'pod') pcPoll(true); else if (typeof rdPollOnce === 'function') rdPollOnce(); }, 250);
 }
 function sleepOff(){

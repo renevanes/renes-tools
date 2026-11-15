@@ -3510,6 +3510,7 @@ public class MainActivity extends Activity {
                     return new WebResourceResponse(mime, "utf-8", ctx.getAssets().open("vendor/" + name));
                 } catch (Exception e) { return notFound(); }
             }
+            if ("/art".equals(path)) return art(u.getQueryParameter("u"));
             if (!path.startsWith("/wa-media/")) return null;
             try {
                 File root = null;
@@ -3522,6 +3523,29 @@ public class MainActivity extends Activity {
                 String mime = ext == null ? null : MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase(java.util.Locale.ROOT));
                 // Alleen plaatjes (geen svg): een html-bestand uit WhatsApp mag nooit als pagina met de app-brug openen
                 if (mime == null || !mime.startsWith("image/") || mime.contains("svg")) return notFound();
+                WebResourceResponse r = new WebResourceResponse(mime, null, new java.io.FileInputStream(f));
+                java.util.Map<String, String> hd = new java.util.HashMap<>();
+                hd.put("X-Content-Type-Options", "nosniff");
+                hd.put("Content-Security-Policy", "default-src 'none'; sandbox");
+                r.setResponseHeaders(hd);
+                return r;
+            } catch (Exception e) {
+                return notFound();
+            }
+        }
+
+        /** Hoesjes en logo's voor de speler uit de eigen cache van Art (verkleind, op de telefoon): hier geen netwerk. Is het
+         *  er nog niet, dan 404; de interface vraagt het dan op met playerArt en probeert het daarna nog eens. Alleen wat
+         *  Art zelf schreef (PNG of JPEG; het bestand heet naar de hash van het adres, dus geen pad van buitenaf). */
+        private WebResourceResponse art(String url) {
+            try {
+                File f = Art.file(ctx, url);
+                if (f == null) return notFound();
+                byte[] head = new byte[4];
+                int n;
+                try (java.io.FileInputStream in = new java.io.FileInputStream(f)) { n = in.read(head); }
+                String mime = ArtBestand.mime(head, n);
+                if (mime == null) return notFound();
                 WebResourceResponse r = new WebResourceResponse(mime, null, new java.io.FileInputStream(f));
                 java.util.Map<String, String> hd = new java.util.HashMap<>();
                 hd.put("X-Content-Type-Options", "nosniff");

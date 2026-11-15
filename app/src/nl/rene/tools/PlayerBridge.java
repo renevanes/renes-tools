@@ -17,6 +17,9 @@ public class PlayerBridge extends PodcastBridge {
     @JavascriptInterface public String playerSrc() { return Player.src(ctx); }
 
     /** Kleur van een hoes; antwoord via onPlayerArt({url, color}) (color "" = geen plaatje). */
+    /** "1": deze app geeft hoesjes uit zijn eigen cache aan de interface (https://app.renes-tools.local/art?u=…). */
+    @JavascriptInterface public String artLokaal() { return "1"; }
+
     @JavascriptInterface public void playerArt(final String url) {
         if (!Art.usable(url)) return;
         new Thread(() -> {

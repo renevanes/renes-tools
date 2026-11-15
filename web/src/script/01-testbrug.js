@@ -963,6 +963,7 @@ if (!window.Android) window.Android = (function(){
       if (src === 'podcast' && this._rd.st.status && this._rd.st.status !== 'stopped') this._rd.st = { status: 'stopped', title: '', last: this._rd.st.station };
       if (src === 'radio' && this._pc.st.ep) { if (this._pc.st.status === 'playing') { this._pc.st.pos = this._pcPos(); this._pc.st.status = 'paused'; this._pcSave(); } this._pc.st.sleepAt = 0; this._pc.st.sleepEnd = false; } },
     playerArt(u){ this._artAsked = (this._artAsked || []).concat([u]); setTimeout(() => onPlayerArt({ url: u, color: '#7a2a1e' }), 30); },
+    artLokaal(){ return this._artLokaal ? '1' : ''; },
     playerNext(src){ return this._step(1, src); }, playerPrev(src){ return this._step(-1, src); },
     _step(d, src){
       if ((src || this._src) === 'radio') { const f = this._rd.favs; if (!f.length) return 'Zet zenders bij je favorieten (☆) om te wisselen';

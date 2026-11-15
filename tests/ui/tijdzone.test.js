@@ -76,13 +76,13 @@ const path = require('path');
     ok(al.v === '07:00' && /Gaat af: woensdag 4 november (om )?07:00/.test(al.next) && al.at === Date.parse('2026-11-04T07:00-05:00'), 'radiowekker 07:00: ' + al.next + ' (niet 01:00)');
 
     // 4. Slaaptimer: "Stopt om" is de tijd uit het veld
-    await pg.evaluate(() => { show('radio'); sleepOpen('radio'); }); await pg.waitForTimeout(100);
+    await pg.evaluate(() => { show('radio'); sleepOpen('radio'); $('#sl-eigen').open = true; }); await pg.waitForTimeout(100);
     const pre = await pg.inputValue('#sl-time');
     await pg.fill('#sl-time', '23:00');
     await pg.evaluate(() => sleepAt()); await pg.waitForTimeout(100);
     const sl = await pg.evaluate(() => ({ toast: $('#toast').textContent, at: Android._rd.st.sleepAt }));
     ok(pre === '22:30', 'slaaptimer: vooraf ingevuld met over een uur in de app-zone (' + pre + ')');
-    ok(sl.toast === '⏾ Stopt om 23:00' && Math.abs(sl.at - Date.parse('2026-11-03T23:00-05:00')) < 6e4, 'slaaptimer: ' + sl.toast + ' (niet 17:00)');
+    ok(sl.toast === 'Slaaptimer: stopt om 23:00' && Math.abs(sl.at - Date.parse('2026-11-03T23:00-05:00')) < 6e4, 'slaaptimer: ' + sl.toast + ' (niet 17:00)');
 
     // 5. Check-in: de dag van een antwoord en "vandaag"
     const ci = await pg.evaluate(() => {

@@ -88,7 +88,8 @@ const assert = require('node:assert');
     await pg.click('#pl-speed'); await pg.waitForTimeout(150);
     await pg.click('#sheet-acts >> text=1,5×'); await pg.waitForTimeout(1200);
     assert.strictEqual((await P()).speed, 1.5);
-    assert.strictEqual(await pg.textContent('#pl-speed'), '1,5×');
+    assert.strictEqual(await pg.textContent('#pl-speed-v'), '1,5×');
+    assert.strictEqual(await pg.getAttribute('#pl-speed', 'aria-label'), 'Afspeelsnelheid 1,5×');
     // pauze
     await pg.click('#pl-pp'); await pg.waitForTimeout(400);
     assert.strictEqual((await P()).st.status, 'paused');
@@ -96,23 +97,40 @@ const assert = require('node:assert');
     await pg.click('#pl-pp'); await pg.waitForTimeout(400);
     assert.strictEqual((await P()).st.status, 'playing');
 
-    // Slaaptimer: minuten
+    // Slaaptimer: het knopje heeft een maantje (pictogram), geen teken dat de telefoon misschien niet kent
+    assert.strictEqual(await pg.getAttribute('#pl-sleep', 'data-icon'), 'moon');
+    assert.strictEqual(await pg.textContent('#pl-sleep'), 'Slaaptimer');
+    // één tik op een tijd start meteen
     await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
     assert.strictEqual(await pg.isVisible('#sleepdlg'), true);
     assert.strictEqual(await pg.isVisible('#sl-end'), true, 'einde aflevering bij podcasts');
-    assert.strictEqual(await pg.textContent('#sl-off'), 'Annuleren');
-    await pg.click('#sl-quick >> text=45 min');
+    assert.strictEqual(await pg.isVisible('#sl-nu'), false, 'nog niets aan: geen stand');
+    assert.strictEqual(await pg.isVisible('#sl-off'), false, 'nog niets aan: geen Uitzetten');
+    assert.strictEqual(await pg.isVisible('#sl-go'), false, 'eigen tijd is ingeklapt');
+    assert.deepStrictEqual(await pg.$$eval('#sl-quick button', x => x.map(b => b.dataset.m)), ['10', '15', '20', '30', '45', '60', '90', '120']);
+    assert.strictEqual(await pg.getAttribute('#sl-quick button[data-m="45"]', 'aria-label'), '45 minuten');
+    await pg.click('#sl-quick button[data-m="45"]'); await pg.waitForTimeout(1300);
+    assert.strictEqual(await pg.isVisible('#sleepdlg'), false, 'na één tik dicht');
+    assert.strictEqual((await P()).lastSleep, 45);
+    assert.match(await pg.textContent('#pl-sleep'), /nog 4[45] min/);
+    assert.match(await pg.getAttribute('#pl-sleep', 'aria-label'), /Slaaptimer: stopt om \d\d:\d\d/);
+    assert.strictEqual(await pg.evaluate(() => $('#pl-sleep').classList.contains('on')), true);
+    assert.strictEqual(await pg.evaluate(() => store.get('sleepMin', 0)), 45, 'onthouden voor de volgende keer');
+    // eigen tijd: per minuut
+    await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
+    assert.match(await pg.textContent('#sl-state'), /Stopt om \d\d:\d\d · nog 4[45] min/);
+    assert.strictEqual(await pg.textContent('#sl-vraag'), 'Of stop na');
+    await pg.click('#sl-eigen summary');
     assert.strictEqual(await pg.textContent('#sl-min'), '45');
     await pg.click('[aria-label="Minuut meer"]'); await pg.click('[aria-label="Minuut meer"]');
     assert.strictEqual(await pg.textContent('#sl-min'), '47', 'per minuut instelbaar');
     await pg.click('#sl-go'); await pg.waitForTimeout(1300);
     assert.strictEqual((await P()).lastSleep, 47);
     assert.match(await pg.textContent('#pl-sleep'), /nog 4[67] min/);
-    assert.match(await pg.textContent('#pl-sleepinfo'), /Stopt om/);
-    assert.strictEqual(await pg.evaluate(() => store.get('sleepMin', 0)), 47, 'onthouden voor de volgende keer');
     // erbij
     await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
     assert.strictEqual(await pg.isVisible('#sl-add'), true);
+    assert.strictEqual(await pg.isVisible('#sl-off'), true);
     assert.strictEqual(await pg.textContent('#sl-off'), 'Uitzetten');
     await pg.click('#sl-add >> text=+15 min'); await pg.waitForTimeout(1300);
     assert.match(await pg.textContent('#pl-sleep'), /nog 1 u 0?[12] min|nog 6[12] min/);
@@ -120,12 +138,17 @@ const assert = require('node:assert');
     await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
     await pg.click('#sl-end'); await pg.waitForTimeout(1300);
     assert.strictEqual((await P()).lastSleep, -1);
-    assert.match(await pg.textContent('#pl-sleep'), /na deze aflevering/);
+    assert.strictEqual(await pg.textContent('#pl-sleep'), 'na aflevering');
+    await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
+    assert.strictEqual(await pg.textContent('#sl-state'), 'Stopt aan het einde van deze aflevering');
+    assert.strictEqual(await pg.isVisible('#sl-add'), false, 'erbij alleen bij een tijd');
+    await pg.click('#sl-sluit'); await pg.waitForTimeout(150);
     // tot tijdstip
     await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
-    await pg.fill('#sl-time', '23:59'); await pg.click('#sleepdlg >> text=Instellen'); await pg.waitForTimeout(1300);
+    await pg.click('#sl-eigen summary');
+    await pg.fill('#sl-time', '23:59'); await pg.click('#sl-at'); await pg.waitForTimeout(1300);
     assert.ok((await P()).lastSleep > 0);
-    assert.match(await pg.textContent('#pl-sleepinfo'), /23:59/);
+    assert.match(await pg.getAttribute('#pl-sleep', 'aria-label'), /23:59/);
     // terug-knop sluit het venster
     await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
     await pg.evaluate(() => goBack());
@@ -136,7 +159,8 @@ const assert = require('node:assert');
     await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
     await pg.click('#sl-off'); await pg.waitForTimeout(1300);
     assert.strictEqual((await P()).lastSleep, 0);
-    assert.strictEqual(await pg.textContent('#pl-sleep'), '⏾ Slaaptimer');
+    assert.strictEqual(await pg.textContent('#pl-sleep'), 'Slaaptimer');
+    assert.strictEqual(await pg.evaluate(() => /⏾/.test($('#player').textContent + $('#sleepdlg').textContent)), false, 'nergens het teken ⏾');
     if (scheme === 'light') await pg.screenshot({ path: __dirname + '/shots/podcasts-light.png', fullPage: true });
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(350);
     assert.strictEqual(await pg.isVisible('#player'), false, 'terug verkleint de speler');
@@ -169,7 +193,7 @@ const assert = require('node:assert');
     assert.ok((await P()).st.pos >= 600000, 'bewaarde plek gebruikt: ' + (await P()).st.pos);
     // Gestopt: slaaptimer kan niet
     await pg.evaluate(() => { Android.podStop(); pcPoll(true); sleepOpen('pod'); });
-    await pg.click('#sl-go'); await pg.waitForTimeout(150);
+    await pg.click('#sl-quick button[data-m="30"]'); await pg.waitForTimeout(150);
     assert.match(await pg.textContent('#toast'), /Start eerst een aflevering/);
     await pg.evaluate(() => sleepClose());
     assert.strictEqual(await pg.isVisible('#plbar'), false, 'gestopt: geen speler meer');

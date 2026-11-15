@@ -9,21 +9,46 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 
 /**
- * Hoesjes en zenderlogo's voor de speler (melding, vergrendelscherm, widget, zwevend venster) en de kleur
- * daarvan. Klein gehouden (hooguit 512 px), in het geheugen en op schijf bewaard. Altijd op een achtergrondthread
- * aanroepen (netwerk).
+ * Hoesjes en zenderlogo's voor de speler (melding, vergrendelscherm, widget, zwevend venster, de interface) en de kleur
+ * daarvan. In het geheugen klein (hooguit 512 px); op schijf hooguit 1024 px, scherp genoeg voor de grote hoes in de
+ * speler: de interface toont dat bestand (MainActivity, /art) in plaats van het plaatje van internet (vaak 3000 px en
+ * een paar MB). Altijd op een achtergrondthread aanroepen (netwerk).
  */
 final class Art {
     private Art() { }
 
-    static final int MAX_PX = 512;
+    static final int MAX_PX = ArtBestand.MAX_PX;
+    static final int DISK_PX = ArtBestand.DISK_PX;
     /** Hooguit 12 plaatjes van ≤ 1 MB in het geheugen (de rest staat op schijf). */
     private static final android.util.LruCache<String, Bitmap> MEM = new android.util.LruCache<>(12);
     private static final java.util.Map<String, Integer> COLORS = java.util.Collections.synchronizedMap(new java.util.HashMap<String, Integer>());
 
     static File dir(Context c) { File d = new File(c.getCacheDir(), "art"); d.mkdirs(); return d; }
 
-    static boolean usable(String url) { return url != null && (url.startsWith("https://") || url.startsWith("http://")) && url.length() < 2000; }
+    /** Het bestand op schijf (hooguit DISK_PX). Een nieuwe naam (.art): de oude .img-bestanden waren maar 512 px. */
+    private static File cacheFile(Context c, String url) { return new File(dir(c), Podcasts.hash(url) + ".art"); }
+
+    /** Het bewaarde bestand voor de interface (zonder netwerk), of null als het er (nog) niet is. */
+    static File file(Context c, String url) {
+        if (!usable(url)) return null;
+        File f = cacheFile(c, norm(url));
+        return f.isFile() && f.length() > 0 ? f : null;
+    }
+
+    private static int sample(int w, int h, int max) { return ArtBestand.sample(w, h, max); }
+
+    /** Bestand van schijf, verkleind tot hooguit MAX_PX (voor het geheugen), of null. */
+    private static Bitmap decodeSmall(File f) {
+        BitmapFactory.Options o = new BitmapFactory.Options();
+        o.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(f.getPath(), o);
+        if (o.outWidth <= 0 || o.outHeight <= 0) return null;
+        int s = sample(o.outWidth, o.outHeight, MAX_PX);
+        o = new BitmapFactory.Options(); o.inSampleSize = s;
+        return small(BitmapFactory.decodeFile(f.getPath(), o), MAX_PX);
+    }
+
+    static boolean usable(String url) { return ArtBestand.usable(url); }
 
     /** Zoals de interface het toont: altijd via https (één sleutel voor hetzelfde plaatje). */
     static String norm(String url) { return url != null && url.startsWith("http://") ? "https://" + url.substring(7) : url; }
@@ -48,9 +73,9 @@ final class Art {
         url = norm(url);
         Bitmap b = MEM.get(url);
         if (b != null) return b;
-        File f = new File(dir(c), Podcasts.hash(url) + ".img");
+        File f = cacheFile(c, url);
         if (!f.isFile()) return null;
-        b = BitmapFactory.decodeFile(f.getPath());
+        b = decodeSmall(f);
         if (b != null) MEM.put(url, b);
         return b;
     }
@@ -78,9 +103,9 @@ final class Art {
     private static Bitmap loadNow(Context c, String url) {
         Bitmap b = MEM.get(url);
         if (b != null) return b;
-        File f = new File(dir(c), Podcasts.hash(url) + ".img");
+        File f = cacheFile(c, url);
         if (f.isFile()) {
-            b = BitmapFactory.decodeFile(f.getPath());
+            b = decodeSmall(f);
             if (b != null) { f.setLastModified(System.currentTimeMillis()); MEM.put(url, b); return b; }
         }
         try {
@@ -92,20 +117,17 @@ final class Art {
             o.inJustDecodeBounds = true;
             BitmapFactory.decodeByteArray(data, 0, data.length, o);
             if (o.outWidth <= 0 || o.outHeight <= 0 || (long) o.outWidth * o.outHeight > 40_000_000L) return null;
-            int s = 1;
-            while (Math.max(o.outWidth, o.outHeight) / (s * 2) >= MAX_PX) s *= 2;
-            o = new BitmapFactory.Options(); o.inSampleSize = s;
-            b = BitmapFactory.decodeByteArray(data, 0, data.length, o);
-            if (b == null) return null;
-            if (Math.max(b.getWidth(), b.getHeight()) > MAX_PX) {
-                float k = MAX_PX / (float) Math.max(b.getWidth(), b.getHeight());
-                b = Bitmap.createScaledBitmap(b, Math.max(1, Math.round(b.getWidth() * k)), Math.max(1, Math.round(b.getHeight() * k)), true);
-            }
+            o = new BitmapFactory.Options(); o.inSampleSize = sample(o.outWidth, o.outHeight, DISK_PX);
+            Bitmap big = small(BitmapFactory.decodeByteArray(data, 0, data.length, o), DISK_PX);
+            data = null; // het origineel (soms een paar MB) niet langer vasthouden
+            if (big == null) return null;
             File tmp = new File(f.getPath() + ".tmp"); // eerst apart schrijven: een half bestand komt nooit in de cache
-            try (FileOutputStream os = new FileOutputStream(tmp)) { b.compress(b.hasAlpha() ? Bitmap.CompressFormat.PNG : Bitmap.CompressFormat.JPEG, 88, os); }
+            try (FileOutputStream os = new FileOutputStream(tmp)) { big.compress(big.hasAlpha() ? Bitmap.CompressFormat.PNG : Bitmap.CompressFormat.JPEG, 85, os); }
             catch (Exception ignored) { }
             if (tmp.length() > 0) tmp.renameTo(f); else tmp.delete();
             trim(c);
+            b = small(big, MAX_PX);
+            if (b != big) big.recycle();
             MEM.put(url, b);
             return b;
         } catch (Throwable e) { return null; }
@@ -163,8 +185,10 @@ final class Art {
         return ArtColor.of(px);
     }
 
-    /** Hooguit 300 plaatjes op schijf; de oudste gaan weg. */
+    /** Hooguit 300 plaatjes op schijf; de oudste gaan weg. Bestanden van het oude formaat (.img, 512 px) meteen. */
     private static void trim(Context c) {
+        File[] oud = dir(c).listFiles((d, n) -> n.endsWith(".img"));
+        if (oud != null) for (File f : oud) f.delete();
         File[] l = dir(c).listFiles();
         if (l == null || l.length <= 300) return;
         final long[] t = new long[l.length]; // eerst de tijden vastleggen: ze kunnen intussen veranderen
