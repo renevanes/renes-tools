@@ -94,7 +94,8 @@ function plArtLokaal(u, opnieuw){ return u && typeof Android.artLokaal === 'func
 const plArtWachters = {};
 function plArtWacht(url, cb){
   let w = plArtWachters[url];
-  if (!w) { w = plArtWachters[url] = { cbs: [], t: setTimeout(() => plArtKlaar(url, false), 10000) }; Android.playerArt(url); } // geen antwoord: het adres zelf
+  // Geen antwoord binnen 16 s (de app wacht zelf hooguit 15 s op internet): het adres zelf
+  if (!w) { w = plArtWachters[url] = { cbs: [], t: setTimeout(() => plArtKlaar(url, false), 16000) }; if (!(plColorAsked[url] && !plColors[url])) Android.playerArt(url); } // loopt de vraag voor de kleur nog, dan komt het antwoord daarvan
   w.cbs.push(cb);
 }
 function plArtKlaar(url, ok){ const w = plArtWachters[url]; if (!w) return; delete plArtWachters[url]; clearTimeout(w.t); w.cbs.forEach(f => f(ok)); }
@@ -221,9 +222,11 @@ function plRender(){
   $('#pl-golive').style.display = sh && !atLive ? '' : 'none';
   // Slaaptimer: de stand staat onder het maantje (nog … min, of na deze aflevering); de tijd zelf in het venster
   const sl = $('#pl-sleep');
-  plSetText($('#pl-sleep-l'), m.sleepAt ? t('nog {duur}', { duur: fmtMin((m.sleepAt - Date.now()) / 6e4) }) : m.sleepEnd ? t('na aflevering') : t('Slaaptimer'));
-  sl.setAttribute('aria-label', m.sleepAt ? t('Slaaptimer: stopt om {tijd}', { tijd: fmtTime(m.sleepAt, { hour: '2-digit', minute: '2-digit' }) })
-    : m.sleepEnd ? t('Slaaptimer: stopt aan het einde van deze aflevering') : t('Slaaptimer'));
+  const rest = m.sleepAt ? Math.max(0, Math.round((m.sleepAt - Date.now()) / 6e4)) : 0;
+  const kort = rest >= 60 ? Math.floor(rest / 60) + ' ' + t('u') + ' ' + String(rest % 60).padStart(2, '0') : rest + ' min'; // kort: past onder het maantje
+  plSetText($('#pl-sleep-l'), m.sleepAt ? t('nog {duur}', { duur: kort }) : m.sleepEnd ? t('na aflevering') : t('Slaaptimer'));
+  sl.setAttribute('aria-label', m.sleepAt ? t('Slaaptimer, nog {duur}, stopt om {tijd}', { duur: fmtMin(rest), tijd: fmtTime(m.sleepAt, { hour: '2-digit', minute: '2-digit' }) })
+    : m.sleepEnd ? t('Slaaptimer, na aflevering: stopt aan het einde van deze aflevering') : t('Slaaptimer'));
   sl.classList.toggle('on', !!(m.sleepAt || m.sleepEnd));
 
   // Extra's

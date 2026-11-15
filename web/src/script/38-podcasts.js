@@ -551,6 +551,7 @@ function sleepOpen(target){
   $('#sl-time').value = String(d.hh).padStart(2, '0') + ':' + String(Math.floor(d.mm / 5) * 5).padStart(2, '0');
   sleepShow();
   $('#sleepdlg').classList.add('on');
+  dialogFocus.sync($('#sl-t')); // focus op de kop: één Enter mag niet meteen een timer starten
 }
 function sleepKies(m){ $('#sl-range').value = m; sleepStart(); }
 function sleepClose(){ $('#sleepdlg').classList.remove('on'); }

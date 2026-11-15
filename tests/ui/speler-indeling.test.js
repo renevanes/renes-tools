@@ -19,12 +19,17 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     const m = await pg.evaluate(() => {
       const r = q => { const e = $(q).getBoundingClientRect(); return { t: e.top, b: e.bottom, l: e.left, r: e.right, w: e.width, h: e.height }; };
       const opts = [...document.querySelectorAll('#pl-opts .pl-opt')].filter(e => getComputedStyle(e).display !== 'none').map(e => { const x = e.getBoundingClientRect(); return { id: e.id, t: Math.round(x.top), b: x.bottom, w: x.width, h: x.height }; });
-      return { vh: innerHeight, vw: innerWidth, art: r('#pl-art'), cover: r('#pl-cover'), ctl: r('.pl-ctl'), title: r('#pl-title'), seek: r('#pl-seek'), opts };
+      const row = $('#pl-opts').getBoundingClientRect(), sc = $('#pl-scroll');
+      return { vh: innerHeight, vw: innerWidth, art: r('#pl-art'), cover: r('#pl-cover'), ctl: r('.pl-ctl'), title: r('#pl-title'), seek: r('#pl-seek'), opts,
+        rowL: row.left, rowR: innerWidth - row.right, schuift: sc.scrollWidth > sc.clientWidth, scrollH: sc.scrollHeight, clientH: sc.clientHeight };
     });
-    const fits = m.vh >= 600;
     const last = Math.max(...m.opts.map(o => o.b));
-    if (fits) assert.ok(last <= m.vh, w + 'x' + h + ': opties passen op het scherm (' + Math.round(last) + ' ≤ ' + m.vh + ')');
-    else assert.ok(last > m.vh - 1 || last <= m.vh, w + 'x' + h + ': heel laag scherm: scrollen mag');
+    if (m.vh >= 600) assert.ok(last <= m.vh, w + 'x' + h + ': opties passen op het scherm (' + Math.round(last) + ' ≤ ' + m.vh + ')');
+    else assert.ok(m.scrollH > m.clientH, w + 'x' + h + ': heel laag scherm: dan scrollen');
+    assert.strictEqual(m.schuift, false, w + 'x' + h + ': niets steekt opzij buiten beeld');
+    assert.ok(Math.abs(m.rowL - m.rowR) < 1.5 && m.rowL >= 0, w + 'x' + h + ': rij opties in het midden (' + Math.round(m.rowL) + '/' + Math.round(m.rowR) + ')');
+    const breedtes = m.opts.map(o => Math.round(o.w));
+    assert.ok(Math.max(...breedtes) - Math.min(...breedtes) <= 1, w + 'x' + h + ': opties even breed ' + breedtes);
     assert.deepStrictEqual(m.opts.map(o => o.id), ['pl-out', 'pl-sleep', 'pl-speed', 'pl-stop'], 'podcast: waar, slaaptimer, snelheid, stop');
     assert.strictEqual(new Set(m.opts.map(o => o.t)).size, 1, w + 'x' + h + ': opties in één rij');
     assert.ok(m.opts.every(o => o.w >= 44 && o.h >= 44), w + 'x' + h + ': opties minstens 44 px');
@@ -78,6 +83,16 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
   });
   assert.deepStrictEqual(r3, { ini: true, icon: true, img: false }, 'niet op te halen: pictogram');
 
+  // Radio met terugspoelen: Naar live staat in dezelfde rij (geen snelheid)
+  await pg.evaluate(() => { plStop(); show('radio'); }); await pg.waitForTimeout(400);
+  await pg.click('#rd-list .srow:nth-child(2) .sbtn'); await pg.waitForTimeout(1300);
+  await pg.click('#plbar-open'); await pg.waitForTimeout(500);
+  await pg.click('#pl-back'); await pg.waitForTimeout(500);
+  const rad = await pg.evaluate(() => [...document.querySelectorAll('#pl-opts .pl-opt')].filter(e => getComputedStyle(e).display !== 'none').map(e => [e.id, Math.round(e.getBoundingClientRect().top)]));
+  assert.deepStrictEqual(rad.map(x => x[0]), ['pl-out', 'pl-sleep', 'pl-golive', 'pl-stop'], 'radio: waar, slaaptimer, naar live, stop');
+  assert.strictEqual(new Set(rad.map(x => x[1])).size, 1, 'radio: één rij');
+  await pg.evaluate(() => { plStop(); }); await pg.waitForTimeout(400);
+
   // Slaaptimervenster: tijden in een raster van vier, alles minstens 44 px, past op een klein scherm
   await pg.setViewportSize({ width: 360, height: 640 });
   await pg.evaluate(() => { window.plArtLokaal = () => ''; Android._artLokaal = false; show('podcasts'); }); await pg.waitForTimeout(300);
@@ -97,8 +112,25 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
   assert.ok(d.boxB <= d.vh, 'venster past op 360×640');
   assert.ok(d.knoppen.every(([, , hh]) => hh >= 44), 'knoppen minstens 44 px hoog: ' + JSON.stringify(d.knoppen.filter(k => k[2] < 44)));
   await pg.screenshot({ path: __dirname + '/shots/slaaptimer-venster.png' });
-  // Engels: geen Nederlandse resten in het venster
+  assert.strictEqual(await pg.evaluate(() => document.activeElement.id), 'sl-t', 'focus op de kop, niet op een tijd');
   await pg.evaluate(() => { sleepClose(); });
+  // Engels: de rij en het venster (speler weer open met een podcast)
+  await pg.evaluate(() => rgSave({ lang: 'en' })); await pg.waitForTimeout(300);
+  await pg.evaluate(() => show('podcasts')); await pg.waitForTimeout(300);
+  await pg.click('#pc-list .srow:nth-child(1) .sbtn'); await pg.waitForTimeout(500);
+  await pg.click('#pd-eps .pcep:nth-child(2) .pcepb'); await pg.waitForTimeout(600);
+  await pg.click('#plbar-open'); await pg.waitForTimeout(600);
+  await pg.click('#pl-sleep'); await pg.waitForTimeout(300);
+  const en = await pg.evaluate(() => ({ lang: document.documentElement.lang,
+    rij: [...document.querySelectorAll('#pl-opts .pl-optl')].filter(e => e.offsetParent).map(e => e.textContent),
+    vraag: $('#sl-vraag').textContent, eigen: $('#sl-eigen summary').textContent, sluit: $('#sl-sluit').textContent, label: $('#pl-speed').getAttribute('aria-label') }));
+  assert.strictEqual(en.lang, 'en');
+  assert.deepStrictEqual(en.rij, ['This phone', 'Sleep timer', 'Speed', 'Stop'], 'Engels: de rij');
+  assert.deepStrictEqual([en.vraag, en.eigen, en.sluit], ['Stop the podcast after', 'Other time', 'Close'], 'Engels: het venster');
+  assert.match(en.label, /^Playback speed /);
+  await pg.click('#sl-quick button[data-m="90"]'); await pg.waitForTimeout(1300);
+  assert.match(await pg.textContent('#pl-sleep-l'), /^(\d+ h \d\d|\d+ min) left$|^\S+ (1 h 2\d|1 h 30)/, 'Engels: kort onder het maantje: ' + await pg.textContent('#pl-sleep-l'));
+  assert.match(await pg.getAttribute('#pl-sleep', 'aria-label'), /^Sleep timer, 1 h (2\d|30) min left, stops at /, 'Engels: naam van de knop');
   console.log('errors', errs);
   await b.close();
 })().catch(e => { console.error(e); process.exit(1); });

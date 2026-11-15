@@ -24,6 +24,22 @@ final class ArtBestand {
         return null;
     }
 
+    /** Welke bestanden weg moeten (oudste eerst): niets zolang er hooguit maxN zijn en samen hooguit maxBytes; anders
+     *  tot er hooguit naarN over zijn en samen hooguit naarBytes. t = laatst gebruikt, len = grootte (zelfde volgorde). */
+    static int[] weg(long[] t, long[] len, int maxN, long maxBytes, int naarN, long naarBytes) {
+        int n = t.length;
+        long total = 0;
+        for (long l : len) total += l;
+        if (n <= maxN && total <= maxBytes) return new int[0];
+        Integer[] idx = new Integer[n];
+        for (int i = 0; i < n; i++) idx[i] = i;
+        java.util.Arrays.sort(idx, (x, y) -> Long.compare(t[x], t[y]));
+        int[] out = new int[n];
+        int k = 0, over = n;
+        for (int j = 0; j < n && (over > naarN || total > naarBytes); j++) { out[k++] = idx[j]; over--; total -= len[idx[j]]; }
+        return java.util.Arrays.copyOf(out, k);
+    }
+
     /** Alleen http(s) en niet absurd lang (zoals Art.usable). */
     static boolean usable(String url) { return url != null && (url.startsWith("https://") || url.startsWith("http://")) && url.length() < 2000; }
 }

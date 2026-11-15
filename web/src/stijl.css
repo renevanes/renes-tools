@@ -669,10 +669,10 @@ body.solo .toolslot .hdr .back{display:none}
 .sl-nu{background:var(--tonal);color:var(--on-tonal);border-radius:12px;padding:12px 14px;margin:0 0 16px}
 .sl-nu[hidden]{display:none}
 .modal-box .sl-nu-t{margin:0;color:var(--on-tonal);font-size:16px;font-weight:600}
-.sl-nu-k{display:flex;gap:8px;margin-top:10px}.sl-nu-k .mini{float:none;margin:0;flex:1 1 0;min-height:44px}
+.sl-nu-k{display:flex;gap:8px;margin-top:10px}.sl-nu-k .mini{float:none;margin:0;flex:1 1 0;min-height:44px;background:var(--hi);color:var(--ink);border:1px solid var(--outline)}
 .modal-box .sl-vraag{margin:0 0 8px;color:var(--ink);font-size:15px;font-weight:600}
 .sl-snel{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.sl-snel button{min-height:52px;padding:6px 2px;border-radius:10px;background:var(--chip);color:var(--on-chip);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.sl-snel button{min-height:52px;padding:6px 2px;border-radius:10px;background:var(--chip);color:var(--on-chip);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
 .sl-snel b{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}.sl-snel small{font-size:11px;opacity:.8}
 .sl-box #sl-end{margin:10px 0 0}
 .sl-eigen{margin-top:12px;border-top:1px solid var(--line)}
@@ -754,7 +754,8 @@ body.pl-open{overflow:hidden}
 .pl-play{width:72px;height:72px;border-radius:50%;background:#fff;color:#121212;display:grid;place-items:center;padding:20px;box-shadow:0 6px 18px rgba(0,0,0,.3);flex:none}
 .pl-play:active{transform:scale(.96)}
 /* Eén rij: waar het speelt, slaaptimer, snelheid (podcast) of naar live (radio), stoppen. Pictogram met de stand eronder. */
-.pl-main>.pl-opts{display:flex;justify-content:space-between;gap:2px;width:calc(100% + 24px);max-width:464px;margin:12px auto 0;align-self:center}
+/* Iets breder dan de rest (12 px de rand in), zodat "Deze telefoon" past; op een breed scherm in het midden */
+.pl-main>.pl-opts{display:flex;justify-content:center;gap:2px;width:auto;align-self:stretch;margin:12px -12px 0}
 .pl-opt{flex:1 1 0;min-width:0;max-width:116px;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px 2px;border-radius:12px;color:#fff;font-size:12px;font-weight:600;line-height:1.2}
 .pl-opt[data-icon]::before{margin:0;width:24px;height:24px}
 .pl-optl{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.86}
@@ -785,7 +786,6 @@ body.pl-open{overflow:hidden}
 .pl-castbar{max-width:560px;margin:4px auto 0;text-align:center;font-weight:700;font-size:14px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.14)}
 .pl-vol{display:flex;align-items:center;gap:10px;max-width:400px;margin:10px auto 0;font-size:16px}
 .pl-vol .plseek{flex:1}
-#pl-out{max-width:62vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* App-code op het slotscherm */
 .lockpad{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:300px}
 .lockdots{font-size:22px;letter-spacing:8px;min-height:32px}

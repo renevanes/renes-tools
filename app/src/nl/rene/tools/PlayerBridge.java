@@ -16,15 +16,20 @@ public class PlayerBridge extends PodcastBridge {
     /** "radio", "podcast" of "" (wat het laatst speelde). */
     @JavascriptInterface public String playerSrc() { return Player.src(ctx); }
 
-    /** Kleur van een hoes; antwoord via onPlayerArt({url, color}) (color "" = geen plaatje). */
     /** "1": deze app geeft hoesjes uit zijn eigen cache aan de interface (https://app.renes-tools.local/art?u=…). */
     @JavascriptInterface public String artLokaal() { return "1"; }
 
+    /** Kleur van een hoes, en de hoes zelf in de cache (voor /art); antwoord altijd via onPlayerArt({url, color})
+     *  (color "" = geen plaatje of het lukte niet). */
     @JavascriptInterface public void playerArt(final String url) {
         if (!Art.usable(url)) return;
         new Thread(() -> {
-            int c = Art.color(ctx, url);
-            try { a.js("onPlayerArt", new JSONObject().put("url", url).put("color", c < 0 ? "" : ArtColor.hex(c)).toString()); } catch (Exception ignored) { }
+            int c = -1;
+            try {
+                if (Art.file(ctx, url) == null) Art.load(ctx, url); // de kleur kan al bekend zijn terwijl het bestand ontbreekt
+                c = Art.color(ctx, url);
+            } catch (Throwable ignored) { }
+            try { a.js("onPlayerArt", new JSONObject().put("url", url).put("color", c < 0 ? "" : ArtColor.hex(c)).toString()); } catch (Throwable ignored) { }
         }, "player-art").start();
     }
 

@@ -62,7 +62,7 @@
 </div>
 <div class="modal" id="sleepdlg" onclick="if(event.target===this)sleepClose()">
   <div class="modal-box sl-box" role="dialog" aria-modal="true" aria-labelledby="sl-t">
-    <h3 id="sl-t">Slaaptimer</h3>
+    <h3 id="sl-t" tabindex="-1">Slaaptimer</h3>
     <!-- Loopt hij al: wanneer hij stopt, met erbij en uitzetten -->
     <div class="sl-nu" id="sl-nu" hidden>
       <p class="sl-nu-t" id="sl-state"></p>
@@ -76,7 +76,7 @@
       <div class="slval"><button class="slpm" onclick="sleepStep(-1)" aria-label="Minuut minder">−</button><span><b id="sl-min">30</b> min</span><button class="slpm" onclick="sleepStep(1)" aria-label="Minuut meer">+</button></div>
       <input type="range" class="pcseek" id="sl-range" min="1" max="240" step="1" value="30" oninput="sleepShow()" aria-label="Aantal minuten">
       <button class="big" id="sl-go" onclick="sleepStart()">Start</button>
-      <div class="sl-om"><label for="sl-time">Of stop om</label><input type="time" id="sl-time" class="search"><button class="big ghost" id="sl-at" onclick="sleepAt()">Instellen</button></div>
+      <div class="sl-om"><label for="sl-time">Of stop om</label><input type="time" id="sl-time" class="search"><button class="big ghost" id="sl-at" onclick="sleepAt()" data-taal="tijd">Instellen</button></div>
     </details>
     <p class="hint sl-hint">De laatste 30 seconden wordt het geluid langzaam zachter.</p>
     <div class="modal-btns"><button class="big ghost" id="sl-off" onclick="sleepOff()">Uitzetten</button><button class="big ghost" id="sl-sluit" onclick="sleepClose()">Sluiten</button></div>

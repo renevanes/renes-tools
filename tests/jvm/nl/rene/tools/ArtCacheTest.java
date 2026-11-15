@@ -37,6 +37,16 @@ public class ArtCacheTest {
         check(!ArtBestand.usable("") && !ArtBestand.usable(null), "leeg adres niet");
         check(ArtBestand.usable("https://voorbeeld.nl/hoes.jpg"), "https wel");
 
+        // Opruimen: niets zolang het binnen de grenzen blijft; anders de oudste, tot onder de lagere grens
+        long[] t = { 50, 10, 40, 20, 30 }, len = { 10, 10, 10, 10, 10 };
+        check(ArtBestand.weg(t, len, 5, 100, 3, 80).length == 0, "binnen de grenzen: niets weg");
+        int[] w = ArtBestand.weg(t, len, 4, 100, 3, 100);
+        check(java.util.Arrays.equals(w, new int[]{ 1, 3 }), "te veel bestanden: de twee oudste weg " + java.util.Arrays.toString(w));
+        long[] groot = { 30_000_000L, 1_000L, 30_000_000L, 1_000L, 5_000_000L };
+        w = ArtBestand.weg(t, groot, 300, 60_000_000L, 250, 45_000_000L);
+        check(java.util.Arrays.equals(w, new int[]{ 1, 3, 4, 2 }), "te veel MB: oudste eerst tot onder 45 MB " + java.util.Arrays.toString(w));
+        check(ArtBestand.weg(new long[0], new long[0], 300, 60_000_000L, 250, 45_000_000L).length == 0, "lege map: niets");
+
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }
     }
 }

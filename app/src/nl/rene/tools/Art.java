@@ -45,7 +45,7 @@ final class Art {
         if (o.outWidth <= 0 || o.outHeight <= 0) return null;
         int s = sample(o.outWidth, o.outHeight, MAX_PX);
         o = new BitmapFactory.Options(); o.inSampleSize = s;
-        return small(BitmapFactory.decodeFile(f.getPath(), o), MAX_PX);
+        return fit(BitmapFactory.decodeFile(f.getPath(), o), MAX_PX);
     }
 
     static boolean usable(String url) { return ArtBestand.usable(url); }
@@ -75,7 +75,7 @@ final class Art {
         if (b != null) return b;
         File f = cacheFile(c, url);
         if (!f.isFile()) return null;
-        b = decodeSmall(f);
+        try { b = decodeSmall(f); } catch (Throwable e) { return null; } // te weinig geheugen: dan maar zonder
         if (b != null) MEM.put(url, b);
         return b;
     }
@@ -101,14 +101,16 @@ final class Art {
     }
 
     private static Bitmap loadNow(Context c, String url) {
-        Bitmap b = MEM.get(url);
-        if (b != null) return b;
         File f = cacheFile(c, url);
-        if (f.isFile()) {
-            b = decodeSmall(f);
-            if (b != null) { f.setLastModified(System.currentTimeMillis()); MEM.put(url, b); return b; }
-        }
+        Bitmap mem = MEM.get(url);
+        if (mem != null && f.isFile()) return mem;
+        // Staat hij wel in het geheugen maar niet (meer) op schijf (opgeruimd, of nog een .img van vroeger): opnieuw
+        // ophalen voor de interface; lukt dat niet, dan blijft het exemplaar uit het geheugen bruikbaar.
         try {
+            if (mem == null && f.isFile()) {
+                Bitmap b = decodeSmall(f);
+                if (b != null) { f.setLastModified(System.currentTimeMillis()); MEM.put(url, b); return b; }
+            }
             java.net.HttpURLConnection h = Podcasts.open(url, 15000);
             byte[] data;
             try (InputStream in = new PodcastFeed.Limited(h.getInputStream(), 8_000_000)) { data = SelfTest.readAll(in); }
@@ -116,21 +118,23 @@ final class Art {
             BitmapFactory.Options o = new BitmapFactory.Options();
             o.inJustDecodeBounds = true;
             BitmapFactory.decodeByteArray(data, 0, data.length, o);
-            if (o.outWidth <= 0 || o.outHeight <= 0 || (long) o.outWidth * o.outHeight > 40_000_000L) return null;
-            o = new BitmapFactory.Options(); o.inSampleSize = sample(o.outWidth, o.outHeight, DISK_PX);
-            Bitmap big = small(BitmapFactory.decodeByteArray(data, 0, data.length, o), DISK_PX);
+            if (o.outWidth <= 0 || o.outHeight <= 0 || (long) o.outWidth * o.outHeight > 40_000_000L) return mem;
+            int s = sample(o.outWidth, o.outHeight, DISK_PX); // eerst uitrekenen: daarna is o een nieuw, leeg object
+            o = new BitmapFactory.Options(); o.inSampleSize = s;
+            Bitmap big = fit(BitmapFactory.decodeByteArray(data, 0, data.length, o), DISK_PX);
             data = null; // het origineel (soms een paar MB) niet langer vasthouden
-            if (big == null) return null;
+            if (big == null) return mem;
             File tmp = new File(f.getPath() + ".tmp"); // eerst apart schrijven: een half bestand komt nooit in de cache
             try (FileOutputStream os = new FileOutputStream(tmp)) { big.compress(big.hasAlpha() ? Bitmap.CompressFormat.PNG : Bitmap.CompressFormat.JPEG, 85, os); }
             catch (Exception ignored) { }
             if (tmp.length() > 0) tmp.renameTo(f); else tmp.delete();
             trim(c);
-            b = small(big, MAX_PX);
+            if (mem != null) { big.recycle(); return mem; }
+            Bitmap b = small(big, MAX_PX);
             if (b != big) big.recycle();
             MEM.put(url, b);
             return b;
-        } catch (Throwable e) { return null; }
+        } catch (Throwable e) { return mem; }
     }
 
     private static final android.util.LruCache<String, Bitmap> SMALL = new android.util.LruCache<>(8);
@@ -143,6 +147,13 @@ final class Art {
         if (s != null) return s;
         s = small(peek(c, url), max);
         if (s != null) SMALL.put(k, s);
+        return s;
+    }
+
+    /** Zoals small, maar het grotere tussenresultaat wordt meteen vrijgegeven (alleen voor een eigen, net gemaakte bitmap). */
+    private static Bitmap fit(Bitmap b, int max) {
+        Bitmap s = small(b, max);
+        if (b != null && s != b) b.recycle();
         return s;
     }
 
@@ -185,16 +196,15 @@ final class Art {
         return ArtColor.of(px);
     }
 
-    /** Hooguit 300 plaatjes op schijf; de oudste gaan weg. Bestanden van het oude formaat (.img, 512 px) meteen. */
+    /** Hooguit 300 plaatjes en 60 MB op schijf; de oudste gaan weg (tot 250 en 45 MB). Bestanden van het oude formaat
+     *  (.img, 512 px) meteen. */
     private static void trim(Context c) {
         File[] oud = dir(c).listFiles((d, n) -> n.endsWith(".img"));
         if (oud != null) for (File f : oud) f.delete();
         File[] l = dir(c).listFiles();
-        if (l == null || l.length <= 300) return;
-        final long[] t = new long[l.length]; // eerst de tijden vastleggen: ze kunnen intussen veranderen
-        Integer[] idx = new Integer[l.length];
-        for (int i = 0; i < l.length; i++) { t[i] = l[i].lastModified(); idx[i] = i; }
-        java.util.Arrays.sort(idx, (x, y) -> Long.compare(t[x], t[y]));
-        for (int i = 0; i < l.length - 250; i++) l[idx[i]].delete();
+        if (l == null) return;
+        final long[] t = new long[l.length], len = new long[l.length]; // eerst vastleggen: het kan intussen veranderen
+        for (int i = 0; i < l.length; i++) { t[i] = l[i].lastModified(); len[i] = l[i].length(); }
+        for (int i : ArtBestand.weg(t, len, 300, 60_000_000L, 250, 45_000_000L)) l[i].delete();
     }
 }

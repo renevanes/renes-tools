@@ -113,7 +113,7 @@ const assert = require('node:assert');
     assert.strictEqual(await pg.isVisible('#sleepdlg'), false, 'na één tik dicht');
     assert.strictEqual((await P()).lastSleep, 45);
     assert.match(await pg.textContent('#pl-sleep'), /nog 4[45] min/);
-    assert.match(await pg.getAttribute('#pl-sleep', 'aria-label'), /Slaaptimer: stopt om \d\d:\d\d/);
+    assert.match(await pg.getAttribute('#pl-sleep', 'aria-label'), /^Slaaptimer, nog 4[45] min, stopt om \d\d:\d\d$/, 'naam begint met wat er staat');
     assert.strictEqual(await pg.evaluate(() => $('#pl-sleep').classList.contains('on')), true);
     assert.strictEqual(await pg.evaluate(() => store.get('sleepMin', 0)), 45, 'onthouden voor de volgende keer');
     // eigen tijd: per minuut
@@ -133,7 +133,7 @@ const assert = require('node:assert');
     assert.strictEqual(await pg.isVisible('#sl-off'), true);
     assert.strictEqual(await pg.textContent('#sl-off'), 'Uitzetten');
     await pg.click('#sl-add >> text=+15 min'); await pg.waitForTimeout(1300);
-    assert.match(await pg.textContent('#pl-sleep'), /nog 1 u 0?[12] min|nog 6[12] min/);
+    assert.match(await pg.textContent('#pl-sleep'), /^nog 1 u 0[12]$/, 'kort onder het maantje');
     // einde aflevering
     await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
     await pg.click('#sl-end'); await pg.waitForTimeout(1300);
