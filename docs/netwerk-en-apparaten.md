@@ -29,3 +29,6 @@ Bluetooth-apparaten, wifi-netwerken en apparaten op je eigen wifi in de buurt, m
 - Eenmalig instellen: ontwikkelaarsopties aan (7× op Buildnummer) en Tools kiezen als **app voor de locatie** (Engels: *Select mock location app*); het scherm ziet zelf of dat gelukt is (`AppOpsManager`) en heeft knoppen naar die instellingen.
 - Plekken bewaren met een naam, en de laatst gebruikte plekken staan onderaan.
 
+
+## Koppelingen (Instellingen)
+Instellingen → Koppelingen (`s-setkopp`, `kpLijst` in `25-instellingen.js`) is één overzicht van de diensten buiten de telefoon: Spotify, Google (Gmail en Drive), Eigen Cloud, de eigen mailserver, AudD en Statistieken. Elke rij toont de stand en gaat naar het scherm waar je de koppeling instelt, test of ontkoppelt. Staat de tool van een koppeling op slot (Extra ontgrendelen), dan staat er alleen "Op slot", zonder account of adres. Nieuwe koppeling = een regel in `kpLijst`. Test: `tests/ui/koppelingen.test.js`.

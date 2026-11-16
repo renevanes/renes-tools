@@ -27,6 +27,7 @@
     <div class="card stlist">
       <button class="strow" id="st-backup" onclick="jumpTo('bkset')"><span class="stic"><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span><span class="sttxt"><b>Backup-map</b><small class="bk-sumwrap" id="st-sum-backup"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="jumpTo('aiset')"><span class="stic"><span class="ui-icon" data-icon="sparkle" aria-hidden="true"></span></span><span class="sttxt"><b>Lokale AI</b><small id="st-sum-ai"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('setkopp')"><span class="stic"><span class="ui-icon" data-icon="plug" aria-hidden="true"></span></span><span class="sttxt"><b>Koppelingen</b><small id="st-sum-kopp"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('setmusic')"><span class="stic"><span class="ui-icon" data-icon="music" aria-hidden="true"></span></span><span class="sttxt"><b>Muziek herkennen</b><small id="st-sum-music"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
     <div class="flabel stgl" role="heading" aria-level="2">Over de app</div>
@@ -277,6 +278,18 @@
       <div id="st-perms"></div>
       <button class="big ghost" style="margin-top:10px" onclick="Android.openAppSettings()">App-instellingen van Android openen</button>
     </div>
+  </main>
+</section>
+
+<section class="screen" id="s-setkopp">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Koppelingen</h1>
+  </div>
+  <main>
+    <p class="hint" style="margin:0 2px 12px">Alle diensten buiten je telefoon waarmee Tools verbinding kan maken, met de stand van nu. Tik op een rij om hem in te stellen, te testen of te ontkoppelen.</p>
+    <div class="card stlist" id="kp-list"></div>
+    <p class="note" id="kp-meer">Zonder koppeling maakt Tools ook verbinding voor wat je zelf aanzet: nieuws, podcasts, radio, kaarten en updates. Wat er precies gaat, staat in het privacybeleid.</p>
   </main>
 </section>
 
