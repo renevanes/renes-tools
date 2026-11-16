@@ -2,7 +2,7 @@
    Een map is de categorie van een document in de versleutelde index (Kluis.java); de keuze op het scherm staat
    alleen in het geheugen en is weg zodra de kluis op slot gaat. Namen van mappen en documenten zijn gegevens:
    altijd esc()/textContent en translate="no". */
-let klEditId=null, klMap='all'; // 'all' | 'fav' | 'none' | 'map:<naam>'
+let klEditId=null, klMap='all'; // 'all' | 'fav' | 'exp' | 'none' | 'map:<naam>'
 function klMapNamen(docs){ return [...new Set(docs.map(d=>d.category||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'nl',{sensitivity:'base'})); }
 function klInMap(d,map){ return map==='all'||(map==='fav'?!!d.favorite:map==='exp'?klVerloopt(d):map==='none'?!d.category:map==='map:'+(d.category||'')); }
 function klKies(map){ klMap=map; klRender(); }
@@ -40,7 +40,7 @@ function klRij(x,metMap,stuk){
   const sub=[]; if(p.soort) sub.push(p.soort); if(p.partij) sub.push(p.partij); if(metMap&&x.category) sub.push(x.category);
   if(p.bedrag) sub.push(fmtMoney(p.bedrag));
   sub.push(p.datum?fmtDate(p.datum,{day:'numeric',month:'short',year:'numeric'}):fmtDate(x.t,{day:'numeric',month:'short',year:'numeric'}));
-  if(!p.soort&&!p.partij) sub.push(klSub(x));
+  sub.push(klSub(x));
   const n=klDagen(x), verloop=n!==null&&n<=KL_BINNENKORT?'<small class="kl-verloop"'+(n<0?' data-oud="1"':'')+'>'+esc(klVerloopTekst(x))+'</small>':'';
   const labels=Array.isArray(p.labels)&&p.labels.length?'<small class="kl-labels">'+p.labels.map(l=>'<span>'+esc(l)+'</span>').join('')+'</small>':'';
   return '<div class="kl-rij" translate="no"><button class="trip" data-id="'+esc(x.id)+'" onclick="klKaart(this.dataset.id)"><span class="stic">'+uiIcon(soort)+'</span><span class="kl-tekst"><b>'+esc(x.name)+'</b><small>'+esc(sub.filter(Boolean).join(' · '))+'</small>'+verloop+labels+(x.note?'<small class="kl-doc-note">'+esc(x.note)+'</small>':'')+(stuk?'<small class="kl-doc-note kl-stuk">'+esc(stuk)+'</small>':'')+'</span></button>'
@@ -54,7 +54,7 @@ function klTeken(docs){
   const inTekst=d=>klT.q===q&&q&&typeof klT.hits[d.id]==='string'?klT.hits[d.id]:'';
   const shown=docs.filter(d=>(!q||inTekst(d)||klZoekTekst(d).some(v=>(v||'').toLowerCase().includes(q)))&&klInMap(d,klMap));
   const naam=(a,b)=>(a.name||'').localeCompare(b.name||'','nl',{sensitivity:'base'});
-  const op=k=>(a,b)=>{const x=klProps(a)[k]||'',y=klProps(b)[k]||'';return x&&y?(k==='datum'?y.localeCompare(x):x.localeCompare(y))||naam(a,b):x?-1:y?1:naam(a,b);}; // zonder datum onderaan
+  const op=k=>(a,b)=>{const w=d=>klProps(d)[k]||(k==='datum'?rgDayKey(d.t||0):''),x=w(a),y=w(b);return x&&y?(k==='datum'?y.localeCompare(x):x.localeCompare(y))||naam(a,b):x?-1:y?1:naam(a,b);}; // zonder datum onderaan
   shown.sort(sort==='name'||sort==='category'?naam:sort==='datum'||sort==='verloopt'?op(sort):(a,b)=>(b.t||0)-(a.t||0));
   $('#kl-empty').style.display=shown.length?'none':'block';
   $('#kl-empty').textContent=docs.length?t('Geen documenten bij deze zoekopdracht of filters.'):t('Nog leeg. Voeg een document, foto of PDF toe, zoals een kopie van je paspoort of een polis.');
@@ -130,7 +130,6 @@ function klKaart(id){
   $('#kl-edit-status').textContent='';$('#kl-lijstkaart').hidden=true;$('#kl-edit').hidden=false;klKaartKop();
   $('#kl-edit').scrollIntoView({block:'start'});$('#kl-edit-title').focus({preventScroll:true});
 }
-function klOrganizeOpen(id){ klRender(); klKaart(id); $('#kl-edit-category').focus(); }
 function klOrganizeClose(){
   klEditId=null;$('#kl-edit').hidden=true;const l=$('#kl-lijstkaart');if(l)l.hidden=false;
   $('#kl-edit-title').textContent='';$('#kl-doc-sub').textContent='';
@@ -145,7 +144,7 @@ function klOrganizeSave(){
   const fout=tekst=>{$('#kl-edit-status').textContent=tekst;toast(tekst);};
   const ruw=$('#kl-edit-bedrag').value.trim(); let bedrag='';
   if(ruw){const n=parseNum(ruw); if(n===null||!isFinite(n)||Math.abs(n)>=1e9){fout(t('Vul een geldig bedrag in, of laat het leeg'));return;} bedrag=(Math.round(n*100)/100).toFixed(2);} // machinale notatie voor de opslag
-  const labels=[...new Set($('#kl-edit-labels').value.split(',').map(l=>l.trim()).filter(Boolean))];
+  const gezien=new Set(), labels=$('#kl-edit-labels').value.split(',').map(l=>l.trim()).filter(l=>{const k=l.toLowerCase();if(!l||gezien.has(k))return false;gezien.add(k);return true;}); // zoals KluisIndex.props: zonder dubbele, hoofdletters tellen niet
   if(labels.length>12||labels.some(l=>l.length>30)){fout(t('Hooguit 12 labels van elk hooguit 30 tekens'));return;}
   const props={soort:$('#kl-edit-soort').value.trim(),partij:$('#kl-edit-partij').value.trim(),datum:$('#kl-edit-datum').value,verloopt:$('#kl-edit-verloopt').value,bedrag,labels};
   const patch={category:$('#kl-edit-category').value.trim(),note:$('#kl-edit-note').value.trim(),favorite:$('#kl-edit-favorite').checked,props};
@@ -153,10 +152,11 @@ function klOrganizeSave(){
   if(err){klRender();if(klEditId)fout(t(err));return;}
   klOrganizeClose();klRender();toast(t('Documentgegevens opgeslagen'));
 }
-/* Terug (pijl of de terugknop van de telefoon) op de documentkaart: eerst terug naar de lijst */
-(function(){ const vorige=window.goBack; window.goBack=function(){ if(current==='kluis'&&klEditId&&!document.querySelector('#modal.on, #sheet.on')&&!(typeof tsZichtbaar==='function'&&tsZichtbaar())){ klOrganizeClose(); return true; } return vorige.apply(this,arguments); }; })();
+/** Terug (pijl of de terugknop van de telefoon) op de documentkaart: eerst terug naar de lijst; goBack roept dit aan. */
+function klKaartTerug(){ if(!klEditId) return false; klOrganizeClose(); return true; }
 function klFavorite(id){
   const d=(klRender.docs||[]).find(d=>d.id===id);if(!d)return;
   let err;try{err=Android.kluisOrganize(id,JSON.stringify({favorite:!d.favorite}));}catch(e){err='Favoriet wijzigen lukt niet';}
-  if(err)toast(err);klRender();
+  if(err)toast(err);else if(klEditId===id)$('#kl-edit-favorite').checked=!d.favorite; // de kaart van dit document staat open
+  klRender();
 }

@@ -60,6 +60,7 @@ public class KluisIndexTest {
                 new JSONObject().put("bedrag", "=1+1"), new JSONObject().put("partij", "a\u0000b"), new JSONObject().put("labels", new JSONArray().put("een label dat veel te lang is om nog een label te zijn"))}) {
             try { KluisIndex.props(fout); throw new AssertionError("toegestaan: " + fout); } catch (IllegalArgumentException expected) { }
         }
+        check(KluisIndex.props(new JSONObject().put("soort", JSONObject.NULL).put("datum", JSONObject.NULL).put("labels", new JSONArray().put(JSONObject.NULL))).length() == 0, "null telt als leeg");
         check(KluisIndex.datum("2028-02-29") && !KluisIndex.datum("2027-02-29") && !KluisIndex.datum("2026-13-01") && !KluisIndex.datum("0026-01-01"), "datums");
         java.util.Set<String> er = new java.util.HashSet<>(java.util.Arrays.asList("dddddddddddd"));
         JSONObject metProps = KluisIndex.clean(new JSONObject().put("id", "dddddddddddd").put("name", "Polis.pdf").put("props", new JSONObject().put("soort", "Polis").put("verloopt", "2031-12-01").put("x", "y")), er::contains);

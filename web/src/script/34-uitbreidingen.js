@@ -146,7 +146,7 @@ function klRender(){
   $('#kl-open').style.display = locked ? 'none' : 'block';
   if (d.error) klMsg(d.error); else if (!locked) klMsg('');
   clearTimeout(klRender.t);
-  if (locked) { klTekstWis(); $('#kl-list').replaceChildren();klRender.docs=[];klOrganizeClose();$('#kl-search').value='';klMap='all';$('#kl-mappen').replaceChildren();$('#kl-maphernoem').hidden=true;return; }
+  if (locked) { if (klEditId) toast(t('De kluis is op slot gegaan; wat je nog niet bewaard had, is niet opgeslagen')); klTekstWis(); $('#kl-list').replaceChildren();klRender.docs=[];klOrganizeClose();$('#kl-search').value='';klMap='all';$('#kl-mappen').replaceChildren();$('#kl-maphernoem').hidden=true;return; }
   $('#kl-lock').hidden = tsEigenUit('kluis'); // uit: hij opent toch meteen weer
   if (d.left) klRender.t = setTimeout(() => { if (current === 'kluis') klRender(); }, d.left + 500); // na 5 minuten vanzelf op slot, ook op het scherm
   const docs=(d.docs||[]).slice();
@@ -180,4 +180,3 @@ function klView(id){
   setTimeout(klaar, 60000);
   Android.kluisView(id);
 }
-function klMenu(id){ klDocSheet(id); } // het menu staat in 49b-kluis-centraal.js (bekijken, bewerken, versies, vergelijken …)

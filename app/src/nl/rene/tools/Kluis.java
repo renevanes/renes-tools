@@ -344,7 +344,8 @@ final class Kluis {
         String category=patch.has("category")?DocumentMeta.category(patch.getString("category")):null;
         String note=patch.has("note")?DocumentMeta.note(patch.getString("note")):null;
         if(patch.has("favorite")&&!(patch.get("favorite") instanceof Boolean))throw new Exception("Ongeldige favorietkeuze");
-        JSONObject props=patch.has("props")?KluisIndex.props(patch.optJSONObject("props")):null;
+        if(patch.has("props")&&!(patch.opt("props") instanceof JSONObject))throw new Exception("Ongeldige documentgegevens");
+        JSONObject props=patch.has("props")?KluisIndex.props(patch.getJSONObject("props")):null;
         JSONArray all=list(c);JSONObject found=null;
         for(int i=0;i<all.length();i++)if(id.equals(all.getJSONObject(i).optString("id")))found=all.getJSONObject(i);
         if(found==null)throw new Exception(Taal.T("Document niet gevonden"));

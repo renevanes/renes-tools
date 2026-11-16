@@ -281,6 +281,7 @@ function navHome(){
   const s = navSluit();
   if (s === 'lock') return false;
   if (s) return true;
+  if (current === 'kluis' && typeof klKaartTerug === 'function' && klKaartTerug()) return true; // documentkaart: eerst terug naar de lijst
   if (current === 'autoed' && typeof aeDirty === 'function' && aeDirty()) {
     askChoice('Wijzigingen opslaan?', 'Je hebt deze automatisering aangepast.', 'Opslaan', 'Weggooien', () => aeSave(() => navGa()), () => { aeRule = null; aeSnap = null; store.set('autoDraft', null); navGa(); });
     return true;
@@ -312,6 +313,7 @@ window.goBack = function(){
   const s = navSluit();
   if (s === 'lock') return false;
   if (s) return true;
+  if (current === 'kluis' && typeof klKaartTerug === 'function' && klKaartTerug()) return true; // documentkaart: eerst terug naar de lijst
   if (current === 'autoed' && typeof aeDirty === 'function' && aeDirty()) {
     askChoice('Wijzigingen opslaan?', 'Je hebt deze automatisering aangepast.', 'Opslaan', 'Weggooien', () => aeSave(), () => { aeRule = null; aeSnap = null; store.set('autoDraft', null); show('auto'); });
     return true;

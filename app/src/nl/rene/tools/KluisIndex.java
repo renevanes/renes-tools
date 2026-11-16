@@ -35,18 +35,18 @@ final class KluisIndex {
     static JSONObject props(JSONObject in) {
         JSONObject out=new JSONObject();if(in==null)return out;
         try{
-            String soort=DocumentMeta.text(in.optString("soort",""),40,false,"Soort");if(!soort.isEmpty())out.put("soort",soort);
-            String partij=DocumentMeta.text(in.optString("partij",""),120,false,"Partij");if(!partij.isEmpty())out.put("partij",partij);
+            String soort=DocumentMeta.text(tekst(in,"soort"),40,false,"Soort");if(!soort.isEmpty())out.put("soort",soort);
+            String partij=DocumentMeta.text(tekst(in,"partij"),120,false,"Partij");if(!partij.isEmpty())out.put("partij",partij);
             for(String k:new String[]{"datum","verloopt"}){
-                String d=in.optString(k,"").trim();if(d.isEmpty())continue;
+                String d=tekst(in,k).trim();if(d.isEmpty())continue;
                 if(!datum(d))throw new IllegalArgumentException("Ongeldige datum");
                 out.put(k,d);
             }
-            String bedrag=in.optString("bedrag","").trim();
+            String bedrag=tekst(in,"bedrag").trim();
             if(!bedrag.isEmpty()){if(!bedrag.matches("-?\\d{1,9}(\\.\\d{1,2})?"))throw new IllegalArgumentException("Ongeldig bedrag");out.put("bedrag",bedrag);}
             JSONArray l=in.optJSONArray("labels"),keep=new JSONArray();java.util.List<String> gezien=new java.util.ArrayList<>();
             if(l!=null)for(int i=0;i<l.length()&&i<MAX_LABELS*4&&keep.length()<MAX_LABELS;i++){
-                String v=DocumentMeta.text(l.optString(i,""),30,false,"Label");
+                String v=DocumentMeta.text(l.isNull(i)?"":l.optString(i,""),30,false,"Label");
                 if(v.isEmpty()||gezien.contains(v.toLowerCase(java.util.Locale.ROOT)))continue;
                 gezien.add(v.toLowerCase(java.util.Locale.ROOT));keep.put(v);
             }
@@ -54,6 +54,8 @@ final class KluisIndex {
         }catch(org.json.JSONException e){throw new IllegalArgumentException("Ongeldige documentgegevens");}
         return out;
     }
+    /** Een veld als tekst; ontbreekt het of is het null, dan leeg. */
+    private static String tekst(JSONObject o,String k){return o.isNull(k)?"":o.optString(k,"");}
     /** Een bestaande kalenderdag, JJJJ-MM-DD (1900 tot en met 2199). */
     static boolean datum(String d){
         if(!d.matches("(19|20|21)\\d{2}-\\d{2}-\\d{2}"))return false;
