@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.209",
+    "date": "2026-11-16",
+    "changes": [
+      "Speler: het belangrijkste past nu op één scherm. De hoes past zich aan de schermhoogte aan, en waar het speelt, slaaptimer, snelheid en stoppen staan in één rij.",
+      "Slaaptimer: het vreemde vakje met kruis is een maantje geworden, en het venster is rustiger: één tik op een tijd start de timer, een eigen tijd staat ingeklapt.",
+      "Speler: hoesjes staan sneller in beeld. Met de nieuwe app komen ze verkleind uit de eigen opslag op de telefoon, in plaats van steeds van internet."
+    ]
+  },
+  {
     "version": "1.208",
     "date": "2026-11-15",
     "changes": [
