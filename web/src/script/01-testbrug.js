@@ -965,6 +965,7 @@ if (!window.Android) window.Android = (function(){
     playerArt(u){ this._artAsked = (this._artAsked || []).concat([u]); setTimeout(() => onPlayerArt({ url: u, color: '#7a2a1e' }), 30); },
     artLokaal(){ return this._artLokaal ? '1' : ''; },
     sleepFade(){ return this._fade == null ? 20 : this._fade; },
+    sleepFadeKeuzes(){ return JSON.stringify({ keuzes: [0, 15, 20, 30, 60, 120, 180], standaard: 20 }); },
     sleepFadeSet(s){ if (![0, 15, 20, 30, 60, 120, 180].includes(+s)) return false; this._fade = +s; return true; },
     playerNext(src){ return this._step(1, src); }, playerPrev(src){ return this._step(-1, src); },
     _step(d, src){

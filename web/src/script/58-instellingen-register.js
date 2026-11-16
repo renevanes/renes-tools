@@ -219,11 +219,11 @@ const SET_REG = [
     get: () => setB(Android.radioTimeshift()), set: v => { const on = setOnV(v); Android.radioSetTimeshift(on); const c = $('#rd-ts'); if (c) c.checked = on; toast(on ? 'Geldt vanaf de volgende zender' : 'Uit; geldt vanaf de volgende zender'); return ''; } },
   { id: 'podcast.snelheid', scr: 'podcasts', type: 'keuze', vals: [['0.8', '0,8×'], ['1', '1× (normaal)'], ['1.1', '1,1×'], ['1.25', '1,25×'], ['1.5', '1,5×'], ['1.75', '1,75×'], ['2', '2×']], label: 'Afspeelsnelheid van podcasts', desc: 'Hoe snel podcasts afspelen.', syn: 'podcast snelheid sneller langzamer afspelen tempo',
     get: () => String(+(rdJson(Android.podState(), {}).speed || 1)), set: v => { Android.podSpeed(String(v)); if (typeof pcSt === 'object' && pcSt) pcSt.speed = +v; if (typeof plIsOpen !== 'undefined' && plIsOpen) plRender(); return ''; } },
-  { id: 'slaaptimer.zachter', scr: 'podcasts', type: 'keuze', vals: [['0', 'Uit'], ['15', '15 seconden'], ['20', '20 seconden (standaard)'], ['30', '30 seconden'], ['60', '1 minuut'], ['120', '2 minuten'], ['180', '3 minuten']],
+  { id: 'slaaptimer.zachter', scr: 'podcasts', type: 'keuze', vals: () => { const l = sleepFadeLijst(); return l.keuzes.map(s => [String(s), sleepFadeNaam(s, l.std)]); },
     label: 'Slaaptimer: aan het eind langzaam zachter', desc: 'Hoe lang het geluid aan het eind van de slaaptimer langzaam zachter wordt, bij podcasts en de radio (in het slaaptimervenster).',
     syn: 'slaaptimer zachter uitfaden fade fade-out langzaam stiller inslapen slapen einde',
     avail: () => typeof Android.sleepFade === 'function' ? '' : 'Dat kan pas met de nieuwe app',
-    get: () => String(typeof Android.sleepFade === 'function' ? +Android.sleepFade() : 20), set: v => Android.sleepFadeSet(+v) ? '' : 'Dat kan niet' },
+    get: () => String(typeof Android.sleepFade === 'function' ? +Android.sleepFade() : sleepFadeLijst().std), set: v => Android.sleepFadeSet(+v) ? '' : 'Dat kan niet' },
   /* Instellingen van Podcasts (scherm podset) */
   { id: 'podcast.na', scr: 'podset', ctl: '#ps-na', type: 'keuze', vals: [['stop', 'Stoppen'], ['hierna', 'Verder met Hierna'], ['podcast', 'Hierna, daarna de volgende van dezelfde podcast'], ['nieuw', 'Hierna, de volgende van de podcast, daarna nieuwe afleveringen']],
     label: 'Podcasts: na een aflevering', desc: 'Wat de speler doet als een aflevering afgelopen is: stoppen, verder met Hierna (de wachtrij), of daarna de volgende van dezelfde podcast of je nieuwe afleveringen.',

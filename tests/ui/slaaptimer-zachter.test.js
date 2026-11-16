@@ -54,6 +54,19 @@ const assert = require('assert');
     assert.strictEqual(await pg.isVisible('#sl-fade'), true, 'ook bij de radio');
     await pg.evaluate(() => sleepClose());
 
+    // App 1.210 (keuze wel, lijst nog niet): alleen wat die app kent, met de standaard van toen (1 minuut)
+    const oud = await pg.evaluate(() => {
+      Android.sleepFadeKeuzes = undefined; Android.sleepFade = () => 60; sleepOpen('pod');
+      const o = [...$('#sl-fade').options].map(x => [x.value, x.textContent]);
+      const r = SET_REG.find(x => x.id === 'slaaptimer.zachter');
+      return { o, v: $('#sl-fade').value, reg: r.vals().map(x => x[0]).join(), get: r.get() };
+    });
+    assert.deepStrictEqual(oud.o.map(x => x[0]), ['0', '15', '30', '60', '120', '180'], 'oudere app: geen 20 s');
+    assert.strictEqual(oud.o[3][1], '1 minuut (standaard)');
+    assert.strictEqual(oud.v, '60');
+    assert.deepStrictEqual([oud.reg, oud.get], ['0,15,30,60,120,180', '60'], 'assistent: zelfde keuzes als de app');
+    await pg.evaluate(() => sleepClose());
+
     // Oudere app zonder deze keuze: de regel blijft weg
     await pg.evaluate(() => { window._fadeBewaard = Android.sleepFade; delete Android.sleepFade; Android.sleepFade = undefined; sleepOpen('pod'); });
     await pg.waitForTimeout(150);

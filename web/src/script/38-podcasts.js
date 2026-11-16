@@ -557,7 +557,13 @@ function sleepOpen(target){
 function sleepKies(m){ $('#sl-range').value = m; sleepStart(); }
 /* Hoe lang het geluid aan het eind langzaam zachter wordt (podcast en radio; ook voor een timer die al loopt).
    Een oudere app zonder deze keuze: de regel blijft weg. */
-const SL_FADE = [0, 15, 20, 30, 60, 120, 180], SL_FADE_STD = 20;
+/* Wat de geïnstalleerde app kent (de interface werkt zichzelf eerder bij dan de app): versie 1.210 nog zonder 20 s,
+   met 1 minuut als standaard. */
+function sleepFadeLijst(){
+  const o = typeof Android.sleepFadeKeuzes === 'function' ? rdJson(Android.sleepFadeKeuzes(), null) : null;
+  return o && Array.isArray(o.keuzes) && o.keuzes.length ? { keuzes: o.keuzes.map(Number), std: +o.standaard } : { keuzes: [0, 15, 30, 60, 120, 180], std: 60 };
+}
+function sleepFadeNaam(s, std){ return s === std ? t('{duur} (standaard)', { duur: sleepFadeTekst(s) }) : sleepFadeTekst(s); }
 function sleepFadeTekst(s){ return s === 0 ? t('Uit') : s < 60 ? t('{n} seconden', { n: s }) : tn(s / 60, '1 minuut', '{n} minuten'); }
 function sleepFadeToon(){
   const kan = typeof Android.sleepFade === 'function';
@@ -565,7 +571,8 @@ function sleepFadeToon(){
   if (!kan) return;
   $('#sl-fade-cast').hidden = !(typeof plCast === 'object' && plCast && plCast.active); // de Chromecast stopt meteen
   const nu = +Android.sleepFade();
-  $('#sl-fade').innerHTML = SL_FADE.map(s => '<option value="' + s + '"' + (s === nu ? ' selected' : '') + '>' + esc(s === SL_FADE_STD ? t('{duur} (standaard)', { duur: sleepFadeTekst(s) }) : sleepFadeTekst(s)) + '</option>').join('');
+  const l = sleepFadeLijst();
+  $('#sl-fade').innerHTML = l.keuzes.map(s => '<option value="' + s + '"' + (s === nu ? ' selected' : '') + '>' + esc(sleepFadeNaam(s, l.std)) + '</option>').join('');
 }
 function sleepFadeKies(v){
   if (!Android.sleepFadeSet(+v)) { toast(t('Dat kan niet')); sleepFadeToon(); return; }
