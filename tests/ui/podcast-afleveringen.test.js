@@ -18,7 +18,9 @@ const { chromium } = require('playwright');
     ok(inView(l) >= 6, 'minstens 6 afleveringen in beeld: ' + inView(l));
     ok(!(await pg.isVisible('#pd-resume')), 'nog niets beluisterd: geen Verder luisteren');
     ok(!(await pg.isVisible('#pd-dl')) && (await pg.getAttribute('#pd-sub', 'aria-pressed')) === 'false' && (await pg.textContent('#pd-sub')).trim() === 'Volgen', 'niet gevolgd: alleen Volgen');
-    ok(/64 afleveringen · nieuwste vandaag/.test(await pg.textContent('#pd-meta')), 'aantal en nieuwste in de kop');
+    // De nieuwste is een uur oud: vlak na middernacht is dat gisteren, dus vergelijken met wat de app zelf van die datum maakt
+    const nieuwste = await pg.evaluate(() => pcDate(pdFeed.items[0].date));
+    ok(await pg.textContent('#pd-meta') === '64 afleveringen · nieuwste ' + nieuwste && /^(vandaag|gisteren)$/.test(nieuwste), 'aantal en nieuwste in de kop (' + nieuwste + ')');
     ok(await pg.evaluate(() => getComputedStyle($('#pd-h1')).opacity === '0'), 'titel in de balk pas bij scrollen (staat al in de kop)');
     ok(await pg.evaluate(() => document.activeElement === $('#pd-title')), 'focus bij openen op de zichtbare titel, niet op de verborgen');
     ok(await pg.evaluate(() => $('#pd-h1').getAttribute('aria-hidden') === 'true' && $('#pd-title').getAttribute('role') === 'heading' && $('#pd-title').getAttribute('aria-level') === '1'), 'titel maar één keer voor de schermlezer (verborgen h1 in de balk niet)');
