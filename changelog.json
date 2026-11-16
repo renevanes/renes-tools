@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.212",
+    "date": "2026-11-16",
+    "changes": [
+      "Slaaptimer: het venster is overzichtelijker. \"Einde van deze aflevering\" staat als gewone keuze onder de tijden, en het zachter worden aan het eind is een rustige regel onderaan."
+    ]
+  },
+  {
     "version": "1.211",
     "date": "2026-11-16",
     "changes": [

@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.211",
-  "versionCode": 212,
+  "versionName": "1.212",
+  "versionCode": 213,
   "nativeLevel": 185,
   "web": "index.html",
-  "webSha256": "0953de56d30899a7789e4cebca2bb802fd33327711b7956a36b58c8eccf00c1a",
+  "webSha256": "d56a4c2a44843c324f27d6829dc6c1e406a14b2c7b0d27e67e95c03e23947412",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "b308baf99b062bb5cb721ba615692308d77ad4840e3453a12959b3b4a7ccfb95",
+  "apkSha256": "043db623f5b656b3363d5322eb5f8c1fd53d7164a96e478266455821e0a65b78",
   "changelog": [
+    {
+      "version": "1.212",
+      "date": "2026-11-16",
+      "changes": [
+        "Slaaptimer: het venster is overzichtelijker. \"Einde van deze aflevering\" staat als gewone keuze onder de tijden, en het zachter worden aan het eind is een rustige regel onderaan."
+      ]
+    },
     {
       "version": "1.211",
       "date": "2026-11-16",
@@ -161,17 +168,7 @@
         "Nieuws: AI Report werkt nu. De site heeft geen nieuwsfeed, dus Tools leest de sitemap en haalt titel, begin en afbeelding van de artikelen zelf op (alleen de artikelen, niet de podcast).",
         "Nieuws: elke site zonder nieuwsfeed maar met een sitemap kan nu ook als bron; Tools zoekt de sitemap vanzelf."
       ]
-    },
-    {
-      "version": "1.192",
-      "date": "2026-11-12",
-      "changes": [
-        "Agenda: dag, week, maand en lijst, met weeknummers. Zoeken kan ook in afspraken van vroeger, en de assistent ook als je dat aanzet. Een Google-agenda gaat via de agenda van je telefoon.",
-        "Nieuws: AI Report (aireport.nl) staat erbij als bron. Tools zoekt de feed zelf op de site; lukt dat niet, vul dan het feedadres in bij de instellingen van de bron.",
-        "Nieuws: tik op een bron voor al zijn instellingen, voor elke bron hetzelfde: naam, adres, welke artikelen, afbeeldingen van de artikelpagina en inloggen.",
-        "Nieuws: inloggen bij een nieuwssite kan nu per bron, in een eigen venster op de echte site (ook met een inloglink uit de e-mail). Daarna lees je artikelen ingelogd in Tools; uitloggen kan ook."
-      ]
     }
   ],
-  "webSig2": "hLaZLbZ4fj0Knowg+FEQz0kvwXMt3H3nEzhbmqF4rz/9hcYD1kiONukUAjVd2C1OaeW8Y7q+WBlGMjudIBlj1ayqQ9s4szHznp0Qcta8Cs3ogIw8pxpxNlAdd7jhCcuBDTbddopwfnChemc0Fl72Gi9Z6t0eerVaCdMUc3+mxdAAQ45oQ7AqIyWoUiT/SggQx8gtOUMAsuW5jeNKcLHJfJJZ7T0CoMEna9YIYgrqWWXVFZkmLMz/gJfJidTOMAW3mbkxyTchexKkYdr/XEE/Gy1OrvjBtagezdch5qYzDCu2feyMqHE0qg14Ri0J9GH7Cdi7JOOrRIVMG0GHn9xjzajopcNg66LhYcGczvkBywqodR/okY8P7Txv3+Nz8DuJ3v8n6joWreX5yoS8WJRojtP6e4zbGtLHJfFisAMhNd096b6PMPHU+nuskSTZWwDoqHI6a/fduTSfx2A78BR3rd5t9yPQsBrYCivS1O69FtOJ3Idy1kZ0iSKLJVgHvFv6"
+  "webSig2": "MR0cwdGs5WSeisjfi0S4IXkhdsraTlKpPXN0T61mtBtQGlRYJuCeOaGvtjQVGi6Iu8oFVugt9JZETAmQIP6C2zGePA2zrJOfwwRrREFRcqmUmV8w3ohUwtlt4BgeUynt0CjrVpjxaC0chYq2heapCcPAJ6KgvSt+p+NgVIiOmygpn+cAVMXcfXA8R2BOcY8WE3hKrvpIgf9zhhTxuz12XewcmO105XIbmQAA07rTFjureqAsE1f+FkJffiumYQOkSVoeIixr5epHsPGAji234R3Q1fv6XgfpRdZqx0/dPJumBmVQZuy2KQTOJR5t/1qOCTkLd4Zuu0ltHdGFtyyhMYCjCe6yQEgmh7gbfusAlk0s7rfAPKgLDUJKkMtm+ZhBh80Cmomg34P9EMpvaYP3Jcq4t1oQGhxHojr7hsoM0uPJ03Q8J+w+IIXIImwzD7r//Yf0ZL+GF9bDg/xC0/OsoBbPzfYA5Qd6LDXD5npsQ0EdseIHnnnKhVuDaqTBOJxl"
 }
