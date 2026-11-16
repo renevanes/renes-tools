@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.213",
-  "versionCode": 214,
+  "versionName": "1.214",
+  "versionCode": 215,
   "nativeLevel": 186,
   "web": "index.html",
-  "webSha256": "abd925da3de2cc0803c9c1a988e1d7d6c2ba7c42bfa03510ea5687e729a9738a",
+  "webSha256": "f446d8bc52ea543bfe6f46c4063e996383a7be46b134fafd986b5bdfba703409",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "0adc6f5722f3fdb421b9da907a0598d36070b5f009619230a2747764339a80c8",
+  "apkSha256": "e4a3490eba28d430312ac7bc6cc580b53d0d520a78534814d70d8022316ed0dc",
   "changelog": [
+    {
+      "version": "1.214",
+      "date": "2026-11-16",
+      "changes": [
+        "Instellingen: nieuw scherm Koppelingen met alle diensten buiten je telefoon (Spotify, Google, Eigen Cloud, mailserver, AudD, statistieken) en hun stand"
+      ]
+    },
     {
       "version": "1.213",
       "date": "2026-11-16",
@@ -157,17 +164,7 @@
       "changes": [
         "Nieuws: inloggen bij AI Report bleef hangen. Per bron kun je nu cookies van andere sites toestaan in het inlogvenster (bij AI Report staat het standaard aan, want het inloggen loopt via beehiiv)."
       ]
-    },
-    {
-      "version": "1.194",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws: lezen op de website (ingelogd) geeft meer ruimte aan het artikel: geen dubbele titelbalk meer, één smalle balk met sluiten, en die balk verdwijnt als je verder leest en komt terug als je terug scrolt.",
-        "Podcasts: nieuw scherm Instellingen (schuifjes rechtsboven). Kies wat er na een aflevering gebeurt: stoppen, verder met Hierna, of daarna de volgende van dezelfde podcast (standaard) of je nieuwe afleveringen.",
-        "Podcasts: met een slaaptimer gaat de speler door met de volgende aflevering tot de timer afloopt (instelbaar); in de speler staat wat er daarna vanzelf komt.",
-        "Podcastspeler stabieler: terugspoelen en herverbinden gaan sneller, snel na elkaar terugspoelen loopt niet meer vast, \"Bufferen…\" is zichtbaar en bij een hapering verbindt hij vanzelf opnieuw op dezelfde plek."
-      ]
     }
   ],
-  "webSig2": "H2nPNMOpiKRAyZvnuMjyfoBgknXcD8Cu8FaiLpoU+OsPDHTdapBCH+2yIKfj4fkQS4iTHQ9C0uVOZP4d+xsloCyIHW9VQ/1Bx4PS9Gal46oix3+rzR8jlnfq010kx6t6LBoKTlQQ62tmGDNwFdbvOmmcDwok4mKs313LX2cLAzdpToDDgh0j+bWN7gZC4sD2kjBnmcsD1er84rkaLis2F/fdpgxsUbpgj9ywejct8ZwEPKKZqBKFpvOQg5EqsJAdSsCZ1FHo5Kmhn8mwaq13U0G3OmA+jaVA6PHiRC4KPHeuvyOr7kpMuzuZSyS1IsAcuHVZ4dmoJfe9ixZ08iIHW6+eMqjTaXDwKLccJvzH/pqEGT8n+4b7NbuHddNlPK20BPlQSMOMeB/CPXs42PVM+RtLt1jorJ/CSnltGAor40BCq09YbJEiAPMk5jlWdzeXUIk+OgM+/4h5Wn4HQYu7jbDWOmlAqSMf0hB+Fb131hVFQcWhWK+823QHB3m+eVsY"
+  "webSig2": "pE5wVeRAqfRZVg84ViWbMVSxwgi2dqFVcTlQ64MQatgHst6shYQDSRXu59+29Bsy9jQK09iE78khzLVdnbjaT7lm2nYbYZv0ni7Q7QGiRqqv03MCABYc/nO5eHgkJCjDTxTivsg//8chxr7f0c+evLmjm2SXOb+Eo6butgB2Ya+ex1bM96UK1MtVTHnPb4SB76SA1UOqYc8jIntHcHWx/3lrx66/7Hv/6DiHvKcSk13KpItoyTNN7p3f2W1n5Cp6fmsaspHfEqyICNK4DWuTU5XpE/CD2yOLDx6QUeaX5fCA7SQdlstZinIaDEJZXCsh89bK14WtYo6rNS4lzoSlPoMyIJdgAKlk3QGuzoOHhts7Mu3pPc/ogMb1cpEc60PqJiczjYsjtjNyn0Pn7Vt4pNXILDHFDn6GbGZpNxRBYgrobpjAcOu32C9nuRU0ZrSxrCEmODMM1BdW7s4GFyq4qhtWDUfpZ9w7zHzGLIJcSKOqbv7eg4SNe7be59IiJkOe"
 }
