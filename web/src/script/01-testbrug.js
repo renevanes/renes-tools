@@ -863,13 +863,20 @@ if (!window.Android) window.Android = (function(){
     signalenStaat(){ const st = this._snInit(), nu = Date.now();
       return JSON.stringify({ bronnen: st.bronnen.map(b => Object.assign({}, b, b.aan !== false ? { volgende: Math.max(nu, (b.lastOk || 0) + b.elke * 3600000) } : {})), inst: st.inst, items: st.items, onleesbaar: false, bezig: st.bezig, perm: st.perm, gedempt: st.gedempt,
         sjablonen: [{ sjabloon: 'aseal', naam: 'A Seal: vrijlatingen', url: 'https://www.aseal.nl/nieuws', woorden: ['vrijlating', 'vrijgelaten'], alleen: 'https://www.aseal.nl/nieuws/' }], elke: [1, 3, 6, 12, 24, 168] }); },
-    signalenBron(j){ const st = this._snInit(), b = JSON.parse(j || '{}');
-      let url = String(b.url || '').trim(); if (url && !url.includes('://')) url = 'https://' + url;
-      if (!/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(url)) return JSON.stringify({ ok: false, fout: t('Vul een https-adres van een website in.') });
-      const net = { id: b.id || '', soort: 'web', naam: String(b.naam || '').trim() || url.replace(/^https:\/\/(www\.)?/, '').split('/')[0], url, woorden: (b.woorden || []).slice(0, 20), alleen: b.alleen || '',
-        elke: [1, 3, 6, 12, 24, 168].includes(b.elke) ? b.elke : 6, wifi: b.wifi !== false, melden: ['overzicht', 'inbox'].includes(b.melden) ? b.melden : 'direct', belangrijk: !!b.belangrijk, aan: b.aan !== false };
+    signalenBron(j){ const st = this._snInit(), b = JSON.parse(j || '{}'), soort = ['agenda', 'nieuws', 'facturen', 'notities', 'taken'].includes(b.soort) ? b.soort : 'web', web = soort === 'web';
+      let url = web ? String(b.url || '').trim() : ''; if (url && !url.includes('://')) url = 'https://' + url;
+      if (web && !/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(url)) return JSON.stringify({ ok: false, fout: t('Vul een https-adres van een website in.') });
+      const woorden = web || soort === 'nieuws' ? (b.woorden || []).slice(0, 20) : [];
+      if (soort === 'nieuws' && !woorden.length) return JSON.stringify({ ok: false, fout: t('Vul minstens één trefwoord in: anders komt al het nieuws in Signalen.') });
+      const std = { agenda: 1, nieuws: 3, notities: 24 }[soort] || 6, namen = { agenda: 'Agenda', nieuws: 'Nieuws', facturen: 'Facturen', notities: 'Notities', taken: 'Taken van Tools' };
+      const net = { id: b.id || '', soort, naam: String(b.naam || '').trim() || (web ? url.replace(/^https:\/\/(www\.)?/, '').split('/')[0] : namen[soort]), url, woorden, alleen: web ? b.alleen || '' : '',
+        elke: [1, 3, 6, 12, 24, 168].includes(b.elke) ? b.elke : std, wifi: (web || soort === 'nieuws') && b.wifi !== false, melden: ['overzicht', 'inbox'].includes(b.melden) ? b.melden : 'direct', belangrijk: !!b.belangrijk, aan: b.aan !== false };
+      if (soort === 'agenda') net.vooraf = [1, 3, 12, 24, 48].includes(b.vooraf) ? b.vooraf : 24;
+      if (soort === 'notities') net.dagen = [3, 7, 14, 30].includes(b.dagen) ? b.dagen : 7;
       const i = st.bronnen.findIndex(x => x.id && x.id === net.id);
-      if (i < 0) { net.id = 's' + (10000000 + st.bronnen.length + 1).toString(16).padStart(8, '0'); st.bronnen.push(net); }
+      if (i < 0) {
+        if (!web && st.bronnen.some(x => x.soort === soort)) return JSON.stringify({ ok: false, fout: t('Die bron staat er al. Je kunt hem aanpassen.') });
+        net.id = 's' + (10000000 + st.bronnen.length + 1).toString(16).padStart(8, '0'); st.bronnen.push(net); }
       else { const oud = st.bronnen[i], zelfde = oud.url === net.url && oud.alleen === net.alleen && JSON.stringify(oud.woorden) === JSON.stringify(net.woorden);
         st.bronnen[i] = zelfde ? Object.assign({}, oud, net) : net; }
       return JSON.stringify({ ok: true, id: net.id }); },
@@ -887,6 +894,7 @@ if (!window.Android) window.Android = (function(){
       return true; },
     signalenProef(j){ const st = this._snInit(), b = JSON.parse(j || '{}'), vouw = s => String(s || '').normalize('NFD').replace(/\p{M}+/gu, '').toLowerCase();
       setTimeout(() => { if (typeof window.onSignalenProef !== 'function') return;
+        if (b.soort && b.soort !== 'web') { const g = b.soort === 'agenda' ? [{ titel: 'Overleg', link: '', dag: rgDayAdd(rgToday(), 1) }] : []; window.onSignalenProef({ ok: true, links: g.length, gevonden: g, intern: true }); return; }
         if (/kapot/.test(b.url || '')) { window.onSignalenProef({ ok: false, fout: t('De website antwoordt met {code}', { code: 404 }) }); return; }
         const g = st.pagina.filter(l => !(b.woorden || []).length || b.woorden.some(w => vouw(l[1] + ' ' + l[0]).includes(vouw(w)))).map(l => ({ titel: l[1], link: l[0], dag: /14 november 2026/.test(l[1]) ? '2026-11-14' : '' }));
         window.onSignalenProef({ ok: true, links: st.pagina.length, gevonden: g }); }, st.traag); },

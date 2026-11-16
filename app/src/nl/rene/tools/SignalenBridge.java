@@ -77,7 +77,7 @@ public class SignalenBridge extends FeatureBridge {
         new Thread(() -> {
             String r = "{\"ok\":false}";
             try {
-                JSONObject o = SignalenScan.scan(ctx, id == null ? "" : id, false, true);
+                JSONObject o = SignalenScan.scan(ctx, id == null ? "" : id, false, true, true);
                 SignalenScan.meld(ctx);
                 r = o.toString();
             } catch (Throwable t) { App.log(ctx, "SIGNAAL", "nu nalopen: " + t.getClass().getSimpleName()); }

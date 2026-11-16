@@ -767,9 +767,9 @@ Zoeken kijkt in alle afspraken, ook van jaren geleden.
 
 ## Signalen (bronnen volgen, één inbox, melden per bron)
 Signalen (schermen `s-signalen`, `s-snitem`, `s-snset`, `s-snbron`; `web/src/script/79-signalen.js`, `Signalen*.java`) loopt
-bronnen na op iets nieuws en zet dat in één inbox. Eerste soort bron: een webpagina met trefwoorden (sjabloon: A Seal).
-Wens van Rene: een centrale plek die later ook naar Agenda, Nieuws, Facturen, notities en taken uit de mail kijkt
-(issue "Signalen: vervolg").
+bronnen na op iets nieuws en zet dat in één inbox. Soorten (`Signalen.SOORTEN`): een webpagina met trefwoorden (`web`,
+sjabloon: A Seal) en bronnen uit Tools zelf (`agenda`, `nieuws`, `facturen`, `notities`, `taken`; van elk hooguit één).
+Wens van Rene: een centrale plek voor gebeurtenissen; taken uit de mail volgen nog (issue "Signalen: vervolg").
 - **Ophalen alleen in Java**, via `Nieuws.haal` (alleen https naar openbare sites, begrensd in tijd en grootte, ook bij
   doorverwijzingen); geen dienst ertussen. `SignalenScan` haalt de pagina van de bron, `Signalen.links` haalt er de links
   naar dezelfde site uit (één doorloop zonder zoekpatronen, begrensd; niet uit script, style of commentaar) en
@@ -791,10 +791,24 @@ Wens van Rene: een centrale plek die later ook naar Agenda, Nieuws, Facturen, no
   woorden, nooit adressen, titels of trefwoorden (`SignalenTest` bewaakt dat).
 - **Acties** vanuit een bericht blijven binnen de eigen tool (ook als losse app): in de agenda zetten gaat via
   `Android.agendaBewaar` (de standaardagenda), een notitie via `notesGet`/`notesSaveNow`, voorlezen via `spText`.
+  "Open in …" bij een bericht uit Tools gaat via `openTool` in een eigen hulpfunctie (`snNaarTool`).
 - **Opslag**: `signalen/` (`bronnen.json` met de instellingen, `items.json`, `toestand.json`) gaat mee in "Alle
   appgegevens", niet in de Android-backup. De instellingen staan (nog) niet in het register voor de assistent (`SET_EXCLUDE`).
-- **Nieuwe soort bron** (Agenda, Nieuws, Facturen, mail): een `soort` naast `web` in `Signalen.normaal`, een eigen
-  scan die items aanlevert via `Signalen.voegToe`, en de velden op `s-snbron`; melden, later en de inbox werken dan vanzelf.
+- **Bronnen uit Tools zelf** (`SignalenIntern`, zuiver per soort, `kandidaten` haalt de gegevens erbij): Agenda (afspraken
+  die binnen `vooraf` uur beginnen, uit `AgendaStore` en de agenda's van de telefoon die in Agenda aan staan), Nieuws
+  (artikelen uit `Nieuws.lijst` waarvan titel of begin bij de trefwoorden past; de scan roept eerst `Nieuws.ververs` aan,
+  dus het nieuws wordt dan ook op de achtergrond opgehaald), Facturen (wat de afgelopen 30 dagen in het dossier kwam),
+  Notities (lijsten met open punten die `dagen` dagen niet zijn aangeraakt) en taken (de backup, facturen ophalen en
+  Toiletten bijwerken die de afgelopen 3 dagen mislukten). Signalen leest alleen; het verandert in die tools niets.
+  Alleen `web` en `nieuws` hebben internet nodig (`Signalen.lokaal`): de andere lopen mee in de taak zonder internet.
+  De eerste keer melden Agenda en taken wel, de rest niet (`Signalen.eersteStil`). `gezien` bevat bij deze soorten de
+  id's van de berichten.
+- **Een tool op slot** (Extra ontgrendelen): een bericht heeft `tool` (`Signalen.tool`). Staat die tool of Signalen zelf
+  op slot, dan staat er geen inhoud in de melding (`ToolSlot.aan`) en toont de inbox het bericht zonder inhoud tot de
+  tool ontgrendeld is (`snDicht`, `tsVerborgen`). Een nieuw scherm dat berichten toont, houdt zich daaraan.
+- **Nieuwe soort bron** (bijv. mail): een naam in `Signalen.SOORTEN` met zijn regels in `normaal`, `lokaal`, `eersteStil`
+  en `tool`, een functie in `SignalenIntern` die berichten aanlevert, de velden op `s-snbron` (`snbRender`), `SN_SOORTEN`,
+  de testbrug en tests; gezien, melden, later en de inbox werken dan vanzelf.
 - Tests: `tests/ui/signalen.test.js`; Java: `SignalenTest`.
 
 ## Nieuws (feeds lezen)
