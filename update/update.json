@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.209",
-  "versionCode": 210,
-  "nativeLevel": 183,
+  "versionName": "1.210",
+  "versionCode": 211,
+  "nativeLevel": 184,
   "web": "index.html",
-  "webSha256": "7e454125fd9a2c99edd7edf8751b7ae8dee6eb75552d48f1235b0e2cf7165d46",
+  "webSha256": "625f1063073612c187e4a58b5048b87a18eb9f65cd00d1a3782b73c18375a4cc",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "9b1f53f8d640293012d3e7d7dcddd1d4e88e785586fdd42c9ddfb1a816a7093e",
+  "apkSha256": "68f6a1dc80ad00625b11e484936a2e62b092ae0ef284f81c608da8ad0189833c",
   "changelog": [
+    {
+      "version": "1.210",
+      "date": "2026-11-16",
+      "changes": [
+        "Slaaptimer: het langzaam zachter worden aan het eind is korter (standaard 1 minuut in plaats van 3) en zelf in te stellen in het slaaptimervenster: uit, 15 of 30 seconden, of 1, 2 of 3 minuten."
+      ]
+    },
     {
       "version": "1.209",
       "date": "2026-11-16",
@@ -164,14 +171,7 @@
       "changes": [
         "ID-kopie afschermen: kies bij Foto of PDF kiezen bovenaan Uit Stamgegevens; je eigen paspoort, ID-kaart of rijbewijs staat bovenaan en komt met een voorstel voor de zwarte vlakken klaar te staan"
       ]
-    },
-    {
-      "version": "1.190",
-      "date": "2026-11-11",
-      "changes": [
-        "Bestand kiezen: bij PDF openen, plaatjes, PDF bewerken en splitsen, e-mail naar PDF, ID-kopie, boek toevoegen, factuur toevoegen, document toevoegen en vergelijken kies je nu eerst waar het bestand vandaan komt: de documentenkluis, Gemaakt, het facturendossier of je telefoon"
-      ]
     }
   ],
-  "webSig2": "o/Fr2gi6IX8e0VJXs65kQd1i/h5KlyQOWQ23Wn8wVI/c0ovT00V5x3a0qWEkjAZqXytmvL77vz8fUH+VigTuW1jShdFa6Kslq64nePZ7ROn67DcuDDwJ9hlc3IC+CQqJelSgJA3rUX7GzVjNYjhGE1GOm0Np6M7mFF4Ol2skIYShQ1UyRuNb42LTHqCNe4mNLRiFr1o/Mx4C75PXzTI5XU5I0XXW256K8Xhw8NJRtvgOzI3y3XOYA29gVk6IwtLYjdHKDQXUN1X0a9g8ilIW+J2guo94AftQTPq0zZrqzeYyqwhYKf1wC80qKwpk/Yhi8AuREXNDHt+iSudJSP5SpmuC7QWfZriRWYgUHlBc7rRMaesE37sy5KdPYTv7+7AYU3JAoDFpxlWfmR6k+8g9HnRgjDzL0rXj9uStiCi61hP+6Wn0JLSe85iLSPLJG+oYDGkHJEHTNZHMw0rhK033YoGpVDWIF3yJdth2TAKikh8WPKuwVrUe7UufYJ4bclGT"
+  "webSig2": "at3/MEPVeHvXkx8jW/5ghjxKZoKmqs5WEkBCyNiH47az45rBJ4QQmDELMcydT0gnCpFp6TKScVWuGXhhASteMnMihIwvdbhDm0kqnd5PGLlZjAStxjX4kNcKjoKRlKrISIjMOWRYRvYoWX7kEPqzb4cF2gsiwfOHjHLAIBDvBegRB/GuukmHCWT5sm4YurC+LKDUBEDJ271Mb87IOGKGk+i3woKeUz+c1pHY1iXg52sbD0sRXtzsRlUFkcXCiaGgMbN/ImAb0Q6wWawm5JU5RzdS6B6h2kJpmgy7cnuBKVUWn5Imt3VqxJHcQmuQbxl61boMO1iRIBbNyJfhSZKmyFSJKVNObnA97t3jC0BXcgHfALNSn+4W7ZiFOb25z7f9Re8tqdLJ3Ziw6Qci10AhK3SXaYCtW3EQ4DbcdekEjGP4ZUSwGMsGyvQoeGi2T/inCf/S8OFfKM9OuJHG1EaoI+Jekd8/GaU9CdPu8gdadtNaRtVhHqUgM7hGm4jRbihM"
 }
