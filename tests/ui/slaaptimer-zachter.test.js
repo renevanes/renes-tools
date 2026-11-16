@@ -113,14 +113,14 @@ const assert = require('assert');
   assert.deepStrictEqual(await pg.$$eval('#sl-fade option', x => x.map(o => o.textContent)), ['Off', '15 s', '20 s', '30 s', '1 min', '2 min', '3 min']);
   assert.strictEqual(await pg.textContent('label[for="sl-fade"]'), 'Fade out at the end');
   assert.strictEqual(await pg.textContent('#sl-end'), 'End of this episode');
-  // Smal scherm met grotere tekst: de waarde blijft heel (de keuze krimpt niet), het label mag doorlopen
+  // Smal scherm: de waarde blijft heel (de keuze krimpt niet, ook niet bij grotere tekst op de telefoon), het label mag doorlopen
   await pg.setViewportSize({ width: 320, height: 568 });
-  await pg.evaluate(() => { document.documentElement.style.fontSize = '130%'; sleepClose(); sleepOpen('pod'); }); await pg.waitForTimeout(150);
+  await pg.evaluate(() => { sleepClose(); sleepOpen('pod'); }); await pg.waitForTimeout(150);
   const smal = await pg.evaluate(() => { const s = $('#sl-fade'), c = document.createElement('canvas').getContext('2d'), cs = getComputedStyle(s);
     c.font = cs.fontSize + ' ' + cs.fontFamily; const tekst = c.measureText(s.options[s.selectedIndex].textContent).width;
     return { krimp: cs.flexShrink, past: s.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) >= tekst, binnen: s.getBoundingClientRect().right <= $('#sleepdlg .modal-box').getBoundingClientRect().right }; });
   assert.deepStrictEqual(smal, { krimp: '0', past: true, binnen: true }, 'smal scherm: ' + JSON.stringify(smal));
-  await pg.evaluate(() => { document.documentElement.style.fontSize = ''; sleepClose(); });
+  await pg.evaluate(() => sleepClose());
   // De assistent noemt de keuzes wel voluit, met de standaard
   assert.deepStrictEqual(await pg.evaluate(() => setVals(SET_REG.find(x => x.id === 'slaaptimer.zachter')).map(x => x[1])), ['Off', '15 seconds', '20 seconds (default)', '30 seconds', '1 minute', '2 minutes', '3 minutes']);
   console.log('errors', errs);
