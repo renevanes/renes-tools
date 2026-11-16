@@ -674,7 +674,8 @@ body.solo .toolslot .hdr .back{display:none}
 .sl-snel{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .sl-snel button{min-height:52px;padding:6px 2px;border-radius:10px;background:var(--chip);color:var(--on-chip);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
 .sl-snel b{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}.sl-snel small{font-size:11px;opacity:.8}
-.sl-box #sl-end{margin:10px 0 0}
+/* Einde van de aflevering: een keuze zoals de tijden erboven, niet een tweede blok in de kleur van de stand */
+.sl-eind{display:block;width:100%;min-height:48px;margin:8px 0 0;padding:8px 12px;border-radius:10px;background:var(--chip);color:var(--on-chip);border:1px solid var(--line);font:inherit;font-size:15px;font-weight:600;line-height:1.25}
 .sl-eigen{margin-top:12px;border-top:1px solid var(--line)}
 .sl-eigen summary{min-height:48px;display:flex;align-items:center;cursor:pointer;color:var(--ink);font-weight:600;list-style:none}
 .sl-eigen summary::-webkit-details-marker{display:none}
@@ -688,9 +689,12 @@ body.solo .toolslot .hdr .back{display:none}
 .sl-eigen #sl-go{margin:10px 0 0}
 .sl-om{display:flex;align-items:center;gap:8px;margin-top:12px}.sl-om label{flex:none;color:var(--ink)}
 .sl-om input{flex:1;min-width:0;margin:0}.sl-om .big{flex:none;width:auto;margin:0;padding:0 14px;min-height:44px}
-.sl-fade{margin-top:14px}.sl-fade[hidden]{display:none}
-.sl-fade label{display:block;margin:0 0 6px;color:var(--ink);font-size:14px;font-weight:600}.sl-fade .sel{width:100%;margin:0;min-height:44px}
-.modal-box .sl-fade .hint{margin:6px 0 0;font-size:13px}
+/* Zachter worden: een rustige instellingsregel onder Andere tijd (klein, gedempt, zonder kader) */
+.sl-fade{border-top:1px solid var(--line)}.sl-fade[hidden]{display:none}
+.sl-fade-r{display:flex;align-items:center;gap:8px;min-height:56px}
+.sl-fade label{flex:1 1 auto;min-width:0;margin:0;color:var(--muted);font-size:14px;font-weight:400}
+.sl-box .sl-fade .sel{flex:0 1 auto;min-width:0;max-width:62%;width:auto;margin:0;min-height:44px;padding:6px 10px;border:0;border-radius:10px;background-color:var(--card);color:var(--ink);font-size:14px;text-overflow:ellipsis}
+.modal-box .sl-fade .hint{margin:0 0 8px;font-size:13px}
 #sleepdlg .modal-btns{margin-top:12px}
 /* ---------- Speler (radio en podcasts): mini-balk en volledig scherm, altijd donker met de kleur van de hoes ---------- */
 .plbar{position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:50;display:flex;align-items:center;gap:2px;padding:6px 4px 8px 6px;border-radius:12px;background:var(--pl,#2A3A4F);color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.3);touch-action:none;max-width:560px;margin:0 auto;overflow:hidden;transition:background-color .6s}

@@ -70,7 +70,7 @@
     </div>
     <p class="sl-vraag" id="sl-vraag">Stop na</p>
     <div class="sl-snel" id="sl-quick" role="group" aria-labelledby="sl-vraag"></div>
-    <button class="big tonal" id="sl-end" onclick="sleepEnd()">Aan het einde van deze aflevering</button>
+    <button class="sl-eind" id="sl-end" onclick="sleepEnd()">Einde van deze aflevering</button>
     <details class="sl-eigen" id="sl-eigen">
       <summary>Andere tijd</summary>
       <div class="slval"><button class="slpm" onclick="sleepStep(-1)" aria-label="Minuut minder">−</button><span><b id="sl-min">30</b> min</span><button class="slpm" onclick="sleepStep(1)" aria-label="Minuut meer">+</button></div>
@@ -78,7 +78,8 @@
       <button class="big" id="sl-go" onclick="sleepStart()">Start</button>
       <div class="sl-om"><label for="sl-time">Of stop om</label><input type="time" id="sl-time" class="search"><button class="big ghost" id="sl-at" onclick="sleepAt()" data-taal="tijd">Instellen</button></div>
     </details>
-    <div class="sl-fade" id="sl-fade-rij"><label for="sl-fade">Aan het eind langzaam zachter</label><select class="sel" id="sl-fade" onchange="sleepFadeKies(this.value)"></select><p class="hint" id="sl-fade-cast" hidden>Op een Chromecast stopt hij zonder zachter te worden.</p></div>
+    <!-- Een vaste instelling, geen keuze per timer: bewust rustig, onderaan -->
+    <div class="sl-fade" id="sl-fade-rij"><div class="sl-fade-r"><label for="sl-fade">Aan het eind zachter</label><select class="sel" id="sl-fade" onchange="sleepFadeKies(this.value)"></select></div><p class="hint" id="sl-fade-cast" hidden>Op een Chromecast stopt hij zonder zachter te worden.</p></div>
     <div class="modal-btns"><button class="big ghost" id="sl-off" onclick="sleepOff()">Uitzetten</button><button class="big ghost" id="sl-sluit" onclick="sleepClose()">Sluiten</button></div>
   </div>
 </div>

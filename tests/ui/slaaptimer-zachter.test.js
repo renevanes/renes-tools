@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const assert = require('assert');
-// Slaaptimer: hoe lang het geluid aan het eind langzaam zachter wordt, is in te stellen (standaard 20 seconden).
+// Slaaptimer: hoe lang het geluid aan het eind langzaam zachter wordt, is in te stellen (standaard 20 seconden),
+// als rustige regel onderin het venster (kort, gedempt, zonder kader).
 (async () => {
   const b = await chromium.launch();
   const errs = [];
@@ -14,13 +15,29 @@ const assert = require('assert');
     await pg.click('#plbar-open'); await pg.waitForTimeout(500);
     await pg.click('#pl-sleep'); await pg.waitForTimeout(200);
 
-    // Zichtbaar, met de vaste keuzes; standaard 20 seconden
+    // Zichtbaar, met de vaste keuzes (kort geschreven); standaard 20 seconden
     assert.strictEqual(await pg.isVisible('#sl-fade'), true, 'keuze staat in het venster');
     const opts = await pg.$$eval('#sl-fade option', x => x.map(o => [o.value, o.textContent]));
     assert.deepStrictEqual(opts.map(o => o[0]), ['0', '15', '20', '30', '60', '120', '180']);
-    assert.deepStrictEqual(opts.map(o => o[1]), ['Uit', '15 seconden', '20 seconden (standaard)', '30 seconden', '1 minuut', '2 minuten', '3 minuten']);
+    assert.deepStrictEqual(opts.map(o => o[1]), ['Uit', '15 sec', '20 sec', '30 sec', '1 min', '2 min', '3 min']);
     assert.strictEqual(await pg.inputValue('#sl-fade'), '20', 'standaard 20 seconden');
-    assert.strictEqual(await pg.textContent('label[for="sl-fade"]'), 'Aan het eind langzaam zachter');
+    assert.strictEqual(await pg.textContent('label[for="sl-fade"]'), 'Aan het eind zachter');
+    // Minder opvallend: onderaan (onder Andere tijd), één regel, kleine gedempte tekst, keuze zonder kader
+    const stil = await pg.evaluate(() => {
+      const lab = $('label[for="sl-fade"]'), sel = $('#sl-fade'), rij = $('.sl-fade-r'), cs = getComputedStyle(lab), ss = getComputedStyle(sel);
+      const muted = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim(), probe = document.createElement('i');
+      probe.style.color = muted; document.body.append(probe); const mutedRgb = getComputedStyle(probe).color; probe.remove();
+      return { onder: $('#sl-eigen').getBoundingClientRect().bottom <= rij.getBoundingClientRect().top + 1,
+        regel: Math.abs(lab.getBoundingClientRect().top + lab.offsetHeight / 2 - (sel.getBoundingClientRect().top + sel.offsetHeight / 2)) < 4 && lab.getClientRects().length === 1 && lab.offsetHeight < 30,
+        klein: parseFloat(cs.fontSize) <= 14 && +cs.fontWeight < 600, gedempt: cs.color === mutedRgb,
+        kader: ss.borderTopWidth, hoogte: rij.offsetHeight };
+    });
+    assert.deepStrictEqual(stil, { onder: true, regel: true, klein: true, gedempt: true, kader: '0px', hoogte: stil.hoogte }, 'rustige regel: ' + JSON.stringify(stil));
+    assert.ok(stil.hoogte >= 44 && stil.hoogte <= 56, 'één regel, wel 44 px om op te tikken: ' + stil.hoogte);
+    // Einde van de aflevering: een keuze zoals de tijden, op één regel, geen tweede gekleurd blok
+    const eind = await pg.evaluate(() => { const e = $('#sl-end'), q = $('#sl-quick button'); return { big: e.classList.contains('big'), bg: getComputedStyle(e).backgroundColor === getComputedStyle(q).backgroundColor, h: e.offsetHeight, tekst: e.textContent }; });
+    assert.deepStrictEqual([eind.big, eind.bg, eind.tekst], [false, true, 'Einde van deze aflevering'], 'einde aflevering als keuze');
+    assert.ok(eind.h >= 44 && eind.h < 56, 'op één regel: ' + eind.h);
     assert.strictEqual(await pg.evaluate(() => /30 seconden wordt/.test($('#sleepdlg').textContent)), false, 'oude vaste tekst weg');
 
     // Kiezen: bewaard in de app, met een bevestiging; ook na opnieuw openen
@@ -62,7 +79,7 @@ const assert = require('assert');
       return { o, v: $('#sl-fade').value, reg: r.vals().map(x => x[0]).join(), get: r.get() };
     });
     assert.deepStrictEqual(oud.o.map(x => x[0]), ['0', '15', '30', '60', '120', '180'], 'oudere app: geen 20 s');
-    assert.strictEqual(oud.o[3][1], '1 minuut (standaard)');
+    assert.strictEqual(oud.o[3][1], '1 min');
     assert.strictEqual(oud.v, '60');
     assert.deepStrictEqual([oud.reg, oud.get], ['0,15,30,60,120,180', '60'], 'assistent: zelfde keuzes als de app');
     await pg.evaluate(() => sleepClose());
@@ -80,8 +97,11 @@ const assert = require('assert');
   await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
   await pg.evaluate(() => rgSave({ lang: 'en' })); await pg.waitForTimeout(300);
   await pg.evaluate(() => sleepOpen('pod')); await pg.waitForTimeout(300);
-  assert.deepStrictEqual(await pg.$$eval('#sl-fade option', x => x.map(o => o.textContent)), ['Off', '15 seconds', '20 seconds (default)', '30 seconds', '1 minute', '2 minutes', '3 minutes']);
+  assert.deepStrictEqual(await pg.$$eval('#sl-fade option', x => x.map(o => o.textContent)), ['Off', '15 sec', '20 sec', '30 sec', '1 min', '2 min', '3 min']);
   assert.strictEqual(await pg.textContent('label[for="sl-fade"]'), 'Fade out at the end');
+  assert.strictEqual(await pg.textContent('#sl-end'), 'End of this episode');
+  // De assistent noemt de keuzes wel voluit, met de standaard
+  assert.deepStrictEqual(await pg.evaluate(() => setVals(SET_REG.find(x => x.id === 'slaaptimer.zachter')).map(x => x[1])), ['Off', '15 seconds', '20 seconds (default)', '30 seconds', '1 minute', '2 minutes', '3 minutes']);
   console.log('errors', errs);
   await b.close();
 })().catch(e => { console.error(e); process.exit(1); });

@@ -565,6 +565,9 @@ function sleepFadeLijst(){
 }
 function sleepFadeNaam(s, std){ return s === std ? t('{duur} (standaard)', { duur: sleepFadeTekst(s) }) : sleepFadeTekst(s); }
 function sleepFadeTekst(s){ return s === 0 ? t('Uit') : s < 60 ? t('{n} seconden', { n: s }) : tn(s / 60, '1 minuut', '{n} minuten'); }
+/* Kort, voor de rustige regel onderin het venster (past op één regel, ook op een klein scherm). De assistent noemt de
+   standaard wel (sleepFadeNaam). */
+function sleepFadeKort(s){ return s === 0 ? t('Uit') : s < 60 ? t('{n} sec', { n: s }) : t('{n} min', { n: s / 60 }); }
 function sleepFadeToon(){
   const kan = typeof Android.sleepFade === 'function';
   $('#sl-fade-rij').hidden = !kan;
@@ -572,7 +575,7 @@ function sleepFadeToon(){
   $('#sl-fade-cast').hidden = !(typeof plCast === 'object' && plCast && plCast.active); // de Chromecast stopt meteen
   const nu = +Android.sleepFade();
   const l = sleepFadeLijst();
-  $('#sl-fade').innerHTML = l.keuzes.map(s => '<option value="' + s + '"' + (s === nu ? ' selected' : '') + '>' + esc(sleepFadeNaam(s, l.std)) + '</option>').join('');
+  $('#sl-fade').innerHTML = l.keuzes.map(s => '<option value="' + s + '"' + (s === nu ? ' selected' : '') + '>' + esc(sleepFadeKort(s)) + '</option>').join('');
 }
 function sleepFadeKies(v){
   if (!Android.sleepFadeSet(+v)) { toast(t('Dat kan niet')); sleepFadeToon(); return; }

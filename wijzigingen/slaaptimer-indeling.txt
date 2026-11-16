@@ -1,0 +1,1 @@
+Slaaptimer: het venster is overzichtelijker. "Einde van deze aflevering" staat als gewone keuze onder de tijden, en het zachter worden aan het eind is een rustige regel onderaan.
