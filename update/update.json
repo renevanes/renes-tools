@@ -1,15 +1,26 @@
 {
   "app": "Tools",
-  "versionName": "1.216",
-  "versionCode": 217,
-  "nativeLevel": 187,
+  "versionName": "1.217",
+  "versionCode": 218,
+  "nativeLevel": 188,
   "web": "index.html",
-  "webSha256": "d7242005a30addb9fe523d6d4d6d17d21d5e150cd8f81d011d952a8f740994b1",
+  "webSha256": "4c337e90aac7dab74ecebb13390382d0d88c0a3100061aaa947d084ef25c258d",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "0eb06833bf92547a7eff05e10ed32c41726b1501403a6bfd346be179d3698fee",
+  "apkSha256": "21e929e56fa3098b69d8e664fd47c0c087817297e7c12779f5f04431d984c33e",
   "changelog": [
+    {
+      "version": "1.217",
+      "date": "2026-11-16",
+      "changes": [
+        "Nieuw: Signalen. Volg een website (bijvoorbeeld het nieuws van A Seal) op trefwoorden en krijg een melding als er iets nieuws staat. Je vindt het op het startscherm bij Dag & gezondheid.",
+        "Signalen: per bron kies je hoe vaak Tools kijkt (elk uur tot elke week, standaard 4 keer per dag en alleen via wifi) en hoe je het hoort: meteen een melding, in het dagoverzicht of alleen in Signalen.",
+        "Signalen: stille uren (standaard 22:00 tot 07:30), behalve voor een bron die je belangrijk noemt. Werkt een bron drie keer achter elkaar niet, dan krijg je daar één melding van.",
+        "Signalen: staat er een datum in een bericht, dan zet je het met één tik in je agenda. Je kunt er ook een notitie van maken, het laten voorlezen, laten samenvatten door de lokale AI of je er later aan laten herinneren.",
+        "Signalen: met Proef zie je vooraf wat een bron nu zou vinden. Alles gebeurt op je telefoon; er zit geen dienst tussen."
+      ]
+    },
     {
       "version": "1.216",
       "date": "2026-11-16",
@@ -159,14 +170,7 @@
       "changes": [
         "Nieuws: in het inlog- en leesvenster staat nu een ?-knop (Wat gebeurt er?). Die toont een logboek van wat de website opvraagt, welke fouten ze geeft en welke vensters Tools wegklikt; te kopiëren als het inloggen blijft hangen. Ook kun je het venster vanaf een computer bekijken met chrome://inspect."
       ]
-    },
-    {
-      "version": "1.197",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws: inloggen bij AI Report bleef hangen op \"Je code wordt verstuurd\". Het inlogvenster laat nu alles toe wat de inlogpagina zelf maakt (zoals de controle tegen robots); houdt Tools toch iets tegen, dan staat dat bovenin."
-      ]
     }
   ],
-  "webSig2": "ek7IWVhU8QCv2D6jHbZCyzoWTToU1BeptV3PIROPXaSVOyW/okl09m3vlLJAZjIa8KlSYGiV74VpoUTIuR8yKa0WG9tbKNdGx9pnd2qrZSjT7HmgWYnncFM+ghXTyPR+hq8IfgseWcsK4a7+IgSq1x5ii6cuodzecTQSWAyZmStDCeIkwQ/c5ouYj+fCBMExrEFYijOm0mbzXaIymbokhXdCGMQNZUaEncysSziNCyFVU82n3Mh3xnF3a4cIrpaMYcpRwcBB/d4wBpZn+U7MdEqpttoTNOXrCa6tIzbitK4kjNL43DD0pQ7b3n1FczuimGSkIg3WOEhgmO54biB3DXlps/CCzMxa1MPlODlYoKoli+jO4346VIaR2un/5U+T34CyvUt8BEumnGf3gxm3841ajyYxifp9mDxToN/GUQFdcw5c8YW4SP5cga3UQEQRrMI9SqoB7nY8zVf6qKOdBJOBUQBtxBSOWxTsSOxnjULkeIHxasglhudBx/bEKPK6"
+  "webSig2": "SkH8KhkGVRSfIzNmv0D8POZaYI9ZdovfPIx6OGE8s8dta8KN/S0B8d2pBwldAyfzUoBEakhKFupHJIG8aYHmQFqVrzx+Stb25jwpd8BVH53tOrjeREPGmkNwK3LwLnmcPTXgBJPE/7XJ7xsQIZ7bbMtCrbYNHDoHZG1esez+y4jVmExBgkuOL+aPXjm2R6p6mWZiNHZ3BW9+lKYtMauWQ++AwVWcIR/PLcljVhYVcFY97xrt2AtBXGOQrqooR6ZQFDn6rvTh6YwKZhah4qkt6sOICGSim6TpT+FkGjvfEGmfD8CEAs4jjsAaz02v7WpKTML4sL5YbZQshMZ/eQ8pvM4h99EeflCm1HWFEiwAkeML7i0kZnK2rivsNNv1pCh0qDoySKnrKHgGyZGlODFoQuzMUDdV16M4N1i5Yfbnt9XvMwt5e7ycsA7vidTBD2GT9QOL5a4DicwJgRr4wQiPILrSctoq0mHiFHWs2VCe+yywzw1dQhcgmALY2Zsfj1sq"
 }
