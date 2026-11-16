@@ -7364,6 +7364,7 @@
  "toegevoegd op {dag}": "added on {dag}",
  "Toegevoegd wordt wat hier nog ontbreekt: {wat}.": "What is missing here is added: {wat}.",
  "Toegevoegd wordt wat hier nog ontbreekt.": "What is missing here is added.",
+ "Toegevoegd, maar niet in de map {map}": "Added, but not in the folder {map}",
  "Toelichting": "Description",
  "Toelichting bij de relatie": "Relationship notes",
  "Toelichting voor de lokale AI": "Explanation for the local AI",

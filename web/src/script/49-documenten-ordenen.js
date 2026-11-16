@@ -17,7 +17,9 @@ function klInMap(d,map,diep){
   if(map.startsWith('map:')) return diep?klOnder(pad,map.slice(4)):pad===map.slice(4);
   return false;
 }
-function klKies(map){ klMap=map; klRender(); const z=$('#kl-pad'); if(z) z.scrollIntoView({block:'nearest'}); }
+function klKies(map){ klMap=map; klFacLaad(); klRender(); const z=$('#kl-pad'); if(z&&!z.hidden){ z.scrollIntoView({block:'nearest'}); const h=z.querySelector('[aria-current]'); if(h) h.focus({preventScroll:true}); } }
+/** Alles van de verkenner uit de pagina en het geheugen: bij op slot gaan en bij weggaan van het scherm. */
+function klWis(){ klMap='all'; klFac=null; klTeken.fac=[]; klNieuwIn=null; const p=$('#kl-pad'); if(p){ p.replaceChildren(); delete p.dataset.map; delete p.dataset.diep; p.hidden=true; } const m=$('#kl-mappen'); if(m) m.replaceChildren(); const c=$('#kl-count'); if(c) c.textContent=''; const h=$('#kl-maphernoem'); if(h) h.hidden=true; const f=$('#kl-fachint'); if(f) f.hidden=true; }
 /** Eén niveau omhoog; false als je al bovenaan staat. */
 function klOmhoog(){
   if(klMap==='all') return false;
@@ -26,18 +28,20 @@ function klOmhoog(){
 }
 /* Facturen uit het facturendossier, als map in de verkenner (alleen wat de app zelf bewaart; beheren doe je bij Facturen).
    Niet als Facturen op slot staat (Extra ontgrendelen) en niet in de kluis als losse app. */
-function klFacturen(){
-  if(typeof SOLO!=='undefined'&&SOLO) return []; // een losse app toont geen gegevens van een andere tool
-  if(typeof Android.facturenDossier!=='function'||typeof isPlay==='function'&&isPlay()||typeof tsVerborgen==='function'&&tsVerborgen('facturen')) return [];
+let klFac=null; // het dossier zoals het bij binnenkomen of navigeren was (niet bij elke toets opnieuw ophalen); null = nog niet gelezen
+function klFacMag(){ return !(typeof SOLO!=='undefined'&&SOLO)&&typeof Android.facturenDossier==='function'&&!(typeof isPlay==='function'&&isPlay())&&!(typeof tsVerborgen==='function'&&tsVerborgen('facturen')); } // niet in een losse app: die toont geen gegevens van een andere tool
+function klFacLaad(){
+  klFac=[]; if(!klFacMag()) return;
   let d; try{ d=JSON.parse(Android.facturenDossier()); }catch(e){ d={}; }
-  return (d.items||[]).filter(s=>s&&s.sha&&s.plekken&&s.plekken.app&&!s.plekken.app.weg);
+  klFac=(d.items||[]).filter(s=>s&&s.sha&&s.plekken&&s.plekken.app&&!s.plekken.app.weg).map(s=>({sha:s.sha,naam:s.naam,leverancier:s.leverancier,leverancierNaam:s.leverancierNaam,opgehaald:s.opgehaald,meta:{nummer:klFacMeta(s).nummer,datum:klFacMeta(s).datum,bedrag:klFacMeta(s).bedrag}})); // alleen wat de lijst nodig heeft
 }
+function klFacturen(){ if(!klFacMag()) return []; if(klFac===null) klFacLaad(); return klFac; }
 function klFacMeta(s){ return s.meta&&typeof s.meta==='object'?s.meta:{}; }
 function klFacRij(s,metLev){
   const m=klFacMeta(s), sub=[];
   if(metLev&&s.leverancierNaam) sub.push(s.leverancierNaam); if(m.nummer) sub.push(m.nummer);
   if(m.bedrag!==undefined&&m.bedrag!==''&&isFinite(+m.bedrag)) sub.push(fmtMoney(+m.bedrag));
-  sub.push(/^\d{4}-\d{2}-\d{2}/.test(m.datum||'')?fmtDate(String(m.datum).slice(0,10),{day:'numeric',month:'short',year:'numeric'}):fmtDate(s.opgehaald||0,{day:'numeric',month:'short',year:'numeric'}));
+  if(/^\d{4}-\d{2}-\d{2}/.test(m.datum||'')) sub.push(fmtDate(String(m.datum).slice(0,10),{day:'numeric',month:'short',year:'numeric'})); else if(s.opgehaald) sub.push(fmtDate(s.opgehaald,{day:'numeric',month:'short',year:'numeric'}));
   return '<div class="kl-rij" translate="no"><button class="kl-facrij" data-sha="'+esc(s.sha)+'" onclick="klFactuur(this.dataset.sha)"><span class="stic">'+uiIcon('document')+'</span><span class="kl-tekst"><b>'+esc(s.naam||t('Factuur'))+'</b><small>'+esc(sub.filter(Boolean).join(' · '))+'</small></span></button></div>';
 }
 function klFactuur(sha){ const s=(klTeken.fac||[]).find(x=>x.sha===sha); if(s) Android.facturenOpen(s.leverancier,s.naam); }
@@ -77,7 +81,7 @@ function klTekenMappen(docs,fac){
   if(klMap==='all'||klMap.startsWith('map:')){
     const basis=klMap==='all'?'':klMap.slice(4)+'/';
     [...new Set(namen.filter(n=>n.startsWith(basis)&&n.length>basis.length).map(n=>n.slice(basis.length).split('/')[0]))]
-      .forEach(deel=>rijen.push(['map:'+basis+deel,deel,docs.filter(d=>klOnder(klPad(d.category),basis+deel)).length,'folder']));
+      .sort((a,b)=>a.localeCompare(b,'nl',{sensitivity:'base'})).forEach(deel=>rijen.push(['map:'+basis+deel,deel,docs.filter(d=>klOnder(klPad(d.category),basis+deel)).length,'folder']));
   }
   if(klMap==='all'&&fac.length) rijen.push(['fac',t('Facturen'),fac.length,'document']);
   if(klMap==='fac'){ const per=new Map(); fac.forEach(s=>{ const k=s.leverancier||''; if(!per.has(k)) per.set(k,[s.leverancierNaam||t('Leverancier'),0]); per.get(k)[1]++; });
@@ -111,6 +115,7 @@ function klRij(x,metMap,stuk){
 function klTeken(docs){
   const fac=klTeken.fac=klFacturen(), mappen=klTekenMappen(docs,fac);
   const q=$('#kl-search').value.trim().toLowerCase(), sort=$('#kl-sort').value;
+  if(q) $('#kl-mappen').hidden=true; // bij zoeken alleen de treffers (ook uit de mappen eronder)
   if(!klRender.zonderVraag) klTekstVraag(q); // ook in de tekst van documenten (34-uitbreidingen.js)
   const inTekst=d=>klT.q===q&&q&&typeof klT.hits[d.id]==='string'?klT.hits[d.id]:'';
   const bereik=docs.filter(d=>klInMap(d,klMap,!!q)), shown=bereik.filter(d=>!q||inTekst(d)||klZoekTekst(d).some(v=>(v||'').toLowerCase().includes(q)));
@@ -137,7 +142,8 @@ let klNieuwIn=null;
 function klNieuwInMap(){
   const w=klNieuwIn; klNieuwIn=null; if(!w||Date.now()-w.t>10*60000) return;
   let d; try{ d=JSON.parse(Android.kluisList()); }catch(e){ return; }
-  (d.docs||[]).filter(x=>!w.ids.includes(x.id)&&!x.category).forEach(x=>{ try{ Android.kluisOrganize(x.id,JSON.stringify({category:w.map})); }catch(e){ } });
+  let fout=''; (d.docs||[]).filter(x=>!w.ids.includes(x.id)&&!x.category&&(x.t||0)>=w.t-2000).forEach(x=>{ try{ fout=Android.kluisOrganize(x.id,JSON.stringify({category:w.map}))||fout; }catch(e){ fout='x'; } }); // alleen wat ná de tik is toegevoegd
+  if(fout) toast(t('Toegevoegd, maar niet in de map {map}',{map:w.map}));
 }
 /** Eén document naar een andere map: bestaande mappen, een nieuwe of geen. */
 function klZetMap(id,map){

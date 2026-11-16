@@ -91,7 +91,7 @@ const assert=require('node:assert/strict');
     await pad('all').click();assert.equal(await p.locator('#kl-lijstkaart img,#kl-lijstkaart script').count(),0);await p.fill('#kl-search','alert');assert.deepEqual(await rijen(),[A]);assert.equal(await p.locator('#kl-list img,#kl-list script').count(),0);await p.fill('#kl-search','');
     // 10. Bij verlopen sessie komt niets door en verdwijnen de gegevens uit de bediening.
     await kaart(A);await p.fill('#kl-edit-note','Nog niet bewaard');await p.evaluate(()=>Android._kl.open=false);await p.click('#kl-edit-save');
-    await p.waitForFunction(()=>tsZichtbaar()&&ts.tool==='kluis');assert.equal(await p.isVisible('#kl-open'),false);assert.deepEqual(await rijen(),[]);assert.equal(await p.inputValue('#kl-edit-note'),'');assert.equal(await p.locator('#kl-pad button, #kl-mappen button').count(),0,'pad en mappen zijn weg');
+    await p.waitForFunction(()=>tsZichtbaar()&&ts.tool==='kluis');assert.equal(await p.isVisible('#kl-open'),false);assert.deepEqual(await rijen(),[]);assert.equal(await p.inputValue('#kl-edit-note'),'');assert.equal(await p.locator('#kl-pad button, #kl-mappen button').count(),0,'pad en mappen zijn weg');assert.equal(await p.evaluate(()=>'map' in $('#kl-pad').dataset||'diep' in $('#kl-pad').dataset||klTeken.fac.length>0),false,'ook de plek en de facturen zijn uit de pagina en het geheugen');
     await open();assert.equal((await doc(A)).note,'<script>alert(1)</script>');assert.equal(await hier(),'all','na op slot begint de kluis weer bovenaan');
     await p.evaluate(()=>{show('pdf');show('kluis');});assert.equal(await p.evaluate(()=>tsZichtbaar()&&ts.tool==='kluis'),true);await open();
     await map('map:<img src=x>').click();assert.deepEqual(await rijen(),[A]);assert.equal(await p.locator('#kl-mappen img, #kl-pad img').count(),0);
@@ -103,9 +103,10 @@ const assert=require('node:assert/strict');
     await map('fac:kpn').click();assert.equal(await p.locator('#kl-list .kl-facrij').count(),1);assert.match(await p.textContent('#kl-list'),/F-1001/);assert.match(await p.textContent('#kl-list'),/54,45/);assert.equal(await p.locator('#kl-list b b').count(),0,'factuurnaam blijft tekst');assert.equal(await p.isVisible('#kl-sort'),false);
     await p.click('#kl-list .kl-facrij');assert.deepEqual(await p.evaluate(()=>Android._fa.calls.filter(c=>c[0]==='open').pop()),['open','kpn','KPN <b>okt</b>.pdf']);
     await p.evaluate(()=>goBack());assert.equal(await hier(),'fac');await p.evaluate(()=>goBack());assert.equal(await hier(),'all');
-    await p.fill('#kl-search','h-22');assert.equal(await p.locator('#kl-list .kl-facrij').count(),1);assert.deepEqual(await rijen(),[]);await p.fill('#kl-search','');
+    await p.evaluate(()=>{window._fd=0;const o=Android.facturenDossier;Android.facturenDossier=function(){_fd++;return o.call(this);};});
+    await p.fill('#kl-search','h-22');assert.equal(await p.evaluate(()=>_fd),0,'zoeken haalt het dossier niet telkens opnieuw op');assert.equal(await p.isVisible('#kl-mappen'),false,'bij zoeken alleen treffers');assert.equal(await p.locator('#kl-list .kl-facrij').count(),1);assert.deepEqual(await rijen(),[]);await p.fill('#kl-search','');
     // Facturen op slot (Extra ontgrendelen): de map staat er niet.
-    await p.evaluate(()=>{window._tv=tsVerborgen;tsVerborgen=t=>t==='facturen'||_tv(t);klRender();});assert.equal(await map('fac').count(),0);await p.evaluate(()=>{tsVerborgen=_tv;Android._fa.dos={};klRender();});
+    await p.evaluate(()=>{window._tv=tsVerborgen;tsVerborgen=t=>t==='facturen'||_tv(t);klRender();});assert.equal(await map('fac').count(),0);await p.evaluate(()=>{tsVerborgen=_tv;Android._fa.dos={};klKies('all');});
     // 12. Verwijderen: annuleren houdt het document; daarna is de map weg en sta je weer bovenaan.
     await meer(A,'Verwijderen');await p.click('#modal-cancel');assert.equal(await p.evaluate(()=>Android._kl.docs.length),2);await dicht();
     await meer(A,'Verwijderen');await p.click('#modal-ok');assert.equal(await p.evaluate(()=>Android._kl.docs.length),1);assert.equal(await p.isVisible('#kl-lijstkaart'),true,'de kaart sluit');assert.equal(await hier(),'all');assert.equal(await map('map:<img src=x>').count(),0);
