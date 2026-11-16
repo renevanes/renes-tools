@@ -245,14 +245,27 @@ const W = +process.env.UI_WACHT || 1;
     await page.click('#sni-web');
     await wacht(150);
     ok(await page.evaluate(() => current === 'agenda'), 'Open in Agenda gaat naar Agenda');
-    await page.evaluate(() => { show('home'); window.__snSlot = { aan: ts.aan.slice(), secure: ts.secure, open: ts.open }; ts.aan = ts.aan.concat('agenda'); ts.secure = true; ts.open = ''; show('signalen'); });
+    await page.evaluate(() => { show('home'); Android._tslot.aan.push('agenda'); tsLaad(); ts.open = ''; show('signalen'); });
     await wacht(150);
     const slot = await page.textContent('#sn-lijst');
     ok(!slot.includes('Geheime afspraak') && slot.includes('Agenda is op slot') && slot.includes('Boodschappen'), 'Agenda op slot: de afspraak staat er zonder inhoud, de rest gewoon');
-    await page.evaluate(() => snOpen('i00000000000000b1'));
+    await page.click('#sn-lijst .sn-item:has-text("Agenda is op slot")');
     await wacht(150);
-    ok(await page.evaluate(() => current !== 'snitem' && tsZichtbaar()), 'tik op een bericht van een tool op slot: eerst het slotscherm, het bericht opent niet');
-    await page.evaluate(() => { tsTerug(); Object.assign(ts, window.__snSlot); show('home'); Android._sn.items = Android._sn.items.filter(x => !x.id.startsWith('i00000000000000b')); });
+    ok(await page.evaluate(() => current === 'signalen' && tsZichtbaar()) && (await page.textContent('#ts-msg')).includes('Ontgrendel om dit bericht te zien'), 'tik op een bericht van een tool op slot: eerst het slotscherm, met de reden');
+    await page.click('#ts-open');
+    await wacht(350);
+    ok(await page.evaluate(() => current === 'snitem' && !tsZichtbaar()) && (await page.textContent('#sni-titel')).includes('Geheime afspraak'), 'na ontgrendelen opent dat ene bericht, in Signalen');
+    await page.evaluate(() => goBack());
+    await wacht(120);
+    ok(!(await page.textContent('#sn-lijst')).includes('Geheime afspraak'), 'terug in de lijst is het weer dicht');
+    await page.evaluate(() => { Android.signalenProef(JSON.stringify({ soort: 'agenda', slot: true })); show('snset'); snBronOpen(Android._sn.bronnen.find(x => x.soort === 'agenda').id); });
+    await wacht(60);
+    await page.evaluate(() => window.onSignalenProef({ ok: true, links: 2, gevonden: [], intern: true }));
+    ok(await page.evaluate(() => { $('#snb-proefkaart').hidden = false; return true; }) && (await page.textContent('#snb-proefstand')).includes('staat op slot') && !(await page.textContent('#snb-proeflijst')).includes('Overleg'), 'proef bij een tool op slot: alleen het aantal, geen titels');
+    ok(await page.isHidden('#snb-r-elke'), 'Agenda kijkt altijd elk uur: geen keuze voor hoe vaak');
+    // Opgeslagen gegevens kunnen alleen de bestemmingen openen die Signalen zelf zet
+    ok(await page.evaluate(() => snDoel({ open: 'auto' }) === '' && snDoel({ open: 'player' }) === '' && snDoel({ open: 'music-now' }) === '' && snDoel({ open: 'note:x"onclick' }) === '' && snDoel({ open: 'facturen' }) !== '' && snDoel({ open: 'note:abc123' }) !== ''), 'een bericht kan alleen Agenda, Nieuws, Facturen, de backup, Toiletten of een notitie openen');
+    await page.evaluate(() => { Android._tslot.aan = Android._tslot.aan.filter(x => x !== 'agenda'); tsLaad(); show('home'); Android._sn.items = Android._sn.items.filter(x => !x.id.startsWith('i00000000000000b')); });
     await wacht(100);
 
     // Meldingen niet toegestaan: een balk; alles uit in de app: in de stand

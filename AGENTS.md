@@ -793,9 +793,12 @@ Wens van Rene: een centrale plek voor gebeurtenissen; taken uit de mail volgen n
   `Android.agendaBewaar` (de standaardagenda), een notitie via `notesGet`/`notesSaveNow`, voorlezen via `spText`.
   "Open in …" bij een bericht uit Tools gaat via `openTool` in een eigen hulpfunctie (`snNaarTool`).
 - **Opslag**: `signalen/` (`bronnen.json` met de instellingen, `items.json`, `toestand.json`) gaat mee in "Alle
-  appgegevens", niet in de Android-backup. De instellingen staan (nog) niet in het register voor de assistent (`SET_EXCLUDE`).
+  appgegevens", niet in de Android-backup. `items.json` gaat niet mee in de leesbare Toolgegevens (`ToolData.keepFile`):
+  er kunnen afspraken en lijstpunten uit andere tools in staan. De instellingen staan (nog) niet in het register voor de assistent (`SET_EXCLUDE`).
 - **Bronnen uit Tools zelf** (`SignalenIntern`, zuiver per soort, `kandidaten` haalt de gegevens erbij): Agenda (afspraken
-  die binnen `vooraf` uur beginnen, uit `AgendaStore` en de agenda's van de telefoon die in Agenda aan staan), Nieuws
+  die binnen `vooraf` uur beginnen, uit `AgendaStore` en de agenda's van de telefoon die in Agenda aan staan; kijkt altijd
+  elk uur en het venster is één ronde ruimer, zodat niets tussen twee rondes door valt; een afspraak die al begonnen is
+  wordt niet meer gemeld: `verloopt`), Nieuws
   (artikelen uit `Nieuws.lijst` waarvan titel of begin bij de trefwoorden past; de scan roept eerst `Nieuws.ververs` aan,
   dus het nieuws wordt dan ook op de achtergrond opgehaald), Facturen (wat de afgelopen 30 dagen in het dossier kwam),
   Notities (lijsten met open punten die `dagen` dagen niet zijn aangeraakt) en taken (de backup, facturen ophalen en
@@ -804,8 +807,11 @@ Wens van Rene: een centrale plek voor gebeurtenissen; taken uit de mail volgen n
   De eerste keer melden Agenda en taken wel, de rest niet (`Signalen.eersteStil`). `gezien` bevat bij deze soorten de
   id's van de berichten.
 - **Een tool op slot** (Extra ontgrendelen): een bericht heeft `tool` (`Signalen.tool`). Staat die tool of Signalen zelf
-  op slot, dan staat er geen inhoud in de melding (`ToolSlot.aan`) en toont de inbox het bericht zonder inhoud tot de
-  tool ontgrendeld is (`snDicht`, `tsVerborgen`). Een nieuw scherm dat berichten toont, houdt zich daaraan.
+  op slot, dan staat er geen inhoud in de melding (`ToolSlot.aan`), geeft Proef alleen het aantal en toont de inbox het
+  bericht zonder inhoud (`snDicht`, `tsVerborgen`). Een tik vraagt het slotscherm van die tool (`tsVraag`) en toont daarna
+  alleen dat ene bericht, tot je het verlaat (`sn.vrij`); je blijft in Signalen. Een nieuw scherm dat berichten toont,
+  houdt zich daaraan. "Open in …" opent alleen de bestemmingen die Signalen zelf zet (`snDoel`): `items.json` kan uit
+  een backup komen.
 - **Nieuwe soort bron** (bijv. mail): een naam in `Signalen.SOORTEN` met zijn regels in `normaal`, `lokaal`, `eersteStil`
   en `tool`, een functie in `SignalenIntern` die berichten aanlevert, de velden op `s-snbron` (`snbRender`), `SN_SOORTEN`,
   de testbrug en tests; gezien, melden, later en de inbox werken dan vanzelf.

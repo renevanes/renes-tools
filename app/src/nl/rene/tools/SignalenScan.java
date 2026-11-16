@@ -172,7 +172,9 @@ final class SignalenScan {
             if (!"web".equals(b.optString("soort"))) { // uit Tools zelf: wat er nu te melden zou zijn
                 List<JSONObject> k = SignalenIntern.kandidaten(c, b.put("id", "proef"), nu);
                 JSONArray g = new JSONArray();
-                for (int i = 0; i < Math.min(10, k.size()); i++) g.put(new JSONObject().put("titel", k.get(i).optString("titel")).put("link", "").put("dag", k.get(i).optString("dag")));
+                // staat de tool waar dit uit komt op slot (Extra ontgrendelen), dan alleen het aantal: geen titels buiten die tool om
+                boolean dicht = ToolSlot.aan(c).contains(Signalen.tool(b.optString("soort")));
+                for (int i = 0; !dicht && i < Math.min(10, k.size()); i++) g.put(new JSONObject().put("titel", k.get(i).optString("titel")).put("link", "").put("dag", k.get(i).optString("dag")));
                 return uit.put("ok", true).put("links", k.size()).put("gevonden", g).put("intern", true);
             }
             Signalen.Vondst v = Signalen.nieuw(b, haalLinks(b, nu + PER_BRON), new HashSet<String>(), 10);

@@ -2,7 +2,7 @@
 // Ophalen gebeurt alleen in Java. Alles wat van een website komt (titel, tekst, adres) is gegevens: altijd esc() of
 // textContent, nooit als HTML, en een adres gaat alleen via Android.openUrl (dat alleen http(s) opent).
 const SN_SCHERMEN = ['signalen', 'snitem', 'snset', 'snbron'];
-let sn = { staat: null, filter: 'open', item: '', bron: null, ai: false };
+let sn = { staat: null, filter: 'open', item: '', bron: null, ai: false, vrij: '' };
 function snOud(){ return typeof Android.signalenStaat !== 'function'; }
 function snLaad(){ sn.staat = snOud() ? {} : (rdJson(Android.signalenStaat(), {}) || {}); return sn.staat; }
 function snItems(){ return (sn.staat && sn.staat.items) || []; }
@@ -10,6 +10,7 @@ function snBronnen(){ return (sn.staat && sn.staat.bronnen) || []; }
 function snItem(id){ return snItems().find(x => x.id === id); }
 function snEnter(name, prev){
   if (prev === 'snitem' && name !== 'snitem') sniAiStop();
+  if (name !== 'snitem') sn.vrij = ''; // de eenmalige vrijgave van een bericht uit een tool op slot geldt alleen voor dat bericht
   snLaad();
   if (name === 'signalen') snRender();
   else if (name === 'snitem') sniRender();
@@ -26,7 +27,7 @@ function snInFilter(it, f, nu){
 }
 function snFilter(f){ sn.filter = f; snRender(); }
 /* Komt een bericht uit een tool die op slot staat (Extra ontgrendelen), dan toont Signalen de inhoud niet. */
-function snDicht(it){ return !!(it && it.tool && typeof tsVerborgen === 'function' && tsVerborgen(it.tool)); }
+function snDicht(it){ return !!(it && it.tool && sn.vrij !== it.id && typeof tsVerborgen === 'function' && tsVerborgen(it.tool)); }
 function snToolNaam(tool){ return TOOLS[tool] ? t(TOOLS[tool][0]) : ''; }
 function snRender(){
   const st = sn.staat || {}, oud = snOud(), nu = Date.now();
@@ -58,11 +59,16 @@ function snRender(){
   }).join('');
   box.querySelectorAll('.sn-item').forEach(b => b.addEventListener('click', () => snOpen(b.dataset.id)));
 }
-function snOntgrendel(tool){ show(tool); } // eigen hulpfunctie: als losse app gaat dit niet naar een andere tool
+/* Een bericht van een tool op slot: het slotscherm van die tool vragen en daarna alleen dit ene bericht tonen (tot je het
+   bericht verlaat). Je blijft in Signalen, dus dit werkt ook als losse app. */
+function snOntgrendel(it){
+  const ok = typeof tsVraag === 'function' && tsVraag(it.tool, () => { sn.vrij = it.id; sn.item = it.id; show('snitem'); }, () => {}, t('Ontgrendel om dit bericht te zien.'));
+  if (!ok) toast(t('Dat lukte niet.'));
+}
 function snOpen(id){
   const it = snItem(id);
   if (!it) { toast(t('Dat bericht staat er niet meer.')); return; }
-  if (snDicht(it)) { snOntgrendel(it.tool); return; }
+  if (snDicht(it)) { snOntgrendel(it); return; }
   sn.item = id; show('snitem');
 }
 function snNu(){
@@ -117,8 +123,10 @@ function sniAgenda(){
 /* Waar een bericht uit Tools zelf heen kan: de naam van de tool, of leeg. */
 function snDoel(it){
   const o = it && it.open || '';
-  if (!o) return '';
+  // alleen de bestemmingen die Signalen zelf zet: opgeslagen gegevens mogen niets anders kunnen openen of starten
+  if (!['agenda', 'nieuws', 'facturen', 'backup', 'wc'].includes(o) && !/^note:[A-Za-z0-9_-]{1,40}$/.test(o)) return '';
   const tool = o.startsWith('note:') ? 'notes' : o;
+  if (typeof soloOk === 'function' && !soloOk(tool)) return ''; // als losse app kan Signalen niet naar een andere tool
   return TOOLS[tool] && document.getElementById('s-' + tool) ? t(TOOLS[tool][0]) : '';
 }
 function snNaarTool(o){ openTool(o); } // eigen hulpfunctie: als losse app gaat dit niet naar een andere tool
@@ -202,10 +210,10 @@ function snInstBewaar(){
 }
 function snBronOpen(id){ const b = snBronnen().find(x => x.id === id); if (!b) return; sn.bron = JSON.parse(JSON.stringify(b)); show('snbron'); }
 const SN_SOORTEN = {
-  agenda: [() => t('Agenda'), () => t('Afspraken die eraan komen, uit de agenda van Tools en de agenda\'s op je telefoon die daar aan staan.')],
+  agenda: [() => t('Agenda'), () => t('Afspraken die eraan komen, uit de agenda van Tools en de agenda\'s op je telefoon die daar aan staan. Signalen kijkt elk uur, dus de melding kan tot een uur eerder komen.')],
   nieuws: [() => t('Nieuws'), () => t('Artikelen uit de bronnen van Nieuws waarvan de titel of het begin bij je trefwoorden past. Tools haalt het nieuws daarvoor ook op de achtergrond op.')],
-  facturen: [() => t('Facturen'), () => t('Nieuwe facturen in het dossier van Facturen.')],
-  notities: [() => t('Notities'), () => t('Lijsten met open punten die een tijd niet zijn aangeraakt.')],
+  facturen: [() => t('Facturen'), () => t('Nieuwe facturen in het dossier van Facturen. Wat er nu al staat komt zonder melding in Signalen.')],
+  notities: [() => t('Notities'), () => t('Lijsten met open punten die een tijd niet zijn aangeraakt. Wat er nu al ligt komt zonder melding in Signalen.')],
   taken: [() => t('Taken van Tools'), () => t('Als de backup, facturen ophalen of het bijwerken van Toiletten en douches mislukt.')] };
 const SN_ELKE = { agenda: 1, nieuws: 3, facturen: 6, notities: 24, taken: 6 };
 function snBronNieuw(soort){
@@ -235,7 +243,7 @@ function snbRender(){
   $('#snb-h1').textContent = !nieuw ? t('Bron') : web ? t('Website toevoegen') : t('Bron toevoegen');
   const uitleg = $('#snb-uitleg'); uitleg.hidden = web; uitleg.textContent = web ? '' : SN_SOORTEN[soort][1]();
   $('#snb-r-url').hidden = !web; $('#snb-r-alleen').hidden = !web; $('#snb-r-woorden').hidden = !web && soort !== 'nieuws'; $('#snb-r-wifi').hidden = !web && soort !== 'nieuws';
-  $('#snb-r-vooraf').hidden = soort !== 'agenda'; $('#snb-r-dagen').hidden = soort !== 'notities';
+  $('#snb-r-vooraf').hidden = soort !== 'agenda'; $('#snb-r-dagen').hidden = soort !== 'notities'; $('#snb-r-elke').hidden = soort === 'agenda';
   $('#snb-woordenhint').textContent = web ? t('Met komma\'s ertussen. Eén woord dat in de titel of het adres van een nieuw bericht staat is genoeg. Leeg: elk nieuw bericht telt.') : t('Met komma\'s ertussen. Eén woord dat in de titel of het begin van een artikel staat is genoeg.');
   $('#snb-woorden').placeholder = web ? t('vrijlating, open dag') : t('Rotterdam, energie');
   $('#snb-menu').hidden = nieuw;
@@ -281,7 +289,8 @@ window.onSignalenProef = function(r){
   box.innerHTML = '';
   if (!r || !r.ok) { stand.textContent = (r && r.fout) || t('De pagina kon niet gelezen worden'); return; }
   const g = r.gevonden || [];
-  if (r.intern) stand.textContent = r.links ? tn(r.links, 'Er is nu één bericht.', 'Er zijn nu {n} berichten.') : t('Er is nu niets te melden.');
+  if (r.intern && r.links && !g.length) stand.textContent = tn(r.links, 'Er is nu één bericht. De tool staat op slot, dus de inhoud staat hier niet.', 'Er zijn nu {n} berichten. De tool staat op slot, dus de inhoud staat hier niet.');
+  else if (r.intern) stand.textContent = r.links ? tn(r.links, 'Er is nu één bericht.', 'Er zijn nu {n} berichten.') : t('Er is nu niets te melden.');
   else stand.textContent = g.length ? tn(g.length, 'Eén bericht past nu bij je trefwoorden ({links} links op de pagina).', '{n} berichten passen nu bij je trefwoorden ({links} links op de pagina).', { links: fmtNum(r.links || 0) })
     : t('Niets op de pagina past nu bij je trefwoorden ({links} links bekeken).', { links: fmtNum(r.links || 0) });
   g.forEach(x => {

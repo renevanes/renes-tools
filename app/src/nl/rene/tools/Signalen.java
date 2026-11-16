@@ -126,7 +126,8 @@ final class Signalen {
             throw new Fout(Taal.T("\"Alleen links die beginnen met\" moet een https-adres op dezelfde site zijn."));
         b.put("alleen", alleen);
         int standaard = "agenda".equals(soort) ? 1 : "nieuws".equals(soort) ? 3 : "notities".equals(soort) ? 24 : 6;
-        b.put("elke", uit(ELKE, in.optInt("elke", standaard), standaard));
+        // Agenda kijkt altijd elk uur: anders valt een afspraak tussen twee rondes door
+        b.put("elke", "agenda".equals(soort) ? 1 : uit(ELKE, in.optInt("elke", standaard), standaard));
         b.put("wifi", !lokaal(soort) && in.optBoolean("wifi", true));
         if ("agenda".equals(soort)) b.put("vooraf", uit(VOORAF, in.optInt("vooraf", 24), 24));
         if ("notities".equals(soort)) b.put("dagen", uit(DAGEN, in.optInt("dagen", 7), 7));
@@ -503,6 +504,8 @@ final class Signalen {
      */
     static int wijze(JSONObject item, JSONObject bron, JSONObject inst, long nu, TimeZone tz) {
         if (item.optBoolean("gemeld") || "klaar".equals(item.optString("status"))) return NIET;
+        // een afspraak die al voorbij is (vastgehouden door de stille uren of het dagoverzicht) melden heeft geen zin meer
+        if (item.optLong("verloopt") > 0 && item.optLong("verloopt") <= nu && item.optLong("later") == 0) return NIET;
         long later = item.optLong("later");
         boolean belangrijk = bron != null && bron.optBoolean("belangrijk");
         boolean stil = !belangrijk && stil(inst, Regio.minuteOfDay(tz, nu));

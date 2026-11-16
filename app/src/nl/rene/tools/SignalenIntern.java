@@ -30,10 +30,14 @@ final class SignalenIntern {
 
     // ---------------------------------------------------------------- Agenda: afspraken die eraan komen
 
-    /** Afspraken die binnen {@code vooraf} uur beginnen en nog niet begonnen zijn (een hele dag: vanaf vandaag). */
+    /**
+     * Afspraken die binnen {@code vooraf} uur beginnen en nog niet begonnen zijn (een hele dag: vanaf vandaag). Het venster
+     * is één ronde ruimer ({@code elke} uur): een afspraak die net na de volgende ronde begint, zou anders nooit gemeld
+     * worden. De melding komt dus {@code vooraf} tot {@code vooraf + elke} uur van tevoren.
+     */
     static List<JSONObject> agenda(List<Agenda.Item> afspraken, JSONObject bron, long nu, TimeZone tz) throws Exception {
         List<JSONObject> uit = new ArrayList<>();
-        long tot = nu + bron.optInt("vooraf", 24) * 3_600_000L;
+        long tot = nu + (bron.optInt("vooraf", 24) + Math.max(1, bron.optInt("elke", 1))) * 3_600_000L;
         String vandaag = Regio.dayKey(tz, nu);
         for (Agenda.Item a : afspraken) {
             if (a == null || a.titel.isEmpty() || !Agenda.dagOk(a.dag)) continue;
@@ -42,11 +46,12 @@ final class SignalenIntern {
             if (begin < 0 || begin > tot) continue;
             if (heel ? a.dag.compareTo(vandaag) < 0 : begin <= nu) continue;
             String tekst = a.plek.isEmpty() ? a.notitie : a.notitie.isEmpty() ? a.plek : a.plek + "\n\n" + a.notitie;
-            uit.add(item(bron, a.id + "|" + a.dag + "|" + (heel ? "" : a.van), a.titel, tekst, nu - uit.size())
-                    .put("dag", a.dag).put("tijd", heel ? "" : a.van).put("inAgenda", true).put("open", "agenda").put("begin", begin));
+            uit.add(item(bron, a.id + "|" + a.dag + "|" + (heel ? "" : a.van), a.titel, tekst, nu)
+                    .put("dag", a.dag).put("tijd", heel ? "" : a.van).put("inAgenda", true).put("open", "agenda").put("begin", begin).put("verloopt", heel ? begin + DAG : begin));
         }
         // wat het eerst begint bovenaan
         java.util.Collections.sort(uit, (x, y) -> Long.compare(x.optLong("begin"), y.optLong("begin")));
+        for (int i = 0; i < uit.size(); i++) uit.get(i).put("gevonden", nu - i);
         return uit;
     }
 
@@ -114,10 +119,11 @@ final class SignalenIntern {
             if (open > 6) tekst.append("\n…");
             String titel = Notes.showTitle(n);
             uit.add(item(bron, n.optString("id") + "|" + bij, Taal.tn(c, open, "{titel}: één open punt", "{titel}: {n} open punten", "titel", titel.isEmpty() ? Taal.t(c, "Lijst zonder titel") : titel),
-                    tekst.toString(), nu - uit.size()).put("open", "note:" + n.optString("id")).put("oud", bij));
+                    tekst.toString(), nu).put("open", "note:" + n.optString("id")).put("oud", bij));
         }
         // wat het langst ligt bovenaan
         java.util.Collections.sort(uit, (x, y) -> Long.compare(x.optLong("oud"), y.optLong("oud")));
+        for (int i = 0; i < uit.size(); i++) uit.get(i).put("gevonden", nu - i);
         return uit;
     }
 
@@ -130,7 +136,7 @@ final class SignalenIntern {
     static List<JSONObject> taken(Context c, JSONObject backup, JSONArray leveranciers, JSONObject facToestand, JSONArray wcBronnen, JSONObject wcToestand, JSONObject bron, long nu, TimeZone tz) throws Exception {
         List<JSONObject> uit = new ArrayList<>();
         long sinds = nu - 3 * DAG;
-        if (backup != null && backup.optLong("t") > sinds && backup.optLong("t") <= nu) {
+        if (backup != null && !backup.optBoolean("stopped") && backup.optLong("t") > sinds && backup.optLong("t") <= nu) { // zelf gestopt is niet mislukt
             int mis = 0;
             for (Iterator<String> k = backup.keys(); k.hasNext(); ) { JSONObject r = backup.optJSONObject(k.next()); if (r != null && r.has("ok") && !r.optBoolean("ok")) mis++; }
             if (mis > 0) uit.add(item(bron, "backup|" + backup.optLong("t"), Taal.tn(c, mis, "Backup: één onderdeel is mislukt", "Backup: {n} onderdelen zijn mislukt"),
@@ -148,7 +154,7 @@ final class SignalenIntern {
             JSONObject t = b == null ? null : wcToestand.optJSONObject(b.optString("id"));
             if (t == null || !b.optBoolean("aan", true) || t.optString("fout").isEmpty() || t.optLong("lastTry") <= sinds || t.optLong("lastTry") > nu) continue;
             uit.add(item(bron, "toiletten|" + b.optString("id") + "|" + Regio.dayKey(tz, t.optLong("lastTry")), Taal.t(c, "Toiletten en douches: {naam} bijwerken lukte niet", "naam", b.optString("naam")),
-                    Taal.tx(c, t.optString("fout")), t.optLong("lastTry")).put("open", "wc").put("tool", ""));
+                    Taal.tx(c, t.optString("fout")), t.optLong("lastTry")).put("open", "wc").put("tool", "wc"));
         }
         java.util.Collections.sort(uit, (x, y) -> Long.compare(y.optLong("gevonden"), x.optLong("gevonden")));
         return uit;

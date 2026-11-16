@@ -106,6 +106,9 @@ final class ToolData {
         int slash = r.indexOf('/');
         String top = slash < 0 ? r : r.substring(0, slash);
         if (FILES_OWN.contains(top)) return false;
+        // De inbox van Signalen kan afspraken en lijstpunten uit andere tools bevatten (Notities is een eigen onderdeel) en is
+        // opnieuw af te leiden: niet in de leesbare Toolgegevens. In "Alle appgegevens" (versleuteld) gaat hij wel mee.
+        if (r.equals("signalen/items.json")) return false;
         if (r.startsWith("facturen/pdf/") || r.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) return false; // de PDF's staan al in Facturen/
         String low = r.toLowerCase(java.util.Locale.ROOT);
         if (low.matches(".*(geheim|secret|token|wachtwoord|password).*")) return false;

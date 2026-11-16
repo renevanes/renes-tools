@@ -90,14 +90,16 @@ public class SignalenJob extends JobService {
         if (!nodig(c)) { js.cancel(JOB_ID); js.cancel(JOB_NET); js.cancel(JOB_WIFI); js.cancel(JOB_MELD); return; }
         long nu = System.currentTimeMillis();
         JSONArray bronnen = Signalen.bronnen(c);
-        long[] v = Signalen.toestandBestand(c) == null ? new long[]{Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE} // niet bij te houden: niet blijven proberen
+        long[] v = Signalen.toestandBestand(c) == null || Signalen.items(c) == null ? new long[]{Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE} // niet bij te houden: niet blijven proberen
                 : Signalen.volgendeScan(bronnen, Signalen.toestand(c), nu);
         plan(js, c, JOB_NET, v[0], nu, JobInfo.NETWORK_TYPE_ANY);
         plan(js, c, JOB_WIFI, v[1], nu, JobInfo.NETWORK_TYPE_UNMETERED);
         // de taak zonder internet: het moment van melden, of een bron uit Tools zelf (Agenda, Facturen, Notities, taken) die aan de beurt is
         JSONArray items = Signalen.items(c);
         long meld = items == null ? Long.MAX_VALUE : Signalen.volgendeMelding(items, Signalen.perId(bronnen), Signalen.instellingen(c), Signalen.overzichtDag(c), nu, Regio.zone(c));
-        plan(js, c, JOB_MELD, Math.min(meld, v[2]), nu, JobInfo.NETWORK_TYPE_NONE);
+        // liep de taak net en is een bron uit Tools nog steeds aan de beurt (de toestand kon niet bewaard worden), dan eerst een kwartier rust
+        long lokaal = v[2] <= nu ? Math.max(v[2], laatsteLokaal + RUST) : v[2];
+        plan(js, c, JOB_MELD, Math.min(meld, lokaal), nu, JobInfo.NETWORK_TYPE_NONE);
         if (js.getPendingJob(JOB_ID) != null) return;
         JobInfo.Builder b = new JobInfo.Builder(JOB_ID, new ComponentName(c, SignalenJob.class))
                 .setPeriodic(86_400_000L).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true);
