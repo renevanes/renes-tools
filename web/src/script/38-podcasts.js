@@ -539,7 +539,7 @@ function sleepOpen(target){
   $('#sl-range').value = Math.max(1, Math.min(240, +store.get('sleepMin', 30) || 30));
   // Eén tik op een tijd start de timer meteen
   $('#sl-quick').innerHTML = SL_SNEL.map(m => '<button data-m="' + m + '" onclick="sleepKies(' + m + ')" aria-label="' + esc(t('{n} minuten', { n: m })) + '"><b>' + m + '</b><small>min</small></button>').join('');
-  $('#sl-end').style.display = slTarget === 'pod' ? '' : 'none';
+  $('#sl-end').style.display = slTarget === 'pod' && !st.sleepEnd ? '' : 'none'; // loopt hij al tot het einde: dat staat in de stand
   $('#sl-nu').hidden = !active;
   $('#sl-state').textContent = st.sleepAt ? t('Stopt om {tijd} · nog {duur}', { tijd: fmtTime(st.sleepAt, { hour: '2-digit', minute: '2-digit' }), duur: fmtMin((st.sleepAt - Date.now()) / 6e4) })
     : st.sleepEnd ? t('Stopt aan het einde van deze aflevering') : '';
@@ -564,10 +564,10 @@ function sleepFadeLijst(){
   return o && Array.isArray(o.keuzes) && o.keuzes.length ? { keuzes: o.keuzes.map(Number), std: +o.standaard } : { keuzes: [0, 15, 30, 60, 120, 180], std: 60 };
 }
 function sleepFadeNaam(s, std){ return s === std ? t('{duur} (standaard)', { duur: sleepFadeTekst(s) }) : sleepFadeTekst(s); }
-function sleepFadeTekst(s){ return s === 0 ? t('Uit') : s < 60 ? t('{n} seconden', { n: s }) : tn(s / 60, '1 minuut', '{n} minuten'); }
+function sleepFadeTekst(s){ return s === 0 ? t('Uit') : s < 60 || s % 60 ? t('{n} seconden', { n: s }) : tn(s / 60, '1 minuut', '{n} minuten'); }
 /* Kort, voor de rustige regel onderin het venster (past op één regel, ook op een klein scherm). De assistent noemt de
-   standaard wel (sleepFadeNaam). */
-function sleepFadeKort(s){ return s === 0 ? t('Uit') : s < 60 ? t('{n} sec', { n: s }) : t('{n} min', { n: s / 60 }); }
+   standaard wel (sleepFadeNaam); de schermlezer krijgt de waarde voluit (aria-label). */
+function sleepFadeKort(s){ return s === 0 ? t('Uit') : s < 60 || s % 60 ? t('{n} s', { n: s }) : t('{n} min', { n: s / 60 }); }
 function sleepFadeToon(){
   const kan = typeof Android.sleepFade === 'function';
   $('#sl-fade-rij').hidden = !kan;
@@ -575,7 +575,7 @@ function sleepFadeToon(){
   $('#sl-fade-cast').hidden = !(typeof plCast === 'object' && plCast && plCast.active); // de Chromecast stopt meteen
   const nu = +Android.sleepFade();
   const l = sleepFadeLijst();
-  $('#sl-fade').innerHTML = l.keuzes.map(s => '<option value="' + s + '"' + (s === nu ? ' selected' : '') + '>' + esc(sleepFadeKort(s)) + '</option>').join('');
+  $('#sl-fade').innerHTML = l.keuzes.map(s => '<option value="' + s + '"' + (s === nu ? ' selected' : '') + ' aria-label="' + esc(sleepFadeTekst(s)) + '">' + esc(sleepFadeKort(s)) + '</option>').join('');
 }
 function sleepFadeKies(v){
   if (!Android.sleepFadeSet(+v)) { toast(t('Dat kan niet')); sleepFadeToon(); return; }

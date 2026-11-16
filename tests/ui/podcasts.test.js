@@ -142,6 +142,7 @@ const assert = require('node:assert');
     await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
     assert.strictEqual(await pg.textContent('#sl-state'), 'Stopt aan het einde van deze aflevering');
     assert.strictEqual(await pg.isVisible('#sl-add'), false, 'erbij alleen bij een tijd');
+    assert.strictEqual(await pg.isVisible('#sl-end'), false, 'einde aflevering al gekozen: niet nog eens als keuze');
     await pg.click('#sl-sluit'); await pg.waitForTimeout(150);
     // tot tijdstip
     await pg.click('#pl-sleep'); await pg.waitForTimeout(150);

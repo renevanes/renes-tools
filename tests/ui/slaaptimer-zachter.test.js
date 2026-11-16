@@ -19,7 +19,8 @@ const assert = require('assert');
     assert.strictEqual(await pg.isVisible('#sl-fade'), true, 'keuze staat in het venster');
     const opts = await pg.$$eval('#sl-fade option', x => x.map(o => [o.value, o.textContent]));
     assert.deepStrictEqual(opts.map(o => o[0]), ['0', '15', '20', '30', '60', '120', '180']);
-    assert.deepStrictEqual(opts.map(o => o[1]), ['Uit', '15 sec', '20 sec', '30 sec', '1 min', '2 min', '3 min']);
+    assert.deepStrictEqual(opts.map(o => o[1]), ['Uit', '15 s', '20 s', '30 s', '1 min', '2 min', '3 min']);
+    assert.deepStrictEqual(await pg.$$eval('#sl-fade option', x => x.map(o => o.getAttribute('aria-label'))), ['Uit', '15 seconden', '20 seconden', '30 seconden', '1 minuut', '2 minuten', '3 minuten'], 'voluit voor de schermlezer');
     assert.strictEqual(await pg.inputValue('#sl-fade'), '20', 'standaard 20 seconden');
     assert.strictEqual(await pg.textContent('label[for="sl-fade"]'), 'Aan het eind zachter');
     // Minder opvallend: onderaan (onder Andere tijd), één regel, kleine gedempte tekst, keuze zonder kader
@@ -62,6 +63,14 @@ const assert = require('assert');
     if (scheme === 'light') await pg.screenshot({ path: __dirname + '/shots/slaaptimer-zachter.png' });
 
     assert.strictEqual(await pg.isVisible('#sl-fade-cast'), false, 'niet casten: geen opmerking over de Chromecast');
+    // Casten met een lopende timer: korte opmerking, en het venster past nog zonder scrollen
+    const cast = await pg.evaluate(() => {
+      Android.podSleep(30); plCast.active = true; sleepClose(); sleepOpen('pod');
+      const b = $('#sleepdlg .modal-box'), r = { zicht: !!$('#sl-fade-cast').offsetParent, tekst: $('#sl-fade-cast').textContent, loopt: !$('#sl-nu').hidden, scroll: b.scrollHeight - b.clientHeight };
+      plCast.active = false; Android.podSleep(0); sleepClose(); return r;
+    });
+    assert.deepStrictEqual(cast, { zicht: true, tekst: 'Niet op een Chromecast.', loopt: true, scroll: 0 }, 'casten: ' + JSON.stringify(cast));
+    await pg.click('#pl-sleep'); await pg.waitForTimeout(200);
     // De assistent kent de instelling (instellingenregister)
     const reg = await pg.evaluate(() => { const r = SET_REG.find(x => x.id === 'slaaptimer.zachter'); if (!r) return null; const v0 = r.get(); const m = r.set('120'); return { v0, m, na: Android._fade, avail: r.avail() }; }).catch(e => 'fout: ' + e.message);
     assert.deepStrictEqual(reg, { v0: '0', m: '', na: 120, avail: '' }, 'assistent: lezen en zetten');
@@ -97,9 +106,17 @@ const assert = require('assert');
   await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
   await pg.evaluate(() => rgSave({ lang: 'en' })); await pg.waitForTimeout(300);
   await pg.evaluate(() => sleepOpen('pod')); await pg.waitForTimeout(300);
-  assert.deepStrictEqual(await pg.$$eval('#sl-fade option', x => x.map(o => o.textContent)), ['Off', '15 sec', '20 sec', '30 sec', '1 min', '2 min', '3 min']);
+  assert.deepStrictEqual(await pg.$$eval('#sl-fade option', x => x.map(o => o.textContent)), ['Off', '15 s', '20 s', '30 s', '1 min', '2 min', '3 min']);
   assert.strictEqual(await pg.textContent('label[for="sl-fade"]'), 'Fade out at the end');
   assert.strictEqual(await pg.textContent('#sl-end'), 'End of this episode');
+  // Smal scherm met grotere tekst: de waarde blijft heel (de keuze krimpt niet), het label mag doorlopen
+  await pg.setViewportSize({ width: 320, height: 568 });
+  await pg.evaluate(() => { document.documentElement.style.fontSize = '130%'; sleepClose(); sleepOpen('pod'); }); await pg.waitForTimeout(150);
+  const smal = await pg.evaluate(() => { const s = $('#sl-fade'), c = document.createElement('canvas').getContext('2d'), cs = getComputedStyle(s);
+    c.font = cs.fontSize + ' ' + cs.fontFamily; const tekst = c.measureText(s.options[s.selectedIndex].textContent).width;
+    return { krimp: cs.flexShrink, past: s.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) >= tekst, binnen: s.getBoundingClientRect().right <= $('#sleepdlg .modal-box').getBoundingClientRect().right }; });
+  assert.deepStrictEqual(smal, { krimp: '0', past: true, binnen: true }, 'smal scherm: ' + JSON.stringify(smal));
+  await pg.evaluate(() => { document.documentElement.style.fontSize = ''; sleepClose(); });
   // De assistent noemt de keuzes wel voluit, met de standaard
   assert.deepStrictEqual(await pg.evaluate(() => setVals(SET_REG.find(x => x.id === 'slaaptimer.zachter')).map(x => x[1])), ['Off', '15 seconds', '20 seconds (default)', '30 seconds', '1 minute', '2 minutes', '3 minutes']);
   console.log('errors', errs);

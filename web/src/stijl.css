@@ -691,10 +691,11 @@ body.solo .toolslot .hdr .back{display:none}
 .sl-om input{flex:1;min-width:0;margin:0}.sl-om .big{flex:none;width:auto;margin:0;padding:0 14px;min-height:44px}
 /* Zachter worden: een rustige instellingsregel onder Andere tijd (klein, gedempt, zonder kader) */
 .sl-fade{border-top:1px solid var(--line)}.sl-fade[hidden]{display:none}
-.sl-fade-r{display:flex;align-items:center;gap:8px;min-height:56px}
+.sl-fade-r{display:flex;align-items:center;gap:8px;min-height:50px}
 .sl-fade label{flex:1 1 auto;min-width:0;margin:0;color:var(--muted);font-size:14px;font-weight:400}
-.sl-box .sl-fade .sel{flex:0 1 auto;min-width:0;max-width:62%;width:auto;margin:0;min-height:44px;padding:6px 10px;border:0;border-radius:10px;background-color:var(--card);color:var(--ink);font-size:14px;text-overflow:ellipsis}
-.modal-box .sl-fade .hint{margin:0 0 8px;font-size:13px}
+/* De keuze krimpt niet (de waarde blijft heel, ook op een smal scherm of met grotere tekst); het label loopt dan door */
+.sl-box .sl-fade .sel{flex:none;max-width:62%;width:auto;margin:0;min-height:44px;padding:6px 10px;border:0;border-radius:10px;background-color:var(--chip);color:var(--on-chip);font-size:14px;text-overflow:ellipsis}
+.modal-box .sl-fade .hint{margin:-2px 0 6px;font-size:13px}
 #sleepdlg .modal-btns{margin-top:12px}
 /* ---------- Speler (radio en podcasts): mini-balk en volledig scherm, altijd donker met de kleur van de hoes ---------- */
 .plbar{position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:50;display:flex;align-items:center;gap:2px;padding:6px 4px 8px 6px;border-radius:12px;background:var(--pl,#2A3A4F);color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.3);touch-action:none;max-width:560px;margin:0 auto;overflow:hidden;transition:background-color .6s}
