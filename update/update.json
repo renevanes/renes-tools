@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.218",
-  "versionCode": 219,
-  "nativeLevel": 189,
+  "versionName": "1.219",
+  "versionCode": 220,
+  "nativeLevel": 190,
   "web": "index.html",
-  "webSha256": "97722c910cb29b88792710d4264df2d560b941e41477cdf2eadb3dbed95f9e81",
+  "webSha256": "6bd1f394bd51dd2eb9a8fa61ac4fcfe7f8101422537619e7982bd399828bd26b",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "4e1129d265d39126ed08055fe2a1c3f9f32029f9facf5ff58f19e66acdaff063",
+  "apkSha256": "75f5888b865c5234384480498ee70f7a5ce8b72f78e8fdb3482ee358af0e5ac4",
   "changelog": [
+    {
+      "version": "1.219",
+      "date": "2026-11-16",
+      "changes": [
+        "Documentenkluis: tik op een document voor de documentkaart, met Bekijken, Delen en alle andere acties onder Meer.",
+        "Documentenkluis: elk document kan eigenschappen krijgen: soort, van of voor wie, datum, bedrag, verloopdatum en labels. Je ziet ze in de lijst en kunt erop zoeken en sorteren.",
+        "Documentenkluis: nieuwe keuze \"Verloopt binnenkort\" voor documenten die binnen 90 dagen verlopen of al verlopen zijn."
+      ]
+    },
     {
       "version": "1.218",
       "date": "2026-11-16",
@@ -168,14 +177,7 @@
         "Auto redial: de knop Start staat nu meteen onder het nummer (ook op een klein scherm zonder scrollen), met eronder kort wat er gaat gebeuren (pogingen, wachttijd, stoppen bij opnemen); de uitleg staat onder Hoe werkt dit?",
         "Auto redial: TalkBack noemt het invoerveld, ∞ (Onbeperkt) en de dagen voluit"
       ]
-    },
-    {
-      "version": "1.199",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws: inloggen bij AI Report bleef hangen omdat de site na het inloggen terugstuurt naar een http-adres; Tools zet zo'n adres op een site van de inlog nu om naar https."
-      ]
     }
   ],
-  "webSig2": "neEbOGDeqdDl5FqYWfLmwyFzD2JK+ZpZagDDgqFEhfxGGTdPS2lUrxuEZugsCLgBfig2Z8UGJsDYQnEzU3OtSOT/0WmB2su+lrNWG2IoTiRKbYNXkJmvYxkwFnqnktrkY2Wg1s9Z+JVAz42y1O9G/VI4uP2YETz15adYx6VlEuYDFIj6cRfAbSUHsKzkF94gW8jZMJB3a0LRMRbajP0GIwNwhplkhIlCLv2OP+qej+75y9fNuGGt5CfOKxmBFi+TBv+ZevKEqOwYzLYAvNK6dRGDHkMrLT1RH7HMmR5oBfPq30A17FRJGCyhNJ/SBNMzpTY/DSp1O6Igq4Zz/iroZN9dkizzPYw6XuwLzzwek4nW0WF2Lqs3k0VvbZ1IVQ1Cefd6Al53KhydJXqm5EwqceYswTGBZv0Vfo4+nu9+uiCYcl2nzEsSmRLCe9jAa5qX/5NQQFDd+G5GL8yMv3lFbdi3zWzzVIaZ7bZ8XionQvpk6vbRxhcSfGTOcgvd0mBx"
+  "webSig2": "aZyjSnQpC0rd4XFQP0kWZvHJ5SILAnT2r/VxysH2AFASDPUCFRlCTiRJTIvDHKJtDZbSaghy8vKXE/LwRuI4trPq/p2mzyBDqfNer9OvLNO/jdDFcXMBr2fFnOqSXKVWfKdcpmEnpirVJOh2jQXnF0SXAB8hStie3+tUkOLiQ3AoolBlvq2m6ITNJRocFdIwWTCOv6766tRLPbmcKBGAbrUfOpSDlSCmXS9mzkjuLRIkz7YcnmjPwGXuefBKYZp+rKXVBhvp1uU/sTE8qVp405lyhoZGXsTUhM8BkihWjocnj24LVMizsGe3IcfK0uF0bFE2A2REcRkpecX1bxGN7Jpk/tVr48IIsR7UZgF0W/y/t1HXyoW2sS+LSlDGeECV29IVtyxv/Xq/dZ6NMyinj1WgvOmyhfne8+jEBh/55kDMmnleD9vhN+JkLaWsJN0txRWps217ASjEDCYHHtBHoh3aLfRJoimr/egsFwfLkYYlAHOHTPhhkXNiiARR938A"
 }
