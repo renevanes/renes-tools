@@ -1,6 +1,6 @@
 const { chromium } = require('playwright');
 const assert = require('assert');
-// Slaaptimer: hoe lang het geluid aan het eind langzaam zachter wordt, is in te stellen (standaard 1 minuut).
+// Slaaptimer: hoe lang het geluid aan het eind langzaam zachter wordt, is in te stellen (standaard 20 seconden).
 (async () => {
   const b = await chromium.launch();
   const errs = [];
@@ -14,12 +14,12 @@ const assert = require('assert');
     await pg.click('#plbar-open'); await pg.waitForTimeout(500);
     await pg.click('#pl-sleep'); await pg.waitForTimeout(200);
 
-    // Zichtbaar, met de vaste keuzes; standaard 1 minuut
+    // Zichtbaar, met de vaste keuzes; standaard 20 seconden
     assert.strictEqual(await pg.isVisible('#sl-fade'), true, 'keuze staat in het venster');
     const opts = await pg.$$eval('#sl-fade option', x => x.map(o => [o.value, o.textContent]));
-    assert.deepStrictEqual(opts.map(o => o[0]), ['0', '15', '30', '60', '120', '180']);
-    assert.deepStrictEqual(opts.map(o => o[1]), ['Uit', '15 seconden', '30 seconden', '1 minuut (standaard)', '2 minuten', '3 minuten']);
-    assert.strictEqual(await pg.inputValue('#sl-fade'), '60', 'standaard 1 minuut');
+    assert.deepStrictEqual(opts.map(o => o[0]), ['0', '15', '20', '30', '60', '120', '180']);
+    assert.deepStrictEqual(opts.map(o => o[1]), ['Uit', '15 seconden', '20 seconden (standaard)', '30 seconden', '1 minuut', '2 minuten', '3 minuten']);
+    assert.strictEqual(await pg.inputValue('#sl-fade'), '20', 'standaard 20 seconden');
     assert.strictEqual(await pg.textContent('label[for="sl-fade"]'), 'Aan het eind langzaam zachter');
     assert.strictEqual(await pg.evaluate(() => /30 seconden wordt/.test($('#sleepdlg').textContent)), false, 'oude vaste tekst weg');
 
@@ -67,7 +67,7 @@ const assert = require('assert');
   await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
   await pg.evaluate(() => rgSave({ lang: 'en' })); await pg.waitForTimeout(300);
   await pg.evaluate(() => sleepOpen('pod')); await pg.waitForTimeout(300);
-  assert.deepStrictEqual(await pg.$$eval('#sl-fade option', x => x.map(o => o.textContent)), ['Off', '15 seconds', '30 seconds', '1 minute (default)', '2 minutes', '3 minutes']);
+  assert.deepStrictEqual(await pg.$$eval('#sl-fade option', x => x.map(o => o.textContent)), ['Off', '15 seconds', '20 seconds (default)', '30 seconds', '1 minute', '2 minutes', '3 minutes']);
   assert.strictEqual(await pg.textContent('label[for="sl-fade"]'), 'Fade out at the end');
   console.log('errors', errs);
   await b.close();

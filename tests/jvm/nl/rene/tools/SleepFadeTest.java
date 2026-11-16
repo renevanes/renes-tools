@@ -7,9 +7,11 @@ public class SleepFadeTest {
     static double db(float g) { return 20 * Math.log10(Math.max(1e-9, g)); }
 
     public static void main(String[] args) {
-        // Hoe lang het uitfaden duurt: zoals gekozen (standaard 1 minuut), bij een korte timer hooguit een derde
-        check(SleepFade.STANDAARD_MS == 60_000, "standaard 1 minuut (was 3)");
-        check(SleepFade.length(30 * 60_000L, SleepFade.STANDAARD_MS) == 60_000, "30 minuten, standaard: 1 minuut uitfaden");
+        // Hoe lang het uitfaden duurt: zoals gekozen (standaard 20 seconden), bij een korte timer hooguit een derde
+        check(SleepFade.STANDAARD_MS == 20_000, "standaard 20 seconden (keuze van Rene)");
+        check(SleepFade.geldig(SleepFade.STANDAARD_MS) == SleepFade.STANDAARD_MS, "de standaard is zelf een van de keuzes");
+        check(SleepFade.length(30 * 60_000L, SleepFade.STANDAARD_MS) == 20_000, "30 minuten, standaard: 20 seconden uitfaden");
+        check(SleepFade.length(60_000L, SleepFade.STANDAARD_MS) == 20_000, "1 minuut, standaard: ook 20 seconden (een derde)");
         check(SleepFade.length(30 * 60_000L, 180_000) == 180_000, "30 minuten, 3 minuten gekozen: 3 minuten");
         check(SleepFade.length(120 * 60_000L, 15_000) == 15_000, "2 uur, 15 seconden gekozen: 15 seconden");
         check(SleepFade.length(6 * 60_000L, 180_000) == 120_000, "6 minuten, 3 minuten gekozen: een derde, 2 minuten");
@@ -63,7 +65,7 @@ public class SleepFadeTest {
         for (long left = SleepFade.STANDAARD_MS; left >= SleepFade.STEP_MS; left -= SleepFade.STEP_MS) {
             float g = SleepFade.gain(left, SleepFade.STANDAARD_MS); maxEnd = Math.max(maxEnd, db(prev) - db(g)); prev = g;
         }
-        check(maxEnd < 0.5, "einde aflevering: per stap minder dan 0,5 dB: " + String.format("%.3f dB", maxEnd));
+        check(maxEnd < 1.0, "einde aflevering (standaard 20 s): per stap minder dan 1 dB: " + String.format("%.3f dB", maxEnd));
 
         // Wachten: buiten het uitfaden pas vlak ervoor wakker, tijdens het uitfaden elke 200 ms
         check(SleepFade.nextDelay(10 * 60_000L, f) == 30_000, "ver weg: na 30 s weer kijken");

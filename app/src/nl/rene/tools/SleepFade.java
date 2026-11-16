@@ -12,9 +12,9 @@ final class SleepFade {
 
     /** Langste uitfaadtijd, en hoe kort hij bij een korte timer hooguit wordt (tenzij er korter gekozen is). */
     static final long MAX_MS = 180_000, MIN_MS = 10_000;
-    /** Wat Rene kan kiezen (in het slaaptimervenster): uit, 15 s, 30 s, 1, 2 of 3 minuten. Standaard 1 minuut. */
-    static final long[] KEUZES = { 0, 15_000, 30_000, 60_000, 120_000, 180_000 };
-    static final long STANDAARD_MS = 60_000;
+    /** Wat Rene kan kiezen (in het slaaptimervenster): uit, 15, 20 of 30 s, 1, 2 of 3 minuten. Standaard 20 seconden. */
+    static final long[] KEUZES = { 0, 15_000, 20_000, 30_000, 60_000, 120_000, 180_000 };
+    static final long STANDAARD_MS = 20_000;
     /** In de instellingen van de speler (Player.prefs), in seconden. */
     static final String KEY = "sleepFade";
     /** Hoe vaak het volume een stapje zakt (zo klein dat je geen trapjes hoort). */
