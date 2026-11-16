@@ -136,7 +136,8 @@ final class PdfCompare {
         return r.put("ocr", ocr[0]).put("pagesA", s[0].pages).put("pagesB", s[1].pages).put("limited", s[0].pages > MAX_PAGES || s[1].pages > MAX_PAGES);
     }
 
-    private static String pagesText(Context c, Slot s, BooleanSupplier run, boolean[] ocr, Voortgang v, int[] done, int total) throws Exception {
+    /** Ook voor de documentenkluis (KluisTekst): tekst uit de PDF, of anders herkend op de telefoon. */
+    static String pagesText(Context c, Slot s, BooleanSupplier run, boolean[] ocr, Voortgang v, int[] done, int total) throws Exception {
         StringBuilder out = new StringBuilder();
         if (s.pdf) {
             PdfDoc doc = PdfDoc.canText() ? new PdfDoc(s.file, s.name, null) : null;

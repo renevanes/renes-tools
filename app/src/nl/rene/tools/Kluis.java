@@ -384,6 +384,7 @@ final class Kluis {
         for (int i = 0; i < l.length(); i++) { if (!l.getJSONObject(i).optString("id").equals(id)) out.put(l.get(i)); else gone.addAll(blobs(l.getJSONObject(i))); }
         saveIndex(c, out);
         new File(dir(c), id + ".bin").delete();
+        KluisTekst.weg(c, id); // de tekst om in te zoeken hoort bij het document
         for (String b : gone) new File(dir(c), b + ".bin").delete(); // ook de oudere versies
     }
 

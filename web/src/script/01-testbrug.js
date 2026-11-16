@@ -353,6 +353,11 @@ if (!window.Android) window.Android = (function(){
      * ontgrendelen uit; anders onKluis('vraag') en vraagt het slotscherm */
     kluisUnlock(){ const k = this._kl; if (!k.open) { if (this._tsNeem('kluis')) k.vragen = (k.vragen || 0) + 1; else if (this._tslot.aan.includes('kluis')) { setTimeout(() => onKluis('vraag'), 0); return; } }
       k.open = true; setTimeout(() => onKluis(true), 0); },
+    /* Zoeken in de tekst: _kl.tekst = {id: tekst}; documenten zonder tekst tellen als "nog niet gelezen" */
+    kluisZoek(q){ if (!this._kl.open) { setTimeout(() => onKluisZoek('{"locked":true}'), 10); return; } const T = this._kl.tekst || {}, w = String(q).toLowerCase().split(/\s+/).filter(Boolean), hits = {}; let zonder = 0;
+      for (const d of this._kl.docs) { const t = T[d.id]; if (t == null) { zonder++; continue; } const l = t.toLowerCase(); if (w.length && w.every(x => l.includes(x))) { const i = l.indexOf(w[0]); hits[d.id] = (i > 30 ? '… ' : '') + t.slice(Math.max(0, i - 30), i + 60); } }
+      (this._klZoek = this._klZoek || []).push(q); setTimeout(() => onKluisZoek(JSON.stringify({ q, hits, zonder })), 20); },
+    kluisTekstBijwerken(){ if (!this._kl.open) return; this._klTekstStart = (this._klTekstStart || 0) + 1; const n = window.__testKluisLezen || 0; if (n) { setTimeout(() => onKluisTekst(JSON.stringify({ klaar: 0, totaal: n, bezig: true })), 10); setTimeout(() => onKluisTekst(JSON.stringify({ klaar: n, totaal: n, bezig: false })), 400); } },
     kluisList(){ return this._kl.open ? JSON.stringify({docs: this._kl.docs, left: 300000}) : '{"locked":true}'; },
     kluisAdd(){ this._kl.docs.push({id: 'k2abcdef', name: 'Polis <b>.pdf', mime: 'application/pdf', size: 1000, t: Date.now()}); setTimeout(() => onKluisChanged('ok'), 30); },
     kluisView(id){ this._klView = id; }, kluisDelete(id){ this._kl.docs = this._kl.docs.filter(d => d.id !== id); return ''; }, kluisRename(id, n){ const d = this._kl.docs.find(x => x.id === id); if (d) d.name = n; return ''; }, kluisClose(){ this._kl.open = false; },

@@ -1,0 +1,1 @@
+Documentenkluis: het zoekveld vindt nu ook woorden in de tekst van je documenten (PDF's en foto's), met het stukje tekst erbij

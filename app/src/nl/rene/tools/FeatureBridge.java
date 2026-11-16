@@ -486,6 +486,21 @@ public class FeatureBridge {
             if (!a.kluisOk()) return "{\"locked\":true}";
             try { Kluis.open(ctx); return new JSONObject().put("docs", Kluis.list(ctx)).put("left", Kluis.remaining()).toString(); } catch (Exception e) { return errJson(e); }
         }
+        /** Zoeken in de tekst van de documenten (alleen met de kluis open). Antwoord via onKluisZoek: {q, hits:{id:stukje}, zonder}. */
+        @JavascriptInterface public void kluisZoek(String q) {
+            if (!a.kluisOk()) { a.js("onKluisZoek", "{\"locked\":true}"); return; }
+            final String vraag = q == null ? "" : q.length() > 200 ? q.substring(0, 200) : q;
+            new Thread(() -> {
+                String r;
+                try { r = a.kluisOk() ? KluisTekst.zoek(ctx, vraag).toString() : "{\"locked\":true}"; } catch (Throwable e) { r = "{\"error\":true}"; }
+                a.js("onKluisZoek", r);
+            }, "kluis-zoek").start();
+        }
+        /** De tekst van documenten die nog niet gelezen zijn op de achtergrond lezen (alleen met de kluis open). Voortgang via onKluisTekst. */
+        @JavascriptInterface public void kluisTekstBijwerken() {
+            if (!a.kluisOk()) return;
+            KluisTekst.start(ctx, json -> a.js("onKluisTekst", json));
+        }
         @JavascriptInterface public void kluisAdd() {
             if (!a.kluisOk()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
             a.h.post(() -> {
