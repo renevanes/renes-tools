@@ -63,13 +63,17 @@ const assert = require('assert');
     if (scheme === 'light') await pg.screenshot({ path: __dirname + '/shots/slaaptimer-zachter.png' });
 
     assert.strictEqual(await pg.isVisible('#sl-fade-cast'), false, 'niet casten: geen opmerking over de Chromecast');
-    // Casten met een lopende timer: korte opmerking, en het venster past nog zonder scrollen
+    // Casten met een lopende timer: een korte opmerking van één regel (het venster wordt hooguit één regel hoger;
+    // of het dan precies past, hangt af van het lettertype)
     const cast = await pg.evaluate(() => {
-      Android.podSleep(30); plCast.active = true; sleepClose(); sleepOpen('pod');
-      const b = $('#sleepdlg .modal-box'), r = { zicht: !!$('#sl-fade-cast').offsetParent, tekst: $('#sl-fade-cast').textContent, loopt: !$('#sl-nu').hidden, scroll: b.scrollHeight - b.clientHeight };
+      const b = $('#sleepdlg .modal-box'); Android.podSleep(30);
+      sleepClose(); sleepOpen('pod'); const zonder = b.scrollHeight;
+      plCast.active = true; sleepClose(); sleepOpen('pod');
+      const h = $('#sl-fade-cast'), r = { zicht: !!h.offsetParent, tekst: h.textContent, loopt: !$('#sl-nu').hidden,
+        regel: h.offsetHeight <= parseFloat(getComputedStyle(h).lineHeight) * 1.5, hoger: b.scrollHeight - zonder <= 24 };
       plCast.active = false; Android.podSleep(0); sleepClose(); return r;
     });
-    assert.deepStrictEqual(cast, { zicht: true, tekst: 'Niet op een Chromecast.', loopt: true, scroll: 0 }, 'casten: ' + JSON.stringify(cast));
+    assert.deepStrictEqual(cast, { zicht: true, tekst: 'Niet op een Chromecast.', loopt: true, regel: true, hoger: true }, 'casten: ' + JSON.stringify(cast));
     await pg.click('#pl-sleep'); await pg.waitForTimeout(200);
     // De assistent kent de instelling (instellingenregister)
     const reg = await pg.evaluate(() => { const r = SET_REG.find(x => x.id === 'slaaptimer.zachter'); if (!r) return null; const v0 = r.get(); const m = r.set('120'); return { v0, m, na: Android._fade, avail: r.avail() }; }).catch(e => 'fout: ' + e.message);
