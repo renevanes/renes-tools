@@ -35,7 +35,7 @@ const { chromium } = require('playwright');
     // tool op slot: geen accountnaam of adres
     await pg.evaluate(() => { const echt = window.tsVerborgen; window.tsVerborgen = tool => tool === 'facturen'; try { kpRender(); } finally { window.tsVerborgen = echt; } });
     r = await rijen();
-    ok(['google', 'ec', 'smtp'].every(id => { const x = r.find(y => y.id === id); return x.aan === '0' && /^Op slot/.test(x.tekst) && !/@|\.nl|\.com/.test(x.tekst); }), scheme + ': Facturen op slot: alleen "Op slot", geen account of adres (' + r.find(x => x.id === 'google').tekst + ')');
+    ok(['google', 'ec', 'smtp'].every(id => { const x = r.find(y => y.id === id); return x.aan === '0' && /^Op slot: tik/.test(x.tekst) && !/@|\.nl|\.com/.test(x.tekst); }), scheme + ': Facturen op slot: alleen "Op slot", geen account of adres (' + r.find(x => x.id === 'google').tekst + ')');
     await pg.close();
   }
   console.log('errors', errs);

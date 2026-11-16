@@ -6,7 +6,7 @@ function stJson(s){ try { return JSON.parse(s); } catch(e){ return {}; } }
 function stSum(id, tt){ const e = $('#st-sum-' + id); if (e) e.textContent = tt; }
 /* De regel onder elk onderwerp in het overzicht */
 function stSummaries(i){
-  stSum('kopp', kpSamenvatting());
+  if (current === 'settings') stSum('kopp', kpSamenvatting()); // alleen op het overzicht: de stand van Facturen ophalen is zwaar
   const lk = i.lock || {};
   if (typeof Android.notifState === 'function') { const n = stJson(Android.notifState()); stSum('notif', n.muted ? 'Alle meldingen uit' : !n.allowed ? 'Uit voor deze app' : 'Aan'); }
   const z = $('#st-zoom'); stSum('look', t('Thema: {thema}', { thema: t(thModeName(thCfg().mode)).replace(/ \(.*\)$/, '').toLowerCase() }) + (z && z.selectedIndex >= 0 ? ' · ' + t('tekst: {grootte}', { grootte: z.options[z.selectedIndex].text.toLowerCase() }) : '') + ($('#st-dyn').classList.contains('on') ? ' · ' + t('kleuren uit je achtergrond') : ''));
@@ -152,11 +152,11 @@ function kpLijst(){
     const slot = !!tool && typeof tsVerborgen === 'function' && tsVerborgen(tool);
     let s = { aan: false, tekst: '' };
     if (!slot) { try { s = stand(); } catch (e) { s = { aan: false, tekst: t('Stand onbekend') }; } }
-    uit.push({ id, icon, naam, naar, slot, aan: !slot && !!s.aan, tekst: slot ? t('Op slot: open eerst {tool}', { tool: t(TOOLS[tool] ? TOOLS[tool][0] : tool) }) : s.tekst, eigen: !slot && s.eigen ? s.eigen : '' });
+    uit.push({ id, icon, naam, naar, slot, aan: !slot && !!s.aan, tekst: slot ? t('Op slot: tik om te ontgrendelen') : s.tekst, eigen: !slot && s.eigen ? s.eigen : '' });
   };
   if (heeft('spotifyState')) erbij('spotify', 'spotify', 'Spotify', 'spotify', 'spotify', () => { const s = rdJson(Android.spotifyState(), {}); return { aan: !!s.linked, tekst: s.linked ? t('Gekoppeld') : t('Niet gekoppeld'), eigen: s.linked ? (s.user || '') : '' }; });
   if (heeft('facturenState')) {
-    const fa = () => rdJson(Android.facturenState(), {});
+    let faS = null; const fa = () => faS || (faS = rdJson(Android.facturenState(), {})); // zwaar: hooguit één keer per lijst
     erbij('google', 'globe', t('Google (Gmail en Drive)'), 'facgoogle', 'facturen', () => { const g = fa().drive || {}; return { aan: !!g.gekoppeld, tekst: g.gekoppeld ? [g.rechtGmail ? t('Gmail lezen') : '', g.rechtDrive ? 'Drive' : '', g.rechtGmailSend ? t('mail versturen') : ''].filter(Boolean).join(', ') || t('Gekoppeld') : t('Niet gekoppeld'), eigen: g.gekoppeld ? (g.gebruiker || '') : '' }; });
     erbij('ec', 'mail', 'Eigen Cloud', 'facec', 'facturen', () => { const e = fa().ec || {}, aan = !!(e.url && e.heeftWachtwoord); return { aan, tekst: aan ? t('Gekoppeld') : t('Niet gekoppeld'), eigen: aan ? String(e.url).replace(/^https:\/\//, '') : '' }; });
     erbij('smtp', 'message', t('Eigen mailserver (SMTP)'), 'facsmtp', 'facturen', () => { const m = fa().smtp || {}; return { aan: !!m.host, tekst: m.host ? t('Ingesteld') : t('Niet ingesteld'), eigen: m.host || '' }; });
@@ -174,4 +174,4 @@ function kpRender(){
     + (k.eigen ? ' · <span translate="no">' + esc(k.eigen) + '</span>' : '') + '</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>').join('');
   box.querySelectorAll('.strow').forEach(b => b.addEventListener('click', () => kpNaar(b.dataset.naar)));
 }
-function kpSamenvatting(){ try { const l = kpLijst(), n = l.filter(k => k.aan).length; return n ? tn(n, 'Eén koppeling in gebruik', '{n} koppelingen in gebruik') : t('Nog niets gekoppeld'); } catch (e) { return ''; } }
+function kpSamenvatting(){ try { const l = kpLijst(), n = l.filter(k => k.aan).length; if (l.some(k => k.slot)) return t('Een deel staat op slot'); return n ? tn(n, 'Eén koppeling in gebruik', '{n} koppelingen in gebruik') : t('Nog niets gekoppeld'); } catch (e) { return ''; } }
