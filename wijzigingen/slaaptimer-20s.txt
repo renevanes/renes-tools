@@ -1,1 +1,0 @@
-Slaaptimer: het langzaam zachter worden duurt standaard 20 seconden (keuze 20 seconden erbij in het slaaptimervenster).

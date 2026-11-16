@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.211",
+    "date": "2026-11-16",
+    "changes": [
+      "Slaaptimer: het langzaam zachter worden duurt standaard 20 seconden (keuze 20 seconden erbij in het slaaptimervenster)."
+    ]
+  },
+  {
     "version": "1.210",
     "date": "2026-11-16",
     "changes": [

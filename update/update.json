@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.210",
-  "versionCode": 211,
-  "nativeLevel": 184,
+  "versionName": "1.211",
+  "versionCode": 212,
+  "nativeLevel": 185,
   "web": "index.html",
-  "webSha256": "625f1063073612c187e4a58b5048b87a18eb9f65cd00d1a3782b73c18375a4cc",
+  "webSha256": "0953de56d30899a7789e4cebca2bb802fd33327711b7956a36b58c8eccf00c1a",
   "start": "start.html",
   "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "68f6a1dc80ad00625b11e484936a2e62b092ae0ef284f81c608da8ad0189833c",
+  "apkSha256": "b308baf99b062bb5cb721ba615692308d77ad4840e3453a12959b3b4a7ccfb95",
   "changelog": [
+    {
+      "version": "1.211",
+      "date": "2026-11-16",
+      "changes": [
+        "Slaaptimer: het langzaam zachter worden duurt standaard 20 seconden (keuze 20 seconden erbij in het slaaptimervenster)."
+      ]
+    },
     {
       "version": "1.210",
       "date": "2026-11-16",
@@ -164,14 +171,7 @@
         "Nieuws: tik op een bron voor al zijn instellingen, voor elke bron hetzelfde: naam, adres, welke artikelen, afbeeldingen van de artikelpagina en inloggen.",
         "Nieuws: inloggen bij een nieuwssite kan nu per bron, in een eigen venster op de echte site (ook met een inloglink uit de e-mail). Daarna lees je artikelen ingelogd in Tools; uitloggen kan ook."
       ]
-    },
-    {
-      "version": "1.191",
-      "date": "2026-11-11",
-      "changes": [
-        "ID-kopie afschermen: kies bij Foto of PDF kiezen bovenaan Uit Stamgegevens; je eigen paspoort, ID-kaart of rijbewijs staat bovenaan en komt met een voorstel voor de zwarte vlakken klaar te staan"
-      ]
     }
   ],
-  "webSig2": "at3/MEPVeHvXkx8jW/5ghjxKZoKmqs5WEkBCyNiH47az45rBJ4QQmDELMcydT0gnCpFp6TKScVWuGXhhASteMnMihIwvdbhDm0kqnd5PGLlZjAStxjX4kNcKjoKRlKrISIjMOWRYRvYoWX7kEPqzb4cF2gsiwfOHjHLAIBDvBegRB/GuukmHCWT5sm4YurC+LKDUBEDJ271Mb87IOGKGk+i3woKeUz+c1pHY1iXg52sbD0sRXtzsRlUFkcXCiaGgMbN/ImAb0Q6wWawm5JU5RzdS6B6h2kJpmgy7cnuBKVUWn5Imt3VqxJHcQmuQbxl61boMO1iRIBbNyJfhSZKmyFSJKVNObnA97t3jC0BXcgHfALNSn+4W7ZiFOb25z7f9Re8tqdLJ3Ziw6Qci10AhK3SXaYCtW3EQ4DbcdekEjGP4ZUSwGMsGyvQoeGi2T/inCf/S8OFfKM9OuJHG1EaoI+Jekd8/GaU9CdPu8gdadtNaRtVhHqUgM7hGm4jRbihM"
+  "webSig2": "hLaZLbZ4fj0Knowg+FEQz0kvwXMt3H3nEzhbmqF4rz/9hcYD1kiONukUAjVd2C1OaeW8Y7q+WBlGMjudIBlj1ayqQ9s4szHznp0Qcta8Cs3ogIw8pxpxNlAdd7jhCcuBDTbddopwfnChemc0Fl72Gi9Z6t0eerVaCdMUc3+mxdAAQ45oQ7AqIyWoUiT/SggQx8gtOUMAsuW5jeNKcLHJfJJZ7T0CoMEna9YIYgrqWWXVFZkmLMz/gJfJidTOMAW3mbkxyTchexKkYdr/XEE/Gy1OrvjBtagezdch5qYzDCu2feyMqHE0qg14Ri0J9GH7Cdi7JOOrRIVMG0GHn9xjzajopcNg66LhYcGczvkBywqodR/okY8P7Txv3+Nz8DuJ3v8n6joWreX5yoS8WJRojtP6e4zbGtLHJfFisAMhNd096b6PMPHU+nuskSTZWwDoqHI6a/fduTSfx2A78BR3rd5t9yPQsBrYCivS1O69FtOJ3Idy1kZ0iSKLJVgHvFv6"
 }
