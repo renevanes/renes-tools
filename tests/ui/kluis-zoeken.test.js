@@ -34,6 +34,12 @@ const { chromium } = require('playwright');
     ok(l.length === 1 && /Paspoort/.test(l[0].naam), scheme + ': naam en tekst samen: één keer in de lijst');
     await pg.fill('#kl-search', ''); await pg.waitForTimeout(150);
     ok((await lijst()).length === 3 && (await lijst()).every(x => !x.stuk), scheme + ': zoekveld leeg: alles weer, zonder stukjes');
+    // de app even uit beeld (een document bekijken): stukjes weg, de zoekvraag blijft, en bij terugkomen staan de treffers er weer
+    await pg.fill('#kl-search', 'polisnummer'); await pg.waitForTimeout(500);
+    await pg.evaluate(() => onPauseApp()); await pg.waitForTimeout(450);
+    ok(await pg.evaluate(() => !$('#kl-list .kl-stuk') && !Object.keys(klT.hits).length && $('#kl-search').value === 'polisnummer'), scheme + ': uit beeld: geen stukjes meer in de pagina, de zoekvraag staat er nog');
+    await pg.evaluate(() => onResumeApp()); await pg.waitForTimeout(500);
+    ok((await lijst()).some(x => /polisnummer is 12345/.test(x.stuk)), scheme + ': terug: de treffer staat er weer');
     // weg van het scherm: niets van de inhoud blijft in de pagina staan
     await pg.fill('#kl-search', 'premie'); await pg.waitForTimeout(500);
     ok((await lijst()).some(x => /premie/.test(x.stuk)), scheme + ': (er staat een stukje in beeld)');

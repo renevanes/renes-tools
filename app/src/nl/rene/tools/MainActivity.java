@@ -306,7 +306,6 @@ public class MainActivity extends Activity {
         IdCopy.cleanStale(getApplicationContext());
         PdfCompare.cleanStale(getApplicationContext());
         Kluis.cleanTmp(getApplicationContext());
-        try { KluisTekst.ruimWerk(getApplicationContext()); } catch (Throwable e) { /* cache */ }
         { Context app = getApplicationContext(); new Thread(() -> { try { PdfTools.opruimKluisIn(app); } catch (Throwable ignored) { } }, "pdf-kluis-oud").start(); }
         PlayPolicy.sanitizePreferences(getApplicationContext());
         if (!Updater.viaPlay(this)) {

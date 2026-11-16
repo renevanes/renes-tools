@@ -177,13 +177,23 @@ final class KluisTekst {
             try {
                 ruimWerk(app);
                 JSONArray l = Kluis.list(app);
+                // Stopte de app de vorige keer midden in een document? Dat eerst als mislukte poging vastleggen (en deze ronde
+                // overslaan), en pas daarna het merkteken weghalen: zo gaat de telling nooit verloren.
+                final String vorige = merkLees(app);
+                if (!vorige.isEmpty()) {
+                    try {
+                        synchronized (Kluis.class) {
+                            if (Kluis.find(app, vorige) != null) { File b = blob(app, vorige); JSONObject oud = staat(app, vorige); bewaar(app, vorige, "", b.length(), b.lastModified(), (oud == null ? 0 : oud.optInt("fout")) + 1); }
+                        }
+                        merk(app).delete();
+                    } catch (Throwable e) { /* het merkteken blijft: volgende ronde opnieuw vastleggen */ }
+                }
                 Set<String> ids = new HashSet<>();
                 List<JSONObject> doen = new ArrayList<>();
-                for (int i = 0; i < l.length(); i++) { JSONObject d = l.getJSONObject(i); ids.add(d.optString("id")); if (lees(app, d.optString("id")) == null) doen.add(d); }
+                for (int i = 0; i < l.length(); i++) { JSONObject d = l.getJSONObject(i); ids.add(d.optString("id")); if (!vastgelopen(vorige, d.optString("id")) && lees(app, d.optString("id")) == null) doen.add(d); }
                 File[] fs = Kluis.dir(app).listFiles(); // tekst van documenten die er niet meer zijn, en halve tekstbestanden
                 if (fs != null) for (File f : fs) { String n = f.getName(); if (n.endsWith(EXT + ".writing") || (n.endsWith(EXT) && !ids.contains(n.substring(0, n.length() - EXT.length())))) f.delete(); }
-                final String vorige = merkLees(app); // de vorige ronde stopte midden in dit document (de app stopte): niet nog eens proberen
-                merk(app).delete();
+                if (merk(app).exists()) return; // de mislukte poging kon niet worden vastgelegd: nu niet lezen
                 totaal = doen.size();
                 final BooleanSupplier door = Kluis::isOpen;
                 for (JSONObject d : doen) {
@@ -195,12 +205,9 @@ final class KluisTekst {
                     JSONObject oud = staat(app, id);
                     int fout = oud == null ? 0 : oud.optInt("fout");
                     String tekst = "";
-                    if (vastgelopen(vorige, id)) fout++; // deze ronde overslaan; telt als een mislukte poging (na MAX_POGINGEN blijvend zonder tekst)
-                    else {
-                        merkZet(app, id);
-                        try { tekst = leesDocument(app, d, door); fout = 0; } catch (Throwable e) { tekst = ""; fout++; } // een fout: later nog eens, hooguit MAX_POGINGEN keer
-                        merk(app).delete();
-                    }
+                    merkZet(app, id);
+                    try { tekst = leesDocument(app, d, door); fout = 0; } catch (Throwable e) { tekst = ""; fout++; } // een fout: later nog eens, hooguit MAX_POGINGEN keer
+                    merk(app).delete();
                     if (!door.getAsBoolean()) break; // halverwege op slot: de tekst is niet af, later opnieuw
                     try { synchronized (Kluis.class) { if (Kluis.find(app, id) != null && bewaar(app, id, tekst, n, t, fout)) nieuw++; } } catch (Throwable e) { /* volgende keer opnieuw */ }
                     klaar++;

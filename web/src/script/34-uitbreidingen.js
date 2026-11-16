@@ -111,7 +111,7 @@ const klT = { q: '', hits: {}, zonder: 0, vraag: '', timer: 0, gestart: false, b
 function klTekstWis(){ clearTimeout(klT.timer); klT.q = klT.vraag = ''; klT.hits = {}; klT.zonder = 0; klT.gestart = false; klT.bezig = null; const e = $('#kl-tekst'); if (e) e.textContent = ''; }
 /* Weg van het kluisscherm (of de app uit beeld): namen en stukjes tekst blijven niet in de pagina staan */
 function klVergeet(){ klTekstWis(); const l = $('#kl-list'); if (l) l.replaceChildren(); klRender.docs = []; const z = $('#kl-search'); if (z) z.value = ''; }
-(function(){ const vorige = window.onPauseApp; window.onPauseApp = function(){ if (vorige) vorige(); if (klT.q || Object.keys(klT.hits).length) { klTekstWis(); if (current === 'kluis') { $('#kl-search').value = ''; klRender(); } } }; })();
+(function(){ const vorige = window.onPauseApp; window.onPauseApp = function(){ if (vorige) vorige(); if (klT.q || Object.keys(klT.hits).length) { const g = klT.gestart; klTekstWis(); klT.gestart = g; if (current === 'kluis') klRender.zonderVraag = true, klRender(), klRender.zonderVraag = false; } }; })(); // de stukjes weg, de zoekvraag blijft: bij terugkomen zoekt de kluis opnieuw
 function klTekstVraag(q){
   if (typeof Android.kluisZoek !== 'function') return;
   if (q.replace(/\s/g, '').length < 3) { clearTimeout(klT.timer); klT.vraag = ''; if (klT.q) { klT.q = ''; klT.hits = {}; } return; }
@@ -157,7 +157,7 @@ function klRender(){
   category.value=selected;if(!category.value)category.value='all';
   if (!klT.gestart && typeof Android.kluisTekstBijwerken === 'function') { klT.gestart = true; Android.kluisTekstBijwerken(); }
   const q=$('#kl-search').value.trim().toLowerCase(),favorite=$('#kl-favorites').checked,sort=$('#kl-sort').value;
-  klTekstVraag(q);
+  if (!klRender.zonderVraag) klTekstVraag(q);
   const inTekst=d=>klT.q===q&&q&&typeof klT.hits[d.id]==='string'?klT.hits[d.id]:'';
   const shown=docs.filter(d=>(!q||inTekst(d)||[d.name,d.category,d.note].some(v=>(v||'').toLowerCase().includes(q)))&&(!favorite||d.favorite)&&(category.value==='all'||category.value==='none'&&!d.category||category.value==='category:'+(d.category||'')));
   const name=(a,b)=>(a.name||'').localeCompare(b.name||'','nl',{sensitivity:'base'});
