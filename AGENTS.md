@@ -579,6 +579,11 @@ telefoon en versleuteld; de sleutel zit in de Android Keystore.
   onder Gemaakt met "Naar de documentenkluis". Uit te zetten op PDF → Gemaakt (`store` `pdfKluisVanzelf`). Een nieuw
   PDF-resultaat = `kcNaMaken([{name, title, category, source, link}])` aanroepen; daarna bekijken, delen en opslaan via
   `kcOpen`/`kcShare`/`kcSave` (die weten of het bestand al in de kluis staat). De Play-versie heeft geen kluis.
+- **Mappen en de lijst** (`49-documenten-ordenen.js`, test `documents.test.js`): een map is de `category` van een document in de
+  versleutelde index (geen eigen opslag). Het scherm toont ze als chips met aantallen (`#kl-mappen`: Alle, Favorieten, elke
+  map, Zonder map); de keuze (`klMap`) staat alleen in het geheugen en is weg zodra de kluis op slot gaat. In Alle staan
+  favorieten bovenaan; de ster in een rij, "Verplaatsen naar map…" en "Map hernoemen" gaan allemaal via `kluisOrganize`.
+  Namen van mappen en documenten zijn gegevens: `esc()`/`textContent` en `translate="no"`.
 - **Weg van het kluisscherm = op slot** (bestaand gedrag). Een actie vanuit het kluismenu naar een ander scherm (bewerken,
   vergelijken) start dus éérst de opdracht in Java (die controleert de kluis meteen) en gaat daarna pas naar het andere scherm.
 - **Bekijken in de eigen viewer**: `kluisOpen(id, versie)` ontsleutelt naar `cache/kluis-open` (leeg bij op slot gaan) en opent

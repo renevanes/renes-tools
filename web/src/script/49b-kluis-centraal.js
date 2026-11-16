@@ -139,7 +139,8 @@ function klDocSheet(id){
   acts.push([t('Opslaan als…'), () => Android.kluisSaveAs(id, 0)]);
   if (!isPlay()) acts.push([t('Vergelijken met…'), () => { cmpVanKluis(0, id, 0); show('pdfcmp'); }]);
   if (nv) acts.push([tn(nv, 'Eerdere versie', '{n} eerdere versies'), () => klVersies(id), 'clock']);
-  acts.push(['Categorie en toelichting', () => klOrganizeOpen(id)],
+  acts.push([t('Verplaatsen naar map…'), () => klVerplaats(id), 'folder'],
+    ['Map en toelichting', () => klOrganizeOpen(id)],
     [x.favorite ? 'Uit favorieten halen' : 'Als favoriet markeren', () => klFavorite(id)],
     ['Naam wijzigen', () => askInput('Naam', '', x.name, 'Opslaan', v => { const e = Android.kluisRename(id, v); if (e) toast(e); klRender(); })],
     ['Verwijderen', () => askConfirm('Uit de kluis verwijderen?', nv ? t('"{naam}" en de eerdere versies worden definitief gewist.', { naam: x.name }) : t('"{naam}" wordt definitief gewist.', { naam: x.name }), 'Verwijderen', () => { const e = Android.kluisDelete(id); toast(e || 'Verwijderd'); klRender(); })]);

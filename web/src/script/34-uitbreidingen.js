@@ -110,7 +110,7 @@ function klMsg(text){ const e = $('#kl-msg'); e.textContent = text || ''; e.hidd
 const klT = { q: '', hits: {}, zonder: 0, vraag: '', timer: 0, gestart: false, bezig: null };
 function klTekstWis(){ clearTimeout(klT.timer); klT.q = klT.vraag = ''; klT.hits = {}; klT.zonder = 0; klT.gestart = false; klT.bezig = null; const e = $('#kl-tekst'); if (e) e.textContent = ''; }
 /* Weg van het kluisscherm (of de app uit beeld): namen en stukjes tekst blijven niet in de pagina staan */
-function klVergeet(){ klTekstWis(); const l = $('#kl-list'); if (l) l.replaceChildren(); klRender.docs = []; const z = $('#kl-search'); if (z) z.value = ''; }
+function klVergeet(){ klTekstWis(); const l = $('#kl-list'); if (l) l.replaceChildren(); klRender.docs = []; const m = $('#kl-mappen'); if (m) m.replaceChildren(); const z = $('#kl-search'); if (z) z.value = ''; }
 (function(){ const vorige = window.onPauseApp; window.onPauseApp = function(){ if (vorige) vorige(); if (klT.q || Object.keys(klT.hits).length) { const g = klT.gestart; klTekstWis(); klT.gestart = g; if (current === 'kluis') klRender.zonderVraag = true, klRender(), klRender.zonderVraag = false; } }; })(); // de stukjes weg, de zoekvraag blijft: bij terugkomen zoekt de kluis opnieuw
 function klTekstVraag(q){
   if (typeof Android.kluisZoek !== 'function') return;
@@ -146,28 +146,13 @@ function klRender(){
   $('#kl-open').style.display = locked ? 'none' : 'block';
   if (d.error) klMsg(d.error); else if (!locked) klMsg('');
   clearTimeout(klRender.t);
-  if (locked) { klTekstWis(); $('#kl-list').replaceChildren();klRender.docs=[];klOrganizeClose();$('#kl-search').value='';$('#kl-category').replaceChildren();return; }
+  if (locked) { klTekstWis(); $('#kl-list').replaceChildren();klRender.docs=[];klOrganizeClose();$('#kl-search').value='';klMap='all';$('#kl-mappen').replaceChildren();$('#kl-maphernoem').hidden=true;return; }
   $('#kl-lock').hidden = tsEigenUit('kluis'); // uit: hij opent toch meteen weer
   if (d.left) klRender.t = setTimeout(() => { if (current === 'kluis') klRender(); }, d.left + 500); // na 5 minuten vanzelf op slot, ook op het scherm
-  const docs=(d.docs||[]).slice(),category=$('#kl-category'),selected=category.value;
-  category.replaceChildren();
-  const option=(value,text)=>{const o=document.createElement('option');o.value=value;o.textContent=text;category.appendChild(o);};
-  option('all','Alle categorieën');option('none','Zonder categorie');
-  [...new Set(docs.map(d=>d.category||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'nl')).forEach(c=>option('category:'+c,c));
-  category.value=selected;if(!category.value)category.value='all';
+  const docs=(d.docs||[]).slice();
   if (!klT.gestart && typeof Android.kluisTekstBijwerken === 'function') { klT.gestart = true; Android.kluisTekstBijwerken(); }
-  const q=$('#kl-search').value.trim().toLowerCase(),favorite=$('#kl-favorites').checked,sort=$('#kl-sort').value;
-  if (!klRender.zonderVraag) klTekstVraag(q);
-  const inTekst=d=>klT.q===q&&q&&typeof klT.hits[d.id]==='string'?klT.hits[d.id]:'';
-  const shown=docs.filter(d=>(!q||inTekst(d)||[d.name,d.category,d.note].some(v=>(v||'').toLowerCase().includes(q)))&&(!favorite||d.favorite)&&(category.value==='all'||category.value==='none'&&!d.category||category.value==='category:'+(d.category||'')));
-  const name=(a,b)=>(a.name||'').localeCompare(b.name||'','nl',{sensitivity:'base'});
-  shown.sort(sort==='name'?name:sort==='category'?(a,b)=>(a.category||'').localeCompare(b.category||'','nl')||name(a,b):(a,b)=>(b.t||0)-(a.t||0));
-  $('#kl-empty').style.display=shown.length?'none':'block';
-  $('#kl-empty').textContent=docs.length?'Geen documenten bij deze zoekopdracht of filters.':'Nog leeg. Voeg een document, foto of PDF toe.';
-  $('#kl-count').textContent=tn(docs.length, '{k} van {n} document', '{k} van {n} documenten', { k: shown.length });
-  const ic=m=>uiIcon(/pdf/.test(m)?'document':/^image/.test(m)?'image':'folder');
-  $('#kl-list').innerHTML=shown.map(x=>'<button class="trip" data-id="'+esc(x.id)+'" onclick="klMenu(this.dataset.id)"><span><b>'+ic(x.mime||'')+' '+esc(x.name)+'</b><small>'+(x.favorite?t('★ Favoriet')+' · ':'')+esc(x.category||t('Zonder categorie'))+' · '+esc(klSub(x))+' · '+esc(fmtDate(x.t, {day:'numeric',month:'short',year:'numeric'}))+'</small>'+(x.note?'<small class="kl-doc-note">'+esc(x.note)+'</small>':'')+(inTekst(x)?'<small class="kl-doc-note kl-stuk" translate="no">'+esc(inTekst(x))+'</small>':'')+'</span><span aria-hidden="true">›</span></button>').join('');
   klRender.docs=docs;
+  klTeken(docs); // mappen, lijst en telling: 49-documenten-ordenen.js
   klTekstStand();
 }
 window.onKluis = function(r){
