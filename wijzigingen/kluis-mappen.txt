@@ -1,4 +1,0 @@
-Documentenkluis: je documenten staan nu in mappen. Bovenaan kies je een map (met het aantal documenten erbij), Alle of Favorieten.
-Documentenkluis: favorieten staan bovenaan, en met de ster naast een document zet je een favoriet in één tik aan of uit.
-Documentenkluis: een document verplaats je via het menu naar een bestaande of nieuwe map, en een map kun je hernoemen.
-Documentenkluis: overzichtelijker lijst met een pictogram per soort document, en sorteren per map.

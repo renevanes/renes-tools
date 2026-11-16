@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.215",
-  "versionCode": 216,
+  "versionName": "1.216",
+  "versionCode": 217,
   "nativeLevel": 187,
   "web": "index.html",
-  "webSha256": "b5ee8484061cca834fcde334d711bce5b02f96c841839397f249fb9a9f8c85eb",
+  "webSha256": "d7242005a30addb9fe523d6d4d6d17d21d5e150cd8f81d011d952a8f740994b1",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3c2c7881d3a31bfe61fa011002ad9bcb0a1b6c5aeeea3b5b85067f639ed759be",
+  "apkSha256": "0eb06833bf92547a7eff05e10ed32c41726b1501403a6bfd346be179d3698fee",
   "changelog": [
+    {
+      "version": "1.216",
+      "date": "2026-11-16",
+      "changes": [
+        "Documentenkluis: je documenten staan nu in mappen. Bovenaan kies je een map (met het aantal documenten erbij), Alle of Favorieten.",
+        "Documentenkluis: favorieten staan bovenaan, en met de ster naast een document zet je een favoriet in één tik aan of uit.",
+        "Documentenkluis: een document verplaats je via het menu naar een bestaande of nieuwe map, en een map kun je hernoemen.",
+        "Documentenkluis: overzichtelijker lijst met een pictogram per soort document, en sorteren per map."
+      ]
+    },
     {
       "version": "1.215",
       "date": "2026-11-16",
@@ -156,15 +166,7 @@
       "changes": [
         "Nieuws: inloggen bij AI Report bleef hangen op \"Je code wordt verstuurd\". Het inlogvenster laat nu alles toe wat de inlogpagina zelf maakt (zoals de controle tegen robots); houdt Tools toch iets tegen, dan staat dat bovenin."
       ]
-    },
-    {
-      "version": "1.196",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws, Podcasts en Radio hebben een knop maan/zon in de kop (de grote speler: \"Licht en donker\" in het menu ⋯): zet het scherm meteen donker of licht, met een directe link naar de instellingen voor weergave.",
-        "Staat het thema op automatisch, dan geldt \"nu donker\" (of licht) tijdelijk tot de volgende automatische wissel; daarna gaat het weer vanzelf. Ook het opstarten blijft dan donker, zonder witte flits."
-      ]
     }
   ],
-  "webSig2": "jn7nrdr8DpGZb2GNQOxBzdyi2nWlfh7ggupvGcLtatw6w3OTe4qfSbX7tV36RbXTtHLfOf85/AeEpQv7IKIjYnHkxsWzqMVyYDVad7osV03N87hfJ1ryaMj8jumJaK3ThF7ZDKOgo+dnTxnBpx8mei38Bf6yuPtNXnlHGVR02hoy/X4yOTAtX69Yj1OncVEmwGxBYGfUw0+Utwz1Gzu7cL7ekNxzv0HqhWIgruyf/znojUSFADfvrfVeA8RwhGggrP0fChTomuPm98vq9Ukc8FQG/+nRAP/ImWF1lJr0we4EsW11mkYfsP/LCn64veuHHff73EB/3B4uHWQEMq1N+h2okrnPj8bTnjd2rNJiYwpFyt/cByJqO+Z/XOgiXo0I5mXPTWiB5wMA9qXfotaTlqpNRKg9v4lmDaw5P2KIbYuTPqNZaR62nkorzGuguGdgTl/O7ZOqUj482TE9fib6Olx+3/sZ+twRaRwBYw5mDe8nwaGcn9FjGVf9mDpJoSXH"
+  "webSig2": "ek7IWVhU8QCv2D6jHbZCyzoWTToU1BeptV3PIROPXaSVOyW/okl09m3vlLJAZjIa8KlSYGiV74VpoUTIuR8yKa0WG9tbKNdGx9pnd2qrZSjT7HmgWYnncFM+ghXTyPR+hq8IfgseWcsK4a7+IgSq1x5ii6cuodzecTQSWAyZmStDCeIkwQ/c5ouYj+fCBMExrEFYijOm0mbzXaIymbokhXdCGMQNZUaEncysSziNCyFVU82n3Mh3xnF3a4cIrpaMYcpRwcBB/d4wBpZn+U7MdEqpttoTNOXrCa6tIzbitK4kjNL43DD0pQ7b3n1FczuimGSkIg3WOEhgmO54biB3DXlps/CCzMxa1MPlODlYoKoli+jO4346VIaR2un/5U+T34CyvUt8BEumnGf3gxm3841ajyYxifp9mDxToN/GUQFdcw5c8YW4SP5cga3UQEQRrMI9SqoB7nY8zVf6qKOdBJOBUQBtxBSOWxTsSOxnjULkeIHxasglhudBx/bEKPK6"
 }
