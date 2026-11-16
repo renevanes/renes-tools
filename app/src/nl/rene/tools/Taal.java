@@ -297,7 +297,4 @@ final class Taal {
             return new String(o.toByteArray(), StandardCharsets.UTF_8);
         } catch (Throwable t) { return ""; }
     }
-
-    /** Voor tests: een eigen woordenboek. */
-    static Map<String, Object> forTest(Map<String, Object> d) { en = d; back = null; pats = null; return d; }
 }

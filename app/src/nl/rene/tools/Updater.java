@@ -123,18 +123,6 @@ final class Updater {
         catch (Exception e) { return null; }
     }
 
-    /** Gedownloade interface, of null als de gebundelde nieuwer of gelijk is. */
-    static String downloadedHtml(Context c) {
-        WebUpdateStore.Snapshot s = snapshot(c);
-        for (int attempt = 0; s != null && attempt < 2; attempt++) {
-            try { return s.readHtml(); }
-            catch (Exception e) { store(c).refresh(); s = snapshot(c); }
-        }
-        if (webCode(c) <= Version.CODE) return null;
-        try { return new String(readAll(new java.io.FileInputStream(webFile(c))), StandardCharsets.UTF_8); }
-        catch (Exception e) { return null; }
-    }
-
     /**
      * Adres van de update-map. Via de GitHub-API wordt eerst de nieuwste commit opgezocht,
      * zodat een nieuwe versie direct zichtbaar is (de gewone raw-link wordt tot 5 minuten
