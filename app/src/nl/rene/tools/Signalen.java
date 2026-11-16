@@ -55,35 +55,82 @@ final class Signalen {
 
     static boolean hm(String s) { return s != null && s.matches("([01]\\d|2[0-3]):[0-5]\\d"); }
 
+    /** Soorten bronnen: een webpagina, of iets uit Tools zelf. Van elke soort uit Tools is er hooguit één. */
+    static final String[] SOORTEN = {"web", "agenda", "nieuws", "facturen", "notities", "taken"};
+    static final int[] VOORAF = {1, 3, 12, 24, 48}, DAGEN = {3, 7, 14, 30};
+
+    static String soort(String s) {
+        for (String x : SOORTEN) if (x.equals(s)) return x;
+        return "web";
+    }
+
+    /** Heeft deze soort geen internet nodig (de gegevens staan al op de telefoon)? */
+    static boolean lokaal(String soort) { return !"web".equals(soort) && !"nieuws".equals(soort); }
+
+    /** Bij deze soorten is wat er de eerste keer al staat oud nieuws (geen melding); een afspraak of een mislukte taak is dat niet. */
+    static boolean eersteStil(String soort) { return !"agenda".equals(soort) && !"taken".equals(soort); }
+
+    /** De tool waar een bericht van deze soort uit komt (voor het slot van die tool en "Open in …"); leeg bij een website. */
+    static String tool(String soort) {
+        switch (soort == null ? "" : soort) {
+            case "agenda": return "agenda";
+            case "nieuws": return "nieuws";
+            case "facturen": return "facturen";
+            case "notities": return "notes";
+            default: return "";
+        }
+    }
+
+    static String naamVan(String soort) {
+        switch (soort) {
+            case "agenda": return Taal.T("Agenda");
+            case "nieuws": return Taal.T("Nieuws");
+            case "facturen": return Taal.T("Facturen");
+            case "notities": return Taal.T("Notities");
+            case "taken": return Taal.T("Taken van Tools");
+            default: return "";
+        }
+    }
+
+    private static int uit(int[] keuzes, int v, int anders) {
+        for (int k : keuzes) if (k == v) return v;
+        return anders;
+    }
+
     /** Een bron uit de interface nakijken en netjes maken. Een fout is een Nederlandse zin voor Rene. */
     static JSONObject normaal(JSONObject in) throws Exception {
         JSONObject b = new JSONObject();
-        String id = in.optString("id");
+        String id = in.optString("id"), soort = soort(in.optString("soort", "web"));
+        boolean web = "web".equals(soort);
         b.put("id", id.matches("s[0-9a-f]{8,16}") ? id : "");
-        b.put("soort", "web");
-        String url = in.optString("url").trim();
-        if (!url.isEmpty() && !url.contains("://")) url = "https://" + url;
-        if (!NieuwsFeed.httpsOpenbaar(url)) throw new Fout(Taal.T("Vul een https-adres van een website in."));
+        b.put("soort", soort);
+        String url = web ? in.optString("url").trim() : "";
+        if (web) {
+            if (!url.isEmpty() && !url.contains("://")) url = "https://" + url;
+            if (!NieuwsFeed.httpsOpenbaar(url)) throw new Fout(Taal.T("Vul een https-adres van een website in."));
+        }
         b.put("url", url);
         String naam = schoon(in.optString("naam"), 80);
-        if (naam.isEmpty()) naam = host(url);
+        if (naam.isEmpty()) naam = web ? host(url) : naamVan(soort);
         b.put("naam", naam);
-        JSONArray w = new JSONArray(), wi = in.optJSONArray("woorden");
+        JSONArray w = new JSONArray(), wi = web || "nieuws".equals(soort) ? in.optJSONArray("woorden") : null;
         Set<String> al = new HashSet<>();
         for (int i = 0; wi != null && i < wi.length() && w.length() < MAX_WOORDEN; i++) {
             String x = schoon(wi.optString(i), 60);
             if (x.length() >= 2 && al.add(vouw(x))) w.put(x);
         }
+        if ("nieuws".equals(soort) && w.length() == 0) throw new Fout(Taal.T("Vul minstens één trefwoord in: anders komt al het nieuws in Signalen."));
         b.put("woorden", w);
-        String alleen = in.optString("alleen").trim();
+        String alleen = web ? in.optString("alleen").trim() : "";
         if (!alleen.isEmpty() && (!NieuwsFeed.httpsOpenbaar(alleen) || !host(alleen).equals(host(url))))
             throw new Fout(Taal.T("\"Alleen links die beginnen met\" moet een https-adres op dezelfde site zijn."));
         b.put("alleen", alleen);
-        int elke = in.optInt("elke", 6);
-        boolean ok = false;
-        for (int e : ELKE) if (e == elke) ok = true;
-        b.put("elke", ok ? elke : 6);
-        b.put("wifi", in.optBoolean("wifi", true));
+        int standaard = "agenda".equals(soort) ? 1 : "nieuws".equals(soort) ? 3 : "notities".equals(soort) ? 24 : 6;
+        // Agenda kijkt altijd elk uur: anders valt een afspraak tussen twee rondes door
+        b.put("elke", "agenda".equals(soort) ? 1 : uit(ELKE, in.optInt("elke", standaard), standaard));
+        b.put("wifi", !lokaal(soort) && in.optBoolean("wifi", true));
+        if ("agenda".equals(soort)) b.put("vooraf", uit(VOORAF, in.optInt("vooraf", 24), 24));
+        if ("notities".equals(soort)) b.put("dagen", uit(DAGEN, in.optInt("dagen", 7), 7));
         String m = in.optString("melden", "direct");
         b.put("melden", "overzicht".equals(m) || "inbox".equals(m) ? m : "direct");
         b.put("belangrijk", in.optBoolean("belangrijk", false));
@@ -104,7 +151,7 @@ final class Signalen {
 
     /** Verandert er iets waardoor de bron opnieuw moet beginnen (ander adres, andere trefwoorden)? */
     static boolean opnieuw(JSONObject oud, JSONObject nieuw) {
-        return oud == null || !oud.optString("url").equals(nieuw.optString("url")) || !oud.optString("alleen").equals(nieuw.optString("alleen"))
+        return oud == null || !oud.optString("soort", "web").equals(nieuw.optString("soort", "web")) || !oud.optString("url").equals(nieuw.optString("url")) || !oud.optString("alleen").equals(nieuw.optString("alleen"))
                 || !String.valueOf(oud.optJSONArray("woorden")).equals(String.valueOf(nieuw.optJSONArray("woorden")));
     }
 
@@ -457,6 +504,8 @@ final class Signalen {
      */
     static int wijze(JSONObject item, JSONObject bron, JSONObject inst, long nu, TimeZone tz) {
         if (item.optBoolean("gemeld") || "klaar".equals(item.optString("status"))) return NIET;
+        // een afspraak die al voorbij is (vastgehouden door de stille uren of het dagoverzicht) melden heeft geen zin meer
+        if (item.optLong("verloopt") > 0 && item.optLong("verloopt") <= nu && item.optLong("later") == 0) return NIET;
         long later = item.optLong("later");
         boolean belangrijk = bron != null && bron.optBoolean("belangrijk");
         boolean stil = !belangrijk && stil(inst, Regio.minuteOfDay(tz, nu));
@@ -497,16 +546,30 @@ final class Signalen {
         return !dag.equals(overzichtDag) && Regio.toMillis(tz, dag, inst.optString("overzicht", "18:00")) <= nu;
     }
 
-    /** Wanneer een bron weer aan de beurt is: {met elk internet, alleen wifi}; na een fout over een uur opnieuw. */
+    /** Wanneer een bron weer aan de beurt is: {met elk internet, alleen wifi, zonder internet (bronnen uit Tools zelf)}. */
     static long[] volgendeScan(JSONArray bronnen, JSONObject toestand, long nu) {
-        long any = Long.MAX_VALUE, wifi = Long.MAX_VALUE;
+        long any = Long.MAX_VALUE, wifi = Long.MAX_VALUE, lokaal = Long.MAX_VALUE;
         for (int i = 0; bronnen != null && i < bronnen.length(); i++) {
             JSONObject b = bronnen.optJSONObject(i);
             if (b == null || !b.optBoolean("aan", true)) continue;
             long m = aanDeBeurt(b, toestand == null ? null : toestand.optJSONObject(b.optString("id")), nu);
-            if (b.optBoolean("wifi", true)) wifi = Math.min(wifi, m); else any = Math.min(any, m);
+            if (lokaal(b.optString("soort", "web"))) lokaal = Math.min(lokaal, m);
+            else if (b.optBoolean("wifi", true)) wifi = Math.min(wifi, m); else any = Math.min(any, m);
         }
-        return new long[]{any, wifi};
+        return new long[]{any, wifi, lokaal};
+    }
+
+    /** Van de berichten die een bron uit Tools aanlevert: welke zijn nog niet gezien? Hooguit {@code max}; {@code gezien} krijgt ze erbij. */
+    static List<JSONObject> nieuwIntern(List<JSONObject> kandidaten, Set<String> gezien, int max) {
+        List<JSONObject> uit = new ArrayList<>();
+        for (JSONObject k : kandidaten) {
+            String id = k.optString("id");
+            if (id.isEmpty() || gezien.contains(id)) continue;
+            if (uit.size() >= max) continue;
+            gezien.add(id);
+            uit.add(k);
+        }
+        return uit;
     }
 
     static long aanDeBeurt(JSONObject bron, JSONObject t, long nu) {
@@ -575,10 +638,13 @@ final class Signalen {
         int plek = -1;
         for (int i = 0; i < a.length(); i++) if (!b.optString("id").isEmpty() && b.optString("id").equals(a.getJSONObject(i).optString("id"))) plek = i;
         if (plek < 0) {
+            if (!"web".equals(b.optString("soort"))) for (int i = 0; i < a.length(); i++) if (b.optString("soort").equals(a.getJSONObject(i).optString("soort")))
+                throw new Fout(Taal.T("Die bron staat er al. Je kunt hem aanpassen."));
             if (a.length() >= MAX_BRONNEN) throw new Fout(Taal.fill(Taal.T("Hooguit {n} bronnen."), "n", MAX_BRONNEN));
             b.put("id", "s" + Long.toHexString(System.currentTimeMillis() & 0xffffffffffL) + Integer.toHexString(new java.security.SecureRandom().nextInt(0xfff) + 0x1000).substring(1));
             a.put(b);
         } else {
+            if (!a.getJSONObject(plek).optString("soort", "web").equals(b.optString("soort"))) throw new Fout(Taal.T("De soort van een bron kun je niet veranderen."));
             if (opnieuw(a.getJSONObject(plek), b)) {
                 JSONObject t = toestandBestand(c);
                 if (t != null && t.optJSONObject("bronnen") != null) { t.optJSONObject("bronnen").remove(b.optString("id")); schrijf(c, "toestand.json", t); }

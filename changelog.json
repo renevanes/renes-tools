@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.218",
+    "date": "2026-11-16",
+    "changes": [
+      "Signalen: nu ook bronnen uit Tools zelf. Bij Instellingen → Bron uit Tools toevoegen kies je Agenda, Nieuws, Facturen, Notities of Taken van Tools.",
+      "Signalen, Agenda: een bericht als een afspraak eraan komt (een uur tot twee dagen van tevoren, standaard een dag).",
+      "Signalen, Nieuws: artikelen uit je nieuwsbronnen die bij je trefwoorden passen; Tools haalt het nieuws daarvoor ook op de achtergrond op.",
+      "Signalen, Facturen en Notities: nieuwe facturen in het dossier, en lijsten met open punten die een tijd niet zijn aangeraakt.",
+      "Signalen, Taken van Tools: als de backup, facturen ophalen of het bijwerken van Toiletten en douches mislukt.",
+      "Signalen: staat een tool op slot (Extra ontgrendelen), dan staat de inhoud van zijn berichten niet in de melding en niet in de lijst tot je ontgrendelt."
+    ]
+  },
+  {
     "version": "1.217",
     "date": "2026-11-16",
     "changes": [

@@ -27,8 +27,10 @@ public class SignalenJob extends JobService {
         final int job = params.getJobId();
         new Thread(() -> {
             try {
-                // zonder internet (de taak loopt dan door zijn uiterste tijd) niet nakijken: dat is geen fout van de bron
-                if (job != JOB_MELD) { laatste = System.currentTimeMillis(); if (online(ctx) && !SignalenScan.BEZIG.get()) SignalenScan.scan(ctx, "", true, !metered(ctx)); }
+                // zonder internet (de taak loopt dan door zijn uiterste tijd) alleen de bronnen uit Tools zelf: dat is geen fout van een website
+                boolean net = job != JOB_MELD && online(ctx);
+                if (job != JOB_MELD) laatste = System.currentTimeMillis(); else laatsteLokaal = System.currentTimeMillis();
+                if (!SignalenScan.BEZIG.get()) SignalenScan.scan(ctx, "", true, net, net && !metered(ctx));
                 SignalenScan.meld(ctx);
             } catch (Throwable ignored) { }
             finally {
@@ -43,7 +45,7 @@ public class SignalenJob extends JobService {
     public boolean onStopJob(JobParameters params) { return true; }
 
     /** Wanneer een taak voor het laatst ging nakijken: daarna minstens een kwartier rust, wat er ook gebeurde. */
-    private static volatile long laatste;
+    private static volatile long laatste, laatsteLokaal;
     static final long RUST = 15 * 60_000L;
 
     @SuppressWarnings("deprecation")
@@ -71,7 +73,8 @@ public class SignalenJob extends JobService {
 
     private static void plan(JobScheduler js, Context c, int id, long op, long nu, int net) {
         if (op == Long.MAX_VALUE) { js.cancel(id); return; }
-        if (id != JOB_MELD) op = Math.max(op, laatste + RUST); // nooit in een lus: ook niet als er intussen met de hand wordt nagekeken
+        // nooit in een lus: ook niet als er intussen met de hand wordt nagekeken
+        op = id != JOB_MELD ? Math.max(op, laatste + RUST) : Math.max(op, laatsteLokaal + 60_000L);
         long wacht = Math.max(0, op - nu);
         JobInfo.Builder b = new JobInfo.Builder(id, new ComponentName(c, SignalenJob.class))
                 .setMinimumLatency(wacht).setOverrideDeadline(wacht + (id == JOB_MELD ? 15 * 60_000L : 6 * 3_600_000L))
@@ -87,11 +90,16 @@ public class SignalenJob extends JobService {
         if (!nodig(c)) { js.cancel(JOB_ID); js.cancel(JOB_NET); js.cancel(JOB_WIFI); js.cancel(JOB_MELD); return; }
         long nu = System.currentTimeMillis();
         JSONArray bronnen = Signalen.bronnen(c);
-        long[] v = Signalen.volgendeScan(bronnen, Signalen.toestand(c), nu);
+        long[] v = Signalen.toestandBestand(c) == null || Signalen.items(c) == null ? new long[]{Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE} // niet bij te houden: niet blijven proberen
+                : Signalen.volgendeScan(bronnen, Signalen.toestand(c), nu);
         plan(js, c, JOB_NET, v[0], nu, JobInfo.NETWORK_TYPE_ANY);
         plan(js, c, JOB_WIFI, v[1], nu, JobInfo.NETWORK_TYPE_UNMETERED);
+        // de taak zonder internet: het moment van melden, of een bron uit Tools zelf (Agenda, Facturen, Notities, taken) die aan de beurt is
         JSONArray items = Signalen.items(c);
-        plan(js, c, JOB_MELD, items == null ? Long.MAX_VALUE : Signalen.volgendeMelding(items, Signalen.perId(bronnen), Signalen.instellingen(c), Signalen.overzichtDag(c), nu, Regio.zone(c)), nu, JobInfo.NETWORK_TYPE_NONE);
+        long meld = items == null ? Long.MAX_VALUE : Signalen.volgendeMelding(items, Signalen.perId(bronnen), Signalen.instellingen(c), Signalen.overzichtDag(c), nu, Regio.zone(c));
+        // liep de taak net en is een bron uit Tools nog steeds aan de beurt (de toestand kon niet bewaard worden), dan eerst een kwartier rust
+        long lokaal = v[2] <= nu ? Math.max(v[2], laatsteLokaal + RUST) : v[2];
+        plan(js, c, JOB_MELD, Math.min(meld, lokaal), nu, JobInfo.NETWORK_TYPE_NONE);
         if (js.getPendingJob(JOB_ID) != null) return;
         JobInfo.Builder b = new JobInfo.Builder(JOB_ID, new ComponentName(c, SignalenJob.class))
                 .setPeriodic(86_400_000L).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true);

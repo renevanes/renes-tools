@@ -55,6 +55,8 @@
     <h2>Bronnen</h2>
     <div class="card stlist" id="sns-bronnen"></div>
     <button class="big" id="sns-nieuw" type="button" onclick="snBronNieuw()">Website toevoegen</button>
+    <button class="big tonal" id="sns-tools" type="button" onclick="snBronTools()">Bron uit Tools toevoegen</button>
+    <p class="hint">Uit Tools zelf: afspraken die eraan komen, nieuws op trefwoorden, nieuwe facturen, lijsten die blijven liggen en taken die mislukten.</p>
     <h2>Stille uren</h2>
     <div class="card">
       <div class="sw"><span>Stille uren<small>Geen meldingen in deze uren; ze komen daarna. Een belangrijke bron meldt wel.</small></span><button class="tg" id="sns-stil" role="switch" aria-checked="true" aria-label="Stille uren" onclick="togUi(this);snInstBewaar()"></button></div>
@@ -82,25 +84,34 @@
     </div>
     <p class="note" id="snb-stand" translate="no" hidden></p>
     <div class="card">
-      <div class="sw"><span>Aan<small>Uit: Tools kijkt niet meer op deze website</small></span><button class="tg" id="snb-aan" role="switch" aria-checked="true" aria-label="Bron aan" onclick="togUi(this)"></button></div>
+      <div class="sw"><span>Aan<small>Uit: Signalen kijkt niet meer naar deze bron</small></span><button class="tg" id="snb-aan" role="switch" aria-checked="true" aria-label="Bron aan" onclick="togUi(this)"></button></div>
       <label class="f" for="snb-naam">Naam</label>
       <input class="aein" id="snb-naam" maxlength="80" autocomplete="off">
-      <label class="f" for="snb-url">Adres van de pagina</label>
+      <p class="hint" id="snb-uitleg" hidden></p>
+      <div id="snb-r-url"><label class="f" for="snb-url">Adres van de pagina</label>
       <input class="aein" id="snb-url" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://">
-      <p class="hint">De pagina waar nieuwe berichten op verschijnen, zoals een nieuwsoverzicht.</p>
-      <label class="f" for="snb-woorden">Trefwoorden</label>
+      <p class="hint">De pagina waar nieuwe berichten op verschijnen, zoals een nieuwsoverzicht.</p></div>
+      <div id="snb-r-woorden"><label class="f" for="snb-woorden">Trefwoorden</label>
       <input class="aein" id="snb-woorden" maxlength="400" autocomplete="off" autocapitalize="off" placeholder="vrijlating, open dag">
-      <p class="hint">Met komma's ertussen. Eén woord dat in de titel of het adres van een nieuw bericht staat is genoeg. Leeg: elk nieuw bericht telt.</p>
-      <label class="f" for="snb-alleen">Alleen links die beginnen met (mag leeg)</label>
-      <input class="aein" id="snb-alleen" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://">
+      <p class="hint" id="snb-woordenhint">Met komma's ertussen. Eén woord dat in de titel of het adres van een nieuw bericht staat is genoeg. Leeg: elk nieuw bericht telt.</p></div>
+      <div id="snb-r-alleen"><label class="f" for="snb-alleen">Alleen links die beginnen met (mag leeg)</label>
+      <input class="aein" id="snb-alleen" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://"></div>
+      <div id="snb-r-vooraf" hidden><label class="f" for="snb-vooraf">Hoe lang van tevoren</label>
+      <select class="sel" id="snb-vooraf">
+        <option value="1">Een uur</option><option value="3">3 uur</option><option value="12">12 uur</option><option value="24">Een dag</option><option value="48">Twee dagen</option>
+      </select></div>
+      <div id="snb-r-dagen" hidden><label class="f" for="snb-dagen">Na hoeveel dagen niet aangeraakt</label>
+      <select class="sel" id="snb-dagen">
+        <option value="3">3 dagen</option><option value="7">Een week</option><option value="14">Twee weken</option><option value="30">Een maand</option>
+      </select></div>
     </div>
     <div class="card">
-      <label class="f" for="snb-elke">Hoe vaak nakijken</label>
+      <div id="snb-r-elke"><label class="f" for="snb-elke">Hoe vaak nakijken</label>
       <select class="sel" id="snb-elke">
         <option value="1">Elk uur</option><option value="3">Elke 3 uur</option><option value="6">Elke 6 uur (4 keer per dag)</option>
         <option value="12">Twee keer per dag</option><option value="24">Elke dag</option><option value="168">Elke week</option>
-      </select>
-      <div class="sw"><span>Alleen via wifi<small>Uit: ook via mobiel internet</small></span><button class="tg" id="snb-wifi" role="switch" aria-checked="true" aria-label="Alleen via wifi" onclick="togUi(this)"></button></div>
+      </select></div>
+      <div class="sw" id="snb-r-wifi"><span>Alleen via wifi<small>Uit: ook via mobiel internet</small></span><button class="tg" id="snb-wifi" role="switch" aria-checked="true" aria-label="Alleen via wifi" onclick="togUi(this)"></button></div>
       <label class="f" for="snb-melden">Hoe wil je het horen</label>
       <select class="sel" id="snb-melden">
         <option value="direct">Meteen een melding</option><option value="overzicht">In het dagoverzicht</option><option value="inbox">Alleen in Signalen, geen melding</option>

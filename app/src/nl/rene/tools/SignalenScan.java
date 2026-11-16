@@ -72,11 +72,40 @@ final class SignalenScan {
                 .put("link", link[0]).put("gevonden", nu).put("dag", d[0]).put("tijd", d[1]).put("status", "nieuw").put("later", 0).put("gemeld", false);
     }
 
+    /** Een webpagina nalopen: de nieuwe berichten (uitgewerkt), met in {@code gezien} wat nu als gezien geldt en in {@code tel[0]} het aantal links. */
+    private static List<JSONObject> web(JSONObject b, Set<String> gezien, boolean eerste, long nu, String vandaag, int[] tel) throws Exception {
+        long tot = nu + PER_BRON;
+        List<String[]> links = haalLinks(b, tot);
+        // de eerste keer geldt alles wat er al staat als gezien (anders meldt de volgende ronde oude berichten als nieuw);
+        // alleen de bovenste komen, zonder melding, in de inbox
+        Signalen.Vondst v = Signalen.nieuw(b, links, gezien, eerste ? Integer.MAX_VALUE : Signalen.MAX_PER_SCAN);
+        List<JSONObject> items = new ArrayList<>();
+        for (String[] l : v.nieuw) {
+            if (items.size() >= Signalen.MAX_PER_SCAN) break;
+            items.add(item(b, l, tot, vandaag, nu - items.size()).put("soort", "web").put("tool", "")); // de volgorde van de pagina blijft: bovenaan is het nieuwst
+        }
+        gezien.addAll(v.gezien);
+        tel[0] = v.links;
+        return items;
+    }
+
+    /** Een bron uit Tools zelf nalopen (Agenda, Nieuws, Facturen, Notities, taken): zelfde regels voor gezien en de eerste keer. */
+    private static List<JSONObject> intern(Context c, JSONObject b, Set<String> gezien, boolean eerste, long nu, int[] tel) throws Exception {
+        if ("nieuws".equals(b.optString("soort"))) {
+            try { Nieuws.ververs(c, false, false); } catch (Throwable ignored) { } // de feeds die aan de beurt zijn; lukt het niet, dan wat er al staat
+        }
+        List<JSONObject> kandidaten = SignalenIntern.kandidaten(c, b, nu);
+        tel[0] = kandidaten.size();
+        List<JSONObject> nieuw = Signalen.nieuwIntern(kandidaten, gezien, eerste ? Integer.MAX_VALUE : Signalen.MAX_PER_SCAN);
+        return nieuw.size() > Signalen.MAX_PER_SCAN ? new ArrayList<>(nieuw.subList(0, Signalen.MAX_PER_SCAN)) : nieuw;
+    }
+
     /**
-     * Bronnen nalopen. {@code id} leeg = alle bronnen die aan staan ({@code auto}: alleen wie aan de beurt is, en met
-     * {@code wifi} onwaar alleen de bronnen die ook zonder wifi mogen). Geeft {ok, nieuw, bronnen, fouten}.
+     * Bronnen nalopen. {@code id} leeg = alle bronnen die aan staan. {@code auto}: alleen wie aan de beurt is; bronnen die
+     * internet nodig hebben alleen met {@code online}, en met {@code wifi} onwaar alleen wie ook zonder wifi mag.
+     * Geeft {ok, nieuw, bronnen, fouten}.
      */
-    static JSONObject scan(Context c, String id, boolean auto, boolean wifi) throws Exception {
+    static JSONObject scan(Context c, String id, boolean auto, boolean online, boolean wifi) throws Exception {
         JSONObject uit = new JSONObject().put("ok", false).put("nieuw", 0).put("bronnen", 0).put("fouten", 0);
         if (!BEZIG.compareAndSet(false, true)) return uit.put("bezig", true);
         try {
@@ -88,39 +117,37 @@ final class SignalenScan {
             for (int i = 0; i < bronnen.length(); i++) {
                 JSONObject b = bronnen.optJSONObject(i);
                 if (b == null) continue;
-                String bid = b.optString("id");
+                String bid = b.optString("id"), soort = b.optString("soort", "web");
                 if (id != null && !id.isEmpty() ? !id.equals(bid) : !b.optBoolean("aan", true)) continue;
                 long nu = System.currentTimeMillis();
                 JSONObject t = Signalen.toestand(c).optJSONObject(bid);
                 if (t == null) t = new JSONObject();
-                if (auto && (Signalen.aanDeBeurt(b, t.length() == 0 ? null : t, nu) > nu || (b.optBoolean("wifi", true) && !wifi))) continue;
+                if (auto) {
+                    if (Signalen.aanDeBeurt(b, t.length() == 0 ? null : t, nu) > nu) continue;
+                    if (!Signalen.lokaal(soort) && (!online || (b.optBoolean("wifi", true) && !wifi))) continue;
+                }
                 gedaan++;
                 t.put("lastTry", nu);
                 try {
-                    long tot = nu + PER_BRON;
-                    List<String[]> links = haalLinks(b, tot);
-                    Set<String> gezien = new HashSet<>();
+                    Set<String> gezien = new java.util.LinkedHashSet<>();
                     JSONArray g = t.optJSONArray("gezien");
-                    for (int k = 0; g != null && k < g.length(); k++) gezien.add(g.optString(k));
+                    Set<String> oud = new HashSet<>();
+                    for (int k = 0; g != null && k < g.length(); k++) oud.add(g.optString(k));
                     boolean eerste = !t.optBoolean("klaar");
-                    // de eerste keer geldt alles wat er al staat als gezien (anders meldt de volgende ronde oude berichten als nieuw);
-                    // alleen de bovenste komen, zonder melding, in de inbox
-                    Signalen.Vondst v = Signalen.nieuw(b, links, gezien, eerste ? Integer.MAX_VALUE : Signalen.MAX_PER_SCAN);
-                    String vandaag = Regio.dayKey(tz, nu);
-                    List<JSONObject> items = new ArrayList<>();
-                    for (String[] l : v.nieuw) {
-                        if (items.size() >= Signalen.MAX_PER_SCAN) break;
-                        JSONObject it = item(b, l, tot, vandaag, nu - items.size()); // de volgorde van de pagina blijft: bovenaan is het nieuwst
-                        if (eerste) it.put("gemeld", true).put("eerste", true); // wat er al stond: wel in de inbox, geen melding
-                        items.add(it);
-                    }
+                    int[] tel = {0};
+                    Set<String> erbijGezien = new java.util.LinkedHashSet<>(oud);
+                    // een afspraak of mislukte taak is ook de eerste keer nieuws: daar niets ongezien wegstrepen
+                    List<JSONObject> items = "web".equals(soort) ? web(b, erbijGezien, eerste, nu, Regio.dayKey(tz, nu), tel) : intern(c, b, erbijGezien, eerste && Signalen.eersteStil(soort), nu, tel);
+                    if (eerste && Signalen.eersteStil(soort)) for (JSONObject it : items) it.put("gemeld", true).put("eerste", true); // wat er al stond: wel in de inbox, geen melding
                     int erbij = Signalen.voegToe(c, items);
                     nieuw += erbij;
+                    // nieuwste eerst bewaren, zodat bij de grens het oudste afvalt
                     JSONArray ng = new JSONArray();
-                    for (String s : v.gezien) ng.put(s);
+                    for (String s : erbijGezien) if (!oud.contains(s)) gezien.add(s);
+                    for (String s : gezien) ng.put(s);
                     for (int k = 0; g != null && k < g.length() && ng.length() < Signalen.MAX_GEZIEN; k++) ng.put(g.optString(k));
-                    t.put("gezien", ng).put("klaar", true).put("lastOk", nu).put("fout", "").put("fouten", 0).put("links", v.links).put("gevonden", erbij).put("gemeldFout", false);
-                    App.log(c, "SIGNAAL", "scan ok: " + v.links + " links, " + erbij + " nieuw");
+                    t.put("gezien", ng).put("klaar", true).put("lastOk", nu).put("fout", "").put("fouten", 0).put("links", tel[0]).put("gevonden", erbij).put("gemeldFout", false);
+                    App.log(c, "SIGNAAL", "scan ok: " + tel[0] + " bekeken, " + erbij + " nieuw");
                 } catch (Throwable e) {
                     fouten++;
                     int n = t.optInt("fouten") + 1;
@@ -142,6 +169,14 @@ final class SignalenScan {
         try {
             JSONObject b = Signalen.normaal(in);
             long nu = System.currentTimeMillis();
+            if (!"web".equals(b.optString("soort"))) { // uit Tools zelf: wat er nu te melden zou zijn
+                List<JSONObject> k = SignalenIntern.kandidaten(c, b.put("id", "proef"), nu);
+                JSONArray g = new JSONArray();
+                // staat de tool waar dit uit komt op slot (Extra ontgrendelen), dan alleen het aantal: geen titels buiten die tool om
+                boolean dicht = ToolSlot.aan(c).contains(Signalen.tool(b.optString("soort")));
+                for (int i = 0; !dicht && i < Math.min(10, k.size()); i++) g.put(new JSONObject().put("titel", k.get(i).optString("titel")).put("link", "").put("dag", k.get(i).optString("dag")));
+                return uit.put("ok", true).put("links", k.size()).put("gevonden", g).put("intern", true);
+            }
             Signalen.Vondst v = Signalen.nieuw(b, haalLinks(b, nu + PER_BRON), new HashSet<String>(), 10);
             String vandaag = Regio.dayKey(Regio.zone(c), nu);
             JSONArray g = new JSONArray();
@@ -213,6 +248,7 @@ final class SignalenScan {
             String dag = Signalen.overzichtDag(c);
             boolean overzichtNu = Signalen.overzichtNu(inst, dag, nu, tz), anders = false;
             List<JSONObject> lijst = new ArrayList<>();
+            Set<String> slot = ToolSlot.aan(c);
             int n = 0;
             for (int i = 0; i < items.length(); i++) {
                 JSONObject it = items.optJSONObject(i);
@@ -220,7 +256,9 @@ final class SignalenScan {
                 int w = Signalen.wijze(it, bronnen.optJSONObject(it.optString("bron")), inst, nu, tz);
                 if (w == Signalen.NU) {
                     boolean later = it.optLong("later") > 0;
-                    plaats(c, nr(it.optString("id")), "signalen:" + it.optString("id"), (later ? Taal.t(c, "Herinnering: {titel}", "titel", it.optString("titel")) : it.optString("titel")), regel(c, it));
+                    // staat Signalen of de tool van dit bericht op slot (Extra ontgrendelen), dan geen inhoud in de melding
+                    if (slot.contains("signalen") || slot.contains(it.optString("tool"))) plaats(c, nr(it.optString("id")), "signalen:" + it.optString("id"), Taal.t(c, "Signalen: één nieuw bericht"), it.optString("bronNaam"));
+                    else plaats(c, nr(it.optString("id")), "signalen:" + it.optString("id"), (later ? Taal.t(c, "Herinnering: {titel}", "titel", it.optString("titel")) : it.optString("titel")), regel(c, it));
                     it.put("gemeld", true).put("later", 0);
                     anders = true; n++;
                 } else if (w == Signalen.STIL) { it.put("gemeld", true); anders = true; }
@@ -228,7 +266,11 @@ final class SignalenScan {
             }
             if (!lijst.isEmpty()) {
                 StringBuilder s = new StringBuilder();
-                for (int i = 0; i < Math.min(6, lijst.size()); i++) s.append(i > 0 ? "\n" : "").append("• ").append(lijst.get(i).optString("titel"));
+                for (int i = 0; i < Math.min(6, lijst.size()); i++) {
+                    JSONObject it = lijst.get(i);
+                    boolean dicht = slot.contains("signalen") || slot.contains(it.optString("tool"));
+                    s.append(i > 0 ? "\n" : "").append("• ").append(dicht ? it.optString("bronNaam") : it.optString("titel"));
+                }
                 if (lijst.size() > 6) s.append("\n…");
                 plaats(c, 5199, "signalen", Taal.tn(c, lijst.size(), "Signalen: één nieuw bericht", "Signalen: {n} nieuwe berichten"), s.toString());
                 n++;

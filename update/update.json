@@ -1,15 +1,27 @@
 {
   "app": "Tools",
-  "versionName": "1.217",
-  "versionCode": 218,
-  "nativeLevel": 188,
+  "versionName": "1.218",
+  "versionCode": 219,
+  "nativeLevel": 189,
   "web": "index.html",
-  "webSha256": "4c337e90aac7dab74ecebb13390382d0d88c0a3100061aaa947d084ef25c258d",
+  "webSha256": "97722c910cb29b88792710d4264df2d560b941e41477cdf2eadb3dbed95f9e81",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "21e929e56fa3098b69d8e664fd47c0c087817297e7c12779f5f04431d984c33e",
+  "apkSha256": "4e1129d265d39126ed08055fe2a1c3f9f32029f9facf5ff58f19e66acdaff063",
   "changelog": [
+    {
+      "version": "1.218",
+      "date": "2026-11-16",
+      "changes": [
+        "Signalen: nu ook bronnen uit Tools zelf. Bij Instellingen → Bron uit Tools toevoegen kies je Agenda, Nieuws, Facturen, Notities of Taken van Tools.",
+        "Signalen, Agenda: een bericht als een afspraak eraan komt (een uur tot twee dagen van tevoren, standaard een dag).",
+        "Signalen, Nieuws: artikelen uit je nieuwsbronnen die bij je trefwoorden passen; Tools haalt het nieuws daarvoor ook op de achtergrond op.",
+        "Signalen, Facturen en Notities: nieuwe facturen in het dossier, en lijsten met open punten die een tijd niet zijn aangeraakt.",
+        "Signalen, Taken van Tools: als de backup, facturen ophalen of het bijwerken van Toiletten en douches mislukt.",
+        "Signalen: staat een tool op slot (Extra ontgrendelen), dan staat de inhoud van zijn berichten niet in de melding en niet in de lijst tot je ontgrendelt."
+      ]
+    },
     {
       "version": "1.217",
       "date": "2026-11-16",
@@ -163,14 +175,7 @@
       "changes": [
         "Nieuws: inloggen bij AI Report bleef hangen omdat de site na het inloggen terugstuurt naar een http-adres; Tools zet zo'n adres op een site van de inlog nu om naar https."
       ]
-    },
-    {
-      "version": "1.198",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws: in het inlog- en leesvenster staat nu een ?-knop (Wat gebeurt er?). Die toont een logboek van wat de website opvraagt, welke fouten ze geeft en welke vensters Tools wegklikt; te kopiëren als het inloggen blijft hangen. Ook kun je het venster vanaf een computer bekijken met chrome://inspect."
-      ]
     }
   ],
-  "webSig2": "SkH8KhkGVRSfIzNmv0D8POZaYI9ZdovfPIx6OGE8s8dta8KN/S0B8d2pBwldAyfzUoBEakhKFupHJIG8aYHmQFqVrzx+Stb25jwpd8BVH53tOrjeREPGmkNwK3LwLnmcPTXgBJPE/7XJ7xsQIZ7bbMtCrbYNHDoHZG1esez+y4jVmExBgkuOL+aPXjm2R6p6mWZiNHZ3BW9+lKYtMauWQ++AwVWcIR/PLcljVhYVcFY97xrt2AtBXGOQrqooR6ZQFDn6rvTh6YwKZhah4qkt6sOICGSim6TpT+FkGjvfEGmfD8CEAs4jjsAaz02v7WpKTML4sL5YbZQshMZ/eQ8pvM4h99EeflCm1HWFEiwAkeML7i0kZnK2rivsNNv1pCh0qDoySKnrKHgGyZGlODFoQuzMUDdV16M4N1i5Yfbnt9XvMwt5e7ycsA7vidTBD2GT9QOL5a4DicwJgRr4wQiPILrSctoq0mHiFHWs2VCe+yywzw1dQhcgmALY2Zsfj1sq"
+  "webSig2": "neEbOGDeqdDl5FqYWfLmwyFzD2JK+ZpZagDDgqFEhfxGGTdPS2lUrxuEZugsCLgBfig2Z8UGJsDYQnEzU3OtSOT/0WmB2su+lrNWG2IoTiRKbYNXkJmvYxkwFnqnktrkY2Wg1s9Z+JVAz42y1O9G/VI4uP2YETz15adYx6VlEuYDFIj6cRfAbSUHsKzkF94gW8jZMJB3a0LRMRbajP0GIwNwhplkhIlCLv2OP+qej+75y9fNuGGt5CfOKxmBFi+TBv+ZevKEqOwYzLYAvNK6dRGDHkMrLT1RH7HMmR5oBfPq30A17FRJGCyhNJ/SBNMzpTY/DSp1O6Igq4Zz/iroZN9dkizzPYw6XuwLzzwek4nW0WF2Lqs3k0VvbZ1IVQ1Cefd6Al53KhydJXqm5EwqceYswTGBZv0Vfo4+nu9+uiCYcl2nzEsSmRLCe9jAa5qX/5NQQFDd+G5GL8yMv3lFbdi3zWzzVIaZ7bZ8XionQvpk6vbRxhcSfGTOcgvd0mBx"
 }

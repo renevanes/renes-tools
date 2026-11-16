@@ -57,9 +57,11 @@ const W = +process.env.UI_WACHT || 1;
     ok(await page.evaluate(() => window.__snLees && window.__snLees.tekst.includes('Vrijlating zeehond') && window.__snLees.tekst.includes('strandopgang')), 'voorlezen: titel en tekst naar de gedeelde voorleesfunctie');
 
     // Lokale AI: samenvatting als tekst, gestopt bij weggaan
+    await page.evaluate(() => { Android._sn.traag = 500; }); // ruim, zodat "bezig" ook op een drukke machine nog te zien is
     await page.click('#sni-ai');
     ok(await page.isVisible('#sni-aikaart') && (await page.textContent('#sni-aitekst')).includes('leest het bericht'), 'samenvatten: zichtbaar dat de lokale AI bezig is');
-    await wacht(160);
+    await wacht(700);
+    await page.evaluate(() => { Android._sn.traag = 60; });
     ok((await page.textContent('#sni-aitekst')).includes('zaterdag om 14.00 uur') && (await page.textContent('#sni-aikaart')).includes('kan zich vergissen'), 'samenvatting staat er, met de waarschuwing');
     await page.evaluate(() => { Android._sn.traag = 5000; sniAi(); goBack(); });
     await wacht(80);
@@ -132,9 +134,11 @@ const W = +process.env.UI_WACHT || 1;
     ok((await page.textContent('#toast')).includes('https-adres'), 'zonder adres: duidelijke fout');
     await page.selectOption('#snb-sjabloon', 'aseal');
     ok(await page.evaluate(() => $('#snb-url').value === 'https://www.aseal.nl/nieuws' && $('#snb-woorden').value === 'vrijlating, vrijgelaten' && $('#snb-alleen').value === 'https://www.aseal.nl/nieuws/'), 'sjabloon A Seal vult adres en trefwoorden in');
+    await page.evaluate(() => { Android._sn.traag = 500; });
     await page.click('#snb-proef');
     ok((await page.textContent('#snb-proefstand')).includes('wordt opgehaald'), 'proef: zichtbaar dat de pagina wordt opgehaald');
-    await wacht(160);
+    await wacht(700);
+    await page.evaluate(() => { Android._sn.traag = 60; });
     ok((await page.textContent('#snb-proefstand')).includes('2 berichten passen') && (await page.textContent('#snb-proeflijst')).includes('14 november 2026') && !(await page.textContent('#snb-proeflijst')).includes('Openingstijden'), 'proef: alleen wat bij de trefwoorden past, met de datum');
     ok(await page.evaluate(() => Android._sn.bronnen.length === 1), 'een proef bewaart niets');
     await page.fill('#snb-url', 'https://kapot.example.nl/nieuws');
@@ -191,6 +195,78 @@ const W = +process.env.UI_WACHT || 1;
     await page.evaluate(() => { show('home'); openTool('signalen:bestaatniet'); });
     await wacht(120);
     ok(await page.evaluate(() => current === 'signalen'), 'melding van een bericht dat weg is: de lijst');
+
+    // Bronnen uit Tools zelf: Agenda, Nieuws, Facturen, Notities en taken
+    await page.evaluate(() => { show('home'); show('signalen'); show('snset'); });
+    await wacht(120);
+    ok(await page.isVisible('#sns-tools'), 'instellingen: knop voor een bron uit Tools');
+    await page.click('#sns-tools');
+    await wacht(100);
+    const soorten = await page.evaluate(() => [...document.querySelectorAll('#sheet-acts button')].map(b => b.textContent));
+    ok(soorten.join('|') === 'Agenda|Nieuws|Facturen|Notities|Taken van Tools' && (await page.textContent('#sheet-sub')).includes('leest deze gegevens alleen'), 'keuze uit vijf bronnen, met de uitleg dat Signalen alleen leest (' + soorten.join('|') + ')');
+    await page.click('#sheet-acts button:has-text("Agenda")');
+    await wacht(120);
+    ok(await page.evaluate(() => current === 'snbron' && $('#snb-naam').value === 'Agenda' && $('#snb-elke').value === '1' && $('#snb-vooraf').value === '24') && (await page.textContent('#snb-uitleg')).includes('Afspraken die eraan komen'), 'Agenda: naam, elk uur, een dag van tevoren en de uitleg');
+    ok(await page.isHidden('#snb-r-url') && await page.isHidden('#snb-r-woorden') && await page.isHidden('#snb-r-alleen') && await page.isHidden('#snb-r-wifi') && await page.isVisible('#snb-r-vooraf') && await page.isHidden('#snb-r-dagen') && await page.isHidden('#snb-sjabloonkaart'), 'Agenda: geen adres, trefwoorden of wifi; wel hoe lang van tevoren');
+    await page.click('#snb-proef');
+    await wacht(160);
+    ok((await page.textContent('#snb-proefstand')).includes('Er is nu één bericht') && (await page.textContent('#snb-proeflijst')).includes('Overleg'), 'proef bij Agenda: wat er nu te melden zou zijn');
+    await page.selectOption('#snb-vooraf', '3');
+    await page.click('#snb-bewaar');
+    await wacht(200);
+    ok(await page.evaluate(() => { const b = Android._sn.bronnen.find(x => x.soort === 'agenda'); return b && b.vooraf === 3 && b.wifi === false && b.url === '' && current === 'snset'; }) && (await page.textContent('#sns-bronnen')).includes('Agenda'), 'Agenda bewaard: 3 uur van tevoren, zonder adres');
+    await page.click('#sns-tools');
+    await wacht(100);
+    ok(!(await page.evaluate(() => [...document.querySelectorAll('#sheet-acts button')].map(b => b.textContent))).includes('Agenda'), 'een bron die er al staat is niet nog eens te kiezen');
+    await page.click('#sheet-acts button:has-text("Nieuws")');
+    await wacht(120);
+    ok(await page.isVisible('#snb-r-woorden') && await page.isVisible('#snb-r-wifi') && await page.isHidden('#snb-r-url') && (await page.textContent('#snb-woordenhint')).includes('begin van een artikel'), 'Nieuws: trefwoorden en wifi, geen adres');
+    await page.click('#snb-bewaar');
+    ok((await page.textContent('#toast')).includes('minstens één trefwoord'), 'Nieuws zonder trefwoord: duidelijke fout');
+    await page.fill('#snb-woorden', 'Rotterdam');
+    await page.click('#snb-bewaar');
+    await wacht(200);
+    ok(await page.evaluate(() => { const b = Android._sn.bronnen.find(x => x.soort === 'nieuws'); return b && b.woorden.join() === 'Rotterdam' && b.elke === 3; }), 'Nieuws bewaard met het trefwoord, elke 3 uur');
+    await page.evaluate(() => snBronNieuw('notities'));
+    await wacht(120);
+    ok(await page.isVisible('#snb-r-dagen') && await page.isHidden('#snb-r-vooraf') && await page.evaluate(() => $('#snb-dagen').value === '7' && $('#snb-elke').value === '24'), 'Notities: na een week, elke dag nakijken');
+    await page.evaluate(() => goBack());
+
+    // Berichten uit Tools: openen in de tool, en verborgen zolang die tool op slot staat
+    await page.evaluate(() => { const nu = Date.now(), a = Android._sn.bronnen.find(x => x.soort === 'agenda');
+      Android._sn.items.unshift({ id: 'i00000000000000b1', bron: a.id, bronNaam: 'Agenda', soort: 'agenda', tool: 'agenda', titel: 'Geheime afspraak', tekst: 'Coolsingel', link: '', open: 'agenda', gevonden: nu, dag: rgDayAdd(rgToday(), 1), tijd: '10:00', status: 'nieuw', later: 0, gemeld: true, inAgenda: true },
+        { id: 'i00000000000000b2', bron: 'sx', bronNaam: 'Notities', soort: 'notities', tool: 'notes', titel: 'Boodschappen: 2 open punten', tekst: '• melk', link: '', open: 'note:bestaatniet', gevonden: nu - 1, dag: '', tijd: '', status: 'nieuw', later: 0, gemeld: true });
+      show('home'); show('signalen'); });
+    await wacht(120);
+    ok((await page.textContent('#sn-lijst')).includes('Geheime afspraak'), 'een bericht uit Agenda staat in de lijst');
+    await page.evaluate(() => snOpen('i00000000000000b1'));
+    await wacht(120);
+    ok(await page.isHidden('#sni-agenda') && (await page.textContent('#sni-web')).includes('Open in Agenda') && (await page.textContent('#sni-wanneer')).includes('10:00'), 'afspraak: geen "in agenda zetten", wel Open in Agenda');
+    await page.click('#sni-web');
+    await wacht(150);
+    ok(await page.evaluate(() => current === 'agenda'), 'Open in Agenda gaat naar Agenda');
+    await page.evaluate(() => { show('home'); Android._tslot.aan.push('agenda'); tsLaad(); ts.open = ''; show('signalen'); });
+    await wacht(150);
+    const slot = await page.textContent('#sn-lijst');
+    ok(!slot.includes('Geheime afspraak') && slot.includes('Agenda is op slot') && slot.includes('Boodschappen'), 'Agenda op slot: de afspraak staat er zonder inhoud, de rest gewoon');
+    await page.click('#sn-lijst .sn-item:has-text("Agenda is op slot")');
+    await wacht(150);
+    ok(await page.evaluate(() => current === 'signalen' && tsZichtbaar()) && (await page.textContent('#ts-msg')).includes('Ontgrendel om dit bericht te zien'), 'tik op een bericht van een tool op slot: eerst het slotscherm, met de reden');
+    await page.click('#ts-open');
+    await wacht(350);
+    ok(await page.evaluate(() => current === 'snitem' && !tsZichtbaar()) && (await page.textContent('#sni-titel')).includes('Geheime afspraak'), 'na ontgrendelen opent dat ene bericht, in Signalen');
+    await page.evaluate(() => goBack());
+    await wacht(120);
+    ok(!(await page.textContent('#sn-lijst')).includes('Geheime afspraak'), 'terug in de lijst is het weer dicht');
+    await page.evaluate(() => { Android.signalenProef(JSON.stringify({ soort: 'agenda', slot: true })); show('snset'); snBronOpen(Android._sn.bronnen.find(x => x.soort === 'agenda').id); });
+    await wacht(60);
+    await page.evaluate(() => window.onSignalenProef({ ok: true, links: 2, gevonden: [], intern: true }));
+    ok(await page.evaluate(() => { $('#snb-proefkaart').hidden = false; return true; }) && (await page.textContent('#snb-proefstand')).includes('staat op slot') && !(await page.textContent('#snb-proeflijst')).includes('Overleg'), 'proef bij een tool op slot: alleen het aantal, geen titels');
+    ok(await page.isHidden('#snb-r-elke'), 'Agenda kijkt altijd elk uur: geen keuze voor hoe vaak');
+    // Opgeslagen gegevens kunnen alleen de bestemmingen openen die Signalen zelf zet
+    ok(await page.evaluate(() => snDoel({ open: 'auto' }) === '' && snDoel({ open: 'player' }) === '' && snDoel({ open: 'music-now' }) === '' && snDoel({ open: 'note:x"onclick' }) === '' && snDoel({ open: 'facturen' }) !== '' && snDoel({ open: 'note:abc123' }) !== ''), 'een bericht kan alleen Agenda, Nieuws, Facturen, de backup, Toiletten of een notitie openen');
+    await page.evaluate(() => { Android._tslot.aan = Android._tslot.aan.filter(x => x !== 'agenda'); tsLaad(); show('home'); Android._sn.items = Android._sn.items.filter(x => !x.id.startsWith('i00000000000000b')); });
+    await wacht(100);
 
     // Meldingen niet toegestaan: een balk; alles uit in de app: in de stand
     await page.evaluate(() => { Android._sn.perm = false; show('home'); show('signalen'); });
