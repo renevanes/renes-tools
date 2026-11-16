@@ -695,7 +695,7 @@ if (!window.Android) window.Android = (function(){
       setTimeout(() => { Object.assign(m, { state: 'verifying', pct: 40 }); }, 450); setTimeout(() => { A.st[id] = { state: 'ready' }; onAiModels(''); }, 700); return ''; },
     aiDelete(id){ this._ai.st[id] = { state: 'none' }; }, aiUse(id){ this._ai.chat = id; }, aiPref(n, on){ const A = this._ai; if (/^src_/.test(n)) { const k = n.slice(4); if (!(k in A.src)) return; A.src[k] = on; A.calls.push(['src', k, on]); if (this._aiReady('zoek')) { setTimeout(() => onAiIndex({ busy: true, done: 1, total: 3 }), 40); setTimeout(() => onAiIndex({ items: 4, chunks: 9, at: Date.now(), quiet: true }), A.idxMs || 150); } return; } if (['wifiOnly', 'notes', 'voiceSend', 'speakVoice', 'talkSpeak', 'talkAuto', 'talkBarge'].includes(n)) A[n] = on; },
     // Modellen beheren: zoals Models.json (taalmodellen, zoekmodel en de spraakmodellen)
-    _md: { free: 20e9, online: true, metered: false, last: {}, leftovers: 0, txBusy: false, appMs: 500, tts: { state: '', engine: '' }, ttsNext: { state: 'ok', engine: 'Spraakservices van Google' }, calls: [] },
+    _md: { free: 20e9, online: true, metered: false, last: {}, leftovers: 0, txBusy: false, tts: { state: '', engine: '' }, ttsNext: { state: 'ok', engine: 'Spraakservices van Google' }, calls: [] },
     ttsCheck(){ const D = this._md; D.calls.push('ttsCheck'); D.tts = { state: 'checking', engine: '' }; setTimeout(() => { D.tts = Object.assign({}, D.ttsNext); onAiModels(''); }, 120); },
     ttsSettings(){ this._md.calls.push('ttsSettings'); }, ttsInstall(){ this._md.calls.push('ttsInstall'); }, aiResume(){ this._md.calls.push('aiResume'); },
     modelsState(){ const A = this._ai, D = this._md, T = this._tx, chat = this._aiChat();
@@ -708,11 +708,6 @@ if (!window.Android) window.Android = (function(){
       const all = ai.concat(sp), used = all.filter(m => m.state === 'ready').reduce((a, m) => a + m.size, 0);
       return JSON.stringify({ free: D.free, online: D.online, metered: D.metered, wifiOnly: A.wifiOnly, supported: true, txBusy: D.txBusy, models: all, used, leftovers: (A.orphans || 0) + (D.leftovers || 0), ram: A.ram, tts: D.tts, speech:JSON.parse(this.speechModels()), engines: { ai: 'llama.cpp b11500', zoek: 'llama.cpp b11500', spraak: 'whisper.cpp 1.9.5' } }); },
     modelsClean(){ const n = (this._ai.orphans || 0) + (this._md.leftovers || 0); this._ai.orphans = 0; this._md.leftovers = 0; return String(n); },
-    aiDownloadApp(id){ const A = this._ai, D = this._md, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dlApp', id]);
-      Object.assign(m, { state: 'running', via: 'app', bytes: m.bytes || 0, total: m.total || 1e9, reason: undefined });
-      setTimeout(() => { if (A.st[id] === m) m.bytes = Math.max(m.bytes, 8e8); }, 200);
-      setTimeout(() => { if (A.st[id] === m) A.st[id] = { state: 'verifying', pct: 50 }; }, D.appMs);
-      setTimeout(() => { if (A.st[id].state === 'verifying') { A.st[id] = { state: 'ready' }; onAiModels(''); } }, D.appMs + 250); return ''; },
     aiIndexStop(){ this._ai.calls.push(['indexStop']); },
     aiIndexAuto(){ this._ai.calls.push(['indexAuto']); },
     // Zoals AiBridge: bezig tot het antwoord (of het stoppen) helemaal klaar is; een tweede vraag intussen wordt geweigerd
