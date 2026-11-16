@@ -373,7 +373,7 @@ if (!window.Android) window.Android = (function(){
     notifAccess(){ return !!this._na; }, notifAccessSettings(){ this._na = true; }, classic(){ return MODE === 'legacy'; },
     noteUnpin(id){ this._unpinned = id; },
     notes(){ if (this._unpinned) return '[]'; return JSON.stringify([{id: 'n1', title: 'Boodschappen', open: 7, total: 9, items: ['Melk', 'Brood', 'Kaas', 'Appels', 'Koffie'], text: ''}]); }, isDefault(){ return false; }, homeSettings(){ this._hs = true; }, wallpaper(){}, webSearch(q){ this._ws = q; },
-    notifications(){ this._notif = true; return true; }, vibrate(){}, hasPerm(){ return true; }, logJs(){}, version(){ return '{}'; }
+    notifications(){ this._notif = true; return true; }, vibrate(){}, hasPerm(){ return true; }, logJs(){}
   };
 })();
 

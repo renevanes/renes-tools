@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.212",
-  "versionCode": 213,
-  "nativeLevel": 185,
+  "versionName": "1.213",
+  "versionCode": 214,
+  "nativeLevel": 186,
   "web": "index.html",
-  "webSha256": "d56a4c2a44843c324f27d6829dc6c1e406a14b2c7b0d27e67e95c03e23947412",
+  "webSha256": "abd925da3de2cc0803c9c1a988e1d7d6c2ba7c42bfa03510ea5687e729a9738a",
   "start": "start.html",
-  "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
+  "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "043db623f5b656b3363d5322eb5f8c1fd53d7164a96e478266455821e0a65b78",
+  "apkSha256": "0adc6f5722f3fdb421b9da907a0598d36070b5f009619230a2747764339a80c8",
   "changelog": [
+    {
+      "version": "1.213",
+      "date": "2026-11-16",
+      "changes": [
+        "Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"
+      ]
+    },
     {
       "version": "1.212",
       "date": "2026-11-16",
@@ -160,15 +167,7 @@
         "Podcasts: met een slaaptimer gaat de speler door met de volgende aflevering tot de timer afloopt (instelbaar); in de speler staat wat er daarna vanzelf komt.",
         "Podcastspeler stabieler: terugspoelen en herverbinden gaan sneller, snel na elkaar terugspoelen loopt niet meer vast, \"Bufferen…\" is zichtbaar en bij een hapering verbindt hij vanzelf opnieuw op dezelfde plek."
       ]
-    },
-    {
-      "version": "1.193",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws: AI Report werkt nu. De site heeft geen nieuwsfeed, dus Tools leest de sitemap en haalt titel, begin en afbeelding van de artikelen zelf op (alleen de artikelen, niet de podcast).",
-        "Nieuws: elke site zonder nieuwsfeed maar met een sitemap kan nu ook als bron; Tools zoekt de sitemap vanzelf."
-      ]
     }
   ],
-  "webSig2": "MR0cwdGs5WSeisjfi0S4IXkhdsraTlKpPXN0T61mtBtQGlRYJuCeOaGvtjQVGi6Iu8oFVugt9JZETAmQIP6C2zGePA2zrJOfwwRrREFRcqmUmV8w3ohUwtlt4BgeUynt0CjrVpjxaC0chYq2heapCcPAJ6KgvSt+p+NgVIiOmygpn+cAVMXcfXA8R2BOcY8WE3hKrvpIgf9zhhTxuz12XewcmO105XIbmQAA07rTFjureqAsE1f+FkJffiumYQOkSVoeIixr5epHsPGAji234R3Q1fv6XgfpRdZqx0/dPJumBmVQZuy2KQTOJR5t/1qOCTkLd4Zuu0ltHdGFtyyhMYCjCe6yQEgmh7gbfusAlk0s7rfAPKgLDUJKkMtm+ZhBh80Cmomg34P9EMpvaYP3Jcq4t1oQGhxHojr7hsoM0uPJ03Q8J+w+IIXIImwzD7r//Yf0ZL+GF9bDg/xC0/OsoBbPzfYA5Qd6LDXD5npsQ0EdseIHnnnKhVuDaqTBOJxl"
+  "webSig2": "H2nPNMOpiKRAyZvnuMjyfoBgknXcD8Cu8FaiLpoU+OsPDHTdapBCH+2yIKfj4fkQS4iTHQ9C0uVOZP4d+xsloCyIHW9VQ/1Bx4PS9Gal46oix3+rzR8jlnfq010kx6t6LBoKTlQQ62tmGDNwFdbvOmmcDwok4mKs313LX2cLAzdpToDDgh0j+bWN7gZC4sD2kjBnmcsD1er84rkaLis2F/fdpgxsUbpgj9ywejct8ZwEPKKZqBKFpvOQg5EqsJAdSsCZ1FHo5Kmhn8mwaq13U0G3OmA+jaVA6PHiRC4KPHeuvyOr7kpMuzuZSyS1IsAcuHVZ4dmoJfe9ixZ08iIHW6+eMqjTaXDwKLccJvzH/pqEGT8n+4b7NbuHddNlPK20BPlQSMOMeB/CPXs42PVM+RtLt1jorJ/CSnltGAor40BCq09YbJEiAPMk5jlWdzeXUIk+OgM+/4h5Wn4HQYu7jbDWOmlAqSMf0hB+Fb131hVFQcWhWK+823QHB3m+eVsY"
 }
