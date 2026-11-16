@@ -563,6 +563,7 @@ function sleepFadeToon(){
   const kan = typeof Android.sleepFade === 'function';
   $('#sl-fade-rij').hidden = !kan;
   if (!kan) return;
+  $('#sl-fade-cast').hidden = !(typeof plCast === 'object' && plCast && plCast.active); // de Chromecast stopt meteen
   const nu = +Android.sleepFade();
   $('#sl-fade').innerHTML = SL_FADE.map(s => '<option value="' + s + '"' + (s === nu ? ' selected' : '') + '>' + esc(s === 60 ? t('{duur} (standaard)', { duur: sleepFadeTekst(s) }) : sleepFadeTekst(s)) + '</option>').join('');
 }

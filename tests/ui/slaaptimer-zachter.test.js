@@ -44,6 +44,11 @@ const assert = require('assert');
     assert.ok(r.h >= 44 && r.r <= r.boxR && r.b <= r.vh, 'keuze ≥ 44 px, binnen het venster: ' + JSON.stringify(r));
     if (scheme === 'light') await pg.screenshot({ path: __dirname + '/shots/slaaptimer-zachter.png' });
 
+    assert.strictEqual(await pg.isVisible('#sl-fade-cast'), false, 'niet casten: geen opmerking over de Chromecast');
+    // De assistent kent de instelling (instellingenregister)
+    const reg = await pg.evaluate(() => { const r = SET_REG.find(x => x.id === 'slaaptimer.zachter'); if (!r) return null; const v0 = r.get(); const m = r.set('120'); return { v0, m, na: Android._fade, avail: r.avail() }; }).catch(e => 'fout: ' + e.message);
+    assert.deepStrictEqual(reg, { v0: '0', m: '', na: 120, avail: '' }, 'assistent: lezen en zetten');
+
     // Radio: dezelfde keuze
     await pg.evaluate(() => { sleepClose(); sleepOpen('radio'); }); await pg.waitForTimeout(150);
     assert.strictEqual(await pg.isVisible('#sl-fade'), true, 'ook bij de radio');

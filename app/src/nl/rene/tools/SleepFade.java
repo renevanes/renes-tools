@@ -28,10 +28,15 @@ final class SleepFade {
         return STANDAARD_MS;
     }
 
-    /** De gekozen uitfaadtijd (ms); 0 = uit. */
+    /** De gekozen uitfaadtijd (ms); 0 = uit. Bij een onleesbare waarde de standaard (wordt elke 200 ms gelezen). */
     static long gekozen(android.content.Context c) {
-        return geldig(Player.prefs(c).getInt(KEY, (int) (STANDAARD_MS / 1000)) * 1000L);
+        try { return geldig(Player.prefs(c).getInt(KEY, (int) (STANDAARD_MS / 1000)) * 1000L); }
+        catch (Throwable e) { return STANDAARD_MS; }
     }
+
+    /** Het volume tijdens het uitfaden gaat alleen omlaag: kiest Rene halverwege een kortere tijd (of uit), dan geen
+     *  sprong terug naar vol, maar zo zacht blijven als het al was. vorige = het laagste tot nu toe (1 bij een nieuwe timer). */
+    static float omlaag(float vorige, float nu) { return Math.min(vorige, nu); }
 
     /** Uitfaadtijd kiezen (seconden). Alleen een van de KEUZES; geeft false bij iets anders. */
     static boolean kies(android.content.Context c, int sec) {
@@ -55,6 +60,14 @@ final class SleepFade {
         double t = 1 - leftMs / (double) fadeMs;   // 0 = begin van het uitfaden, 1 = einde
         double s = t * t * (3 - 2 * t);            // zacht beginnen en zacht eindigen
         return (float) Math.pow(10, FLOOR_DB * s / 20);
+    }
+
+    /** Wanneer de volgende stap nodig is als de keuze intussen kan veranderen: tijdens het uitfaden elke 200 ms; in de
+     *  laatste MAX_MS daarvoor elke seconde (een langere keuze begint dan op tijd); daarvoor pas vlak voor die laatste MAX_MS. */
+    static long wacht(long leftMs, long fadeMs) {
+        if (leftMs <= fadeMs) return Math.max(1, Math.min(STEP_MS, leftMs));
+        if (leftMs <= MAX_MS) return Math.max(1, Math.min(1000, leftMs - fadeMs));
+        return Math.max(1, Math.min(30_000, leftMs - MAX_MS));
     }
 
     /** Wanneer de volgende stap nodig is: vlak voor het uitfaden pas wakker worden, tijdens het uitfaden vaak. */

@@ -20,6 +20,18 @@ public class SleepFadeTest {
         check(SleepFade.geldig(15_000) == 15_000 && SleepFade.geldig(0) == 0 && SleepFade.geldig(180_000) == 180_000, "vaste keuzes geldig");
         check(SleepFade.geldig(45_000) == SleepFade.STANDAARD_MS && SleepFade.geldig(-1000) == SleepFade.STANDAARD_MS && SleepFade.geldig(3_600_000) == SleepFade.STANDAARD_MS, "andere waarden: de standaard");
         for (long k : SleepFade.KEUZES) check(k == 0 || (k >= 15_000 && k <= SleepFade.MAX_MS), "keuze binnen de grenzen: " + k);
+        // Halverwege korter kiezen (of uit): geen sprong terug naar vol, zo zacht blijven als het al was
+        float bijna = SleepFade.gain(50_000, 180_000);
+        float laag = SleepFade.omlaag(SleepFade.omlaag(1f, SleepFade.gain(60_000, 180_000)), bijna);
+        check(db(SleepFade.omlaag(laag, SleepFade.gain(50_000, 15_000))) < -30, "3 min → 15 s met 50 s over: blijft zacht (" + String.format("%.1f dB", db(SleepFade.omlaag(laag, SleepFade.gain(50_000, 15_000)))) + ")");
+        check(SleepFade.omlaag(laag, SleepFade.gain(50_000, 0)) == laag, "3 min → uit tijdens het uitfaden: blijft zacht");
+        check(SleepFade.omlaag(1f, SleepFade.gain(10_000, 15_000)) < 1f && SleepFade.omlaag(laag, 0f) == 0f, "verder omlaag kan altijd");
+        // Wakker worden: tijdens het uitfaden elke 200 ms, in de laatste 3 minuten elke seconde, daarvoor zelden
+        check(SleepFade.wacht(10 * 60_000L, 15_000) == 30_000, "ver weg: na 30 s weer kijken");
+        check(SleepFade.wacht(SleepFade.MAX_MS + 4_000, 15_000) == 4_000, "vlak voor de laatste 3 minuten: op tijd");
+        check(SleepFade.wacht(120_000, 15_000) == 1000, "laatste 3 minuten, nog niet aan het uitfaden: elke seconde (niet elke 200 ms)");
+        check(SleepFade.wacht(15_500, 15_000) == 500 && SleepFade.wacht(10_000, 15_000) == SleepFade.STEP_MS, "tijdens het uitfaden: kleine stapjes, precies op tijd beginnen");
+        check(SleepFade.wacht(0, 0) >= 1 && SleepFade.wacht(500, 0) == 500 && SleepFade.wacht(5_000, 0) == 1000, "uit: geen drukke lus, op tijd stoppen");
         // Ook de kortste keuze zakt zonder grote sprongen
         double max15 = 0; float p15 = 1f;
         for (long left = 15_000; left >= SleepFade.STEP_MS; left -= SleepFade.STEP_MS) { float g = SleepFade.gain(left, 15_000); max15 = Math.max(max15, db(p15) - db(g)); p15 = g; }
