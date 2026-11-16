@@ -57,8 +57,8 @@ final class SignalenScan {
         String titel = link[1], tekst = "", kop = "";
         try {
             Nieuws.Antwoord a = Nieuws.haal(link[0], Math.min(tot, System.currentTimeMillis() + PER_PAGINA));
-            if (Signalen.host(a.url).equals(Signalen.host(link[0]))) {
-                String h = html(a);
+            String h = html(a);
+            if (Signalen.host(a.url).equals(Signalen.host(link[0])) && Signalen.lijktHtml(h)) {
                 Nieuws.Kop k = Nieuws.paginaKop(h, a.url);
                 if (!k.titel.isEmpty()) titel = k.titel;
                 kop = k.tekst;
@@ -83,7 +83,8 @@ final class SignalenScan {
             JSONArray bronnen = Signalen.bronnen(c);
             TimeZone tz = Regio.zone(c);
             int nieuw = 0, gedaan = 0, fouten = 0;
-            if (Signalen.items(c) == null) return uit.put("onleesbaar", true); // niets als gezien noteren wat niet bewaard kan worden
+            // niets als gezien noteren wat niet bewaard kan worden, en niet blijven ophalen als de toestand niet bij te houden is
+            if (Signalen.items(c) == null || Signalen.toestandBestand(c) == null) return uit.put("onleesbaar", true);
             for (int i = 0; i < bronnen.length(); i++) {
                 JSONObject b = bronnen.optJSONObject(i);
                 if (b == null) continue;
@@ -101,11 +102,14 @@ final class SignalenScan {
                     Set<String> gezien = new HashSet<>();
                     JSONArray g = t.optJSONArray("gezien");
                     for (int k = 0; g != null && k < g.length(); k++) gezien.add(g.optString(k));
-                    Signalen.Vondst v = Signalen.nieuw(b, links, gezien, Signalen.MAX_PER_SCAN);
                     boolean eerste = !t.optBoolean("klaar");
+                    // de eerste keer geldt alles wat er al staat als gezien (anders meldt de volgende ronde oude berichten als nieuw);
+                    // alleen de bovenste komen, zonder melding, in de inbox
+                    Signalen.Vondst v = Signalen.nieuw(b, links, gezien, eerste ? Integer.MAX_VALUE : Signalen.MAX_PER_SCAN);
                     String vandaag = Regio.dayKey(tz, nu);
                     List<JSONObject> items = new ArrayList<>();
                     for (String[] l : v.nieuw) {
+                        if (items.size() >= Signalen.MAX_PER_SCAN) break;
                         JSONObject it = item(b, l, tot, vandaag, nu - items.size()); // de volgorde van de pagina blijft: bovenaan is het nieuwst
                         if (eerste) it.put("gemeld", true).put("eerste", true); // wat er al stond: wel in de inbox, geen melding
                         items.add(it);
@@ -124,7 +128,9 @@ final class SignalenScan {
                     App.log(c, "SIGNAAL", "scan mislukt: " + e.getClass().getSimpleName());
                     if (auto && n >= Signalen.FOUT_MELDEN && !t.optBoolean("gemeldFout")) { t.put("gemeldFout", true); meldFout(c, b, t.optString("fout")); }
                 }
-                Signalen.zetToestand(c, bid, t, null);
+                // is de bron intussen weggehaald of veranderd (ander adres, andere trefwoorden)? Dan begint hij opnieuw: niets terugschrijven
+                JSONObject nuBron = Signalen.perId(Signalen.bronnen(c)).optJSONObject(bid);
+                if (nuBron != null && !Signalen.opnieuw(nuBron, b)) Signalen.zetToestand(c, bid, t, null);
             }
             return uit.put("ok", fouten == 0 || gedaan > fouten).put("nieuw", nieuw).put("bronnen", gedaan).put("fouten", fouten);
         } finally { BEZIG.set(false); }
@@ -171,11 +177,12 @@ final class SignalenScan {
                 .setContentIntent(PendingIntent.getActivity(c, nr, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT)).build());
     }
 
-    static int nr(String id) { return 4900 + (id.hashCode() & 0x7fffffff) % 80; }
+    /** Eigen reeks nummers voor meldingen: 5100–5179 berichten, 5180–5189 een bron die niet werkt, 5199 het dagoverzicht. */
+    static int nr(String id) { return 5100 + (id.hashCode() & 0x7fffffff) % 80; }
 
     private static void meldFout(Context c, JSONObject bron, String fout) {
         try {
-            plaats(c, 4980 + (bron.optString("id").hashCode() & 0x7fffffff) % 10, "signalen-bron:" + bron.optString("id"),
+            plaats(c, 5180 + (bron.optString("id").hashCode() & 0x7fffffff) % 10, "signalen-bron:" + bron.optString("id"),
                     Taal.t(c, "{naam}: nakijken lukt niet meer", "naam", bron.optString("naam")), Taal.tx(c, fout));
         } catch (Throwable ignored) { }
     }
@@ -223,7 +230,7 @@ final class SignalenScan {
                 StringBuilder s = new StringBuilder();
                 for (int i = 0; i < Math.min(6, lijst.size()); i++) s.append(i > 0 ? "\n" : "").append("• ").append(lijst.get(i).optString("titel"));
                 if (lijst.size() > 6) s.append("\n…");
-                plaats(c, 4999, "signalen", Taal.tn(c, lijst.size(), "Signalen: één nieuw bericht", "Signalen: {n} nieuwe berichten"), s.toString());
+                plaats(c, 5199, "signalen", Taal.tn(c, lijst.size(), "Signalen: één nieuw bericht", "Signalen: {n} nieuwe berichten"), s.toString());
                 n++;
             }
             if (overzichtNu) Signalen.zetToestand(c, null, null, Regio.dayKey(tz, nu));

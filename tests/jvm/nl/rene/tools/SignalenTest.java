@@ -90,7 +90,15 @@ public class SignalenTest {
         check("2028-02-29".equals(Signalen.datum("29 februari 2028", nu)[0]) && Signalen.datum("29 februari 2027", nu)[0].isEmpty(), "29 februari alleen in een schrikkeljaar");
         check("2026-11-28".equals(Signalen.datum("28 NOVEMBER vanaf 13 uur", nu)[0]) && "13:00".equals(Signalen.datum("28 NOVEMBER vanaf 13 uur", nu)[1]), "hoofdletters en \"13 uur\"");
         check(Signalen.datum("Op 20 november 2026 kost het € 14.50 per persoon", nu)[1].isEmpty(), "een bedrag is geen tijd");
-        check("2027-03-01".equals(Signalen.datum("1 mrt", nu)[0]) && "2026-12-24".equals(Signalen.datum("24 dec", nu)[0]) && "2027-09-02".equals(Signalen.datum("2 sept", nu)[0]), "afkortingen: mrt, dec, sept");
+        check("2027-03-01".equals(Signalen.datum("1 mrt", nu)[0]) && "2026-12-24".equals(Signalen.datum("24 dec", nu)[0]) && "2026-09-02".equals(Signalen.datum("2 sept", nu)[0]), "afkortingen: mrt, dec, sept; zonder jaar het dichtstbijzijnde jaar");
+        String[] gepl = Signalen.datum("Gepubliceerd op 2 november. Vrijlating zaterdag 21 november om 14.00 uur", nu);
+        check("2026-11-21".equals(gepl[0]) && "14:00".equals(gepl[1]) && "2026-11-02".equals(Signalen.datum("Geplaatst 2 november", nu)[0]), "de datum van plaatsing zonder jaar wordt geen datum volgend jaar en wint niet van de echte datum");
+        check("2025-12-28".equals(Signalen.datum("28 december", "2026-01-03")[0]) && "2026-01-05".equals(Signalen.datum("5 januari", "2025-12-30")[0]), "rond de jaarwisseling: het dichtstbijzijnde jaar, terug en vooruit");
+        check(Signalen.lijktHtml("<!DOCTYPE html><html><body>x") && Signalen.lijktHtml("\n <HTML lang=nl>") && !Signalen.lijktHtml("%PDF-1.7 ...") && !Signalen.lijktHtml(null), "alleen een webpagina wordt als tekst gelezen, geen pdf");
+        java.util.List<String[]> tien = new java.util.ArrayList<>();
+        for (int i = 0; i < 10; i++) tien.add(new String[]{"https://www.aseal.nl/nieuws/vrijlating-" + i + "/", "Vrijlating " + i});
+        Signalen.Vondst alles = Signalen.nieuw(bron("vrijlating"), tien, new HashSet<String>(), Integer.MAX_VALUE);
+        check(alles.gezien.size() == 10 && Signalen.nieuw(bron("vrijlating"), tien, new HashSet<String>(alles.gezien), 6).nieuw.isEmpty(), "de eerste keer geldt alles wat er al staat als gezien: de tweede ronde meldt geen oude berichten");
 
         // ----- stille uren en hoe er gemeld wordt
         TimeZone tz = TimeZone.getTimeZone("Europe/Amsterdam");

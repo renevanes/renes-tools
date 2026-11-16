@@ -316,15 +316,15 @@ final class Signalen {
 
     /**
      * De eerste datum in een Nederlandse tekst ("zaterdag 14 november 2026", "14 nov", "14-11-2026") als {dag, tijd}:
-     * dag als 2026-11-14, tijd als 14:00 of leeg. Zonder jaar: het jaar waarin de datum het dichtst na {@code vandaag}
-     * valt (tot een week terug telt als dit jaar). Een datum vanaf vandaag gaat voor op een eerdere. Niets gevonden: {"", ""}.
+     * dag als 2026-11-14, tijd als 14:00 of leeg. Zonder jaar: het jaar waarin de datum het dichtst bij {@code vandaag}
+     * ligt ("geplaatst op 2 november" is dus geen datum volgend jaar). Een datum vanaf vandaag gaat voor op een eerdere.
+     * Niets gevonden: {"", ""}.
      */
     static String[] datum(String tekst, String vandaag) {
         String[] geen = {"", ""};
         if (tekst == null || vandaag == null || !vandaag.matches("\\d{4}-\\d{2}-\\d{2}")) return geen;
         String t = vouw(tekst.length() > 6000 ? tekst.substring(0, 6000) : tekst).replace(' ', ' ');
         int nuJaar = Integer.parseInt(vandaag.substring(0, 4));
-        String grens = Regio.dayAdd(vandaag, -7);
         String eerste = "", komend = "";
         int eersteNa = -1, komendNa = -1, eerstePlek = Integer.MAX_VALUE, komendPlek = Integer.MAX_VALUE;
         Matcher m = DATUM_WOORD.matcher(t);
@@ -332,7 +332,7 @@ final class Signalen {
             int d = Integer.parseInt(m.group(1)), mnd = maand(m.group(2));
             String k;
             if (m.group(3) != null) k = sleutel(Integer.parseInt(m.group(3)), mnd, d);
-            else { k = sleutel(nuJaar, mnd, d); if (!k.isEmpty() && k.compareTo(grens) < 0) k = sleutel(nuJaar + 1, mnd, d); }
+            else k = dichtstbij(nuJaar, mnd, d, vandaag);
             if (k.isEmpty()) continue;
             if (m.start() < eerstePlek) { eerste = k; eerstePlek = m.start(); eersteNa = m.end(); }
             if (k.compareTo(vandaag) >= 0 && m.start() < komendPlek) { komend = k; komendPlek = m.start(); komendNa = m.end(); }
@@ -350,6 +350,35 @@ final class Signalen {
         // de tijd staat meestal vlak na de datum ("om 14.00 uur"); anders de eerste tijd met "uur" in de tekst
         String tijd = tijdIn(t.substring(na, Math.min(t.length(), na + 80)));
         return new String[]{dag, tijd};
+    }
+
+    /** Dagnummer (dagen sinds 1970) van een datum. */
+    private static long dagNr(int j, int m, int d) {
+        int y = m <= 2 ? j - 1 : j;
+        long era = (y >= 0 ? y : y - 399) / 400, yoe = y - era * 400;
+        long doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1, doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+        return era * 146097 + doe - 719468;
+    }
+
+    /** Een datum zonder jaar: vorig jaar, dit jaar of volgend jaar, wat het dichtst bij vandaag ligt (bij gelijk: de komende). */
+    static String dichtstbij(int nuJaar, int m, int d, String vandaag) {
+        long nu = dagNr(nuJaar, Integer.parseInt(vandaag.substring(5, 7)), Integer.parseInt(vandaag.substring(8, 10)));
+        String beste = "";
+        long afstand = Long.MAX_VALUE;
+        for (int j = nuJaar + 1; j >= nuJaar - 1; j--) {
+            String k = sleutel(j, m, d);
+            if (k.isEmpty()) continue;
+            long a = Math.abs(dagNr(j, m, d) - nu);
+            if (a < afstand) { afstand = a; beste = k; }
+        }
+        return beste;
+    }
+
+    /** Begint dit als een webpagina? (Een pdf of plaatje waar een link naar wijst lezen we niet als tekst.) */
+    static boolean lijktHtml(String s) {
+        if (s == null) return false;
+        int n = Math.min(s.length(), 4000);
+        return zoek(s, "<html", 0, n) >= 0 || zoek(s, "<!doctype html", 0, n) >= 0 || zoek(s, "<head", 0, n) >= 0 || zoek(s, "<body", 0, n) >= 0;
     }
 
     static String tijdIn(String t) {

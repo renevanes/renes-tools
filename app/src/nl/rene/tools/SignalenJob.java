@@ -27,7 +27,8 @@ public class SignalenJob extends JobService {
         final int job = params.getJobId();
         new Thread(() -> {
             try {
-                if (job != JOB_MELD && !SignalenScan.BEZIG.get()) SignalenScan.scan(ctx, "", true, !metered(ctx));
+                // zonder internet (de taak loopt dan door zijn uiterste tijd) niet nakijken: dat is geen fout van de bron
+                if (job != JOB_MELD) { laatste = System.currentTimeMillis(); if (online(ctx) && !SignalenScan.BEZIG.get()) SignalenScan.scan(ctx, "", true, !metered(ctx)); }
                 SignalenScan.meld(ctx);
             } catch (Throwable ignored) { }
             finally {
@@ -40,6 +41,19 @@ public class SignalenJob extends JobService {
 
     @Override
     public boolean onStopJob(JobParameters params) { return true; }
+
+    /** Wanneer een taak voor het laatst ging nakijken: daarna minstens een kwartier rust, wat er ook gebeurde. */
+    private static volatile long laatste;
+    static final long RUST = 15 * 60_000L;
+
+    @SuppressWarnings("deprecation")
+    private static boolean online(Context c) {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
+            android.net.NetworkInfo ni = cm == null ? null : cm.getActiveNetworkInfo();
+            return ni != null && ni.isConnected();
+        } catch (Throwable t) { return false; }
+    }
 
     private static boolean metered(Context c) {
         try {
@@ -57,6 +71,7 @@ public class SignalenJob extends JobService {
 
     private static void plan(JobScheduler js, Context c, int id, long op, long nu, int net) {
         if (op == Long.MAX_VALUE) { js.cancel(id); return; }
+        if (id != JOB_MELD) op = Math.max(op, laatste + RUST); // nooit in een lus: ook niet als er intussen met de hand wordt nagekeken
         long wacht = Math.max(0, op - nu);
         JobInfo.Builder b = new JobInfo.Builder(id, new ComponentName(c, SignalenJob.class))
                 .setMinimumLatency(wacht).setOverrideDeadline(wacht + (id == JOB_MELD ? 15 * 60_000L : 6 * 3_600_000L))
