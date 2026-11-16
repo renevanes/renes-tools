@@ -26,24 +26,26 @@ function klTekenMappen(docs){
   });
   $('#kl-maphernoem').hidden=!klMap.startsWith('map:');
 }
-function klRij(x,metMap){
+function klRij(x,metMap,stuk){
   const soort=/pdf/.test(x.mime||'')?'document':/^image/.test(x.mime||'')?'image':'folder';
   const sub=[]; if(metMap&&x.category) sub.push(x.category); sub.push(klSub(x),fmtDate(x.t,{day:'numeric',month:'short',year:'numeric'}));
-  return '<div class="kl-rij" translate="no"><button class="trip" data-id="'+esc(x.id)+'" onclick="klMenu(this.dataset.id)"><span class="stic">'+uiIcon(soort)+'</span><span class="kl-tekst"><b>'+esc(x.name)+'</b><small>'+esc(sub.join(' · '))+'</small>'+(x.note?'<small class="kl-doc-note">'+esc(x.note)+'</small>':'')+'</span></button>'
+  return '<div class="kl-rij" translate="no"><button class="trip" data-id="'+esc(x.id)+'" onclick="klMenu(this.dataset.id)"><span class="stic">'+uiIcon(soort)+'</span><span class="kl-tekst"><b>'+esc(x.name)+'</b><small>'+esc(sub.join(' · '))+'</small>'+(x.note?'<small class="kl-doc-note">'+esc(x.note)+'</small>':'')+(stuk?'<small class="kl-doc-note kl-stuk">'+esc(stuk)+'</small>':'')+'</span></button>'
     +'<button class="kl-ster" data-id="'+esc(x.id)+'" aria-pressed="'+(x.favorite?'true':'false')+'" aria-label="'+esc(t('Favoriet: {naam}',{naam:x.name}))+'" onclick="klFavorite(this.dataset.id)">'+uiIcon('star')+'</button></div>';
 }
 /** De lijst: zoeken en de gekozen map filteren; in Alle staan favorieten bovenaan, of alles per map bij die sortering. */
 function klTeken(docs){
   klTekenMappen(docs);
   const q=$('#kl-search').value.trim().toLowerCase(), sort=$('#kl-sort').value;
-  const shown=docs.filter(d=>(!q||[d.name,d.category,d.note].some(v=>(v||'').toLowerCase().includes(q)))&&klInMap(d,klMap));
+  if(!klRender.zonderVraag) klTekstVraag(q); // ook in de tekst van documenten (34-uitbreidingen.js)
+  const inTekst=d=>klT.q===q&&q&&typeof klT.hits[d.id]==='string'?klT.hits[d.id]:'';
+  const shown=docs.filter(d=>(!q||inTekst(d)||[d.name,d.category,d.note].some(v=>(v||'').toLowerCase().includes(q)))&&klInMap(d,klMap));
   const naam=(a,b)=>(a.name||'').localeCompare(b.name||'','nl',{sensitivity:'base'});
   shown.sort(sort==='name'||sort==='category'?naam:(a,b)=>(b.t||0)-(a.t||0));
   $('#kl-empty').style.display=shown.length?'none':'block';
   $('#kl-empty').textContent=docs.length?t('Geen documenten bij deze zoekopdracht of filters.'):t('Nog leeg. Voeg een document, foto of PDF toe, zoals een kopie van je paspoort of een polis.');
   $('#kl-count').textContent=docs.length?tn(docs.length,'{k} van {n} document','{k} van {n} documenten',{k:shown.length}):'';
   $('.kl-balk').hidden=!docs.length;
-  const kop=tekst=>'<h3 class="kl-kop" translate="no">'+esc(tekst)+'</h3>', rijen=(l,metMap)=>l.map(x=>klRij(x,metMap)).join('');
+  const kop=tekst=>'<h3 class="kl-kop" translate="no">'+esc(tekst)+'</h3>', rijen=(l,metMap)=>l.map(x=>klRij(x,metMap,inTekst(x))).join('');
   let html;
   if(klMap==='all'&&sort==='category'){
     const groepen=klMapNamen(shown).map(n=>[n,shown.filter(d=>d.category===n)]), los=shown.filter(d=>!d.category);

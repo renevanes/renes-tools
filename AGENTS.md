@@ -601,6 +601,12 @@ telefoon en versleuteld; de sleutel zit in de Android Keystore.
   Activiteiten-regel "Kaartfoto bekeken" door ID-kopie) alleen via het geheugen van `MainActivity` (`idMasterTake`, een
   minuut) naar `IdCopy.addImages` (`idCopyTakeMaster`); nooit door de interface. Voorgestelde vlakken: `ID_VOORSTEL` in
   `67-id-kopie.js` (ruim genomen; de pagina blijft "niet gecontroleerd" tot Rene het aanvinkt).
+- **Zoeken in de tekst** (`KluisTekst`, `kluisZoek`/`kluisTekstBijwerken`): per document staat de tekst (uit de PDF, anders de lokale
+  tekstherkenning; hooguit `MAX_BLZ` pagina's) in `kluis/<id>.tekst`, versleuteld met de kluissleutel. Lezen en zoeken alleen met de
+  kluis open; het werkbestand staat kort in `cache/kluis-tekst` en gaat direct weg. De tekst is af te leiden: niet in backups, na
+  terugzetten of een nieuwe versie vanzelf opnieuw. Vangnet: `kluis/tekst.bezig` noemt het document dat gelezen wordt; stopte de app
+  daar, dan telt dat als een mislukte poging (na `MAX_POGINGEN` blijvend zonder tekst). Stukjes tekst altijd met `esc`/`textContent`; niets ervan in het logboek.
+  Tests: `KluisTekstTest`, `tests/ui/kluis-zoeken.test.js`.
 - **Vergelijken** (scherm `s-pdfcmp`, `77-vergelijken.js`, `PdfCompare`): A en B uit een bestand, de kluis (ook een oudere
   versie) of Gemaakt, in `cache/pdf-compare/<uuid>` en weg bij het verlaten van het scherm (`cmpClear`) of bij opstarten
   (`cleanStale`). Tekst: uit de PDF (Android 15+) of anders de lokale tekstherkenning (`RijbewijsOcr.pageText`), dan per regel

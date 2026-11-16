@@ -53,7 +53,7 @@ final class Kluis {
     static boolean isOpen() { return System.currentTimeMillis() < openUntil; }
     private static final android.os.Handler H = new android.os.Handler(android.os.Looper.getMainLooper());
     private static Context appCtx;
-    private static final Runnable EXPIRE = () -> { if (!isOpen() && appCtx != null) clearViews(appCtx); };
+    private static final Runnable EXPIRE = () -> { if (!isOpen() && appCtx != null) { clearViews(appCtx); KluisTekst.ruimWerk(appCtx); } };
     static void open(Context c) {
         appCtx = c.getApplicationContext();
         openUntil = System.currentTimeMillis() + 5 * 60_000L;
@@ -63,7 +63,7 @@ final class Kluis {
     /** Ontgrendeld (na vingerafdruk of pincode, of zonder vraag als extra ontgrendelen uit staat): open met een nieuwe generatie. */
     static synchronized int ontgrendeld(Context c) { clearViews(c); gen++; open(c); return gen; }
     static long remaining() { return Math.max(0, openUntil - System.currentTimeMillis()); }
-    static void close(Context c) { openUntil = 0; clearViews(c); }
+    static void close(Context c) { openUntil = 0; clearViews(c); KluisTekst.ruimWerk(c); }
 
     /** Bestandsnaam met behoud van de extensie (anders weet een kijk-app niet wat het is). */
     static String fileName(JSONObject d) {
@@ -384,6 +384,7 @@ final class Kluis {
         for (int i = 0; i < l.length(); i++) { if (!l.getJSONObject(i).optString("id").equals(id)) out.put(l.get(i)); else gone.addAll(blobs(l.getJSONObject(i))); }
         saveIndex(c, out);
         new File(dir(c), id + ".bin").delete();
+        KluisTekst.weg(c, id); // de tekst om in te zoeken hoort bij het document
         for (String b : gone) new File(dir(c), b + ".bin").delete(); // ook de oudere versies
     }
 

@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.214",
-  "versionCode": 215,
-  "nativeLevel": 186,
+  "versionName": "1.215",
+  "versionCode": 216,
+  "nativeLevel": 187,
   "web": "index.html",
-  "webSha256": "f446d8bc52ea543bfe6f46c4063e996383a7be46b134fafd986b5bdfba703409",
+  "webSha256": "b5ee8484061cca834fcde334d711bce5b02f96c841839397f249fb9a9f8c85eb",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "e4a3490eba28d430312ac7bc6cc580b53d0d520a78534814d70d8022316ed0dc",
+  "apkSha256": "3c2c7881d3a31bfe61fa011002ad9bcb0a1b6c5aeeea3b5b85067f639ed759be",
   "changelog": [
+    {
+      "version": "1.215",
+      "date": "2026-11-16",
+      "changes": [
+        "Documentenkluis: het zoekveld vindt nu ook woorden in de tekst van je documenten (PDF's en foto's), met het stukje tekst erbij"
+      ]
+    },
     {
       "version": "1.214",
       "date": "2026-11-16",
@@ -157,14 +164,7 @@
         "Nieuws, Podcasts en Radio hebben een knop maan/zon in de kop (de grote speler: \"Licht en donker\" in het menu ⋯): zet het scherm meteen donker of licht, met een directe link naar de instellingen voor weergave.",
         "Staat het thema op automatisch, dan geldt \"nu donker\" (of licht) tijdelijk tot de volgende automatische wissel; daarna gaat het weer vanzelf. Ook het opstarten blijft dan donker, zonder witte flits."
       ]
-    },
-    {
-      "version": "1.195",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws: inloggen bij AI Report bleef hangen. Per bron kun je nu cookies van andere sites toestaan in het inlogvenster (bij AI Report staat het standaard aan, want het inloggen loopt via beehiiv)."
-      ]
     }
   ],
-  "webSig2": "pE5wVeRAqfRZVg84ViWbMVSxwgi2dqFVcTlQ64MQatgHst6shYQDSRXu59+29Bsy9jQK09iE78khzLVdnbjaT7lm2nYbYZv0ni7Q7QGiRqqv03MCABYc/nO5eHgkJCjDTxTivsg//8chxr7f0c+evLmjm2SXOb+Eo6butgB2Ya+ex1bM96UK1MtVTHnPb4SB76SA1UOqYc8jIntHcHWx/3lrx66/7Hv/6DiHvKcSk13KpItoyTNN7p3f2W1n5Cp6fmsaspHfEqyICNK4DWuTU5XpE/CD2yOLDx6QUeaX5fCA7SQdlstZinIaDEJZXCsh89bK14WtYo6rNS4lzoSlPoMyIJdgAKlk3QGuzoOHhts7Mu3pPc/ogMb1cpEc60PqJiczjYsjtjNyn0Pn7Vt4pNXILDHFDn6GbGZpNxRBYgrobpjAcOu32C9nuRU0ZrSxrCEmODMM1BdW7s4GFyq4qhtWDUfpZ9w7zHzGLIJcSKOqbv7eg4SNe7be59IiJkOe"
+  "webSig2": "jn7nrdr8DpGZb2GNQOxBzdyi2nWlfh7ggupvGcLtatw6w3OTe4qfSbX7tV36RbXTtHLfOf85/AeEpQv7IKIjYnHkxsWzqMVyYDVad7osV03N87hfJ1ryaMj8jumJaK3ThF7ZDKOgo+dnTxnBpx8mei38Bf6yuPtNXnlHGVR02hoy/X4yOTAtX69Yj1OncVEmwGxBYGfUw0+Utwz1Gzu7cL7ekNxzv0HqhWIgruyf/znojUSFADfvrfVeA8RwhGggrP0fChTomuPm98vq9Ukc8FQG/+nRAP/ImWF1lJr0we4EsW11mkYfsP/LCn64veuHHff73EB/3B4uHWQEMq1N+h2okrnPj8bTnjd2rNJiYwpFyt/cByJqO+Z/XOgiXo0I5mXPTWiB5wMA9qXfotaTlqpNRKg9v4lmDaw5P2KIbYuTPqNZaR62nkorzGuguGdgTl/O7ZOqUj482TE9fib6Olx+3/sZ+twRaRwBYw5mDe8nwaGcn9FjGVf9mDpJoSXH"
 }

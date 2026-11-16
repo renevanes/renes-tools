@@ -183,7 +183,7 @@ function show(name){
   if (name.startsWith('wc') && typeof enterWc === 'function') enterWc(name, current_prev);
   if (current_prev==='vpnedit' && name!=='vpnedit') { const tt = $('#ve-text'); if (tt) tt.value = ''; } // privésleutel niet laten staan
   if (current_prev==='vpn' && name!=='vpn' && typeof vpScanOpen === 'function' && vpScanOpen()) vpScanClose();
-  if (name==='kluis') enterKluis(); else if (current_prev === 'kluis' && typeof Android.kluisClose === 'function') Android.kluisClose();
+  if (name==='kluis') enterKluis(); else if (current_prev === 'kluis' && typeof Android.kluisClose === 'function') { Android.kluisClose(); if (typeof klVergeet === 'function') klVergeet(); }
   if (name==='history') enterHistory(); else stopHistoryPoll();
   if (name==='calls') enterCalls(current_prev==='home'); else stopCallsPoll();
   if (current_prev==='note' && name!=='note') leaveNote();

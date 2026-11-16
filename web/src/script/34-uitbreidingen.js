@@ -105,6 +105,40 @@ function klMsg(text){ const e = $('#kl-msg'); e.textContent = text || ''; e.hidd
   for (const naam of ['onUnlocked', 'onToolSlotVrij']) { const prev = window[naam]; window[naam] = function(){ if (prev) prev.apply(this, arguments); if (current === 'kluis' && tsVanzelfMag()) klRender(); }; }
   const slot = window.onToolSlot; window.onToolSlot = function(r){ if (slot) slot.apply(this, arguments); if (r && r.soort === 'open' && r.ok && current === 'kluis' && tsVanzelfMag()) klRender(); };
 })();
+/* Zoeken in de tekst van documenten: Java leest de tekst op de achtergrond (alleen met de kluis open) en zoekt erin.
+   klT.q/hits: het laatste antwoord; een nieuwe vraag gaat pas weg als je even stopt met typen. */
+const klT = { q: '', hits: {}, zonder: 0, vraag: '', timer: 0, gestart: false, bezig: null };
+function klTekstWis(){ clearTimeout(klT.timer); klT.q = klT.vraag = ''; klT.hits = {}; klT.zonder = 0; klT.gestart = false; klT.bezig = null; const e = $('#kl-tekst'); if (e) e.textContent = ''; }
+/* Weg van het kluisscherm (of de app uit beeld): namen en stukjes tekst blijven niet in de pagina staan */
+function klVergeet(){ klTekstWis(); const l = $('#kl-list'); if (l) l.replaceChildren(); klRender.docs = []; const m = $('#kl-mappen'); if (m) m.replaceChildren(); const z = $('#kl-search'); if (z) z.value = ''; }
+(function(){ const vorige = window.onPauseApp; window.onPauseApp = function(){ if (vorige) vorige(); if (klT.q || Object.keys(klT.hits).length) { const g = klT.gestart; klTekstWis(); klT.gestart = g; if (current === 'kluis') klRender.zonderVraag = true, klRender(), klRender.zonderVraag = false; } }; })(); // de stukjes weg, de zoekvraag blijft: bij terugkomen zoekt de kluis opnieuw
+function klTekstVraag(q){
+  if (typeof Android.kluisZoek !== 'function') return;
+  if (q.replace(/\s/g, '').length < 3) { clearTimeout(klT.timer); klT.vraag = ''; if (klT.q) { klT.q = ''; klT.hits = {}; } return; }
+  if (q === klT.vraag) return;
+  klT.vraag = q; clearTimeout(klT.timer);
+  klT.timer = setTimeout(() => { if (current === 'kluis' && klT.vraag === q) Android.kluisZoek(q); }, 350);
+}
+function klTekstStand(){
+  const e = $('#kl-tekst'); if (!e) return;
+  const b = klT.bezig;
+  if (b && b.bezig && b.totaal) uiWachtTekst(e, t('Tekst lezen om in te zoeken: {k} van {n}…', { k: Math.min(b.klaar + 1, b.totaal), n: b.totaal }));
+  else e.textContent = klT.q && klT.zonder ? tn(klT.zonder, 'Van één document is de tekst nog niet gelezen', 'Van {n} documenten is de tekst nog niet gelezen') : '';
+}
+window.onKluisZoek = function(r){
+  if (typeof r === 'string') { try { r = JSON.parse(r); } catch (e) { r = {}; } }
+  if (!r || r.locked || r.error || current !== 'kluis') return;
+  if ((r.q || '').trim().toLowerCase() !== $('#kl-search').value.trim().toLowerCase()) return; // intussen iets anders getypt
+  klT.q = (r.q || '').trim().toLowerCase(); klT.hits = r.hits || {}; klT.zonder = r.zonder || 0;
+  klRender();
+};
+window.onKluisTekst = function(r){
+  if (typeof r === 'string') { try { r = JSON.parse(r); } catch (e) { r = {}; } }
+  klT.bezig = r || null;
+  if (current !== 'kluis') return;
+  klTekstStand();
+  if (r && !r.bezig && r.klaar && klT.vraag) { const q = klT.vraag; klT.vraag = ''; klTekstVraag(q); } // nieuwe tekst: de vraag nog eens stellen
+};
 function klRender(){
   let d = klLijst();
   if (d.locked && !d.error && klVanzelf()) d = klLijst();
@@ -112,12 +146,14 @@ function klRender(){
   $('#kl-open').style.display = locked ? 'none' : 'block';
   if (d.error) klMsg(d.error); else if (!locked) klMsg('');
   clearTimeout(klRender.t);
-  if (locked) { $('#kl-list').replaceChildren();klRender.docs=[];klOrganizeClose();$('#kl-search').value='';klMap='all';$('#kl-mappen').replaceChildren();$('#kl-maphernoem').hidden=true;return; }
+  if (locked) { klTekstWis(); $('#kl-list').replaceChildren();klRender.docs=[];klOrganizeClose();$('#kl-search').value='';klMap='all';$('#kl-mappen').replaceChildren();$('#kl-maphernoem').hidden=true;return; }
   $('#kl-lock').hidden = tsEigenUit('kluis'); // uit: hij opent toch meteen weer
   if (d.left) klRender.t = setTimeout(() => { if (current === 'kluis') klRender(); }, d.left + 500); // na 5 minuten vanzelf op slot, ook op het scherm
   const docs=(d.docs||[]).slice();
+  if (!klT.gestart && typeof Android.kluisTekstBijwerken === 'function') { klT.gestart = true; Android.kluisTekstBijwerken(); }
   klRender.docs=docs;
   klTeken(docs); // mappen, lijst en telling: 49-documenten-ordenen.js
+  klTekstStand();
 }
 window.onKluis = function(r){
   if (r === 'vraag') { klVraag(); return; }

@@ -45,6 +45,7 @@ public class App extends Application {
         if (restartProcess()) return; // het korte herstart-proces na terugzetten: verder niets
         final Thread.UncaughtExceptionHandler prev = Thread.getDefaultUncaughtExceptionHandler();
         final Context c = getApplicationContext();
+        try { KluisTekst.ruimWerk(c); } catch (Throwable e) { /* cache; ook als alleen een dienst het proces start */ }
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
             try {
                 StringWriter sw = new StringWriter();

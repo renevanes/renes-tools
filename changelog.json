@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.215",
+    "date": "2026-11-16",
+    "changes": [
+      "Documentenkluis: het zoekveld vindt nu ook woorden in de tekst van je documenten (PDF's en foto's), met het stukje tekst erbij"
+    ]
+  },
+  {
     "version": "1.214",
     "date": "2026-11-16",
     "changes": [
