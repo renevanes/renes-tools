@@ -1,4 +1,0 @@
-Documentenkluis: de kluis werkt nu als een verkenner. Mappen staan als rijen bovenaan, je tikt erin en ziet bovenaan het pad (Documenten › Wonen › Hypotheek); terug gaat een map omhoog.
-Documentenkluis: mappen in mappen. Schrijf bij verplaatsen of hernoemen een schuine streep, bijvoorbeeld Wonen/Hypotheek. Een map hernoemen neemt alles eronder mee.
-Documentenkluis: je facturen staan als map Facturen in de verkenner, per leverancier, en doen mee met zoeken. Tik op een factuur om hem te bekijken; beheren doe je nog bij Facturen.
-Documentenkluis: een document dat je toevoegt terwijl je in een map staat, komt in die map. Zoeken kijkt ook in de mappen eronder.
