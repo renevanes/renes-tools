@@ -109,6 +109,9 @@ function klMsg(text){ const e = $('#kl-msg'); e.textContent = text || ''; e.hidd
    klT.q/hits: het laatste antwoord; een nieuwe vraag gaat pas weg als je even stopt met typen. */
 const klT = { q: '', hits: {}, zonder: 0, vraag: '', timer: 0, gestart: false, bezig: null };
 function klTekstWis(){ clearTimeout(klT.timer); klT.q = klT.vraag = ''; klT.hits = {}; klT.zonder = 0; klT.gestart = false; klT.bezig = null; const e = $('#kl-tekst'); if (e) e.textContent = ''; }
+/* Weg van het kluisscherm (of de app uit beeld): namen en stukjes tekst blijven niet in de pagina staan */
+function klVergeet(){ klTekstWis(); const l = $('#kl-list'); if (l) l.replaceChildren(); klRender.docs = []; const z = $('#kl-search'); if (z) z.value = ''; }
+(function(){ const vorige = window.onPauseApp; window.onPauseApp = function(){ if (vorige) vorige(); if (klT.q || Object.keys(klT.hits).length) { klTekstWis(); if (current === 'kluis') { $('#kl-search').value = ''; klRender(); } } }; })();
 function klTekstVraag(q){
   if (typeof Android.kluisZoek !== 'function') return;
   if (q.replace(/\s/g, '').length < 3) { clearTimeout(klT.timer); klT.vraag = ''; if (klT.q) { klT.q = ''; klT.hits = {}; } return; }

@@ -23,6 +23,8 @@ public class KluisTekstTest {
         check(KluisTekst.stuk("", KluisTekst.woorden("iets")) == null && KluisTekst.stuk(t, KluisTekst.woorden("x")) == null, "leeg of te kort: niets");
         check(KluisTekst.soort("application/pdf", "a").equals("pdf") && KluisTekst.soort("application/octet-stream", "Polis.PDF").equals("pdf") && KluisTekst.soort("image/jpeg", "f.jpg").equals("beeld")
                 && KluisTekst.soort("text/plain", "n").equals("tekst") && KluisTekst.soort("application/zip", "a.zip").isEmpty() && KluisTekst.soort(null, null).isEmpty(), "soort bepaalt hoe er gelezen wordt");
+        check(!KluisTekst.opnieuw(0) && KluisTekst.opnieuw(1) && KluisTekst.opnieuw(KluisTekst.MAX_POGINGEN - 1) && !KluisTekst.opnieuw(KluisTekst.MAX_POGINGEN), "een fout proberen we nog eens, tot het maximum");
+        check(KluisTekst.vastgelopen("abc123\n", "abc123") && !KluisTekst.vastgelopen("abc123", "def456") && !KluisTekst.vastgelopen("", "") && !KluisTekst.vastgelopen(null, "abc"), "vorige poging niet afgemaakt: alleen dat document overslaan");
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }
         System.out.println("KluisTekstTest geslaagd");
     }

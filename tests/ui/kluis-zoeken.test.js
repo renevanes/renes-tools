@@ -34,6 +34,13 @@ const { chromium } = require('playwright');
     ok(l.length === 1 && /Paspoort/.test(l[0].naam), scheme + ': naam en tekst samen: één keer in de lijst');
     await pg.fill('#kl-search', ''); await pg.waitForTimeout(150);
     ok((await lijst()).length === 3 && (await lijst()).every(x => !x.stuk), scheme + ': zoekveld leeg: alles weer, zonder stukjes');
+    // weg van het scherm: niets van de inhoud blijft in de pagina staan
+    await pg.fill('#kl-search', 'premie'); await pg.waitForTimeout(500);
+    ok((await lijst()).some(x => /premie/.test(x.stuk)), scheme + ': (er staat een stukje in beeld)');
+    await pg.evaluate(() => show('home')); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => !$('#kl-list').children.length && !Object.keys(klT.hits).length && $('#kl-search').value === ''), scheme + ': weg van de kluis: lijst, stukjes en zoekvraag zijn weg uit de pagina');
+    await pg.evaluate(() => { Android._kl.open = true; show('kluis'); }); await pg.waitForTimeout(150);
+    if (await pg.evaluate(() => typeof tsZichtbaar === 'function' && tsZichtbaar())) { await pg.click('#ts-open'); await pg.waitForFunction(() => $('#kl-open').style.display === 'block'); await pg.waitForTimeout(30); }
     // op slot: niets blijft hangen
     await pg.fill('#kl-search', 'premie'); await pg.waitForTimeout(500);
     await pg.evaluate(() => { Android._kl.open = false; window.klVanzelf = () => false; klRender(); }); // echt op slot (zonder vanzelf weer openen)

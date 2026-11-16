@@ -490,9 +490,11 @@ public class FeatureBridge {
         @JavascriptInterface public void kluisZoek(String q) {
             if (!a.kluisOk()) { a.js("onKluisZoek", "{\"locked\":true}"); return; }
             final String vraag = q == null ? "" : q.length() > 200 ? q.substring(0, 200) : q;
+            final int nr = KluisTekst.VRAAG.incrementAndGet(); // een oudere vraag die nog loopt, stopt
             new Thread(() -> {
                 String r;
-                try { r = a.kluisOk() ? KluisTekst.zoek(ctx, vraag).toString() : "{\"locked\":true}"; } catch (Throwable e) { r = "{\"error\":true}"; }
+                try { JSONObject o = KluisTekst.zoek(ctx, vraag, nr); if (o == null) return; r = o.toString(); } catch (Throwable e) { r = "{\"error\":true}"; }
+                if (!a.kluisOk()) r = "{\"locked\":true}"; // intussen op slot: geen tekst meer naar de interface
                 a.js("onKluisZoek", r);
             }, "kluis-zoek").start();
         }

@@ -32,8 +32,12 @@ final class KluisTekst {
     interface Uit { void stuur(String json); }
 
     static final int MAX_TEKST = 200_000, MAX_BLZ = 20, STUK = 70, MIN_VRAAG = 3;
-    static final String EXT = ".tekst", WERK = "kluis-tekst";
+    static final String EXT = ".tekst", WERK = "kluis-tekst", MERK = "tekst.bezig";
+    /** Zo vaak proberen we een document dat een fout gaf; daarna geldt het als "geen tekst". */
+    static final int MAX_POGINGEN = 3;
     private static final AtomicBoolean BEZIG = new AtomicBoolean();
+    /** Volgnummer van de laatste zoekvraag: een oudere vraag stopt. */
+    static final java.util.concurrent.atomic.AtomicInteger VRAAG = new java.util.concurrent.atomic.AtomicInteger();
 
     // ---------- zuiver ----------
 
@@ -85,27 +89,52 @@ final class KluisTekst {
         return "";
     }
 
+    /**
+     * Wat er in het tekstbestand komt na een leespoging. fout = het aantal mislukte pogingen tot nu toe (0 = gelukt of
+     * blijvend niets te lezen). Zolang fout tussen 1 en MAX_POGINGEN ligt, proberen we het een volgende keer opnieuw.
+     */
+    static boolean opnieuw(int fout) { return fout > 0 && fout < MAX_POGINGEN; }
+
+    /** De vorige ronde is bij dit document gestopt zonder af te ronden (de app stopte): dit document niet meer lezen. */
+    static boolean vastgelopen(String merk, String id) { return merk != null && !merk.isEmpty() && merk.trim().equals(id); }
+
     // ---------- opslag ----------
 
     static File bestand(Context c, String id) { return new File(Kluis.dir(c), Kluis.safeId(id) + EXT); }
 
-    /** De bewaarde tekst van een document, of null als die er niet is of bij een eerdere inhoud hoort. */
-    static String lees(Context c, String id) {
-        File f = bestand(c, id), blob = new File(Kluis.dir(c), id + ".bin");
+    private static File blob(Context c, String id) { return new File(Kluis.dir(c), Kluis.safeId(id) + ".bin"); }
+
+    /** Het tekstbestand als het bij de huidige inhoud hoort, anders null. */
+    private static JSONObject staat(Context c, String id) {
+        File f = bestand(c, id), blob = blob(c, id);
         if (!f.exists() || !blob.exists()) return null;
         try {
             ByteArrayOutputStream b = new ByteArrayOutputStream();
             try (InputStream in = new java.io.BufferedInputStream(new FileInputStream(f))) { Kluis.decrypt(in, b); }
             JSONObject o = new JSONObject(new String(b.toByteArray(), StandardCharsets.UTF_8));
-            if (o.optLong("n") != blob.length() || o.optLong("t") != blob.lastModified()) return null;
-            return o.optString("tekst");
+            return o.optLong("n") != blob.length() || o.optLong("t") != blob.lastModified() ? null : o;
         } catch (Throwable e) { return null; }
     }
 
-    private static void bewaar(Context c, String id, String tekst) throws Exception {
-        File blob = new File(Kluis.dir(c), id + ".bin");
-        Kluis.writeEncrypted(bestand(c, id), new JSONObject().put("v", 1).put("n", blob.length()).put("t", blob.lastModified()).put("tekst", netjes(tekst)).toString().getBytes(StandardCharsets.UTF_8));
+    /** De bewaarde tekst van een document, of null als die er (nog) niet is, bij een eerdere inhoud hoort of opnieuw gelezen moet worden. */
+    static String lees(Context c, String id) {
+        JSONObject o = staat(c, id);
+        return o == null || opnieuw(o.optInt("fout")) ? null : o.optString("tekst");
     }
+
+    /** n en t: lengte en tijdstempel van de inhoud die gelezen is. Is het document intussen veranderd, dan bewaren we niets. */
+    private static boolean bewaar(Context c, String id, String tekst, long n, long t, int fout) throws Exception {
+        File blob = blob(c, id);
+        if (blob.length() != n || blob.lastModified() != t) return false;
+        Kluis.writeEncrypted(bestand(c, id), new JSONObject().put("v", 1).put("n", n).put("t", t).put("fout", fout).put("tekst", netjes(tekst)).toString().getBytes(StandardCharsets.UTF_8));
+        return true;
+    }
+
+    private static File merk(Context c) { return new File(Kluis.dir(c), MERK); }
+    private static String merkLees(Context c) {
+        try (InputStream in = new FileInputStream(merk(c))) { byte[] b = new byte[64]; int n = Kluis.readFully(in, b); return new String(b, 0, Math.max(0, n), StandardCharsets.UTF_8).trim(); } catch (Throwable e) { return ""; }
+    }
+    private static void merkZet(Context c, String id) { try (java.io.FileOutputStream o = new java.io.FileOutputStream(merk(c))) { o.write(id.getBytes(StandardCharsets.UTF_8)); o.getFD().sync(); } catch (Throwable e) { /* dan zonder vangnet */ } }
 
     static void weg(Context c, String id) { try { bestand(c, id).delete(); } catch (Throwable e) { /* niets te doen */ } }
 
@@ -119,13 +148,15 @@ final class KluisTekst {
     private static String leesDocument(Context c, JSONObject d, BooleanSupplier door) throws Exception {
         String id = d.optString("id"), soort = soort(d.optString("mime"), d.optString("name"));
         if (soort.isEmpty() || d.optLong("size") > PdfCompare.MAX_BYTES) return "";
+        if ("tekst".equals(soort)) { // alleen in het geheugen: geen leesbare kopie op schijf
+            if (d.optLong("size") > MAX_TEKST * 4L) return "";
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            try (InputStream in = new java.io.BufferedInputStream(new FileInputStream(Kluis.blobFile(c, id, 0)), 1 << 16)) { Kluis.decrypt(in, b); }
+            return new String(b.toByteArray(), StandardCharsets.UTF_8);
+        }
         File f = new File(werk(c), java.util.UUID.randomUUID().toString());
         try {
             Kluis.decryptTo(c, id, 0, f);
-            if ("tekst".equals(soort)) {
-                byte[] buf = new byte[(int) Math.min(f.length(), MAX_TEKST * 2L)];
-                try (InputStream in = new FileInputStream(f)) { int n = Kluis.readFully(in, buf); return new String(buf, 0, Math.max(0, n), StandardCharsets.UTF_8); }
-            }
             boolean pdf = "pdf".equals(soort) && PdfCompare.isPdf(f);
             int blz = 1;
             if (pdf) {
@@ -149,17 +180,29 @@ final class KluisTekst {
                 Set<String> ids = new HashSet<>();
                 List<JSONObject> doen = new ArrayList<>();
                 for (int i = 0; i < l.length(); i++) { JSONObject d = l.getJSONObject(i); ids.add(d.optString("id")); if (lees(app, d.optString("id")) == null) doen.add(d); }
-                File[] fs = Kluis.dir(app).listFiles(); // tekst van documenten die er niet meer zijn
-                if (fs != null) for (File f : fs) { String n = f.getName(); if (n.endsWith(EXT) && !ids.contains(n.substring(0, n.length() - EXT.length()))) f.delete(); }
+                File[] fs = Kluis.dir(app).listFiles(); // tekst van documenten die er niet meer zijn, en halve tekstbestanden
+                if (fs != null) for (File f : fs) { String n = f.getName(); if (n.endsWith(EXT + ".writing") || (n.endsWith(EXT) && !ids.contains(n.substring(0, n.length() - EXT.length())))) f.delete(); }
+                final String vorige = merkLees(app); // de vorige ronde stopte midden in dit document (de app stopte): niet nog eens proberen
+                merk(app).delete();
                 totaal = doen.size();
                 final BooleanSupplier door = Kluis::isOpen;
                 for (JSONObject d : doen) {
                     if (!door.getAsBoolean()) break;
                     stuur(uit, klaar, totaal, true);
-                    String tekst;
-                    try { tekst = leesDocument(app, d, door); } catch (Throwable e) { tekst = ""; } // onleesbaar: niet elke keer opnieuw proberen
+                    final String id = d.optString("id");
+                    final File blob = blob(app, id);
+                    final long n = blob.length(), t = blob.lastModified(); // de inhoud die we nu lezen
+                    JSONObject oud = staat(app, id);
+                    int fout = oud == null ? 0 : oud.optInt("fout");
+                    String tekst = "";
+                    if (vastgelopen(vorige, id)) fout++; // deze ronde overslaan; telt als een mislukte poging (na MAX_POGINGEN blijvend zonder tekst)
+                    else {
+                        merkZet(app, id);
+                        try { tekst = leesDocument(app, d, door); fout = 0; } catch (Throwable e) { tekst = ""; fout++; } // een fout: later nog eens, hooguit MAX_POGINGEN keer
+                        merk(app).delete();
+                    }
                     if (!door.getAsBoolean()) break; // halverwege op slot: de tekst is niet af, later opnieuw
-                    try { synchronized (Kluis.class) { if (Kluis.find(app, d.optString("id")) != null) bewaar(app, d.optString("id"), tekst); } nieuw++; } catch (Throwable e) { /* volgende keer opnieuw */ }
+                    try { synchronized (Kluis.class) { if (Kluis.find(app, id) != null && bewaar(app, id, tekst, n, t, fout)) nieuw++; } } catch (Throwable e) { /* volgende keer opnieuw */ }
                     klaar++;
                 }
                 if (nieuw > 0) App.log(app, "KLUIS", "tekst gelezen: " + nieuw);
@@ -173,12 +216,16 @@ final class KluisTekst {
     }
 
     /** Zoekt in de bewaarde teksten. {q, hits:{id:stukje}, zonder: aantal documenten waarvan de tekst nog niet gelezen is}. */
-    static JSONObject zoek(Context c, String q) throws Exception {
+    static JSONObject zoek(Context c, String q) throws Exception { return zoek(c, q, VRAAG.incrementAndGet()); }
+
+    /** nr: het volgnummer van deze vraag; komt er intussen een nieuwere, dan stopt deze (null). */
+    static JSONObject zoek(Context c, String q, int nr) throws Exception {
         List<String> w = woorden(q);
         JSONObject hits = new JSONObject(); int zonder = 0;
         if (!w.isEmpty()) {
             JSONArray l = Kluis.list(c);
-            for (int i = 0; i < l.length() && Kluis.isOpen(); i++) {
+            for (int i = 0; i < l.length(); i++) {
+                if (!Kluis.isOpen() || nr != VRAAG.get()) return null;
                 String id = l.getJSONObject(i).optString("id"), t = lees(c, id);
                 if (t == null) { zonder++; continue; }
                 String s = stuk(t, w);
