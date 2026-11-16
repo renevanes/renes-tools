@@ -550,10 +550,26 @@ function sleepOpen(target){
   const d = rgParts(Date.now() + 60 * 6e4); // over een uur, in de app-zone
   $('#sl-time').value = String(d.hh).padStart(2, '0') + ':' + String(Math.floor(d.mm / 5) * 5).padStart(2, '0');
   sleepShow();
+  sleepFadeToon();
   $('#sleepdlg').classList.add('on');
   dialogFocus.sync($('#sl-t')); // focus op de kop: één Enter mag niet meteen een timer starten
 }
 function sleepKies(m){ $('#sl-range').value = m; sleepStart(); }
+/* Hoe lang het geluid aan het eind langzaam zachter wordt (podcast en radio; ook voor een timer die al loopt).
+   Een oudere app zonder deze keuze: de regel blijft weg. */
+const SL_FADE = [0, 15, 30, 60, 120, 180];
+function sleepFadeTekst(s){ return s === 0 ? t('Uit') : s < 60 ? t('{n} seconden', { n: s }) : tn(s / 60, '1 minuut', '{n} minuten'); }
+function sleepFadeToon(){
+  const kan = typeof Android.sleepFade === 'function';
+  $('#sl-fade-rij').hidden = !kan;
+  if (!kan) return;
+  const nu = +Android.sleepFade();
+  $('#sl-fade').innerHTML = SL_FADE.map(s => '<option value="' + s + '"' + (s === nu ? ' selected' : '') + '>' + esc(s === 60 ? t('{duur} (standaard)', { duur: sleepFadeTekst(s) }) : sleepFadeTekst(s)) + '</option>').join('');
+}
+function sleepFadeKies(v){
+  if (!Android.sleepFadeSet(+v)) { toast(t('Dat kan niet')); sleepFadeToon(); return; }
+  toast(+v ? t('Aan het eind {duur} langzaam zachter', { duur: sleepFadeTekst(+v) }) : t('Aan het eind niet zachter: meteen stoppen'));
+}
 function sleepClose(){ $('#sleepdlg').classList.remove('on'); }
 function sleepShow(){
   const m = +$('#sl-range').value;

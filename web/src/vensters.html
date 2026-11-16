@@ -78,7 +78,7 @@
       <button class="big" id="sl-go" onclick="sleepStart()">Start</button>
       <div class="sl-om"><label for="sl-time">Of stop om</label><input type="time" id="sl-time" class="search"><button class="big ghost" id="sl-at" onclick="sleepAt()" data-taal="tijd">Instellen</button></div>
     </details>
-    <p class="hint sl-hint">De laatste 30 seconden wordt het geluid langzaam zachter.</p>
+    <div class="sl-fade" id="sl-fade-rij"><label for="sl-fade">Aan het eind langzaam zachter</label><select class="sel" id="sl-fade" onchange="sleepFadeKies(this.value)"></select></div>
     <div class="modal-btns"><button class="big ghost" id="sl-off" onclick="sleepOff()">Uitzetten</button><button class="big ghost" id="sl-sluit" onclick="sleepClose()">Sluiten</button></div>
   </div>
 </div>

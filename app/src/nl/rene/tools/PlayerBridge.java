@@ -16,6 +16,12 @@ public class PlayerBridge extends PodcastBridge {
     /** "radio", "podcast" of "" (wat het laatst speelde). */
     @JavascriptInterface public String playerSrc() { return Player.src(ctx); }
 
+    /** Slaaptimer: hoe lang het geluid aan het eind langzaam zachter wordt, in seconden (0 = uit). Geldt voor podcast en
+     *  radio, ook voor een timer die al loopt. */
+    @JavascriptInterface public int sleepFade() { return (int) (SleepFade.gekozen(ctx) / 1000); }
+    /** Alleen een van de vaste keuzes (0, 15, 30, 60, 120, 180 s); geeft false bij iets anders. */
+    @JavascriptInterface public boolean sleepFadeSet(int sec) { return SleepFade.kies(ctx, sec); }
+
     /** "1": deze app geeft hoesjes uit zijn eigen cache aan de interface (https://app.renes-tools.local/art?u=…). */
     @JavascriptInterface public String artLokaal() { return "1"; }
 

@@ -7,11 +7,23 @@ public class SleepFadeTest {
     static double db(float g) { return 20 * Math.log10(Math.max(1e-9, g)); }
 
     public static void main(String[] args) {
-        // Hoe lang het uitfaden duurt
-        check(SleepFade.length(30 * 60_000L) == 180_000, "30 minuten: 3 minuten uitfaden");
-        check(SleepFade.length(120 * 60_000L) == 180_000, "2 uur: ook 3 minuten (niet langer)");
-        check(SleepFade.length(6 * 60_000L) == 120_000, "6 minuten: een derde, 2 minuten");
-        check(SleepFade.length(60_000L) == 20_000 && SleepFade.length(0) == 20_000, "heel kort: minstens 20 seconden");
+        // Hoe lang het uitfaden duurt: zoals gekozen (standaard 1 minuut), bij een korte timer hooguit een derde
+        check(SleepFade.STANDAARD_MS == 60_000, "standaard 1 minuut (was 3)");
+        check(SleepFade.length(30 * 60_000L, SleepFade.STANDAARD_MS) == 60_000, "30 minuten, standaard: 1 minuut uitfaden");
+        check(SleepFade.length(30 * 60_000L, 180_000) == 180_000, "30 minuten, 3 minuten gekozen: 3 minuten");
+        check(SleepFade.length(120 * 60_000L, 15_000) == 15_000, "2 uur, 15 seconden gekozen: 15 seconden");
+        check(SleepFade.length(6 * 60_000L, 180_000) == 120_000, "6 minuten, 3 minuten gekozen: een derde, 2 minuten");
+        check(SleepFade.length(60_000L, 60_000) == 20_000, "1 minuut: een derde, 20 seconden");
+        check(SleepFade.length(60_000L, 15_000) == 15_000 && SleepFade.length(0, 60_000) == 10_000, "heel kort: minstens 10 seconden, of korter als dat gekozen is");
+        check(SleepFade.length(30 * 60_000L, 0) == 0 && SleepFade.gain(5_000, SleepFade.length(30 * 60_000L, 0)) == 1f, "uit: niet zachter, vol tot het stoppen");
+        // Alleen vaste keuzes
+        check(SleepFade.geldig(15_000) == 15_000 && SleepFade.geldig(0) == 0 && SleepFade.geldig(180_000) == 180_000, "vaste keuzes geldig");
+        check(SleepFade.geldig(45_000) == SleepFade.STANDAARD_MS && SleepFade.geldig(-1000) == SleepFade.STANDAARD_MS && SleepFade.geldig(3_600_000) == SleepFade.STANDAARD_MS, "andere waarden: de standaard");
+        for (long k : SleepFade.KEUZES) check(k == 0 || (k >= 15_000 && k <= SleepFade.MAX_MS), "keuze binnen de grenzen: " + k);
+        // Ook de kortste keuze zakt zonder grote sprongen
+        double max15 = 0; float p15 = 1f;
+        for (long left = 15_000; left >= SleepFade.STEP_MS; left -= SleepFade.STEP_MS) { float g = SleepFade.gain(left, 15_000); max15 = Math.max(max15, db(p15) - db(g)); p15 = g; }
+        check(max15 < 1.2, "15 seconden: per stap minder dan 1,2 dB: " + String.format("%.3f dB", max15));
 
         long f = 180_000;
         check(SleepFade.gain(f + 1, f) == 1f && SleepFade.gain(f, f) == 1f && SleepFade.gain(10 * 60_000L, f) == 1f, "voor het uitfaden: vol");
@@ -36,8 +48,8 @@ public class SleepFadeTest {
         check(db(SleepFade.gain(f - 10_000, f)) > -0.5, "zacht beginnen: na 10 s nog geen halve dB zachter");
         // Ook bij het uitfaden aan het eind van een aflevering (1 minuut, stappen van 1 s buiten het slot)
         double maxEnd = 0; prev = 1f;
-        for (long left = PodcastService.END_FADE_MS; left >= SleepFade.STEP_MS; left -= SleepFade.STEP_MS) {
-            float g = SleepFade.gain(left, PodcastService.END_FADE_MS); maxEnd = Math.max(maxEnd, db(prev) - db(g)); prev = g;
+        for (long left = SleepFade.STANDAARD_MS; left >= SleepFade.STEP_MS; left -= SleepFade.STEP_MS) {
+            float g = SleepFade.gain(left, SleepFade.STANDAARD_MS); maxEnd = Math.max(maxEnd, db(prev) - db(g)); prev = g;
         }
         check(maxEnd < 0.5, "einde aflevering: per stap minder dan 0,5 dB: " + String.format("%.3f dB", maxEnd));
 

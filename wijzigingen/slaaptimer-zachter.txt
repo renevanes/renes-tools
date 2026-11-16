@@ -1,0 +1,1 @@
+Slaaptimer: het langzaam zachter worden aan het eind is korter (standaard 1 minuut in plaats van 3) en zelf in te stellen in het slaaptimervenster: uit, 15 of 30 seconden, of 1, 2 of 3 minuten.

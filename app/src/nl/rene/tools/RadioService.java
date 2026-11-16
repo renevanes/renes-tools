@@ -362,7 +362,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
             try { min = Integer.parseInt(x); } catch (Exception ignored) { }
             h.removeCallbacks(sleepRun);
             sleepAt = min > 0 ? System.currentTimeMillis() + min * 60_000L : 0;
-            sleepFadeMs = SleepFade.length(min * 60_000L);
+            sleepTotalMs = min * 60_000L;
             if (min > 0) h.post(sleepRun);
             // Altijd het volume terug (ook als de tijd tijdens het uitfaden verlengd wordt)
             applyVolume();
@@ -384,8 +384,9 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         }
     }
 
-    /** Hoe lang het uitfaden van de slaaptimer duurt (hangt af van de lengte van de timer, zie SleepFade). */
-    private long sleepFadeMs = SleepFade.MAX_MS;
+    /** Hoe lang de slaaptimer in totaal liep; het uitfaden is zo lang als gekozen, bij een korte timer korter (SleepFade). */
+    private long sleepTotalMs = 0;
+    private long sleepFadeMs() { return SleepFade.length(sleepTotalMs, SleepFade.gekozen(this)); }
 
     /** Slaaptimer: de laatste minuten langzaam zachter, dan stoppen. */
     private final Runnable sleepRun = this::sleepFade;
@@ -395,7 +396,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         long left = sleepAt - System.currentTimeMillis();
         if (left <= 0) { sleepAt = 0; stopAll(); return; }
         applyVolume();
-        h.postDelayed(sleepRun, SleepFade.nextDelay(left, sleepFadeMs));
+        h.postDelayed(sleepRun, SleepFade.nextDelay(left, Math.max(sleepFadeMs(), SleepFade.MAX_MS))); // ook op tijd als het intussen langer gekozen wordt
     }
 
     /** Wekker: hoe ver hij al is aangezwollen (ramp). */
@@ -405,7 +406,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     private void applyVolume() {
         MediaPlayer p = player;
         if (p == null) return;
-        float base = alarm ? alarmVol : sleepAt > 0 ? SleepFade.gain(sleepAt - System.currentTimeMillis(), sleepFadeMs) : 1f;
+        float base = alarm ? alarmVol : sleepAt > 0 ? SleepFade.gain(sleepAt - System.currentTimeMillis(), sleepFadeMs()) : 1f;
         float v = base * (ducked ? 0.3f : 1f);
         try { p.setVolume(v, v); } catch (Exception ignored) { }
     }
@@ -473,7 +474,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         long other = Player.takeOver(this, Player.RADIO);
         if (other > 0 && sleepAt == 0 && !alarm) { // de wekker laat zich niet door een oude slaaptimer uitzetten
             sleepAt = other;
-            sleepFadeMs = SleepFade.length(other - System.currentTimeMillis());
+            sleepTotalMs = other - System.currentTimeMillis();
             h.removeCallbacks(sleepRun);
             h.post(sleepRun);
         }
