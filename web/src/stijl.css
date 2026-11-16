@@ -278,6 +278,11 @@ textarea.key:focus{outline:2px solid var(--primary);outline-offset:-1px;border-c
 .kl-rij{display:flex;align-items:center;gap:2px;border-bottom:1px solid var(--line)}.kl-rij:last-child{border-bottom:0}
 #kl-list .trip{flex:1;min-width:0;justify-content:flex-start;gap:12px;border-bottom:0;padding:10px 0;min-height:60px}
 #kl-list .kl-tekst{flex:1;min-width:0}#kl-list .trip b,#kl-list .trip small{display:block;overflow-wrap:anywhere}
+.kl-verloop{color:var(--warn)!important;font-weight:600}.kl-verloop[data-oud]{color:var(--bad)!important}
+.kl-labels{display:flex!important;flex-wrap:wrap;gap:5px;margin-top:4px}.kl-labels span{padding:2px 8px;border-radius:8px;background:var(--chip);color:var(--on-chip);font-size:12px}
+.kl-dochoofd{display:flex;align-items:center;gap:12px}.kl-doctitel{flex:1;min-width:0}.kl-doctitel h2{margin:0;overflow-wrap:anywhere}.kl-doctitel .note{margin:2px 0 0;overflow-wrap:anywhere}
+.kl-docacts{display:flex;gap:8px;margin:14px 0 4px}.kl-docacts .big{flex:1;min-width:0;margin:0;padding-left:8px;padding-right:8px}
+.kl-twee{display:grid;grid-template-columns:1fr 1fr;gap:10px}.kl-twee>div{min-width:0}.kl-twee .search{width:100%;min-width:0}
 .kl-ster{flex:none;width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:22px;background:none;color:var(--muted)}
 .kl-ster[aria-pressed=true]{color:var(--primary)}.kl-ster[aria-pressed=true] .ui-icon{width:26px;height:26px}.kl-ster .ui-icon{width:22px;height:22px}
 #note-move-item{width:100%}

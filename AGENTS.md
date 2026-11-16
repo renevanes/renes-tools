@@ -584,6 +584,11 @@ telefoon en versleuteld; de sleutel zit in de Android Keystore.
   map, Zonder map); de keuze (`klMap`) staat alleen in het geheugen en is weg zodra de kluis op slot gaat. In Alle staan
   favorieten bovenaan; de ster in een rij, "Verplaatsen naar map…" en "Map hernoemen" gaan allemaal via `kluisOrganize`.
   Namen van mappen en documenten zijn gegevens: `esc()`/`textContent` en `translate="no"`.
+- **Documentkaart en eigenschappen**: tik op een document opent de kaart (`#kl-edit`, in plaats van de lijst; `klKaart`, terug gaat
+  eerst naar de lijst) met Bekijken, Delen, Meer (`klDocSheet`) en de eigenschappen. Die staan als `props` in de versleutelde
+  index: `{soort, partij, datum, verloopt, bedrag, labels}` (`KluisIndex.props`: alleen deze velden, datums JJJJ-MM-DD, bedrag met
+  een punt; `KluisIndexTest`), bewaard via `kluisOrganize` en mee in backups (`KluisIndex.clean`). "Verloopt binnenkort" =
+  binnen `KL_BINNENKORT` dagen of verlopen. Nieuwe eigenschap = `KluisIndex.props`, de kaart, `klRij`/`klZoekTekst`, de testbrug en de tests.
 - **Weg van het kluisscherm = op slot** (bestaand gedrag). Een actie vanuit het kluismenu naar een ander scherm (bewerken,
   vergelijken) start dus éérst de opdracht in Java (die controleert de kluis meteen) en gaat daarna pas naar het andere scherm.
 - **Bekijken in de eigen viewer**: `kluisOpen(id, versie)` ontsleutelt naar `cache/kluis-open` (leeg bij op slot gaan) en opent

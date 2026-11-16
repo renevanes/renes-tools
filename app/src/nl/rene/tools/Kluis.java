@@ -344,11 +344,13 @@ final class Kluis {
         String category=patch.has("category")?DocumentMeta.category(patch.getString("category")):null;
         String note=patch.has("note")?DocumentMeta.note(patch.getString("note")):null;
         if(patch.has("favorite")&&!(patch.get("favorite") instanceof Boolean))throw new Exception("Ongeldige favorietkeuze");
+        JSONObject props=patch.has("props")?KluisIndex.props(patch.optJSONObject("props")):null;
         JSONArray all=list(c);JSONObject found=null;
         for(int i=0;i<all.length();i++)if(id.equals(all.getJSONObject(i).optString("id")))found=all.getJSONObject(i);
         if(found==null)throw new Exception(Taal.T("Document niet gevonden"));
         if(category!=null)found.put("category",category);if(note!=null)found.put("note",note);
         if(patch.has("favorite"))found.put("favorite",patch.getBoolean("favorite"));
+        if(props!=null){if(props.length()>0)found.put("props",props);else found.remove("props");}
         saveIndex(c,all);
     }
 

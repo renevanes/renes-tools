@@ -1,0 +1,3 @@
+Documentenkluis: tik op een document voor de documentkaart, met Bekijken, Delen en alle andere acties onder Meer.
+Documentenkluis: elk document kan eigenschappen krijgen: soort, van of voor wie, datum, bedrag, verloopdatum en labels. Je ziet ze in de lijst en kunt erop zoeken en sorteren.
+Documentenkluis: nieuwe keuze "Verloopt binnenkort" voor documenten die binnen 90 dagen verlopen of al verlopen zijn.

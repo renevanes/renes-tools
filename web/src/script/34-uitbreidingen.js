@@ -110,7 +110,7 @@ function klMsg(text){ const e = $('#kl-msg'); e.textContent = text || ''; e.hidd
 const klT = { q: '', hits: {}, zonder: 0, vraag: '', timer: 0, gestart: false, bezig: null };
 function klTekstWis(){ clearTimeout(klT.timer); klT.q = klT.vraag = ''; klT.hits = {}; klT.zonder = 0; klT.gestart = false; klT.bezig = null; const e = $('#kl-tekst'); if (e) e.textContent = ''; }
 /* Weg van het kluisscherm (of de app uit beeld): namen en stukjes tekst blijven niet in de pagina staan */
-function klVergeet(){ klTekstWis(); const l = $('#kl-list'); if (l) l.replaceChildren(); klRender.docs = []; const m = $('#kl-mappen'); if (m) m.replaceChildren(); const z = $('#kl-search'); if (z) z.value = ''; }
+function klVergeet(){ klTekstWis(); if (typeof klOrganizeClose === 'function') klOrganizeClose(); const l = $('#kl-list'); if (l) l.replaceChildren(); klRender.docs = []; const m = $('#kl-mappen'); if (m) m.replaceChildren(); const z = $('#kl-search'); if (z) z.value = ''; }
 (function(){ const vorige = window.onPauseApp; window.onPauseApp = function(){ if (vorige) vorige(); if (klT.q || Object.keys(klT.hits).length) { const g = klT.gestart; klTekstWis(); klT.gestart = g; if (current === 'kluis') klRender.zonderVraag = true, klRender(), klRender.zonderVraag = false; } }; })(); // de stukjes weg, de zoekvraag blijft: bij terugkomen zoekt de kluis opnieuw
 function klTekstVraag(q){
   if (typeof Android.kluisZoek !== 'function') return;

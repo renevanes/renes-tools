@@ -6,26 +6,34 @@
   <main>
     <p class="note warn" id="kl-msg" role="status" aria-live="polite" hidden></p>
     <div id="kl-open" style="display:none">
-      <div class="card">
+      <div class="card" id="kl-lijstkaart">
         <h2>Mijn documenten</h2>
         <input class="search" id="kl-search" type="search" aria-label="Zoek documenten" placeholder="Zoek op naam, map, toelichting of tekst in het document…" oninput="klRender()">
         <p class="note" id="kl-tekst" aria-live="polite" style="margin:6px 2px 0"></p>
         <div class="chips kl-mappen" id="kl-mappen" role="group" aria-label="Mappen"></div>
-        <div class="kl-balk"><p class="note" id="kl-count" role="status"></p><select class="sel" id="kl-sort" aria-label="Sorteren" onchange="klRender()"><option value="recent">Nieuwste eerst</option><option value="name">Naam A–Z</option><option value="category">Per map</option></select></div>
+        <div class="kl-balk"><p class="note" id="kl-count" role="status"></p><select class="sel" id="kl-sort" aria-label="Sorteren" onchange="klRender()"><option value="recent">Nieuwste eerst</option><option value="name">Naam A–Z</option><option value="category">Per map</option><option value="datum">Datum van het document</option><option value="verloopt">Verloopdatum</option></select></div>
         <button class="big ghost kl-maphernoem" id="kl-maphernoem" onclick="klMapHernoem()" data-icon="edit" hidden>Map hernoemen</button>
         <div id="kl-list"></div>
         <p class="note" id="kl-empty" style="display:none;margin:0">Nog leeg. Voeg een foto of pdf toe.</p>
         <button class="big" style="margin-top:10px" onclick="klToevoegen()">＋ Document toevoegen</button>
         <button class="big ghost" id="kl-lock" style="margin-top:8px" onclick="klLock()" data-icon="lock">Op slot doen</button>
       </div>
-      <div class="card" id="kl-edit" hidden>
-        <h2 id="kl-edit-title">Document ordenen</h2>
+      <div class="card kl-doc" id="kl-edit" hidden>
+        <div class="kl-dochoofd"><span class="stic" id="kl-doc-ic"></span><div class="kl-doctitel"><h2 id="kl-edit-title" tabindex="-1" translate="no">Document</h2><p class="note" id="kl-doc-sub" translate="no"></p></div></div>
+        <div class="kl-docacts"><button class="big tonal" id="kl-doc-bekijk" onclick="klKaartBekijk()" data-icon="eye">Bekijken</button><button class="big ghost" id="kl-doc-deel" onclick="klKaartDeel()" data-icon="share">Delen</button><button class="big ghost" id="kl-doc-meer" onclick="klKaartMeer()" data-icon="more">Meer</button></div>
+        <h3 class="kl-kop">Eigenschappen</h3>
+        <label class="f" for="kl-edit-soort">Soort document</label><input class="search" id="kl-edit-soort" maxlength="40" placeholder="Bijv. Polis, Contract of Factuur" list="kl-soort-suggestions">
+        <datalist id="kl-soort-suggestions"><option value="Factuur"><option value="Identiteitsbewijs"><option value="Polis"><option value="Contract"><option value="Garantiebewijs"><option value="Brief"><option value="Bankafschrift"><option value="Belasting"><option value="Loonstrook"><option value="Overig"></datalist>
         <label class="f" for="kl-edit-category">Map</label><input class="search" id="kl-edit-category" maxlength="60" placeholder="Bijv. Identiteit, Verzekeringen of Wonen" list="kl-category-suggestions">
         <datalist id="kl-category-suggestions"><option value="Identiteit"><option value="Verzekeringen"><option value="Wonen"><option value="Gezondheid"><option value="Financiën"><option value="Werk"><option value="PDF"></datalist>
+        <label class="f" for="kl-edit-partij">Van of voor wie</label><input class="search" id="kl-edit-partij" maxlength="120" placeholder="Bijv. de verzekeraar, verhuurder of leverancier">
+        <div class="kl-twee"><div><label class="f" for="kl-edit-datum">Datum van het document</label><input class="search" type="date" id="kl-edit-datum"></div><div><label class="f" for="kl-edit-verloopt">Verloopt op</label><input class="search" type="date" id="kl-edit-verloopt"></div></div>
+        <label class="f" for="kl-edit-bedrag">Bedrag</label><input class="search" id="kl-edit-bedrag" inputmode="decimal" maxlength="14" placeholder="Mag leeg">
+        <label class="f" for="kl-edit-labels">Labels</label><input class="search" id="kl-edit-labels" maxlength="400" placeholder="Met een komma ertussen, bijv. auto, 2026">
         <label class="f" for="kl-edit-note">Toelichting</label><textarea class="search" id="kl-edit-note" rows="3" maxlength="1000" placeholder="Bijv. polisnummer of waarvoor je dit document bewaart"></textarea>
         <label class="chk"><input type="checkbox" id="kl-edit-favorite"> Bewaar als favoriet</label>
         <p class="note" id="kl-edit-status" role="status" aria-live="polite"></p>
-        <div class="row"><button class="big" id="kl-edit-save" onclick="klOrganizeSave()">Opslaan</button><button class="big ghost" onclick="klOrganizeClose()">Annuleren</button></div>
+        <div class="row"><button class="big" id="kl-edit-save" onclick="klOrganizeSave()">Opslaan</button><button class="big ghost" onclick="klOrganizeClose()">Terug naar de lijst</button></div>
       </div>
       <p class="note">De sleutel zit in de beveiligde hardware van deze telefoon en verlaat hem nooit. Daarom gaat de kluis alleen mee in een <b>versleutelde</b> Alles back-uppen. Het origineel dat je toevoegt, blijft waar het stond; haal dat zelf weg als je wilt. De kluis gaat na 5 minuten vanzelf op slot; of hij dan om je schermvergrendeling vraagt, stel je in bij Instellingen → Extra ontgrendelen.</p>
     </div>

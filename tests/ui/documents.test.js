@@ -9,7 +9,9 @@ const assert=require('node:assert/strict');
     await p.click('#ts-open');await p.waitForFunction(()=>$('#kl-open').style.display==='block');
     const first=await p.evaluate(()=>JSON.parse(JSON.stringify(Android._kl.docs[0])));
     const chip=map=>p.locator('#kl-mappen button[data-map="'+map+'"]'),gekozen=()=>p.getAttribute('#kl-mappen button[aria-pressed="true"]','data-map');
-    const menu=async(id,label)=>{await p.locator('#kl-list .trip[data-id="'+id+'"]').click();await p.getByRole('button',{name:label,exact:true}).click();};
+    // Tik op een document opent de documentkaart; de overige acties staan daar onder Meer.
+    const kaart=async id=>{await p.evaluate(()=>{if(klEditId)klOrganizeClose();});await p.locator('#kl-list .trip[data-id="'+id+'"]').click();await p.waitForSelector('#kl-edit:not([hidden])');};
+    const menu=async(id,label)=>{await kaart(id);if(label==='Map en toelichting')return;await p.click('#kl-doc-meer');await p.locator('#sheet-acts').getByRole('button',{name:label,exact:true}).click();await p.evaluate(()=>{if(klEditId)klOrganizeClose();});};
     await menu(first.id,'Map en toelichting');await p.fill('#kl-edit-category','Identiteit');await p.fill('#kl-edit-note','Paspoort geldig tot december');await p.check('#kl-edit-favorite');await p.click('#kl-edit-save');
     let doc=await p.evaluate(id=>Android._kl.docs.find(d=>d.id===id),first.id);
     assert.equal(doc.category,'Identiteit');assert.equal(doc.favorite,true);assert.equal(doc.note,'Paspoort geldig tot december');assert.equal(doc.size,first.size);assert.equal(doc.mime,first.mime);
@@ -42,6 +44,27 @@ const assert=require('node:assert/strict');
     await menu('k2abcdef','Verplaatsen naar map…');assert.equal(await p.locator('#sheet-acts button').first().getAttribute('translate'),'no','mapnamen in het menu zijn gegevens');await p.evaluate(()=>closeSheet());
     await menu('k2abcdef','Verplaatsen naar map…');await p.locator('#sheet-acts button',{hasText:'Geen map'}).click();assert.equal(await p.evaluate(()=>Android._kl.docs.find(d=>d.id==='k2abcdef').category),'');assert.equal(await gekozen(),'all');
     assert.equal(await p.evaluate(id=>Android._kl.docs.find(d=>d.id===id).note,first.id),'Paspoort geldig tot december');
+    // Documentkaart: eigenschappen bewaren, terugzien in de lijst, zoeken, sorteren en "Verloopt binnenkort".
+    await kaart(first.id);assert.equal(await p.isVisible('#kl-lijstkaart'),false,'de kaart komt in plaats van de lijst');assert.equal(await p.textContent('#kl-edit-title'),'Mijn paspoort.pdf');
+    const over=n=>p.evaluate(n=>rgDayAdd(rgToday(),n),n);
+    await p.fill('#kl-edit-soort','Identiteitsbewijs');await p.fill('#kl-edit-partij','Gemeente <b>Rotterdam</b>');await p.fill('#kl-edit-datum','2021-12-01');await p.fill('#kl-edit-verloopt',await over(30));
+    await p.fill('#kl-edit-bedrag','abc');await p.click('#kl-edit-save');assert.match(await p.textContent('#kl-edit-status'),/geldig bedrag/);assert.equal(await p.isVisible('#kl-edit'),true,'ongeldig bedrag: de kaart blijft open');
+    await p.fill('#kl-edit-bedrag','77,5');await p.fill('#kl-edit-labels','reizen, Reizen , 2031,');await p.click('#kl-edit-save');assert.equal(await p.isVisible('#kl-lijstkaart'),true);
+    doc=await p.evaluate(id=>Android._kl.docs.find(d=>d.id===id),first.id);
+    assert.deepEqual(doc.props,{soort:'Identiteitsbewijs',partij:'Gemeente <b>Rotterdam</b>',datum:'2021-12-01',verloopt:await over(30),bedrag:'77.50',labels:['reizen','Reizen','2031']});assert.equal(doc.note,'Paspoort geldig tot december');assert.equal(doc.category,'Identiteit');
+    const rijTekst=()=>p.locator('#kl-list .kl-rij',{has:p.locator('.trip[data-id="'+first.id+'"]')}).textContent();
+    assert.match(await rijTekst(),/Identiteitsbewijs · Gemeente <b>Rotterdam<\/b>/);assert.match(await rijTekst(),/Verloopt op/);assert.match(await rijTekst(),/77,50/);assert.equal(await p.locator('#kl-list .kl-rij b b').count(),0,'partij blijft tekst');
+    await p.fill('#kl-search','reizen');assert.equal(await p.locator('#kl-list .trip').count(),1,'zoeken vindt labels');await p.fill('#kl-search','gemeente');assert.equal(await p.locator('#kl-list .trip').count(),1,'zoeken vindt de partij');await p.fill('#kl-search','');
+    assert.equal(await chip('exp').locator('.kl-n').textContent(),'1');await chip('exp').click();assert.equal(await p.locator('#kl-list .trip').count(),1);await chip('all').click();
+    await p.selectOption('#kl-sort','verloopt');assert.ok((await p.locator('#kl-list b').first().textContent()).includes('Mijn paspoort'),'met verloopdatum eerst');
+    // De kaart vult de bewaarde waarden weer in; terug (pijl of telefoon) gaat eerst naar de lijst; verlopen is rood gemeld.
+    await kaart(first.id);assert.equal(await p.inputValue('#kl-edit-bedrag'),'77,50');assert.equal(await p.inputValue('#kl-edit-labels'),'reizen, Reizen, 2031');assert.equal(await p.inputValue('#kl-edit-datum'),'2021-12-01');
+    await p.fill('#kl-edit-verloopt',await over(-3));await p.click('#kl-edit-save');assert.match(await rijTekst(),/Verlopen op/);
+    await kaart(first.id);await p.evaluate(()=>goBack());assert.equal(await p.evaluate(()=>current),'kluis','terug blijft in de kluis');assert.equal(await p.isVisible('#kl-lijstkaart'),true);assert.equal(await p.evaluate(()=>Android._kl.open),true);
+    // Alles leegmaken haalt de eigenschappen weer weg; verplaatsen vanaf de kaart werkt het veld Map bij.
+    await kaart(first.id);for(const k of ['soort','partij','datum','verloopt','bedrag','labels'])await p.fill('#kl-edit-'+k,'');await p.click('#kl-edit-save');assert.equal(await p.evaluate(id=>'props' in Android._kl.docs.find(d=>d.id===id),first.id),false);assert.equal(await chip('exp').count(),0);
+    await kaart(first.id);await p.click('#kl-doc-meer');await p.locator('#sheet-acts button',{hasText:'Nieuwe map…'}).count();await p.locator('#sheet-acts').getByRole('button',{name:'Verplaatsen naar map…',exact:true}).click();await p.locator('#sheet-acts button',{hasText:'Nieuwe map…'}).click();await p.fill('#modal-input','Reizen');await p.click('#modal-ok');assert.equal(await p.inputValue('#kl-edit-category'),'Reizen');
+    await p.fill('#kl-edit-category','Identiteit');await p.click('#kl-edit-save');assert.equal(await p.evaluate(id=>Android._kl.docs.find(d=>d.id===id).category,first.id),'Identiteit');
     await p.selectOption('#kl-sort','name');
     const names=await p.locator('#kl-list b').allTextContents();assert.ok(names[0].includes('Mijn paspoort'));
     // Mislukt opslaan behoudt het document én het formulier om opnieuw te proberen.
