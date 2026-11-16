@@ -62,7 +62,9 @@ for(const colorScheme of ['light','dark']){
   await openKluis();
   const id=await p.evaluate(()=>Android._kl.docs[0].id),rij=p.locator('#kl-list .trip',{hasText:'Bonnetjes.pdf'});
   // Tik op een document opent de documentkaart (Bekijken en Delen als knop); de rest staat onder Meer
-  const meer=async()=>{await p.evaluate(()=>{if(klEditId)klOrganizeClose();});await rij.click();await p.click('#kl-doc-meer');};
+  // De kluis is een verkenner: het document staat in zijn map (wat de PDF-tools maken in de map PDF)
+  const naar=()=>p.evaluate(()=>{if(klEditId)klOrganizeClose();const d=Android._kl.docs[0];klKies(d&&d.category?'map:'+klPad(d.category):'all');});
+  const meer=async()=>{await naar();await rij.click();await p.click('#kl-doc-meer');};
   await meer();
   assert.equal(await p.isVisible('#kl-doc-bekijk')&&await p.isVisible('#kl-doc-deel'),true,'Bekijken en Delen op de kaart');
   for(const n of ['Bewerken en ondertekenen','Opslaan als…','Vergelijken met…'])assert.equal(await p.locator('#sheet-acts').getByRole('button',{name:n,exact:true}).count(),1,n);
@@ -92,7 +94,7 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>!!pdfIn.kluis||pdfKluisWegNa),false,'na het resultaat vergeten');
   // 4. Versies: lijst, vergelijken met de huidige, terugzetten
   await openKluis();
-  assert.match(await rij.innerText(),/versie 2/);
+  await naar();assert.match(await rij.innerText(),/versie 2/);
   await meer();await p.locator('#sheet-acts').getByRole('button',{name:'Eerdere versie',exact:true}).click();
   await p.locator('#sheet-acts button').first().click();
   for(const n of ['Bekijken','Vergelijken met de huidige versie','Deze versie terugzetten'])assert.equal(await p.locator('#sheet-acts').getByRole('button',{name:n,exact:true}).count(),1,n);

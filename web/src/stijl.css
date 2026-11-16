@@ -268,10 +268,12 @@ textarea.key:focus{outline:2px solid var(--primary);outline-offset:-1px;border-c
 #pdf-signature-preview[hidden]{display:none}
 .pdf-signature-library .mini{float:none;white-space:normal;max-width:100%}
 #s-kluis [hidden]{display:none!important}.kl-doc-note{white-space:pre-line;overflow-wrap:anywhere}
-.kl-mappen{margin:12px 0 4px}.kl-mappen button{display:inline-flex;align-items:center;gap:7px;max-width:100%;min-height:44px}
-.kl-mappen .kl-naam{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kl-mappen .kl-n{flex:none;font-size:12.5px;font-weight:600;color:var(--muted)}.kl-mappen button.on .kl-n{color:inherit}
-.kl-mappen .ui-icon{flex:none;width:17px;height:17px}
+.kl-pad{display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin:12px 0 2px}.kl-pad[hidden]{display:none}
+.kl-pad button{min-height:44px;min-width:44px;max-width:100%;padding:6px 8px;border:0;border-radius:8px;background:none;color:var(--primary);font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kl-pad button[aria-current]{color:var(--ink)}.kl-padst{color:var(--muted)}
+.kl-mappen{margin:2px 0 0}.kl-maprij,.kl-facrij{display:flex;width:100%;align-items:center;gap:12px;text-align:left;padding:10px 0;min-height:60px;border:0;background:none;color:inherit}
+.kl-maprij{border-bottom:1px solid var(--line)}.kl-maprij .kl-tekst,.kl-facrij .kl-tekst{flex:1;min-width:0}.kl-maprij b,.kl-facrij b{display:block;font-size:15px;overflow-wrap:anywhere}.kl-maprij small,.kl-facrij small{display:block;color:var(--muted);overflow-wrap:anywhere}
+.kl-maprij .stchev{flex:none}.kl-facrij{flex:1;min-width:0}
 .kl-balk{display:flex;align-items:center;gap:10px;margin:6px 0 2px}.kl-balk .note{flex:1;min-width:0;margin:0}.kl-balk .sel{flex:none;width:auto;max-width:55%;min-height:44px}
 .big.ghost.kl-maphernoem{width:auto;min-height:44px;margin:6px 0 4px;padding:8px 14px;font-size:14px}
 .kl-kop{margin:16px 0 2px;font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--muted);overflow-wrap:anywhere}

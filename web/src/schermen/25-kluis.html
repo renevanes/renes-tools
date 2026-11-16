@@ -10,9 +10,11 @@
         <h2>Mijn documenten</h2>
         <input class="search" id="kl-search" type="search" aria-label="Zoek documenten" placeholder="Zoek op naam, map, toelichting of tekst in het document…" oninput="klRender()">
         <p class="note" id="kl-tekst" aria-live="polite" style="margin:6px 2px 0"></p>
-        <div class="chips kl-mappen" id="kl-mappen" role="group" aria-label="Mappen"></div>
-        <div class="kl-balk"><p class="note" id="kl-count" role="status"></p><select class="sel" id="kl-sort" aria-label="Sorteren" onchange="klRender()"><option value="recent">Nieuwste eerst</option><option value="name">Naam A–Z</option><option value="category">Per map</option><option value="datum">Datum van het document</option><option value="verloopt">Verloopdatum</option></select></div>
+        <nav class="kl-pad" id="kl-pad" aria-label="Waar je bent" hidden></nav>
         <button class="big ghost kl-maphernoem" id="kl-maphernoem" onclick="klMapHernoem()" data-icon="edit" hidden>Map hernoemen</button>
+        <div class="kl-mappen" id="kl-mappen" role="group" aria-label="Mappen"></div>
+        <p class="hint" id="kl-fachint" hidden>Deze facturen komen uit Facturen. Daar haal je ze op, pas je ze aan en lever je ze aan.</p>
+        <div class="kl-balk"><p class="note" id="kl-count" role="status"></p><select class="sel" id="kl-sort" aria-label="Sorteren" onchange="klRender()"><option value="recent">Nieuwste eerst</option><option value="name">Naam A–Z</option><option value="datum">Datum van het document</option><option value="verloopt">Verloopdatum</option></select></div>
         <div id="kl-list"></div>
         <p class="note" id="kl-empty" style="display:none;margin:0">Nog leeg. Voeg een foto of pdf toe.</p>
         <button class="big" style="margin-top:10px" onclick="klToevoegen()">＋ Document toevoegen</button>

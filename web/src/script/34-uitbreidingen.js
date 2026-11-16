@@ -110,7 +110,7 @@ function klMsg(text){ const e = $('#kl-msg'); e.textContent = text || ''; e.hidd
 const klT = { q: '', hits: {}, zonder: 0, vraag: '', timer: 0, gestart: false, bezig: null };
 function klTekstWis(){ clearTimeout(klT.timer); klT.q = klT.vraag = ''; klT.hits = {}; klT.zonder = 0; klT.gestart = false; klT.bezig = null; const e = $('#kl-tekst'); if (e) e.textContent = ''; }
 /* Weg van het kluisscherm (of de app uit beeld): namen en stukjes tekst blijven niet in de pagina staan */
-function klVergeet(){ klTekstWis(); if (typeof klOrganizeClose === 'function') klOrganizeClose(); const l = $('#kl-list'); if (l) l.replaceChildren(); klRender.docs = []; const m = $('#kl-mappen'); if (m) m.replaceChildren(); const z = $('#kl-search'); if (z) z.value = ''; }
+function klVergeet(){ klTekstWis(); if (typeof klOrganizeClose === 'function') klOrganizeClose(); const l = $('#kl-list'); if (l) l.replaceChildren(); klRender.docs = []; const m = $('#kl-mappen'); if (m) m.replaceChildren(); const pd = $('#kl-pad'); if (pd) pd.replaceChildren(); const z = $('#kl-search'); if (z) z.value = ''; }
 (function(){ const vorige = window.onPauseApp; window.onPauseApp = function(){ if (vorige) vorige(); if (klT.q || Object.keys(klT.hits).length) { const g = klT.gestart; klTekstWis(); klT.gestart = g; if (current === 'kluis') klRender.zonderVraag = true, klRender(), klRender.zonderVraag = false; } }; })(); // de stukjes weg, de zoekvraag blijft: bij terugkomen zoekt de kluis opnieuw
 function klTekstVraag(q){
   if (typeof Android.kluisZoek !== 'function') return;
@@ -146,7 +146,7 @@ function klRender(){
   $('#kl-open').style.display = locked ? 'none' : 'block';
   if (d.error) klMsg(d.error); else if (!locked) klMsg('');
   clearTimeout(klRender.t);
-  if (locked) { if (klEditId) toast(t('De kluis is op slot gegaan; wat je nog niet bewaard had, is niet opgeslagen')); klTekstWis(); $('#kl-list').replaceChildren();klRender.docs=[];klOrganizeClose();$('#kl-search').value='';klMap='all';$('#kl-mappen').replaceChildren();$('#kl-maphernoem').hidden=true;return; }
+  if (locked) { if (klEditId) toast(t('De kluis is op slot gegaan; wat je nog niet bewaard had, is niet opgeslagen')); klTekstWis(); $('#kl-list').replaceChildren();klRender.docs=[];klOrganizeClose();$('#kl-search').value='';klMap='all';$('#kl-mappen').replaceChildren();$('#kl-pad').replaceChildren();$('#kl-maphernoem').hidden=true;return; }
   $('#kl-lock').hidden = tsEigenUit('kluis'); // uit: hij opent toch meteen weer
   if (d.left) klRender.t = setTimeout(() => { if (current === 'kluis') klRender(); }, d.left + 500); // na 5 minuten vanzelf op slot, ook op het scherm
   const docs=(d.docs||[]).slice();
@@ -172,7 +172,7 @@ function klVraag(){
   const terug = () => afbreken('Kluis niet ontgrendeld');
   if (!tsVraag('kluis', () => Android.kluisUnlock(), current === 'kluis' ? null : terug)) { if (current === 'kluis') klMsg(geen); else afbreken('Stel eerst een schermvergrendeling in op je telefoon (pincode, patroon of vingerafdruk)'); }
 }
-window.onKluisChanged = function(r){ toast(r === 'ok' ? t('Toegevoegd aan de kluis') : t(r)); if (current === 'kluis') klRender(); };
+window.onKluisChanged = function(r){ if (r === 'ok' && typeof klNieuwInMap === 'function') klNieuwInMap(); toast(r === 'ok' ? t('Toegevoegd aan de kluis') : t(r)); if (current === 'kluis') klRender(); };
 function klLock(){ Android.kluisClose(); klRender(); }
 // Ontsleutelen kan bij een groot document even duren; de balk gaat weg zodra de keuze van de app (of een fout) verschijnt.
 function klView(id){

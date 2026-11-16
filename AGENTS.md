@@ -579,11 +579,17 @@ telefoon en versleuteld; de sleutel zit in de Android Keystore.
   onder Gemaakt met "Naar de documentenkluis". Uit te zetten op PDF → Gemaakt (`store` `pdfKluisVanzelf`). Een nieuw
   PDF-resultaat = `kcNaMaken([{name, title, category, source, link}])` aanroepen; daarna bekijken, delen en opslaan via
   `kcOpen`/`kcShare`/`kcSave` (die weten of het bestand al in de kluis staat). De Play-versie heeft geen kluis.
-- **Mappen en de lijst** (`49-documenten-ordenen.js`, test `documents.test.js`): een map is de `category` van een document in de
-  versleutelde index (geen eigen opslag). Het scherm toont ze als chips met aantallen (`#kl-mappen`: Alle, Favorieten, elke
-  map, Zonder map); de keuze (`klMap`) staat alleen in het geheugen en is weg zodra de kluis op slot gaat. In Alle staan
-  favorieten bovenaan; de ster in een rij, "Verplaatsen naar map…" en "Map hernoemen" gaan allemaal via `kluisOrganize`.
+- **Verkenner** (`49-documenten-ordenen.js`, test `documents.test.js`): een map is de `category` van een document in de
+  versleutelde index (geen eigen opslag); een map in een map is een schuine streep in die naam (`Wonen/Hypotheek`, `klPad`).
+  Het scherm toont het pad (`#kl-pad`) en de mappen van die plek als rijen (`#kl-mappen`: op het bovenste niveau ook
+  Favorieten, Verloopt binnenkort en Facturen), daaronder de documenten die precies daar staan; zoeken kijkt ook in de
+  mappen eronder. Waar je bent (`klMap`) staat alleen in het geheugen en is weg zodra de kluis op slot gaat; terug gaat
+  eerst een map omhoog (`klKaartTerug`). De ster, "Verplaatsen naar map…" en "Map hernoemen" (neemt alles eronder mee)
+  gaan via `kluisOrganize`. Toevoegen vanuit een map zet het nieuwe document in die map (`klNieuwInMap`).
   Namen van mappen en documenten zijn gegevens: `esc()`/`textContent` en `translate="no"`.
+- **Facturen in de verkenner** (voorlopig alleen tonen, issue #32): de map Facturen leest het facturendossier
+  (`Android.facturenDossier`, alleen wat de app zelf bewaart), per leverancier; een tik opent de factuur met
+  `facturenOpen`. Niet als Facturen op slot staat (`tsVerborgen('facturen')`). De pdf's staan nog niet in de kluis.
 - **Documentkaart en eigenschappen**: tik op een document opent de kaart (`#kl-edit`, in plaats van de lijst; `klKaart`, terug gaat
   eerst naar de lijst) met Bekijken, Delen, Meer (`klDocSheet`) en de eigenschappen. Die staan als `props` in de versleutelde
   index: `{soort, partij, datum, verloopt, bedrag, labels}` (`KluisIndex.props`: alleen deze velden, datums JJJJ-MM-DD, bedrag met
