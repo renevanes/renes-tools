@@ -262,6 +262,7 @@ final class ToolData {
             case "facturen": return Taal.T("Facturen");
             case "apparaten": return Taal.T("Apparaten");
             case "toiletten": return Taal.T("Toiletten en douches");
+            case "signalen": return Taal.T("Signalen");
             case "contacts": return Taal.T("Contacten (versies)");
             case "spotify": return Taal.T("Spotify");
             case "gebruik": return Taal.T("Gebruik");

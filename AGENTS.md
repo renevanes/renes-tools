@@ -20,7 +20,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   `kop.html`, `stijl.css` (Material 3-kleurrollen: `--bg --card --hi --ink --muted --line --outline --primary --on-primary --tonal --chip --on-chip …`),
   `schermen/NN-*.html` (één `<section class="screen" id="s-naam">` per scherm), `script/NN-*.js`, `vensters.html` (dialogen, tabbalk).
 - `web/src/script/01-testbrug.js` — de nagebootste Android-brug voor de tests (in de app zelf weggelaten).
-- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends ReadAloudBridge extends NieuwsBridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends AgendaBridge extends FeatureBridge`.
+- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends ReadAloudBridge extends NieuwsBridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends AgendaBridge extends SignalenBridge extends FeatureBridge`.
 - `web/start.html` — de Telefoon-skin (eigen startscherm); `tests/` — Java- en interfacetests; `tools/` — hulpscripts.
 - **Iedere nieuwe schermtool ondersteunt standaard losse apps.** Registreer hem in `web/src/script/00-tools.js`: het
   openen, het overzicht Losse apps en het native register volgen daaruit. Subschermen krijgen een `BACK`-verwijzing
@@ -759,6 +759,38 @@ Zoeken kijkt in alle afspraken, ook van jaren geleden.
   Assistent → Gegevens; de assistent zet hem niet zelf aan. "Zet … in mijn agenda" opent nog steeds de agenda-app
   (`AiActions` / `aiCalendarAdd`): `Agenda.gaatOver` is onwaar bij een opdracht om iets te zetten.
 - Tests: `tests/ui/agenda.test.js`; Java: `AgendaTest` (en een stuk in `AiDataTest`).
+
+## Signalen (bronnen volgen, één inbox, melden per bron)
+Signalen (schermen `s-signalen`, `s-snitem`, `s-snset`, `s-snbron`; `web/src/script/79-signalen.js`, `Signalen*.java`) loopt
+bronnen na op iets nieuws en zet dat in één inbox. Eerste soort bron: een webpagina met trefwoorden (sjabloon: A Seal).
+Wens van Rene: een centrale plek die later ook naar Agenda, Nieuws, Facturen, notities en taken uit de mail kijkt
+(issue "Signalen: vervolg").
+- **Ophalen alleen in Java**, via `Nieuws.haal` (alleen https naar openbare sites, begrensd in tijd en grootte, ook bij
+  doorverwijzingen); geen dienst ertussen. `SignalenScan` haalt de pagina van de bron, `Signalen.links` haalt er de links
+  naar dezelfde site uit (één doorloop zonder zoekpatronen, begrensd; niet uit script, style of commentaar) en
+  `Signalen.nieuw` kiest wat nog niet gezien is en bij de trefwoorden past (linktekst of het laatste stuk van het adres;
+  zonder trefwoorden alles). Hooguit `MAX_PER_SCAN` nieuwe per ronde; van elk haalt hij de pagina zelf op voor titel, tekst
+  (`Nieuws.paginaKop` en een stuk rond het trefwoord) en de datum (`Signalen.datum`: Nederlandse datums en tijden, zuiver).
+- **De eerste scan meldt niets**: wat er al staat komt wel in de inbox (`eerste`). Een ander adres of andere trefwoorden
+  = opnieuw beginnen (`Signalen.opnieuw`). Hetzelfde adres via twee bronnen is één item (`itemId`).
+- **Melden** (`SignalenScan.meld`, beslissing in `Signalen.wijze`, zuiver): per bron `direct`, `overzicht` (één melding per
+  dag op het gekozen moment) of `inbox` (geen melding); stille uren houden meldingen vast tot erna, behalve van een bron
+  met `belangrijk`. "Later herinneren" geeft altijd een eigen melding op dat moment. Na `FOUT_MELDEN` mislukte scans achter
+  elkaar één melding dat de bron niet meer werkt. Kanaal `signalen` (ook in `NotifCenter.KINDS`); een tik opent
+  `signalen:<item>` of `signalen-bron:<bron>` (`openTool`).
+- **Plannen** (`SignalenJob`, job-id's 4801–4804): per bron elk uur tot elke week (`Signalen.ELKE`, standaard 6 uur, alleen
+  via wifi), na een fout eerder opnieuw; een eigen taak zonder internet voor het moment van melden.
+- **Tekst van een website is gegevens**: in de interface altijd `esc`/`textContent`, een adres alleen via
+  `Android.openUrl`; de samenvatting (`signalenAi`) is een losse vraag via `LocalAi.privateChat` (geen geheugen, acties of
+  opgeslagen gesprek) en het antwoord staat er als tekst. In het logboek (soort `SIGNAAL`) alleen aantallen en vaste
+  woorden, nooit adressen, titels of trefwoorden (`SignalenTest` bewaakt dat).
+- **Acties** vanuit een bericht blijven binnen de eigen tool (ook als losse app): in de agenda zetten gaat via
+  `Android.agendaBewaar` (de standaardagenda), een notitie via `notesGet`/`notesSaveNow`, voorlezen via `spText`.
+- **Opslag**: `signalen/` (`bronnen.json` met de instellingen, `items.json`, `toestand.json`) gaat mee in "Alle
+  appgegevens", niet in de Android-backup. De instellingen staan (nog) niet in het register voor de assistent (`SET_EXCLUDE`).
+- **Nieuwe soort bron** (Agenda, Nieuws, Facturen, mail): een `soort` naast `web` in `Signalen.normaal`, een eigen
+  scan die items aanlevert via `Signalen.voegToe`, en de velden op `s-snbron`; melden, later en de inbox werken dan vanzelf.
+- Tests: `tests/ui/signalen.test.js`; Java: `SignalenTest`.
 
 ## Nieuws (feeds lezen)
 Nieuws (schermen `s-nieuws`, `s-nieuwsart`, `s-nieuwsset`, `s-nieuwsbron`; `web/src/script/75-nieuws.js`, `Nieuws*.java`) toont koppen en

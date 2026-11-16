@@ -90,6 +90,7 @@ public class AlarmReceiver extends BroadcastReceiver {
             AutoActions.armTimes(c);
             FacturenJob.schedule(c);
             ToilettenJob.schedule(c);
+            SignalenJob.schedule(c);
         }
         RadioWidget.refresh(c);
     }

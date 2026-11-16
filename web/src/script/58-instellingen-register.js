@@ -506,6 +506,8 @@ const SET_EXCLUDE = [
   ['#history-search, #gs-q', 'Zoekveld'],
   ['#wc-chips', 'Filters in Toiletten en douches, geen instelling'],
   ['#nw-filter, #nw-bron', 'Filters in de lijst van Nieuws, geen instelling'],
+  ['#sn-filter', 'Filter in de lijst van Signalen, geen instelling'],
+  ['#s-snset .tg, #s-snset input, #s-snbron .tg, #s-snbron select', 'Signalen: bronnen, stille uren en het dagoverzicht stel je op het scherm in (een bron heeft een adres en trefwoorden nodig)'],
   ['#s-agafspraak .tg, #s-agafspraak select, #s-agafspraak input', 'Hoort bij één afspraak; je vult het in en bewaart het op dat scherm'],
   ['#s-wcbewerk select, #s-wcbewerk input', 'Hoort bij één plek van Toiletten en douches (aanpassen of toevoegen); bewaard met Bewaren'],
   ['#s-wcbron .tg, #s-wcbron select, #s-wcbron input', 'Hoort bij één bron van Toiletten en douches; je stelt het in en bewaart het op het scherm van die bron'],

@@ -12,7 +12,7 @@ import java.util.Set;
  * Brug voor Agenda (Android.agenda…). Eigen afspraken staan in AgendaStore. Agenda's op de telefoon, ook van Google,
  * gaan via AgendaCal: Tools stuurt niets zelf naar Google.
  */
-public class AgendaBridge extends FeatureBridge {
+public class AgendaBridge extends SignalenBridge {
 
     AgendaBridge(MainActivity act) { super(act); }
 

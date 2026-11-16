@@ -1,0 +1,117 @@
+<!-- ============ SIGNALEN ============ -->
+<section class="screen" id="s-signalen">
+  <div class="hdr"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1>Signalen</h1>
+    <button class="icon-btn" id="sn-nu" data-icon="refresh" onclick="snNu()" aria-label="Nu nakijken"></button>
+    <button class="icon-btn hset" id="sn-set" data-to="snset" aria-label="Instellingen van Signalen"></button>
+  </div>
+  <main>
+    <p class="hint" id="sn-priv">Tools kijkt zelf op de websites die je volgt, vanaf je telefoon. Er zit geen dienst tussen; de website ziet alleen dat de pagina wordt opgevraagd.</p>
+    <p class="note" id="sn-oud" hidden>Installeer de nieuwste versie van Tools om Signalen te gebruiken.</p>
+    <button class="bar1" id="sn-meld" hidden onclick="snMeldingen()"><span><b>Meldingen staan uit</b><small>Je ziet nieuwe berichten dan alleen hier. Tik om meldingen aan te zetten.</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    <p class="note" id="sn-stand" role="status"></p>
+    <div class="chips" id="sn-filter" role="radiogroup" aria-label="Welke berichten">
+      <button type="button" role="radio" data-f="open" onclick="snFilter('open')">Open</button>
+      <button type="button" role="radio" data-f="later" onclick="snFilter('later')">Later</button>
+      <button type="button" role="radio" data-f="klaar" onclick="snFilter('klaar')">Afgehandeld</button>
+    </div>
+    <div id="sn-lijst"></div>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Een bron is een webpagina die je volgt, bijvoorbeeld de nieuwspagina van een organisatie. Tools kijkt regelmatig of er een nieuwe link bij is gekomen die bij je trefwoorden past, en zet die hier.</p>
+      <p>Per bron kies je hoe je het hoort: meteen een melding, één keer per dag in het dagoverzicht, of alleen hier. Tijdens de stille uren komt er geen melding, behalve van een bron die je belangrijk noemt.</p>
+      <p>Staat er een datum in het bericht, dan kun je het met één tik in je agenda zetten. Je kunt er ook een notitie van maken, het laten voorlezen of je er later aan laten herinneren.</p>
+      <p>De eerste keer zet Tools wat er al op de pagina staat hier neer, zonder melding. Daarna krijg je alleen het nieuwe.</p>
+    </div></details>
+  </main>
+</section>
+<section class="screen" id="s-snitem">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">Bericht</h1>
+    <button class="icon-btn" id="sni-menu" onclick="sniMenu()" aria-label="Meer: verwijderen"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
+  </div>
+  <main>
+    <div class="card">
+      <h2 id="sni-titel" translate="no" style="margin-top:0"></h2>
+      <p class="note" id="sni-meta" translate="no"></p>
+      <p class="sn-wanneer" id="sni-wanneer" hidden></p>
+      <p id="sni-tekst" class="sn-tekst" translate="no"></p>
+      <p class="hint" style="margin-bottom:0">Tekst van de website, zoals Tools hem vond. Kijk op de website zelf of het klopt.</p>
+    </div>
+    <button class="big" id="sni-agenda" type="button" onclick="sniAgenda()">In agenda zetten</button>
+    <button class="big tonal" id="sni-web" type="button" onclick="sniWeb()">Open de website</button>
+    <button class="big ghost" id="sni-notitie" type="button" onclick="sniNotitie()">Notitie maken</button>
+    <button class="big ghost" id="sni-later" type="button" onclick="sniLater()">Later herinneren</button>
+    <button class="big ghost" id="sni-lees" type="button" onclick="sniLees()">Voorlezen</button>
+    <button class="big ghost" id="sni-ai" type="button" onclick="sniAi()">Samenvatten met de lokale AI</button>
+    <div class="card" id="sni-aikaart" hidden>
+      <h2 style="margin-top:0">Samenvatting</h2>
+      <p id="sni-aitekst" class="sn-tekst" translate="no"></p>
+      <p class="hint" style="margin-bottom:0">Gemaakt op je telefoon. Een taalmodel kan zich vergissen: controleer datum en tijd.</p>
+    </div>
+    <button class="big ghost" id="sni-klaar" type="button" onclick="sniKlaar()">Afgehandeld</button>
+  </main>
+</section>
+<section class="screen" id="s-snset">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">Signalen instellen</h1></div>
+  <main>
+    <h2>Bronnen</h2>
+    <div class="card stlist" id="sns-bronnen"></div>
+    <button class="big" id="sns-nieuw" type="button" onclick="snBronNieuw()">Website toevoegen</button>
+    <h2>Stille uren</h2>
+    <div class="card">
+      <div class="sw"><span>Stille uren<small>Geen meldingen in deze uren; ze komen daarna. Een belangrijke bron meldt wel.</small></span><button class="tg" id="sns-stil" role="switch" aria-checked="true" aria-label="Stille uren" onclick="togUi(this);snInstBewaar()"></button></div>
+      <div class="sn-rij">
+        <div><label class="f" for="sns-van">Van</label><input class="aein" id="sns-van" type="time" onchange="snInstBewaar()"></div>
+        <div><label class="f" for="sns-tot">Tot</label><input class="aein" id="sns-tot" type="time" onchange="snInstBewaar()"></div>
+      </div>
+    </div>
+    <h2>Dagoverzicht</h2>
+    <div class="card">
+      <label class="f" for="sns-overzicht">Tijdstip</label>
+      <input class="aein" id="sns-overzicht" type="time" onchange="snInstBewaar()">
+      <p class="hint" style="margin-bottom:0">Eén melding per dag met alles van de bronnen die op Dagoverzicht staan.</p>
+    </div>
+  </main>
+</section>
+<section class="screen" id="s-snbron">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1" id="snb-h1">Bron</h1>
+    <button class="icon-btn" id="snb-menu" onclick="snbMenu()" aria-label="Meer: verwijderen"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
+  </div>
+  <main>
+    <div class="card" id="snb-sjabloonkaart" hidden>
+      <label class="f" for="snb-sjabloon">Begin met</label>
+      <select class="sel" id="snb-sjabloon" onchange="snbSjabloon()"></select>
+    </div>
+    <p class="note" id="snb-stand" translate="no" hidden></p>
+    <div class="card">
+      <div class="sw"><span>Aan<small>Uit: Tools kijkt niet meer op deze website</small></span><button class="tg" id="snb-aan" role="switch" aria-checked="true" aria-label="Bron aan" onclick="togUi(this)"></button></div>
+      <label class="f" for="snb-naam">Naam</label>
+      <input class="aein" id="snb-naam" maxlength="80" autocomplete="off">
+      <label class="f" for="snb-url">Adres van de pagina</label>
+      <input class="aein" id="snb-url" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://">
+      <p class="hint">De pagina waar nieuwe berichten op verschijnen, zoals een nieuwsoverzicht.</p>
+      <label class="f" for="snb-woorden">Trefwoorden</label>
+      <input class="aein" id="snb-woorden" maxlength="400" autocomplete="off" autocapitalize="off" placeholder="vrijlating, open dag">
+      <p class="hint">Met komma's ertussen. Eén woord dat in de titel of het adres van een nieuw bericht staat is genoeg. Leeg: elk nieuw bericht telt.</p>
+      <label class="f" for="snb-alleen">Alleen links die beginnen met (mag leeg)</label>
+      <input class="aein" id="snb-alleen" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://">
+    </div>
+    <div class="card">
+      <label class="f" for="snb-elke">Hoe vaak nakijken</label>
+      <select class="sel" id="snb-elke">
+        <option value="1">Elk uur</option><option value="3">Elke 3 uur</option><option value="6">Elke 6 uur (4 keer per dag)</option>
+        <option value="12">Twee keer per dag</option><option value="24">Elke dag</option><option value="168">Elke week</option>
+      </select>
+      <div class="sw"><span>Alleen via wifi<small>Uit: ook via mobiel internet</small></span><button class="tg" id="snb-wifi" role="switch" aria-checked="true" aria-label="Alleen via wifi" onclick="togUi(this)"></button></div>
+      <label class="f" for="snb-melden">Hoe wil je het horen</label>
+      <select class="sel" id="snb-melden">
+        <option value="direct">Meteen een melding</option><option value="overzicht">In het dagoverzicht</option><option value="inbox">Alleen in Signalen, geen melding</option>
+      </select>
+      <div class="sw"><span>Belangrijk<small>Meldt ook tijdens de stille uren</small></span><button class="tg" id="snb-belangrijk" role="switch" aria-checked="false" aria-label="Belangrijk" onclick="togUi(this)"></button></div>
+    </div>
+    <button class="big" id="snb-bewaar" type="button" onclick="snbBewaar()">Bewaren</button>
+    <button class="big tonal" id="snb-proef" type="button" onclick="snbProef()">Proef: wat vindt hij nu?</button>
+    <div class="card" id="snb-proefkaart" hidden>
+      <p class="note" id="snb-proefstand" role="status" style="margin-top:0"></p>
+      <div id="snb-proeflijst"></div>
+    </div>
+  </main>
+</section>

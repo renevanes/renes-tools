@@ -844,6 +844,68 @@ if (!window.Android) window.Android = (function(){
         bij++;
       });
       return JSON.stringify({ ok: true, bijgewerkt: bij, los, mislukt: 0 }); },
+    // ----- Signalen: één bron (A Seal), drie berichten en een nagebootste pagina voor Proef en Nu nakijken -----
+    _snInit(){
+      if (this._sn) return this._sn;
+      const nu = Date.now(), dag = n => rgDayAdd(rgToday(), n);
+      this._sn = { perm: true, gedempt: false, bezig: false, traag: 60,
+        inst: { stilAan: true, stilVan: '22:00', stilTot: '07:30', overzicht: '18:00' },
+        bronnen: [{ id: 's00000001', soort: 'web', naam: 'A Seal: vrijlatingen', url: 'https://www.aseal.nl/nieuws', woorden: ['vrijlating'], alleen: 'https://www.aseal.nl/nieuws/', elke: 6, wifi: true, melden: 'direct', belangrijk: false, aan: true,
+          lastOk: nu - 3600000, lastTry: nu - 3600000, fout: '', fouten: 0, links: 24, klaar: true }],
+        items: [
+          { id: 'i0000000000000001', bron: 's00000001', bronNaam: 'A Seal: vrijlatingen', titel: 'Vrijlating zeehond op zaterdag', tekst: 'Zaterdag laten we een zeehond vrij op het strand. Om 14.00 uur bij de strandopgang.', link: 'https://www.aseal.nl/nieuws/vrijlating-zeehond/', gevonden: nu - 7200000, dag: dag(5), tijd: '14:00', status: 'nieuw', later: 0, gemeld: true },
+          { id: 'i0000000000000002', bron: 's00000001', bronNaam: 'A Seal: vrijlatingen', titel: '<img src=x onerror="window.__snXss=1">Vrijlating <b>pup</b>', tekst: '<script>window.__snXss=1<\/script>Tekst zonder datum.', link: 'https://www.aseal.nl/nieuws/pup/', gevonden: nu - 86400000, dag: '', tijd: '', status: 'gelezen', later: 0, gemeld: true },
+          { id: 'i0000000000000003', bron: 's00000001', bronNaam: 'A Seal: vrijlatingen', titel: 'Vrijlating vorige maand', tekst: 'Oud bericht.', link: 'https://www.aseal.nl/nieuws/oud/', gevonden: nu - 30 * 86400000, dag: dag(-25), tijd: '', status: 'klaar', later: 0, gemeld: true }],
+        pagina: [['https://www.aseal.nl/nieuws/vrijlating-zeehond/', 'Vrijlating zeehond op zaterdag 14 november 2026'], ['https://www.aseal.nl/nieuws/openingstijden/', 'Openingstijden wintertijd'], ['https://www.aseal.nl/nieuws/pup/', 'Vrijlating pup']],
+        nieuw: [], ai: null };
+      return this._sn;
+    },
+    signalenStaat(){ const st = this._snInit(), nu = Date.now();
+      return JSON.stringify({ bronnen: st.bronnen.map(b => Object.assign({}, b, b.aan !== false ? { volgende: Math.max(nu, (b.lastOk || 0) + b.elke * 3600000) } : {})), inst: st.inst, items: st.items, onleesbaar: false, bezig: st.bezig, perm: st.perm, gedempt: st.gedempt,
+        sjablonen: [{ sjabloon: 'aseal', naam: 'A Seal: vrijlatingen', url: 'https://www.aseal.nl/nieuws', woorden: ['vrijlating', 'vrijgelaten'], alleen: 'https://www.aseal.nl/nieuws/' }], elke: [1, 3, 6, 12, 24, 168] }); },
+    signalenBron(j){ const st = this._snInit(), b = JSON.parse(j || '{}');
+      let url = String(b.url || '').trim(); if (url && !url.includes('://')) url = 'https://' + url;
+      if (!/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(url)) return JSON.stringify({ ok: false, fout: t('Vul een https-adres van een website in.') });
+      const net = { id: b.id || '', soort: 'web', naam: String(b.naam || '').trim() || url.replace(/^https:\/\/(www\.)?/, '').split('/')[0], url, woorden: (b.woorden || []).slice(0, 20), alleen: b.alleen || '',
+        elke: [1, 3, 6, 12, 24, 168].includes(b.elke) ? b.elke : 6, wifi: b.wifi !== false, melden: ['overzicht', 'inbox'].includes(b.melden) ? b.melden : 'direct', belangrijk: !!b.belangrijk, aan: b.aan !== false };
+      const i = st.bronnen.findIndex(x => x.id && x.id === net.id);
+      if (i < 0) { net.id = 's' + (10000000 + st.bronnen.length + 1).toString(16).padStart(8, '0'); st.bronnen.push(net); }
+      else { const oud = st.bronnen[i], zelfde = oud.url === net.url && oud.alleen === net.alleen && JSON.stringify(oud.woorden) === JSON.stringify(net.woorden);
+        st.bronnen[i] = zelfde ? Object.assign({}, oud, net) : net; }
+      return JSON.stringify({ ok: true, id: net.id }); },
+    signalenBronWis(id){ const st = this._snInit(); st.bronnen = st.bronnen.filter(b => b.id !== id); return JSON.stringify({ ok: true }); },
+    signalenInst(j){ const st = this._snInit(), i = JSON.parse(j || '{}'), hm = v => /^([01]\d|2[0-3]):[0-5]\d$/.test(v || '');
+      st.inst = { stilAan: i.stilAan !== false, stilVan: hm(i.stilVan) ? i.stilVan : '22:00', stilTot: hm(i.stilTot) ? i.stilTot : '07:30', overzicht: hm(i.overzicht) ? i.overzicht : '18:00' };
+      return JSON.stringify({ ok: true }); },
+    signalenScan(id){ const st = this._snInit();
+      if (st.bezig) return false;
+      st.bezig = true; st.scans = (st.scans || []).concat(id || '');
+      setTimeout(() => { const nu = Date.now(), erbij = st.nieuw.splice(0);
+        st.bronnen.forEach(b => { if ((!id && b.aan !== false) || b.id === id) { b.lastOk = b.lastTry = nu; b.klaar = true; b.fout = ''; b.links = st.pagina.length; } });
+        st.items = erbij.concat(st.items); st.bezig = false;
+        if (typeof window.onSignalen === 'function') window.onSignalen({ ok: true, nieuw: erbij.length, bronnen: 1, fouten: 0 }); }, st.traag);
+      return true; },
+    signalenProef(j){ const st = this._snInit(), b = JSON.parse(j || '{}'), vouw = s => String(s || '').normalize('NFD').replace(/\p{M}+/gu, '').toLowerCase();
+      setTimeout(() => { if (typeof window.onSignalenProef !== 'function') return;
+        if (/kapot/.test(b.url || '')) { window.onSignalenProef({ ok: false, fout: t('De website antwoordt met {code}', { code: 404 }) }); return; }
+        const g = st.pagina.filter(l => !(b.woorden || []).length || b.woorden.some(w => vouw(l[1] + ' ' + l[0]).includes(vouw(w)))).map(l => ({ titel: l[1], link: l[0], dag: /14 november 2026/.test(l[1]) ? '2026-11-14' : '' }));
+        window.onSignalenProef({ ok: true, links: st.pagina.length, gevonden: g }); }, st.traag); },
+    signalenItem(id, actie, arg){ const st = this._snInit(), it = st.items.find(x => x.id === id);
+      if (!it) return false;
+      if (actie === 'wis') st.items = st.items.filter(x => x.id !== id);
+      else if (actie === 'gelezen') { if (it.status === 'nieuw') it.status = 'gelezen'; }
+      else if (actie === 'klaar') { it.status = 'klaar'; it.later = 0; }
+      else if (actie === 'open') it.status = 'gelezen';
+      else if (actie === 'later') { const ms = +arg; if (!(ms > Date.now())) return false; it.later = ms; it.gemeld = false; it.status = 'gelezen'; }
+      else if (actie === 'dag') it.inAgenda = true;
+      else return false;
+      return true; },
+    signalenAi(id){ const st = this._snInit(), it = st.items.find(x => x.id === id);
+      if (!it) return t('Dat bericht staat er niet meer.');
+      if (st.aiBezet) return 'De assistent is nog bezig';
+      st.ai = setTimeout(() => { st.ai = null; if (typeof window.onSignalenAiToken === 'function') window.onSignalenAiToken('Een zeehond wordt vrijgelaten, '); if (typeof window.onSignalenAiToken === 'function') window.onSignalenAiToken('zaterdag om 14.00 uur op het strand.'); if (typeof window.onSignalenAiDone === 'function') window.onSignalenAiDone({}); }, st.traag);
+      return ''; },
+    signalenAiStop(){ const st = this._snInit(); if (st.ai) { clearTimeout(st.ai); st.ai = null; st.aiGestopt = true; } },
     aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },
     aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },
     _aiCfgDef: { style: 'normaal', creative: 'normaal', lang: 'app', history: '24', power: 'normaal', idle: '4', mem: 'aan', learn: 'vragen', talkSilence: '1300', about: '', instr: '' },

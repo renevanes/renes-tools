@@ -201,7 +201,7 @@ stap 4-delen-pdf ja -n "$PKG/${LAUNCHER%.*}.PdfShareActivity" -a android.intent.
 # Java achter de brug, zodat een startcrash daar hier al opvalt. Korter wachten: de app draait al.
 WACHT_SCHERM=${WACHT_SCHERM:-8}
 n=5
-for scherm in gebruik apparaten herstel sleep ai agenda nieuws wc facturen pdf settings; do
+for scherm in gebruik apparaten herstel sleep ai agenda signalen nieuws wc facturen pdf settings; do
   WACHT=$WACHT_SCHERM stap "$n-$scherm" ja -n "$PKG/$LAUNCHER" --es open "$scherm"
   n=$((n + 1))
 done

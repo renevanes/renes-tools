@@ -1,0 +1,5 @@
+Nieuw: Signalen. Volg een website (bijvoorbeeld het nieuws van A Seal) op trefwoorden en krijg een melding als er iets nieuws staat. Je vindt het op het startscherm bij Dag & gezondheid.
+Signalen: per bron kies je hoe vaak Tools kijkt (elk uur tot elke week, standaard 4 keer per dag en alleen via wifi) en hoe je het hoort: meteen een melding, in het dagoverzicht of alleen in Signalen.
+Signalen: stille uren (standaard 22:00 tot 07:30), behalve voor een bron die je belangrijk noemt. Werkt een bron drie keer achter elkaar niet, dan krijg je daar één melding van.
+Signalen: staat er een datum in een bericht, dan zet je het met één tik in je agenda. Je kunt er ook een notitie van maken, het laten voorlezen, laten samenvatten door de lokale AI of je er later aan laten herinneren.
+Signalen: met Proef zie je vooraf wat een bron nu zou vinden. Alles gebeurt op je telefoon; er zit geen dienst tussen.
