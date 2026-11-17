@@ -8,7 +8,7 @@ const HOME_DEFAULT = { v: HOME_LAYOUT, grouped: true, compact: false, hidden: []
   { name: 'Berichten & backup', tools: ['backup', 'wa', 'sms', 'history'] },
   { name: 'Muziek & radio', tools: ['radio', 'podcasts', 'spotify', 'music'] },
   { name: 'Documenten & geld', tools: ['pdf', 'ereader', 'kluis', 'facturen', 'bank', 'masterdata'] },
-  { name: 'Dag & gezondheid', tools: ['checkin', 'sleep', 'gebruik', 'nieuws', 'agenda'] },
+  { name: 'Dag & gezondheid', tools: ['checkin', 'sleep', 'gebruik', 'nieuws', 'agenda', 'signalen'] },
   { name: 'Onderweg', tools: ['tracks', 'car', 'wc', 'loc', 'vpn'] },
   { name: 'Slim', tools: ['ai', 'notes', 'auto', 'apparaten', 'skin'] } ] };
 /* De oude standaardindeling (indeling 1, tot en met versie 1.149), met per groep de lijsten die de app ooit als standaard
@@ -118,8 +118,47 @@ function homeV1Restore(){
   undoToast(t('Vorige indeling teruggezet'), () => heSaveEdit(nu));
 }
 function homeV1Dismiss(){ const o = homeV1(); if (o) store.set('homeV1', Object.assign(o, { kaart: false })); renderHomeNew(); }
+/* ---------- Aan de slag: na een nieuwe installatie (terugzetten overgeslagen) drie stappen op het startscherm ----------
+ * Favorieten kiezen, een backup-map kiezen en het app-slot aanzetten. Elke rij laat de stand zien en gaat naar het
+ * scherm waar je het regelt; de kaart gaat weg als alles gedaan is of met "Niet meer tonen". */
+function homeStartStappen(){
+  const bk = rdJson(Android.backupState(true), {}), lk = rdJson(Android.lockState(), {}), fav = homeCfg().fav.length;
+  const bkKlaar = !!bk.dest && !!(bk.auto || bk.last), slotWerkt = !!lk.on && !!(lk.secure || lk.code);
+  return [
+    { id: 'fav', icon: 'star', naar: 'homeedit', klaar: fav > 0, titel: t('Kies je favorieten'), stand: fav ? tn(fav, 'Eén favoriet bovenaan', '{n} favorieten bovenaan') : t('Zet bovenaan wat je vaak gebruikt') },
+    { id: 'backup', icon: 'shield', naar: 'backup', klaar: bkKlaar, titel: t('Stel je backup in'),
+      stand: bkKlaar ? t('Backup ingesteld') : bk.dest ? t('Map gekozen: maak nu je eerste backup of zet automatisch aan') : t('Nog niet: zonder backup ben je alles kwijt bij een nieuwe telefoon') },
+    { id: 'slot', icon: 'lock', naar: 'setlock', klaar: slotWerkt, titel: t('Zet het app-slot aan'),
+      stand: slotWerkt ? t('App-slot staat aan') : lk.on ? t('Aan, maar werkt pas met een schermvergrendeling of een eigen code') : t('Uit: iedereen die je ontgrendelde telefoon vasthoudt, kan Tools openen') }
+  ].filter(s => document.getElementById('s-' + s.naar) && !(typeof playWeg === 'function' && playWeg(s.naar)));
+}
+function homeStartKlaar(){ store.set('homeStart', 0); renderHomeStart(); }
+function homeStartNaar(naar){ jumpTo(naar); }
+function renderHomeStart(){
+  const el = $('#home-start'); if (!el) return;
+  if (!store.get('homeStart', 0) || SOLO) { el.hidden = true; return; }
+  let st; try { st = homeStartStappen(); } catch (e) { el.hidden = true; return; }
+  if (!st.length || st.every(s => s.klaar)) { store.set('homeStart', 0); el.hidden = true; return; }
+  $('#home-start-list').innerHTML = st.map(s => '<button class="strow" data-naar="' + s.naar + '" data-klaar="' + (s.klaar ? 1 : 0) + '"><span class="stic"><span class="ui-icon" data-icon="' + (s.klaar ? 'check' : s.icon) + '" aria-hidden="true"></span></span>'
+    + '<span class="sttxt"><b>' + esc(s.titel) + '</b><small>' + esc(s.stand) + '</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>').join('');
+  $('#home-start-list').querySelectorAll('.strow').forEach(b => b.addEventListener('click', () => homeStartNaar(b.dataset.naar)));
+  el.hidden = false;
+}
 function renderHomeNew(){ const el = $('#home-new'); if (el) el.hidden = !(homeV1() && homeV1().kaart); }
 function homeSave(c){ store.set('home', c); renderHome(); renderDash(); }
+function homeGroepenDicht(){ const d = store.get('homeGroepenDicht', []); return Array.isArray(d) ? d.filter(x => typeof x === 'string') : []; }
+/** Groep in- of uitklappen; namen van groepen die niet meer bestaan vallen eraf. */
+function homeKlap(name){
+  if (!name) return;
+  const namen = ['★ Favorieten'].concat(homeCfg().groups.map(g => g.name)), d = homeGroepenDicht().filter(x => namen.includes(x));
+  store.set('homeGroepenDicht', d.includes(name) ? d.filter(x => x !== name) : d.concat(name));
+  renderHome();
+  const h = [...document.querySelectorAll('#home-groups .hgroup h3')].find(e => e.dataset.g === name); if (h) h.focus({ preventScroll: true });
+}
+(function(){ const box = document.getElementById('home-groups'); if (!box) return;
+  box.addEventListener('click', e => { const h = e.target.closest && e.target.closest('.hgroup h3[data-g]'); if (h) homeKlap(h.dataset.g); });
+  box.addEventListener('keydown', e => { const h = e.target.closest && e.target.closest('.hgroup h3[data-g]'); if (h && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); homeKlap(h.dataset.g); } });
+})();
 function renderHome(){
   const c = homeCfg(), box = $('#home-groups'), pool = $('#tile-pool');
   // Tegels eerst terug in de verborgen pool, dan opnieuw verdelen (de tegels zelf blijven dezelfde knoppen)
@@ -129,8 +168,11 @@ function renderHome(){
   const mk = (name, tools) => {
     const vis = tools.filter(tk => !c.hidden.includes(tk) && !playWeg(tk)); if (!vis.length) return;
     const g = document.createElement('div'); g.className = 'hgroup';
-    if (name) { const h = document.createElement('h3'); h.textContent = name; g.appendChild(h); }
-    const grid = document.createElement('div'); grid.className = 'tiles'+(vis.length===1?' single':'');
+    // Een groep met een naam klap je in en uit met een tik op de kop (onthouden per groep, homeGroepenDicht)
+    const dicht = !!name && homeGroepenDicht().includes(name);
+    if (name) { const h = document.createElement('h3'); h.textContent = name; h.dataset.g = name; h.tabIndex = 0; h.setAttribute('role', 'button'); h.setAttribute('aria-expanded', dicht ? 'false' : 'true'); g.appendChild(h); }
+    if (dicht) g.classList.add('dicht');
+    const grid = document.createElement('div'); grid.className = 'tiles'+(vis.length===1?' single':vis.length%2?' oneven':''); // oneven: de laatste tegel over de volle breedte, geen gat
     vis.forEach(tk => { const el = document.getElementById(TOOL_TILE[tk]); if (el) grid.appendChild(el); });
     g.appendChild(grid); box.appendChild(g);
   };
@@ -141,6 +183,7 @@ function renderHome(){
   pool.style.display = 'none';
   renderHomeRecent();
   renderHomeNew();
+  renderHomeStart();
 }
 /* ---------- Recent gebruikt: de laatste vier tools die Rene opende ----------
  * Alleen welke tool (bijv. "pdf"), geen tijden of wat erin gebeurde; alleen in deze WebView (localStorage rt.homeRecent).
@@ -175,7 +218,7 @@ function heRecent(on){ const c = homeCfg(); c.recent = !!on; if (!on) store.set(
   const inner = show;
   show = function(name){
     const r = inner.apply(this, arguments);
-    try { if (current === name) { if (name === 'home') renderHomeRecent(); else homeRecentAdd(name); } } catch (e) { }
+    try { if (current === name) { if (name === 'home') { renderHomeRecent(); renderHomeStart(); } else homeRecentAdd(name); } } catch (e) { }
     return r;
   };
   try { if (current !== 'home') homeRecentAdd(current); } catch (e) { } // al geopend bij het starten (snelkoppeling, widget)

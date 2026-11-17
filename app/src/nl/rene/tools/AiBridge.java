@@ -54,14 +54,6 @@ public class AiBridge extends SleepBridge {
     @JavascriptInterface public void ttsSettings() { a.h.post(() -> TtsCheck.openSettings(a)); }
     @JavascriptInterface public void ttsInstall() { a.h.post(() -> TtsCheck.install(a)); }
 
-    /** Door de app zelf laten downloaden (of verder na een onderbreking), als Android's DownloadManager blijft wachten. */
-    @JavascriptInterface public String aiDownloadApp(String id) {
-        LocalAi.Model m = LocalAi.model(id);
-        if (m == null) return "Onbekend model";
-        if (!LocalAi.supported()) return "De lokale AI werkt alleen op telefoons met een 64-bits ARM-processor";
-        try { return LocalAi.downloadApp(ctx, m); } catch (Throwable t) { return "Downloaden lukt niet"; }
-    }
-
     /** Oude modelbestanden (van modellen die deze versie niet meer gebruikt) weg; geeft de vrijgekomen bytes. */
     @JavascriptInterface public String aiCleanOld() { try { return String.valueOf(LocalAi.cleanOrphans(ctx)); } catch (Throwable t) { return "0"; } }
 

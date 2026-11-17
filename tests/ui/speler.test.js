@@ -37,8 +37,8 @@ const { chromium } = require('playwright');
     console.log('after next station', await pg.textContent('#pl-from'), 'favs', await pg.$$eval('#pl-queue .pl-qrow', x => x.length));
     // Slaaptimer vanuit de speler: venster ligt boven de speler
     await pg.click('#pl-sleep'); await pg.waitForTimeout(200);
-    console.log('sleep dlg on top', await pg.evaluate(() => { const r = $('#sl-go').getBoundingClientRect(); return document.elementFromPoint(r.x + 5, r.y + 5) === $('#sl-go'); }), 'state', await pg.textContent('#sl-state'));
-    await pg.click('#sl-quick button[data-m="20"]'); await pg.click('#sl-go'); await pg.waitForTimeout(400);
+    console.log('sleep dlg on top', await pg.evaluate(() => { const b = $('#sl-quick button'), r = b.getBoundingClientRect(); return document.elementFromPoint(r.x + 5, r.y + 5) === b || b.contains(document.elementFromPoint(r.x + 5, r.y + 5)); }), 'focus', await pg.evaluate(() => document.activeElement.id));
+    await pg.click('#sl-quick button[data-m="20"]'); await pg.waitForTimeout(400);
     console.log('sleep pill', await pg.textContent('#pl-sleep'));
     // Verkleinen met terug
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(400);

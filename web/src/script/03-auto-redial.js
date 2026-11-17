@@ -58,7 +58,7 @@ function renderPerms(){
   if (p.call && p.phoneState && !p.callLog) txt = 'Geef ook toegang tot je oproepgeschiedenis. Dan kan de app zien of er is opgenomen. Zonder die toegang telt een gesprek van langer dan 1 minuut als opgenomen.';
   else if (p.call && p.phoneState && p.callLog && !p.notifications) txt = 'Sta meldingen toe, dan zie je de voortgang en kun je stoppen vanuit de meldingenbalk.';
   $('#perm-text').textContent = txt;
-  $('#perm-btn').textContent = asked ? 'Instellingen openen' : 'Toestemming geven';
+  $('#perm-btn').textContent = asked ? 'Instellingen openen' : 'Toegang geven';
   $('#how-note').textContent = p.callLog
     ? t('De app belt het nummer, wacht tot het gesprek voorbij is en kijkt in je oproepgeschiedenis of er is opgenomen. Een voicemail telt ook als opgenomen.')
     : t('Zonder toegang tot je oproepgeschiedenis telt een gesprek van langer dan 1 minuut als opgenomen.');

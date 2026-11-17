@@ -92,6 +92,12 @@ public class MainActivity extends Activity {
     static final int REQ_PDF_IMG = 28, REQ_PDF_FILE = 29, REQ_PDF_SAVE = 30, REQ_PDF_DOC = 31, REQ_PDF_VIEW = 32;
     static final int REQ_ID_COPY = 65;
     static final int REQ_CMP = 74, REQ_KLUIS_SAVE = 75;
+    /** OPML (abonnementen van Podcasts, bronnen van Nieuws): bestand kiezen om te lezen of een plek om te bewaren. */
+    static final int REQ_OPML_OPEN = 76, REQ_OPML_SAVE = 77, REQ_CHECKIN_SAVE = 78;
+    byte[] checkinKlaar;
+    int checkinAantal;
+    String opmlSoort;
+    byte[] opmlKlaar;
     /** Opslaan als… vanuit de kluis: welk document en welke versie (0 = huidige) wachten op de gekozen plek. */
     volatile String kluisSaveId = "";
     volatile int kluisSaveVersion;
@@ -1129,6 +1135,41 @@ public class MainActivity extends Activity {
             return;
         }
         if (req == REQ_HOME) { js("onHomeRole", ""); return; }
+        if (req == REQ_CHECKIN_SAVE) {
+            final byte[] klaar = checkinKlaar; final int n = checkinAantal; checkinKlaar = null;
+            final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
+            final Context c = getApplicationContext();
+            if (u == null) return; // kiezer weggetikt
+            if (klaar == null) { js("onCheckinExport", CheckinStore.err(Taal.tx(c, Taal.T("Dat lukte niet. Probeer het nog een keer."))).toString()); return; }
+            new Thread(() -> {
+                String r;
+                try (java.io.OutputStream out = c.getContentResolver().openOutputStream(u, "wt")) {
+                    if (out == null) throw new java.io.IOException("geen uitvoer");
+                    out.write(klaar); out.flush();
+                    App.log(c, "CHECKIN", "csv: " + n);
+                    r = "{\"n\":" + n + "}";
+                } catch (Throwable e) { App.log(c, "CHECKIN", "csv mislukt: " + e.getClass().getSimpleName()); r = CheckinStore.err(Taal.tx(c, Taal.T("Opslaan lukt niet"))).toString(); }
+                js("onCheckinExport", r);
+            }, "checkin-csv").start();
+            return;
+        }
+        if (req == REQ_OPML_OPEN || req == REQ_OPML_SAVE) {
+            final String soort = opmlSoort; final byte[] klaar = opmlKlaar; opmlKlaar = null;
+            final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
+            final boolean lezen = req == REQ_OPML_OPEN;
+            final Context c = getApplicationContext();
+            if (u == null) { js("onOpml", OpmlWerk.antwoord(soort, lezen, 0, 0, 0, "geannuleerd")); return; }
+            // het venster is tijdens het kiezen opnieuw gemaakt: niet stil blijven
+            if (soort == null || (!lezen && klaar == null)) { js("onOpml", OpmlWerk.antwoord(soort, lezen, 0, 0, 0, Taal.tx(c, Taal.T("Dat lukte niet. Probeer het nog een keer.")))); return; }
+            if (lezen) js("onOpmlBezig", JSONObject.quote(soort));
+            new Thread(() -> {
+                String r;
+                try { r = lezen ? OpmlWerk.lees(c, soort, u) : OpmlWerk.bewaar(c, soort, u, klaar); }
+                catch (Throwable e) { r = OpmlWerk.antwoord(soort, lezen, 0, 0, 0, Taal.tx(c, OpmlWerk.melding(e, lezen ? Taal.T("Het bestand is niet te lezen") : Taal.T("Opslaan lukt niet")))); }
+                js("onOpml", r);
+            }, "opml").start();
+            return;
+        }
         if (req == REQ_IMPORT) {
             final String kind = importKind;
             if (res != RESULT_OK || data == null || data.getData() == null || kind == null) return;
@@ -2674,6 +2715,53 @@ public class MainActivity extends Activity {
             } catch (Exception ignored) { }
         }
 
+        // ----- OPML: abonnementen en bronnen overzetten -----
+        /** Lijst als OPML bewaren op een plek die Rene kiest. soort = podcasts of nieuws. Antwoord via onOpml. */
+        @JavascriptInterface public void opmlExport(String soort) {
+            if (!OpmlWerk.soortGoed(soort)) return;
+            new Thread(() -> {
+                try {
+                    final byte[] xml = OpmlWerk.maak(ctx, soort);
+                    final Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("text/x-opml").putExtra(Intent.EXTRA_TITLE, OpmlWerk.bestandsnaam(soort));
+                    a.h.post(() -> {
+                        a.opmlSoort = soort; a.opmlKlaar = xml;
+                        try { a.startActivityForResult(i, REQ_OPML_SAVE); }
+                        catch (Exception e) { a.opmlKlaar = null; a.js("onOpml", OpmlWerk.antwoord(soort, false, 0, 0, 0, Taal.tx(ctx, Taal.T("Bestandskiezer niet beschikbaar")))); }
+                    });
+                } catch (Throwable e) { a.js("onOpml", OpmlWerk.antwoord(soort, false, 0, 0, 0, Taal.tx(ctx, OpmlWerk.melding(e, Taal.T("Exporteren lukt niet"))))); }
+            }, "opml-maak").start();
+        }
+        /** Een OPML-bestand kiezen en de feeds eruit toevoegen. Antwoord via onOpml. */
+        @JavascriptInterface public void opmlImport(String soort) {
+            if (!OpmlWerk.soortGoed(soort)) return;
+            a.h.post(() -> {
+                a.opmlSoort = soort; a.opmlKlaar = null;
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+                try { a.startActivityForResult(i, REQ_OPML_OPEN); }
+                catch (Exception e) { a.js("onOpml", OpmlWerk.antwoord(soort, true, 0, 0, 0, Taal.tx(ctx, Taal.T("Bestandskiezer niet beschikbaar")))); }
+            });
+        }
+
+        /** Check-in als leesbaar CSV-bestand bewaren op een plek die Rene kiest (de interface waarschuwt vooraf). Antwoord via onCheckinExport: {n} of {error}. */
+        @JavascriptInterface public void checkinExport() {
+            new Thread(() -> {
+                try {
+                    org.json.JSONArray qs, as, rs;
+                    synchronized (CheckinStore.class) { qs = CheckinStore.questions(ctx); as = CheckinStore.answers(ctx); rs = CheckinStore.remarks(ctx); }
+                    final int n = CheckinCsv.aantal(as, rs);
+                    if (n == 0) { a.js("onCheckinExport", CheckinStore.err(Taal.tx(ctx, Taal.T("Er is nog niets om te exporteren"))).toString()); return; }
+                    final byte[] csv = CheckinCsv.csv(qs, as, rs, Regio.zone(ctx)).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    final Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("text/csv")
+                            .putExtra(Intent.EXTRA_TITLE, "check-in-" + new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(new java.util.Date()) + ".csv");
+                    a.h.post(() -> {
+                        a.checkinKlaar = csv; a.checkinAantal = n;
+                        try { a.startActivityForResult(i, REQ_CHECKIN_SAVE); }
+                        catch (Exception e) { a.checkinKlaar = null; a.js("onCheckinExport", CheckinStore.err(Taal.tx(ctx, Taal.T("Bestandskiezer niet beschikbaar"))).toString()); }
+                    });
+                } catch (Throwable e) { App.log(ctx, "CHECKIN", "csv maken: " + e.getClass().getSimpleName()); a.js("onCheckinExport", CheckinStore.err(Taal.tx(ctx, Taal.T("Exporteren lukt niet"))).toString()); }
+            }, "checkin-csv-maak").start();
+        }
+
         // ----- Alles back-uppen en terugzetten -----
 
         /** Overal zoeken; uitkomst via onSearchAll(json met id). Geeft het id terug. */
@@ -3422,6 +3510,7 @@ public class MainActivity extends Activity {
                     return new WebResourceResponse(mime, "utf-8", ctx.getAssets().open("vendor/" + name));
                 } catch (Exception e) { return notFound(); }
             }
+            if ("/art".equals(path)) return art(u.getQueryParameter("u"));
             if (!path.startsWith("/wa-media/")) return null;
             try {
                 File root = null;
@@ -3434,6 +3523,29 @@ public class MainActivity extends Activity {
                 String mime = ext == null ? null : MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase(java.util.Locale.ROOT));
                 // Alleen plaatjes (geen svg): een html-bestand uit WhatsApp mag nooit als pagina met de app-brug openen
                 if (mime == null || !mime.startsWith("image/") || mime.contains("svg")) return notFound();
+                WebResourceResponse r = new WebResourceResponse(mime, null, new java.io.FileInputStream(f));
+                java.util.Map<String, String> hd = new java.util.HashMap<>();
+                hd.put("X-Content-Type-Options", "nosniff");
+                hd.put("Content-Security-Policy", "default-src 'none'; sandbox");
+                r.setResponseHeaders(hd);
+                return r;
+            } catch (Exception e) {
+                return notFound();
+            }
+        }
+
+        /** Hoesjes en logo's voor de speler uit de eigen cache van Art (verkleind, op de telefoon): hier geen netwerk. Is het
+         *  er nog niet, dan 404; de interface vraagt het dan op met playerArt en probeert het daarna nog eens. Alleen wat
+         *  Art zelf schreef (PNG of JPEG; het bestand heet naar de hash van het adres, dus geen pad van buitenaf). */
+        private WebResourceResponse art(String url) {
+            try {
+                File f = Art.file(ctx, url);
+                if (f == null) return notFound();
+                byte[] head = new byte[4];
+                int n;
+                try (java.io.FileInputStream in = new java.io.FileInputStream(f)) { n = in.read(head); }
+                String mime = ArtBestand.mime(head, n);
+                if (mime == null) return notFound();
                 WebResourceResponse r = new WebResourceResponse(mime, null, new java.io.FileInputStream(f));
                 java.util.Map<String, String> hd = new java.util.HashMap<>();
                 hd.put("X-Content-Type-Options", "nosniff");

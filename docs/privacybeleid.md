@@ -87,6 +87,7 @@ aanleveren, de gegevens van Toiletten en douches bijwerken, en de wekelijkse sta
 | GitHub en de gegevensbronnen die aan staan (Toiletten en douches; de standaardbronnen staan vanzelf aan, je kunt ze uitzetten) | Bij het ophalen van de gegevens | Niets persoonlijks: de bestanden worden in hun geheel gedownload en het zoeken gebeurt op de telefoon, dus je plek gaat niet mee |
 | Nieuwssites en feeds die je kiest | Bij het ophalen van nieuws | Een vraag om de feed, de sitemap of de kop van een artikelpagina (bij artikelpagina's met de talen van de telefoon, zoals een browser dat doet); afbeeldingen bij artikelen komen rechtstreeks van de site, tenzij je ze uitzet. Je plek, je gelezen artikelen en je bronnenlijst blijven op de telefoon |
 | Nieuwssites waar je inlogt | Als je bij een bron zelf inlogt of een cookiekeuze maakt | Je logt op de echte site zelf in (Tools bewaart geen wachtwoord); de cookies van die inlog gaan alleen mee naar de sites van die bron |
+| Websites die je volgt in Signalen | Als Signalen een bron nakijkt (zo vaak als je per bron kiest) of bij Proef | Een vraag om de pagina die je invulde en om de pagina's van nieuwe berichten die bij je trefwoorden passen (alleen https, alleen op die site). Volg je in Signalen het nieuws op trefwoorden, dan haalt Tools de nieuwsbronnen uit Nieuws ook op de achtergrond op (bij een bron waar je bent ingelogd met de cookies van die inlog, alleen naar de sites van die bron). Bronnen uit Tools zelf (Agenda, Facturen, Notities, taken) leest Signalen alleen op de telefoon. Je trefwoorden, de gevonden berichten en wat je ermee doet blijven op de telefoon |
 | Apple (podcasts zoeken en de top 40) | Als je podcasts zoekt of bekijkt | Je zoekterm |
 | radio-browser.info | Als je radiozenders zoekt of afspeelt | Je zoekterm en een telling bij afspelen |
 | Radiostreams, podcastfeeds, hoesjes en zenderlogo's | Als je luistert of afleveringen ophaalt | Alleen wat nodig is om de stream of het bestand op te halen, bij de server van de zender of podcast |
@@ -114,8 +115,8 @@ uit bij Instellingen → Foutrapport en statistieken.
 - Staat de Google-backup van Android aan, dan neemt Android ook een deel van de appgegevens mee naar **je eigen**
   Google-account: onder andere je notities, je muziekgeschiedenis, je parkeerplek en ritten, opgeslagen plekken
   (automatiseringen, Locatie kiezen, weer), inlognamen bij leveranciers en je instellingen. Wachtwoorden, sleutels,
-  koppelingen, de kluis, je bankgegevens, je eigen afspraken in Agenda, je nieuwsbronnen en inlogcookies gaan daar
-  bewust niet mee (Agenda en Nieuws wel in de versleutelde backup van alle appgegevens). Je zet de Google-backup uit in de instellingen
+  koppelingen, de kluis, je bankgegevens, je eigen afspraken in Agenda, je nieuwsbronnen en inlogcookies en je bronnen en berichten in Signalen gaan daar
+  bewust niet mee (Agenda, Nieuws en Signalen wel in de versleutelde backup van alle appgegevens). Je zet de Google-backup uit in de instellingen
   van Android.
 
 ## Bewaren en verwijderen

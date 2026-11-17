@@ -20,7 +20,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   `kop.html`, `stijl.css` (Material 3-kleurrollen: `--bg --card --hi --ink --muted --line --outline --primary --on-primary --tonal --chip --on-chip …`),
   `schermen/NN-*.html` (één `<section class="screen" id="s-naam">` per scherm), `script/NN-*.js`, `vensters.html` (dialogen, tabbalk).
 - `web/src/script/01-testbrug.js` — de nagebootste Android-brug voor de tests (in de app zelf weggelaten).
-- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends ReadAloudBridge extends NieuwsBridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends AgendaBridge extends FeatureBridge`.
+- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends ReadAloudBridge extends NieuwsBridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends AgendaBridge extends SignalenBridge extends FeatureBridge`.
 - `web/start.html` — de Telefoon-skin (eigen startscherm); `tests/` — Java- en interfacetests; `tools/` — hulpscripts.
 - **Iedere nieuwe schermtool ondersteunt standaard losse apps.** Registreer hem in `web/src/script/00-tools.js`: het
   openen, het overzicht Losse apps en het native register volgen daaruit. Subschermen krijgen een `BACK`-verwijzing
@@ -232,6 +232,8 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   de gevulde knop (Modellen, de assistent). Uitzonderingen staan met de reden in `MEER_PRIMAIR` in de test.
 - **Keuzelijsten**: `<select class="sel">` (of `class="search"` als zoekveld-breed); nooit een kale `<select>`.
 - **Menu ⋯ in de kop** voor acties die je zelden doet (exporteren, wissen): `openSheet(…)`, zoals Meldingsgeschiedenis.
+  **Volgorde rechts in de kop, in elke tool:** licht en donker (`hthema`), eigen acties (verversen, nieuw), instellingen
+  (`hset`) en als laatste het menu ⋯. `ui-patronen.test.js` bewaakt dat.
   Let op losse apps: `soloSrcOk` leest de broncode van elke menukeuze en haalt keuzes weg die naar een andere tool gaan
   (ook `Android.waPickFolder`). Zet zo'n aanroep dus in een eigen hulpfunctie, niet in de actie zelf.
 - **Schakelaar**: `<button class="tg" role="switch" aria-checked>`; moet het een `<input>` blijven: `<input type="checkbox" class="switch" role="switch">`.
@@ -560,7 +562,12 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
 7. **Te groot voor één sessie:** maak het logische deel af en publiceer dat; zet de rest met een afvinklijst in een
    `openstaand`-issue.
 8. **Altijd een kort bericht aan Rene** aan het eind van de sessie (ook als er niets te doen was), zoals in
-   "Berichten aan Rene".
+   "Berichten aan Rene". Controleer vlak daarvoor (begin er op tijd aan) dat wat je wilde publiceren echt op main staat
+   (`git fetch origin` en `git merge-base --is-ancestor <jouw laatste commit> origin/main`; de run Publiceren zelf:
+   stap 6) en dat de reactie in je logboek of issue geplaatst is. Is een van beide niet gelukt (botsing met main, tijd
+   op), zet dat dan bovenaan je bericht en in het logboek (lukt dat niet: alleen in je bericht), met de naam van de
+   branch: de volgende run maakt hem af of ruimt hem op (stap 1). (Les van 13 november: een run met groene tests bleef
+   op zijn branch staan, zonder publicatie en zonder logboekregel.)
 9. **GitHub alleen via de REST-API** (`gh api repos/renevanes/renes-tools/…`): GraphQL (dus `gh issue …`, `gh pr …`) en
    de Security-API's werken in een cloudsessie niet.
 10. **De repository is openbaar.** Zet in issues en logboeken geen persoonlijke gegevens of geheimen; uit de privé
@@ -577,6 +584,22 @@ telefoon en versleuteld; de sleutel zit in de Android Keystore.
   onder Gemaakt met "Naar de documentenkluis". Uit te zetten op PDF → Gemaakt (`store` `pdfKluisVanzelf`). Een nieuw
   PDF-resultaat = `kcNaMaken([{name, title, category, source, link}])` aanroepen; daarna bekijken, delen en opslaan via
   `kcOpen`/`kcShare`/`kcSave` (die weten of het bestand al in de kluis staat). De Play-versie heeft geen kluis.
+- **Verkenner** (`49-documenten-ordenen.js`, test `documents.test.js`): een map is de `category` van een document in de
+  versleutelde index (geen eigen opslag); een map in een map is een schuine streep in die naam (`Wonen/Hypotheek`, `klPad`).
+  Het scherm toont het pad (`#kl-pad`) en de mappen van die plek als rijen (`#kl-mappen`: op het bovenste niveau ook
+  Favorieten, Verloopt binnenkort en Facturen), daaronder de documenten die precies daar staan; zoeken kijkt ook in de
+  mappen eronder. Waar je bent (`klMap`) staat alleen in het geheugen en is weg zodra de kluis op slot gaat; terug gaat
+  eerst een map omhoog (`klKaartTerug`). De ster, "Verplaatsen naar map…" en "Map hernoemen" (neemt alles eronder mee)
+  gaan via `kluisOrganize`. Toevoegen vanuit een map zet het nieuwe document in die map (`klNieuwInMap`).
+  Namen van mappen en documenten zijn gegevens: `esc()`/`textContent` en `translate="no"`.
+- **Facturen in de verkenner** (voorlopig alleen tonen, issue #32): de map Facturen leest het facturendossier
+  (`Android.facturenDossier`, alleen wat de app zelf bewaart), per leverancier; een tik opent de factuur met
+  `facturenOpen`. Niet als Facturen op slot staat (`tsVerborgen('facturen')`). De pdf's staan nog niet in de kluis.
+- **Documentkaart en eigenschappen**: tik op een document opent de kaart (`#kl-edit`, in plaats van de lijst; `klKaart`, terug gaat
+  eerst naar de lijst) met Bekijken, Delen, Meer (`klDocSheet`) en de eigenschappen. Die staan als `props` in de versleutelde
+  index: `{soort, partij, datum, verloopt, bedrag, labels}` (`KluisIndex.props`: alleen deze velden, datums JJJJ-MM-DD, bedrag met
+  een punt; `KluisIndexTest`), bewaard via `kluisOrganize` en mee in backups (`KluisIndex.clean`). "Verloopt binnenkort" =
+  binnen `KL_BINNENKORT` dagen of verlopen. Nieuwe eigenschap = `KluisIndex.props`, de kaart, `klRij`/`klZoekTekst`, de testbrug en de tests.
 - **Weg van het kluisscherm = op slot** (bestaand gedrag). Een actie vanuit het kluismenu naar een ander scherm (bewerken,
   vergelijken) start dus éérst de opdracht in Java (die controleert de kluis meteen) en gaat daarna pas naar het andere scherm.
 - **Bekijken in de eigen viewer**: `kluisOpen(id, versie)` ontsleutelt naar `cache/kluis-open` (leeg bij op slot gaan) en opent
@@ -594,6 +617,12 @@ telefoon en versleuteld; de sleutel zit in de Android Keystore.
   Activiteiten-regel "Kaartfoto bekeken" door ID-kopie) alleen via het geheugen van `MainActivity` (`idMasterTake`, een
   minuut) naar `IdCopy.addImages` (`idCopyTakeMaster`); nooit door de interface. Voorgestelde vlakken: `ID_VOORSTEL` in
   `67-id-kopie.js` (ruim genomen; de pagina blijft "niet gecontroleerd" tot Rene het aanvinkt).
+- **Zoeken in de tekst** (`KluisTekst`, `kluisZoek`/`kluisTekstBijwerken`): per document staat de tekst (uit de PDF, anders de lokale
+  tekstherkenning; hooguit `MAX_BLZ` pagina's) in `kluis/<id>.tekst`, versleuteld met de kluissleutel. Lezen en zoeken alleen met de
+  kluis open; het werkbestand staat kort in `cache/kluis-tekst` en gaat direct weg. De tekst is af te leiden: niet in backups, na
+  terugzetten of een nieuwe versie vanzelf opnieuw. Vangnet: `kluis/tekst.bezig` noemt het document dat gelezen wordt; stopte de app
+  daar, dan telt dat als een mislukte poging (na `MAX_POGINGEN` blijvend zonder tekst). Stukjes tekst altijd met `esc`/`textContent`; niets ervan in het logboek.
+  Tests: `KluisTekstTest`, `tests/ui/kluis-zoeken.test.js`.
 - **Vergelijken** (scherm `s-pdfcmp`, `77-vergelijken.js`, `PdfCompare`): A en B uit een bestand, de kluis (ook een oudere
   versie) of Gemaakt, in `cache/pdf-compare/<uuid>` en weg bij het verlaten van het scherm (`cmpClear`) of bij opstarten
   (`cleanStale`). Tekst: uit de PDF (Android 15+) of anders de lokale tekstherkenning (`RijbewijsOcr.pageText`), dan per regel
@@ -752,6 +781,58 @@ Zoeken kijkt in alle afspraken, ook van jaren geleden.
   (`AiActions` / `aiCalendarAdd`): `Agenda.gaatOver` is onwaar bij een opdracht om iets te zetten.
 - Tests: `tests/ui/agenda.test.js`; Java: `AgendaTest` (en een stuk in `AiDataTest`).
 
+## Signalen (bronnen volgen, één inbox, melden per bron)
+Signalen (schermen `s-signalen`, `s-snitem`, `s-snset`, `s-snbron`; `web/src/script/79-signalen.js`, `Signalen*.java`) loopt
+bronnen na op iets nieuws en zet dat in één inbox. Soorten (`Signalen.SOORTEN`): een webpagina met trefwoorden (`web`,
+sjabloon: A Seal) en bronnen uit Tools zelf (`agenda`, `nieuws`, `facturen`, `notities`, `taken`; van elk hooguit één).
+Wens van Rene: een centrale plek voor gebeurtenissen; taken uit de mail volgen nog (issue "Signalen: vervolg").
+- **Ophalen alleen in Java**, via `Nieuws.haal` (alleen https naar openbare sites, begrensd in tijd en grootte, ook bij
+  doorverwijzingen); geen dienst ertussen. `SignalenScan` haalt de pagina van de bron, `Signalen.links` haalt er de links
+  naar dezelfde site uit (één doorloop zonder zoekpatronen, begrensd; niet uit script, style of commentaar) en
+  `Signalen.nieuw` kiest wat nog niet gezien is en bij de trefwoorden past (linktekst of het laatste stuk van het adres;
+  zonder trefwoorden alles). Hooguit `MAX_PER_SCAN` nieuwe per ronde; van elk haalt hij de pagina zelf op voor titel, tekst
+  (`Nieuws.paginaKop` en een stuk rond het trefwoord) en de datum (`Signalen.datum`: Nederlandse datums en tijden, zuiver).
+- **De eerste scan meldt niets**: wat er al staat komt wel in de inbox (`eerste`). Een ander adres of andere trefwoorden
+  = opnieuw beginnen (`Signalen.opnieuw`). Hetzelfde adres via twee bronnen is één item (`itemId`).
+- **Melden** (`SignalenScan.meld`, beslissing in `Signalen.wijze`, zuiver): per bron `direct`, `overzicht` (één melding per
+  dag op het gekozen moment) of `inbox` (geen melding); stille uren houden meldingen vast tot erna, behalve van een bron
+  met `belangrijk`. "Later herinneren" geeft altijd een eigen melding op dat moment. Na `FOUT_MELDEN` mislukte scans achter
+  elkaar één melding dat de bron niet meer werkt. Kanaal `signalen` (ook in `NotifCenter.KINDS`); een tik opent
+  `signalen:<item>` of `signalen-bron:<bron>` (`openTool`).
+- **Plannen** (`SignalenJob`, job-id's 4801–4804): per bron elk uur tot elke week (`Signalen.ELKE`, standaard 6 uur, alleen
+  via wifi), na een fout eerder opnieuw; een eigen taak zonder internet voor het moment van melden.
+- **Tekst van een website is gegevens**: in de interface altijd `esc`/`textContent`, een adres alleen via
+  `Android.openUrl`; de samenvatting (`signalenAi`) is een losse vraag via `LocalAi.privateChat` (geen geheugen, acties of
+  opgeslagen gesprek) en het antwoord staat er als tekst. In het logboek (soort `SIGNAAL`) alleen aantallen en vaste
+  woorden, nooit adressen, titels of trefwoorden (`SignalenTest` bewaakt dat).
+- **Acties** vanuit een bericht blijven binnen de eigen tool (ook als losse app): in de agenda zetten gaat via
+  `Android.agendaBewaar` (de standaardagenda), een notitie via `notesGet`/`notesSaveNow`, voorlezen via `spText`.
+  "Open in …" bij een bericht uit Tools gaat via `openTool` in een eigen hulpfunctie (`snNaarTool`).
+- **Opslag**: `signalen/` (`bronnen.json` met de instellingen, `items.json`, `toestand.json`) gaat mee in "Alle
+  appgegevens", niet in de Android-backup. `items.json` gaat niet mee in de leesbare Toolgegevens (`ToolData.keepFile`):
+  er kunnen afspraken en lijstpunten uit andere tools in staan. De instellingen staan (nog) niet in het register voor de assistent (`SET_EXCLUDE`).
+- **Bronnen uit Tools zelf** (`SignalenIntern`, zuiver per soort, `kandidaten` haalt de gegevens erbij): Agenda (afspraken
+  die binnen `vooraf` uur beginnen, uit `AgendaStore` en de agenda's van de telefoon die in Agenda aan staan; kijkt altijd
+  elk uur en het venster is één ronde ruimer, zodat niets tussen twee rondes door valt; een afspraak die al begonnen is
+  wordt niet meer gemeld: `verloopt`), Nieuws
+  (artikelen uit `Nieuws.lijst` waarvan titel of begin bij de trefwoorden past; de scan roept eerst `Nieuws.ververs` aan,
+  dus het nieuws wordt dan ook op de achtergrond opgehaald), Facturen (wat de afgelopen 30 dagen in het dossier kwam),
+  Notities (lijsten met open punten die `dagen` dagen niet zijn aangeraakt) en taken (de backup, facturen ophalen en
+  Toiletten bijwerken die de afgelopen 3 dagen mislukten). Signalen leest alleen; het verandert in die tools niets.
+  Alleen `web` en `nieuws` hebben internet nodig (`Signalen.lokaal`): de andere lopen mee in de taak zonder internet.
+  De eerste keer melden Agenda en taken wel, de rest niet (`Signalen.eersteStil`). `gezien` bevat bij deze soorten de
+  id's van de berichten.
+- **Een tool op slot** (Extra ontgrendelen): een bericht heeft `tool` (`Signalen.tool`). Staat die tool of Signalen zelf
+  op slot, dan staat er geen inhoud in de melding (`ToolSlot.aan`), geeft Proef alleen het aantal en toont de inbox het
+  bericht zonder inhoud (`snDicht`, `tsVerborgen`). Een tik vraagt het slotscherm van die tool (`tsVraag`) en toont daarna
+  alleen dat ene bericht, tot je het verlaat (`sn.vrij`); je blijft in Signalen. Een nieuw scherm dat berichten toont,
+  houdt zich daaraan. "Open in …" opent alleen de bestemmingen die Signalen zelf zet (`snDoel`): `items.json` kan uit
+  een backup komen.
+- **Nieuwe soort bron** (bijv. mail): een naam in `Signalen.SOORTEN` met zijn regels in `normaal`, `lokaal`, `eersteStil`
+  en `tool`, een functie in `SignalenIntern` die berichten aanlevert, de velden op `s-snbron` (`snbRender`), `SN_SOORTEN`,
+  de testbrug en tests; gezien, melden, later en de inbox werken dan vanzelf.
+- Tests: `tests/ui/signalen.test.js`; Java: `SignalenTest`.
+
 ## Nieuws (feeds lezen)
 Nieuws (schermen `s-nieuws`, `s-nieuwsart`, `s-nieuwsset`, `s-nieuwsbron`; `web/src/script/75-nieuws.js`, `Nieuws*.java`) toont koppen en
 artikelen uit RSS-, Atom- en RDF-feeds.
@@ -802,6 +883,9 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   de balk, en uit na 15 minuten, bij `onStop` en bij sluiten (alleen door het venster dat het aanzette). Cookies van de WebView gaan nergens mee in backups: na terugzetten opnieuw inloggen. Eerste bron met inloggen: AI Report (aireport.nl, beehiiv).
 - **Opslag**: `nieuws/` (bronnen met instellingen, gelezen, bewaard) gaat mee in "Alle appgegevens", niet in de Android-backup; de opgehaalde
   artikelen staan in de cache. Logsoort `NIEUWS` alleen met aantallen en vaste woorden.
+- **OPML** (ook voor Podcasts): menu ⋯ → importeren/exporteren. `Opml` (zuiver, `OpmlTest`) leest en schrijft, `OpmlWerk` voegt toe via
+  `Nieuws.toevoegen` / `Podcasts.subscribe` (dezelfde controles als met de hand), brug `opmlImport`/`opmlExport(soort)` → `onOpml` met alleen aantallen.
+  Logsoort `OPML` alleen met aantallen. Test: `tests/ui/opml.test.js`.
 - Tests: `tests/ui/nieuws.test.js`, `tests/ui/nieuws-bron.test.js`; Java: `NieuwsFeedTest`, `NieuwsTest`.
 
 ## Berichten aan Rene

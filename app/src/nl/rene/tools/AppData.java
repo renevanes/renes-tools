@@ -157,7 +157,7 @@ final class AppData {
      */
     static final List<String> FILE_KNOWN = Collections.unmodifiableList(Arrays.asList(
             "notes.json", "notes.json.bak", "music.json", "agenda", "ai", "apparaten", "call-recordings", "checkin", "contacts", "ereader", "facturen", "gebruik", "nieuws", "podcasts",
-            "shortcut-icons", "sleep", "spotify", "toiletten", "tracks", "transcripts"));
+            "shortcut-icons", "signalen", "sleep", "spotify", "toiletten", "tracks", "transcripts"));
 
     /** Hooguit zoveel instellingenbestanden uit een backup (bescherming tegen een gemaakt bestand met duizenden namen). */
     static final int MAX_PREFS_FILES = 300;

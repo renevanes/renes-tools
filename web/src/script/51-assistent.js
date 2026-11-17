@@ -606,7 +606,7 @@ function aiRenderData(){
     const k = s[0], on = aiSrcOn(k), ok = perm[k] !== false;
     const need = !ok ? (k === 'wa' ? '<button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'chats\')">Maak eerst je chats leesbaar</button>'
       : k === 'gebruik' ? '<button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'gebruik\')">Zet eerst Gebruik bijhouden aan</button>'
-      : '<button class="linkish" style="display:inline;padding:0" onclick="Android.permRequest(\'' + AI_PERM[k] + '\')">Toestemming geven</button>') : '';
+      : '<button class="linkish" style="display:inline;padding:0" onclick="Android.permRequest(\'' + AI_PERM[k] + '\')">Toegang geven</button>') : '';
     return '<div class="sw"><span>' + uiIcon(s[2]) + ' ' + esc(s[1]) + '<small id="aid-d-' + k + '">' + esc(t(s[4] || s[3]) + (on && !ok ? ' ' + t('Staat aan, maar de app mag er nog niet bij.') : '')) + '</small>' + (on && !ok ? '<small>' + need + '</small>' : '') + '</span>' +
       '<button class="tg' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="' + esc(s[1]) + '" aria-describedby="aid-d-' + k + '" onclick="aiSrcToggle(\'' + k + '\')"></button></div>';
   }).join('');

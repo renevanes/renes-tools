@@ -642,16 +642,6 @@ final class Podcasts {
 
     static synchronized void queueClear(Context c) { saveQueue(c, new JSONArray()); }
 
-    /** De eerste uit Hierna halen (of null). */
-    static synchronized JSONObject queuePop(Context c) {
-        JSONArray a = queue(c);
-        if (a.length() == 0) return null;
-        JSONObject r = a.optJSONObject(0);
-        a.remove(0);
-        saveQueue(c, a);
-        return r;
-    }
-
     /**
      * Volgende aflevering (vegen op de hoes, ⏭): eerst Hierna; anders de volgende van dezelfde podcast. {ep, pod} of null.
      */

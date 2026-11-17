@@ -16,12 +16,35 @@ public class PlayerBridge extends PodcastBridge {
     /** "radio", "podcast" of "" (wat het laatst speelde). */
     @JavascriptInterface public String playerSrc() { return Player.src(ctx); }
 
-    /** Kleur van een hoes; antwoord via onPlayerArt({url, color}) (color "" = geen plaatje). */
+    /** Slaaptimer: hoe lang het geluid aan het eind langzaam zachter wordt, in seconden (0 = uit). Geldt voor podcast en
+     *  radio, ook voor een timer die al loopt. */
+    @JavascriptInterface public int sleepFade() { return (int) (SleepFade.gekozen(ctx) / 1000); }
+    /** Welke keuzes deze app kent en wat de standaard is (seconden): {"keuzes":[…],"standaard":n}. De interface werkt
+     *  zichzelf eerder bij dan de app; zo toont hij alleen wat de geïnstalleerde app ook echt kan. */
+    @JavascriptInterface public String sleepFadeKeuzes() {
+        try {
+            org.json.JSONArray k = new org.json.JSONArray();
+            for (long ms : SleepFade.KEUZES) k.put(ms / 1000);
+            return new JSONObject().put("keuzes", k).put("standaard", SleepFade.STANDAARD_MS / 1000).toString();
+        } catch (Exception e) { return "{}"; }
+    }
+    /** Alleen een van de vaste keuzes (0, 15, 20, 30, 60, 120, 180 s); geeft false bij iets anders. */
+    @JavascriptInterface public boolean sleepFadeSet(int sec) { return SleepFade.kies(ctx, sec); }
+
+    /** "1": deze app geeft hoesjes uit zijn eigen cache aan de interface (https://app.renes-tools.local/art?u=…). */
+    @JavascriptInterface public String artLokaal() { return "1"; }
+
+    /** Kleur van een hoes, en de hoes zelf in de cache (voor /art); antwoord altijd via onPlayerArt({url, color})
+     *  (color "" = geen plaatje of het lukte niet). */
     @JavascriptInterface public void playerArt(final String url) {
         if (!Art.usable(url)) return;
         new Thread(() -> {
-            int c = Art.color(ctx, url);
-            try { a.js("onPlayerArt", new JSONObject().put("url", url).put("color", c < 0 ? "" : ArtColor.hex(c)).toString()); } catch (Exception ignored) { }
+            int c = -1;
+            try {
+                if (Art.file(ctx, url) == null) Art.load(ctx, url); // de kleur kan al bekend zijn terwijl het bestand ontbreekt
+                c = Art.color(ctx, url);
+            } catch (Throwable ignored) { }
+            try { a.js("onPlayerArt", new JSONObject().put("url", url).put("color", c < 0 ? "" : ArtColor.hex(c)).toString()); } catch (Throwable ignored) { }
         }, "player-art").start();
     }
 

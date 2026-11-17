@@ -61,12 +61,17 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>Android._kl.open),false,'kluis na bewaren weer op slot');
   await openKluis();
   const id=await p.evaluate(()=>Android._kl.docs[0].id),rij=p.locator('#kl-list .trip',{hasText:'Bonnetjes.pdf'});
-  await rij.click();
-  for(const n of ['Bekijken','Bewerken en ondertekenen','Delen (bijv. mailen of WhatsApp)','Opslaan als…','Vergelijken met…'])assert.equal(await p.locator('#sheet-acts').getByRole('button',{name:n,exact:true}).count(),1,n);
+  // Tik op een document opent de documentkaart (Bekijken en Delen als knop); de rest staat onder Meer
+  // De kluis is een verkenner: het document staat in zijn map (wat de PDF-tools maken in de map PDF)
+  const naar=()=>p.evaluate(()=>{if(klEditId)klOrganizeClose();const d=Android._kl.docs[0];klKies(d&&d.category?'map:'+klPad(d.category):'all');});
+  const meer=async()=>{await naar();await rij.click();await p.click('#kl-doc-meer');};
+  await meer();
+  assert.equal(await p.isVisible('#kl-doc-bekijk')&&await p.isVisible('#kl-doc-deel'),true,'Bekijken en Delen op de kaart');
+  for(const n of ['Bewerken en ondertekenen','Opslaan als…','Vergelijken met…'])assert.equal(await p.locator('#sheet-acts').getByRole('button',{name:n,exact:true}).count(),1,n);
   await p.locator('#sheet-acts').getByRole('button',{name:'Opslaan als…',exact:true}).click();
   await p.waitForFunction(v=>JSON.stringify(Android._kl.savedAs)===JSON.stringify(v),{id,version:0});
   // Bewerken: opent de bewerker met de kluis-PDF; bewaren wordt een nieuwe versie van hetzelfde document
-  await rij.click();await p.locator('#sheet-acts').getByRole('button',{name:'Bewerken en ondertekenen',exact:true}).click();
+  await meer();await p.locator('#sheet-acts').getByRole('button',{name:'Bewerken en ondertekenen',exact:true}).click();
   await p.waitForFunction(id=>current==='pdfedit'&&pdfIn.kluis===id&&pdfEd.revision&&!pdfEd.loading&&pdfEd.meta[0],id);
   await p.evaluate(()=>pdfEditDate());
   await p.click('#pdf-edit-save');await rust();await p.waitForTimeout(80);
@@ -76,7 +81,7 @@ for(const colorScheme of ['light','dark']){
   assert.match(await p.textContent('#s-pdfedit .pdfkeep'),/nieuwe versie/);
   // Uit de app terwijl een kluisdocument in de bewerker staat: Java haalt de leesbare kopie weg (onStop), de bewerker vergeet het ook
   await openKluis();
-  await rij.click();await p.locator('#sheet-acts').getByRole('button',{name:'Bewerken en ondertekenen',exact:true}).click();
+  await meer();await p.locator('#sheet-acts').getByRole('button',{name:'Bewerken en ondertekenen',exact:true}).click();
   await p.waitForFunction(id=>current==='pdfedit'&&pdfIn.kluis===id&&pdfEd.revision&&!pdfEd.loading,id);
   await p.evaluate(()=>onPdfKluisWeg());
   assert.deepEqual(await p.evaluate(()=>[!!pdfIn.kluis,pdfEd.revision,$('#pdf-edit-work').style.display]),[false,'','none'],'bewerker leeg na weggaan');
@@ -89,13 +94,13 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>!!pdfIn.kluis||pdfKluisWegNa),false,'na het resultaat vergeten');
   // 4. Versies: lijst, vergelijken met de huidige, terugzetten
   await openKluis();
-  assert.match(await rij.innerText(),/versie 2/);
-  await rij.click();await p.locator('#sheet-acts').getByRole('button',{name:'Eerdere versie',exact:true}).click();
+  await naar();assert.match(await rij.innerText(),/versie 2/);
+  await meer();await p.locator('#sheet-acts').getByRole('button',{name:'Eerdere versie',exact:true}).click();
   await p.locator('#sheet-acts button').first().click();
   for(const n of ['Bekijken','Vergelijken met de huidige versie','Deze versie terugzetten'])assert.equal(await p.locator('#sheet-acts').getByRole('button',{name:n,exact:true}).count(),1,n);
   await p.locator('#sheet-acts').getByRole('button',{name:'Bekijken',exact:true}).click();
   await p.waitForFunction(v=>JSON.stringify(Android._kl.opened)===JSON.stringify(v),{id,version:1});
-  await rij.click();await p.locator('#sheet-acts').getByRole('button',{name:'Eerdere versie',exact:true}).click();await p.locator('#sheet-acts button').first().click();
+  await meer();await p.locator('#sheet-acts').getByRole('button',{name:'Eerdere versie',exact:true}).click();await p.locator('#sheet-acts button').first().click();
   await p.locator('#sheet-acts').getByRole('button',{name:'Vergelijken met de huidige versie',exact:true}).click();
   await p.waitForFunction(()=>current==='pdfcmp'&&cmp.a&&cmp.b);
   assert.deepEqual(await p.evaluate(()=>[cmp.a.version,cmp.b.version,cmp.a.kluis===cmp.b.kluis]),[1,0,true],'A = versie 1, B = de huidige');
@@ -103,12 +108,12 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>show('kluis'));assert.equal(await p.evaluate(()=>tsZichtbaar()&&ts.tool==='kluis'&&!Android._kl.open),true,'kluis weer op slot');
   await p.click('#ts-open');await p.waitForFunction(()=>current==='kluis'&&!tsZichtbaar()&&$('#kl-open').style.display==='block');
   assert.equal(await p.evaluate(()=>Android._cmp.cleared>0),true,'vergelijken wist zijn bestanden bij weggaan');
-  await rij.click();await p.locator('#sheet-acts').getByRole('button',{name:'Eerdere versie',exact:true}).click();await p.locator('#sheet-acts button').first().click();
+  await meer();await p.locator('#sheet-acts').getByRole('button',{name:'Eerdere versie',exact:true}).click();await p.locator('#sheet-acts button').first().click();
   await p.locator('#sheet-acts').getByRole('button',{name:'Deze versie terugzetten',exact:true}).click();await p.click('#modal-ok');
   await p.waitForFunction(()=>/teruggezet/.test($('#toast').textContent));
   assert.equal(await p.evaluate(id=>Android._kl.docs.find(x=>x.id===id).versions.length,id),2,'wat er stond blijft als versie');
   // Verwijderen noemt ook de eerdere versies
-  await rij.click();await p.locator('#sheet-acts').getByRole('button',{name:'Verwijderen',exact:true}).click();
+  await meer();await p.locator('#sheet-acts').getByRole('button',{name:'Verwijderen',exact:true}).click();
   assert.match(await p.textContent('#modal-text'),/eerdere versies/);await p.click('#modal-cancel');
   // 5. Ontgrendelen geweigerd: dan blijft de PDF onder Gemaakt, met een melding
   await p.evaluate(()=>{Android.kluisClose();window._u=Android.kluisUnlock;Android.kluisUnlock=()=>setTimeout(()=>onKluis('Niet ontgrendeld'),20);show('pdftext');});

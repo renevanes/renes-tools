@@ -572,7 +572,6 @@ public class HomeActivity extends Activity {
         Bridge(HomeActivity act, String m) { a = act; ctx = act.getApplicationContext(); mode = m; }
 
         // ----- launcher (werkblad) -----
-        @JavascriptInterface public String mode() { return mode; }
         @JavascriptInterface public void openDrawer() { a.h.post(a::openDrawer); }
         @JavascriptInterface public void overlayDone(int seq) { a.h.post(() -> a.overlayDone(seq)); }
         @JavascriptInterface public void homeMenu() { a.h.post(() -> { if (a.desk != null) a.desk.homeMenu(); }); }
@@ -763,6 +762,5 @@ public class HomeActivity extends Activity {
                     || ctx.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
         }
         @JavascriptInterface public void logJs(String m) { App.log(ctx, "START", m); }
-        @JavascriptInterface public String version() { try { return new JSONObject().put("name", Version.NAME).toString(); } catch (Exception e) { return "{}"; } }
     }
 }

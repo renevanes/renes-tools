@@ -56,7 +56,8 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     static volatile long sleepAt = 0;             // 0 = geen slaaptimer
     static volatile boolean buffering;            // speelt, maar wacht op gegevens (de interface toont "Bufferen…")
     static volatile boolean sleepEnd = false;     // stoppen aan het einde van de aflevering
-    private long sleepFadeMs = SleepFade.MAX_MS;  // hoe lang het uitfaden duurt (hangt af van de lengte van de timer)
+    private long sleepTotalMs = 0;  // hoe lang de slaaptimer nog liep toen hij gezet werd (bij een korte timer korter uitfaden)
+    private float fadeMin = 1f;     // zo zacht als het uitfaden al was: alleen omlaag (SleepFade.omlaag)
     static volatile PodcastService inst;
 
     /** Sleutel van de aflevering die nu speelt (of laadt), anders "". */
@@ -295,7 +296,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
                 h.removeCallbacks(sleepTick);
                 sleepEnd = m == -1;
                 sleepAt = m > 0 ? System.currentTimeMillis() + m * 60_000L : 0;
-                sleepFadeMs = SleepFade.length(m * 60_000L);
+                sleepTotalMs = m * 60_000L; fadeMin = 1f;
                 setVolume(1f);
                 if (sleepAt > 0) h.post(sleepTick);
                 update();
@@ -307,7 +308,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
                 if (m <= 0) break;
                 long base = sleepAt > System.currentTimeMillis() ? sleepAt : System.currentTimeMillis();
                 sleepAt = base + m * 60_000L; sleepEnd = false;
-                sleepFadeMs = SleepFade.length(sleepAt - System.currentTimeMillis());
+                sleepTotalMs = sleepAt - System.currentTimeMillis(); fadeMin = 1f;
                 setVolume(1f);
                 h.removeCallbacks(sleepTick); h.post(sleepTick);
                 update();
@@ -323,7 +324,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         h.removeCallbacks(idleRun);
         // Vanaf nu is dit wat er speelt: de radio stopt; een slaaptimer daarvan loopt hier door
         long other = Player.takeOver(this, Player.PODCAST);
-        if (other > 0 && sleepAt == 0 && !sleepEnd) { sleepAt = other; sleepFadeMs = SleepFade.length(other - System.currentTimeMillis()); h.removeCallbacks(sleepTick); h.post(sleepTick); }
+        if (other > 0 && sleepAt == 0 && !sleepEnd) { sleepAt = other; sleepTotalMs = other - System.currentTimeMillis(); fadeMin = 1f; h.removeCallbacks(sleepTick); h.post(sleepTick); }
         release();
         prepared = false;
         error = null;
@@ -625,7 +626,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         }
         if (now - saveAt > 10_000) { saveAt = now; saveNow(); }
         if (now - shownAt > 30_000) { shownAt = now; Player.changed(this); } // voortgang in de widget
-        // Slaaptimer "aan het einde van deze aflevering": de laatste minuut langzaam zachter
+        // Slaaptimer "aan het einde van deze aflevering": het laatste stuk langzaam zachter (zo lang als gekozen)
         if (sleepEnd && sleepAt == 0 && dur > 0) {
             setVolume(targetVolume());
             if (endLeft() < endFade() + 1000) { h.postDelayed(tickRun, SleepFade.STEP_MS); return; }
@@ -635,21 +636,20 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
 
     /** Hoeveel speeltijd de aflevering nog heeft (rekening houdend met de snelheid). */
     private long endLeft() { return (long) ((dur - pos) / Math.max(0.5f, speed)); }
-    /** Uitfaden aan het eind van de aflevering: een minuut, bij een heel korte aflevering hooguit een derde. */
-    private long endFade() { return Math.min(END_FADE_MS, dur / 3); }
+    /** Uitfaden aan het eind van de aflevering: zo lang als gekozen, bij een heel korte aflevering hooguit een derde. */
+    private long endFade() { return SleepFade.length(dur, SleepFade.gekozen(this)); }
+    /** Uitfaden bij een slaaptimer op tijd: zo lang als gekozen (ook als het intussen anders gekozen is). */
+    private long sleepFadeMs() { return SleepFade.length(sleepTotalMs, SleepFade.gekozen(this)); }
 
     /** Het volume dat nu hoort: slaaptimer op tijd, of aan het einde van de aflevering, of vol. */
     private float targetVolume() {
-        if (sleepAt > 0) return SleepFade.gain(sleepAt - System.currentTimeMillis(), sleepFadeMs);
+        if (sleepAt > 0) return SleepFade.omlaag(fadeMin, SleepFade.gain(sleepAt - System.currentTimeMillis(), sleepFadeMs()));
         if (sleepEnd && dur > 0) {
             // Niet helemaal stil: de lengte van een aflevering is soms een schatting, het laatste stukje moet nog hoorbaar zijn
             return Math.max(SleepFade.gain(SleepFade.STEP_MS, SleepFade.MAX_MS), SleepFade.gain(endLeft(), endFade()));
         }
         return 1f;
     }
-
-    /** Uitfaden aan het einde van de aflevering (bij de slaaptimer "aan het einde van deze aflevering"). */
-    static final long END_FADE_MS = 60_000;
 
     /** Slaaptimer: de laatste minuten langzaam zachter (zie SleepFade), dan pauzeren (niet stoppen: morgen verder waar je was). */
     private final Runnable sleepTick = this::sleepTick;
@@ -668,8 +668,10 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
             stopSelfResult(lastStartId);
             return;
         }
-        if ("playing".equals(status)) setVolume(SleepFade.gain(left, sleepFadeMs));
-        h.postDelayed(sleepTick, SleepFade.nextDelay(left, sleepFadeMs));
+        long fade = sleepFadeMs();
+        fadeMin = SleepFade.omlaag(fadeMin, SleepFade.gain(left, fade));
+        if ("playing".equals(status)) setVolume(fadeMin);
+        h.postDelayed(sleepTick, SleepFade.wacht(left, fade));
     }
 
     private void saveNow() {

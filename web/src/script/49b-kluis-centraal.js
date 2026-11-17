@@ -132,14 +132,14 @@ function klIsPdf(d){ return /pdf/.test(d.mime || '') || /\.pdf$/i.test(d.name ||
 function klDocSheet(id){
   const x = (klRender.docs || []).find(d => d.id === id); if (!x) return;
   const pdf = klIsPdf(x), nv = (x.versions || []).length;
-  const acts = [[t('Bekijken'), () => pdf ? klOpen(id) : klView(id), 'document']];
+  const acts = klEditId === id ? [] : [[t('Bekijken'), () => pdf ? klOpen(id) : klView(id), 'document']]; // op de documentkaart staan Bekijken en Delen al als knop
   // Weggaan van het kluisscherm doet de kluis op slot: eerst de opdracht (Java controleert de kluis meteen), dan pas het andere scherm
   if (pdf && !isPlay()) acts.push([t('Bewerken en ondertekenen'), () => { klBewerk(id); show('pdfedit'); }, 'sign']);
-  acts.push([t('Delen (bijv. mailen of WhatsApp)'), () => Android.kluisShare(id, 0), 'share']);
+  if (klEditId !== id) acts.push([t('Delen (bijv. mailen of WhatsApp)'), () => Android.kluisShare(id, 0), 'share']);
   acts.push([t('Opslaan als…'), () => Android.kluisSaveAs(id, 0)]);
   if (!isPlay()) acts.push([t('Vergelijken met…'), () => { cmpVanKluis(0, id, 0); show('pdfcmp'); }]);
   if (nv) acts.push([tn(nv, 'Eerdere versie', '{n} eerdere versies'), () => klVersies(id), 'clock']);
-  acts.push(['Categorie en toelichting', () => klOrganizeOpen(id)],
+  acts.push([t('Verplaatsen naar map…'), () => klVerplaats(id), 'folder'],
     [x.favorite ? 'Uit favorieten halen' : 'Als favoriet markeren', () => klFavorite(id)],
     ['Naam wijzigen', () => askInput('Naam', '', x.name, 'Opslaan', v => { const e = Android.kluisRename(id, v); if (e) toast(e); klRender(); })],
     ['Verwijderen', () => askConfirm('Uit de kluis verwijderen?', nv ? t('"{naam}" en de eerdere versies worden definitief gewist.', { naam: x.name }) : t('"{naam}" wordt definitief gewist.', { naam: x.name }), 'Verwijderen', () => { const e = Android.kluisDelete(id); toast(e || 'Verwijderd'); klRender(); })]);
@@ -158,7 +158,7 @@ function klOpen(id){
   Android.kluisOpen(id, 0);
 }
 /* Document toevoegen: van de telefoon, uit Gemaakt of uit het facturendossier (Bron); de kluis is hier al open */
-function klToevoegen(){ bronKies({ titel: t('Document toevoegen'), soort: 'alles', kiezer: 'kluis', zonder: ['kluis'], bestand: () => Android.kluisAdd() }); }
+function klToevoegen(){ klNieuwIn = klMap.startsWith('map:') ? { map: klMap.slice(4), ids: (klRender.docs || []).map(d => d.id), t: Date.now() } : null; bronKies({ titel: t('Document toevoegen'), soort: 'alles', kiezer: 'kluis', zonder: ['kluis'], bestand: () => Android.kluisAdd() }); }
 function klBewerk(id){ pdfSetBusy('Document uit de kluis openen…'); Android.kluisEdit(id); }
 window.onKluisEdit = function(r){
   pdfSetBusy('');

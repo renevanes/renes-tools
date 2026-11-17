@@ -9,7 +9,7 @@ const W = +process.env.UI_WACHT || 1;
 const FOLD = 844;
 const BACK_D = 'M15 18l-6-6 6-6'; // de SVG-chevron van de terugknop
 // Detailschermen (geopend vanuit een ander scherm): kleine kop
-const DETAIL = ['podset', 'spraak', 'erbook', 'ercontents', 'erset', 'cversions', 'cversion', 'vpnedit', 'autoed', 'chats', 'ralarm', 'herstel', 'chat', 'smschat', 'track', 'txd', 'contact', 'note',
+const DETAIL = ['snitem', 'snset', 'snbron', 'setkopp', 'podset', 'spraak', 'erbook', 'ercontents', 'erset', 'cversions', 'cversion', 'vpnedit', 'autoed', 'chats', 'ralarm', 'herstel', 'chat', 'smschat', 'track', 'txd', 'contact', 'note',
   'podcast', 'podlijst', 'podspotify', 'models', 'carset', 'gebruikset', 'gebruikontgr', 'apset', 'apdev', 'aiset', 'aisetvoice', 'aisetdata', 'aichats',
   'sleepset', 'sleepnight', 'checkined', 'checkinq', 'checkincmp', 'setnotif', 'setlook', 'setregio', 'setcrash', 'setslot', 'facstuk', 'facgoogle', 'idcopy', 'formulieren',
   'pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade', 'bkparts', 'bkset', 'bkrestore', 'bkmap', 'wasel', 'waauto', 'warestore',
@@ -195,6 +195,27 @@ const MEER_PRIMAIR = {
     await pg.evaluate(() => { Android._car.trips = false; }); await pg.setViewportSize({ width: 390, height: FOLD });
     await pg.screenshot({ path: __dirname + '/shots/ui-patronen-' + scheme + (en ? '-en' : '') + '.png' });
     await ctx.close();
+  }
+
+  // Knoppen rechts in de kop: overal dezelfde volgorde (licht en donker, eigen acties, instellingen, menu ⋯ als laatste)
+  {
+    const pg = await (await b.newContext({ viewport: { width: 390, height: FOLD } })).newPage();
+    pg.on('pageerror', e => errs.push('kop: ' + e.message));
+    await pg.goto('file://' + path.join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(400 * W);
+    const fout = await pg.evaluate(() => [...document.querySelectorAll('.screen > .hdr')].map(h => {
+      const rang = e => e.classList.contains('hthema') ? 0 : e.classList.contains('hset') ? 2 : (e.dataset.icon === 'more' || e.querySelector('[data-icon="more"]')) ? 3 : 1;
+      const r = [...h.querySelectorAll(':scope > .icon-btn')].map(rang);
+      return r.every((x, i) => !i || r[i - 1] <= x) ? '' : h.parentElement.id + ' ' + r.join('');
+    }).filter(Boolean));
+    ok(!fout.length, 'knoppen in de kop in vaste volgorde: thema, acties, instellingen, ⋯ (' + fout.join('; ') + ')');
+    // Startscherm: een groep met een oneven aantal tegels heeft geen gat (de laatste tegel loopt over de volle breedte)
+    const gat = await pg.evaluate(() => [...document.querySelectorAll('.hgroups:not(.compact) .tiles')].map(g => {
+      const t = [...g.querySelectorAll('.tile')].filter(e => e.getClientRects().length); if (t.length < 2) return '';
+      const l = t[t.length - 1].getBoundingClientRect().width, breed = g.getBoundingClientRect().width;
+      return (t.length % 2 ? l > breed - 2 : l < breed * 0.6) ? '' : t.length + ' tegels, laatste ' + Math.round(l) + ' van ' + Math.round(breed);
+    }).filter(Boolean));
+    ok(!gat.length, 'startscherm: oneven groep zonder gat, even groep in twee kolommen (' + gat.join('; ') + ')');
+    await pg.close();
   }
 
   // Telefoon-skin: rij met tools vervaagt aan de rand, statusregels 44 px

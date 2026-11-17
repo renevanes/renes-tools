@@ -1,5 +1,149 @@
 [
   {
+    "version": "1.220",
+    "date": "2026-11-16",
+    "changes": [
+      "Documentenkluis: de kluis werkt nu als een verkenner. Mappen staan als rijen bovenaan, je tikt erin en ziet bovenaan het pad (Documenten › Wonen › Hypotheek); terug gaat een map omhoog.",
+      "Documentenkluis: mappen in mappen. Schrijf bij verplaatsen of hernoemen een schuine streep, bijvoorbeeld Wonen/Hypotheek. Een map hernoemen neemt alles eronder mee.",
+      "Documentenkluis: je facturen staan als map Facturen in de verkenner, per leverancier, en doen mee met zoeken. Tik op een factuur om hem te bekijken; beheren doe je nog bij Facturen.",
+      "Documentenkluis: een document dat je toevoegt terwijl je in een map staat, komt in die map. Zoeken kijkt ook in de mappen eronder."
+    ]
+  },
+  {
+    "version": "1.219",
+    "date": "2026-11-16",
+    "changes": [
+      "Documentenkluis: tik op een document voor de documentkaart, met Bekijken, Delen en alle andere acties onder Meer.",
+      "Documentenkluis: elk document kan eigenschappen krijgen: soort, van of voor wie, datum, bedrag, verloopdatum en labels. Je ziet ze in de lijst en kunt erop zoeken en sorteren.",
+      "Documentenkluis: nieuwe keuze \"Verloopt binnenkort\" voor documenten die binnen 90 dagen verlopen of al verlopen zijn."
+    ]
+  },
+  {
+    "version": "1.218",
+    "date": "2026-11-16",
+    "changes": [
+      "Signalen: nu ook bronnen uit Tools zelf. Bij Instellingen → Bron uit Tools toevoegen kies je Agenda, Nieuws, Facturen, Notities of Taken van Tools.",
+      "Signalen, Agenda: een bericht als een afspraak eraan komt (een uur tot twee dagen van tevoren, standaard een dag).",
+      "Signalen, Nieuws: artikelen uit je nieuwsbronnen die bij je trefwoorden passen; Tools haalt het nieuws daarvoor ook op de achtergrond op.",
+      "Signalen, Facturen en Notities: nieuwe facturen in het dossier, en lijsten met open punten die een tijd niet zijn aangeraakt.",
+      "Signalen, Taken van Tools: als de backup, facturen ophalen of het bijwerken van Toiletten en douches mislukt.",
+      "Signalen: staat een tool op slot (Extra ontgrendelen), dan staat de inhoud van zijn berichten niet in de melding en niet in de lijst tot je ontgrendelt."
+    ]
+  },
+  {
+    "version": "1.217",
+    "date": "2026-11-16",
+    "changes": [
+      "Nieuw: Signalen. Volg een website (bijvoorbeeld het nieuws van A Seal) op trefwoorden en krijg een melding als er iets nieuws staat. Je vindt het op het startscherm bij Dag & gezondheid.",
+      "Signalen: per bron kies je hoe vaak Tools kijkt (elk uur tot elke week, standaard 4 keer per dag en alleen via wifi) en hoe je het hoort: meteen een melding, in het dagoverzicht of alleen in Signalen.",
+      "Signalen: stille uren (standaard 22:00 tot 07:30), behalve voor een bron die je belangrijk noemt. Werkt een bron drie keer achter elkaar niet, dan krijg je daar één melding van.",
+      "Signalen: staat er een datum in een bericht, dan zet je het met één tik in je agenda. Je kunt er ook een notitie van maken, het laten voorlezen, laten samenvatten door de lokale AI of je er later aan laten herinneren.",
+      "Signalen: met Proef zie je vooraf wat een bron nu zou vinden. Alles gebeurt op je telefoon; er zit geen dienst tussen."
+    ]
+  },
+  {
+    "version": "1.216",
+    "date": "2026-11-16",
+    "changes": [
+      "Documentenkluis: je documenten staan nu in mappen. Bovenaan kies je een map (met het aantal documenten erbij), Alle of Favorieten.",
+      "Documentenkluis: favorieten staan bovenaan, en met de ster naast een document zet je een favoriet in één tik aan of uit.",
+      "Documentenkluis: een document verplaats je via het menu naar een bestaande of nieuwe map, en een map kun je hernoemen.",
+      "Documentenkluis: overzichtelijker lijst met een pictogram per soort document, en sorteren per map."
+    ]
+  },
+  {
+    "version": "1.215",
+    "date": "2026-11-16",
+    "changes": [
+      "Documentenkluis: het zoekveld vindt nu ook woorden in de tekst van je documenten (PDF's en foto's), met het stukje tekst erbij"
+    ]
+  },
+  {
+    "version": "1.214",
+    "date": "2026-11-16",
+    "changes": [
+      "Instellingen: nieuw scherm Koppelingen met alle diensten buiten je telefoon (Spotify, Google, Eigen Cloud, mailserver, AudD, statistieken) en hun stand"
+    ]
+  },
+  {
+    "version": "1.213",
+    "date": "2026-11-16",
+    "changes": [
+      "Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"
+    ]
+  },
+  {
+    "version": "1.212",
+    "date": "2026-11-16",
+    "changes": [
+      "Slaaptimer: het venster is overzichtelijker. \"Einde van deze aflevering\" staat als gewone keuze onder de tijden, en het zachter worden aan het eind is een rustige regel onderaan."
+    ]
+  },
+  {
+    "version": "1.211",
+    "date": "2026-11-16",
+    "changes": [
+      "Slaaptimer: het langzaam zachter worden duurt standaard 20 seconden (keuze 20 seconden erbij in het slaaptimervenster)."
+    ]
+  },
+  {
+    "version": "1.210",
+    "date": "2026-11-16",
+    "changes": [
+      "Slaaptimer: het langzaam zachter worden aan het eind is korter (standaard 1 minuut in plaats van 3) en zelf in te stellen in het slaaptimervenster: uit, 15 of 30 seconden, of 1, 2 of 3 minuten."
+    ]
+  },
+  {
+    "version": "1.209",
+    "date": "2026-11-16",
+    "changes": [
+      "Speler: het belangrijkste past nu op één scherm. De hoes past zich aan de schermhoogte aan, en waar het speelt, slaaptimer, snelheid en stoppen staan in één rij.",
+      "Slaaptimer: het vreemde vakje met kruis is een maantje geworden, en het venster is rustiger: één tik op een tijd start de timer, een eigen tijd staat ingeklapt.",
+      "Speler: hoesjes staan sneller in beeld. Met de nieuwe app komen ze verkleind uit de eigen opslag op de telefoon, in plaats van steeds van internet."
+    ]
+  },
+  {
+    "version": "1.208",
+    "date": "2026-11-15",
+    "changes": [
+      "Nieuwe installatie: na het overslaan van terugzetten staat op het startscherm 'Aan de slag' met drie stappen (favorieten, backup, app-slot)"
+    ]
+  },
+  {
+    "version": "1.207",
+    "date": "2026-11-13",
+    "changes": [
+      "Check-in: al je antwoorden en opmerkingen exporteren als CSV-bestand voor een rekenblad (menu ⋯ rechtsboven)"
+    ]
+  },
+  {
+    "version": "1.206",
+    "date": "2026-11-13",
+    "changes": [
+      "Podcasts en Nieuws: abonnementen en bronnen importeren en exporteren als OPML-bestand (menu ⋯), om over te stappen van of naar een andere app"
+    ]
+  },
+  {
+    "version": "1.205",
+    "date": "2026-11-13",
+    "changes": [
+      "Startscherm: tik op de naam van een groep om hem in of uit te klappen; de app onthoudt het",
+      "Notities: de hint over Nieuwe lijst blijft zichtbaar en het invoerveld schaalt mee met grotere tekst"
+    ]
+  },
+  {
+    "version": "1.204",
+    "date": "2026-11-13",
+    "changes": [
+      "Startscherm: een groep met een oneven aantal tegels heeft geen gat meer; de laatste tegel loopt over de volle breedte",
+      "Knoppen rechtsboven staan in elke tool in dezelfde volgorde: licht en donker, acties, instellingen en als laatste het menu ⋯ (Nieuws en Toiletten aangepast)",
+      "Toegang geven: dezelfde tekst en dezelfde knop in alle tools",
+      "Agenda: lege dagen achter elkaar staan in de weekweergave als één regel in plaats van per dag \"Niets\"",
+      "E-reader: het scherm begint meteen met Boek toevoegen, zonder de slogan erboven",
+      "Notities: het invoerveld is één regel tot je iets schrijft, zodat je notities en lijsten hoger op het scherm staan"
+    ]
+  },
+  {
     "version": "1.203",
     "date": "2026-11-13",
     "changes": [

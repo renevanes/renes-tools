@@ -353,6 +353,11 @@ if (!window.Android) window.Android = (function(){
      * ontgrendelen uit; anders onKluis('vraag') en vraagt het slotscherm */
     kluisUnlock(){ const k = this._kl; if (!k.open) { if (this._tsNeem('kluis')) k.vragen = (k.vragen || 0) + 1; else if (this._tslot.aan.includes('kluis')) { setTimeout(() => onKluis('vraag'), 0); return; } }
       k.open = true; setTimeout(() => onKluis(true), 0); },
+    /* Zoeken in de tekst: _kl.tekst = {id: tekst}; documenten zonder tekst tellen als "nog niet gelezen" */
+    kluisZoek(q){ if (!this._kl.open) { setTimeout(() => onKluisZoek('{"locked":true}'), 10); return; } const T = this._kl.tekst || {}, w = String(q).toLowerCase().split(/\s+/).filter(Boolean), hits = {}; let zonder = 0;
+      for (const d of this._kl.docs) { const t = T[d.id]; if (t == null) { zonder++; continue; } const l = t.toLowerCase(); if (w.length && w.every(x => l.includes(x))) { const i = l.indexOf(w[0]); hits[d.id] = (i > 30 ? '… ' : '') + t.slice(Math.max(0, i - 30), i + 60); } }
+      (this._klZoek = this._klZoek || []).push(q); setTimeout(() => onKluisZoek(JSON.stringify({ q, hits, zonder })), 20); },
+    kluisTekstBijwerken(){ if (!this._kl.open) return; this._klTekstStart = (this._klTekstStart || 0) + 1; const n = window.__testKluisLezen || 0; if (n) { setTimeout(() => onKluisTekst(JSON.stringify({ klaar: 0, totaal: n, bezig: true })), 10); setTimeout(() => onKluisTekst(JSON.stringify({ klaar: n, totaal: n, bezig: false })), 400); } },
     kluisList(){ return this._kl.open ? JSON.stringify({docs: this._kl.docs, left: 300000}) : '{"locked":true}'; },
     kluisAdd(){ this._kl.docs.push({id: 'k2abcdef', name: 'Polis <b>.pdf', mime: 'application/pdf', size: 1000, t: Date.now()}); setTimeout(() => onKluisChanged('ok'), 30); },
     kluisView(id){ this._klView = id; }, kluisDelete(id){ this._kl.docs = this._kl.docs.filter(d => d.id !== id); return ''; }, kluisRename(id, n){ const d = this._kl.docs.find(x => x.id === id); if (d) d.name = n; return ''; }, kluisClose(){ this._kl.open = false; },
@@ -365,7 +370,7 @@ if (!window.Android) window.Android = (function(){
     kluisSaveAs(id,version){this._kl.savedAs={id,version};},
     kluisRestore(id,n){setTimeout(()=>{const d=this._kl.docs.find(x=>x.id===id);if(!this._kl.open||!d||!d.versions||!d.versions[n-1]){onKluisVersie({error:'Deze versie bestaat niet meer'});return;}d.versions.push({blob:'v'+Date.now().toString(36),t:d.t,size:d.size,name:d.name,note:d.vnote||''});d.t=Date.now();d.vnote='Versie '+n+' teruggezet';onKluisVersie({ok:true});},30);},
     kluisLinked(kind,ref){if(!this._kl.open)return '{"locked":true}';return JSON.stringify({docs:this._kl.docs.filter(d=>d.link&&d.link.kind===kind&&d.link.ref===ref)});},
-    kluisOrganize(id,json){if(!this._kl.open)return 'De kluis is op slot';if(this._kl.error)return this._kl.error;const d=this._kl.docs.find(d=>d.id===id);if(!d)return 'Document niet gevonden';const p=JSON.parse(json);if((p.category||'').length>60||(p.note||'').length>1000)return 'Documentgegevens zijn te lang';Object.assign(d,p);return '';},
+    kluisOrganize(id,json){if(!this._kl.open)return 'De kluis is op slot';if(this._kl.error)return this._kl.error;const d=this._kl.docs.find(d=>d.id===id);if(!d)return 'Document niet gevonden';const p=JSON.parse(json);if((p.category||'').length>60||(p.note||'').length>1000)return 'Documentgegevens zijn te lang';if(p.props){const r=p.props,dat=v=>!v||/^\d{4}-\d{2}-\d{2}$/.test(v);if(!dat(r.datum)||!dat(r.verloopt))return 'Ongeldige datum';if(r.bedrag&&!/^-?\d{1,9}(\.\d{1,2})?$/.test(r.bedrag))return 'Ongeldig bedrag';const schoon={};for(const k of ['soort','partij','datum','verloopt','bedrag'])if(r[k])schoon[k]=r[k];{const g=new Set(),l=(r.labels||[]).map(x=>String(x).trim()).filter(x=>{const k=x.toLowerCase();if(!x||g.has(k))return false;g.add(k);return true;}).slice(0,12);if(l.length)schoon.labels=l;}p.props=schoon;if(!Object.keys(schoon).length){delete p.props;delete d.props;}}Object.assign(d,p);return '';},
     pdfSignatureLoad(){return JSON.stringify(this._signatureReadError?{error:this._signatureReadError}:{signature:this._signature||null});},
     pdfSignatureSave(json){if(this._signatureError)return this._signatureError;const s=JSON.parse(json);if(!sigValid(s))return 'Ongeldige handtekening';this._signature=JSON.parse(JSON.stringify(s));return '';},
     pdfSignatureDelete(){if(this._signatureError)return this._signatureError;this._signature=null;return '';},
@@ -440,6 +445,13 @@ if (!window.Android) window.Android = (function(){
     podSubscribe(j){ const p = JSON.parse(j); if (!/^https?:/.test(p.feed || '')) return 'Ongeldig feed-adres'; if (!this._pc.subs.some(x => x.feed === p.feed)) this._pc.subs.push(Object.assign({ fresh: 2 }, p)); return ''; },
     podUnsubscribe(id){ this._pc.subs = this._pc.subs.filter(x => x.id !== id); },
     podSubs(){ return JSON.stringify(this._pc.subs); },
+    /* OPML (OpmlWerk): aantallen terug; __testOpml bepaalt de uitkomst van importeren, 'weg' = de kiezer weggetikt */
+    _opml: [],
+    opmlExport(soort){ if (!['podcasts','nieuws'].includes(soort)) return; this._opml.push('export:' + soort); const n = soort === 'podcasts' ? this._pc.subs.length : 3;
+      setTimeout(() => onOpml(JSON.stringify(n ? { soort, actie: 'export', nieuw: n, al: 0, mislukt: 0 } : { soort, actie: 'export', nieuw: 0, al: 0, mislukt: 0, error: 'Er is nog niets om te exporteren' })), 30); },
+    opmlImport(soort){ if (!['podcasts','nieuws'].includes(soort)) return; this._opml.push('import:' + soort); const u = window.__testOpml || { nieuw: 2, al: 1, mislukt: 0 };
+      if (u !== 'weg') setTimeout(() => onOpmlBezig(soort), 5);
+      setTimeout(() => onOpml(JSON.stringify(u === 'weg' ? { soort, actie: 'import', nieuw: 0, al: 0, mislukt: 0, geannuleerd: true } : Object.assign({ soort, actie: 'import', nieuw: 0, al: 0, mislukt: 0, over: 0 }, u))), window.__testOpmlWacht || 30); },
     // Zoals Podcasts.latest: nog niet beluisterd, uit alles wat je volgt, nieuwste eerst; isNew = de eerste "fresh" van een podcast
     // (zonder beschrijving: die haalt podEpDesc; niets ouder dan 60 dagen; weggehaald of uit Verder luisteren gehaald blijft weg)
     podLatest(n){ this._pc.calls.push(['latest', n]); const out = [], hid = this._pc.hidden || [], old = Date.now() - 60 * 864e5;
@@ -532,6 +544,10 @@ if (!window.Android) window.Android = (function(){
       const t = (id, text, emoji, color, scale, rhythm, time, labels, voice) => ({ id, n: C.next++, text, emoji, color, scale, options: cedDefaults(scale), rhythm, days: [1, 2, 3, 4, 5, 6, 7], wday: 5, dom: 1, times: [time], until: '23:59', quietWeekend: false, pauseUntil: '',
         on: false, archived: false, tpl: true, perPeriod: 'one', editable: true, backfill: true, note: true, voice, labels: true, labelList: labels, created: now, updated: now });
       C.qs.push(t('voel', 'Hoe voel je je?', '🙂', 'blue', 'smileys5', 'daily', '21:00', ['slecht geslapen', 'moe', 'druk', 'ontspannen', 'gesport'], true), t('werk', 'Hoe was je werk?', '💼', 'green', 'buttons3', 'workdays', '17:30', ['druk', 'rustig', 'veel overleg', 'thuisgewerkt'], false)); return true; },
+    /* Check-in als CSV: {n} = antwoorden en opmerkingen; niets = een melding */
+    _ciCsv: 0,
+    checkinExport(){ this._ciCsv++; this._ciSeed(); const n = this._ci.ans.length + this._ci.rem.length;
+      setTimeout(() => onCheckinExport(JSON.stringify(n ? { n } : { error: 'Er is nog niets om te exporteren' })), 30); },
     checkinState(){ const C = this._ci, now = Date.now(), first = this._ciSeed();
       const qs = C.qs.map(q0 => { const q = JSON.parse(JSON.stringify(q0)), by = this._ciBy(q.id); q.total = C.ans.filter(a => a.q === q.id).length;
         if (!q.archived) { const s = this._ciCurrent(q, now); if (s) q.cur = this._ciSlotJson(q, s, by, now); q.next = this._ciNext(q, now); q.streak = this._ciStreak(q, by, now);
@@ -684,7 +700,7 @@ if (!window.Android) window.Android = (function(){
       setTimeout(() => { Object.assign(m, { state: 'verifying', pct: 40 }); }, 450); setTimeout(() => { A.st[id] = { state: 'ready' }; onAiModels(''); }, 700); return ''; },
     aiDelete(id){ this._ai.st[id] = { state: 'none' }; }, aiUse(id){ this._ai.chat = id; }, aiPref(n, on){ const A = this._ai; if (/^src_/.test(n)) { const k = n.slice(4); if (!(k in A.src)) return; A.src[k] = on; A.calls.push(['src', k, on]); if (this._aiReady('zoek')) { setTimeout(() => onAiIndex({ busy: true, done: 1, total: 3 }), 40); setTimeout(() => onAiIndex({ items: 4, chunks: 9, at: Date.now(), quiet: true }), A.idxMs || 150); } return; } if (['wifiOnly', 'notes', 'voiceSend', 'speakVoice', 'talkSpeak', 'talkAuto', 'talkBarge'].includes(n)) A[n] = on; },
     // Modellen beheren: zoals Models.json (taalmodellen, zoekmodel en de spraakmodellen)
-    _md: { free: 20e9, online: true, metered: false, last: {}, leftovers: 0, txBusy: false, appMs: 500, tts: { state: '', engine: '' }, ttsNext: { state: 'ok', engine: 'Spraakservices van Google' }, calls: [] },
+    _md: { free: 20e9, online: true, metered: false, last: {}, leftovers: 0, txBusy: false, tts: { state: '', engine: '' }, ttsNext: { state: 'ok', engine: 'Spraakservices van Google' }, calls: [] },
     ttsCheck(){ const D = this._md; D.calls.push('ttsCheck'); D.tts = { state: 'checking', engine: '' }; setTimeout(() => { D.tts = Object.assign({}, D.ttsNext); onAiModels(''); }, 120); },
     ttsSettings(){ this._md.calls.push('ttsSettings'); }, ttsInstall(){ this._md.calls.push('ttsInstall'); }, aiResume(){ this._md.calls.push('aiResume'); },
     modelsState(){ const A = this._ai, D = this._md, T = this._tx, chat = this._aiChat();
@@ -697,11 +713,6 @@ if (!window.Android) window.Android = (function(){
       const all = ai.concat(sp), used = all.filter(m => m.state === 'ready').reduce((a, m) => a + m.size, 0);
       return JSON.stringify({ free: D.free, online: D.online, metered: D.metered, wifiOnly: A.wifiOnly, supported: true, txBusy: D.txBusy, models: all, used, leftovers: (A.orphans || 0) + (D.leftovers || 0), ram: A.ram, tts: D.tts, speech:JSON.parse(this.speechModels()), engines: { ai: 'llama.cpp b11500', zoek: 'llama.cpp b11500', spraak: 'whisper.cpp 1.9.5' } }); },
     modelsClean(){ const n = (this._ai.orphans || 0) + (this._md.leftovers || 0); this._ai.orphans = 0; this._md.leftovers = 0; return String(n); },
-    aiDownloadApp(id){ const A = this._ai, D = this._md, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dlApp', id]);
-      Object.assign(m, { state: 'running', via: 'app', bytes: m.bytes || 0, total: m.total || 1e9, reason: undefined });
-      setTimeout(() => { if (A.st[id] === m) m.bytes = Math.max(m.bytes, 8e8); }, 200);
-      setTimeout(() => { if (A.st[id] === m) A.st[id] = { state: 'verifying', pct: 50 }; }, D.appMs);
-      setTimeout(() => { if (A.st[id].state === 'verifying') { A.st[id] = { state: 'ready' }; onAiModels(''); } }, D.appMs + 250); return ''; },
     aiIndexStop(){ this._ai.calls.push(['indexStop']); },
     aiIndexAuto(){ this._ai.calls.push(['indexAuto']); },
     // Zoals AiBridge: bezig tot het antwoord (of het stoppen) helemaal klaar is; een tweede vraag intussen wordt geweigerd
@@ -833,6 +844,76 @@ if (!window.Android) window.Android = (function(){
         bij++;
       });
       return JSON.stringify({ ok: true, bijgewerkt: bij, los, mislukt: 0 }); },
+    // ----- Signalen: één bron (A Seal), drie berichten en een nagebootste pagina voor Proef en Nu nakijken -----
+    _snInit(){
+      if (this._sn) return this._sn;
+      const nu = Date.now(), dag = n => rgDayAdd(rgToday(), n);
+      this._sn = { perm: true, gedempt: false, bezig: false, traag: 60,
+        inst: { stilAan: true, stilVan: '22:00', stilTot: '07:30', overzicht: '18:00' },
+        bronnen: [{ id: 's00000001', soort: 'web', naam: 'A Seal: vrijlatingen', url: 'https://www.aseal.nl/nieuws', woorden: ['vrijlating'], alleen: 'https://www.aseal.nl/nieuws/', elke: 6, wifi: true, melden: 'direct', belangrijk: false, aan: true,
+          lastOk: nu - 3600000, lastTry: nu - 3600000, fout: '', fouten: 0, links: 24, klaar: true }],
+        items: [
+          { id: 'i0000000000000001', bron: 's00000001', bronNaam: 'A Seal: vrijlatingen', titel: 'Vrijlating zeehond op zaterdag', tekst: 'Zaterdag laten we een zeehond vrij op het strand. Om 14.00 uur bij de strandopgang.', link: 'https://www.aseal.nl/nieuws/vrijlating-zeehond/', gevonden: nu - 7200000, dag: dag(5), tijd: '14:00', status: 'nieuw', later: 0, gemeld: true },
+          { id: 'i0000000000000002', bron: 's00000001', bronNaam: 'A Seal: vrijlatingen', titel: '<img src=x onerror="window.__snXss=1">Vrijlating <b>pup</b>', tekst: '<script>window.__snXss=1<\/script>Tekst zonder datum.', link: 'https://www.aseal.nl/nieuws/pup/', gevonden: nu - 86400000, dag: '', tijd: '', status: 'gelezen', later: 0, gemeld: true },
+          { id: 'i0000000000000003', bron: 's00000001', bronNaam: 'A Seal: vrijlatingen', titel: 'Vrijlating vorige maand', tekst: 'Oud bericht.', link: 'https://www.aseal.nl/nieuws/oud/', gevonden: nu - 30 * 86400000, dag: dag(-25), tijd: '', status: 'klaar', later: 0, gemeld: true }],
+        pagina: [['https://www.aseal.nl/nieuws/vrijlating-zeehond/', 'Vrijlating zeehond op zaterdag 14 november 2026'], ['https://www.aseal.nl/nieuws/openingstijden/', 'Openingstijden wintertijd'], ['https://www.aseal.nl/nieuws/pup/', 'Vrijlating pup']],
+        nieuw: [], ai: null };
+      return this._sn;
+    },
+    signalenStaat(){ const st = this._snInit(), nu = Date.now();
+      return JSON.stringify({ bronnen: st.bronnen.map(b => Object.assign({}, b, b.aan !== false ? { volgende: Math.max(nu, (b.lastOk || 0) + b.elke * 3600000) } : {})), inst: st.inst, items: st.items, onleesbaar: false, bezig: st.bezig, perm: st.perm, gedempt: st.gedempt,
+        sjablonen: [{ sjabloon: 'aseal', naam: 'A Seal: vrijlatingen', url: 'https://www.aseal.nl/nieuws', woorden: ['vrijlating', 'vrijgelaten'], alleen: 'https://www.aseal.nl/nieuws/' }], elke: [1, 3, 6, 12, 24, 168] }); },
+    signalenBron(j){ const st = this._snInit(), b = JSON.parse(j || '{}'), soort = ['agenda', 'nieuws', 'facturen', 'notities', 'taken'].includes(b.soort) ? b.soort : 'web', web = soort === 'web';
+      let url = web ? String(b.url || '').trim() : ''; if (url && !url.includes('://')) url = 'https://' + url;
+      if (web && !/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(url)) return JSON.stringify({ ok: false, fout: t('Vul een https-adres van een website in.') });
+      const woorden = web || soort === 'nieuws' ? (b.woorden || []).slice(0, 20) : [];
+      if (soort === 'nieuws' && !woorden.length) return JSON.stringify({ ok: false, fout: t('Vul minstens één trefwoord in: anders komt al het nieuws in Signalen.') });
+      const std = { agenda: 1, nieuws: 3, notities: 24 }[soort] || 6, namen = { agenda: 'Agenda', nieuws: 'Nieuws', facturen: 'Facturen', notities: 'Notities', taken: 'Taken van Tools' };
+      const net = { id: b.id || '', soort, naam: String(b.naam || '').trim() || (web ? url.replace(/^https:\/\/(www\.)?/, '').split('/')[0] : namen[soort]), url, woorden, alleen: web ? b.alleen || '' : '',
+        elke: [1, 3, 6, 12, 24, 168].includes(b.elke) ? b.elke : std, wifi: (web || soort === 'nieuws') && b.wifi !== false, melden: ['overzicht', 'inbox'].includes(b.melden) ? b.melden : 'direct', belangrijk: !!b.belangrijk, aan: b.aan !== false };
+      if (soort === 'agenda') net.vooraf = [1, 3, 12, 24, 48].includes(b.vooraf) ? b.vooraf : 24;
+      if (soort === 'notities') net.dagen = [3, 7, 14, 30].includes(b.dagen) ? b.dagen : 7;
+      const i = st.bronnen.findIndex(x => x.id && x.id === net.id);
+      if (i < 0) {
+        if (!web && st.bronnen.some(x => x.soort === soort)) return JSON.stringify({ ok: false, fout: t('Die bron staat er al. Je kunt hem aanpassen.') });
+        net.id = 's' + (10000000 + st.bronnen.length + 1).toString(16).padStart(8, '0'); st.bronnen.push(net); }
+      else { const oud = st.bronnen[i], zelfde = oud.url === net.url && oud.alleen === net.alleen && JSON.stringify(oud.woorden) === JSON.stringify(net.woorden);
+        st.bronnen[i] = zelfde ? Object.assign({}, oud, net) : net; }
+      return JSON.stringify({ ok: true, id: net.id }); },
+    signalenBronWis(id){ const st = this._snInit(); st.bronnen = st.bronnen.filter(b => b.id !== id); return JSON.stringify({ ok: true }); },
+    signalenInst(j){ const st = this._snInit(), i = JSON.parse(j || '{}'), hm = v => /^([01]\d|2[0-3]):[0-5]\d$/.test(v || '');
+      st.inst = { stilAan: i.stilAan !== false, stilVan: hm(i.stilVan) ? i.stilVan : '22:00', stilTot: hm(i.stilTot) ? i.stilTot : '07:30', overzicht: hm(i.overzicht) ? i.overzicht : '18:00' };
+      return JSON.stringify({ ok: true }); },
+    signalenScan(id){ const st = this._snInit();
+      if (st.bezig) return false;
+      st.bezig = true; st.scans = (st.scans || []).concat(id || '');
+      setTimeout(() => { const nu = Date.now(), erbij = st.nieuw.splice(0);
+        st.bronnen.forEach(b => { if ((!id && b.aan !== false) || b.id === id) { b.lastOk = b.lastTry = nu; b.klaar = true; b.fout = ''; b.links = st.pagina.length; } });
+        st.items = erbij.concat(st.items); st.bezig = false;
+        if (typeof window.onSignalen === 'function') window.onSignalen({ ok: true, nieuw: erbij.length, bronnen: 1, fouten: 0 }); }, st.traag);
+      return true; },
+    signalenProef(j){ const st = this._snInit(), b = JSON.parse(j || '{}'), vouw = s => String(s || '').normalize('NFD').replace(/\p{M}+/gu, '').toLowerCase();
+      setTimeout(() => { if (typeof window.onSignalenProef !== 'function') return;
+        if (b.soort && b.soort !== 'web') { const g = b.soort === 'agenda' ? [{ titel: 'Overleg', link: '', dag: rgDayAdd(rgToday(), 1) }] : []; window.onSignalenProef({ ok: true, links: g.length, gevonden: g, intern: true }); return; }
+        if (/kapot/.test(b.url || '')) { window.onSignalenProef({ ok: false, fout: t('De website antwoordt met {code}', { code: 404 }) }); return; }
+        const g = st.pagina.filter(l => !(b.woorden || []).length || b.woorden.some(w => vouw(l[1] + ' ' + l[0]).includes(vouw(w)))).map(l => ({ titel: l[1], link: l[0], dag: /14 november 2026/.test(l[1]) ? '2026-11-14' : '' }));
+        window.onSignalenProef({ ok: true, links: st.pagina.length, gevonden: g }); }, st.traag); },
+    signalenItem(id, actie, arg){ const st = this._snInit(), it = st.items.find(x => x.id === id);
+      if (!it) return false;
+      if (actie === 'wis') st.items = st.items.filter(x => x.id !== id);
+      else if (actie === 'gelezen') { if (it.status === 'nieuw') it.status = 'gelezen'; }
+      else if (actie === 'klaar') { it.status = 'klaar'; it.later = 0; }
+      else if (actie === 'open') it.status = 'gelezen';
+      else if (actie === 'later') { const ms = +arg; if (!(ms > Date.now())) return false; it.later = ms; it.gemeld = false; it.status = 'gelezen'; }
+      else if (actie === 'dag') it.inAgenda = true;
+      else return false;
+      return true; },
+    signalenAi(id){ const st = this._snInit(), it = st.items.find(x => x.id === id);
+      if (!it) return t('Dat bericht staat er niet meer.');
+      if (st.aiBezet) return 'De assistent is nog bezig';
+      st.ai = setTimeout(() => { st.ai = null; if (typeof window.onSignalenAiToken === 'function') window.onSignalenAiToken('Een zeehond wordt vrijgelaten, '); if (typeof window.onSignalenAiToken === 'function') window.onSignalenAiToken('zaterdag om 14.00 uur op het strand.'); if (typeof window.onSignalenAiDone === 'function') window.onSignalenAiDone({}); }, st.traag);
+      return ''; },
+    signalenAiStop(){ const st = this._snInit(); if (st.ai) { clearTimeout(st.ai); st.ai = null; st.aiGestopt = true; } },
     aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },
     aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },
     _aiCfgDef: { style: 'normaal', creative: 'normaal', lang: 'app', history: '24', power: 'normaal', idle: '4', mem: 'aan', learn: 'vragen', talkSilence: '1300', about: '', instr: '' },
@@ -952,6 +1033,10 @@ if (!window.Android) window.Android = (function(){
       if (src === 'podcast' && this._rd.st.status && this._rd.st.status !== 'stopped') this._rd.st = { status: 'stopped', title: '', last: this._rd.st.station };
       if (src === 'radio' && this._pc.st.ep) { if (this._pc.st.status === 'playing') { this._pc.st.pos = this._pcPos(); this._pc.st.status = 'paused'; this._pcSave(); } this._pc.st.sleepAt = 0; this._pc.st.sleepEnd = false; } },
     playerArt(u){ this._artAsked = (this._artAsked || []).concat([u]); setTimeout(() => onPlayerArt({ url: u, color: '#7a2a1e' }), 30); },
+    artLokaal(){ return this._artLokaal ? '1' : ''; },
+    sleepFade(){ return this._fade == null ? 20 : this._fade; },
+    sleepFadeKeuzes(){ return JSON.stringify({ keuzes: [0, 15, 20, 30, 60, 120, 180], standaard: 20 }); },
+    sleepFadeSet(s){ if (![0, 15, 20, 30, 60, 120, 180].includes(+s)) return false; this._fade = +s; return true; },
     playerNext(src){ return this._step(1, src); }, playerPrev(src){ return this._step(-1, src); },
     _step(d, src){
       if ((src || this._src) === 'radio') { const f = this._rd.favs; if (!f.length) return 'Zet zenders bij je favorieten (☆) om te wisselen';

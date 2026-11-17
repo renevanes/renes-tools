@@ -71,6 +71,7 @@ public class AlarmReceiver extends BroadcastReceiver {
             AutoActions.armTimes(c);
             AutoActions.armCharge(c);
             Vpn.armAuto(c);
+            try { SignalenJob.schedule(c); } catch (Throwable ignored) { } // ook na een herstart of het terugzetten van een backup
             MockLoc.cleanupIfStale(c); // na een update of herstart geen gekozen plek laten hangen
         }
         RadioWidget.refresh(c);
@@ -90,6 +91,7 @@ public class AlarmReceiver extends BroadcastReceiver {
             AutoActions.armTimes(c);
             FacturenJob.schedule(c);
             ToilettenJob.schedule(c);
+            SignalenJob.schedule(c);
         }
         RadioWidget.refresh(c);
     }

@@ -512,9 +512,6 @@ final class Facturen {
         }
     }
 
-    /** De hele lijst in één keer bewaren (na samenvoegen of een regel onthouden); elke leverancier wordt gecontroleerd. */
-    static void bewaarAlle(Context c, JSONArray levs) throws Exception { schrijfAlle(c, normaalAlle(levs)); }
-
     /** De hele lijst gecontroleerd (fout = Nederlandse uitleg), zonder iets te schrijven. Zuiver. */
     static JSONArray normaalAlle(JSONArray levs) throws Exception {
         JSONArray n = new JSONArray();

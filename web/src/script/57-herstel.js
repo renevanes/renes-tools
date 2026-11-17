@@ -26,7 +26,7 @@ function hsScanNow(){ hsStep('hs-bezig'); $('#hs-bezig-t').textContent = 'Backup
 window.onHerstelFolder = function(){ if (current === 'herstel') hsScanNow(); };
 function hsSkip(){
   const s = hsState();
-  if (s.pending) { Android.herstelSkip(); toast('Overgeslagen. Terugzetten kan later bij Alles back-uppen.'); }
+  if (s.pending) { Android.herstelSkip(); if (!SOLO) store.set('homeStart', 1); toast('Overgeslagen. Terugzetten kan later bij Alles back-uppen.'); }
   const terug = !s.pending && hsManual && jumpStack.length && jumpStack[jumpStack.length - 1].to === 'herstel';
   Android.herstelCancel(); hsManual = false;
   if (terug) goBack(); else hsEnd();

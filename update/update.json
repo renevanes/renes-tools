@@ -1,15 +1,159 @@
 {
   "app": "Tools",
-  "versionName": "1.203",
-  "versionCode": 204,
-  "nativeLevel": 180,
+  "versionName": "1.220",
+  "versionCode": 221,
+  "nativeLevel": 190,
   "web": "index.html",
-  "webSha256": "1383b56b237a5f8a754f7c1314441beaf888ca9254550a192624c1fcf7864f0a",
+  "webSha256": "43b0af95bc487722f1f5f6989c1e21965d0ebb054dcc23f489648b97bea16855",
   "start": "start.html",
-  "startSha256": "8b0469decd5eabb69b9b688dd2476422d62820eb31dcbdf4a738923732a37b9f",
+  "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "80cfcf4a48d22aa7b43f61a60dcbdb12b6085c50a79ae356282825a195c7ec7e",
+  "apkSha256": "097b7b0b917064452b7bce7499398358131498ac84f02b8b6031ad0a8bdad19f",
   "changelog": [
+    {
+      "version": "1.220",
+      "date": "2026-11-16",
+      "changes": [
+        "Documentenkluis: de kluis werkt nu als een verkenner. Mappen staan als rijen bovenaan, je tikt erin en ziet bovenaan het pad (Documenten › Wonen › Hypotheek); terug gaat een map omhoog.",
+        "Documentenkluis: mappen in mappen. Schrijf bij verplaatsen of hernoemen een schuine streep, bijvoorbeeld Wonen/Hypotheek. Een map hernoemen neemt alles eronder mee.",
+        "Documentenkluis: je facturen staan als map Facturen in de verkenner, per leverancier, en doen mee met zoeken. Tik op een factuur om hem te bekijken; beheren doe je nog bij Facturen.",
+        "Documentenkluis: een document dat je toevoegt terwijl je in een map staat, komt in die map. Zoeken kijkt ook in de mappen eronder."
+      ]
+    },
+    {
+      "version": "1.219",
+      "date": "2026-11-16",
+      "changes": [
+        "Documentenkluis: tik op een document voor de documentkaart, met Bekijken, Delen en alle andere acties onder Meer.",
+        "Documentenkluis: elk document kan eigenschappen krijgen: soort, van of voor wie, datum, bedrag, verloopdatum en labels. Je ziet ze in de lijst en kunt erop zoeken en sorteren.",
+        "Documentenkluis: nieuwe keuze \"Verloopt binnenkort\" voor documenten die binnen 90 dagen verlopen of al verlopen zijn."
+      ]
+    },
+    {
+      "version": "1.218",
+      "date": "2026-11-16",
+      "changes": [
+        "Signalen: nu ook bronnen uit Tools zelf. Bij Instellingen → Bron uit Tools toevoegen kies je Agenda, Nieuws, Facturen, Notities of Taken van Tools.",
+        "Signalen, Agenda: een bericht als een afspraak eraan komt (een uur tot twee dagen van tevoren, standaard een dag).",
+        "Signalen, Nieuws: artikelen uit je nieuwsbronnen die bij je trefwoorden passen; Tools haalt het nieuws daarvoor ook op de achtergrond op.",
+        "Signalen, Facturen en Notities: nieuwe facturen in het dossier, en lijsten met open punten die een tijd niet zijn aangeraakt.",
+        "Signalen, Taken van Tools: als de backup, facturen ophalen of het bijwerken van Toiletten en douches mislukt.",
+        "Signalen: staat een tool op slot (Extra ontgrendelen), dan staat de inhoud van zijn berichten niet in de melding en niet in de lijst tot je ontgrendelt."
+      ]
+    },
+    {
+      "version": "1.217",
+      "date": "2026-11-16",
+      "changes": [
+        "Nieuw: Signalen. Volg een website (bijvoorbeeld het nieuws van A Seal) op trefwoorden en krijg een melding als er iets nieuws staat. Je vindt het op het startscherm bij Dag & gezondheid.",
+        "Signalen: per bron kies je hoe vaak Tools kijkt (elk uur tot elke week, standaard 4 keer per dag en alleen via wifi) en hoe je het hoort: meteen een melding, in het dagoverzicht of alleen in Signalen.",
+        "Signalen: stille uren (standaard 22:00 tot 07:30), behalve voor een bron die je belangrijk noemt. Werkt een bron drie keer achter elkaar niet, dan krijg je daar één melding van.",
+        "Signalen: staat er een datum in een bericht, dan zet je het met één tik in je agenda. Je kunt er ook een notitie van maken, het laten voorlezen, laten samenvatten door de lokale AI of je er later aan laten herinneren.",
+        "Signalen: met Proef zie je vooraf wat een bron nu zou vinden. Alles gebeurt op je telefoon; er zit geen dienst tussen."
+      ]
+    },
+    {
+      "version": "1.216",
+      "date": "2026-11-16",
+      "changes": [
+        "Documentenkluis: je documenten staan nu in mappen. Bovenaan kies je een map (met het aantal documenten erbij), Alle of Favorieten.",
+        "Documentenkluis: favorieten staan bovenaan, en met de ster naast een document zet je een favoriet in één tik aan of uit.",
+        "Documentenkluis: een document verplaats je via het menu naar een bestaande of nieuwe map, en een map kun je hernoemen.",
+        "Documentenkluis: overzichtelijker lijst met een pictogram per soort document, en sorteren per map."
+      ]
+    },
+    {
+      "version": "1.215",
+      "date": "2026-11-16",
+      "changes": [
+        "Documentenkluis: het zoekveld vindt nu ook woorden in de tekst van je documenten (PDF's en foto's), met het stukje tekst erbij"
+      ]
+    },
+    {
+      "version": "1.214",
+      "date": "2026-11-16",
+      "changes": [
+        "Instellingen: nieuw scherm Koppelingen met alle diensten buiten je telefoon (Spotify, Google, Eigen Cloud, mailserver, AudD, statistieken) en hun stand"
+      ]
+    },
+    {
+      "version": "1.213",
+      "date": "2026-11-16",
+      "changes": [
+        "Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"
+      ]
+    },
+    {
+      "version": "1.212",
+      "date": "2026-11-16",
+      "changes": [
+        "Slaaptimer: het venster is overzichtelijker. \"Einde van deze aflevering\" staat als gewone keuze onder de tijden, en het zachter worden aan het eind is een rustige regel onderaan."
+      ]
+    },
+    {
+      "version": "1.211",
+      "date": "2026-11-16",
+      "changes": [
+        "Slaaptimer: het langzaam zachter worden duurt standaard 20 seconden (keuze 20 seconden erbij in het slaaptimervenster)."
+      ]
+    },
+    {
+      "version": "1.210",
+      "date": "2026-11-16",
+      "changes": [
+        "Slaaptimer: het langzaam zachter worden aan het eind is korter (standaard 1 minuut in plaats van 3) en zelf in te stellen in het slaaptimervenster: uit, 15 of 30 seconden, of 1, 2 of 3 minuten."
+      ]
+    },
+    {
+      "version": "1.209",
+      "date": "2026-11-16",
+      "changes": [
+        "Speler: het belangrijkste past nu op één scherm. De hoes past zich aan de schermhoogte aan, en waar het speelt, slaaptimer, snelheid en stoppen staan in één rij.",
+        "Slaaptimer: het vreemde vakje met kruis is een maantje geworden, en het venster is rustiger: één tik op een tijd start de timer, een eigen tijd staat ingeklapt.",
+        "Speler: hoesjes staan sneller in beeld. Met de nieuwe app komen ze verkleind uit de eigen opslag op de telefoon, in plaats van steeds van internet."
+      ]
+    },
+    {
+      "version": "1.208",
+      "date": "2026-11-15",
+      "changes": [
+        "Nieuwe installatie: na het overslaan van terugzetten staat op het startscherm 'Aan de slag' met drie stappen (favorieten, backup, app-slot)"
+      ]
+    },
+    {
+      "version": "1.207",
+      "date": "2026-11-13",
+      "changes": [
+        "Check-in: al je antwoorden en opmerkingen exporteren als CSV-bestand voor een rekenblad (menu ⋯ rechtsboven)"
+      ]
+    },
+    {
+      "version": "1.206",
+      "date": "2026-11-13",
+      "changes": [
+        "Podcasts en Nieuws: abonnementen en bronnen importeren en exporteren als OPML-bestand (menu ⋯), om over te stappen van of naar een andere app"
+      ]
+    },
+    {
+      "version": "1.205",
+      "date": "2026-11-13",
+      "changes": [
+        "Startscherm: tik op de naam van een groep om hem in of uit te klappen; de app onthoudt het",
+        "Notities: de hint over Nieuwe lijst blijft zichtbaar en het invoerveld schaalt mee met grotere tekst"
+      ]
+    },
+    {
+      "version": "1.204",
+      "date": "2026-11-13",
+      "changes": [
+        "Startscherm: een groep met een oneven aantal tegels heeft geen gat meer; de laatste tegel loopt over de volle breedte",
+        "Knoppen rechtsboven staan in elke tool in dezelfde volgorde: licht en donker, acties, instellingen en als laatste het menu ⋯ (Nieuws en Toiletten aangepast)",
+        "Toegang geven: dezelfde tekst en dezelfde knop in alle tools",
+        "Agenda: lege dagen achter elkaar staan in de weekweergave als één regel in plaats van per dag \"Niets\"",
+        "E-reader: het scherm begint meteen met Boek toevoegen, zonder de slogan erboven",
+        "Notities: het invoerveld is één regel tot je iets schrijft, zodat je notities en lijsten hoger op het scherm staan"
+      ]
+    },
     {
       "version": "1.203",
       "date": "2026-11-13",
@@ -35,150 +179,7 @@
         "Privacybeleid bijgewerkt: Agenda, Nieuws en het doorgeven van toiletten aan OpenStreetMap",
         "Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"
       ]
-    },
-    {
-      "version": "1.200",
-      "date": "2026-11-13",
-      "changes": [
-        "Auto redial: de knop Start staat nu meteen onder het nummer (ook op een klein scherm zonder scrollen), met eronder kort wat er gaat gebeuren (pogingen, wachttijd, stoppen bij opnemen); de uitleg staat onder Hoe werkt dit?",
-        "Auto redial: TalkBack noemt het invoerveld, ∞ (Onbeperkt) en de dagen voluit"
-      ]
-    },
-    {
-      "version": "1.199",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws: inloggen bij AI Report bleef hangen omdat de site na het inloggen terugstuurt naar een http-adres; Tools zet zo'n adres op een site van de inlog nu om naar https."
-      ]
-    },
-    {
-      "version": "1.198",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws: in het inlog- en leesvenster staat nu een ?-knop (Wat gebeurt er?). Die toont een logboek van wat de website opvraagt, welke fouten ze geeft en welke vensters Tools wegklikt; te kopiëren als het inloggen blijft hangen. Ook kun je het venster vanaf een computer bekijken met chrome://inspect."
-      ]
-    },
-    {
-      "version": "1.197",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws: inloggen bij AI Report bleef hangen op \"Je code wordt verstuurd\". Het inlogvenster laat nu alles toe wat de inlogpagina zelf maakt (zoals de controle tegen robots); houdt Tools toch iets tegen, dan staat dat bovenin."
-      ]
-    },
-    {
-      "version": "1.196",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws, Podcasts en Radio hebben een knop maan/zon in de kop (de grote speler: \"Licht en donker\" in het menu ⋯): zet het scherm meteen donker of licht, met een directe link naar de instellingen voor weergave.",
-        "Staat het thema op automatisch, dan geldt \"nu donker\" (of licht) tijdelijk tot de volgende automatische wissel; daarna gaat het weer vanzelf. Ook het opstarten blijft dan donker, zonder witte flits."
-      ]
-    },
-    {
-      "version": "1.195",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws: inloggen bij AI Report bleef hangen. Per bron kun je nu cookies van andere sites toestaan in het inlogvenster (bij AI Report staat het standaard aan, want het inloggen loopt via beehiiv)."
-      ]
-    },
-    {
-      "version": "1.194",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws: lezen op de website (ingelogd) geeft meer ruimte aan het artikel: geen dubbele titelbalk meer, één smalle balk met sluiten, en die balk verdwijnt als je verder leest en komt terug als je terug scrolt.",
-        "Podcasts: nieuw scherm Instellingen (schuifjes rechtsboven). Kies wat er na een aflevering gebeurt: stoppen, verder met Hierna, of daarna de volgende van dezelfde podcast (standaard) of je nieuwe afleveringen.",
-        "Podcasts: met een slaaptimer gaat de speler door met de volgende aflevering tot de timer afloopt (instelbaar); in de speler staat wat er daarna vanzelf komt.",
-        "Podcastspeler stabieler: terugspoelen en herverbinden gaan sneller, snel na elkaar terugspoelen loopt niet meer vast, \"Bufferen…\" is zichtbaar en bij een hapering verbindt hij vanzelf opnieuw op dezelfde plek."
-      ]
-    },
-    {
-      "version": "1.193",
-      "date": "2026-11-12",
-      "changes": [
-        "Nieuws: AI Report werkt nu. De site heeft geen nieuwsfeed, dus Tools leest de sitemap en haalt titel, begin en afbeelding van de artikelen zelf op (alleen de artikelen, niet de podcast).",
-        "Nieuws: elke site zonder nieuwsfeed maar met een sitemap kan nu ook als bron; Tools zoekt de sitemap vanzelf."
-      ]
-    },
-    {
-      "version": "1.192",
-      "date": "2026-11-12",
-      "changes": [
-        "Agenda: dag, week, maand en lijst, met weeknummers. Zoeken kan ook in afspraken van vroeger, en de assistent ook als je dat aanzet. Een Google-agenda gaat via de agenda van je telefoon.",
-        "Nieuws: AI Report (aireport.nl) staat erbij als bron. Tools zoekt de feed zelf op de site; lukt dat niet, vul dan het feedadres in bij de instellingen van de bron.",
-        "Nieuws: tik op een bron voor al zijn instellingen, voor elke bron hetzelfde: naam, adres, welke artikelen, afbeeldingen van de artikelpagina en inloggen.",
-        "Nieuws: inloggen bij een nieuwssite kan nu per bron, in een eigen venster op de echte site (ook met een inloglink uit de e-mail). Daarna lees je artikelen ingelogd in Tools; uitloggen kan ook."
-      ]
-    },
-    {
-      "version": "1.191",
-      "date": "2026-11-11",
-      "changes": [
-        "ID-kopie afschermen: kies bij Foto of PDF kiezen bovenaan Uit Stamgegevens; je eigen paspoort, ID-kaart of rijbewijs staat bovenaan en komt met een voorstel voor de zwarte vlakken klaar te staan"
-      ]
-    },
-    {
-      "version": "1.190",
-      "date": "2026-11-11",
-      "changes": [
-        "Bestand kiezen: bij PDF openen, plaatjes, PDF bewerken en splitsen, e-mail naar PDF, ID-kopie, boek toevoegen, factuur toevoegen, document toevoegen en vergelijken kies je nu eerst waar het bestand vandaan komt: de documentenkluis, Gemaakt, het facturendossier of je telefoon"
-      ]
-    },
-    {
-      "version": "1.189",
-      "date": "2026-11-11",
-      "changes": [
-        "Notities: bovenaan schrijf je een notitie en bewaart die met Notitie bewaren, zonder eerst een lijst te maken. Een notitie opent als tekst; een lijstje maak je met Nieuwe lijst of met Lijstje toevoegen. De widget toont de tekst van een notitie zonder vinkjes.",
-        "De pijl gaat één scherm terug; zit je dieper, dan staat ernaast Start (in een losse app: Hoofdscherm) om meteen naar het begin te gaan.",
-        "Op de Telefoon-skin is de terugpijl dezelfde als in Tools. Kies je apps vanuit Look aanpassen, dan staat er ook Hoofdscherm."
-      ]
-    },
-    {
-      "version": "1.188",
-      "date": "2026-11-11",
-      "changes": [
-        "Nieuws: weigert nu ook adressen die via een IPv6-omweg (NAT64, 6to4) of een testnetwerk naar je eigen toestel of thuisnetwerk wijzen",
-        "Podcasts: na ontvolgen blijft er niets meer van die podcast in het geheugen hangen, ook niet als hij net aan het bijwerken was",
-        "Stamgegevens: een ID-kopie of formulier met je stamgegevens wordt alleen gemaakt terwijl Tools in beeld is"
-      ]
-    },
-    {
-      "version": "1.187",
-      "date": "2026-11-10",
-      "changes": [
-        "Kluis, Bankzaken en Stamgegevens hebben geen eigen ontgrendelscherm meer: alles gaat via het slotscherm van Extra ontgrendelen. Staat dat uit, dan openen ze meteen."
-      ]
-    },
-    {
-      "version": "1.186",
-      "date": "2026-11-10",
-      "changes": [
-        "Documentenkluis is nu de centrale opslag: wat je met de PDF-tools maakt (ook formulieren en ID-kopieën) gaat vanzelf versleuteld de kluis in (uit te zetten bij PDF → Gemaakt)",
-        "PDF's uit de kluis openen in de eigen PDF-viewer, en vanuit de kluis bewerken en ondertekenen; bewaren wordt een nieuwe versie, eerdere versies blijven (bekijken, vergelijken, terugzetten)",
-        "Nieuw: documenten vergelijken (PDF → Vergelijken): tekstverschillen per woord en per pagina in beeld, ook voor scans en voor twee versies uit de kluis",
-        "ID-kopie afschermen werkt samen met Stamgegevens: op het kaartje van een paspoort, ID-kaart of rijbewijs maak je meteen een afgeschermde kopie met voorgestelde vlakken, en zie je welke kopieën je aan wie gaf",
-        "Stamgegevens: nationaliteit, land en land van afgifte kies je nu uit een lijst met alle landen (of typ zelf iets bij Anders…); in Nederland staat Nederlandse al voor je klaar",
-        "Stamgegevens: dubbele nationaliteit invullen met Nog een nationaliteit",
-        "Stamgegevens: rijbewijscategorieën zet je aan en uit met knoppen",
-        "Formulieren: het land van bestemming kies je uit een lijst"
-      ]
-    },
-    {
-      "version": "1.185",
-      "date": "2026-11-10",
-      "changes": [
-        "Nieuw: Instellingen → Spraak, één plek voor voorlezen (stem, snelheid, achtergrond) en spraak naar tekst; de stemmen staan nu ook als gewone modellen bij Modellen.",
-        "Betere Nederlandse voorleesstemmen: Dii en Miro (hoogste kwaliteit) en Pim, in volledige kwaliteit (±67 MB). Ze klinken zuiverder dan Ronnie en rekenen zelfs sneller.",
-        "Kies je een stem in een andere taal, dan onthoudt Tools die per taal: een Engels boek krijgt vanzelf je Engelse stem."
-      ]
-    },
-    {
-      "version": "1.184",
-      "date": "2026-11-10",
-      "changes": [
-        "Handtekening uit een foto: je ziet nu een voortgangsbalk tijdens het lezen en het zoeken van de handtekening, en de app blijft bedienbaar.",
-        "Stamgegevens: bij het herkennen van een kaartfoto (ook Opnieuw herkennen en Grondig zoeken) staat onderin een balk met hoe lang het nog hooguit duurt.",
-        "Overal in de app zie je nu waarop je wacht: bij terugzetten en backups openen, exporteren, zoeken, PDF maken, de lokale AI, facturen, Bankzaken, Toiletten, Nieuws en meer loopt een balk mee in plaats van alleen een melding."
-      ]
     }
   ],
-  "webSig2": "JGS6RZMIY27YY3g0K8lduICITHnkFPPYFpXpjG7lDidrMl7vP0JYft3SceJFQ2GRvwLSZMmyIf7waJr0urFxnCqAvRMsN9BzM1G7eRvyY9dS0mPrnnd1a+i63lsagUuhoqfGgmpZ8HoLa4c2cYKBVcCqJgIul5FqeWdGEecJy5S2/QzoJDgMweVxrPuUh6cBAsnEJQY2Tsxu6w4aa/pM3wTBMucbXlnrU8R3w0RQx9vYI9f9bvCiKJDvBCuY+XzXk5HEeXPne4mTwQa36YHKuOfs3hg04vsLc898fGl8IBvEvZFPNz//StumhRtC7SmynwfSMkICznH08iBxs3RqPtK7ZznLbmvd0b8chFiv5CtrOvL8KuvqNxDoOwExq+O+4Cz5hSMnBmkPC+/9Wd37SmLcIKzpif2uZoocvCGAONyxGw47zx4a8uQrn94WQ8xh8Pc93MSv1Cu92y4xIZ9WzAja0QMCH5WWuhiCnJooxThdKtat5k7oGMX913UaHNqh"
+  "webSig2": "EPnFhMfTLd9hsn3SA2yeZVXFt9o8K7Ae2eVZs/wbpTKRunVr4W6nysn418nBoSBwqgqQWXF3Z3uCh9Qe744DKk9pceRysW87z/QNHwD3HSvJ20fMPVbOpiQ0r7JP+21OzCkz+nFw3bKa2xlQGUvkMi10wglrV9cSabfHvQGHPb/Ub3gGw9MfovyMGCc/z3kKmLRZ+2yoKLU+8NymFRtXEKHHrFrTaUdKGoINz7OnBP7hJIC4h7h4aKe57/5QzGvVq8PRYbYNweVHnYHILwkDL2icUQL3NSrI/gBGNklVceBKWqilA9x/PTOmlufz63+vJhTsEj2bbNIVFeZeYU1NAaIUuGSBwYacCMCEg6K71quw/vC2u7xaF/z5eAmnmtbt14Q5yDso1trq150U6eiJerKgBhsoeGIS2XWVcSBGXWXVTp54Cqp9C9WSnCip/Eh4V+orfkzTWzlOms/3LV+lSkJ/EYFauC9E1NQ75seps3jW9pMqzDQ45f3NUq0jbt7r"
 }

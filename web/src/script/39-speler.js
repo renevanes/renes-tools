@@ -82,8 +82,23 @@ window.onPlayerArt = function(r){
   const ok = /^#[0-9a-f]{6}$/i.test(r.color || '');
   plColors[r.url] = ok ? r.color : plHashColor(r.url);
   if (!ok) setTimeout(() => { delete plColors[r.url]; delete plColorAsked[r.url]; }, 120000); // geen netwerk? straks nog eens
+  plArtKlaar(r.url, ok);
   plRender();
 };
+
+/* Hoesjes in de speler komen uit de eigen cache van de app (verkleind tot hooguit 1024 px, op de telefoon bewaard):
+   meteen te zien, weinig data, snel te tekenen. Heeft de app hem nog niet, dan haalt die hem op (dezelfde vraag als
+   voor de kleur, één keer downloaden) en daarna nog eens; lukt dat niet, dan het adres zelf. Een oudere app zonder
+   die cache: meteen het adres zelf. */
+function plArtLokaal(u, opnieuw){ return u && typeof Android.artLokaal === 'function' && Android.artLokaal() === '1' ? '/art?' + (opnieuw ? 'n=2&' : '') + 'u=' + encodeURIComponent(u) : ''; }
+const plArtWachters = {};
+function plArtWacht(url, cb){
+  let w = plArtWachters[url];
+  // Geen antwoord binnen 16 s (de app wacht zelf hooguit 15 s op internet): het adres zelf
+  if (!w) { w = plArtWachters[url] = { cbs: [], t: setTimeout(() => plArtKlaar(url, false), 16000) }; if (!(plColorAsked[url] && !plColors[url])) Android.playerArt(url); } // loopt de vraag voor de kleur nog, dan komt het antwoord daarvan
+  w.cbs.push(cb);
+}
+function plArtKlaar(url, ok){ const w = plArtWachters[url]; if (!w) return; delete plArtWachters[url]; clearTimeout(w.t); w.cbs.forEach(f => f(ok)); }
 function plArtFallback(el,initials){
   if(initials==='🎧'||initials==='♪')el.innerHTML=uiIcon(initials==='🎧'?'headphones':'radio');else el.textContent=initials;
 }
@@ -91,10 +106,24 @@ function plSetArt(el, m){
   const k = (m.art || '') + '|' + m.ini;
   if (el.dataset.k === k) return;
   el.dataset.k = k;
-  // Met DOM in plaats van een HTML-tekst: Chromium's vooruitlezer zag zo'n tekst in een groot script soms aan voor een echt plaatje
-  // Een late fout van het plaatje van een vorig nummer mag de hoes van het huidige niet vervangen
-  if (m.art) { const img = document.createElement('img'); img.alt = ''; img.onerror = () => { if (img.parentNode === el && el.dataset.k === k) plArtFallback(el, m.ini); }; img.src = m.art; el.textContent = ''; el.appendChild(img); } else plArtFallback(el, m.ini);
-  el.classList.toggle('ini', !m.art);
+  if (!m.art) { plArtFallback(el, m.ini); el.classList.add('ini'); return; }
+  // Met DOM in plaats van een HTML-tekst: Chromium's vooruitlezer zag zo'n tekst in een groot script soms aan voor een echt plaatje.
+  // Pas tonen als het plaatje klaar is (geladen en uitgepakt): geen flitsende hoes. Duurt het langer dan even, dan
+  // eerst het pictogram (niet de hoes van het vorige nummer bij de nieuwe titel).
+  // Een late fout of een laat plaatje van een vorig nummer mag de hoes van het huidige niet vervangen.
+  const nu = () => el.dataset.k === k;
+  let getoond = false;
+  setTimeout(() => { if (nu() && !getoond) { plArtFallback(el, m.ini); el.classList.add('ini'); } }, 350);
+  const laad = (src, fout) => {
+    const img = document.createElement('img'); img.alt = ''; img.decoding = 'async';
+    const toon = () => { if (!nu()) return; getoond = true; el.textContent = ''; el.appendChild(img); el.classList.remove('ini'); };
+    const mis = () => { if (nu()) fout(); };
+    if (img.decode) { img.src = src; img.decode().then(toon, mis); } else { img.onload = toon; img.onerror = mis; img.src = src; }
+  };
+  const zelf = () => laad(m.art, () => { plArtFallback(el, m.ini); el.classList.add('ini'); });
+  const lokaal = plArtLokaal(m.art);
+  if (!lokaal) { zelf(); return; }
+  laad(lokaal, () => plArtWacht(m.art, ok => { if (!nu()) return; if (ok) laad(plArtLokaal(m.art, true), zelf); else zelf(); }));
 }
 
 function plRender(){
@@ -120,12 +149,12 @@ function plRender(){
   const pct = m.src === 'podcast' && m.dur > 0 ? Math.min(100, m.pos / m.dur * 100) : 0;
   $('#plbar-prog').style.width = pct.toFixed(2) + '%';
   $('#plbar-prog').parentNode.style.visibility = m.src === 'podcast' ? 'visible' : 'hidden'; // radio: live, geen voortgang
+  plSetArt($('#pl-art'), m); // ook als de speler dicht is: dan staat de hoes al klaar als je hem opent
   if (!plIsOpen) return;
 
   // Volledig scherm
   plSetText($('#pl-kind'), m.src === 'podcast' ? 'Podcast' : 'Radio');
   plSetText($('#pl-from'), m.from);
-  plSetArt($('#pl-art'), m);
   $('#pl-cover').setAttribute('aria-label', t(m.src === 'radio' ? 'Hoes van {titel}. Veeg naar links voor de volgende zender, naar rechts voor de vorige.' : 'Hoes van {titel}. Veeg naar links voor de volgende aflevering, naar rechts voor de vorige.', { titel: m.title }));
   plSetText($('#pl-title'), m.title);
   plSetText($('#pl-sub'), m.sub);
@@ -180,19 +209,25 @@ function plRender(){
   // Waar het speelt
   $('#pl-castbar').style.display = m.cast ? '' : 'none';
   if (m.cast) plSetText($('#pl-castbar'), t('Speelt op {apparaat}', { apparaat: m.cast }));
-  plSetText($('#pl-out'), m.cast ? m.cast : 'Deze telefoon');$('#pl-out').dataset.icon=m.cast?'cast':'volume';
+  const waar = m.cast ? String(m.cast) : t('Deze telefoon');
+  plSetText($('#pl-out-l'), waar); $('#pl-out').dataset.icon = m.cast ? 'cast' : 'volume';
+  $('#pl-out').setAttribute('aria-label', t('Waar speelt het? Nu: {waar}', { waar }));
   $('#pl-out').classList.toggle('on', !!m.cast);
   $('#pl-volwrap').style.display = m.cast && m.volume >= 0 ? '' : 'none';
   if (m.cast && m.volume >= 0 && document.activeElement !== $('#pl-vol')) $('#pl-vol').value = Math.round(m.volume * 20);
   // Opties
   $('#pl-speed').style.display = m.src === 'podcast' ? '' : 'none';
-  plSetText($('#pl-speed'), pcSpeedTxt(m.speed));
+  const snel = pcSpeedTxt(m.speed);
+  plSetText($('#pl-speed-v'), snel); $('#pl-speed').setAttribute('aria-label', t('Afspeelsnelheid {snelheid}', { snelheid: snel }));
   $('#pl-golive').style.display = sh && !atLive ? '' : 'none';
+  // Slaaptimer: de stand staat onder het maantje (nog … min, of na deze aflevering); de tijd zelf in het venster
   const sl = $('#pl-sleep');
-  const slTxt = m.sleepAt ? t('⏾ nog {duur}', { duur: fmtMin((m.sleepAt - Date.now()) / 6e4) }) : t(m.sleepEnd ? '⏾ na deze aflevering' : '⏾ Slaaptimer');
-  plSetText(sl, slTxt); sl.classList.toggle('on', !!(m.sleepAt || m.sleepEnd));
-  plSetHtml($('#pl-sleepinfo'), m.sleepAt ? t('Stopt om {tijd} · <a href="#" onclick="plSleepOff();return false">uitzetten</a>', { tijd: fmtTime(m.sleepAt, { hour: '2-digit', minute: '2-digit' }) })
-    : m.sleepEnd ? 'Stopt aan het einde van deze aflevering · <a href="#" onclick="plSleepOff();return false">uitzetten</a>' : '');
+  const rest = m.sleepAt ? Math.max(0, Math.round((m.sleepAt - Date.now()) / 6e4)) : 0;
+  const kort = rest >= 60 ? Math.floor(rest / 60) + ' ' + t('u') + ' ' + String(rest % 60).padStart(2, '0') : rest + ' min'; // kort: past onder het maantje
+  plSetText($('#pl-sleep-l'), m.sleepAt ? t('nog {duur}', { duur: kort }) : m.sleepEnd ? t('na aflevering') : t('Slaaptimer'));
+  sl.setAttribute('aria-label', m.sleepAt ? t('Slaaptimer, nog {duur}, stopt om {tijd}', { duur: fmtMin(rest), tijd: fmtTime(m.sleepAt, { hour: '2-digit', minute: '2-digit' }) })
+    : m.sleepEnd ? t('Slaaptimer, na aflevering: stopt aan het einde van deze aflevering') : t('Slaaptimer'));
+  sl.classList.toggle('on', !!(m.sleepAt || m.sleepEnd));
 
   // Extra's
   $('#pl-radio').style.display = m.src === 'radio' && !m.cast ? '' : 'none';
@@ -285,7 +320,6 @@ function plSkip(dir){
   plRender();
 }
 function plSleep(){ const m = plModel(); if (m) sleepOpen(m.src === 'radio' ? 'radio' : 'pod'); }
-function plSleepOff(){ const m = plModel(); if (!m) return; if (m.src === 'radio') Android.radioSleep(0); else Android.podSleep(0); toast('Slaaptimer uit'); setTimeout(plTick, 200); }
 function plStop(){
   const m = plModel(); if (!m) return;
   if (m.src === 'podcast') Android.podStop(); else Android.radioStop();

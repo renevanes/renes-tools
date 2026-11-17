@@ -1,0 +1,14 @@
+/* Signalen: de inbox, één bericht en de bron. Alleen kleurrollen, geen vaste kleuren. */
+#s-signalen [hidden], #s-snitem [hidden], #s-snset [hidden], #s-snbron [hidden]{display:none!important}
+.sn-item{display:block;width:100%;text-align:left;min-height:52px;padding:10px 12px;border:0;border-left:4px solid var(--line);background:var(--hi);color:var(--ink);border-radius:8px;margin:0 0 6px}
+.sn-item.nieuw{border-left-color:var(--primary)}
+.sn-item b{display:block;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+.sn-item.nieuw b{font-weight:700}
+.sn-item small{display:block;color:var(--muted);font-weight:500;margin-top:2px;overflow-wrap:anywhere}
+.sn-wanneer{font-weight:650;margin:8px 0}
+.sn-tekst{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+.sn-rij{display:flex;gap:12px}.sn-rij>div{flex:1;min-width:0}
+.sn-proef{margin:0 0 8px;padding:8px 0 0;border-top:1px solid var(--line)}
+.sn-proef b{display:block;font-weight:600;overflow-wrap:anywhere}.sn-proef small{display:block;color:var(--muted)}
+#s-snset h2{font-size:15px;margin:16px 0 8px}
+#sns-bronnen .strow{width:100%}

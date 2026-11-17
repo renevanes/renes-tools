@@ -1,7 +1,6 @@
 /* De boekenkast gebruikt de app-kleurrollen; leesthema's hebben hun eigen papierrollen. */
 .er-library,.er-browser,.er-settings{max-width:860px;margin:auto}
-.er-welcome{margin:0 0 20px}.er-eyebrow{display:block;font:650 11px/1.5 system-ui,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--primary)}
-.er-welcome p{font:26px/1.25 Georgia,serif;max-width:340px;margin:8px 0;color:var(--ink)}
+.er-eyebrow{display:block;font:650 11px/1.5 system-ui,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--primary)}
 .er-library-actions{display:flex;gap:10px;margin-bottom:22px}.er-library-actions .big{flex:1;margin:0;display:flex;align-items:center;justify-content:center;gap:7px;font-size:14px}
 .er-shelf-heading{display:flex;align-items:center;gap:8px;margin:24px 0 12px}.er-shelf-heading h2{margin:0;flex:1;font-size:19px}.er-shelf-heading>span{color:var(--muted);font-size:12px}.er-shelf-heading .icon-btn{width:44px;height:44px;border:1px solid var(--line);border-radius:50%}
 .er-library-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0 20px}.er-library-tools .sel{width:auto;margin-left:auto;max-width:100%;font-size:13px}.er-library .chips{gap:5px;flex-wrap:wrap}.er-library .chips button{min-height:44px;font-size:12px;padding:8px 12px}

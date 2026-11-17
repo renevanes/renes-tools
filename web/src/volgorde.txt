@@ -10,6 +10,7 @@ formulieren.css
 ereader.css
 nieuws.css
 agenda.css
+signalen.css
 body-begin.html
 schermen/01-home.html
 schermen/02-auto-redial.html
@@ -61,6 +62,7 @@ schermen/44-ereader.html
 schermen/45-voorlezen.html
 schermen/45-nieuws.html
 schermen/46-agenda.html
+schermen/47-signalen.html
 speler.html
 vensters.html
 taal/en.json
@@ -132,6 +134,7 @@ script/72-formulier-vast.js
 script/49-documenten-ordenen.js
 script/49b-kluis-centraal.js
 script/77-vergelijken.js
+script/78-opml.js
 script/38-podcasts.js
 script/46-podcast-downloads.js
 script/51-assistent.js
@@ -170,5 +173,6 @@ script/60-apparaten.js
 script/73-toiletten.js
 script/75-voorlezen.js
 script/76-agenda.js
+script/79-signalen.js
 script/29-start.js
 einde.html
