@@ -562,7 +562,12 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
 7. **Te groot voor één sessie:** maak het logische deel af en publiceer dat; zet de rest met een afvinklijst in een
    `openstaand`-issue.
 8. **Altijd een kort bericht aan Rene** aan het eind van de sessie (ook als er niets te doen was), zoals in
-   "Berichten aan Rene".
+   "Berichten aan Rene". Controleer vlak daarvoor (begin er op tijd aan) dat wat je wilde publiceren echt op main staat
+   (`git fetch origin` en `git merge-base --is-ancestor <jouw laatste commit> origin/main`; de run Publiceren zelf:
+   stap 6) en dat de reactie in je logboek of issue geplaatst is. Is een van beide niet gelukt (botsing met main, tijd
+   op), zet dat dan bovenaan je bericht en in het logboek (lukt dat niet: alleen in je bericht), met de naam van de
+   branch: de volgende run maakt hem af of ruimt hem op (stap 1). (Les van 13 november: een run met groene tests bleef
+   op zijn branch staan, zonder publicatie en zonder logboekregel.)
 9. **GitHub alleen via de REST-API** (`gh api repos/renevanes/renes-tools/…`): GraphQL (dus `gh issue …`, `gh pr …`) en
    de Security-API's werken in een cloudsessie niet.
 10. **De repository is openbaar.** Zet in issues en logboeken geen persoonlijke gegevens of geheimen; uit de privé
