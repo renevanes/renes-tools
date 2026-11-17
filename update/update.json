@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.220",
-  "versionCode": 221,
+  "versionName": "1.221",
+  "versionCode": 222,
   "nativeLevel": 190,
   "web": "index.html",
-  "webSha256": "43b0af95bc487722f1f5f6989c1e21965d0ebb054dcc23f489648b97bea16855",
+  "webSha256": "6739a0f6dbeb46867e29d3aae10f6ad68e08c7d1357c5f57041adea2049732a7",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "097b7b0b917064452b7bce7499398358131498ac84f02b8b6031ad0a8bdad19f",
+  "apkSha256": "5f0fd87f9297eafbff2fbd36b25c8b6f766f4d5a5517a01d36bad495cc8f47ed",
   "changelog": [
+    {
+      "version": "1.221",
+      "date": "2026-11-17",
+      "changes": [
+        "WhatsApp backup: \"Alles back-uppen\" is pas te kiezen als Tools bij de bestanden kan en de WhatsApp-map vindt; de uitleg over wat er gekopieerd wordt staat nu onder \"Hoe werkt dit?\".",
+        "WhatsApp backup: zonder backup-map opent \"Alles back-uppen\" nu ook in het Engels meteen de mapkiezer; \"Selectie back-uppen\" is uit zolang er niets is aangevinkt.",
+        "WhatsApp backup: TalkBack hoort bij Selectie per onderdeel of het aangevinkt is."
+      ]
+    },
     {
       "version": "1.220",
       "date": "2026-11-16",
@@ -169,17 +178,7 @@
         "Updates: start een nieuwe versie van de interface twee keer niet, dan gaat Tools vanzelf terug naar de vorige versie tot er een nieuwere is",
         "Updates: controleren op updates haalt minder gegevens op (alleen de laatste 20 versies van Wat is er nieuw; de rest zit al in de app)"
       ]
-    },
-    {
-      "version": "1.201",
-      "date": "2026-11-13",
-      "changes": [
-        "Agenda: je eigen afspraken gaan niet meer mee in de Google-backup van Android (wel in de versleutelde backup van alle appgegevens)",
-        "PDF bewerken: verlaat je de app terwijl een document uit de kluis openstaat, dan gaat de leesbare kopie meteen weg (ook na een vastloper); wat je nog niet bewaarde, ben je dan kwijt",
-        "Privacybeleid bijgewerkt: Agenda, Nieuws en het doorgeven van toiletten aan OpenStreetMap",
-        "Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"
-      ]
     }
   ],
-  "webSig2": "EPnFhMfTLd9hsn3SA2yeZVXFt9o8K7Ae2eVZs/wbpTKRunVr4W6nysn418nBoSBwqgqQWXF3Z3uCh9Qe744DKk9pceRysW87z/QNHwD3HSvJ20fMPVbOpiQ0r7JP+21OzCkz+nFw3bKa2xlQGUvkMi10wglrV9cSabfHvQGHPb/Ub3gGw9MfovyMGCc/z3kKmLRZ+2yoKLU+8NymFRtXEKHHrFrTaUdKGoINz7OnBP7hJIC4h7h4aKe57/5QzGvVq8PRYbYNweVHnYHILwkDL2icUQL3NSrI/gBGNklVceBKWqilA9x/PTOmlufz63+vJhTsEj2bbNIVFeZeYU1NAaIUuGSBwYacCMCEg6K71quw/vC2u7xaF/z5eAmnmtbt14Q5yDso1trq150U6eiJerKgBhsoeGIS2XWVcSBGXWXVTp54Cqp9C9WSnCip/Eh4V+orfkzTWzlOms/3LV+lSkJ/EYFauC9E1NQ75seps3jW9pMqzDQ45f3NUq0jbt7r"
+  "webSig2": "EtJzv+P7EsGFiGyEBwYcIOHB//taI60D4YkXZnTqQUFitBoIWkDuiJpa4UWPaI8DBDRH5gZMEMTQ6xYxxuOyNMNuzKJAkdpoz5aEkTImQ9waMpzJRPlV1meXQzbVMdRilQo44I8BPDl33/8uGiwYKAooNBTiVcnlXFJfawVg2uizI46lOrEnjY9CVaAvjzndJ8c8AgMjwfVNe4Ar8tVJVRW77Ybn514macwx6AWGUHqI3cKPa32Cw+WwBT0K7eLgDCcrwvAm8qbspbllg8TRzpL5TlgfZCo+t1L2nMha+YuGvbwyzk7wxI6evA4+M7yGcyyrkgorzHUFoPnKUejStHinx3DEJe7oVmWnfD4NxdGi/ezR0XSAWM40Z09MW9YIuwXeuW34m+c9Pv8cJb3bFuDJCy4XIYFGBJCv0SKP2WOspKte3tIEru1S5QXbRevTrSsE1D6CvB6qwJpcgtDRSBJvA2VBQ4+2+1OexAmUyss1etxhIC4qOf8nT5H6wRVe"
 }

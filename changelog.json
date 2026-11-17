@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.221",
+    "date": "2026-11-17",
+    "changes": [
+      "WhatsApp backup: \"Alles back-uppen\" is pas te kiezen als Tools bij de bestanden kan en de WhatsApp-map vindt; de uitleg over wat er gekopieerd wordt staat nu onder \"Hoe werkt dit?\".",
+      "WhatsApp backup: zonder backup-map opent \"Alles back-uppen\" nu ook in het Engels meteen de mapkiezer; \"Selectie back-uppen\" is uit zolang er niets is aangevinkt.",
+      "WhatsApp backup: TalkBack hoort bij Selectie per onderdeel of het aangevinkt is."
+    ]
+  },
+  {
     "version": "1.220",
     "date": "2026-11-16",
     "changes": [
