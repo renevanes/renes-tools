@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.223",
-  "versionCode": 224,
-  "nativeLevel": 192,
+  "versionName": "1.224",
+  "versionCode": 225,
+  "nativeLevel": 193,
   "web": "index.html",
-  "webSha256": "120271fd8bf74ac496f8ef4c22f7f05b1639fda54b622a4004129b45f53b2bd3",
+  "webSha256": "d6495e1774ffd4bd7a6b7741a9b7ff35c21a72f892cdf221f598f7a5f271e8c3",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "8515ab34a99e934d02dc92f6546255cf41cb207a4db3cffe7bda8c20d2976a2a",
+  "apkSha256": "16e71e12ab9e895f1f1c3e7dbbb45cd88b692379705c9430548af1bd7be89c4b",
   "changelog": [
+    {
+      "version": "1.224",
+      "date": "2026-11-18",
+      "changes": [
+        "Fijner volume: vasthouden of snel drukken op de volumeknop gaat nu met hele stappen, dus van hard naar zacht gaat weer vlot; één keer drukken blijft een klein stapje. De knop reageert ook sneller.",
+        "Grote speler: een volumeschuif voor de telefoon (bij Fijner volume in dezelfde kleine stappen); de volumeknoppen zetten hem mee. Tijdens casten blijft het de schuif van de Chromecast."
+      ]
+    },
     {
       "version": "1.223",
       "date": "2026-11-18",
@@ -167,19 +175,7 @@
         "Startscherm: tik op de naam van een groep om hem in of uit te klappen; de app onthoudt het",
         "Notities: de hint over Nieuwe lijst blijft zichtbaar en het invoerveld schaalt mee met grotere tekst"
       ]
-    },
-    {
-      "version": "1.204",
-      "date": "2026-11-13",
-      "changes": [
-        "Startscherm: een groep met een oneven aantal tegels heeft geen gat meer; de laatste tegel loopt over de volle breedte",
-        "Knoppen rechtsboven staan in elke tool in dezelfde volgorde: licht en donker, acties, instellingen en als laatste het menu ⋯ (Nieuws en Toiletten aangepast)",
-        "Toegang geven: dezelfde tekst en dezelfde knop in alle tools",
-        "Agenda: lege dagen achter elkaar staan in de weekweergave als één regel in plaats van per dag \"Niets\"",
-        "E-reader: het scherm begint meteen met Boek toevoegen, zonder de slogan erboven",
-        "Notities: het invoerveld is één regel tot je iets schrijft, zodat je notities en lijsten hoger op het scherm staan"
-      ]
     }
   ],
-  "webSig2": "mhaPdFQrcGx9LeU3C4mdX+xYPLZwRSF2QZajAUk3WRA8OlInSXUIDDspx/IfZk/FtB3/Z16Z4ZWjcgLO4tecHyxOnfvvUBuFZpedXBYrmYkoB8FMPexU+OJHEsYA5MywoHPeLsuVqqbwu32iTk1ZzMFV/jLY8xU7yF7WGVORX3zfuO0KdnKqh5rSNcn2RPBLPw5aQIYCBxPltcmwS1TKdUgCMSLzAkiZFNwWCpRX5Y8mJGMnrIA6EdnQds+ifx0CaPWBauhPYZjQcA24VxPTNm2Ok/N3vQg56MYsEQew3258lnfee7miJE5xGiXqUvLUkr6797EV7JMoDtiwiEsi248A9LSxsl0zPuz5Al/Lk65yVnLJT75OPIOUMhYc8I9zGVgvSQDVHaXLcllVTJXixwJwa9eoKwzGKNdGWngylWxDcahIBB7YAkdmk5jnSUk9pL2tFYHjAsyHOanWlmXfib3KcUoH6cKqWsWrUk4Czlky3Hlwp9eXiN0e43uKVbpH"
+  "webSig2": "WedH4C1alfoeKgydS095Zp46KNrW9CJbutIK51QH9La/cHlZ3HVo1YNYPABh4spD8YD1JzVEoFvRe6kL4EIoaJy2y1TXfetA+d1suGS3DNvjzhc2+ICClbpYD86ChRqI1JZgOYOf3HK5CDH8/pYaYlUDwcOKktNPdyZRBrLNSr+uOWh1kFFol9gYKk80Le03QWByKyE1pQxL9VN4RQFtlX87Uy11dkluhmIsZfxkLq4+oTPyl7xXZIOpF7zWGrBvzSmZV6jsCNcXW516se5GDRgU6kXwmQsZpOXfo3if4IaqNOnOacFhxn+lFfSr0UKuEfuB9GcEHuJehFe80ItLOhhJyf4wNDgIdMfTyP7ZCUDZgP+D1wVICyCU5ajC3C3OVLhMHAJycJRuV527WxxOdrnIokpKpArlswuysFN8KJPy2f3HTc6OB5lv03s+R4p/0b3ijnyYrrkJuplZJmWaLLuz5afHsn+vX7WUU9upQG/cnHaqU1d1E03DFSVhx/1i"
 }

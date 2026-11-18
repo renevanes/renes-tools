@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.224",
+    "date": "2026-11-18",
+    "changes": [
+      "Fijner volume: vasthouden of snel drukken op de volumeknop gaat nu met hele stappen, dus van hard naar zacht gaat weer vlot; één keer drukken blijft een klein stapje. De knop reageert ook sneller.",
+      "Grote speler: een volumeschuif voor de telefoon (bij Fijner volume in dezelfde kleine stappen); de volumeknoppen zetten hem mee. Tijdens casten blijft het de schuif van de Chromecast."
+    ]
+  },
+  {
     "version": "1.223",
     "date": "2026-11-18",
     "changes": [
