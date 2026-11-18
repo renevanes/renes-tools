@@ -1039,6 +1039,9 @@ if (!window.Android) window.Android = (function(){
     sleepFade(){ return this._fade == null ? 20 : this._fade; },
     sleepFadeKeuzes(){ return JSON.stringify({ keuzes: [0, 15, 20, 30, 60, 120, 180], standaard: 20 }); },
     sleepFadeSet(s){ if (![0, 15, 20, 30, 60, 120, 180].includes(+s)) return false; this._fade = +s; return true; },
+    _fv: { aan: true, fijn: 3 },
+    fijnVolume(){ return JSON.stringify({ aan: this._fv.aan, fijn: this._fv.fijn, keuzes: [2, 3, 4], stappen: 15 }); },
+    fijnVolumeSet(aan, fijn){ this._fv = { aan: !!aan, fijn: [2, 3, 4].includes(+fijn) ? +fijn : 3 }; },
     playerNext(src){ return this._step(1, src); }, playerPrev(src){ return this._step(-1, src); },
     _step(d, src){
       if ((src || this._src) === 'radio') { const f = this._rd.favs; if (!f.length) return 'Zet zenders bij je favorieten (☆) om te wisselen';

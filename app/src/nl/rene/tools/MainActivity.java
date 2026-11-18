@@ -868,6 +868,17 @@ public class MainActivity extends Activity {
             if (e.getAction() == android.view.KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) js("onEreaderKey", k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN ? "1" : "-1");
             return true;
         }
+        // Fijner volume terwijl Tools in beeld is (buiten Tools via de mediasessie, zie FijnVolume)
+        if (visible && (k == android.view.KeyEvent.KEYCODE_VOLUME_DOWN || k == android.view.KeyEvent.KEYCODE_VOLUME_UP)) {
+            FijnVolume f = FijnVolume.speler();
+            if (f != null) {
+                if (e.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                    f.stapje(k == android.view.KeyEvent.KEYCODE_VOLUME_UP ? android.media.AudioManager.ADJUST_RAISE : android.media.AudioManager.ADJUST_LOWER);
+                    js("onFijnVolume", f.niveau() + "," + f.hoogste());
+                }
+                return true;
+            }
+        }
         return super.dispatchKeyEvent(e);
     }
 

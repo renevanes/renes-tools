@@ -31,6 +31,20 @@ public class PlayerBridge extends PodcastBridge {
     /** Alleen een van de vaste keuzes (0, 15, 20, 30, 60, 120, 180 s); geeft false bij iets anders. */
     @JavascriptInterface public boolean sleepFadeSet(int sec) { return SleepFade.kies(ctx, sec); }
 
+    /** Fijner volume met de volumeknoppen (podcasts, radio, voorlezen): {"aan":bool,"fijn":n,"keuzes":[2,3,4],"stappen":15}
+     *  (stappen = de stappen van Android voor media op deze telefoon). */
+    @JavascriptInterface public String fijnVolume() {
+        try {
+            org.json.JSONArray k = new org.json.JSONArray();
+            for (int x : FijnVolume.KEUZES) k.put(x);
+            int m = 15;
+            try { m = ((android.media.AudioManager) ctx.getSystemService(android.content.Context.AUDIO_SERVICE)).getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC); } catch (Throwable ignored) { }
+            return new JSONObject().put("aan", FijnVolume.aan(ctx)).put("fijn", FijnVolume.fijn(ctx)).put("keuzes", k).put("stappen", m).toString();
+        } catch (Exception e) { return "{}"; }
+    }
+    /** Aan of uit en hoe fijn (alleen een van de keuzes; anders de standaard). Geldt meteen, ook voor wat nu speelt. */
+    @JavascriptInterface public void fijnVolumeSet(boolean aan, int fijn) { FijnVolume.zet(ctx, aan, fijn); }
+
     /** "1": deze app geeft hoesjes uit zijn eigen cache aan de interface (https://app.renes-tools.local/art?u=…). */
     @JavascriptInterface public String artLokaal() { return "1"; }
 

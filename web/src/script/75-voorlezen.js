@@ -78,6 +78,7 @@ function enterSpraak(){mdRefresh();} // laadt de stand en tekent Spraak (svRende
 function svRender(){
   if(current!=='spraak')return;
   if(typeof Android.speechModels!=='function'){$('#sv-voice-card').hidden=true;}
+  fvRender('sv');
   const model=spReadModels(),ready=mdVoiceSort(model.voices).filter(v=>v.state==='ready'),sel=$('#sv-voice');
   const opts=ready.length?ready.map(v=>[v.id,v.label+' · '+mdVoiceQ(v)]):[['',t('Nog geen stem gedownload')]],sig=JSON.stringify(opts);
   if(sel.dataset.sig!==sig){sel.dataset.sig=sig;sel.replaceChildren(...opts.map(([id,label])=>{const o=cmEl('option',label);o.value=id;return o;}));}

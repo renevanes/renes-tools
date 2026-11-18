@@ -298,6 +298,8 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         session.setCallback(new SessionCallback());
         session.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS | MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
         setSessionToken(session.getSessionToken()); // voor Android Auto en andere mediabedieningen
+        fv = new FijnVolume(this, g -> applyVolume(), () -> "playing".equals(status) && !alarm);
+        fv.koppel(session);
         session.setPlaybackState(new PlaybackState.Builder().setActions(ACTIONS)
                 .setState(PlaybackState.STATE_STOPPED, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1f).build());
         // Buffers van een vorige keer (bijv. na een crash) opruimen.
@@ -403,6 +405,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
 
     /** Wekker: hoe ver hij al is aangezwollen (ramp). */
     private float alarmVol = 1f;
+    private FijnVolume fv;
 
     /** Volume = (wekker of slaaptimer) × even zachter voor een melding. */
     private void applyVolume() {
@@ -410,7 +413,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         if (p == null) return;
         if (sleepAt > 0 && !alarm) fadeMin = SleepFade.omlaag(fadeMin, SleepFade.gain(sleepAt - System.currentTimeMillis(), sleepFadeMs()));
         float base = alarm ? alarmVol : sleepAt > 0 ? fadeMin : 1f;
-        float v = base * (ducked ? 0.3f : 1f);
+        float v = base * (ducked ? 0.3f : 1f) * (alarm || fv == null ? 1f : fv.gain()); // fijn volume niet bij de wekker
         try { p.setVolume(v, v); } catch (Exception ignored) { }
     }
 
@@ -828,6 +831,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
 
     private void update() {
         if (!alive || inst != this) return;
+        if (fv != null) fv.actief(!alarm); // de wekker: gewoon het volume van Android
         String name = "Radio";
         try { name = new JSONObject(station).optString("name", "Radio"); } catch (Exception ignored) { }
         session.setMetadata(new MediaMetadata.Builder()
@@ -897,6 +901,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         release();
         abandonFocus();
         try { unregisterReceiver(noisy); } catch (Exception ignored) { }
+        try { fv.los(); } catch (Throwable ignored) { }
         session.release();
         if ("interrupted".equals(status) || "connecting".equals(status) || "playing".equals(status)) status = "paused";
         if (!"error".equals(status) && !"paused".equals(status)) status = "stopped";

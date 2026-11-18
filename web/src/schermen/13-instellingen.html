@@ -357,10 +357,18 @@
       <div class="sw"><span>Boeken blijven voorlezen<small>Ook met het scherm uit of buiten Tools. De melding heeft pauzeren en stoppen. De assistent en notities stoppen wanneer je Tools verlaat.</small></span><button class="tg" id="sv-background" role="switch" aria-checked="false" onclick="spBackground()" aria-label="Boeken blijven voorlezen"></button></div>
       <button class="big tonal" id="sv-preview" onclick="spPreview()">Stem proberen</button>
     </div>
+    <div class="card" id="sv-fvk">
+      <h2><span class="ui-icon" data-icon="volume-high" aria-hidden="true"></span>Volumeknoppen</h2>
+      <div class="sw"><span>Fijner volume<small>Kleinere stappen met de volumeknoppen van je telefoon, bij podcasts, radio en voorlezen</small></span><button class="tg" id="sv-fv" role="switch" aria-checked="false" onclick="fvZet('sv', 'aan')" aria-label="Fijner volume"></button></div>
+      <label class="f" for="sv-fvstap">Hoe fijn</label>
+      <select class="sel" id="sv-fvstap" onchange="fvZet('sv', 'fijn', this.value)"></select>
+      <p class="hint" id="sv-fvu" role="status"></p>
+    </div>
     <div id="sv-cats"></div>
     <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
       <p>Voorlezen gebruikt één stem voor de e-reader, notities, de assistent en andere tools. Kies je een stem in een andere taal, dan onthoudt Tools die per taal: een Engels boek krijgt je Engelse stem.</p>
       <p>De stemmen met Beste kwaliteit zijn ±67 MB. De compacte stemmen zijn ±21 MB en klinken iets minder zuiver. Stemmen en spraakmodellen staan buiten back-ups en kun je later opnieuw downloaden; downloaden volgt Alleen via wifi bij Modellen.</p>
+      <p>Fijner volume: zolang Tools speelt, wordt elke stap van de volumeknoppen in 2 tot 4 kleinere stappen verdeeld. Met Tools in beeld werkt dat altijd. Met het scherm uit of in een andere app alleen als je telefoon dat toelaat (niet elke telefoon doet dat); anders gelden daar de gewone stappen. Het volumevenster van Android toont dan de schuif van Tools. Niet bij de radio als wekker en niet in de auto.</p>
       <p id="sv-help-stt">Spraak naar tekst (Whisper) schrijft gesprekken, spraaknotities, Slaappraat en ingesproken vragen aan de assistent uit.</p>
     </div></details>
   </main>

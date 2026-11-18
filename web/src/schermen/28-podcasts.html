@@ -84,6 +84,13 @@
       <div class="sw"><span>Doorgaan zolang de slaaptimer loopt<small>Met een slaaptimer op tijd gaat hij in elk geval door met de volgende van dezelfde podcast, ook als Hierna leeg is of je hierboven Stoppen koos. "Stoppen na deze aflevering" stopt altijd.</small></span><button class="tg" id="ps-naslaap" role="switch" aria-checked="true" onclick="psSlaap()" aria-label="Doorgaan zolang de slaaptimer loopt"></button></div>
       <p class="hint" id="ps-next" translate="no"></p>
     </div>
+    <div class="card" id="ps-fvk">
+      <h2><span class="ui-icon" data-icon="volume-high" aria-hidden="true"></span>Volumeknoppen</h2>
+      <div class="sw"><span>Fijner volume<small>Kleinere stappen met de volumeknoppen van je telefoon, bij podcasts, radio en voorlezen</small></span><button class="tg" id="ps-fv" role="switch" aria-checked="false" onclick="fvZet('ps', 'aan')" aria-label="Fijner volume"></button></div>
+      <label class="f" for="ps-fvstap">Hoe fijn</label>
+      <select class="sel" id="ps-fvstap" onchange="fvZet('ps', 'fijn', this.value)"></select>
+      <p class="hint" id="ps-fvu" role="status"></p>
+    </div>
     <div class="card">
       <h2><span class="ui-icon" data-icon="download" aria-hidden="true"></span>Downloaden</h2>
       <div class="sw"><span>Alleen via wifi downloaden<small>Voor offline luisteren en Vanzelf downloaden</small></span><button class="tg" id="ps-wifi" role="switch" aria-checked="false" onclick="psDl('wifiOnly')" aria-label="Alleen via wifi downloaden"></button></div>
@@ -94,6 +101,7 @@
       <p>Hierna is je wachtrij: zet afleveringen erin via ⋯ bij een aflevering (Als volgende afspelen of Toevoegen aan Hierna). Na een aflevering speelt de speler de bovenste uit Hierna en haalt hem eruit.</p>
       <p>Is Hierna leeg, dan kiest hij volgens de instelling de volgende van dezelfde podcast: eerst de nieuwere afleveringen in de volgorde waarin ze verschenen, dan de oudere; wat je al beluisterde slaat hij over. Bij "nieuwe afleveringen" kiest hij daarna de nieuwste die je nog niet hoorde van alles wat je volgt.</p>
       <p>Hapert de verbinding (de speler staat 15 seconden stil, of een sprong blijft hangen), dan verbindt hij vanzelf opnieuw op dezelfde plek.</p>
+      <p>Fijner volume: zolang Tools speelt, wordt elke stap van de volumeknoppen in 2 tot 4 kleinere stappen verdeeld. Met Tools in beeld werkt dat altijd. Met het scherm uit of in een andere app alleen als je telefoon dat toelaat (niet elke telefoon doet dat); anders gelden daar de gewone stappen. Het volumevenster van Android toont dan de schuif van Tools. Niet bij de radio als wekker en niet in de auto.</p>
     </div></details>
   </main>
 </section>

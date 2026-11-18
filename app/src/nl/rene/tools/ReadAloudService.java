@@ -23,6 +23,8 @@ public class ReadAloudService extends Service {
         @Override public void onPause(){ReadAloudService s=service.get();if(s!=null)ReadAloud.pauseNotification(s.request,true);}
         @Override public void onStop(){ReadAloudService s=service.get();if(s!=null)ReadAloud.stop(null,s.request);}
     }
+    /** De mediasessie van het boek dat nu voorleest (voor de volumeknoppen buiten Tools, FijnVolume), of null. */
+    static android.media.session.MediaSession sessie(){ReadAloudService s=live.get();return s==null||s.request.isEmpty()?null:s.session;}
     static void mediaState(ReadAloud.Job j){ReadAloudService s=live.get();if(s==null||s.session==null||!s.request.equals(j.request))return;try{s.session.setActive(true);s.session.setMetadata(new android.media.MediaMetadata.Builder().putString(android.media.MediaMetadata.METADATA_KEY_TITLE,Taal.t(j.context,"Boek voorlezen")).build());s.session.setPlaybackState(new android.media.session.PlaybackState.Builder().setActions(android.media.session.PlaybackState.ACTION_PLAY|android.media.session.PlaybackState.ACTION_PAUSE|android.media.session.PlaybackState.ACTION_STOP|android.media.session.PlaybackState.ACTION_PLAY_PAUSE).setState(j.paused?android.media.session.PlaybackState.STATE_PAUSED:android.media.session.PlaybackState.STATE_PLAYING,android.media.session.PlaybackState.PLAYBACK_POSITION_UNKNOWN,1).build());}catch(Throwable ignored){ }}
 
     static void begin(Context c,String request){try{Intent i=new Intent(c,ReadAloudService.class).putExtra("request",request);if(Build.VERSION.SDK_INT>=26)c.startForegroundService(i);else c.startService(i);}catch(Throwable ignored){ReadAloud.stop(null,request);}}

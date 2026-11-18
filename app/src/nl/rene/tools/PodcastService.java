@@ -201,6 +201,8 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         session = new MediaSession(this, "RenesPodcast");
         session.setCallback(new SessionCallback());
         session.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS | MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
+        fv = new FijnVolume(this, g -> setVolume(vol), () -> "playing".equals(status));
+        fv.koppel(session);
         noisy = new NoisyReceiver();
         IntentFilter f = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(noisy, f, Context.RECEIVER_NOT_EXPORTED); else registerReceiver(noisy, f);
@@ -468,7 +470,14 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         try { p.setPlaybackParams(p.getPlaybackParams().setSpeed(speed)); } catch (Exception ignored) { }
     }
 
-    private void setVolume(float v) { MediaPlayer p = player; if (p != null) try { p.setVolume(v, v); } catch (Exception ignored) { } }
+    /** v = slaaptimer en einde (targetVolume); daarbovenop het fijne volume van de knoppen (FijnVolume). */
+    private void setVolume(float v) {
+        vol = v;
+        float g = v * (fv == null ? 1f : fv.gain());
+        MediaPlayer p = player; if (p != null) try { p.setVolume(g, g); } catch (Exception ignored) { }
+    }
+    private float vol = 1f;
+    private FijnVolume fv;
 
     /** byFocus = door een gesprek of ander geluid (dan straks vanzelf verder). */
     private void pause(boolean byFocus) {
@@ -757,6 +766,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
 
     private void update() {
         if (inst != this) return;
+        if (fv != null) fv.actief(true); // autostand kan intussen veranderd zijn
         Player.changed(this); // widget en zwevend venster
         String title = optEp("title"), podTitle = optPod("title");
         String sig = title + "|" + podTitle + "|" + dur + "|" + System.identityHashCode(art);
@@ -867,6 +877,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         releaseWifi();
         abandonFocus();
         try { unregisterReceiver(noisy); } catch (Exception ignored) { }
+        try { fv.los(); } catch (Throwable ignored) { }
         session.release();
         // Een melding met knoppen naar een gestopte service doet niets meer: weghalen (verder luisteren kan in de app)
         if (!foreground) ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIF_ID);

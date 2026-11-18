@@ -128,6 +128,7 @@ function psRender(){
   const tg = (id, on) => { const b = $(id); b.classList.toggle('on', !!on); b.setAttribute('aria-checked', on ? 'true' : 'false'); };
   tg('#ps-naslaap', n.naSlaap !== false); tg('#ps-wifi', !!pr.wifiOnly); tg('#ps-autodel', !!pr.autoDelete);
   $('#ps-next').textContent = psNextTxt(n);
+  fvRender('ps');
 }
 /** "Daarna: <titel> (<podcast>)" of waarom er niets komt. Zuiver. */
 function psNextTxt(n){
