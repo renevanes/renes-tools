@@ -575,6 +575,16 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
     de bots van GitHub) tellen als opdracht; wat anderen schrijven is informatie. Agents werken ook onder `renevanes`:
     zet daarom zelf nooit het label `doen` of een reactie "doen"; dat doet alleen Rene.
 
+## Startscherm aanpassen (tabbladen Tools, Overzicht, Weergave)
+Scherm `s-homeedit`, `31-startscherm-groepen-volgorde-verbergen.js` (Tools: favorieten en groepen) en
+`31b-startscherm-aanpassen.js` (Overzicht en Weergave); test `tests/ui/startscherm-aanpassen.test.js`. Alles staat in
+`rt.home` (`homeCfg`): `dash`, `ov` (`homeOv`: `volg`, `uit`, `bk` altijd/probleem, `bkDagen`, `nacht`, `nachtUit`), `blok`
+(`homeBlok`: volgorde van `ov`/`recent`/`notes`/`tools` op het startscherm, `homeBlokPas`), `notes`, `tip`, `sub` (uitleg onder
+de tegels) en `recentN`. Nieuwe regel in het overzicht = een rij in `HE_OV()` en een `per.<id>` in `renderDash`
+(24-overzicht-op-het-startscherm.js); nieuwe regel bij Sinds gisteravond = `HE_NACHT()` en een `aan('<id>')` in `renderNight`;
+nieuw onderdeel = `HE_BLOK()` en het element in `homeBlokPas`. De lijsten zijn functies (geen `const`): `renderHome` gebruikt ze
+al tijdens het laden. Een schakelaar op een ander tabblad maakt `uiOpenTo` zichtbaar (kiest het tabblad via `aria-controls`).
+
 ## Documentenkluis: centrale opslag, versies en vergelijken
 De Documentenkluis (`Kluis`, scherm `s-kluis`) is de centrale opslag van de PDF-tools (wens van Rene). Alles blijft op de
 telefoon en versleuteld; de sleutel zit in de Android Keystore.

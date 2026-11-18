@@ -192,6 +192,7 @@ function renderHome(){
   renderHomeRecent();
   renderHomeNew();
   renderHomeStart();
+  homeBlokPas(c);
   homeTegelPasStraks();
 }
 /* ---------- Lange tegelnamen niet midden in een woord afbreken ----------
@@ -239,7 +240,7 @@ function homeTegelPas(){
  * Alleen welke tool (bijv. "pdf"), geen tijden of wat erin gebeurde; alleen in deze WebView (localStorage rt.homeRecent).
  * Het is gebruik, geen instelling: niet in de interface-instellingen voor Alles back-uppen (WS_SKIP in 02-kern.js).
  * Uit in Startscherm aanpassen = niets meer bijhouden en de lijst wissen. Lang indrukken: hetzelfde menu als een tegel. */
-const HOME_RECENT_MAX = 4;
+const HOME_RECENT_MAX = 8; // bewaard; hoeveel er staan kies je bij Weergave (homeRecentN)
 function homeRecentList(){ const r = store.get('homeRecent', []); return Array.isArray(r) ? r.filter((tk, i, a) => TOOL_TILE[tk] && tk !== 'skin' && a.indexOf(tk) === i).slice(0, HOME_RECENT_MAX) : []; }
 /** Zuiver: tk vooraan, zonder dubbele, hooguit max. */
 function homeRecentPush(list, tk, max){ return [tk].concat(list.filter(x => x !== tk)).slice(0, max); }
@@ -250,7 +251,7 @@ function homeRecentAdd(tk){
 }
 function renderHomeRecent(){
   const box = $('#home-recent'), list = $('#home-recent-list'); if (!box || !list) return;
-  const c = homeCfg(), r = c.recent === false ? [] : homeRecentList().filter(tk => !c.hidden.includes(tk) && !playWeg(tk));
+  const c = homeCfg(), r = c.recent === false ? [] : homeRecentList().filter(tk => !c.hidden.includes(tk) && !playWeg(tk)).slice(0, homeRecentN(c));
   box.hidden = !r.length;
   const key = r.join() + '|' + taalId();
   if (list.dataset.k === key) return;
@@ -291,7 +292,8 @@ function heRow(c, tk, fav){
 function enterHomeEdit(){
   const c = homeCfg();
   $('#he-v1').style.display = homeV1() ? '' : 'none';
-  ['grouped', 'compact', 'dash', 'recent'].forEach(k => { const on = k === 'dash' || k === 'recent' ? c[k] !== false : !!c[k], b = $('#he-' + k); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+  { const on = c.dash !== false, b = $('#he-dash'); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
+  heOvRender(c); heWeerRender(c); // tabbladen Overzicht en Weergave (31b-startscherm-aanpassen.js)
   $('#he-fav').innerHTML = '<h2>★ Favorieten</h2>' + (c.fav.length ? '<div class="helist" data-fav="1" role="list" aria-label="Favorieten">' + c.fav.map(tk => heRow(c, tk, true)).join('') + '</div>'
     : '<p class=note style="margin:0">Tik op ☆ bij een tool (hieronder, of houd de tegel ingedrukt) om hem bovenaan te zetten.</p>');
   const n = c.groups.length;
@@ -402,7 +404,7 @@ function heDelGroup(gi){
   if (!g.tools.length) { go(); return; }
   askConfirm(t('Groep {naam} weghalen?', { naam: t(g.name) }), tn(g.tools.length, 'De {n} tool gaat naar {groep}.', 'De {n} tools gaan naar {groep}.', { groep: t(c.groups[to].name) }), 'Weghalen', go);
 }
-function heReset(){ askConfirm('Standaard herstellen?', 'Groepen, volgorde en verborgen tools gaan terug naar de standaardindeling. Je favorieten blijven.', 'Herstellen', () => { const was = homeCfg(); store.set('home', Object.assign(homeCopy(HOME_DEFAULT), { fav: was.fav, recent: was.recent, compact: was.compact, grouped: was.grouped, dash: was.dash })); /* je weergave (compact, groepen, Overzicht, Recent) blijft ook */ renderHome(); renderDash(); setDynamicShortcuts(); enterHomeEdit(); }); }
+function heReset(){ askConfirm('Standaard herstellen?', 'Groepen, volgorde en verborgen tools gaan terug naar de standaardindeling. Je favorieten blijven.', 'Herstellen', () => { const was = homeCfg(); store.set('home', Object.assign(homeCopy(HOME_DEFAULT), { fav: was.fav, recent: was.recent, compact: was.compact, grouped: was.grouped, dash: was.dash, ov: was.ov, blok: was.blok, notes: was.notes, tip: was.tip, sub: was.sub, recentN: was.recentN })); /* je weergave (compact, groepen, Overzicht, Recent) blijft ook */ renderHome(); renderDash(); setDynamicShortcuts(); enterHomeEdit(); }); }
 
 /* ---------- slepen (aan ⠿): binnen de favorieten, of tussen alle groepen ---------- */
 (function(){
@@ -410,7 +412,7 @@ function heReset(){ askConfirm('Standaard herstellen?', 'Groepen, volgorde en ve
   const rowsIn = scope => [...document.querySelectorAll(scope)];
   function start(e){
     if (drag || !e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return; // één vinger, linkerknop
-    const h = e.target && e.target.closest && e.target.closest('#s-homeedit .hedrag'); if (!h) return;
+    const h = e.target && e.target.closest && e.target.closest('#he-p-tools .hedrag'); if (!h) return;
     const row = h.closest('.herow'), list = row.closest('.helist'); if (!row || !list) return;
     e.preventDefault();
     const r = row.getBoundingClientRect(), ghost = row.cloneNode(true);

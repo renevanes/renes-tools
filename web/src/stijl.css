@@ -67,7 +67,7 @@ main{padding:4px 16px 24px;max-width:600px;margin:0 auto}
 .hgroup{margin:4px 0 22px}.hgroup h3{margin:0 4px 10px;font-size:15px;font-weight:600;color:var(--primary)}
 .hgroups.compact .tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .hgroups.compact .tile{min-height:0;padding:14px 6px 12px;align-items:center;text-align:center;gap:8px;border-radius:20px}
-.hgroups.compact .tile small{display:none}.hgroups.compact .tile b{font-size:13px;line-height:1.2}
+.hgroups.compact .tile small{display:none}.hgroups.kaal .tile small{display:none}.hgroups.compact .tile b{font-size:13px;line-height:1.2}
 .hgroups.compact .tile .ic{width:44px;height:44px;border-radius:15px}
 .hgroups.compact .tile .dot{top:8px;right:8px}
 .herow{display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--line)}.herow:first-child{border-top:0}
@@ -1424,3 +1424,9 @@ body.er-reading .speech-player,body.solo .speech-player{bottom:calc(12px + env(s
 .cmc-idkopieen li small{flex:1 1 100%;color:var(--muted);order:2}
 /* hidden telt ook voor knoppen en rijen met een eigen display (vergelijken, Gemaakt, ID-kopie, Stamgegevens) */
 #s-pdfcmp [hidden],#kc-card [hidden],#s-idcopy [hidden],#cmc-idkopie [hidden]{display:none!important}
+
+/* Startscherm aanpassen: regels van het overzicht en onderdelen (pictogram, naam, pijlen, schakelaar) */
+.he-oplijst{margin-top:4px}.he-oplijst .herow{gap:8px;min-height:56px}.he-oplijst .herow .stic{width:36px;height:36px}
+.he-oplijst .herow .tg{flex:none;margin-left:4px}.he-oplijst .herow.off .nm{color:var(--muted)}
+.he-oplijst.uit{opacity:.55}.he-sub{margin:4px 0 6px}
+#s-homeedit [role=tabpanel][hidden]{display:none}

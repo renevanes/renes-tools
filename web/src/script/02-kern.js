@@ -197,7 +197,7 @@ function show(name){
   if (name==='setregiotz' && typeof rgzRender === 'function') rgzRender();
   if (BK_SCR.includes(name)) enterBackup(); else stopBkPoll();
   if (name==='herstel') enterHerstel(); else if (current_prev==='herstel' && typeof hsLeave === 'function') hsLeave();
-  if (name==='homeedit') enterHomeEdit(); else if (typeof heDragCancel === 'function') heDragCancel();
+  if (name==='homeedit') { if (current_prev !== 'homeedit') heOpen(); else enterHomeEdit(); } else if (typeof heDragCancel === 'function') heDragCancel();
   if (name==='ralarm') enterAlarm();
   if (name==='selftest') enterSelfTest();
   if (name==='music') enterMusic(); else stopMuPoll();

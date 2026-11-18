@@ -5,19 +5,62 @@
     <h1 tabindex="-1">Startscherm aanpassen</h1>
   </div>
   <main>
-    <div class="card">
-      <h2>Weergave</h2>
-      <div class="sw"><span>In groepen<small>Tools onder een kopje per groep, in de volgorde hieronder</small></span><button class="tg" id="he-grouped" role="switch" aria-checked="false" aria-label="In groepen" onclick="heSet('grouped', !this.classList.contains('on'))"></button></div>
-      <div class="sw"><span>Compact<small>Kleinere tegels, drie naast elkaar</small></span><button class="tg" id="he-compact" role="switch" aria-checked="false" aria-label="Compact" onclick="heSet('compact', !this.classList.contains('on'))"></button></div>
-      <div class="sw"><span>Overzicht bovenaan<small>Backup, wekker en herinneringen</small></span><button class="tg" id="he-dash" role="switch" aria-checked="false" aria-label="Overzicht bovenaan" onclick="heSet('dash', !this.classList.contains('on'))"></button></div>
-      <div class="sw"><span>Recent gebruikt<small>De laatste vier tools die je opende, onder het overzicht. Uit = niets bijhouden.</small></span><button class="tg" id="he-recent" role="switch" aria-checked="false" aria-label="Recent gebruikt" onclick="heRecent(!this.classList.contains('on'))"></button></div>
+    <div class="pctabs-wrap"><div class="pctabs" role="tablist" aria-label="Startscherm aanpassen">
+      <button role="tab" id="he-tab-tools" data-tab="tools" aria-controls="he-p-tools" aria-selected="true" tabindex="0" onclick="heTab('tools')">Tools</button>
+      <button role="tab" id="he-tab-ov" data-tab="ov" aria-controls="he-p-ov" aria-selected="false" tabindex="-1" onclick="heTab('ov')">Overzicht</button>
+      <button role="tab" id="he-tab-weer" data-tab="weer" aria-controls="he-p-weer" aria-selected="false" tabindex="-1" onclick="heTab('weer')">Weergave</button>
+    </div></div>
+
+    <!-- Tools: favorieten en groepen -->
+    <div id="he-p-tools" role="tabpanel" aria-labelledby="he-tab-tools">
+      <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+        <p class="he-how">Sleep een tool aan <span aria-hidden="true">⠿</span> naar een andere plek, ook naar een andere groep. Of tik op <b>⋯</b> bij een tool: verplaatsen naar een groep, omhoog of omlaag, verbergen. Met de pijlen bij een groep zet je de groepen in een andere volgorde.</p>
+        <p>Met ☆ zet je een tool bij je favorieten: die staan bovenaan (en zijn de eerste keuzes als je het app-icoon ingedrukt houdt). Verborgen tools blijven bereikbaar via hun snelkoppeling en Zoeken; zet ze terug met ⋯ → Tonen. Houd je een tegel op het startscherm ingedrukt, dan kun je hem daar ook naar een andere groep verplaatsen.</p>
+      </div></details>
+      <div class="card" id="he-fav"></div>
+      <div id="he-groups"></div>
+      <button class="big ghost" onclick="heAddGroup()">Groep toevoegen</button>
+      <button class="big ghost" style="margin-top:8px" onclick="heReset()">Standaard herstellen</button>
+      <button class="big ghost" id="he-v1" style="margin-top:8px;display:none" onclick="homeV1Restore()">Vorige indeling terugzetten</button>
     </div>
-    <p class="note he-how">Sleep een tool aan <span aria-hidden="true">⠿</span> naar een andere plek, ook naar een andere groep. Of tik op <b>⋯</b> bij een tool: verplaatsen naar een groep, omhoog of omlaag, verbergen. Met de pijlen bij een groep zet je de groepen in een andere volgorde.</p>
-    <div class="card" id="he-fav"></div>
-    <div id="he-groups"></div>
-    <button class="big ghost" onclick="heAddGroup()">Groep toevoegen</button>
-    <button class="big ghost" style="margin-top:8px" onclick="heReset()">Standaard herstellen</button>
-    <button class="big ghost" id="he-v1" style="margin-top:8px;display:none" onclick="homeV1Restore()">Vorige indeling terugzetten</button>
-    <p class="note">Met ☆ zet je een tool bij je favorieten: die staan bovenaan (en zijn de eerste keuzes als je het app-icoon ingedrukt houdt). Verborgen tools blijven bereikbaar via hun snelkoppeling en Zoeken; zet ze terug met ⋯ → Tonen. Houd je een tegel op het startscherm ingedrukt, dan kun je hem daar ook naar een andere groep verplaatsen.</p>
+
+    <!-- Overzicht bovenaan -->
+    <div id="he-p-ov" role="tabpanel" aria-labelledby="he-tab-ov" hidden>
+      <div class="card">
+        <div class="sw"><span>Overzicht bovenaan<small id="he-dash-stand"></small></span><button class="tg" id="he-dash" role="switch" aria-checked="false" aria-label="Overzicht bovenaan" onclick="heSet('dash', !this.classList.contains('on'))"></button></div>
+        <p class="hint">Een regel staat er alleen als er iets te melden is. Zet uit wat je niet wilt zien, en zet met de pijlen de volgorde.</p>
+        <div class="he-oplijst" id="he-ov-list" role="group" aria-label="Regels in het overzicht"></div>
+      </div>
+      <div class="card">
+        <h2>Backup in het overzicht</h2>
+        <label class="f" for="he-ov-bk">Wanneer tonen</label>
+        <select class="sel" id="he-ov-bk" onchange="heOvSet(o => { o.bk = this.value; })"><option value="altijd">Altijd: wanneer de laatste backup was</option><option value="probleem">Alleen als er iets mis is</option></select>
+        <label class="f" for="he-ov-bkdagen">Waarschuwen als de laatste backup ouder is dan</label>
+        <select class="sel" id="he-ov-bkdagen" onchange="heOvSet(o => { o.bkDagen = +this.value; })"><option value="1">1 dag</option><option value="2">2 dagen</option><option value="3">3 dagen</option><option value="7">een week</option><option value="14">twee weken</option></select>
+      </div>
+      <div class="card">
+        <div class="sw"><span>Sinds gisteravond<small>Wat er gebeurde terwijl je sliep, tot je op Gezien tikt</small></span><button class="tg" id="he-nacht" role="switch" aria-checked="true" aria-label="Sinds gisteravond" onclick="heOvSet(o => { o.nacht = !this.classList.contains('on'); })"></button></div>
+        <div class="he-oplijst" id="he-nacht-list" role="group" aria-label="Regels bij Sinds gisteravond"></div>
+      </div>
+      <button class="big ghost" onclick="heOvStandaard()">Overzicht standaard</button>
+    </div>
+
+    <!-- Weergave en onderdelen -->
+    <div id="he-p-weer" role="tabpanel" aria-labelledby="he-tab-weer" hidden>
+      <div class="card">
+        <h2>Tegels</h2>
+        <div class="sw"><span>In groepen<small>Tools onder een kopje per groep, in de volgorde van het tabblad Tools</small></span><button class="tg" id="he-grouped" role="switch" aria-checked="false" aria-label="In groepen" onclick="heSet('grouped', !this.classList.contains('on'))"></button></div>
+        <div class="sw"><span>Compact<small>Kleinere tegels, drie naast elkaar</small></span><button class="tg" id="he-compact" role="switch" aria-checked="false" aria-label="Compact" onclick="heSet('compact', !this.classList.contains('on'))"></button></div>
+        <div class="sw"><span>Uitleg onder de tegels<small>De korte regel onder de naam van een tool</small></span><button class="tg" id="he-sub" role="switch" aria-checked="true" aria-label="Uitleg onder de tegels" onclick="heSet('sub', !this.classList.contains('on'))"></button></div>
+      </div>
+      <div class="card">
+        <h2>Onderdelen van het startscherm</h2>
+        <p class="hint">Van boven naar beneden. Zet met de pijlen een andere volgorde, of zet een onderdeel uit.</p>
+        <div class="he-oplijst" id="he-blok-list" role="group" aria-label="Onderdelen van het startscherm"></div>
+        <div class="he-sub" id="he-recentn-rij"><label class="f" for="he-recentn">Aantal bij Recent gebruikt</label><select class="sel" id="he-recentn" onchange="heRecentN(this.value)"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="6">6</option><option value="8">8</option></select></div>
+        <div class="sw"><span>Tip onderaan<small>Over snelkoppelingen op het startscherm van je telefoon</small></span><button class="tg" id="he-tip" role="switch" aria-checked="true" aria-label="Tip onderaan" onclick="heSet('tip', !this.classList.contains('on'))"></button></div>
+        <button class="big ghost" style="margin-top:10px" onclick="heBlokStandaard()">Standaardvolgorde</button>
+      </div>
+    </div>
   </main>
 </section>
