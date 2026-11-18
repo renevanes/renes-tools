@@ -33,6 +33,37 @@ public class NieuwsVideoTest {
         check(NieuwsVideo.csp("script-src 'nonce-abc' 'strict-dynamic' 'unsafe-inline'", "n").endsWith("'nonce-n'"), "met nonce en strict-dynamic: onze nonce erbij");
         check(NieuwsVideo.csp("script-src 'none'", "n") == null, "scripts helemaal uit: dan geen script");
 
+        check(NieuwsVideo.csp("script-src-elem 'self'; default-src 'self'", "n").equals("script-src-elem 'self' 'nonce-n'; default-src 'self'"), "script-src-elem gaat voor: daar de nonce");
+        check(NieuwsVideo.csp("script-src 'self'; script-src 'unsafe-inline'", "n").equals("script-src 'self' 'nonce-n'; script-src 'unsafe-inline'"), "dubbele script-src: de eerste telt");
+        check(NieuwsVideo.csp("script-src 'self', default-src 'self'", "n").equals("script-src 'self' 'nonce-n', default-src 'self'; script-src 'self' 'nonce-n'"), "twee beleidsregels in één kop: allebei");
+        check(NieuwsVideo.csp("img-src *, script-src 'none'", "n") == null, "een beleid zonder scripts: geen script");
+        check(NieuwsVideo.csp("script-src-elem 'unsafe-inline'; script-src 'self'", "n").equals("script-src-elem 'unsafe-inline'; script-src 'self'"), "script-src-elem met inline: ongewijzigd");
+
+        // Koppen: lengte, codering en type weg, cookies apart, CSP (ook alleen-melden) met nonce
+        java.util.Map<String, java.util.List<String>> v = new java.util.LinkedHashMap<>();
+        v.put(null, java.util.Collections.singletonList("HTTP/1.1 200 OK"));
+        v.put("Content-Length", java.util.Collections.singletonList("123"));
+        v.put("Content-Encoding", java.util.Collections.singletonList("gzip"));
+        v.put("Content-Type", java.util.Collections.singletonList("text/html"));
+        v.put("Set-Cookie", java.util.Arrays.asList("a=1", "b=2"));
+        v.put("Content-Security-Policy", java.util.Arrays.asList("script-src 'self'", "default-src https:"));
+        v.put("Content-Security-Policy-Report-Only", java.util.Collections.singletonList("script-src 'self'; report-uri /r"));
+        v.put("X-Frame-Options", java.util.Collections.singletonList("SAMEORIGIN"));
+        NieuwsVideo.Koppen k = NieuwsVideo.koppen(v, "n");
+        check(k.mag && !k.kop.containsKey("Content-Length") && !k.kop.containsKey("Content-Encoding") && !k.kop.containsKey("Content-Type") && !k.kop.containsKey("Set-Cookie") && !k.kop.containsKey(null), "lengte, codering, type en cookies niet in de koppen");
+        check(k.koekjes.equals(java.util.Arrays.asList("a=1", "b=2")), "cookies apart (alleen bewaard als cookies van derden aan staan)");
+        check(k.kop.get("Content-Security-Policy").equals("script-src 'self' 'nonce-n', default-src https:; script-src https: 'nonce-n'"), "elke CSP-kop een eigen beleid (" + k.kop.get("Content-Security-Policy") + ")");
+        check(k.kop.get("Content-Security-Policy-Report-Only").equals("script-src 'self' 'nonce-n'; report-uri /r"), "ook alleen-melden: geen melding over ons script");
+        check(k.kop.get("X-Frame-Options").equals("SAMEORIGIN"), "de rest ongewijzigd");
+        v.put("Content-Security-Policy", java.util.Collections.singletonList("script-src 'none'"));
+        check(!NieuwsVideo.koppen(v, "n").mag, "scripts uit: niet toevoegen");
+
+        // Documenten, BOM en commentaar
+        check(NieuwsVideo.documentVraag(null, "/jHBL8SEz7x/player.html") && !NieuwsVideo.documentVraag(null, "/a/segment_000.m4s") && !NieuwsVideo.documentVraag("image/*", "/x.html"), "zonder Accept: alleen een .html-adres");
+        check(NieuwsVideo.injecteer("\u00ef\u00bb\u00bf<!doctype html><p>x", s, null).equals("\u00ef\u00bb\u00bf<!doctype html><script>X();</script><p>x"), "na de UTF-8-BOM en het doctype");
+        check(NieuwsVideo.utf16(new byte[]{(byte) 0xff, (byte) 0xfe, 0x3c}) && NieuwsVideo.utf16(new byte[]{(byte) 0xfe, (byte) 0xff}) && !NieuwsVideo.utf16(new byte[]{0x3c, 0x68}), "UTF-16 herkennen (dan niets aanpassen)");
+        check(NieuwsVideo.injecteer("<!-- <head> --><html><head><title>", s, null).equals("<!-- <head> --><html><head><script>X();</script><title>"), "<head> in commentaar telt niet");
+
         // Teksten en tekenset
         check(NieuwsVideo.json("Verder \"x\" <tijd> é").equals("\"Verder \\\"x\\\" \\u003ctijd\\u003e \\u00e9\""), "teksten veilig in het script");
         String sc = NieuwsVideo.script("var T = __TEKST__; // vóór", "Verder vanaf {tijd}", "Vanaf het begin");

@@ -63,6 +63,28 @@ const BRON = fs.readFileSync(path.join(__dirname, '..', '..', 'web', 'nieuws-vid
   await vuur('pause', 120);
   ok((await opgeslagen() || {}).t === 120, 'ook zonder play() van een speler');
 
+  // Een andere video op dezelfde plek (andere lengte): niet springen
+  await pg.evaluate(() => localStorage.setItem('tools.plek:https://speler.example/v1/player.html', JSON.stringify({ t: 300, d: 1800, w: Date.now() })));
+  await laad(); await maak(); await pg.evaluate(() => { window.__dur = 900; }); await vuur('playing');
+  ok(await pg.evaluate(() => window.__v.currentTime === 0 && !document.querySelector('[role=status]')), 'andere lengte: niet verder');
+
+  // Twee video's op een pagina: de tweede eerst afspelen neemt de plek van de eerste niet over
+  await pg.evaluate(() => localStorage.clear()); await laad();
+  await pg.evaluate(() => {
+    const mk = (d) => { const v = document.createElement('video'); let t = 0; Object.defineProperty(v, 'currentTime', { get: () => t, set: x => { t = +x; } }); Object.defineProperty(v, 'duration', { get: () => d }); document.body.appendChild(v); return v; };
+    window.__a = mk(1200); window.__b = mk(1200);
+    localStorage.setItem('tools.plek:https://speler.example/v1/player.html', JSON.stringify({ t: 500, d: 1200, w: Date.now() })); // plek van de eerste
+    window.__b.play().catch(() => {}); window.__b.dispatchEvent(new Event('playing'));
+  });
+  ok(await pg.evaluate(() => window.__b.currentTime === 0), 'tweede video: niet de plek van de eerste');
+  await pg.evaluate(() => { window.__a.play().catch(() => {}); window.__a.dispatchEvent(new Event('playing')); });
+  ok(await pg.evaluate(() => window.__a.currentTime === 500), 'eerste video: wel zijn eigen plek');
+
+  // Oude plekken (meer dan 90 dagen) gaan weg; jonge blijven
+  await pg.evaluate(() => { localStorage.clear(); localStorage.setItem('tools.plek:https://speler.example/oud', JSON.stringify({ t: 50, d: 600, w: Date.now() - 91 * 864e5 })); localStorage.setItem('tools.plek:https://speler.example/jong', JSON.stringify({ t: 50, d: 600, w: Date.now() })); localStorage.setItem('iets anders', 'x'); });
+  await laad();
+  ok(await pg.evaluate(() => !localStorage.getItem('tools.plek:https://speler.example/oud') && !!localStorage.getItem('tools.plek:https://speler.example/jong') && localStorage.getItem('iets anders') === 'x'), 'oude plekken opgeruimd, de rest blijft');
+
   // Twee keer het script (artikel na laden): geen dubbele regels
   await pg.evaluate(BRON);
   ok(await pg.evaluate(() => window.__toolsPlek === 1), 'tweede keer: doet niets');
@@ -73,7 +95,7 @@ const BRON = fs.readFileSync(path.join(__dirname, '..', '..', 'web', 'nieuws-vid
   await ctx2.route('https://speler.example/**', r => r.fulfill({ contentType: 'text/html', body: '<!doctype html><html><head><script>' + BRON.replace('Verder vanaf {tijd}', '<img src=x onerror=window.__x=1> {tijd}') + '</script></head><body><div id="host"></div></body></html>' }));
   const p2 = await ctx2.newPage(); p2.on('pageerror', e => errs.push(e.message));
   await p2.goto('https://speler.example/v1/player.html');
-  await p2.evaluate(() => { localStorage.setItem('tools.plek:https://speler.example/v1/player.html', JSON.stringify({ t: 61, d: 600 })); const v = document.createElement('video'); let t = 0; Object.defineProperty(v, 'currentTime', { get: () => t, set: x => { t = +x; } }); Object.defineProperty(v, 'duration', { get: () => 600 }); document.body.appendChild(v); v.play().catch(() => {}); v.dispatchEvent(new Event('playing')); });
+  await p2.evaluate(() => { localStorage.setItem('tools.plek:https://speler.example/v1/player.html', JSON.stringify({ t: 61, d: 600, w: Date.now() })); const v = document.createElement('video'); let t = 0; Object.defineProperty(v, 'currentTime', { get: () => t, set: x => { t = +x; } }); Object.defineProperty(v, 'duration', { get: () => 600 }); document.body.appendChild(v); v.play().catch(() => {}); v.dispatchEvent(new Event('playing')); });
   await p2.waitForTimeout(100);
   ok(await p2.evaluate(() => !window.__x && !document.querySelector('[role=status] img') && document.querySelector('[role=status] span').textContent.endsWith('1:01')), 'tekst als tekst, tijd 1:01');
   await ctx2.close();

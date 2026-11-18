@@ -8,9 +8,26 @@
   window.__toolsPlek = 1;
   var TEKST = __TEKST__;
   var BASIS = 'tools.plek:' + location.origin + location.pathname;
-  var MIN = 10, EIND = 30, ELKE = 5000; // pas na 10 s onthouden; in de laatste 30 s = gezien; hooguit elke 5 s bewaren
+  var MIN = 10, EIND = 30, ELKE = 5000, OUD = 90 * 864e5; // pas na 10 s onthouden; laatste 30 s = gezien; hooguit elke 5 s; 90 dagen bewaren
 
-  function sleutel(i) { return i ? BASIS + '#' + i : BASIS; }
+  // Per video een eigen sleutel: het vaste adres van de video, anders de plek op de pagina (niet de volgorde van afspelen)
+  function sleutel(el) {
+    var src = String(el.currentSrc || el.src || '');
+    if (/^https:/i.test(src)) return BASIS + '|' + src.split(/[?#]/)[0];
+    var i = 0;
+    try { i = Array.prototype.indexOf.call((el.getRootNode ? el.getRootNode() : document).querySelectorAll('video,audio'), el); } catch (e) { }
+    return i > 0 ? BASIS + '#' + i : BASIS;
+  }
+  // Oude plekken opruimen (een keer per pagina)
+  try {
+    for (var j = localStorage.length - 1; j >= 0; j--) {
+      var nm = localStorage.key(j);
+      if (!nm || nm.indexOf('tools.plek:') !== 0) continue;
+      var ou = null;
+      try { ou = JSON.parse(localStorage.getItem(nm)); } catch (e) { }
+      if (!ou || !(ou.w > 0) || Date.now() - ou.w > OUD) localStorage.removeItem(nm);
+    }
+  } catch (e) { }
   function lees(k) {
     try { var o = JSON.parse(localStorage.getItem(k) || 'null'); return o && o.t > 0 ? o : null; } catch (e) { return null; }
   }
@@ -26,26 +43,30 @@
     return (u ? u + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (x < 10 ? '0' : '') + x;
   }
 
-  var gezien = typeof WeakSet === 'function' ? new WeakSet() : null, teller = 0;
+  var gezien = typeof WeakSet === 'function' ? new WeakSet() : null;
   function volg(el) {
     if (!el || !(el instanceof HTMLMediaElement)) return;
     if (gezien) { if (gezien.has(el)) return; gezien.add(el); } else { if (el.__toolsPlek) return; el.__toolsPlek = 1; }
-    var k = sleutel(teller++), laatst = 0, hervat = false;
+    var k = null, laatst = 0, hervat = false;
+    function kk() { return k || (k = sleutel(el)); } // pas bij het spelen: dan is het adres bekend
     el.addEventListener('timeupdate', function () {
       var n = Date.now();
       if (n - laatst < ELKE) return;
       if (el.currentTime >= MIN) laatst = n; // de eerste seconden tellen niet mee voor "elke 5 s"
-      schrijf(k, el.currentTime, el.duration);
+      schrijf(kk(), el.currentTime, el.duration);
     });
-    el.addEventListener('pause', function () { schrijf(k, el.currentTime, el.duration); });
-    el.addEventListener('ended', function () { weg(k); });
+    el.addEventListener('pause', function () { schrijf(kk(), el.currentTime, el.duration); });
+    el.addEventListener('ended', function () { weg(kk()); });
     el.addEventListener('playing', function () {
       if (hervat) return;
       hervat = true;
-      var o = lees(k);
+      var k = kk(), o = lees(k);
       if (!o || el.currentTime > 5) return; // de speler begon zelf al ergens anders
       var d = el.duration;
-      if (d > 0 && isFinite(d) && o.t > d - EIND) { weg(k); return; }
+      if (d > 0 && isFinite(d)) {
+        if (o.d > 0 && Math.abs(o.d - d) > 2) return; // een andere video op die plek
+        if (o.t > d - EIND) { weg(k); return; }
+      }
       try { el.currentTime = o.t; } catch (e) { return; }
       toon(el, k, o.t);
     });

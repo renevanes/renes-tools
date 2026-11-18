@@ -203,6 +203,8 @@ public class NieuwsInlogActivity extends Activity {
         CookieManager.getInstance().setAcceptThirdPartyCookies(wv, derden);
         wv.setWebViewClient(new Client(this));
         wv.setWebChromeClient(new Chrome(this));
+        // het script voor video's alvast klaarzetten, niet op de hoofdthread (NieuwsVideo)
+        if (lezen) new Thread(() -> { try { videoScript(); } catch (Throwable ignored) { } }, "nieuws-video").start();
         log("start", soort + ", derden " + (derden ? "aan" : "uit") + ", sites " + sites + ", " + NieuwsDiagnose.schoon(url));
         if (Build.VERSION.SDK_INT >= 33)
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, (android.window.OnBackInvokedCallback) this::terug);
@@ -547,8 +549,9 @@ public class NieuwsInlogActivity extends Activity {
                 if (mag) {
                     // de pagina van een videospeler: met het script dat onthoudt waar je was (alleen bij lezen; NieuwsVideo)
                     if (a.soort.equals(LEZEN) && !req.isForMainFrame() && NieuwsVideo.speler(u)) {
-                        WebResourceResponse r = NieuwsVideo.haal(req, a.videoScript(), a.derden);
-                        if (r != null) { a.log("video", "plek onthouden in " + Nieuws.host(u)); return r; }
+                        NieuwsVideo.Uitkomst r = NieuwsVideo.haal(req, a.videoScript(), a.derden);
+                        a.log("video", (r.reden == null ? "plek onthouden in " : "plek niet onthouden (" + r.reden + ") in ") + Nieuws.host(u));
+                        if (r.antwoord != null) return r.antwoord;
                     }
                     return null;
                 }
