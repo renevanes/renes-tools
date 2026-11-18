@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.224",
-  "versionCode": 225,
+  "versionName": "1.225",
+  "versionCode": 226,
   "nativeLevel": 193,
   "web": "index.html",
-  "webSha256": "d6495e1774ffd4bd7a6b7741a9b7ff35c21a72f892cdf221f598f7a5f271e8c3",
+  "webSha256": "d0472a74d43799badc571f9b532e1def7b7fe7cf12c5501ade96c23215963f92",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "16e71e12ab9e895f1f1c3e7dbbb45cd88b692379705c9430548af1bd7be89c4b",
+  "apkSha256": "c29bb971ba4086d47e9ac44aa8615a4b4b2fadd893d399c2d2a2b210e2d08edb",
   "changelog": [
+    {
+      "version": "1.225",
+      "date": "2026-11-18",
+      "changes": [
+        "Speler en radio: geen emoji meer als pictogram. Naast de volumeschuif, bij \"Welk nummer is dit?\" en in de menu's (waar het speelt, Hierna, je zenders) staan nu strakke lijniconen, net als in de rest van de app."
+      ]
+    },
     {
       "version": "1.224",
       "date": "2026-11-18",
@@ -167,15 +174,7 @@
       "changes": [
         "Podcasts en Nieuws: abonnementen en bronnen importeren en exporteren als OPML-bestand (menu ⋯), om over te stappen van of naar een andere app"
       ]
-    },
-    {
-      "version": "1.205",
-      "date": "2026-11-13",
-      "changes": [
-        "Startscherm: tik op de naam van een groep om hem in of uit te klappen; de app onthoudt het",
-        "Notities: de hint over Nieuwe lijst blijft zichtbaar en het invoerveld schaalt mee met grotere tekst"
-      ]
     }
   ],
-  "webSig2": "WedH4C1alfoeKgydS095Zp46KNrW9CJbutIK51QH9La/cHlZ3HVo1YNYPABh4spD8YD1JzVEoFvRe6kL4EIoaJy2y1TXfetA+d1suGS3DNvjzhc2+ICClbpYD86ChRqI1JZgOYOf3HK5CDH8/pYaYlUDwcOKktNPdyZRBrLNSr+uOWh1kFFol9gYKk80Le03QWByKyE1pQxL9VN4RQFtlX87Uy11dkluhmIsZfxkLq4+oTPyl7xXZIOpF7zWGrBvzSmZV6jsCNcXW516se5GDRgU6kXwmQsZpOXfo3if4IaqNOnOacFhxn+lFfSr0UKuEfuB9GcEHuJehFe80ItLOhhJyf4wNDgIdMfTyP7ZCUDZgP+D1wVICyCU5ajC3C3OVLhMHAJycJRuV527WxxOdrnIokpKpArlswuysFN8KJPy2f3HTc6OB5lv03s+R4p/0b3ijnyYrrkJuplZJmWaLLuz5afHsn+vX7WUU9upQG/cnHaqU1d1E03DFSVhx/1i"
+  "webSig2": "iYMY5kxaL7b0n+jBL6iifZ7ZqaFS6X5IwRY+ti9a/knV6w6tLpJM4FKkNsJOajcc1PYjBp/aUIMWTgvO5IrgoHRBjbeNgCy60IpHKwNRDBnnRWwlsTNulj04iNw+uJBtIh+pIEbrHb8vLM4lkx2jLUpdVtbq1atKrHg1pxyAXqlRl2iQt1Le0BJm7GBp0npGCbFsybfkdNmg3pzW5XzDhlEhkyBkEwPTdwSltbWiii7KSHGzbUKQyWVVZbI26DWHMWuaQ5bdepmGubI4R8Jj1emYejSf7Zd0CR2eKhD6gnNxm9OsShaqFUSsP8y1AP+fsy/K2GQ7Om0SswwJH9wnPMdw5dkPzLJrG8vWSDwcO8EysW3auGFk6o+yEGKVZY6Pbxft8IwYGzKDb6Z/lfZozC/fwsOJd9TPPTUV2ey4xPfoQ6yOeKm8HNIuRCWtqTLf1rm2QhjCyuo60Wl9mCMxDH1PDYbMghuGrRv1rIs8iX8PQEZSvuc6MUqPPz5ZaO4Z"
 }

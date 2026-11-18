@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.225",
+    "date": "2026-11-18",
+    "changes": [
+      "Speler en radio: geen emoji meer als pictogram. Naast de volumeschuif, bij \"Welk nummer is dit?\" en in de menu's (waar het speelt, Hierna, je zenders) staan nu strakke lijniconen, net als in de rest van de app."
+    ]
+  },
+  {
     "version": "1.224",
     "date": "2026-11-18",
     "changes": [
