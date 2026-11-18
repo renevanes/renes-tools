@@ -57,6 +57,7 @@ main{padding:4px 16px 24px;max-width:600px;margin:0 auto}
 .tile b,.tile small{overflow-wrap:anywhere;hyphens:auto}
 /* Startscherm: namen alleen tussen woorden afbreken; een te lang woord maakt homeTegelPas kleiner (31-startscherm-…js) */
 #home-groups .tile b{overflow-wrap:break-word;hyphens:manual;max-width:100%}
+#home-groups .tpmeet{position:absolute;left:0;top:0;visibility:hidden;white-space:nowrap;pointer-events:none}#home-groups .tpmeet>span{display:inline-block}
 .tile{background:var(--card);border-radius:var(--r-card);padding:16px 14px 16px 16px;text-align:left;min-height:128px;display:flex;flex-direction:column;gap:12px;position:relative;transition:transform .12s,background-color .2s}
 .tile:active{transform:scale(.97);background:color-mix(in srgb,var(--card) 88%,var(--ink))}
 .tile .ic{--c:var(--primary);width:48px;height:48px;border-radius:16px;background:color-mix(in srgb,var(--c) 15%,var(--card));display:grid;place-items:center;color:var(--c);font-size:23px}

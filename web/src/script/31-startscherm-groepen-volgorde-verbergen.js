@@ -198,25 +198,34 @@ function renderHome(){
  * Past het langste woord van een naam (Automatiseringen, Documentenkluis; in het Engels andere woorden) niet op de
  * tegel, dan wordt alleen die naam iets kleiner (hooguit tot 10 px). Breken tussen woorden mag gewoon; past het ook dan
  * niet, dan breekt de CSS het woord als laatste redmiddel (overflow-wrap: break-word). */
-let homeTpCv = null, homeTpRaf = 0;
+let homeTpRaf = 0;
 function homeTegelPasStraks(){ if (!homeTpRaf) homeTpRaf = requestAnimationFrame(() => { homeTpRaf = 0; homeTegelPas(); }); }
+/* Woorden, en bij een streepje (SMS-backup) mag de regel daarna ook verder: elk deel telt apart */
+function homeTpDelen(tekst){ return tekst.trim().split(/\s+/).flatMap(w => w.match(/[^-]+-?|-/g) || []); }
 function homeTegelPas(){
-  const tiles = document.querySelectorAll('#home-groups .tile > b');
+  const tiles = [...document.querySelectorAll('#home-groups .tile > b')];
   if (!tiles.length) return;
-  homeTpCv = homeTpCv || document.createElement('canvas').getContext('2d');
-  // Eerst alles terug, dan alles meten, dan pas schrijven: zo rekent de pagina de opmaak maar één keer uit
+  // Eerst alles terug, dan alles meten, dan pas schrijven: zo rekent de pagina de opmaak maar een paar keer uit.
+  // Meten gebeurt in de pagina zelf (een onzichtbare kopie van de woorden met dezelfde letter op de tegel), zodat het
+  // precies klopt met hoe de WebView de naam tekent.
   tiles.forEach(b => { b.style.fontSize = ''; });
-  const nieuw = [...tiles].map(b => {
-    // De ruimte van de naam zelf (max-width 100%: nooit breder dan zijn plek op de tegel, naast het pictogram)
-    const ruimte = b.clientWidth;
+  const meet = tiles.map(b => {
+    const ruimte = b.getBoundingClientRect().width; // precies (clientWidth rondt af); max-width 100%: nooit breder dan zijn plek op de tegel
     if (!(ruimte > 0)) return null; // niet in beeld: bij tonen opnieuw (ResizeObserver hieronder)
-    const bs = getComputedStyle(b), fs = parseFloat(bs.fontSize), ls = parseFloat(bs.letterSpacing) || 0;
-    homeTpCv.font = bs.fontWeight + ' ' + fs + 'px ' + bs.fontFamily;
-    // Woorden, en bij een streepje (SMS-backup) mag de regel daarna ook verder: elk deel telt apart
-    const delen = b.textContent.trim().split(/\s+/).flatMap(w => w.match(/[^-]+-?|-/g) || []);
-    const breed = Math.max(0, ...delen.map(w => homeTpCv.measureText(w).width + ls * w.length));
-    return breed > ruimte ? Math.max(10, Math.floor(fs * (ruimte - 1) / breed * 2) / 2) + 'px' : null;
+    const bs = getComputedStyle(b), m = document.createElement('span');
+    m.className = 'tpmeet'; m.setAttribute('aria-hidden', 'true'); m.setAttribute('translate', 'no');
+    ['fontFamily', 'fontWeight', 'fontSize', 'fontStyle', 'fontStretch', 'letterSpacing', 'wordSpacing', 'fontVariationSettings', 'fontFeatureSettings', 'fontKerning'].forEach(k => { m.style[k] = bs[k]; });
+    homeTpDelen(b.textContent).forEach(w => { const d = document.createElement('span'); d.textContent = w; m.appendChild(d); });
+    return { b, ruimte, fs: parseFloat(bs.fontSize), m };
   });
+  meet.forEach(x => { if (x) x.b.parentElement.appendChild(x.m); });
+  const nieuw = meet.map(x => {
+    if (!x) return null;
+    const breed = Math.max(0, ...[...x.m.children].map(d => d.getBoundingClientRect().width));
+    // Een pixel speling: afronden in de WebView mag een woord dat net past niet alsnog laten breken
+    return breed > x.ruimte - 1 ? Math.max(10, Math.floor(x.fs * (x.ruimte - 2) / breed * 2) / 2) + 'px' : null;
+  });
+  meet.forEach(x => { if (x) x.m.remove(); });
   tiles.forEach((b, i) => { if (nieuw[i]) b.style.fontSize = nieuw[i]; });
 }
 (function(){
