@@ -49,6 +49,14 @@ const QR_EPC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0AQAAAAAVtj
     ok((await tekst('#btd-klaar')).includes('Rabobank') && !(await page.isDisabled('#btd-klaar')) && await page.isHidden('#btd-link') && await page.isHidden('#btd-linkkaart'), 'Klaarzetten bij Rabobank; geen betaallink');
     ok(await page.evaluate(() => document.querySelectorAll('#s-betaling .big:not(.tonal):not(.ghost):not([hidden])').length) === 1, 'één hoofdknop');
 
+    // ---- Vanuit een net bewerkt veld op een ander gelezen rekeningnummer tikken werkt
+    await page.fill('#btd-naam', 'Energie Voorbeeld B.V. '); await page.click('#btd-ibans button'); await wacht(100);
+    ok(await page.evaluate(() => btVind(bt.id).iban) === 'NL39RABO0300065264' && await page.inputValue('#btd-iban') === 'NL39 RABO 0300 0652 64', 'een ander gelezen rekeningnummer kiezen, ook direct na het bewerken van een veld');
+    await page.fill('#btd-iban', 'NL91ABNA0417164300'); await page.dispatchEvent('#btd-iban', 'change'); await wacht(60);
+    await page.fill('#btd-bedrag', '123,455'); await page.dispatchEvent('#btd-bedrag', 'change'); await wacht(60);
+    ok(await page.isVisible('#btd-fout') && await page.evaluate(() => btVind(bt.id).bedrag) === '123,45', 'een bedrag met drie cijfers achter de komma wordt geweigerd, niet stil afgerond');
+    await page.fill('#btd-bedrag', '123,45'); await page.dispatchEvent('#btd-bedrag', 'change'); await wacht(60);
+
     // ---- Een IBAN dat niet klopt wordt niet bewaard
     await page.fill('#btd-iban', 'NL91 ABNA 0417 1643 01'); await page.dispatchEvent('#btd-iban', 'change'); await wacht(60);
     ok(await page.isVisible('#btd-fout') && (await tekst('#btd-fout')).includes('IBAN'), 'een IBAN met een fout: melding');

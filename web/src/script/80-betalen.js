@@ -182,9 +182,7 @@ function btVoorstel(r, qrTekst){
 
 /* ---------- één betaling ---------- */
 const BTD_VELDEN = ['naam', 'iban', 'bedrag', 'kenmerk', 'omschrijving', 'verval'];
-function btdRender(){
-  const b = btVind(bt.id);
-  if (!b) { show('betalen'); return; }
+function btdVelden(b){
   $('#btd-naam').value = b.naam || '';
   $('#btd-iban').value = btIbanMooi(b.iban);
   $('#btd-bedrag').value = b.bedrag ? fmtNumIn(btGetal(b.bedrag), 2) : '';
@@ -192,6 +190,11 @@ function btdRender(){
   $('#btd-omschrijving').value = b.omschrijving || '';
   $('#btd-verval').value = b.vervaldatum || '';
   $('#btd-fout').hidden = true;
+}
+function btdRender(){
+  const b = btVind(bt.id);
+  if (!b) { show('betalen'); return; }
+  btdVelden(b);
   const bron = $('#btd-bron');
   bron.hidden = b.bron === 'hand';
   bron.textContent = bt.anders[b.id] ? t('Let op: het IBAN uit de QR-code staat niet in de tekst van de rekening. Vergelijk het extra goed.')
@@ -233,12 +236,12 @@ function btdBewaar(){
   const ruw = $('#btd-bedrag').value.trim(), n = ruw ? parseNum(ruw) : NaN;
   const nieuw = Object.assign({}, b, { naam: $('#btd-naam').value, iban: $('#btd-iban').value, kenmerk: $('#btd-kenmerk').value,
     omschrijving: $('#btd-omschrijving').value, vervaldatum: $('#btd-verval').value,
-    bedrag: !ruw ? '' : Number.isFinite(n) ? String(Math.round(n * 100) / 100) : ruw });
+    bedrag: !ruw ? '' : Number.isFinite(n) && Math.abs(n * 100 - Math.round(n * 100)) < 1e-6 ? String(Math.round(n * 100) / 100) : ruw }); // meer dan twee cijfers achter de komma: Java weigert het
   const r = rdJson(Android.betalenBewaar(JSON.stringify(nieuw)), {});
   const fout = $('#btd-fout');
   fout.hidden = !!r.ok; fout.textContent = r.ok ? '' : (r.fout || t('Opslaan lukte niet.'));
   if (!r.ok) return false;
-  btLaad(); btdRender(); // de velden tonen wat er echt bewaard is
+  btLaad(); const nu = btVind(bt.id); if (nu) btdVelden(nu); btdKnoppen(); // de velden tonen wat er echt bewaard is (de keuzeknoppen blijven staan: een tik erop mag niet verloren gaan)
   return true;
 }
 function btdKlaarzetten(){

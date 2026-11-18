@@ -63,6 +63,10 @@ const fs = require('fs'), path = require('path');
   await nooit('<h1>Controleer je overboeking</h1><a href="#" onclick="klik++; return false">Overboeken</a>', 'een pagina die om controleren vraagt');
   await nooit('<p>Onderteken met de Rabo Scanner</p><a href="#" onclick="klik++; return false">Betaling doen</a>', 'een pagina die om ondertekenen vraagt');
   await nooit('<a onclick="klik++">Overboeken</a><span role="link" style="display:none" onclick="klik++">Overmaken</span>', 'een link zonder adres of een onzichtbare link');
+  await nooit('<div id="g"></div><script>document.getElementById("g").attachShadow({ mode: "open" }).innerHTML = \'<h1>Controleer en onderteken</h1><span role="link" id="x">Overboeken</span>\'; document.getElementById("g").shadowRoot.getElementById("x").onclick = () => klik++;</scr' + 'ipt>', 'een controlepagina in een webonderdeel');
+  await nooit('<x-f><a href="#" onclick="klik++; return false">Overboeken</a></x-f><script>document.querySelector("x-f").attachShadow({ mode: "open" }).innerHTML = "<form><slot></slot></form>";</scr' + 'ipt>', 'een link die via een slot in een formulier staat');
+  await nooit('<a href="javascript:klik++">Overboeken</a>', 'een link die code uitvoert');
+  await nooit('<main><p>Betaalverzoek van Jan</p><a href="#" onclick="klik++; return false">Betalen</a></main>', 'een losse link Betalen buiten het menu');
   // Per pagina hooguit één keer, en de app zet na die ene keer alles stil
   await pg.setContent('<body><a href="#" onclick="window.klik = (window.klik || 0) + 1; return false">Overboeken</a></body>');
   await pg.evaluate(() => { delete window.__bt; });

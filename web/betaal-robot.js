@@ -36,14 +36,30 @@
         if (tag === 'FORM' || tag === 'DIALOG' || tag === 'BUTTON' || rol === 'form' || rol === 'dialog' || rol === 'alertdialog' || rol === 'button') return true;
         if (n.hasAttribute('form') || n.form) return true;
       }
-      n = n.parentNode || n.host || null; // host: door de grens van een webonderdeel (shadow root) heen
+      n = n.assignedSlot || n.parentNode || n.host || null; // slot en host: door de grens van een webonderdeel (shadow root) heen
     }
     return false;
   }
-  function navigatie(patroon){
+  function inMenu(e){
+    for (let n = e, i = 0; n && i < 200; i++) {
+      if (n.nodeType === 1 && (n.tagName === 'NAV' || /^(navigation|menu|menubar)$/i.test(n.getAttribute('role') || ''))) return true;
+      n = n.assignedSlot || n.parentNode || n.host || null;
+    }
+    return false;
+  }
+  /** alleenMenu: alleen een keuze in de navigatie van de website (nav, menu), niet een losse link op de pagina. */
+  function navigatie(patroon, alleenMenu){
     const r = re(patroon); if (!r) return null;
     return alle(NAVIGATIE).find(e => zichtbaar(e) && !inFormulier(e) && !/^(button|submit|input)$/i.test(e.getAttribute('type') || '')
+      && !/^\s*(javascript|data|vbscript):/i.test(e.getAttribute('href') || '') && (!alleenMenu || inMenu(e))
       && tekst(e).length < 60 && r.test(tekst(e)) && !NOOIT.test(tekst(e))) || null;
+  }
+  /** De zichtbare tekst van de pagina, ook die in webonderdelen (shadow roots); begrensd. */
+  function paginaTekst(){
+    const uit = [(document.body && document.body.innerText) || ''];
+    const schaduw = root => { try { root.querySelectorAll('*').forEach(e => { if (e.shadowRoot && uit.length < 400) { uit.push(e.shadowRoot.textContent || ''); schaduw(e.shadowRoot); } }); } catch (x) { } };
+    schaduw(document);
+    return uit.join(' ').slice(0, 40000);
   }
   const geklikt = new Map(); // per soort hoe vaak (geen eindeloze lussen)
   function eenKeer(naam, e, max){
@@ -89,7 +105,7 @@
      * bedrag, kenmerk, omschrijving}. Geeft wat er gebeurde: inlog | menu | naar | invullen | ingevuld | controleer | wacht.
      */
     stap(cfg, b){
-      const body = (document.body && document.body.innerText || '').slice(0, 20000);
+      const body = paginaTekst();
       const fi = veld(cfg.iban, []), fb = veld(cfg.bedrag, fi ? [fi] : []);
       if (fi && fb) {
         let gedaan = false;
@@ -111,7 +127,7 @@
       if (cfg.geenNavigatie || fi || fb || veld(cfg.bedrag, []) || NOOIT.test(body)) return 'wacht';
       const naar = navigatie(cfg.naar);
       if (naar && eenKeer('naar', naar, 1)) return 'naar';
-      const menu = cfg.geenMenu ? null : navigatie(cfg.menu);
+      const menu = cfg.geenMenu ? null : navigatie(cfg.menu, true);
       if (menu && eenKeer('menu', menu, 1)) return 'menu';
       return 'wacht';
     }

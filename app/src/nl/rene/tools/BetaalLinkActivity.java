@@ -51,6 +51,8 @@ public class BetaalLinkActivity extends Activity {
     static final long WEG_MS = 45_000L, WEG_BANKAPP_MS = 4 * 60_000L, BANKAPP_GELDT_MS = 5 * 60_000L;
     /** Zo lang na het inloggen mag de robot nog naar het formulier zoeken; daarna klikt hij nergens meer op. */
     static final long ZOEK_MS = 60_000L;
+    /** Harde grens vanaf het openen: daarna klikt de robot nergens meer op, wat de pagina ook zegt. */
+    static final long ZOEK_MAX_MS = 5 * 60_000L;
     /** Er staat al een venster open (één tegelijk). */
     static volatile boolean LOPEND = false;
     /** Uitkomst voor het scherm Betalen (eenmalig): {id, stand: ingevuld|gestopt}. */
@@ -67,6 +69,8 @@ public class BetaalLinkActivity extends Activity {
     volatile boolean klaar = false, geladen = false;
     /** stil: nergens meer op klikken. menu: het menu is al aangeklikt. gevuld: het formulier is ingevuld (alleen nog kijken). gestopt: de robot doet niets meer. */
     volatile boolean stil = false, menu = false, gevuld = false, gestopt = false;
+    /** inlogNu: het laatste antwoord was "inlog" (dan mag Rene de pagina aanraken zonder dat de robot stopt). bezig: er loopt een stap. */
+    volatile boolean inlogNu = true, bezig = false;
     volatile String paginaUrl = "";
     long start, wachtSinds, naInlog;
     volatile long wegSinds = 0, appGeopend = 0;
@@ -148,7 +152,7 @@ public class BetaalLinkActivity extends Activity {
         wv.setWebChromeClient(new Chrome(this));
         wv.setDownloadListener((url, agent, cd, mime, len) -> { }); // hier wordt niets gedownload
         // Raakt Rene de website aan nadat hij is ingelogd, dan bedient hij hem zelf: de robot klikt nergens meer op
-        wv.setOnTouchListener((v, ev) -> { if (naInlog > 0) stil = true; return false; });
+        wv.setOnTouchListener((v, ev) -> { if (!inlogNu) stil = true; return false; });
         hosts.add(Facturen.host(bank.optString("startUrl")));
         wv.loadUrl(bank.optString("startUrl"));
         h.postDelayed(this::tik, 2000);
@@ -195,15 +199,19 @@ public class BetaalLinkActivity extends Activity {
             h.postDelayed(this::tik, 1500);
             return;
         }
-        if (naInlog > 0 && nu - naInlog > ZOEK_MS) stil = true;
-        if (!gestopt && geladen && BankLink.toegestaan(paginaUrl, bank)) {
+        if (naInlog > 0 && nu - naInlog > ZOEK_MS || nu - start > ZOEK_MAX_MS) stil = true;
+        // Eén stap tegelijk: pas een nieuwe als het antwoord van de vorige er is (anders zou hij met oude instellingen vertrekken)
+        if (!gestopt && !bezig && geladen && BankLink.toegestaan(paginaUrl, bank)) {
             String c;
             try { c = stapCfg(); } catch (Exception e) { gestopt = true; return; }
+            bezig = true;
             wv.evaluateJavascript(robot, null);
             wv.evaluateJavascript("(window.__bt?__bt.stap(" + c + "," + betaling + "):'')", v -> {
+                bezig = false;
                 String r = FacturenRun.str(v);
                 if (r.isEmpty() || gestopt) return;
-                if (r.equals("inlog")) { wachtSinds = 0; zet(Taal.T("Log zelf in met de app van je bank. Daarna vult Tools de overboeking in.")); return; }
+                inlogNu = r.equals("inlog");
+                if (inlogNu) { wachtSinds = 0; zet(Taal.T("Log zelf in met de app van je bank. Daarna vult Tools de overboeking in.")); return; }
                 if (naInlog == 0) naInlog = System.currentTimeMillis();
                 if (r.equals("menu")) { menu = true; wachtSinds = 0; zet(Taal.T("Naar het formulier voor een overboeking…")); }
                 else if (r.equals("naar")) { stil = true; wachtSinds = 0; zet(Taal.T("Naar het formulier voor een overboeking…")); }
@@ -295,7 +303,7 @@ public class BetaalLinkActivity extends Activity {
     static final class Client extends WebViewClient {
         final BetaalLinkActivity a;
         Client(BetaalLinkActivity a) { this.a = a; }
-        @Override public void onPageStarted(WebView v, String url, Bitmap fav) { a.geladen = false; a.paginaUrl = url == null ? "" : url; }
+        @Override public void onPageStarted(WebView v, String url, Bitmap fav) { a.geladen = false; a.bezig = false; a.paginaUrl = url == null ? "" : url; }
         @Override public void onPageFinished(WebView v, String url) {
             a.paginaUrl = url == null ? "" : url;
             a.geladen = true;
