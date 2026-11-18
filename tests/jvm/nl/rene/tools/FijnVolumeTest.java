@@ -45,6 +45,9 @@ public class FijnVolumeTest {
         check(n == 10, "vasthouden: 10 drukken van stap 15 naar 5 (" + n + ")");
         // Wanneer telt een druk als snel
         check(FijnVolume.reeks(0, 100, true) == 1 && FijnVolume.reeks(1, 200, true) == 2, "snel achter elkaar telt op");
+        check(FijnVolume.reeks(0, 450, true) == 1 && FijnVolume.reeks(0, FijnVolume.SNEL_MS, true) == 0, "de eerste herhaling bij vasthouden (±450 ms) telt al als snel");
+        check(FijnVolume.doel(45, 3, 1, true) == 48 && FijnVolume.stap(48, 3, 0, 15) == 15, "boven het hoogste: de stap blijft het hoogste (naar() kapt af)");
+        check(FijnVolume.stap(FijnVolume.doel(3, 3, -1, true), 3, 1, 15) == 1, "laagste stap van het toestel 1: blijft 1");
         check(FijnVolume.reeks(3, 900, true) == 0 && FijnVolume.reeks(3, 100, false) == 0 && FijnVolume.reeks(3, -1, true) == 0, "te laat, andere richting of eerste druk: opnieuw");
 
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }

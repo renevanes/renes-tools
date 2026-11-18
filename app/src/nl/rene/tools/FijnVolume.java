@@ -91,7 +91,7 @@ final class FijnVolume {
     }
 
     /** Binnen zoveel ms na de vorige druk in dezelfde richting telt een druk als "snel achter elkaar" (of vasthouden). */
-    static final long SNEL_MS = 400;
+    static final long SNEL_MS = 600; // de eerste herhaling bij vasthouden komt pas na ±400–500 ms
     /** Vanaf de zoveelste snelle druk gaat het met hele stappen van Android. */
     static final int SNEL_NA = 2;
 
@@ -242,6 +242,7 @@ final class FijnVolume {
         int idx = am.getStreamVolume(AudioManager.STREAM_MUSIC);
         if (idx == gezet) return;
         gezet = idx; niveau = idx * k; zetGain(1f); onthoud();
+        dbs = null; // Android wisselt ook van stap bij een ander apparaat (uitvoerkeuze): dB opnieuw opvragen
         if (provider != null) try { provider.setCurrentVolume(niveau); } catch (Throwable ignored) { }
     }
 
@@ -261,33 +262,41 @@ final class FijnVolume {
         vorigeDruk = nu; vorigeRichting = r;
         if (snelle == 0 && !mag()) { vernieuw(); return; } // intussen in de auto (niet bij elke druk van een reeks nakijken)
         volg();
-        naar(doel(niveau, k, r, vast || snelle >= SNEL_NA));
+        naarNu(doel(niveau, k, r, vast || snelle >= SNEL_NA));
     }
 
     void naar(int v) {
         if (!bezig) return;
         volg();
+        naarNu(v);
+    }
+
+    private void naarNu(int v) {
         v = Math.max(min * k, Math.min(max * k, v));
         int s = stap(v, k, min, max);
         float g = gain(v, k, s, db(s - 1), db(s));
         // Eerst wat zachter maakt, dan wat harder maakt: geen tik te hard tussendoor
-        if (s > gezet) { zetGain(g); zetStap(s, 0); } else { zetStap(s, 0); zetGain(g); }
-        int echt = am.getStreamVolume(AudioManager.STREAM_MUSIC);
+        boolean gezetNu;
+        if (s > gezet) { zetGain(g); gezetNu = zetStap(s, 0); } else { gezetNu = zetStap(s, 0); zetGain(g); }
+        int echt = gezetNu ? am.getStreamVolume(AudioManager.STREAM_MUSIC) : s; // alleen nakijken als de stap van Android veranderde
         if (echt != s) {
             // Geweigerd, meestal de waarschuwing voor hard volume op een koptelefoon: die laten zien (het volumevenster
-            // van Android), anders gebeurt er voor Rene niets zichtbaars.
+            // van Android), anders gebeurt er voor Rene niets zichtbaars. De reeks stopt: vasthouden probeert het niet elke 50 ms opnieuw.
             gezet = echt; zetStap(s, AudioManager.FLAG_SHOW_UI);
             gezet = echt = am.getStreamVolume(AudioManager.STREAM_MUSIC);
             niveau = echt * k; zetGain(1f);
+            snelle = 0; vorigeDruk = -1;
         } else niveau = v;
         onthoud();
         if (provider != null) try { provider.setCurrentVolume(niveau); } catch (Throwable ignored) { }
     }
 
-    private void zetStap(int s, int vlag) {
-        if (s == gezet) return;
+    /** Geeft true als Android echt gevraagd is een andere stap te zetten. */
+    private boolean zetStap(int s, int vlag) {
+        if (s == gezet) return false;
         gezet = s;
         try { am.setStreamVolume(AudioManager.STREAM_MUSIC, s, vlag); } catch (Throwable ignored) { }
+        return true;
     }
 
     /** Hoe hard een stap van Android klinkt op het apparaat waar het geluid nu heen gaat (dB), of NaN. */
