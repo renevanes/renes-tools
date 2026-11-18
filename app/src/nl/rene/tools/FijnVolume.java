@@ -81,15 +81,26 @@ final class FijnVolume {
         } catch (Throwable e) { return new int[]{0, 0, 0}; }
     }
 
-    /** De schuif in de speler is verschoven (op de hoofdthread). */
-    static void schuifNaar(Context c, int n) {
-        FijnVolume f = huidig();
-        if (f != null) { f.naar(n); return; }
+    /**
+     * De schuif in de speler is verschoven (op de hoofdthread): n op een schaal van 0..schaal (zoals de schuif het zag;
+     * is de schaal intussen anders, bijv. Fijner volume net uit, dan omrekenen: nooit ineens veel harder). klaar = losgelaten.
+     */
+    static void schuifNaar(Context c, int n, int schaal, boolean klaar) {
+        FijnVolume f = speler();
+        List<FijnVolume> l = new ArrayList<>();
+        if (f != null) l.add(f); else for (FijnVolume x : levend()) if (x.bezig) l.add(x); // niets speelt: alle gepauzeerde gelijk houden
+        if (!l.isEmpty()) {
+            for (FijnVolume x : l) { int nu = x.max * x.k; x.naar(schaal > 0 && schaal != nu ? Math.round((float) n * nu / schaal) : n); }
+            return;
+        }
         try {
             AudioManager a = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
             if (a.isVolumeFixed()) return;
             int max = a.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-            a.setStreamVolume(AudioManager.STREAM_MUSIC, Math.max(0, Math.min(max, n)), 0);
+            int doel = Math.max(0, Math.min(max, schaal > 0 && schaal != max ? Math.round((float) n * max / schaal) : n));
+            a.setStreamVolume(AudioManager.STREAM_MUSIC, doel, 0);
+            // Geweigerd (waarschuwing voor hard volume op een koptelefoon): bij loslaten de waarschuwing laten zien
+            if (klaar && a.getStreamVolume(AudioManager.STREAM_MUSIC) != doel) a.setStreamVolume(AudioManager.STREAM_MUSIC, doel, AudioManager.FLAG_SHOW_UI);
         } catch (Throwable ignored) { }
     }
 

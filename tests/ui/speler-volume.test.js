@@ -22,6 +22,11 @@ const URL = 'file://' + path.join(__dirname, 'ui', 'index.html');
     // Schuiven zet het volume meteen
     await pg.fill('#pl-vol', '12'); await pg.dispatchEvent('#pl-vol', 'input'); await pg.waitForTimeout(80);
     ok(await pg.evaluate(() => Android._tv === 12), 'schuiven zet het volume');
+    // Schaal intussen anders (Fijner volume net uit): omrekenen, niet ineens harder (12 van 45 → 4 van 15)
+    await pg.evaluate(() => Android.fijnVolumeSet(false, 3));
+    await pg.dispatchEvent('#pl-vol', 'change'); await pg.waitForTimeout(50);
+    ok(await pg.evaluate(() => Android._tv === 4 && Android._tvKlaar === true), 'andere schaal: omgerekend');
+    await pg.evaluate(() => { Android.fijnVolumeSet(true, 3); Android._tv = 12; });
     // De volumeknoppen zetten de schuif mee, zonder melding eroverheen
     await pg.evaluate(() => { document.getElementById('toast').textContent = ''; onFijnVolume(20, 45); }); await pg.waitForTimeout(80);
     ok(await pg.inputValue('#pl-vol') === '20' && (await pg.textContent('#toast')) === '', 'knop: schuif mee, geen melding');

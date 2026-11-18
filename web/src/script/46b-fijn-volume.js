@@ -33,6 +33,6 @@ function fvZet(pre, wat, v){
 window.onFijnVolume = function(n, max){
   if (!(max > 0)) return;
   // Grote speler open: de schuif laat het zien (geen melding erover)
-  if (typeof plIsOpen !== 'undefined' && plIsOpen && $('#pl-volwrap').style.display !== 'none') { const r = $('#pl-vol'); r.max = max; r.value = n; return; }
+  if (typeof plIsOpen !== 'undefined' && plIsOpen && $('#pl-volwrap').style.display !== 'none') { const r = $('#pl-vol'); r.max = max; r.value = n; if (typeof plVolTxt === 'function') plVolTxt(r); return; }
   toast(t('Volume {p}%', { p: fmtNum(Math.round(n / max * 100)) }));
 };

@@ -51,10 +51,18 @@ public class PlayerBridge extends PodcastBridge {
         try { int[] v = FijnVolume.schuif(ctx); return new JSONObject().put("n", v[0]).put("max", v[1]).put("fijn", v[2] == 1).toString(); }
         catch (Exception e) { return "{}"; }
     }
-    /** Schuif verschoven: alleen het mediavolume, binnen 0..hoogste (FijnVolume kapt af). */
-    @JavascriptInterface public void telefoonVolumeZet(final int n) {
-        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> { try { FijnVolume.schuifNaar(ctx, n); } catch (Throwable ignored) { } });
+    /** Schuif verschoven: alleen het mediavolume. n op de schaal 0..max die de schuif toonde (Java rekent om als die
+     *  intussen anders is); klaar = losgelaten. Tijdens schuiven telt alleen de laatste stand (één taak tegelijk). */
+    @JavascriptInterface public void telefoonVolumeZet(int n, int max, boolean klaar) {
+        synchronized (VOL) { volN = n; volMax = max; volKlaar |= klaar; if (volBezig) return; volBezig = true; }
+        a.h.post(() -> {
+            int vn, vm; boolean vk;
+            synchronized (VOL) { vn = volN; vm = volMax; vk = volKlaar; volKlaar = false; volBezig = false; }
+            try { FijnVolume.schuifNaar(ctx, vn, vm, vk); } catch (Throwable ignored) { }
+        });
     }
+    private static final Object VOL = new Object();
+    private static int volN, volMax; private static boolean volKlaar, volBezig;
 
     /** "1": deze app geeft hoesjes uit zijn eigen cache aan de interface (https://app.renes-tools.local/art?u=…). */
     @JavascriptInterface public String artLokaal() { return "1"; }

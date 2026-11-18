@@ -129,26 +129,30 @@ function plSetArt(el, m){
 /** Volumeschuif in de grote speler: van de Chromecast tijdens casten, anders van de telefoon (met Fijner volume in de
  *  fijne stappen, zoals de knoppen). */
 let plVolBezig = 0;
+function plVolTxt(r){ r.setAttribute('aria-valuetext', t('Volume {p}%', { p: fmtNum(Math.round(+r.value / (+r.max || 1) * 100)) })); }
 function plVolRender(m){
   const w = $('#pl-volwrap'), r = $('#pl-vol');
   if (m && m.cast) {
     w.style.display = m.volume >= 0 ? '' : 'none';
     r.max = 20; r.setAttribute('aria-label', t('Volume van de Chromecast'));
     if (m.volume >= 0 && document.activeElement !== r) r.value = Math.round(m.volume * 20);
+    plVolTxt(r);
     return;
   }
   const v = typeof Android.telefoonVolume === 'function' ? rdJson(Android.telefoonVolume(), {}) : {};
   w.style.display = v.max > 0 ? '' : 'none';
   if (!(v.max > 0)) return;
-  r.max = v.max; r.setAttribute('aria-label', t('Volume'));
-  if (Date.now() - plVolBezig > 1200) r.value = v.n; // niet terugspringen terwijl je schuift
-  r.setAttribute('aria-valuetext', t('Volume {p}%', { p: fmtNum(Math.round(v.n / v.max * 100)) }));
+  r.setAttribute('aria-label', t('Volume'));
+  if (Date.now() - plVolBezig > 1200) { r.max = v.max; r.value = v.n; } // niet terugspringen terwijl je schuift
+  plVolTxt(r);
 }
 function plVol(klaar){
   const r = $('#pl-vol'), m = plModel();
+  plVolTxt(r);
   if (m && m.cast) { if (klaar) Android.castVolume(r.value / 20); return; }
   plVolBezig = Date.now();
-  if (typeof Android.telefoonVolumeZet === 'function') Android.telefoonVolumeZet(+r.value); // meteen: je hoort het tijdens het schuiven
+  // Met de schaal erbij: is die intussen anders (Fijner volume net uit), dan rekent Java om in plaats van ineens harder
+  if (typeof Android.telefoonVolumeZet === 'function') Android.telefoonVolumeZet(+r.value, +r.max, !!klaar); // meteen: je hoort het tijdens het schuiven
 }
 
 function plRender(){
