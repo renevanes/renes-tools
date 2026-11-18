@@ -876,7 +876,7 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   (standaard alleen bij AI Report: beehiiv logt in via eigen diensten en een robotcontrole, die zonder blijven hangen). De cookies van de inlog gaan alleen naar
   `inlogSites` mee (`Nieuws.inlogKoekjes`, per adres ook na doorverwijzingen), voor de feed en de artikelpagina's; die van de
   cookiekeuze (Tweakers) alleen naar de artikelpagina's. Uitloggen (`NieuwsInlogActivity.wis`) laat de cookies van die sites
-  verlopen. **Wat gebeurt er?** (knop ? in de balk): `NieuwsDiagnose` houdt in het geheugen bij wat de pagina opvraagt,
+  verlopen. **Openen in de browser** (knop met `ic_extern` in de balk van het leesvenster, `inBrowser`; en `nwExtern` op het artikel en in ⋯): dezelfde pagina in de browser van de telefoon, buiten Tools en zonder de inlog van Tools; alleen http(s). **Wat gebeurt er?** (knop ? in de balk): `NieuwsDiagnose` houdt in het geheugen bij wat de pagina opvraagt,
   HTTP- en laadfouten, JS-fouten en -waarschuwingen en weggeklikte vensters (adressen zonder ?…/#…, geen e-mailadressen,
   sleutels of cookiewaarden; `NieuwsDiagnoseTest`); kopiëren gaat alleen op Renes tik. Meekijken (chrome://inspect over USB) zet
   `setWebContentsDebuggingEnabled` aan, en dat geldt voor de hele app: alleen na een waarschuwing, met een vaste regel in

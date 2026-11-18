@@ -148,6 +148,18 @@ public class NieuwsInlogActivity extends Activity {
         meekijkRegel.setVisibility(android.view.View.GONE);
         tekst.addView(meekijkRegel);
         bar.addView(tekst, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        // Openen in de browser: dezelfde pagina buiten Tools (zonder de inlog van dit venster)
+        if (lezen) {
+            android.widget.ImageButton extern = new android.widget.ImageButton(this, null, android.R.attr.borderlessButtonStyle);
+            extern.setImageResource(R.drawable.ic_extern);
+            extern.setImageTintList(android.content.res.ColorStateList.valueOf(titel.getCurrentTextColor()));
+            extern.setContentDescription(Taal.t(this, "Openen in de browser"));
+            if (Build.VERSION.SDK_INT >= 26) extern.setTooltipText(Taal.t(this, "Openen in de browser"));
+            extern.setMinimumWidth(dp(48));
+            extern.setMinimumHeight(dp(48));
+            extern.setOnClickListener(v -> inBrowser());
+            bar.addView(extern, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        }
         // Wat gebeurt er?: het logboek van dit venster (voor als het inloggen of laden blijft hangen)
         Button diag = new Button(this, null, android.R.attr.borderlessButtonStyle);
         diag.setText("?");
@@ -382,6 +394,16 @@ public class NieuwsInlogActivity extends Activity {
 
     /** Een andere site: in de browser (lezen) of melden welke site er bij Toegestane sites moet (inloggen). */
     private String laatsteAndere = "";
+
+    /** De pagina die nu open staat in de browser van de telefoon (alleen http(s)); dit venster blijft open. */
+    void inBrowser() {
+        String u = null;
+        try { u = wv != null ? wv.getUrl() : null; } catch (Throwable ignored) { }
+        if (u == null || !(u.startsWith("https://") || u.startsWith("http://"))) u = getIntent().getStringExtra("url");
+        if (u == null || !(u.startsWith("https://") || u.startsWith("http://"))) return;
+        try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u)).addCategory(Intent.CATEGORY_BROWSABLE)); log("browser", NieuwsDiagnose.schoon(u)); }
+        catch (Throwable e) { Toast.makeText(this, Taal.t(this, "Geen app gevonden om dit te openen"), Toast.LENGTH_SHORT).show(); }
+    }
 
     void andereSite(String url) {
         if (url.equals(laatsteAndere)) return; // doorverwijzing: zowel onderschept als overgenomen

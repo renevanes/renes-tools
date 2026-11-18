@@ -1,0 +1,1 @@
+Nieuws: bij een bron waarvan je artikelen in Tools leest, staat nu ook "Openen in de browser" (onder het artikel, in het menu ⋯ en als knop bovenin het leesvenster), zodat je de pagina ook buiten de app kunt openen. Voor de knop in het leesvenster is de nieuwe APK nodig.

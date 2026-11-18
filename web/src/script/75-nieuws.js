@@ -173,6 +173,7 @@ function nwArtRender(){
   const lang = blokken.reduce((n, b) => n + (b.t || '').length, 0);
   $('#nwa-kort').hidden = !a.link || !(a.ingekort || lang < 700);
   $('#nwa-web').hidden = !a.link;
+  $('#nwa-extern').hidden = !a.link || !nwInApp(a); // anders opent Lees op de website de browser al
   nwBewaarKnop();
 }
 function nwBewaarKnop(){
@@ -188,17 +189,24 @@ function nwBewaarArt(){
   toast(aan ? t('Bewaard') : t('Niet meer bewaard'));
 }
 /* Lees op de website: bij een bron met inloggen (en Lezen in Tools) in het venster van de bron, anders in de browser. */
+/** Opent "Lees op de website" het artikel in Tools zelf (bron met inloggen en Lezen in Tools)? */
+function nwInApp(a){
+  const b = a && nwBronnen().find(x => x.id === a.bron);
+  return !!(b && b.inlog && b.lezen === 'app' && typeof Android.nieuwsLees === 'function');
+}
 function nwWeb(){
   const a = nw.open; if (!a || !a.link) return;
-  const b = nwBronnen().find(x => x.id === a.bron);
-  if (b && b.inlog && b.lezen === 'app' && typeof Android.nieuwsLees === 'function' && Android.nieuwsLees(b.id, a.link) !== 'extern') return;
+  if (nwInApp(a) && Android.nieuwsLees(a.bron, a.link) !== 'extern') return;
   Android.openUrl(a.link);
 }
+/** Altijd in de browser van de telefoon, buiten Tools (zonder de inlog van Tools). */
+function nwExtern(){ const a = nw.open; if (a && a.link) Android.openUrl(a.link); }
 function nwDeel(a){ Android.nieuwsDeel(a.titel, a.link); }
 function nwArtMenu(){
   const a = nw.open; if (!a) return;
   const acts = [];
   if (a.link) acts.push([t('Delen'), () => nwDeel(a), 'share']);
+  if (a.link) acts.push([t('Openen in de browser'), () => nwExtern(), 'external']);
   acts.push([t('Markeren als ongelezen'), () => {
     const fout = Android.nieuwsGelezen(JSON.stringify([a.id]), false);
     if (fout) { toast(fout); return; }
