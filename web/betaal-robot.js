@@ -1,7 +1,8 @@
 /* Betalen, klaarzetten bij de bank: de "robot" die in de website van de bank draait (BetaalLinkActivity, altijd in beeld).
  * Hij logt NOOIT zelf in, vult geen wachtwoorden of codes in en verstuurt of ondertekent NOOIT iets: hij gaat alleen naar
  * het formulier voor een overboeking en vult daar de naam, het IBAN, het bedrag en het kenmerk of de omschrijving in.
- * Controleren, versturen en ondertekenen doe je zelf. Zodra het formulier in beeld is geweest klikt hij nergens meer op.
+ * Controleren, versturen en ondertekenen doe je zelf. Hij klikt alleen op links en menukeuzes (nooit op een knop), hooguit
+ * één keer op het menu en één keer op "Overboeken" per keer klaarzetten (dat houdt de app bij), en vult het formulier één keer in.
  * Getest in een gewone browser (tests/ui/betaal-robot.test.js) tegen een nagebootste bank. */
 (function(){
   if (window.__bt) return;
@@ -23,12 +24,26 @@
   const tekst = el => ((el.innerText || el.textContent || el.value || el.getAttribute('aria-label') || el.title || '') + '').replace(/\s+/g, ' ').trim();
   const re = s => { try { return s ? new RegExp(s, 'i') : null; } catch (e) { return null; } };
 
-  // Alleen navigatie: links, menu's en tabbladen, en knoppen die geen formulier versturen. Nooit een knop in een formulier.
-  const NAVIGATIE = 'a, [role=link], [role=menuitem], [role=tab], button, [role=button]';
+  // Alleen navigatie: links, menukeuzes en tabbladen. Nooit een knop (ook geen role=button), nooit iets in of bij een
+  // formulier of dialoog (ook niet door de grens van een webonderdeel heen), en nooit op een pagina die om controleren,
+  // bevestigen of ondertekenen vraagt of waar al een veld voor het IBAN of het bedrag staat.
+  const NAVIGATIE = 'a[href], [role=link], [role=menuitem], [role=tab]';
+  const NOOIT = /controle(er|ren)|bevestig|onderteken|akkoord|verstu(ur|ren)|verzend|goedkeur|autoris|signeer|confirm|authori[sz]e|\bsign\b|approve/i;
+  function inFormulier(e){
+    for (let n = e, i = 0; n && i < 200; i++) {
+      if (n.nodeType === 1) {
+        const tag = n.tagName, rol = (n.getAttribute('role') || '').toLowerCase();
+        if (tag === 'FORM' || tag === 'DIALOG' || tag === 'BUTTON' || rol === 'form' || rol === 'dialog' || rol === 'alertdialog' || rol === 'button') return true;
+        if (n.hasAttribute('form') || n.form) return true;
+      }
+      n = n.parentNode || n.host || null; // host: door de grens van een webonderdeel (shadow root) heen
+    }
+    return false;
+  }
   function navigatie(patroon){
     const r = re(patroon); if (!r) return null;
-    return alle(NAVIGATIE).find(e => zichtbaar(e) && !e.closest('form') && (e.getAttribute('type') || '').toLowerCase() !== 'submit'
-      && tekst(e).length < 60 && r.test(tekst(e))) || null;
+    return alle(NAVIGATIE).find(e => zichtbaar(e) && !inFormulier(e) && !/^(button|submit|input)$/i.test(e.getAttribute('type') || '')
+      && tekst(e).length < 60 && r.test(tekst(e)) && !NOOIT.test(tekst(e))) || null;
   }
   const geklikt = new Map(); // per soort hoe vaak (geen eindeloze lussen)
   function eenKeer(naam, e, max){
@@ -49,9 +64,11 @@
     voeg(i.placeholder); voeg(i.name); voeg(i.id);
     return delen.join(' | ').slice(0, 300);
   }
+  const ZOEK = /zoek|search|filter/i;
   function veld(patroon, niet){
     const r = re(patroon); if (!r) return null;
-    return alle(VELDEN).find(i => zichtbaar(i) && !i.readOnly && !niet.includes(i) && r.test(label(i))) || null;
+    return alle(VELDEN).find(i => zichtbaar(i) && !i.readOnly && !niet.includes(i) && i.type !== 'search' && !/^(search|searchbox|combobox)$/i.test(i.getAttribute('role') || '')
+      && r.test(label(i)) && !ZOEK.test(label(i))) || null;
   }
   function zet(el, waarde){
     const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
@@ -67,8 +84,9 @@
 
   window.__bt = {
     /**
-     * Eén stap. cfg = zoekpatronen (en geenNavigatie zodra het formulier in beeld is geweest), b = {naam, iban, bedrag,
-     * kenmerk, omschrijving}. Geeft wat er gebeurde: inlog | menu | naar | invullen | ingevuld | controleer | wacht.
+     * Eén stap. cfg = zoekpatronen, met geenNavigatie (nergens meer op klikken), geenMenu (het menu is al aangeklikt) en
+     * alleenKijken (niets meer invullen, alleen zeggen of het klopt); die houdt de app bij, niet de pagina. b = {naam, iban,
+     * bedrag, kenmerk, omschrijving}. Geeft wat er gebeurde: inlog | menu | naar | invullen | ingevuld | controleer | wacht.
      */
     stap(cfg, b){
       const body = (document.body && document.body.innerText || '').slice(0, 20000);
@@ -78,7 +96,7 @@
         const fn = veld(cfg.naam, [fi, fb]);
         const fo = veld(cfg.omschrijving, [fi, fb, fn]);
         const fk = veld(cfg.kenmerk, [fi, fb, fn, fo]);
-        const eens = (el, waarde) => { if (el && waarde && !el.dataset.btGezet) { zet(el, waarde); gedaan = true; } };
+        const eens = (el, waarde) => { if (!cfg.alleenKijken && el && waarde && !el.dataset.btGezet) { zet(el, waarde); gedaan = true; } };
         eens(fn, b.naam);
         eens(fi, b.iban);
         eens(fb, fb.type === 'number' ? String(b.bedrag).replace(',', '.') : b.bedrag);
@@ -89,10 +107,11 @@
       }
       // Inloggen doe je zelf: wachten zolang er een wachtwoordveld of een vraag om de bank-app staat
       if (alle('input[type=password]').some(zichtbaar) || (re(cfg.inlog) && re(cfg.inlog).test(body) && !navigatie(cfg.naar))) return 'inlog';
-      if (cfg.geenNavigatie) return 'wacht';
+      // Staat er al een veld voor het IBAN of het bedrag, of vraagt de pagina om controleren of ondertekenen: nergens op klikken
+      if (cfg.geenNavigatie || fi || fb || veld(cfg.bedrag, []) || NOOIT.test(body)) return 'wacht';
       const naar = navigatie(cfg.naar);
-      if (naar && eenKeer('naar', naar, 2)) return 'naar';
-      const menu = navigatie(cfg.menu);
+      if (naar && eenKeer('naar', naar, 1)) return 'naar';
+      const menu = cfg.geenMenu ? null : navigatie(cfg.menu);
       if (menu && eenKeer('menu', menu, 1)) return 'menu';
       return 'wacht';
     }

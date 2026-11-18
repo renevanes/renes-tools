@@ -934,7 +934,6 @@ if (!window.Android) window.Android = (function(){
     },
     _btBedrag(v){
       let s = String(v || '').replace(/[€\s]/g, '');
-      if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(s)) s = s.replace(/\./g, '');
       s = s.replace(',', '.');
       if (!/^\d+(\.\d{1,2})?$/.test(s) || !(+s > 0) || +s >= 1000000) return null;
       return (Math.round(+s * 100) / 100).toFixed(2).replace('.', ',');
@@ -946,7 +945,7 @@ if (!window.Android) window.Android = (function(){
     _btBekend(host){ return this._btInit().hosts.some(h => host === h || host.endsWith('.' + h)); },
     betalenStaat(){ const st = this._btInit();
       const compleet = b => !!(b.naam && this._btIban(b.iban) && this._btBedrag(b.bedrag));
-      const nieuw = b => !!b.iban && !st.lijst.some(x => x.id !== b.id && x.iban === b.iban && x.status === 'betaald');
+      const nieuw = b => !!b.iban && !st.lijst.some(x => x.id !== b.id && x.iban === b.iban && x.status === 'betaald' && x.bevestigd);
       return JSON.stringify({ betalingen: st.lijst.map(b => Object.assign({}, b, { compleet: compleet(b), nieuw: nieuw(b) })), inst: st.inst, banken: st.banken, onleesbaar: false, lopend: false, bezig: false }); },
     betalenBewaar(j){ const st = this._btInit(); let i; try { i = JSON.parse(j || '{}'); } catch (e) { return JSON.stringify({ ok: false, fout: 'Opslaan lukte niet.' }); }
       const fout = m => JSON.stringify({ ok: false, fout: m }), netjes = (v, n) => String(v || '').replace(/[\u0000-\u001f]+/g, ' ').replace(/\s{2,}/g, ' ').trim().slice(0, n);
@@ -954,6 +953,7 @@ if (!window.Android) window.Android = (function(){
       const ruwIban = String(i.iban || '').replace(/[^A-Za-z0-9]/g, '');
       if (ruwIban && !this._btIban(ruwIban)) return fout('Dit IBAN klopt niet. Kijk het na op de rekening.');
       b.iban = this._btIban(ruwIban);
+      if (b.iban && st.inst.eigen.includes(b.iban)) return fout('Dit is je eigen rekeningnummer. Vul het IBAN van de ontvanger in.');
       const ruw = String(i.bedrag || '').trim();
       if (ruw && this._btBedrag(ruw) === null) return fout('Vul het bedrag in als 123,45.');
       b.bedrag = ruw ? this._btBedrag(ruw) : '';
@@ -966,12 +966,12 @@ if (!window.Android) window.Android = (function(){
       b.status = ['open', 'klaargezet', 'betaald'].includes(i.status) ? i.status : 'open';
       b.bron = ['foto', 'bestand', 'dossier', 'hand'].includes(i.bron) ? i.bron : 'hand'; b.sha = '';
       const was = st.lijst.find(x => x.id === b.id), nu = Date.now();
-      b.gemaakt = was ? was.gemaakt : nu; b.gewijzigd = nu; b.betaaldOp = b.status === 'betaald' ? (was && was.betaaldOp) || nu : 0;
+      b.gemaakt = was ? was.gemaakt : nu; b.gewijzigd = nu; b.betaaldOp = b.status === 'betaald' ? (was && was.betaaldOp) || nu : 0; b.bevestigd = !!(was && was.bevestigd && b.status === 'betaald' && b.iban === was.iban);
       if (was) st.lijst[st.lijst.indexOf(was)] = b; else st.lijst.push(b);
       st.calls.push(['bewaar', b.id]);
       return JSON.stringify({ ok: true, id: b.id }); },
-    betalenStatus(id, status){ const st = this._btInit(), b = st.lijst.find(x => x.id === id);
-      if (b && ['open', 'klaargezet', 'betaald'].includes(status)) { b.status = status; b.gewijzigd = Date.now(); b.betaaldOp = status === 'betaald' ? Date.now() : 0; }
+    betalenStatus(id, soort){ const st = this._btInit(), b = st.lijst.find(x => x.id === id), status = soort === 'betaald_vanzelf' ? 'betaald' : soort;
+      if (b && ['open', 'klaargezet', 'betaald'].includes(status)) { b.status = status; b.gewijzigd = Date.now(); b.betaaldOp = status === 'betaald' ? Date.now() : 0; b.bevestigd = soort === 'betaald'; }
       return JSON.stringify({ ok: true }); },
     betalenWis(id){ const st = this._btInit(); st.lijst = st.lijst.filter(x => x.id !== id); st.calls.push(['wis', id]); return JSON.stringify({ ok: true }); },
     betalenInst(j){ const st = this._btInit(), i = JSON.parse(j || '{}'), eigen = [];
@@ -984,6 +984,7 @@ if (!window.Android) window.Android = (function(){
         if (r[5]) o.naam = r[5].trim().slice(0, 70);
         if (m) o.bedrag = +m[1] + ',' + (m[2] || '00').padEnd(2, '0');
         if (r[9]) o.kenmerk = r[9].replace(/\s/g, '').toUpperCase(); else if (r[10]) o.omschrijving = r[10].trim().slice(0, 140);
+        if (this._btInit().inst.eigen.includes(o.iban)) o.eigen = true;
         return JSON.stringify(o);
       }
       const l = this._btLink(s);
@@ -1436,7 +1437,7 @@ if (!window.Android) window.Android = (function(){
     shortcutPinPodcast(j){ this._pinned='pod|'+JSON.parse(j).feed; return ''; }, shortcutPinPlayer(){ this._pinned='player'; return ''; },
     _st:{lock:false,timeout:60000,crashes:0},
     settingsInfo(){ const t=this._st; return JSON.stringify({dest:this._wa.info.dest,destName:'USB-stick',audd:this._mu.token?'abc…xyz':'',crashes:t.crashes,lock:JSON.parse(this.lockState()),
-      perms:[{id:'phone',name:'Bellen',used:'Auto redial',ok:true},{id:'mic',name:'Microfoon',used:'Muziek herkennen',ok:this._mu.mic},{id:'camera',name:'Camera',used:'QR-code scannen (VPN), foto bij ontgrendelen (Gebruik)',ok:!this._gb||this._gb.camera!==false},{id:'files',name:'Alle bestanden',used:'WhatsApp backup, Gesprekken',ok:false}]}); },
+      perms:[{id:'phone',name:'Bellen',used:'Auto redial',ok:true},{id:'mic',name:'Microfoon',used:'Muziek herkennen',ok:this._mu.mic},{id:'camera',name:'Camera',used:'QR-code scannen (VPN), foto van een rekening (Betalen), foto bij ontgrendelen (Gebruik)',ok:!this._gb||this._gb.camera!==false},{id:'files',name:'Alle bestanden',used:'WhatsApp backup, Gesprekken',ok:false}]}); },
     permRequest(id){ if(id==='mic') { this._mu.mic=true; if (this._sl) this._sl.mic = true; } if (id==='notif' && this._sl) this._sl.notif = true; if (id==='notif' && this._ci) this._ci.notifOk = true; if (id==='calendar' && this._ci) this._ci.calOk = true; if (id==='camera' && this._gb) this._gb.camera = true; if (id==='agendasync') { const a = this._agInit(); a.perm = true; a.schrijf = true; } const ap = { contacts: 'contacts', contactsread: 'contacts', calllog: 'calls', sms: 'sms' }; if (ap[id] && this._ai) this._ai.perm[ap[id]] = true; (this._permAsked = this._permAsked || []).push(id); setTimeout(()=>onSettingsChanged(''),100); },
     crashShare(){ toast('(delen foutrapport)'); }, notesVersion(){ return this._nv || 1; }, historyStamp(){ return [this._historyRows.length, this._historyEnabled, this._historyAllowed].join(':'); }, overnight(){ return this._seen ? '{}' : JSON.stringify({since: Date.now() - 8 * 36e5, backup: {t: Date.now() - 4 * 36e5, failed: 0}, missed: [{who: 'Tandarts', t: Date.now() - 2 * 36e5}], auto: [{t: Date.now() - 36e5, name: 'Parkeren', what: 'Gestart vanuit de melding'}]}); }, overnightSeen(){ this._seen = true; },
     backupCheckLast(){ return this._chk || '{}'; }, backupCheckRun(){ this._chk = JSON.stringify({t: Date.now(), ok: true, items: [{what: 'Backup-map', ok: true, msg: 'Backup'}, {what: 'Proef-terugzetten', ok: true, msg: '✓ Notities leesbaar (12).'}], summary: 'ok'}); setTimeout(() => onBackupCheck(JSON.parse(this._chk)), 50); },

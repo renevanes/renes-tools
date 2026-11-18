@@ -34,16 +34,45 @@ const fs = require('fs'), path = require('path');
     <p>Laatst ingelogd: gisteren. <a href="#" onclick="window.uit = 1; return false">Uitloggen</a></p>
     <div id="wrap" hidden>${FORMULIER}</div></body>`);
   ok(await stap() === 'menu', 'eerst het menu Betalen');
-  ok(await stap() === 'naar', 'dan Overboeken');
-  ok(await stap() === 'invullen', 'het formulier invullen');
+  ok(await stap(null, { geenMenu: true }) === 'naar', 'dan Overboeken');
+  ok(await stap(null, { geenMenu: true, geenNavigatie: true }) === 'invullen', 'het formulier invullen');
   ok(await pg.inputValue('#naam') === bet.naam && await pg.inputValue('#iban') === bet.iban && await pg.inputValue('#bedrag') === '123,45' && await pg.inputValue('#oms') === bet.omschrijving, 'naam, IBAN, bedrag en omschrijving staan erin');
-  ok(await stap() === 'ingevuld', 'daarna: ingevuld');
-  for (let i = 0; i < 6; i++) await stap(null, { geenNavigatie: true });
+  ok(await stap(null, { geenNavigatie: true, alleenKijken: true }) === 'ingevuld', 'daarna: ingevuld');
+  for (let i = 0; i < 6; i++) await stap(null, { geenNavigatie: true, alleenKijken: true });
   ok(await pg.evaluate(() => window.verstuurd === undefined && window.uit === undefined && window.naar === 1), 'verstuurt nooit zelf, logt niet uit en klikt niet nog eens');
 
-  // Wat Rene zelf verandert blijft staan (niet opnieuw invullen)
+  // Wat Rene zelf verandert blijft staan (niet opnieuw invullen), ook als de website het veld opnieuw tekent
   await pg.fill('#naam', 'Andere naam');
   ok(await stap() === 'controleer' && await pg.inputValue('#naam') === 'Andere naam', 'een veld dat is aangepast wordt niet overschreven');
+  await pg.evaluate(() => { const o = document.getElementById('bedrag'), n = o.cloneNode(); delete n.dataset.btGezet; n.value = '1,00'; o.replaceWith(n); });
+  ok(await stap(null, { geenNavigatie: true, alleenKijken: true }) === 'controleer' && await pg.inputValue('#bedrag') === '1,00', 'na het invullen vult de robot niets meer in, ook niet in een opnieuw getekend veld');
+  await pg.setContent(`<body>${FORMULIER}</body>`);
+  ok(await stap(null, { geenNavigatie: true, alleenKijken: true }) === 'controleer' && await pg.inputValue('#iban') === '', 'een nieuw leeg formulier wordt niet nog eens gevuld');
+
+  // Nooit klikken op iets wat kan versturen of bevestigen: geen knoppen, niets bij een formulier of dialoog, niet op een controlepagina
+  const nooit = async (html, wat) => { await pg.setContent('<body>' + html + '<script>window.klik = 0;</scr' + 'ipt></body>'); await pg.evaluate(() => { delete window.__bt; }); /* een verse robot, zoals op een nieuwe pagina */ const r = [await stap(), await stap(), await stap()];
+    ok(r.every(x => x === 'wacht' || x === 'inlog') && await pg.evaluate(() => window.klik === 0), wat + ': ' + r); };
+  await nooit('<p>Je overboeking</p><button onclick="klik++">Overboeken</button>', 'een knop Overboeken zonder formulier eromheen');
+  await nooit('<div role="button" tabindex="0" onclick="klik++">Overmaken</div>', 'een vlak met de rol van knop');
+  await nooit('<form id="f" onsubmit="klik++; return false"></form><button form="f" onclick="klik++">Overboeken</button><a href="#" form="f" onclick="klik++; return false">Overmaken</a>', 'een knop die bij een formulier hoort maar erbuiten staat');
+  await nooit('<div role="form"><a href="#" onclick="klik++; return false">Betaling doen</a></div><dialog open><a href="#" onclick="klik++; return false">Overboeken</a></dialog>', 'een link in een formulier-rol of dialoog');
+  await nooit('<form onsubmit="klik++; return false"><div id="gast"></div></form><script>const s = document.getElementById("gast").attachShadow({ mode: "open" }); s.innerHTML = \'<a href="#" id="x">Overboeken</a><button>Overmaken</button>\'; s.querySelectorAll("a,button").forEach(e => e.onclick = () => { klik++; return false; });</scr' + 'ipt>', 'een link of knop in een webonderdeel binnen een formulier');
+  await nooit('<button onclick="klik++"><a href="#">Overboeken</a></button>', 'een link in een knop');
+  await nooit('<label>IBAN <input id="i"></label><a href="#" onclick="klik++; return false">Overmaken</a>', 'een stap met alleen het IBAN-veld (het formulier is er al half)');
+  await nooit('<label>Euro <input id="e"></label><label>Bedrag in centen <input id="c"></label><a href="#" onclick="klik++; return false">Overboeken</a>', 'een formulier waarvan Tools de velden niet allemaal herkent');
+  await nooit('<h1>Controleer je overboeking</h1><a href="#" onclick="klik++; return false">Overboeken</a>', 'een pagina die om controleren vraagt');
+  await nooit('<p>Onderteken met de Rabo Scanner</p><a href="#" onclick="klik++; return false">Betaling doen</a>', 'een pagina die om ondertekenen vraagt');
+  await nooit('<a onclick="klik++">Overboeken</a><span role="link" style="display:none" onclick="klik++">Overmaken</span>', 'een link zonder adres of een onzichtbare link');
+  // Per pagina hooguit één keer, en de app zet na die ene keer alles stil
+  await pg.setContent('<body><a href="#" onclick="window.klik = (window.klik || 0) + 1; return false">Overboeken</a></body>');
+  await pg.evaluate(() => { delete window.__bt; });
+  const reeks = [await stap(), await stap(), await stap()];
+  ok(reeks.join() === 'naar,wacht,wacht' && await pg.evaluate(() => window.klik) === 1, 'op dezelfde pagina hooguit één keer naar Overboeken: ' + reeks);
+
+  // Een zoekveld is geen IBAN-veld
+  await pg.setContent('<body><input type="search" aria-label="Zoek op naam of IBAN" id="z1"><input placeholder="Zoek op naam of IBAN" id="z2"><label>Bedrag <input id="b"></label></body>');
+  const zoek = await stap();
+  ok(zoek === 'wacht' && await pg.inputValue('#z1') === '' && await pg.inputValue('#z2') === '' && await pg.inputValue('#b') === '', 'een zoekveld wordt niet als IBAN-veld gevuld: ' + zoek);
 
   // Een knop Overboeken in een formulier of van het soort versturen is geen navigatie
   await pg.setContent(`<body><p>Controleer je overboeking</p><form onsubmit="window.verstuurd = 1; return false"><button id="a">Overboeken</button></form>
@@ -57,7 +86,7 @@ const fs = require('fs'), path = require('path');
   await pg.setContent(`<body><form onsubmit="return false"><input aria-label="Naam van de begunstigde" id="naam"><input placeholder="IBAN" id="iban">
     <input name="bedrag" type="number" step="0.01" id="bedrag"><input aria-label="Omschrijving" id="oms"><input aria-label="Betalingskenmerk" id="km"></form></body>`);
   ok(await stap(metKenmerk) === 'invullen' && await pg.inputValue('#km') === '8234567890123456' && await pg.inputValue('#oms') === '' && await pg.inputValue('#bedrag') === '123.45', 'kenmerk in het kenmerkveld; bedrag met een punt in een getalveld');
-  ok(await stap(metKenmerk) === 'ingevuld', 'en dan ingevuld');
+  ok(await stap(metKenmerk, { alleenKijken: true }) === 'ingevuld', 'en dan ingevuld');
   await pg.setContent(`<body>${FORMULIER}</body>`);
   ok(await stap(metKenmerk) === 'invullen' && await pg.inputValue('#oms') === '8234567890123456', 'geen kenmerkveld: het kenmerk in de omschrijving');
 

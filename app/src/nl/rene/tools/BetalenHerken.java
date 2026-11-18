@@ -24,7 +24,7 @@ final class BetalenHerken {
 
     // ---------------------------------------------------------------- tekst van een rekening
 
-    private static final Pattern TNV = Pattern.compile("(?im)(?<![a-z])(?:t\\.?\\s?n\\.?\\s?v\\.?|ten name van|ter attentie van rekeninghouder|naam rekeninghouder|rekeninghouder|begunstigde|naam ontvanger|account holder|beneficiary)(?![a-z])\\s*[:.]?\\s*([^\\n]{2,90})");
+    private static final Pattern TNV = Pattern.compile("(?im)(?<![a-z])(?:t\\.?\\s?n\\.?\\s?v\\.?|ten name van|ter attentie van rekeninghouder|naam rekeninghouder|rekeninghouder|begunstigde|naam ontvanger|account holder|beneficiary)(?![a-z])[ \\t]{0,10}[:.]?[ \\t]{0,10}([^\\n]{2,90})");
     private static final Pattern KENMERK_LABEL = Pattern.compile("(?i)(?<![a-z])(?:betalingskenmerk|betaalkenmerk|betalings\\s?kenmerk|payment reference|kenmerk)(?![a-z])[^0-9A-Z\\n]{0,20}(?:\\n\\s*)?((?:\\d[ ]?){7,20}|RF\\d{2}(?:[ ]?[A-Z0-9]){1,21})");
     private static final Pattern ZESTIEN = Pattern.compile("(?<![0-9])((?:\\d{4}[ ]?){3}\\d{4})(?![0-9])");
     private static final Pattern RF = Pattern.compile("(?<![A-Z0-9])(RF\\d{2}(?:[ ]?[A-Z0-9]){1,21})(?![A-Z0-9])");
@@ -95,8 +95,9 @@ final class BetalenHerken {
             String k = m.group(1).replace(" ", "").toUpperCase(Locale.ROOT);
             if (k.startsWith("RF") ? rfOk(k) : k.matches("\\d{7}|\\d{9,14}|\\d{16}") && (k.length() != 16 || kenmerkOk(k))) return k;
         }
+        // Zonder het woord "kenmerk" erbij: alleen zoals het op een rekening gedrukt staat, in vier groepjes van vier
         m = ZESTIEN.matcher(t);
-        while (m.find()) { String k = m.group(1).replace(" ", ""); if (kenmerkOk(k) && !k.matches("0{16}")) return k; }
+        while (m.find()) { String k = m.group(1).replace(" ", ""); if (m.group(1).length() == 19 && kenmerkOk(k) && !k.matches("0{16}")) return k; }
         m = RF.matcher(t);
         while (m.find()) { String k = m.group(1).replace(" ", ""); if (rfOk(k)) return k; }
         return "";
@@ -164,7 +165,8 @@ final class BetalenHerken {
             }
         }
         String ref = r.length > 9 ? r[9].replace(" ", "").toUpperCase(Locale.ROOT) : "";
-        if (ref.matches("[A-Z0-9]{1,35}")) o.put("kenmerk", ref);
+        if (!ref.matches("[A-Z0-9]{1,35}") || ref.startsWith("RF") && !rfOk(ref)) ref = ""; // een kenmerk dat niet klopt vervalt; de rest blijft
+        if (!ref.isEmpty()) o.put("kenmerk", ref);
         String tekst = r.length > 10 ? netjes(r[10], 140) : "";
         if (!tekst.isEmpty() && ref.isEmpty()) o.put("omschrijving", tekst);
         return o;
@@ -174,7 +176,11 @@ final class BetalenHerken {
     static String link(String s) {
         if (s == null) return null;
         String u = s.trim();
-        if (u.length() > MAX_LINK || !u.regionMatches(true, 0, "https://", 0, 8) || u.matches(".*[\\s\\p{Cntrl}\"<>\\\\^`{|}].*")) return null;
+        if (u.length() > MAX_LINK || !u.regionMatches(true, 0, "https://", 0, 8)) return null;
+        for (int i = 0; i < u.length(); i++) { // alleen gewone zichtbare tekens: geen spaties, regeleinden, stuurtekens of tekens buiten ASCII
+            char c = u.charAt(i);
+            if (c < 0x21 || c > 0x7e || "\"<>\\^`{|}".indexOf(c) >= 0) return null;
+        }
         int eind = u.length();
         for (char c : new char[]{'/', '?', '#'}) { int i = u.indexOf(c, 8); if (i >= 0 && i < eind) eind = i; }
         String gezag = u.substring(8, eind).toLowerCase(Locale.ROOT);

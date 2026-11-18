@@ -41,6 +41,14 @@ public class BetalenTest {
         for (int i = 0; i < 20000; i++) lang.append("t.n.v. kenmerk 1234 5678 NL91 ");
         BetalenHerken.herken(lang.toString(), null);
         check(System.currentTimeMillis() - t0 < 5000, "een heel lange tekst kost geen eindeloze tijd");
+        t0 = System.currentTimeMillis();
+        StringBuilder regels = new StringBuilder("tnv");
+        for (int i = 0; i < 40000; i++) regels.append('\n');
+        for (int i = 0; i < 2000; i++) regels.append("t.n.v.          \n kenmerk    \n");
+        BetalenHerken.herken(regels.toString() + regels, null);
+        check(System.currentTimeMillis() - t0 < 4000, "veel lege regels en losse woorden kosten geen eindeloze tijd");
+        check(BetalenHerken.naam("Rekeninghouder:\nIBAN NL91ABNA0417164300").isEmpty() && "Jansen B.V.".equals(BetalenHerken.naam("t.n.v.: Jansen B.V.")), "de naam staat op dezelfde regel, niet op de volgende");
+        check(BetalenHerken.kenmerk("Klantnummer 8234567890123456").isEmpty() && "8234567890123456".equals(BetalenHerken.kenmerk("8234 5678 9012 3456")), "16 cijfers zonder het woord kenmerk: alleen in vier groepjes");
 
         // ----- QR-codes
         JSONObject epc = BetalenHerken.qr("BCD\n002\n1\nSCT\nABNANL2A\nWaterbedrijf Voorbeeld B.V.\nNL91ABNA0417164300\nEUR123.45\n\n8234567890123456\n", HOSTS);
@@ -49,30 +57,36 @@ public class BetalenTest {
         JSONObject epc2 = BetalenHerken.qr("BCD\n001\n1\nSCT\n\nJan\nNL91ABNA0417164300\nEUR5\n\n\nFactuur 12\n", HOSTS);
         check(epc2 != null && "5,00".equals(epc2.optString("bedrag")) && "Factuur 12".equals(epc2.optString("omschrijving")) && !epc2.has("kenmerk"), "SEPA-QR met omschrijving en een rond bedrag");
         check(BetalenHerken.qr("BCD\n002\n1\nSCT\n\nJan\nNL91ABNA0417164301\nEUR5\n", HOSTS) == null, "SEPA-QR met een IBAN dat niet klopt telt niet");
+        JSONObject epc3 = BetalenHerken.qr("BCD\n002\n1\nSCT\n\nJan\nNL91ABNA0417164300\nEUR5.5\n\nRF00FOUT\n", HOSTS);
+        check(epc3 != null && "NL91ABNA0417164300".equals(epc3.optString("iban")) && "5,50".equals(epc3.optString("bedrag")) && !epc3.has("kenmerk"), "SEPA-QR met een kenmerk dat niet klopt: alleen het kenmerk vervalt");
         JSONObject link = BetalenHerken.qr(" https://www.ideal.nl/betalen?trxid=123 ", HOSTS);
         check(link != null && "link".equals(link.optString("soort")) && "www.ideal.nl".equals(link.optString("host")) && link.optBoolean("bekend") && "https://www.ideal.nl/betalen?trxid=123".equals(link.optString("link")), "betaallink van een bekende betaaldienst");
         JSONObject vreemd = BetalenHerken.qr("https://ideal.nl.voorbeeld.example/betalen", HOSTS);
         check(vreemd != null && !vreemd.optBoolean("bekend") && "ideal.nl.voorbeeld.example".equals(vreemd.optString("host")), "een domein dat alleen op een betaaldienst lijkt is niet bekend");
         for (String slecht : new String[]{"http://www.ideal.nl/x", "javascript:alert(1)", "https://user@ideal.nl/x", "https://ideal.nl:8443/x", "https://192.168.1.1/x", "https://ideal.nl/a b", "intent://x#Intent;end",
-                "https://ideal.nl/x\"onload", "WIFI:S:thuis;;", "", "https://", "https://localhost/x", "https://ideal.nl\\@voorbeeld.example/"})
+                "https://ideal.nl/x\"onload", "https://ideal.nl/a\nb", "https://ideal.nl/a\u2028b", "https://ide\u0430l.nl/x", "https://ideal.nl/caf\u00e9", "WIFI:S:thuis;;", "", "https://", "https://localhost/x", "https://ideal.nl\\@voorbeeld.example/"})
             check(BetalenHerken.qr(slecht, HOSTS) == null, "geen betaallink: " + slecht);
         StringBuilder groot = new StringBuilder("https://ideal.nl/");
         for (int i = 0; i < 700; i++) groot.append('a');
         check(BetalenHerken.link(groot.toString()) == null, "een veel te lang adres telt niet");
 
         // ----- een betaling nakijken
-        JSONObject b = Betalen.normaal(new JSONObject().put("naam", "  Waterbedrijf\n Voorbeeld  ").put("iban", "nl91 abna 0417 1643 00").put("bedrag", "1.234,5").put("kenmerk", "8234 5678 9012 3456")
+        JSONObject b = Betalen.normaal(new JSONObject().put("naam", "  Waterbedrijf\n Voorbeeld  ").put("iban", "nl91 abna 0417 1643 00").put("bedrag", "1234,5").put("kenmerk", "8234 5678 9012 3456")
                 .put("omschrijving", "x").put("vervaldatum", "2026-11-15").put("link", "https://www.ideal.nl/a").put("status", "raar").put("bron", "elders").put("extra", "weg").put("sha", "../x"), HOSTS);
         check(b.optString("id").matches("b[0-9a-f]{12}") && "Waterbedrijf Voorbeeld".equals(b.optString("naam")) && "NL91ABNA0417164300".equals(b.optString("iban")) && "1234,50".equals(b.optString("bedrag")), "naam op één regel, IBAN zonder spaties, bedrag als 1234,50");
         check("8234567890123456".equals(b.optString("kenmerk")) && "open".equals(b.optString("status")) && "hand".equals(b.optString("bron")) && !b.has("extra") && b.optString("sha").isEmpty(), "onbekende waarden en velden vervallen");
         check("www.ideal.nl".equals(b.optString("linkHost")) && b.optBoolean("linkBekend") && Betalen.compleet(b), "betaallink met domein; compleet met naam, IBAN en bedrag");
         check(fout(new JSONObject().put("iban", "NL91ABNA0417164301")).contains("IBAN") && fout(new JSONObject().put("bedrag", "veel")).contains("bedrag")
-                && fout(new JSONObject().put("bedrag", "0")).contains("bedrag") && fout(new JSONObject().put("kenmerk", "a b;c")).contains("kenmerk")
+                && fout(new JSONObject().put("bedrag", "0")).contains("bedrag") && fout(new JSONObject().put("bedrag", "1.234")).contains("bedrag") && fout(new JSONObject().put("bedrag", "0.001")).contains("bedrag")
+                && fout(new JSONObject().put("bedrag", "12,345")).contains("bedrag") && fout(new JSONObject().put("bedrag", "1.234,50")).contains("bedrag") && fout(new JSONObject().put("kenmerk", "a b;c")).contains("kenmerk")
                 && fout(new JSONObject().put("kenmerk", "RF19539007547034")).contains("kenmerk") && fout(new JSONObject().put("link", "http://ideal.nl/")).contains("https"), "een fout IBAN, bedrag, kenmerk of onveilige link wordt geweigerd");
         JSONObject leeg = Betalen.normaal(new JSONObject(), HOSTS);
         check(!Betalen.compleet(leeg) && leeg.optString("link").isEmpty() && fout(new JSONObject()).isEmpty(), "een onaffe betaling mag bewaard worden, maar is niet compleet");
         check(!Betalen.compleet(Betalen.normaal(new JSONObject().put("iban", "NL91ABNA0417164300").put("bedrag", "1"), HOSTS)), "zonder naam niet compleet");
-        JSONArray alle = new JSONArray().put(new JSONObject().put("id", "b000000000001").put("iban", "NL91ABNA0417164300").put("status", "betaald"));
+        check(!Betalen.normaal(new JSONObject().put("bevestigd", true).put("status", "betaald"), HOSTS).optBoolean("bevestigd"), "de interface kan een betaling niet zelf als bevestigd aanmerken");
+        JSONArray vanzelf = new JSONArray().put(new JSONObject().put("id", "b000000000001").put("iban", "NL91ABNA0417164300").put("status", "betaald"));
+        check(Betalen.nieuweOntvanger(vanzelf, new JSONObject().put("id", "b000000000002").put("iban", "NL91ABNA0417164300")), "vanzelf op Betaald gezet maakt een IBAN nog niet bekend");
+        JSONArray alle = new JSONArray().put(new JSONObject().put("id", "b000000000001").put("iban", "NL91ABNA0417164300").put("status", "betaald").put("bevestigd", true));
         check(!Betalen.nieuweOntvanger(alle, new JSONObject().put("id", "b000000000002").put("iban", "NL91ABNA0417164300"))
                 && Betalen.nieuweOntvanger(alle, new JSONObject().put("id", "b000000000002").put("iban", "DE89370400440532013000"))
                 && Betalen.nieuweOntvanger(alle, new JSONObject().put("id", "b000000000001").put("iban", "NL91ABNA0417164300")), "nieuwe ontvanger: nog niet eerder naar dit IBAN betaald");

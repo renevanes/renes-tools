@@ -39,13 +39,18 @@ import java.util.Set;
 /**
  * Betalen, klaarzetten bij de bank: de website van de bank (eerst Rabobank) in beeld. Rene logt zelf in met de app van zijn
  * bank; de robot (web/betaal-robot.js) gaat daarna naar het formulier voor een overboeking en vult de naam, het IBAN, het
- * bedrag en het kenmerk of de omschrijving in. Meer niet: controleren, versturen en ondertekenen doet Rene zelf. Zodra het
- * formulier in beeld is geweest klikt de robot nergens meer op, en na het invullen stopt hij helemaal. De pagina krijgt geen
- * brug naar de app. Alleen https en alleen de domeinen van de bank; na afloop gaan de cookies en websitegegevens van de bank weg.
+ * bedrag en het kenmerk of de omschrijving in. Meer niet: controleren, versturen en ondertekenen doet Rene zelf. De robot
+ * klikt alleen op links en menukeuzes, hooguit één keer op het menu en één keer op "Overboeken" (dit venster houdt dat bij,
+ * niet de pagina), niet meer zodra Rene de website zelf aanraakt of een minuut na het inloggen, en na één keer invullen doet
+ * hij niets meer. De pagina krijgt geen brug naar de app. Alleen https en alleen de domeinen van de bank; na afloop gaan de cookies en websitegegevens van de bank weg.
  */
 public class BetaalLinkActivity extends Activity {
 
-    static final long MAX_MS = 20 * 60_000L, WEG_MS = 6 * 60_000L;
+    static final long MAX_MS = 20 * 60_000L;
+    /** Uit beeld: kort, tenzij de app van de bank net vanuit dit venster geopend is (inloggen of ondertekenen). */
+    static final long WEG_MS = 45_000L, WEG_BANKAPP_MS = 4 * 60_000L, BANKAPP_GELDT_MS = 5 * 60_000L;
+    /** Zo lang na het inloggen mag de robot nog naar het formulier zoeken; daarna klikt hij nergens meer op. */
+    static final long ZOEK_MS = 60_000L;
     /** Er staat al een venster open (één tegelijk). */
     static volatile boolean LOPEND = false;
     /** Uitkomst voor het scherm Betalen (eenmalig): {id, stand: ingevuld|gestopt}. */
@@ -56,12 +61,15 @@ public class BetaalLinkActivity extends Activity {
     private TextView status;
     private Button knop;
     JSONObject bank;
-    String cfg = "", cfgStil = "", robot = "", betaling = "", id = "";
+    JSONObject cfg;
+    String robot = "", betaling = "", id = "";
     final Set<String> hosts = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
-    volatile boolean klaar = false, geladen = false, formulier = false, ingevuld = false;
+    volatile boolean klaar = false, geladen = false;
+    /** stil: nergens meer op klikken. menu: het menu is al aangeklikt. gevuld: het formulier is ingevuld (alleen nog kijken). gestopt: de robot doet niets meer. */
+    volatile boolean stil = false, menu = false, gevuld = false, gestopt = false;
     volatile String paginaUrl = "";
-    long start, wachtSinds;
-    volatile long wegSinds = 0;
+    long start, wachtSinds, naInlog;
+    volatile long wegSinds = 0, appGeopend = 0;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -78,8 +86,7 @@ public class BetaalLinkActivity extends Activity {
             JSONObject bet = Betalen.vind(Betalen.lijst(Betalen.lees(this)), id);
             betaling = BetaalLink.robotBetaling(bet);
             try (InputStream in = getAssets().open("betaal-robot.js")) { robot = new String(Facturen.lees(in, 200_000), StandardCharsets.UTF_8); }
-            cfg = BetaalLink.robotCfg(bank);
-            cfgStil = new JSONObject(cfg).put("geenNavigatie", true).toString();
+            cfg = new JSONObject(BetaalLink.robotCfg(bank));
         } catch (Throwable t) { LOPEND = false; finish(); return; }
         LOPEND = true;
         start = System.currentTimeMillis();
@@ -140,6 +147,8 @@ public class BetaalLinkActivity extends Activity {
         wv.setWebViewClient(new Client(this));
         wv.setWebChromeClient(new Chrome(this));
         wv.setDownloadListener((url, agent, cd, mime, len) -> { }); // hier wordt niets gedownload
+        // Raakt Rene de website aan nadat hij is ingelogd, dan bedient hij hem zelf: de robot klikt nergens meer op
+        wv.setOnTouchListener((v, ev) -> { if (naInlog > 0) stil = true; return false; });
         hosts.add(Facturen.host(bank.optString("startUrl")));
         wv.loadUrl(bank.optString("startUrl"));
         h.postDelayed(this::tik, 2000);
@@ -159,45 +168,66 @@ public class BetaalLinkActivity extends Activity {
 
     void openApp(String pkg) {
         if (!BankLink.appToegestaan(pkg, bank)) return;
-        try { Intent i = getPackageManager().getLaunchIntentForPackage(pkg); if (i != null) startActivity(i); }
+        try { Intent i = getPackageManager().getLaunchIntentForPackage(pkg); if (i != null) { appGeopend = System.currentTimeMillis(); startActivity(i); } }
         catch (Throwable t) { Toast.makeText(this, Taal.tx(this, Taal.T("Openen lukt niet")), Toast.LENGTH_SHORT).show(); }
     }
 
     void zet(String nl) { h.post(() -> { if (status != null) status.setText(Taal.tx(this, nl)); }); }
 
-    /** Elke 1,5 seconde één stap van de robot (alleen op de website van de bank), tot het formulier is ingevuld. */
+    /** Hoe lang het venster uit beeld mag zijn: kort, of langer als de app van de bank net vanuit dit venster geopend is. */
+    long wegMag(long nu) { return nu - appGeopend < BANKAPP_GELDT_MS ? WEG_BANKAPP_MS : WEG_MS; }
+
+    /** De instellingen voor deze stap: de app (niet de pagina) houdt bij wat de robot nog mag. */
+    String stapCfg() throws Exception {
+        return new JSONObject(cfg.toString()).put("geenNavigatie", stil).put("geenMenu", menu).put("alleenKijken", gevuld).toString();
+    }
+
+    /**
+     * Elke 1,5 seconde één stap van de robot (alleen op de website van de bank). Hij klikt hooguit één keer op het menu en
+     * één keer op "Overboeken", vult het formulier één keer in, kijkt één keer of het klopt en doet daarna niets meer.
+     */
     void tik() {
         if (klaar || wv == null || isFinishing()) return;
         long nu = System.currentTimeMillis();
         if (nu - start > MAX_MS) { einde(Taal.T("Gestopt: het duurde te lang. Zet de betaling opnieuw klaar.")); return; }
         if (wegSinds > 0) { // uit beeld (bijv. in de app van de bank om in te loggen of te ondertekenen)
-            if (nu - wegSinds > WEG_MS) { finish(); return; }
+            if (nu - wegSinds > wegMag(nu)) { finish(); return; }
             h.postDelayed(this::tik, 1500);
             return;
         }
-        if (!ingevuld && geladen && BankLink.toegestaan(paginaUrl, bank)) {
+        if (naInlog > 0 && nu - naInlog > ZOEK_MS) stil = true;
+        if (!gestopt && geladen && BankLink.toegestaan(paginaUrl, bank)) {
+            String c;
+            try { c = stapCfg(); } catch (Exception e) { gestopt = true; return; }
             wv.evaluateJavascript(robot, null);
-            wv.evaluateJavascript("(window.__bt?__bt.stap(" + (formulier ? cfgStil : cfg) + "," + betaling + "):'')", v -> {
+            wv.evaluateJavascript("(window.__bt?__bt.stap(" + c + "," + betaling + "):'')", v -> {
                 String r = FacturenRun.str(v);
-                if (r.equals("inlog")) { wachtSinds = 0; zet(Taal.T("Log zelf in met de app van je bank. Daarna vult Tools de overboeking in.")); }
-                else if (r.equals("menu") || r.equals("naar")) { wachtSinds = 0; zet(Taal.T("Naar het formulier voor een overboeking…")); }
-                else if (r.equals("invullen")) { formulier = true; wachtSinds = 0; zet(Taal.T("Overboeking invullen…")); }
+                if (r.isEmpty() || gestopt) return;
+                if (r.equals("inlog")) { wachtSinds = 0; zet(Taal.T("Log zelf in met de app van je bank. Daarna vult Tools de overboeking in.")); return; }
+                if (naInlog == 0) naInlog = System.currentTimeMillis();
+                if (r.equals("menu")) { menu = true; wachtSinds = 0; zet(Taal.T("Naar het formulier voor een overboeking…")); }
+                else if (r.equals("naar")) { stil = true; wachtSinds = 0; zet(Taal.T("Naar het formulier voor een overboeking…")); }
+                else if (r.equals("invullen")) { stil = true; gevuld = true; wachtSinds = 0; zet(Taal.T("Overboeking invullen…")); }
                 else if (r.equals("ingevuld")) {
-                    formulier = true; ingevuld = true;
+                    stil = true; gevuld = true; gestopt = true;
                     uitkomst = uit("ingevuld");
                     App.log(getApplicationContext(), "BETALEN", "ingevuld");
                     zet(Taal.T("Ingevuld. Controleer de naam, het IBAN en het bedrag, en verstuur en onderteken zelf."));
                 }
-                else if (r.equals("controleer")) { formulier = true; zet(Taal.T("Niet alles is overgenomen. Kijk de velden na en vul aan wat ontbreekt.")); }
+                else if (r.equals("controleer")) {
+                    // Het formulier is er, maar klopt niet met de betaling: Tools vult niets (meer) in en klikt nergens op
+                    stil = true; gevuld = true; gestopt = true;
+                    zet(Taal.T("Niet alles is overgenomen. Kijk de velden na en vul aan wat ontbreekt."));
+                }
                 else if (r.equals("wacht")) {
                     if (wachtSinds == 0) wachtSinds = System.currentTimeMillis();
-                    if (System.currentTimeMillis() - wachtSinds > 20_000) zet(formulier
-                            ? Taal.T("Tools doet hier niets meer. Ga zelf verder; controleer alles voor je ondertekent.")
+                    if (System.currentTimeMillis() - wachtSinds > 20_000) zet(stil
+                            ? Taal.T("Ga zelf naar Overboeken. Staat het formulier in beeld, dan vult Tools het in.")
                             : Taal.T("Lukt het niet vanzelf? Ga zelf naar Overboeken; Tools vult het formulier dan in."));
                 }
             });
         }
-        if (!ingevuld) h.postDelayed(this::tik, 1500);
+        if (!gestopt) h.postDelayed(this::tik, 1500);
     }
 
     String uit(String stand) {
@@ -214,7 +244,7 @@ public class BetaalLinkActivity extends Activity {
     @Override protected void onStop() { super.onStop(); if (!isFinishing()) wegSinds = System.currentTimeMillis(); }
     @Override protected void onStart() {
         super.onStart();
-        if (wegSinds > 0 && System.currentTimeMillis() - wegSinds > WEG_MS) { finish(); return; }
+        if (wegSinds > 0 && System.currentTimeMillis() - wegSinds > wegMag(System.currentTimeMillis())) { finish(); return; }
         wegSinds = 0;
     }
 
@@ -289,7 +319,7 @@ public class BetaalLinkActivity extends Activity {
                     i.setSelector(null);
                     String pkg = i.getPackage();
                     if (pkg == null) { android.content.pm.ResolveInfo ri = a.getPackageManager().resolveActivity(i, 0); if (ri != null && ri.activityInfo != null) pkg = ri.activityInfo.packageName; }
-                    if (BankLink.appToegestaan(pkg, a.bank)) { i.setPackage(pkg); a.startActivity(i); }
+                    if (BankLink.appToegestaan(pkg, a.bank)) { i.setPackage(pkg); a.appGeopend = System.currentTimeMillis(); a.startActivity(i); }
                 } catch (Throwable ignored) { }
                 return true;
             }

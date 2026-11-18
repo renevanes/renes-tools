@@ -51,7 +51,10 @@ public class BetalenBridge extends FeatureBridge {
             for (int i = 0; i < lijst.length(); i++) {
                 JSONObject b = lijst.optJSONObject(i);
                 if (b == null) continue;
-                uit.put(new JSONObject(b.toString()).put("compleet", Betalen.compleet(b)).put("nieuw", Betalen.nieuweOntvanger(lijst, b)));
+                // Het domein van een betaallink altijd uit de link zelf (het bestand kan uit een backup komen)
+                String link = BetalenHerken.link(b.optString("link")), host = link == null ? "" : Facturen.host(link);
+                uit.put(new JSONObject(b.toString()).put("link", link == null ? "" : link).put("linkHost", host).put("linkBekend", BetalenHerken.hostBekend(host, BetaalLink.hosts(ctx)))
+                        .put("compleet", Betalen.compleet(b)).put("nieuw", Betalen.nieuweOntvanger(lijst, b)));
             }
             JSONArray banken = new JSONArray(), l = BankLink.banken(ctx);
             for (int i = 0; i < l.length(); i++) {
@@ -77,25 +80,35 @@ public class BetalenBridge extends FeatureBridge {
         } catch (Throwable e) { return fout(e); }
     }
 
+    /** status: open, klaargezet, betaald (Rene zegt het zelf) of betaald_vanzelf (de instelling "meteen op Betaald zetten"). */
     @JavascriptInterface public String betalenStatus(String id, String status) {
-        try { Betalen.status(ctx, id == null ? "" : id, status == null ? "" : status); return "{\"ok\":true}"; }
-        catch (Throwable e) { return fout(e); }
+        try {
+            if (!mag()) throw new Betalen.Fout(PlayPolicy.unavailable(ctx));
+            boolean vanzelf = "betaald_vanzelf".equals(status);
+            Betalen.status(ctx, id == null ? "" : id, vanzelf ? "betaald" : status == null ? "" : status, !vanzelf);
+            return "{\"ok\":true}";
+        } catch (Throwable e) { return fout(e); }
     }
 
     @JavascriptInterface public String betalenWis(String id) {
-        try { Betalen.wis(ctx, id == null ? "" : id); return "{\"ok\":true}"; }
+        try { if (!mag()) throw new Betalen.Fout(PlayPolicy.unavailable(ctx)); Betalen.wis(ctx, id == null ? "" : id); return "{\"ok\":true}"; }
         catch (Throwable e) { return fout(e); }
     }
 
     @JavascriptInterface public String betalenInst(String json) {
-        try { Betalen.bewaarInst(ctx, new JSONObject(json == null ? "{}" : json)); return "{\"ok\":true}"; }
+        try { if (!mag()) throw new Betalen.Fout(PlayPolicy.unavailable(ctx)); Betalen.bewaarInst(ctx, new JSONObject(json == null ? "{}" : json)); return "{\"ok\":true}"; }
         catch (Throwable e) { return fout(e); }
     }
 
-    /** Wat betekent deze QR-code? Een betaallink, een SEPA-QR, of "null". */
+    /** Wat betekent deze QR-code? Een betaallink, een SEPA-QR ({…, eigen:true} als het IBAN een eigen rekeningnummer is), of "null". */
     @JavascriptInterface public String betalenQr(String inhoud) {
-        try { JSONObject o = BetalenHerken.qr(inhoud, BetaalLink.hosts(ctx)); return o == null ? "null" : o.toString(); }
-        catch (Throwable t) { return "null"; }
+        try {
+            if (!mag()) return "null";
+            JSONObject o = BetalenHerken.qr(inhoud, BetaalLink.hosts(ctx));
+            if (o == null) return "null";
+            if ("epc".equals(o.optString("soort")) && BetalenHerken.isEigen(o.optString("iban"), BetalenHerken.lijst(Betalen.inst(Betalen.lees(ctx)).optJSONArray("eigen")))) o.put("eigen", true);
+            return o.toString();
+        } catch (Throwable t) { return "null"; }
     }
 
     // ---------------------------------------------------------------- camera (in de interface, zoals de QR-scanner van VPN)

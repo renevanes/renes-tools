@@ -117,8 +117,8 @@ uit bij Instellingen → Foutrapport en statistieken.
 - Staat de Google-backup van Android aan, dan neemt Android ook een deel van de appgegevens mee naar **je eigen**
   Google-account: onder andere je notities, je muziekgeschiedenis, je parkeerplek en ritten, opgeslagen plekken
   (automatiseringen, Locatie kiezen, weer), inlognamen bij leveranciers en je instellingen. Wachtwoorden, sleutels,
-  koppelingen, de kluis, je bankgegevens, je eigen afspraken in Agenda, je nieuwsbronnen en inlogcookies en je bronnen en berichten in Signalen gaan daar
-  bewust niet mee (Agenda, Nieuws en Signalen wel in de versleutelde backup van alle appgegevens). Je zet de Google-backup uit in de instellingen
+  koppelingen, de kluis, je bankgegevens, je eigen afspraken in Agenda, je nieuwsbronnen en inlogcookies, je bronnen en berichten in Signalen en je betalingen in Betalen gaan daar
+  bewust niet mee (Agenda, Nieuws, Signalen en Betalen wel in de versleutelde backup van alle appgegevens; de betalingen in Betalen staan, net als het facturendossier, in de afgeschermde opslag van de app en niet apart versleuteld). Je zet de Google-backup uit in de instellingen
   van Android.
 
 ## Bewaren en verwijderen

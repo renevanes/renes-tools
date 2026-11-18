@@ -45,7 +45,8 @@ final class Betalen {
         o.put("iban", iban);
         String bedrag = in.optString("bedrag").trim();
         if (!bedrag.isEmpty()) {
-            String b = FacturenDossier.bedrag(bedrag);
+            // Streng: 1234,5 of 1234.56 (geen punten of komma's voor duizendtallen, dat kan twee dingen betekenen)
+            String b = bedrag.matches("\\d{1,9}([.,]\\d{1,2})?") ? FacturenDossier.bedrag(bedrag.replace(',', '.')) : null;
             if (b == null || !BetalenHerken.bedragOk(b)) throw new Fout(Taal.T("Vul het bedrag in als 123,45."));
             bedrag = b;
         }
@@ -73,6 +74,7 @@ final class Betalen {
         o.put("gemaakt", Math.max(0, in.optLong("gemaakt")));
         o.put("gewijzigd", Math.max(0, in.optLong("gewijzigd")));
         o.put("betaaldOp", Math.max(0, in.optLong("betaaldOp")));
+        o.put("bevestigd", false); // alleen bewaar() en status() zetten dit, nooit de interface
         return o;
     }
 
@@ -83,13 +85,13 @@ final class Betalen {
         return b != null && !b.optString("naam").isEmpty() && FacturenHerken.ibanOk(b.optString("iban")) && BetalenHerken.bedragOk(b.optString("bedrag"));
     }
 
-    /** Is dit IBAN nieuw (nog niet eerder gebruikt in een andere betaling)? Dan vraagt het scherm om extra controle. */
+    /** Is dit IBAN nieuw (nog geen andere betaling ernaartoe die Rene zelf op Betaald zette)? Dan vraagt het scherm om extra controle. */
     static boolean nieuweOntvanger(JSONArray alle, JSONObject b) {
         String iban = b.optString("iban");
         if (iban.isEmpty()) return false;
         for (int i = 0; i < alle.length(); i++) {
             JSONObject x = alle.optJSONObject(i);
-            if (x != null && !x.optString("id").equals(b.optString("id")) && iban.equals(x.optString("iban")) && "betaald".equals(x.optString("status"))) return false;
+            if (x != null && !x.optString("id").equals(b.optString("id")) && iban.equals(x.optString("iban")) && "betaald".equals(x.optString("status")) && x.optBoolean("bevestigd")) return false;
         }
         return true;
     }
@@ -158,9 +160,12 @@ final class Betalen {
 
     static synchronized JSONObject bewaar(Context c, JSONObject in, List<String> bekendeHosts) throws Exception {
         JSONObject bestand = open(c), b = normaal(in, bekendeHosts);
+        if (BetalenHerken.isEigen(b.optString("iban"), BetalenHerken.lijst(inst(bestand).optJSONArray("eigen")))) throw new Fout(Taal.T("Dit is je eigen rekeningnummer. Vul het IBAN van de ontvanger in."));
         JSONArray oud = lijst(bestand), nieuw = new JSONArray();
         long nu = System.currentTimeMillis();
         JSONObject was = vind(oud, b.optString("id"));
+        // Zelf bevestigd blijft alleen staan zolang het dezelfde betaalde betaling naar hetzelfde IBAN is
+        b.put("bevestigd", was != null && was.optBoolean("bevestigd") && "betaald".equals(b.optString("status")) && b.optString("iban").equals(was.optString("iban")));
         b.put("gemaakt", was != null ? was.optLong("gemaakt") : nu).put("gewijzigd", nu);
         if ("betaald".equals(b.optString("status"))) b.put("betaaldOp", was != null && was.optLong("betaaldOp") > 0 ? was.optLong("betaaldOp") : nu);
         else b.put("betaaldOp", 0);
@@ -176,12 +181,14 @@ final class Betalen {
         return b;
     }
 
-    static synchronized void status(Context c, String id, String status) throws Exception {
+    /** zelf = Rene zette hem zelf op Betaald (dan geldt het IBAN voortaan als bekend); niet bij het vanzelf op Betaald zetten na het klaarzetten. */
+    static synchronized void status(Context c, String id, String status, boolean zelf) throws Exception {
         if (!STATUS.contains(status)) return;
         JSONObject bestand = open(c);
         JSONObject b = vind(lijst(bestand), id);
         if (b == null) return;
-        b.put("status", status).put("gewijzigd", System.currentTimeMillis()).put("betaaldOp", "betaald".equals(status) ? System.currentTimeMillis() : 0);
+        boolean betaald = "betaald".equals(status);
+        b.put("status", status).put("gewijzigd", System.currentTimeMillis()).put("betaaldOp", betaald ? System.currentTimeMillis() : 0).put("bevestigd", betaald && zelf);
         schrijf(c, bestand);
     }
 

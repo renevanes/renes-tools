@@ -66,7 +66,8 @@ const QR_EPC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0AQAAAAAVtj
 
     // ---- Klaarzetten: eerst de vraag bij een nieuwe ontvanger, dan naar de bank; terug: is het gelukt?
     await page.click('#btd-klaar'); await wacht(100);
-    ok((await tekst('#modal-title')) === 'Nieuwe ontvanger' && (await tekst('#modal-text')).includes('NL91 ABNA 0417 1643 00') && (await tekst('#modal-text')).includes('Energie Voorbeeld B.V.'), 'nieuwe ontvanger: vraag met IBAN en naam');
+    ok((await tekst('#modal-title')) === 'Nieuwe ontvanger' && (await tekst('#modal-text')).includes('NL91 ABNA 0417 1643 00') && (await tekst('#modal-text')).includes('Energie Voorbeeld B.V.') && /1\.250,50/.test(await tekst('#modal-text')), 'nieuwe ontvanger: vraag met bedrag, IBAN en naam zoals ze bewaard zijn');
+    ok(await page.inputValue('#btd-bedrag') === '1250,50', 'het veld toont wat er bewaard is');
     await page.click('#modal-ok'); await wacht(100);
     const id = await page.evaluate(() => bt.id);
     ok(await page.evaluate(i => Android._bt.calls.some(c => c[0] === 'klaarzetten' && c[1] === i), id), 'klaarzetten gaat naar de bank');
@@ -106,6 +107,16 @@ const QR_EPC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0AQAAAAAVtj
       'BCD\n002\n1\nSCT\n\nQR Voorbeeld B.V.\nDE89370400440532013000\nEUR77.10\n\n\nRekening 77'); }); await wacht(150);
     ok(await page.inputValue('#btd-naam') === 'QR Voorbeeld B.V.' && await page.inputValue('#btd-iban') === 'DE89 3704 0044 0532 0130 00' && await page.inputValue('#btd-bedrag') === '77,10'
       && await page.inputValue('#btd-omschrijving') === 'Rekening 77' && await page.inputValue('#btd-kenmerk') === '', 'SEPA-QR: naam, IBAN, bedrag en omschrijving uit de code');
+
+    // ---- Een QR-code met je eigen rekeningnummer wordt niet gebruikt; een IBAN dat niet in de tekst staat krijgt een waarschuwing
+    await page.evaluate(() => { Android.betalenInst(JSON.stringify({ bank: 'rabobank', naKlaar: 'vragen', eigen: ['DE89370400440532013000'] })); show('betalen');
+      btVoorstel({ bron: 'foto', naam: 'Echte ontvanger', iban: 'NL91ABNA0417164300', bedrag: '10,00', ibans: ['NL91ABNA0417164300'] }, 'BCD\n002\n1\nSCT\n\nIemand\nDE89370400440532013000\nEUR999.00\n\n\nx'); }); await wacht(150);
+    ok(await page.inputValue('#btd-iban') === 'NL91 ABNA 0417 1643 00' && await page.inputValue('#btd-bedrag') === '10,00' && (await tekst('#toast')).includes('eigen rekeningnummer'), 'QR-code met je eigen rekeningnummer: niet gebruikt, met een melding');
+    await page.fill('#btd-iban', 'DE89 3704 0044 0532 0130 00'); await page.dispatchEvent('#btd-iban', 'change'); await wacht(60);
+    ok(await page.isVisible('#btd-fout') && (await tekst('#btd-fout')).includes('eigen rekeningnummer'), 'je eigen rekeningnummer kan niet de ontvanger zijn');
+    await page.evaluate(() => { Android.betalenInst(JSON.stringify({ bank: 'rabobank', naKlaar: 'vragen', eigen: [] })); show('betalen');
+      btVoorstel({ bron: 'foto', naam: 'Tekst', iban: 'NL91ABNA0417164300', bedrag: '10,00', ibans: ['NL91ABNA0417164300'] }, 'BCD\n002\n1\nSCT\n\nAnder\nDE89370400440532013000\nEUR10.00\n\n\nx'); }); await wacht(150);
+    ok(await page.inputValue('#btd-iban') === 'DE89 3704 0044 0532 0130 00' && (await tekst('#btd-bron')).includes('staat niet in de tekst'), 'het IBAN uit de QR-code staat niet in de tekst: zichtbare waarschuwing');
 
     // ---- De QR-lezer vindt een code op een grote foto (klein, in een hoek)
     const gelezen = await page.evaluate(async ([link, epc]) => {
@@ -167,11 +178,13 @@ const QR_EPC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0AQAAAAAVtj
     await page.evaluate(() => { Android.betalenInst(JSON.stringify({ bank: 'rabobank', naKlaar: 'betaald', eigen: [] })); show('betalen'); }); await wacht(60);
     // meteen betaald zetten: geen vraag
     await page.evaluate(() => { const b = Android._bt.lijst.find(x => x.naam === 'Waterbedrijf Test'); btOpen(b.id); }); await wacht(100);
-    ok(await page.isHidden('#btd-nieuw'), 'naar dit IBAN is al eens betaald: geen waarschuwing voor een nieuwe ontvanger');
+    ok(await page.isHidden('#btd-nieuw'), 'naar dit IBAN heb je zelf al eens betaald: geen waarschuwing voor een nieuwe ontvanger');
     await page.click('#btd-klaar'); await wacht(100);
-    ok(await page.evaluate(() => !document.querySelector('#modal.on')), 'en dus ook geen extra vraag');
+    ok((await tekst('#modal-title')) === 'Klaarzetten bij je bank' && (await tekst('#modal-text')).includes('NL91 ABNA 0417 1643 00') && /45,10/.test(await tekst('#modal-text')), 'ook dan eerst zien wat er naar de bank gaat');
+    await page.click('#modal-ok'); await wacht(80);
     await page.evaluate(() => onResumeApp()); await wacht(120);
     ok(await page.evaluate(() => btVind(bt.id).status === 'betaald' && !document.querySelector('#modal.on')), 'instelling "meteen betaald": geen vraag');
+    ok(await page.evaluate(() => { const b = btVind(bt.id); return !Android._bt.lijst.find(x => x.id === b.id).bevestigd; }), 'vanzelf op Betaald: het IBAN geldt daardoor nog niet als bekend');
     await page.click('#btd-betaald'); await wacht(60);
     ok(await page.evaluate(() => btVind(bt.id).status) === 'open', 'toch nog niet betaald: weer te betalen');
 

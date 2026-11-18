@@ -3,12 +3,13 @@
 // (naam, IBAN, kenmerk, omschrijving, het adres van een betaallink) is gegevens: altijd esc() of textContent, nooit als
 // HTML; een betaallink gaat alleen via Android.betalenOpenLink (alleen https, na een vraag met het adres erbij).
 const BT_SCHERMEN = ['betalen', 'betaling', 'betalenset'];
-let bt = { staat: null, filter: 'open', id: '', ibans: {}, stream: null, lezen: false, qrKlaar: null };
+let bt = { staat: null, filter: 'open', id: '', ibans: {}, anders: {}, stream: null, lezen: false, qrKlaar: null };
 function btOud(){ return typeof Android.betalenStaat !== 'function'; }
 function btLaad(){ bt.staat = btOud() ? {} : (rdJson(Android.betalenStaat(), {}) || {}); return bt.staat; }
 function btLijst(){ return (bt.staat && bt.staat.betalingen) || []; }
 function btInst(){ return (bt.staat && bt.staat.inst) || {}; }
 function btVind(id){ return btLijst().find(x => x.id === id); }
+function btVindNu(id){ btLaad(); return btVind(id); }
 function btBank(){ const i = btInst(); return ((bt.staat && bt.staat.banken) || []).find(b => b.id === i.bank) || null; }
 function btGetal(nl){ return nl ? Number(String(nl).replace(',', '.')) : NaN; }
 function btIbanMooi(i){ return String(i || '').replace(/(.{4})/g, '$1 ').trim(); }
@@ -158,7 +159,9 @@ function btVoorstel(r, qrTekst){
   bt.lezen = false;
   const q = qrTekst ? rdJson(Android.betalenQr(qrTekst), null) : null;
   const b = { bron: r.bron || 'bestand', naam: r.naam || '', iban: r.iban || '', bedrag: r.bedrag || '', kenmerk: r.kenmerk || '', omschrijving: r.omschrijving || '', vervaldatum: r.vervaldatum || '' };
-  if (q && q.soort === 'epc') { // een QR-code met betaalgegevens is betrouwbaarder dan gelezen tekst
+  const eigenQr = !!(q && q.soort === 'epc' && q.eigen); // je eigen rekeningnummer in de QR-code: die code is niet om mee te betalen
+  const anders = !!(q && q.soort === 'epc' && !q.eigen && (r.ibans || []).length && !(r.ibans || []).includes(q.iban));
+  if (q && q.soort === 'epc' && !eigenQr) { // een QR-code met betaalgegevens is betrouwbaarder dan gelezen tekst
     b.iban = q.iban; if (q.naam) b.naam = q.naam; if (q.bedrag) b.bedrag = q.bedrag;
     if (q.kenmerk) { b.kenmerk = q.kenmerk; b.omschrijving = ''; } else if (q.omschrijving) { b.omschrijving = q.omschrijving; b.kenmerk = ''; }
   }
@@ -168,9 +171,11 @@ function btVoorstel(r, qrTekst){
   if (!res.ok) res = rdJson(Android.betalenBewaar(JSON.stringify({ bron: b.bron, naam: b.naam, link: b.link || '' })), {}); // iets klopte niet: dan alleen wat zeker kan
   if (!res.ok) { toast(res.fout || t('Opslaan lukte niet.')); if (current === 'betalen') { btLaad(); btRender(); } return; }
   bt.ibans[res.id] = (r.ibans || []).filter(x => typeof x === 'string').slice(0, 5);
-  const gevonden = !!(b.iban || b.bedrag || b.link);
+  bt.anders[res.id] = anders;
+  const gevonden = !!(b.iban || b.bedrag || b.link), uitQr = !!(q && q.soort === 'epc' && !eigenQr && (btVindNu(res.id) || {}).iban === q.iban);
   toast(q && q.soort === 'link' ? t('Betaallink gevonden in de QR-code. Kijk de gegevens na.')
-    : q && q.soort === 'epc' ? t('Betaalgegevens gelezen uit de QR-code. Kijk ze na.')
+    : eigenQr ? t('In de QR-code staat je eigen rekeningnummer. Tools heeft die code niet gebruikt.')
+    : uitQr ? t('Betaalgegevens gelezen uit de QR-code. Kijk ze na.')
     : gevonden ? t('Gelezen. Kijk de gegevens goed na.') : t('Tools kon de rekening niet lezen. Vul de betaling zelf in.'));
   if (BT_SCHERMEN.includes(current)) btOpen(res.id); else { btLaad(); }
 }
@@ -189,7 +194,8 @@ function btdRender(){
   $('#btd-fout').hidden = true;
   const bron = $('#btd-bron');
   bron.hidden = b.bron === 'hand';
-  bron.textContent = b.bron === 'foto' ? t('Gelezen van een foto. Kijk elk veld na: tekstherkenning kan zich vergissen.') : t('Gelezen uit een bestand. Kijk elk veld na.');
+  bron.textContent = bt.anders[b.id] ? t('Let op: het IBAN uit de QR-code staat niet in de tekst van de rekening. Vergelijk het extra goed.')
+    : b.bron === 'foto' ? t('Gelezen van een foto. Kijk elk veld na: tekstherkenning kan zich vergissen.') : t('Gelezen uit een bestand. Kijk elk veld na.');
   const andere = (bt.ibans[b.id] || []).filter(x => x !== b.iban), box = $('#btd-ibans');
   box.hidden = !andere.length;
   box.innerHTML = andere.map(x => '<button type="button" data-iban="' + esc(x) + '" translate="no">' + esc(btIbanMooi(x)) + '</button>').join('');
@@ -232,16 +238,17 @@ function btdBewaar(){
   const fout = $('#btd-fout');
   fout.hidden = !!r.ok; fout.textContent = r.ok ? '' : (r.fout || t('Opslaan lukte niet.'));
   if (!r.ok) return false;
-  btLaad(); btdKnoppen();
+  btLaad(); btdRender(); // de velden tonen wat er echt bewaard is
   return true;
 }
 function btdKlaarzetten(){
   if (!btdBewaar()) return;
   const b = btVind(bt.id);
   if (!b || !b.compleet) return;
-  const ga = () => { const m = Android.betalenKlaarzetten(b.id); if (m) toast(m); };
-  if (b.nieuw) askConfirm(t('Nieuwe ontvanger'), t('Klopt dit rekeningnummer met de rekening? {iban} ten name van {naam}.', { iban: btIbanMooi(b.iban), naam: b.naam }), t('Klopt, ga door'), ga);
-  else ga();
+  // Altijd eerst laten zien wat er naar de bank gaat, zoals het bewaard is
+  const wat = { iban: btIbanMooi(b.iban), naam: b.naam, bedrag: fmtMoney(btGetal(b.bedrag)) };
+  askConfirm(b.nieuw ? t('Nieuwe ontvanger') : t('Klaarzetten bij je bank'), b.nieuw ? t('Klopt dit met de rekening? {bedrag} naar {iban} ten name van {naam}. Naar dit rekeningnummer heb je nog niet eerder betaald.', wat)
+    : t('Klopt dit met de rekening? {bedrag} naar {iban} ten name van {naam}.', wat), t('Klopt, ga door'), () => { const m = Android.betalenKlaarzetten(b.id); if (m) toast(m); });
 }
 function btdLink(){
   const b = btVind(bt.id);
@@ -284,7 +291,7 @@ function btUitkomst(){
   const r = rdJson(Android.betalenUitkomst(), null);
   if (!r || r.stand !== 'ingevuld' || !btVind(r.id)) return;
   const na = btInst().naKlaar || 'vragen', klaar = () => { btLaad(); if (current === 'betalen') btRender(); else if (current === 'betaling') btdKnoppen(); };
-  Android.betalenStatus(r.id, na === 'betaald' ? 'betaald' : 'klaargezet'); klaar();
+  Android.betalenStatus(r.id, na === 'betaald' ? 'betaald_vanzelf' : 'klaargezet'); klaar();
   if (na === 'vragen') askChoice(t('Is de betaling gelukt?'), t('Heb je de overboeking verstuurd en ondertekend bij je bank?'), t('Ja, betaald'), t('Nog niet'),
     () => { Android.betalenStatus(r.id, 'betaald'); klaar(); }, () => {});
 }
