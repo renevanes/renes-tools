@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.227",
-  "versionCode": 228,
+  "versionName": "1.228",
+  "versionCode": 229,
   "nativeLevel": 195,
   "web": "index.html",
-  "webSha256": "2188bd6239c4e086f23cf9e8729765c4951eae8b0bc88e825bb0866f8b6b7e4f",
+  "webSha256": "0200705641a699b5b97b20036e79d9a1bda2c88ee69b8ed9fc610e6d5f456ee5",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "a3c9f2c36b7e3c14ace47b57af1a12d8f060b190d59d456a0b469fbb8262f955",
+  "apkSha256": "3345f85ae254e0daa7df22ea9aad97968f27d40dcd303238317aecbc867aa354",
   "changelog": [
+    {
+      "version": "1.228",
+      "date": "2026-11-18",
+      "changes": [
+        "Startscherm aanpassen: overzichtelijker, in drie tabbladen: Tools (favorieten en groepen), Overzicht en Weergave, in plaats van één lange lijst.",
+        "Startscherm aanpassen → Overzicht: kies welke regels bovenaan staan (backup, wekker, herinneringen, Auto redial, radio, zelftest) en in welke volgorde; de backup-regel kan alleen bij een probleem verschijnen, met een eigen termijn voor \"al even geleden\".",
+        "Startscherm aanpassen → Overzicht: Sinds gisteravond kan uit, of per soort regel (backup, gemiste oproepen, automatiseringen, beperkingen door Android, backup-controle).",
+        "Startscherm aanpassen → Weergave: zet de onderdelen van het startscherm (Overzicht, Recent gebruikt, Vastgezette notities, Tools) in je eigen volgorde, zet vastgezette notities, de tip onderaan en de uitleg onder de tegels uit, en kies hoeveel tools Recent gebruikt toont."
+      ]
+    },
     {
       "version": "1.227",
       "date": "2026-11-18",
@@ -169,14 +179,7 @@
         "Slaaptimer: het vreemde vakje met kruis is een maantje geworden, en het venster is rustiger: één tik op een tijd start de timer, een eigen tijd staat ingeklapt.",
         "Speler: hoesjes staan sneller in beeld. Met de nieuwe app komen ze verkleind uit de eigen opslag op de telefoon, in plaats van steeds van internet."
       ]
-    },
-    {
-      "version": "1.208",
-      "date": "2026-11-15",
-      "changes": [
-        "Nieuwe installatie: na het overslaan van terugzetten staat op het startscherm 'Aan de slag' met drie stappen (favorieten, backup, app-slot)"
-      ]
     }
   ],
-  "webSig2": "ioxtCYopn2uSLHEzCeLLd+efDiztMKGIT9Zl43/kvbScNC9Ld9FptGue1on7ygXpDRhcPlx44dJFi6CynE550MpSyBWERQiIImsq3eAX41nGVvcihQ/npio3LyXcRqZZgTN8t2Jifu8gTAF2HaDngRHue7IyTAYv8ixfTFM/nbDjKovnBYSfFldQKNuefdjgaYn4sVoGS5TcKfHMvbmqizMaVa+WlKfADsF4xFUJ4ed00PKq4on4+sPCiOdpjbyIcPisRYbZ+VyVmJzxbylWWsQ938ZyzBX6oy/+CxvaY+92GHNsKzE3vvHfQcBb/Kwuaq0T31sQ4Zin9POxwlmbJ3PY1MwE2Dob8EsPJJuUtf7I710WghSsE/Cr1BifeC+cOwPz8rg+HfFGOvyHlyLYecGlhwl4N4qwZcbhn4M0eHftxVK5Mr9fDmZcFxnlowQz4acx5/Zs6pb6LStJztgrrt/edbyNVs/FgmuAIqhl/3gXzD+MN+nWpXyHGO2rnEm0"
+  "webSig2": "RU2rBxip7/VNKHb5T+2si4BOLt05IHVrxoE4vLv9Gbnn7bWf1y8kym094DKNf1bXZcEHeT37n1mkjKrhx503Oxws7pamNxLNMmNC7297wCRw9RU3HUExxUCzwFUX8yxh5OGVzKZZ/FJUrBiaa7jH511eceb7Am3jw4o9WEPa1JZITJrg9GBbd4R0k82miiMuFFbrBwJ54wUMTXfOwtg96a+PU+zgfdq0k8uxxN998gBXr9M8EJhA069vVtDqQEad1L1pm3wHHtq8vI5pFEaK7PKkOtBBXm3dX+hj3H/O+W2Nlr3SnXTQfZdfmWRUJxq/dPHRxoxwxbSEmYTwxOPHijjbt9lqR5lRDI9Q5li+CGTXWHE+RvbcVVx94rPMsAa2E1mpbzZuDuDiMoWNIkvgok5eaWV/2GKgGNmSee2HyOMzjhQxHuy/AA1WU4QagJCVsoUFsRxfDXsLIKREkQZveiUj8vqmGK3WGQGfzFhFXnVNthxWNXd4Y6D/xLgOksqO"
 }

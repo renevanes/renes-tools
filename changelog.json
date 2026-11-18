@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.228",
+    "date": "2026-11-18",
+    "changes": [
+      "Startscherm aanpassen: overzichtelijker, in drie tabbladen: Tools (favorieten en groepen), Overzicht en Weergave, in plaats van één lange lijst.",
+      "Startscherm aanpassen → Overzicht: kies welke regels bovenaan staan (backup, wekker, herinneringen, Auto redial, radio, zelftest) en in welke volgorde; de backup-regel kan alleen bij een probleem verschijnen, met een eigen termijn voor \"al even geleden\".",
+      "Startscherm aanpassen → Overzicht: Sinds gisteravond kan uit, of per soort regel (backup, gemiste oproepen, automatiseringen, beperkingen door Android, backup-controle).",
+      "Startscherm aanpassen → Weergave: zet de onderdelen van het startscherm (Overzicht, Recent gebruikt, Vastgezette notities, Tools) in je eigen volgorde, zet vastgezette notities, de tip onderaan en de uitleg onder de tegels uit, en kies hoeveel tools Recent gebruikt toont."
+    ]
+  },
+  {
     "version": "1.227",
     "date": "2026-11-18",
     "changes": [
