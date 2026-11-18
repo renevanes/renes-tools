@@ -20,14 +20,15 @@ const { chromium } = require('playwright');
   }));
   for (const scheme of ['light', 'dark']) {
     for (const breed of [320, 360, 390]) {
-      // 320 px (heel smal): past een woord ook op 10 px niet, dan mag het als laatste redmiddel breken
-      const netjes = s => s.filter(x => x.gebroken.length && !(breed === 320 && x.fs <= 10));
+      // Past een woord ook op 10 px niet (heel smal scherm, of een breed lettertype zoals in CI), dan mag het als laatste redmiddel breken
+      const netjes = s => s.filter(x => x.gebroken.length && x.fs > 10);
       const ctx = await b.newContext({ viewport: { width: breed, height: 800 }, colorScheme: scheme });
       const pg = await ctx.newPage();
       pg.on('pageerror', e => errs.push(e.message));
       await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(400);
       let s = await meet(pg);
       ok(s.length > 20 && !netjes(s).length, scheme + ' ' + breed + 'px: geen naam midden in een woord afgebroken ' + JSON.stringify(netjes(s)));
+      if (breed === 390) ok(s.every(x => !x.gebroken.length), scheme + ' 390px: gewone tegels: nergens een woord afgebroken, ook niet op 10 px');
       const auto = s.find(x => x.naam === 'Automatiseringen'), kort = s.find(x => x.naam === 'Agenda');
       ok(auto && kort && kort.fs >= 14 && auto.fs <= kort.fs && auto.fs >= 10, scheme + ' ' + breed + 'px: alleen een te lange naam kleiner (' + (auto && auto.fs) + ' / ' + (kort && kort.fs) + ')');
       if (breed <= 390) ok(auto.fs < kort.fs, scheme + ' ' + breed + 'px: Automatiseringen past door kleiner te worden');
