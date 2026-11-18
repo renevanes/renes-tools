@@ -57,7 +57,7 @@
         <h2>Onderdelen van het startscherm</h2>
         <p class="hint">Van boven naar beneden. Zet met de pijlen een andere volgorde, of zet een onderdeel uit.</p>
         <div class="he-oplijst" id="he-blok-list" role="group" aria-label="Onderdelen van het startscherm"></div>
-        <div class="he-sub" id="he-recentn-rij"><label class="f" for="he-recentn">Aantal bij Recent gebruikt</label><select class="sel" id="he-recentn" onchange="heRecentN(this.value)"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="6">6</option><option value="8">8</option></select></div>
+        <div class="he-aantal" id="he-recentn-rij"><label class="f" for="he-recentn">Aantal bij Recent gebruikt</label><select class="sel" id="he-recentn" onchange="heRecentN(this.value)"><option value="2">2</option><option value="4">4</option><option value="6">6</option><option value="8">8</option></select></div>
         <div class="sw"><span>Tip onderaan<small>Over snelkoppelingen op het startscherm van je telefoon</small></span><button class="tg" id="he-tip" role="switch" aria-checked="true" aria-label="Tip onderaan" onclick="heSet('tip', !this.classList.contains('on'))"></button></div>
         <button class="big ghost" style="margin-top:10px" onclick="heBlokStandaard()">Standaardvolgorde</button>
       </div>

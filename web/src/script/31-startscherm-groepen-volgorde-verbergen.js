@@ -236,7 +236,7 @@ function homeTegelPas(){
   if (typeof MutationObserver === 'function') new MutationObserver(recs => { if (recs.some(r => { const e = r.type === 'characterData' ? r.target.parentElement : r.target; return e && e.closest && e.closest('.tile > b'); })) homeTegelPasStraks(); })
     .observe(box, { subtree: true, characterData: true, childList: true });
 })();
-/* ---------- Recent gebruikt: de laatste vier tools die Rene opende ----------
+/* ---------- Recent gebruikt: de laatste tools die Rene opende (hoeveel: homeRecentN, Weergave) ----------
  * Alleen welke tool (bijv. "pdf"), geen tijden of wat erin gebeurde; alleen in deze WebView (localStorage rt.homeRecent).
  * Het is gebruik, geen instelling: niet in de interface-instellingen voor Alles back-uppen (WS_SKIP in 02-kern.js).
  * Uit in Startscherm aanpassen = niets meer bijhouden en de lijst wissen. Lang indrukken: hetzelfde menu als een tegel. */

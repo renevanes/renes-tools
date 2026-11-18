@@ -1428,5 +1428,6 @@ body.er-reading .speech-player,body.solo .speech-player{bottom:calc(12px + env(s
 /* Startscherm aanpassen: regels van het overzicht en onderdelen (pictogram, naam, pijlen, schakelaar) */
 .he-oplijst{margin-top:4px}.he-oplijst .herow{gap:8px;min-height:56px}.he-oplijst .herow .stic{width:36px;height:36px}
 .he-oplijst .herow .tg{flex:none;margin-left:4px}.he-oplijst .herow.off .nm{color:var(--muted)}
-.he-oplijst.uit{opacity:.55}.he-sub{margin:4px 0 6px}
-#s-homeedit [role=tabpanel][hidden]{display:none}
+.he-oplijst.uit{opacity:.55}.he-aantal{margin:4px 0 6px}
+@media (max-width:399px){.he-oplijst .herow .stic{display:none}} /* smal: meer ruimte voor de naam */
+#s-homeedit [role=tabpanel][hidden],#s-homeedit .pctabs button[hidden]{display:none}

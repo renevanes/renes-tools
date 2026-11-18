@@ -20,6 +20,14 @@ const path = require('path');
     ok((await dash()).join() === 'backup,ralarm', 'standaard: backup en wekker in het overzicht');
     ok((await nacht()).join() === 'backup,calls', 'standaard: Sinds gisteravond met backup en gemiste oproep');
     ok((await blokken()).join() === 'home-ov,home-recent,home-notes,home-groups', 'standaardvolgorde van de onderdelen');
+    const alles = () => pg.evaluate(() => [...document.querySelectorAll('#s-home main > [id^="home-"]')].map(e => e.id).filter(id => id !== 'home-dash').join());
+    ok((await alles()) === 'home-ov,home-new,home-start,home-recent,home-notes,home-groups,home-tip', 'zoals altijd: Nieuwe indeling en Aan de slag na het overzicht');
+    // Kapotte waarden in rt.home: terug naar de standaard
+    await pg.evaluate(() => { const c = homeCfg(); c.ov = 'x'; c.blok = 'tools'; c.recentN = '6'; homeSave(c); });
+    ok(await pg.evaluate(() => homeOv().volg.join() === 'backup,wekker,herinner,redial,radio,zelftest' && homeBlok().join() === 'ov,recent,notes,tools' && homeRecentN() === 4), 'kapotte instellingen: de standaard');
+    await pg.evaluate(() => { const c = homeCfg(); c.ov = { volg: ['zz', 'radio', 'radio'], uit: ['zz'] }; homeSave(c); });
+    ok(await pg.evaluate(() => homeOv().volg.join() === 'radio,backup,wekker,herinner,redial,zelftest' && !homeOv().uit.length), 'onbekende en dubbele id\'s vallen weg');
+    await pg.evaluate(() => { const c = homeCfg(); delete c.ov; delete c.blok; delete c.recentN; homeSave(c); });
 
     // Tabbladen: beginnen op Tools, de andere panelen verborgen; pijltjestoetsen wisselen
     await pg.evaluate(() => show('homeedit')); await pg.waitForTimeout(150 * W);
@@ -44,8 +52,11 @@ const path = require('path');
     await pg.click('#he-nacht');
     ok(!(await pg.isVisible('#he-nacht-list')) && await pg.evaluate(() => $('#home-night').style.display === 'none'), 'Sinds gisteravond helemaal uit');
     // Overzicht helemaal uit en weer standaard
-    await pg.click('#he-dash'); await pg.evaluate(() => show('home')); await pg.waitForTimeout(100 * W);
-    ok(await pg.evaluate(() => $('#home-ov').hidden), 'overzicht uit: geen kaart bovenaan');
+    await pg.click('#he-dash'); ok(/Sinds gisteravond/.test(await pg.textContent('#he-dash-stand')), 'uit: de tekst zegt dat Sinds gisteravond apart gaat');
+    await pg.evaluate(() => show('home')); await pg.waitForTimeout(100 * W);
+    ok(await pg.evaluate(() => $('#home-ov').hidden), 'overzicht en Sinds gisteravond uit: geen kaart bovenaan');
+    await pg.evaluate(() => { const c = homeCfg(); c.ov.nacht = true; homeSave(c); });
+    ok(await pg.evaluate(() => !$('#home-ov').hidden && $('#home-dash').style.display === 'none' && $('#home-night').style.display !== 'none'), 'overzicht uit, Sinds gisteravond aan: alleen die regels');
     await pg.evaluate(() => show('homeedit')); await pg.click('#he-tab-ov'); await pg.click('button:has-text("Overzicht standaard")'); await pg.click('#modal-ok');
     ok((await dash()).join() === 'backup,ralarm' && (await nacht()).join() === 'backup,calls', 'Overzicht standaard: alles weer aan, standaardvolgorde');
 
@@ -53,10 +64,12 @@ const path = require('path');
     await pg.click('#he-tab-weer');
     await pg.click('#he-blok-list .herow[data-id="tools"] .mv[data-dir="-1"]'); await pg.click('#he-blok-list .herow[data-id="tools"] .mv[data-dir="-1"]'); await pg.click('#he-blok-list .herow[data-id="tools"] .mv[data-dir="-1"]');
     ok((await blokken()).join() === 'home-groups,home-ov,home-recent,home-notes', 'tools bovenaan het startscherm');
+    ok((await alles()).startsWith('home-new,home-start,home-groups'), 'eenmalige kaarten bovenaan als het overzicht niet eerst staat');
     await pg.evaluate(() => { notes = [{ id: 'n1', title: 'Boodschappen', items: [{ text: 'melk' }] }]; Android.notePins = () => '["n1"]'; renderNotePins(); });
     ok(await pg.evaluate(() => $('#home-notes').style.display !== 'none'), 'vastgezette notitie staat erop');
     await pg.click('#he-notes'); await pg.evaluate(() => renderNotePins());
     ok(await pg.evaluate(() => $('#home-notes').style.display === 'none' && homeCfg().notes === false), 'vastgezette notities uit');
+    await pg.click('#he-recent'); ok(await pg.evaluate(() => document.activeElement && document.activeElement.id === 'he-recent'), 'focus blijft op de schakelaar Recent gebruikt'); await pg.click('#he-recent');
     await pg.click('#he-tip'); await pg.click('#he-sub');
     ok(await pg.evaluate(() => $('#home-tip').hidden && $('#home-groups').classList.contains('kaal')), 'tip en uitleg onder de tegels uit');
     await pg.evaluate(() => { store.set('homeRecent', ['radio', 'pdf', 'vpn', 'notes', 'sms', 'calls']); }); await pg.selectOption('#he-recentn', '6');
@@ -68,8 +81,8 @@ const path = require('path');
     // Bewaard na herladen; Standaard herstellen (Tools) laat de weergave en het overzicht staan
     await pg.reload(); await pg.waitForTimeout(250 * W);
     ok((await blokken()).join() === 'home-groups,home-ov,home-recent,home-notes' && await pg.evaluate(() => $('#home-tip').hidden && homeCfg().notes === false && homeRecentN() === 6), 'blijft na herladen');
-    await pg.evaluate(() => show('homeedit')); await pg.click('button:has-text("Standaard herstellen")'); await pg.click('#modal-ok');
-    ok(await pg.evaluate(() => homeCfg().tip === false && homeCfg().sub === false && homeBlok()[0] === 'tools'), 'Standaard herstellen raakt de weergave niet');
+    await pg.evaluate(() => { heOvSet(o => { o.bkDagen = 7; }); show('homeedit'); }); await pg.click('button:has-text("Standaard herstellen")'); await pg.click('#modal-ok');
+    ok(await pg.evaluate(() => homeCfg().tip === false && homeCfg().sub === false && homeBlok()[0] === 'tools' && homeOv().bkDagen === 7), 'Standaard herstellen raakt de weergave en het overzicht niet');
     await pg.click('#he-tab-weer'); await pg.click('button:has-text("Standaardvolgorde")');
     ok((await blokken()).join() === 'home-ov,home-recent,home-notes,home-groups', 'Standaardvolgorde terug');
 
@@ -86,7 +99,16 @@ const path = require('path');
 
     // Engels
     await pg.evaluate(() => rgSave({ lang: 'en' })); await pg.waitForTimeout(300 * W);
-    ok((await pg.textContent('#he-tab-weer')) === 'Display' || (await pg.textContent('#he-tab-weer')) === 'Appearance' || (await pg.textContent('#he-tab-ov')) === 'Overview', 'tabbladen in het Engels');
+    ok([await pg.textContent('#he-tab-tools'), await pg.textContent('#he-tab-ov'), await pg.textContent('#he-tab-weer')].join() === 'Tools,Overview,Layout', 'tabbladen in het Engels');
+    await pg.click('#he-tab-ov'); ok((await pg.textContent('#he-ov-list .herow[data-id="wekker"] .nm')).startsWith('Alarm'), 'regels in het Engels');
+    // Pijltjes met omloop, Home en End
+    await pg.focus('#he-tab-ov'); await pg.keyboard.press('ArrowRight'); await pg.keyboard.press('ArrowRight');
+    ok(await pg.evaluate(() => document.activeElement.id === 'he-tab-tools'), 'pijl voorbij het laatste tabblad: weer het eerste');
+    await pg.keyboard.press('End'); ok(await pg.evaluate(() => document.activeElement.id === 'he-tab-weer'), 'End: het laatste tabblad');
+    // Play-versie: geen tabblad Overzicht en geen onderdeel Overzicht
+    await pg.evaluate(() => { window._pl = isPlay; isPlay = () => true; show('home'); show('homeedit'); });
+    ok(!(await pg.isVisible('#he-tab-ov')) && !(await pg.isVisible('#he-blok-list .herow[data-id="ov"]')) && await pg.evaluate(() => $('#s-homeedit .pctabs').classList.contains('two')), 'Play: geen Overzicht');
+    await pg.evaluate(() => { isPlay = _pl; show('home'); });
     await pg.evaluate(() => rgSave({ lang: 'nl' }));
     console.log(scheme, 'errors', errors.length ? errors : '[]'); if (errors.length) console.log('errors', errors); else console.log('errors []');
     await pg.close();

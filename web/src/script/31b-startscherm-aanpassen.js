@@ -27,7 +27,7 @@ function HE_BLOK(){ return [
 ]; }
 // Functies, geen const: renderHome (eerder geladen) gebruikt ze al bij het starten
 function HE_BK_DAGEN(){ return [1, 2, 3, 7, 14]; }
-function HE_RECENT_N(){ return [2, 3, 4, 6, 8]; }
+function HE_RECENT_N(){ return [2, 4, 6, 8]; } // even: geen gat in het raster
 function heIds(l){ return l.map(x => x[0]); }
 /** Een volgorde netjes: alleen bekende id's, geen dubbele, ontbrekende achteraan. */
 function heVolg(v, ids){ const l = (Array.isArray(v) ? v : []).filter((x, i, a) => ids.includes(x) && a.indexOf(x) === i); ids.forEach(x => { if (!l.includes(x)) l.push(x); }); return l; }
@@ -42,9 +42,12 @@ function homeRecentN(c){ c = c || homeCfg(); return HE_RECENT_N().includes(c.rec
 /** Wat het startscherm toont, in de gekozen volgorde (aangeroepen vanuit renderHome). */
 function homeBlokPas(c){
   const main = document.querySelector('#s-home main'), tip = $('#home-tip'); if (!main || !tip) return;
-  const el = { ov: $('#home-ov'), recent: $('#home-recent'), notes: $('#home-notes'), tools: $('#home-groups') };
-  homeBlok(c).forEach(k => { if (el[k]) main.insertBefore(el[k], tip); });
-  ['home-new', 'home-start'].forEach(id => { const e = document.getElementById(id), eerste = el[homeBlok(c)[0]]; if (e && eerste) main.insertBefore(e, eerste); }); // eenmalige kaarten bovenaan
+  const el = { ov: $('#home-ov'), recent: $('#home-recent'), notes: $('#home-notes'), tools: $('#home-groups') }, b = homeBlok(c);
+  // Eenmalige kaarten (Nieuwe indeling, Aan de slag): na het overzicht als dat bovenaan staat (zoals altijd), anders bovenaan
+  const kaarten = ['home-new', 'home-start'].map(id => document.getElementById(id)).filter(Boolean);
+  const wil = (b[0] === 'ov' ? [el.ov].concat(kaarten, b.slice(1).map(k => el[k])) : kaarten.concat(b.map(k => el[k]))).filter(Boolean);
+  const nu = [...main.children].filter(x => wil.includes(x));
+  if (nu.length !== wil.length || nu.some((x, i) => x !== wil[i]) || wil[wil.length - 1].nextElementSibling !== tip) wil.forEach(x => main.insertBefore(x, tip)); // alleen verplaatsen als het nodig is
   tip.hidden = c.tip === false;
   $('#home-groups').classList.toggle('kaal', c.sub === false);
 }
@@ -52,7 +55,8 @@ function homeBlokPas(c){
 /* ---------- Tabbladen ---------- */
 var heTabNu = 'tools'; // var: kan al gelezen worden voordat dit bestand geladen is
 function heTab(tab){
-  heTabNu = ['tools', 'ov', 'weer'].includes(tab) ? tab : 'tools';
+  heTabNu = ['tools', 'ov', 'weer'].includes(tab) && !(tab === 'ov' && isPlay()) ? tab : 'tools';
+  { const ov = $('#he-tab-ov'), l = ov && ov.parentElement; if (ov) { ov.hidden = isPlay(); l.classList.toggle('two', isPlay()); } } // de Play-versie heeft geen overzicht bovenaan
   document.querySelectorAll('#s-homeedit .pctabs [role=tab]').forEach(b => { const on = b.dataset.tab === heTabNu; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
   ['tools', 'ov', 'weer'].forEach(k => { const p = $('#he-p-' + k); if (p) p.hidden = k !== heTabNu; });
   if (typeof heDragCancel === 'function' && heTabNu !== 'tools') heDragCancel();
@@ -83,7 +87,7 @@ function heSwitch(aan, label, data){ return '<button class="tg' + (aan ? ' on' :
 function heMv(id, dir, uit, naam){ return '<button class="mv" data-id="' + id + '" data-dir="' + dir + '"' + (uit ? ' disabled' : '') + ' aria-label="' + esc(dir < 0 ? t('{naam} omhoog', { naam }) : t('{naam} omlaag', { naam })) + '">' + (dir < 0 ? '↑' : '↓') + '</button>'; }
 function heOvRender(c){
   const o = homeOv(c), def = HE_OV(), n = o.volg.length;
-  $('#he-dash-stand').textContent = c.dash === false ? t('Uit: het startscherm begint meteen met je tools') : tn(n - o.uit.length, 'Eén regel aan', '{n} regels aan');
+  $('#he-dash-stand').textContent = c.dash === false ? t('Uit: geen regels bovenaan (Sinds gisteravond stel je hieronder apart in)') : tn(n - o.uit.length, 'Eén regel aan', '{n} regels aan');
   $('#he-ov-list').innerHTML = o.volg.map((id, i) => { const d = def.find(x => x[0] === id), aan = !o.uit.includes(id);
     return '<div class="herow heov' + (aan ? '' : ' off') + '" data-id="' + id + '"><span class="stic">' + uiIcon(d[3]) + '</span><span class="nm">' + esc(d[1]) + '<small>' + esc(d[2]) + '</small></span>'
       + heMv(id, -1, i === 0, d[1]) + heMv(id, 1, i === n - 1, d[1]) + heSwitch(aan, t('{naam} tonen', { naam: d[1] }), ' data-id="' + id + '"') + '</div>'; }).join('');
@@ -96,10 +100,10 @@ function heOvRender(c){
 }
 function heWeerRender(c){
   [['grouped', !!c.grouped], ['compact', !!c.compact], ['sub', c.sub !== false], ['tip', c.tip !== false]].forEach(([k, on]) => { const b = $('#he-' + k); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
-  const l = homeBlok(c), def = HE_BLOK(), n = l.length;
+  const l = homeBlok(c).filter(id => !(id === 'ov' && isPlay())), def = HE_BLOK(), n = l.length; // de Play-versie heeft geen overzicht
   $('#he-blok-list').innerHTML = l.map((id, i) => { const d = def.find(x => x[0] === id);
     const sw = id === 'recent' ? heSwitch(c.recent !== false, t('Recent gebruikt'), ' id="he-recent"') : id === 'notes' ? heSwitch(c.notes !== false, t('Vastgezette notities'), ' id="he-notes"') : '';
-    const sub = id === 'ov' ? (c.dash === false ? t('Uit; aanzetten bij Overzicht') : t('Wat erin staat, stel je in bij Overzicht')) : id === 'tools' ? t('Staat altijd op het startscherm') : d[2];
+    const sub = id === 'ov' ? (c.dash === false && !homeOv(c).nacht ? t('Uit; aanzetten bij Overzicht') : t('Wat erin staat, stel je in bij Overzicht')) : id === 'tools' ? t('Staat altijd op het startscherm') : d[2];
     return '<div class="herow heov" data-id="' + id + '"><span class="stic">' + uiIcon(d[3]) + '</span><span class="nm">' + esc(d[1]) + '<small>' + esc(sub) + '</small></span>' + heMv(id, -1, i === 0, d[1]) + heMv(id, 1, i === n - 1, d[1]) + sw + '</div>'; }).join('');
   $('#he-recentn').value = String(homeRecentN(c)); $('#he-recentn-rij').hidden = c.recent === false;
 }
@@ -108,7 +112,7 @@ function heWeerRender(c){
   const op = (sel, f) => { const el = document.querySelector(sel); if (el) el.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button'); if (b && !b.disabled) f(b); }); };
   op('#he-ov-list', b => b.classList.contains('tg') ? heOvAan(b.dataset.id, !b.classList.contains('on')) : b.dataset.dir && heOvMove(b.dataset.id, +b.dataset.dir));
   op('#he-nacht-list', b => { if (b.classList.contains('tg')) heNachtAan(b.dataset.id, !b.classList.contains('on')); });
-  op('#he-blok-list', b => { if (b.id === 'he-recent') heRecent(!b.classList.contains('on'));
+  op('#he-blok-list', b => { if (b.id === 'he-recent') { heRecent(!b.classList.contains('on')); heFocus('#he-recent'); }
     else if (b.id === 'he-notes') { heSet('notes', !b.classList.contains('on')); heFocus('#he-notes'); }
     else if (b.dataset.dir) heBlokMove(b.dataset.id, +b.dataset.dir); });
 })();
