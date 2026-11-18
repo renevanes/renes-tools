@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.222",
-  "versionCode": 223,
-  "nativeLevel": 191,
+  "versionName": "1.223",
+  "versionCode": 224,
+  "nativeLevel": 192,
   "web": "index.html",
-  "webSha256": "9261cd602bcf7f2ca62a8ade8c94876274bc2e201ca56cd9a24fa7fa03e4fa03",
+  "webSha256": "120271fd8bf74ac496f8ef4c22f7f05b1639fda54b622a4004129b45f53b2bd3",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "b12334ce2c342a1519e0d02620f36851a57399c0b1052514b9f8be0acea5a982",
+  "apkSha256": "8515ab34a99e934d02dc92f6546255cf41cb207a4db3cffe7bda8c20d2976a2a",
   "changelog": [
+    {
+      "version": "1.223",
+      "date": "2026-11-18",
+      "changes": [
+        "Podcasts, radio en voorlezen: de volumeknoppen van je telefoon gaan nu in kleinere stappen (standaard 3 keer zo fijn). Aan of uit en hoe fijn bij Podcasts → Instellingen of Spraak → Volumeknoppen."
+      ]
+    },
     {
       "version": "1.222",
       "date": "2026-11-18",
@@ -172,14 +179,7 @@
         "E-reader: het scherm begint meteen met Boek toevoegen, zonder de slogan erboven",
         "Notities: het invoerveld is één regel tot je iets schrijft, zodat je notities en lijsten hoger op het scherm staan"
       ]
-    },
-    {
-      "version": "1.203",
-      "date": "2026-11-13",
-      "changes": [
-        "Startscherm: een tegel van een tool op slot toont nu \"Op slot\" in plaats van een lege regel"
-      ]
     }
   ],
-  "webSig2": "qkOKBBDoyZfaxhfvQTtHIKOv8t9NoB0pc7Pcfe5064Uc/22VfF26FL5aXJ5yvU/zu4y4Ck3ADKarkDiG5+LRvGKIHXd1Mkh614JS3nuEjXeA15+OiHki3mxbsiBNxr79tRQTsZmR26B+D9ydgmHMIcUhNUOBeeqwFQs0nFfyLdWSs/M2XE03TDiDTq79oqxAU6zcxXKYZ5lrI2MoHP52WrH9JUJQXFf6o7zXxbREPv2PxO/P4pFSfv51IQMuNRMazyVtPNxAZeQWm5zEZFz1X6PafqUa2hBTlpkERNqXHmNeLSRGbroK3WqsOi2cgUqWLA/sx8aC4HdR6eW8PbIRmfVPLMBlHKzLk/K6Cfm6LdD9Zm40pBt8uHWPUevRMRZypeP/myZN2+94OcgzGKRNP2plZZoF3PRsWy9Nx5BUe4iRZ02+NJGOYQQr5IiwkJDjPz8KPEIm+kj6FNbqfh7px6tw87y2rIw9lniVZxX1/V4TpSVE8gbr3nbX1qw1G0Yq"
+  "webSig2": "mhaPdFQrcGx9LeU3C4mdX+xYPLZwRSF2QZajAUk3WRA8OlInSXUIDDspx/IfZk/FtB3/Z16Z4ZWjcgLO4tecHyxOnfvvUBuFZpedXBYrmYkoB8FMPexU+OJHEsYA5MywoHPeLsuVqqbwu32iTk1ZzMFV/jLY8xU7yF7WGVORX3zfuO0KdnKqh5rSNcn2RPBLPw5aQIYCBxPltcmwS1TKdUgCMSLzAkiZFNwWCpRX5Y8mJGMnrIA6EdnQds+ifx0CaPWBauhPYZjQcA24VxPTNm2Ok/N3vQg56MYsEQew3258lnfee7miJE5xGiXqUvLUkr6797EV7JMoDtiwiEsi248A9LSxsl0zPuz5Al/Lk65yVnLJT75OPIOUMhYc8I9zGVgvSQDVHaXLcllVTJXixwJwa9eoKwzGKNdGWngylWxDcahIBB7YAkdmk5jnSUk9pL2tFYHjAsyHOanWlmXfib3KcUoH6cKqWsWrUk4Czlky3Hlwp9eXiN0e43uKVbpH"
 }
