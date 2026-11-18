@@ -11,6 +11,7 @@ ereader.css
 nieuws.css
 agenda.css
 signalen.css
+betalen.css
 body-begin.html
 schermen/01-home.html
 schermen/02-auto-redial.html
@@ -63,6 +64,7 @@ schermen/45-voorlezen.html
 schermen/45-nieuws.html
 schermen/46-agenda.html
 schermen/47-signalen.html
+schermen/48-betalen.html
 speler.html
 vensters.html
 taal/en.json
@@ -175,5 +177,6 @@ script/73-toiletten.js
 script/75-voorlezen.js
 script/76-agenda.js
 script/79-signalen.js
+script/80-betalen.js
 script/29-start.js
 einde.html

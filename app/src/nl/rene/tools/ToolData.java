@@ -109,6 +109,8 @@ final class ToolData {
         // De inbox van Signalen kan afspraken en lijstpunten uit andere tools bevatten (Notities is een eigen onderdeel) en is
         // opnieuw af te leiden: niet in de leesbare Toolgegevens. In "Alle appgegevens" (versleuteld) gaat hij wel mee.
         if (r.equals("signalen/items.json")) return false;
+        // Betalingen (namen, rekeningnummers, bedragen): alleen in de versleutelde "Alle appgegevens", niet leesbaar.
+        if (r.startsWith("betalen/")) return false;
         if (r.startsWith("facturen/pdf/") || r.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) return false; // de PDF's staan al in Facturen/
         String low = r.toLowerCase(java.util.Locale.ROOT);
         if (low.matches(".*(geheim|secret|token|wachtwoord|password).*")) return false;

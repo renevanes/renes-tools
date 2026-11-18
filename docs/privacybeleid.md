@@ -35,7 +35,7 @@ Alles in deze tabel blijft op de telefoon, behalve wat onder "Wanneer er iets de
 | Contacten | Contactenbackup en -beheer met wijzigingsgeschiedenis, namen bij gesprekken en berichten, en in Stamgegevens alleen het contact dat je zelf kiest (telefoon en e-mail daarna actueel uit dat contact) |
 | Locatie, ook op de achtergrond | Mijn routes, Mijn auto (parkeerplek en ritten), het weer op het startscherm, automatiseringen op een plek, Apparaten, Locatie kiezen. Op de achtergrond alleen als je een automatisering op een plek of Apparaten aanzet |
 | Microfoon | Muziekherkenning, spraaknotities, de assistent, Slaappraat |
-| Camera | QR-codes scannen (bijvoorbeeld voor de VPN) |
+| Camera | QR-codes scannen (bijvoorbeeld voor de VPN) en een foto van een rekening maken in Betalen; het beeld wordt alleen op de telefoon gelezen en niet bewaard |
 | Agenda (lezen en schrijven) | Check-in, de agenda-widget en de tool Agenda: afspraken uit de agenda's van de telefoon tonen en, als je dat kiest, een afspraak in zo'n agenda zetten. Zet je een afspraak in een Google-agenda, dan stuurt de agenda-app van de telefoon hem naar Google; Tools praat zelf niet met Google |
 | Telefoon (status, bellen) | Bellen vanuit de app en herkennen of er een gesprek is |
 | Apparaten in de buurt (Bluetooth, wifi) | Het overzicht van apparaten in de buurt |
@@ -82,6 +82,8 @@ aanleveren, de gegevens van Toiletten en douches bijwerken, en de wekelijkse sta
 | Google (Gmail, Google Drive) | Als je Google koppelt voor facturen | Inloggen via Google. De app leest in Gmail alleen mails die op facturen lijken (alleen-lezen), slaat facturen op in je eigen Drive (alleen bestanden die de app zelf maakt) en mailt ze, als je dat aanzet, naar ontvangers die je zelf instelt |
 | Je eigen mailserver of eigen cloud | Als je die instelt | Wat je daarheen laat sturen |
 | Websites van je leveranciers of bank (bijv. KPN, Ziggo, Rabobank) | Als je facturen of transacties laat ophalen | Je logt in op je eigen account (de app bewaart je inlognaam en, versleuteld, je wachtwoord voor leveranciers); wat wordt opgehaald blijft op de telefoon |
+| Website van je bank (bijv. Rabobank), vanuit Betalen | Als je een betaling klaarzet bij je bank | Je logt zelf in met de app van je bank; Tools vult in het formulier voor een overboeking de naam, het IBAN, het bedrag en het kenmerk of de omschrijving in. Versturen en ondertekenen doe je zelf; Tools bewaart geen inloggegevens |
+| Een betaallink uit de QR-code op een rekening (bijv. iDEAL) | Alleen als je in Betalen op "Betalen via de link" tikt en het getoonde adres bevestigt | Je browser of de app van je bank opent het adres uit de QR-code; Tools stuurt zelf niets mee |
 | OpenStreetMap | Bij het tonen van een kaart | Welke kaarttegels nodig zijn (het getoonde gebied) |
 | OpenStreetMap-notities (Toiletten en douches) | Alleen als je bij een plek zelf kiest om iets door te geven | Een anonieme, openbare notitie met precies de tekst die je op het scherm ziet, op die plek; OpenStreetMap ziet je IP-adres. Zolang zo'n notitie open staat, kijkt de app hooguit eens per dag bij het bijwerken of hij al is afgehandeld |
 | GitHub en de gegevensbronnen die aan staan (Toiletten en douches; de standaardbronnen staan vanzelf aan, je kunt ze uitzetten) | Bij het ophalen van de gegevens | Niets persoonlijks: de bestanden worden in hun geheel gedownload en het zoeken gebeurt op de telefoon, dus je plek gaat niet mee |

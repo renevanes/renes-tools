@@ -1,6 +1,8 @@
 {
   "versie": 1,
   "uitleg": "Banken voor Bankzaken. robot=true: automatisch importeren (de app opent de website van de bank, jij logt in met de app van je bank, de rest gaat vanzelf). De patronen zijn hoofdletterongevoelige reguliere expressies op de zichtbare tekst van knoppen en links. Alleen https en alleen de genoemde domeinen.",
+  "betaallinks": ["ideal.nl", "betaalverzoek.rabobank.nl", "tikkie.me", "ing.nl", "abnamro.nl", "bunq.me", "bunq.com", "mollie.com", "pay.nl", "buckaroo.nl", "multisafepay.com", "adyen.com", "stripe.com", "sisow.nl"],
+  "betaallinksUitleg": "Domeinen van betaaldiensten die Tools herkent in een QR-code op een rekening (Betalen). Een ander domein mag ook, maar krijgt een waarschuwing.",
   "banken": [
     {
       "id": "rabobank",
@@ -17,7 +19,17 @@
       "formaatReserve": "^csv|komma|csv\\b",
       "alleRekeningen": "alle rekeningen|all accounts|alle betaalrekeningen",
       "knop": "^(download(en)?|bestand downloaden|start download|exporteren|downloaden starten)$",
-      "uitleg": "Rabo App of Rabo Internetbankieren → Rekeningen → Transacties downloaden → kies CAMT.053 of CSV en de periode."
+      "uitleg": "Rabo App of Rabo Internetbankieren → Rekeningen → Transacties downloaden → kies CAMT.053 of CSV en de periode.",
+      "betalen": {
+        "uitleg": "Je logt zelf in met de Rabo App. Tools vult daarna de overboeking in; jij controleert alles en ondertekent zelf.",
+        "naar": "^(overboeken|overboeking|nieuwe overboeking|geld overmaken|overmaken|betaling doen|nieuwe betaling|overschrijven)$",
+        "menu": "^(betalen( en sparen)?|betalen en overboeken|zelf regelen)$",
+        "naam": "naam( van de)? (ontvanger|begunstigde)|^naam$|ontvanger|begunstigde|aan wie|naar wie",
+        "iban": "iban|rekeningnummer|naar rekening",
+        "bedrag": "bedrag",
+        "omschrijving": "omschrijving|mededeling",
+        "kenmerk": "betalingskenmerk|kenmerk"
+      }
     },
     {
       "id": "ing",

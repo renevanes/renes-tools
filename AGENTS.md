@@ -20,7 +20,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   `kop.html`, `stijl.css` (Material 3-kleurrollen: `--bg --card --hi --ink --muted --line --outline --primary --on-primary --tonal --chip --on-chip …`),
   `schermen/NN-*.html` (één `<section class="screen" id="s-naam">` per scherm), `script/NN-*.js`, `vensters.html` (dialogen, tabbalk).
 - `web/src/script/01-testbrug.js` — de nagebootste Android-brug voor de tests (in de app zelf weggelaten).
-- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends ReadAloudBridge extends NieuwsBridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends AgendaBridge extends SignalenBridge extends FeatureBridge`.
+- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends ReadAloudBridge extends NieuwsBridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends AgendaBridge extends SignalenBridge extends BetalenBridge extends FeatureBridge`.
 - `web/start.html` — de Telefoon-skin (eigen startscherm); `tests/` — Java- en interfacetests; `tools/` — hulpscripts.
 - **Iedere nieuwe schermtool ondersteunt standaard losse apps.** Registreer hem in `web/src/script/00-tools.js`: het
   openen, het overzicht Losse apps en het native register volgen daaruit. Subschermen krijgen een `BACK`-verwijzing
@@ -717,6 +717,36 @@ Rene's inkomsten en uitgaven. **Niets mag de telefoon verlaten** (wens van Rene)
   mee als beide kanten in beeld zijn (`bkSoort`). Eigen regels hebben `s` (soort) zodat dezelfde winkel privé en zakelijk anders kan.
 - **Lokale AI:** `LocalAi.privateChat` (geen geheugen, leren, acties of opgeslagen gesprek) via `bankAi`; de interface
   stuurt alleen een samenvatting met cijfers. Antwoorden altijd als tekst tonen (`textContent`), nooit als HTML.
+
+## Betalen (een rekening wordt een betaling die Rene zelf ondertekent)
+Betalen (schermen `s-betalen`, `s-betaling`, `s-betalenset`; `web/src/script/80-betalen.js`, `Betal*.java`, `BetaalLink*.java`) maakt
+van een foto, PDF of afbeelding van een rekening een betaling. **Tools betaalt nooit zelf**: het zet een voorstel klaar dat
+Rene controleert en bij zijn bank zelf verstuurt en ondertekent. Houd dat bij elke wijziging vast.
+- **Lezen** (`BetalenBridge.lees`): de tekst uit de PDF of de tekstherkenning op de telefoon (`PdfCompare.pagesText`, hooguit
+  `BLZ` pagina's, met een tijdslimiet); het bestand staat alleen tijdens het lezen in `cache/betalen-werk` en wordt niet
+  bewaard. De camera zit in de interface (`#bt-cam`, zoals de QR-scanner van VPN; `betalenCamera`/`betalenCameraDone`).
+  Een bestand komt via `bronKies` (kiezer `betalen`): ook uit de kluis, Gemaakt of het facturendossier.
+- **Herkennen** (`BetalenHerken`, zuiver, `BetalenTest`): IBAN (alleen met een kloppend controlegetal, nooit Rene's eigen
+  rekeningnummers uit de instellingen), bedrag en uiterste datum (`FacturenDossier.herken`), betalingskenmerk (16 cijfers met
+  controlecijfer, of RF), de naam achter "t.n.v.". Alles is een voorstel; een naam wordt nooit verzonnen.
+- **QR-code** (jsQR in de interface, `btQrUitCanvas`; duiden in Java: `BetalenHerken.qr`): een SEPA-QR (EPC) vult de velden
+  en gaat voor de gelezen tekst; een betaallink mag alleen https met een gewone domeinnaam zijn (`BetalenHerken.link`). De
+  domeinen van bekende betaaldiensten staan in `web/bank-banken.json` (`betaallinks`); een ander domein krijgt een zichtbare
+  waarschuwing. De link opent alleen via `betalenOpenLink` (de bewaarde, gecontroleerde link), na een vraag met het adres.
+- **Klaarzetten bij de bank** (`BetaalLinkActivity` + `web/betaal-robot.js` + het blok `betalen` per bank in
+  `web/bank-banken.json`; eerste bank: Rabobank): alleen https en alleen de domeinen van de bank, FLAG_SECURE, geen brug
+  naar de app. De robot logt nooit in, klikt alleen op navigatie (nooit op een knop in een formulier of een verstuurknop),
+  vult naam, IBAN, bedrag en kenmerk of omschrijving in en stopt dan; zodra het formulier in beeld is geweest klikt hij
+  nergens meer op (`geenNavigatie`). Na afloop gaan cookies en websitegegevens van de bank weg. Nieuwe bank = een blok
+  `betalen` met de zoekpatronen (`BetaalLink.kan`), getest met `tests/ui/betaal-robot.test.js`. Kan het bij een bank niet,
+  dan kopieert Rene de velden (`betalenKopieer`). Geen PSD2-tussendiensten of andere partijen zonder Rene.
+- **Controle vóór de bank**: een IBAN waar vanuit Tools nog niet naar betaald is krijgt de waarschuwing Nieuwe ontvanger en
+  een vraag met IBAN en naam (`Betalen.nieuweOntvanger`).
+- **Opslag**: `betalen/betalingen.json` (betalingen en instellingen: bank, eigen rekeningnummers, wat er na het klaarzetten
+  gebeurt) gaat mee in "Alle appgegevens", niet in de Android-backup en niet in de leesbare Toolgegevens. Logsoort
+  `BETALEN` alleen met vaste woorden, nooit namen, rekeningnummers of bedragen. Betalen doet mee met Extra ontgrendelen
+  (per tool aan te zetten; het scherm wijst erop als het uit staat) en zit niet in de Play-versie.
+- Tests: `tests/ui/betalen.test.js`, `tests/ui/betaal-robot.test.js`; Java: `BetalenTest`.
 
 ## Toiletten en douches (bronnen, scannen, eigen wijzigingen, gemeenschap)
 Toiletten en douches (scherm `s-wc`, `web/src/script/73-toiletten.js`, `Toiletten*.java`) zoekt openbare toiletten en douches

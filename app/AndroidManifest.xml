@@ -211,6 +211,12 @@
             android:excludeFromRecents="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" />
         <activity
+            android:name=".BetaalLinkActivity"
+            android:exported="false"
+            android:label="Betalen"
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" />
+        <activity
             android:name=".FacturenActivity"
             android:exported="false"
             android:label="Facturen ophalen"

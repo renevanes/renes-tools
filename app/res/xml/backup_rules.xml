@@ -39,6 +39,7 @@
     <exclude domain="file" path="nieuws/" />
     <exclude domain="file" path="agenda/" />
     <exclude domain="file" path="signalen/" />
+    <exclude domain="file" path="betalen/" />
     <exclude domain="root" path="app_webview/Cookies" />
     <exclude domain="root" path="app_webview/Cookies-journal" />
     <exclude domain="root" path="app_webview/Cookies-wal" />

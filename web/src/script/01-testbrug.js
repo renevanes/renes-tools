@@ -418,7 +418,7 @@ if (!window.Android) window.Android = (function(){
     cmpPage(i,mode){const c=document.createElement('canvas');c.width=500;c.height=700;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,500,700);x.fillStyle=mode==='verschil'?'#d32f2f':'#222';x.fillRect(40,40,200,30);this._cmp.page={i,mode};setTimeout(()=>onCmpPage({i,mode,w:500,h:700,score:mode==='verschil'?37:undefined,image:c.toDataURL('image/jpeg')}),30);},
     pdfOutputs(){ return JSON.stringify(this._pdf.outs); }, pdfPending(){ const p = this._pdf.pending; this._pdf.pending = ''; return p; },
     // Bron (Bron.java): klaarzetten voor de volgende bestandskiezer; de tests lezen _bron (wat er klaargezet werd)
-    bronVolgende(json, kiezer){ if (!json) { this._bronLeeg = (this._bronLeeg || 0) + 1; return ''; } let it; try { it = JSON.parse(json); } catch(e){ return 'Onbekend bestand'; } if (!Array.isArray(it) || !it.length) return 'Kies een bestand'; if (!['pdfbeeld','pdf','pdfdoc','pdfview','idkopie','vergelijken','kluis','factuur','boek'].includes(kiezer)) return 'Onbekend bestand'; if (it.some(x => x.bron === 'kluis') && !(this._kl && this._kl.open)) return 'De kluis is op slot'; (this._bron = this._bron || []).push(it); this._bronKiezer = kiezer; return ''; },
+    bronVolgende(json, kiezer){ if (!json) { this._bronLeeg = (this._bronLeeg || 0) + 1; return ''; } let it; try { it = JSON.parse(json); } catch(e){ return 'Onbekend bestand'; } if (!Array.isArray(it) || !it.length) return 'Kies een bestand'; if (!['pdfbeeld','pdf','pdfdoc','pdfview','idkopie','vergelijken','kluis','factuur','boek','betalen'].includes(kiezer)) return 'Onbekend bestand'; if (it.some(x => x.bron === 'kluis') && !(this._kl && this._kl.open)) return 'De kluis is op slot'; (this._bron = this._bron || []).push(it); this._bronKiezer = kiezer; return ''; },
     pdfOpen(n){ this._pdf.opened = n; }, pdfViewPick(){ this._pdf.viewPick = (this._pdf.viewPick || 0) + 1; }, pdfDefaultState(){ return JSON.stringify(this._pdf.def || {state: 'none', app: '', count: 2}); }, pdfMakeDefault(){ this._pdf.madeDefault = (this._pdf.madeDefault || 0) + 1; }, pdfShare(j){ this._pdf.shared = JSON.parse(j); }, pdfSave(n){ this._pdf.saved = n; }, pdfSaveAll(j){ setTimeout(() => onPdf({kind: 'savedAll', count: JSON.parse(j).length}), 30); }, pdfDelete(n){ this._pdf.outs = this._pdf.outs.filter(o => o.name !== n); },
     voiceStart(){ if (this._voiceErr) return this._voiceErr; this._vt = Date.now(); return ''; }, voiceStop(){ setTimeout(() => onVoiceNote(this._voiceResult || {text: 'Melk, brood en kaas'}), 50); }, voiceCancel(){}, voiceElapsed(){ return Date.now() - (this._vt || Date.now()); },
     radioSaveClip(s){ this._clip = s; setTimeout(() => onRadioClip(''), 50); },
@@ -915,6 +915,90 @@ if (!window.Android) window.Android = (function(){
       if (st.aiBezet) return 'De assistent is nog bezig';
       st.ai = setTimeout(() => { st.ai = null; if (typeof window.onSignalenAiToken === 'function') window.onSignalenAiToken('Een zeehond wordt vrijgelaten, '); if (typeof window.onSignalenAiToken === 'function') window.onSignalenAiToken('zaterdag om 14.00 uur op het strand.'); if (typeof window.onSignalenAiDone === 'function') window.onSignalenAiDone({}); }, st.traag);
       return ''; },
+    // ---------- Betalen ----------
+    _btInit(){
+      if (this._bt) return this._bt;
+      this._bt = { inst: { bank: 'rabobank', eigen: [], naKlaar: 'vragen' }, uitkomst: '', calls: [], herken: null, traag: 60,
+        banken: [{ id: 'rabobank', naam: 'Rabobank', kan: true, appNaam: 'Rabo App', uitleg: 'Je logt zelf in met de Rabo App.' }, { id: 'ing', naam: 'ING', kan: false, appNaam: '', uitleg: '' }],
+        hosts: ['ideal.nl', 'betaalverzoek.rabobank.nl', 'tikkie.me'],
+        lijst: [{ id: 'b000000000001', naam: 'Waterbedrijf Test', iban: 'NL91ABNA0417164300', bedrag: '45,10', kenmerk: '', omschrijving: 'Factuur 2026-118', vervaldatum: rgDayAdd(rgToday(), 5),
+          link: '', status: 'open', bron: 'hand', sha: '', gemaakt: Date.now() - 86400000, gewijzigd: Date.now() - 86400000, betaaldOp: 0 }] };
+      return this._bt;
+    },
+    _btIban(v){
+      const n = String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(n)) return '';
+      const r = (n.slice(4) + n.slice(0, 4)).replace(/[A-Z]/g, c => c.charCodeAt(0) - 55);
+      let m = 0; for (const c of r) m = (m * 10 + +c) % 97;
+      return m === 1 ? n : '';
+    },
+    _btBedrag(v){
+      let s = String(v || '').replace(/[€\s]/g, '');
+      if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(s)) s = s.replace(/\./g, '');
+      s = s.replace(',', '.');
+      if (!/^\d+(\.\d{1,2})?$/.test(s) || !(+s > 0) || +s >= 1000000) return null;
+      return (Math.round(+s * 100) / 100).toFixed(2).replace('.', ',');
+    },
+    _btLink(u){
+      const m = /^https:\/\/([a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,24})([\/?#][^\s"<>\\]*)?$/i.exec(String(u || '').trim());
+      return m && String(u).trim().length <= 600 ? 'https://' + m[1].toLowerCase() + (m[2] || '') : null;
+    },
+    _btBekend(host){ return this._btInit().hosts.some(h => host === h || host.endsWith('.' + h)); },
+    betalenStaat(){ const st = this._btInit();
+      const compleet = b => !!(b.naam && this._btIban(b.iban) && this._btBedrag(b.bedrag));
+      const nieuw = b => !!b.iban && !st.lijst.some(x => x.id !== b.id && x.iban === b.iban && x.status === 'betaald');
+      return JSON.stringify({ betalingen: st.lijst.map(b => Object.assign({}, b, { compleet: compleet(b), nieuw: nieuw(b) })), inst: st.inst, banken: st.banken, onleesbaar: false, lopend: false, bezig: false }); },
+    betalenBewaar(j){ const st = this._btInit(); let i; try { i = JSON.parse(j || '{}'); } catch (e) { return JSON.stringify({ ok: false, fout: 'Opslaan lukte niet.' }); }
+      const fout = m => JSON.stringify({ ok: false, fout: m }), netjes = (v, n) => String(v || '').replace(/[\u0000-\u001f]+/g, ' ').replace(/\s{2,}/g, ' ').trim().slice(0, n);
+      const b = { id: /^b[0-9a-f]{12}$/.test(i.id || '') ? i.id : 'b' + Math.random().toString(16).slice(2).padEnd(12, '0').slice(0, 12), naam: netjes(i.naam, 70) };
+      const ruwIban = String(i.iban || '').replace(/[^A-Za-z0-9]/g, '');
+      if (ruwIban && !this._btIban(ruwIban)) return fout('Dit IBAN klopt niet. Kijk het na op de rekening.');
+      b.iban = this._btIban(ruwIban);
+      const ruw = String(i.bedrag || '').trim();
+      if (ruw && this._btBedrag(ruw) === null) return fout('Vul het bedrag in als 123,45.');
+      b.bedrag = ruw ? this._btBedrag(ruw) : '';
+      b.kenmerk = String(i.kenmerk || '').replace(/\s/g, '').toUpperCase();
+      if (b.kenmerk && !/^[A-Z0-9]{1,35}$/.test(b.kenmerk)) return fout('Een betalingskenmerk heeft alleen cijfers en letters.');
+      b.omschrijving = netjes(i.omschrijving, 140);
+      b.vervaldatum = /^20\d{2}-\d{2}-\d{2}$/.test(i.vervaldatum || '') ? i.vervaldatum : '';
+      b.link = '';
+      if (i.link) { const l = this._btLink(i.link); if (!l) return fout('Deze betaallink is geen veilig adres (https).'); b.link = l; b.linkHost = new URL(l).hostname; b.linkBekend = this._btBekend(b.linkHost); }
+      b.status = ['open', 'klaargezet', 'betaald'].includes(i.status) ? i.status : 'open';
+      b.bron = ['foto', 'bestand', 'dossier', 'hand'].includes(i.bron) ? i.bron : 'hand'; b.sha = '';
+      const was = st.lijst.find(x => x.id === b.id), nu = Date.now();
+      b.gemaakt = was ? was.gemaakt : nu; b.gewijzigd = nu; b.betaaldOp = b.status === 'betaald' ? (was && was.betaaldOp) || nu : 0;
+      if (was) st.lijst[st.lijst.indexOf(was)] = b; else st.lijst.push(b);
+      st.calls.push(['bewaar', b.id]);
+      return JSON.stringify({ ok: true, id: b.id }); },
+    betalenStatus(id, status){ const st = this._btInit(), b = st.lijst.find(x => x.id === id);
+      if (b && ['open', 'klaargezet', 'betaald'].includes(status)) { b.status = status; b.gewijzigd = Date.now(); b.betaaldOp = status === 'betaald' ? Date.now() : 0; }
+      return JSON.stringify({ ok: true }); },
+    betalenWis(id){ const st = this._btInit(); st.lijst = st.lijst.filter(x => x.id !== id); st.calls.push(['wis', id]); return JSON.stringify({ ok: true }); },
+    betalenInst(j){ const st = this._btInit(), i = JSON.parse(j || '{}'), eigen = [];
+      for (const e of (i.eigen || [])) { const n = this._btIban(e); if (!n) return JSON.stringify({ ok: false, fout: 'Een van je eigen rekeningnummers klopt niet.' }); eigen.push(n); }
+      st.inst = { bank: /^[a-z0-9-]{2,30}$/.test(i.bank || '') ? i.bank : 'rabobank', eigen, naKlaar: ['vragen', 'betaald', 'niets'].includes(i.naKlaar) ? i.naKlaar : 'vragen' };
+      return JSON.stringify({ ok: true }); },
+    betalenQr(inhoud){ const s = String(inhoud || '').trim(), r = s.replace(/\r/g, '').split('\n');
+      if (r.length >= 7 && r[0] === 'BCD' && r[3] === 'SCT' && this._btIban(r[6])) {
+        const o = { soort: 'epc', iban: this._btIban(r[6]) }, m = /^EUR(\d+)(?:\.(\d{1,2}))?$/.exec((r[7] || '').trim());
+        if (r[5]) o.naam = r[5].trim().slice(0, 70);
+        if (m) o.bedrag = +m[1] + ',' + (m[2] || '00').padEnd(2, '0');
+        if (r[9]) o.kenmerk = r[9].replace(/\s/g, '').toUpperCase(); else if (r[10]) o.omschrijving = r[10].trim().slice(0, 140);
+        return JSON.stringify(o);
+      }
+      const l = this._btLink(s);
+      if (!l) return 'null';
+      const host = new URL(l).hostname;
+      return JSON.stringify({ soort: 'link', link: l, host, bekend: this._btBekend(host) }); },
+    betalenCamera(){ setTimeout(() => onBetalenCamera(!!window.__testCamera), 50); }, betalenCameraDone(){ this._btInit().calls.push(['cameraDicht']); },
+    _btHerkend(bron){ const st = this._btInit();
+      return Object.assign({ naam: 'Energie Voorbeeld B.V.', iban: 'NL91ABNA0417164300', ibans: ['NL91ABNA0417164300', 'NL39RABO0300065264'], bedrag: '123,45', kenmerk: '', omschrijving: 'Factuur F2026-0042', vervaldatum: rgDayAdd(rgToday(), 14), nummer: 'F2026-0042', tekst: true }, st.herken || {}, { bron }); },
+    betalenFoto(d){ const st = this._btInit(); st.calls.push(['foto', String(d || '').slice(0, 23)]); setTimeout(() => onBetalenHerkend(st.fout ? { error: st.fout } : this._btHerkend('foto')), st.traag); },
+    betalenKies(){ const st = this._btInit(); st.calls.push(['kies']); setTimeout(() => onBetalenHerkend(st.fout !== undefined ? { error: st.fout } : this._btHerkend('bestand')), st.traag); },
+    betalenKopieer(t){ this._copied = t; },
+    betalenKlaarzetten(id){ const st = this._btInit(); st.calls.push(['klaarzetten', id]); if (st.weiger) return st.weiger; st.uitkomst = JSON.stringify({ id, stand: 'ingevuld', bank: 'Rabobank' }); return ''; },
+    betalenUitkomst(){ const st = this._btInit(), u = st.uitkomst; st.uitkomst = ''; return u; },
+    betalenOpenLink(id){ const st = this._btInit(), b = st.lijst.find(x => x.id === id); if (!b || !b.link) return 'Deze betaling heeft geen betaallink'; st.calls.push(['link', b.link]); return ''; },
     signalenAiStop(){ const st = this._snInit(); if (st.ai) { clearTimeout(st.ai); st.ai = null; st.aiGestopt = true; } },
     aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },
     aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },
@@ -1671,7 +1755,7 @@ if (!window.Android) window.Android = (function(){
         add(m + '-12', -6710, 'Jumbo Rotterdam', '', '');
         add(m + '-15', -8950, 'Vattenfall Klantenservice', 'Termijnbedrag', '');
         add(m + '-20', -20000, 'Mijn spaarrekening', 'Sparen', spaar);
-        add(m + '-25', 310000, 'Werkgever B.V.', 'Salaris', 'NL02RABO0123456789');
+        add(m + '-25', 310000, 'Werkgever B.V.', 'Salaris', 'NL39RABO0300065264');
         add(m + '-26', -4500, 'Restaurant De Kade', '', '');
       }
       add('2026-10-28', -4999, '<img src=x onerror=alert(1)>', 'Bestelling <b>vet</b>', '');

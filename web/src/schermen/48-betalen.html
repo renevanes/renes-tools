@@ -1,0 +1,92 @@
+<!-- ============ BETALEN ============ -->
+<section class="screen" id="s-betalen">
+  <div class="hdr"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1>Betalen</h1>
+    <button class="icon-btn hset" id="bt-set" data-to="betalenset" aria-label="Instellingen van Betalen"></button>
+  </div>
+  <main>
+    <p class="hint" id="bt-priv">Tools betaalt nooit zelf. Je controleert elke betaling en ondertekent hem zelf bij je bank. De rekening wordt op je telefoon gelezen en niet bewaard.</p>
+    <p class="note" id="bt-oud" hidden>Installeer de nieuwste versie van Tools om Betalen te gebruiken.</p>
+    <button class="bar1" id="bt-slot" hidden onclick="btNaarSlot()"><span><b>Extra ontgrendelen staat uit</b><small>Iedereen die in Tools kan, ziet dan ook je betalingen. Tik om het voor Betalen aan te zetten.</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    <button class="big" id="bt-nieuw" type="button" onclick="btNieuw()">Rekening toevoegen</button>
+    <p class="note" id="bt-stand" role="status"></p>
+    <div class="chips" id="bt-filter" role="radiogroup" aria-label="Welke betalingen">
+      <button type="button" role="radio" data-f="open" onclick="btFilter('open')">Te betalen</button>
+      <button type="button" role="radio" data-f="klaargezet" onclick="btFilter('klaargezet')">Klaargezet</button>
+      <button type="button" role="radio" data-f="betaald" onclick="btFilter('betaald')">Betaald</button>
+    </div>
+    <div id="bt-lijst"></div>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Maak een foto van een rekening, of kies een PDF of afbeelding (ook uit de documentenkluis of het facturendossier). Tools leest op je telefoon de ontvanger, het IBAN, het bedrag, het betalingskenmerk en de uiterste betaaldatum, en zet dat klaar als voorstel. Kijk het altijd na: tekstherkenning kan zich vergissen.</p>
+      <p>Staat er een QR-code op de rekening, dan leest Tools die ook. Een betaallink (bijvoorbeeld iDEAL) open je met één tik; een QR-code met betaalgegevens vult de velden in.</p>
+      <p>Met Klaarzetten bij je bank opent Tools de website van je bank. Je logt zelf in met de app van je bank, Tools vult de overboeking in, en jij controleert, verstuurt en ondertekent. Lukt dat bij jouw bank niet, dan kopieer je de gegevens veld voor veld naar de app van je bank.</p>
+    </div></details>
+  </main>
+</section>
+<section class="screen" id="s-betaling">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">Betaling</h1>
+    <button class="icon-btn" id="btd-menu" onclick="btdMenu()" aria-label="Meer: verwijderen"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
+  </div>
+  <main>
+    <p class="note" id="btd-bron" hidden></p>
+    <div class="bar1 warn" id="btd-nieuw" hidden><span><b>Nieuwe ontvanger</b><small>Naar dit rekeningnummer heb je vanuit Tools nog niet eerder betaald. Vergelijk het IBAN met de rekening.</small></span></div>
+    <div class="card">
+      <label class="f" for="btd-naam">Naam van de ontvanger</label>
+      <input class="aein" id="btd-naam" maxlength="70" autocomplete="off" translate="no">
+      <label class="f" for="btd-iban">IBAN</label>
+      <input class="aein" id="btd-iban" maxlength="42" autocomplete="off" autocapitalize="characters" spellcheck="false" translate="no">
+      <div id="btd-ibans" class="chips" hidden></div>
+      <label class="f" for="btd-bedrag">Bedrag in euro</label>
+      <input class="aein" id="btd-bedrag" maxlength="14" inputmode="decimal" autocomplete="off" translate="no">
+      <label class="f" for="btd-kenmerk">Betalingskenmerk (mag leeg)</label>
+      <input class="aein" id="btd-kenmerk" maxlength="42" autocomplete="off" autocapitalize="characters" spellcheck="false" translate="no">
+      <label class="f" for="btd-omschrijving">Omschrijving (mag leeg)</label>
+      <input class="aein" id="btd-omschrijving" maxlength="140" autocomplete="off" translate="no">
+      <p class="hint">Heeft de rekening een betalingskenmerk, gebruik dan dat. Je bank neemt het kenmerk of de omschrijving over, niet allebei.</p>
+      <label class="f" for="btd-verval">Uiterste betaaldatum (mag leeg)</label>
+      <input class="aein" id="btd-verval" type="date">
+      <p class="note" id="btd-fout" role="alert" hidden></p>
+    </div>
+    <div class="card" id="btd-linkkaart" hidden>
+      <h2 style="margin-top:0">Betaallink uit de QR-code</h2>
+      <p id="btd-linkhost" translate="no" style="overflow-wrap:anywhere"></p>
+      <p class="hint" id="btd-linkuitleg" style="margin-bottom:0"></p>
+    </div>
+    <button class="big" id="btd-klaar" type="button" onclick="btdKlaarzetten()">Klaarzetten bij je bank</button>
+    <button class="big tonal" id="btd-link" type="button" onclick="btdLink()" hidden>Betalen via de link</button>
+    <button class="big ghost" id="btd-kopieer" type="button" onclick="btdKopieer()">Gegevens kopiëren</button>
+    <button class="big ghost" id="btd-betaald" type="button" onclick="btdBetaald()">Betaald</button>
+    <p class="hint" id="btd-stand" role="status"></p>
+  </main>
+</section>
+<section class="screen" id="s-betalenset">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">Betalen instellen</h1></div>
+  <main>
+    <div class="card">
+      <label class="f" for="bts-bank">Je bank</label>
+      <select class="sel" id="bts-bank" onchange="btsBewaar()"></select>
+      <p class="hint" id="bts-bankuitleg"></p>
+      <label class="f" for="bts-na">Na het klaarzetten bij je bank</label>
+      <select class="sel" id="bts-na" onchange="btsBewaar()">
+        <option value="vragen">Vragen of het betaald is</option>
+        <option value="betaald">Meteen op Betaald zetten</option>
+        <option value="niets">Op Klaargezet laten staan</option>
+      </select>
+    </div>
+    <div class="card">
+      <label class="f" for="bts-eigen">Je eigen rekeningnummers</label>
+      <input class="aein" id="bts-eigen" maxlength="600" autocomplete="off" autocapitalize="characters" spellcheck="false" translate="no" onchange="btsBewaar()" placeholder="NL00 BANK 0000 0000 00">
+      <p class="hint">Met komma's ertussen. Staat je eigen IBAN op een rekening, dan ziet Tools dat niet aan voor de ontvanger.</p>
+      <p class="note" id="bts-fout" role="alert" hidden></p>
+    </div>
+    <div class="card stlist">
+      <button class="strow" type="button" onclick="btNaarSlot()"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Extra ontgrendelen</b><small id="bts-slot"></small></span><span class="ui-icon stchev" data-icon="chevron-right"></span></button>
+    </div>
+  </main>
+</section>
+<!-- Foto van een rekening maken (camera; het beeld gaat alleen naar de tekstherkenning op de telefoon) -->
+<div class="vpscan" id="bt-cam" role="dialog" aria-modal="true" aria-label="Foto van de rekening maken">
+  <video id="bt-video" playsinline muted aria-hidden="true" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video>
+  <p id="bt-cammsg" role="status" aria-live="polite">Camera starten…</p>
+  <button class="big ghost" id="bt-camfoto" type="button" onclick="btCamFoto()">Foto maken</button>
+  <button class="big ghost" type="button" onclick="btCamDicht()">Annuleren</button>
+</div>

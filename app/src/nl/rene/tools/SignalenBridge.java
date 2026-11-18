@@ -9,7 +9,7 @@ import org.json.JSONObject;
  * Brug voor Signalen (Android.signalen…): bronnen en instellingen bewaren, nu nalopen, een proef, en wat Rene met een
  * item doet. Ophalen gebeurt alleen in Java (SignalenScan); de interface krijgt tekst van websites alleen als gegevens.
  */
-public class SignalenBridge extends FeatureBridge {
+public class SignalenBridge extends BetalenBridge {
 
     SignalenBridge(MainActivity act) { super(act); }
 

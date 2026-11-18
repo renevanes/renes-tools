@@ -1,0 +1,3 @@
+/* Betalen: wat verborgen is blijft verborgen (ook knoppen en kaarten met een eigen display) */
+#s-betalen [hidden], #s-betaling [hidden], #s-betalenset [hidden]{display:none!important}
+#btd-ibans button{font-variant-numeric:tabular-nums}

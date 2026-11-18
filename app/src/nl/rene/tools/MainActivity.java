@@ -651,6 +651,7 @@ public class MainActivity extends Activity {
             case "kluis": return REQ_KLUIS;
             case "factuur": return REQ_FACT_PDF;
             case "boek": return EreaderBridge.REQ_BOOK;
+            case "betalen": return BetalenBridge.REQ_BESTAND;
             default: return -1;
         }
     }
@@ -1022,6 +1023,10 @@ public class MainActivity extends Activity {
         if (req == REQ_PERMS) js("onPermissions", permissionState());
         if (req == ApparatenBridge.REQ_PERM) { ApparatenJob.ensure(this); js("onApChanged", ""); }
         if (req == REQ_AUTO) { Auto.armPlaces(this); Vpn.armAuto(this); js("onAutoChanged", ""); js("onVpnChanged", ""); }
+        if (req == BetalenBridge.REQ_CAM) {
+            camAllowed = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED;
+            js("onBetalenCamera", camAllowed ? "true" : "false");
+        }
         if (req == VpnBridge.REQ_CAM) {
             camAllowed = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED;
             js("onVpnCamera", camAllowed ? "true" : "false");
@@ -1065,6 +1070,7 @@ public class MainActivity extends Activity {
             }, "sig-image").start();
             return;
         }
+        if (req == BetalenBridge.REQ_BESTAND) { BetalenBridge.opBestand(this, res == RESULT_OK && data != null ? data.getData() : null); return; }
         if (req == REQ_FACT_PDF) {
             final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
             if (u == null) { js("onFacturenToegevoegd", "{\"error\":\"\"}"); return; }
@@ -2393,7 +2399,7 @@ public class MainActivity extends Activity {
                 p.put(perm("history", Taal.T("Meldingentoegang"), Taal.T("Meldingsgeschiedenis"), NotificationHistory.allowed(ctx)));
                 p.put(perm("location", Taal.T("Locatie"), Taal.T("Mijn routes"), has(Manifest.permission.ACCESS_FINE_LOCATION)));
                 p.put(perm("mic", Taal.T("Microfoon"), Taal.T("Muziek herkennen"), has(Manifest.permission.RECORD_AUDIO)));
-                p.put(perm("camera", Taal.T("Camera"), Taal.T("QR-code scannen (VPN), foto bij ontgrendelen (Gebruik)"), has(Manifest.permission.CAMERA)));
+                p.put(perm("camera", Taal.T("Camera"), Taal.T("QR-code scannen (VPN), foto van een rekening (Betalen), foto bij ontgrendelen (Gebruik)"), has(Manifest.permission.CAMERA)));
                 p.put(perm("nearby", Taal.T("Apparaten in de buurt"), Taal.T("Apparaten (Bluetooth en wifi)"), ApparatenScan.btPerm(ctx)));
                 if (Build.VERSION.SDK_INT >= 33) p.put(perm("notif", Taal.T("Meldingen"), Taal.T("Voortgang en bediening"), has(Manifest.permission.POST_NOTIFICATIONS)));
                 p.put(perm("files", Taal.T("Alle bestanden"), Taal.T("WhatsApp backup, Gesprekken"), hasFilesAccess(ctx)));

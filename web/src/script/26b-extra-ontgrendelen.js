@@ -83,6 +83,7 @@ const TS_LAGEN = [
   ['ci-ans', () => !!$('#ci-ans') && $('#ci-ans').classList.contains('on'), () => ciAnsClose()],
   ['ci-rem', () => !!$('#ci-rem') && $('#ci-rem').classList.contains('on'), () => ciRemPark()], // wat je schreef blijft als concept
   ['sleepdlg', () => $('#sleepdlg').classList.contains('on'), () => sleepClose()],
+  ['bt-cam', () => typeof btCamOpen === 'function' && btCamOpen(), () => btCamDicht()],
   ['vp-scan', () => !!$('#vp-scan') && $('#vp-scan').classList.contains('on'), () => vpScanClose()],
   ['sheet', () => $('#sheet').classList.contains('on'), () => closeSheet()],
   ['er-image', () => $('#er-image').classList.contains('on'), () => erImageClose()],
