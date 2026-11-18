@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.221",
-  "versionCode": 222,
-  "nativeLevel": 190,
+  "versionName": "1.222",
+  "versionCode": 223,
+  "nativeLevel": 191,
   "web": "index.html",
-  "webSha256": "6739a0f6dbeb46867e29d3aae10f6ad68e08c7d1357c5f57041adea2049732a7",
+  "webSha256": "9261cd602bcf7f2ca62a8ade8c94876274bc2e201ca56cd9a24fa7fa03e4fa03",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "5f0fd87f9297eafbff2fbd36b25c8b6f766f4d5a5517a01d36bad495cc8f47ed",
+  "apkSha256": "b12334ce2c342a1519e0d02620f36851a57399c0b1052514b9f8be0acea5a982",
   "changelog": [
+    {
+      "version": "1.222",
+      "date": "2026-11-18",
+      "changes": [
+        "Alles back-uppen: oude backups worden nu standaard vanzelf opgeruimd na elke gelukte backup; van elke soort blijven de laatste 7 volledige backups staan, plus altijd de nieuwste met alle appgegevens. Let op: bij de eerstvolgende backup gaan oudere backups (ook die van eerdere maanden) weg. Wil je dat niet, kies dan bij Instellingen van Alles back-uppen → Bewaren \"14 dagen + per maand\" of zet opruimen uit; je kunt ook 3, 14 of 30 kiezen. Had je opruimen zelf uitgezet of al aangezet, dan verandert er niets.",
+        "Startscherm: een ingeklapte groep laat in de kop zien hoeveel tools erin staan, en de kop is nu een echte knop (beter voor schermlezers).",
+        "Startscherm: lange tegelnamen (zoals Automatiseringen en Documentenkluis) worden niet meer midden in een woord afgebroken; zo nodig wordt alleen die naam iets kleiner.",
+        "Documentenkluis: een document waarvan de tekst drie keer niet te lezen was, heeft in het menu ⋯ de keuze \"Tekst opnieuw lezen\"."
+      ]
+    },
     {
       "version": "1.221",
       "date": "2026-11-17",
@@ -169,16 +179,7 @@
       "changes": [
         "Startscherm: een tegel van een tool op slot toont nu \"Op slot\" in plaats van een lege regel"
       ]
-    },
-    {
-      "version": "1.202",
-      "date": "2026-11-13",
-      "changes": [
-        "Beveiliging van losse apps verbeterd: Alles back-uppen en Automatiseringen vragen als losse app eerst je schermvergrendeling zolang het app-slot aan staat",
-        "Updates: start een nieuwe versie van de interface twee keer niet, dan gaat Tools vanzelf terug naar de vorige versie tot er een nieuwere is",
-        "Updates: controleren op updates haalt minder gegevens op (alleen de laatste 20 versies van Wat is er nieuw; de rest zit al in de app)"
-      ]
     }
   ],
-  "webSig2": "EtJzv+P7EsGFiGyEBwYcIOHB//taI60D4YkXZnTqQUFitBoIWkDuiJpa4UWPaI8DBDRH5gZMEMTQ6xYxxuOyNMNuzKJAkdpoz5aEkTImQ9waMpzJRPlV1meXQzbVMdRilQo44I8BPDl33/8uGiwYKAooNBTiVcnlXFJfawVg2uizI46lOrEnjY9CVaAvjzndJ8c8AgMjwfVNe4Ar8tVJVRW77Ybn514macwx6AWGUHqI3cKPa32Cw+WwBT0K7eLgDCcrwvAm8qbspbllg8TRzpL5TlgfZCo+t1L2nMha+YuGvbwyzk7wxI6evA4+M7yGcyyrkgorzHUFoPnKUejStHinx3DEJe7oVmWnfD4NxdGi/ezR0XSAWM40Z09MW9YIuwXeuW34m+c9Pv8cJb3bFuDJCy4XIYFGBJCv0SKP2WOspKte3tIEru1S5QXbRevTrSsE1D6CvB6qwJpcgtDRSBJvA2VBQ4+2+1OexAmUyss1etxhIC4qOf8nT5H6wRVe"
+  "webSig2": "qkOKBBDoyZfaxhfvQTtHIKOv8t9NoB0pc7Pcfe5064Uc/22VfF26FL5aXJ5yvU/zu4y4Ck3ADKarkDiG5+LRvGKIHXd1Mkh614JS3nuEjXeA15+OiHki3mxbsiBNxr79tRQTsZmR26B+D9ydgmHMIcUhNUOBeeqwFQs0nFfyLdWSs/M2XE03TDiDTq79oqxAU6zcxXKYZ5lrI2MoHP52WrH9JUJQXFf6o7zXxbREPv2PxO/P4pFSfv51IQMuNRMazyVtPNxAZeQWm5zEZFz1X6PafqUa2hBTlpkERNqXHmNeLSRGbroK3WqsOi2cgUqWLA/sx8aC4HdR6eW8PbIRmfVPLMBlHKzLk/K6Cfm6LdD9Zm40pBt8uHWPUevRMRZypeP/myZN2+94OcgzGKRNP2plZZoF3PRsWy9Nx5BUe4iRZ02+NJGOYQQr5IiwkJDjPz8KPEIm+kj6FNbqfh7px6tw87y2rIw9lniVZxX1/V4TpSVE8gbr3nbX1qw1G0Yq"
 }

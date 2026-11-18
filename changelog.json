@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.222",
+    "date": "2026-11-18",
+    "changes": [
+      "Alles back-uppen: oude backups worden nu standaard vanzelf opgeruimd na elke gelukte backup; van elke soort blijven de laatste 7 volledige backups staan, plus altijd de nieuwste met alle appgegevens. Let op: bij de eerstvolgende backup gaan oudere backups (ook die van eerdere maanden) weg. Wil je dat niet, kies dan bij Instellingen van Alles back-uppen → Bewaren \"14 dagen + per maand\" of zet opruimen uit; je kunt ook 3, 14 of 30 kiezen. Had je opruimen zelf uitgezet of al aangezet, dan verandert er niets.",
+      "Startscherm: een ingeklapte groep laat in de kop zien hoeveel tools erin staan, en de kop is nu een echte knop (beter voor schermlezers).",
+      "Startscherm: lange tegelnamen (zoals Automatiseringen en Documentenkluis) worden niet meer midden in een woord afgebroken; zo nodig wordt alleen die naam iets kleiner.",
+      "Documentenkluis: een document waarvan de tekst drie keer niet te lezen was, heeft in het menu ⋯ de keuze \"Tekst opnieuw lezen\"."
+    ]
+  },
+  {
     "version": "1.221",
     "date": "2026-11-17",
     "changes": [
