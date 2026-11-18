@@ -16,6 +16,7 @@
     if (/^https:/i.test(src)) return BASIS + '|' + src.split(/[?#]/)[0];
     var i = 0;
     try { i = Array.prototype.indexOf.call((el.getRootNode ? el.getRootNode() : document).querySelectorAll('video,audio'), el); } catch (e) { }
+    if (i < 0) return null; // niet op de pagina (een los geluid): niets onthouden
     return i > 0 ? BASIS + '#' + i : BASIS;
   }
   // Oude plekken opruimen (een keer per pagina)
@@ -47,28 +48,33 @@
   function volg(el) {
     if (!el || !(el instanceof HTMLMediaElement)) return;
     if (gezien) { if (gezien.has(el)) return; gezien.add(el); } else { if (el.__toolsPlek) return; el.__toolsPlek = 1; }
-    var k = null, laatst = 0, hervat = false;
+    var k = null, src = null, laatst = 0, hervat = false;
     function kk() { return k || (k = sleutel(el)); } // pas bij het spelen: dan is het adres bekend
+    // een andere video in hetzelfde element (eerst een reclame, dan de video zelf): opnieuw beginnen
+    function nieuw() { var s = String(el.currentSrc || el.src || ''); if (src !== null && s !== src) { k = null; hervat = false; } src = s; }
+    el.addEventListener('loadstart', nieuw);
+    el.addEventListener('emptied', nieuw);
     el.addEventListener('timeupdate', function () {
       var n = Date.now();
       if (n - laatst < ELKE) return;
       if (el.currentTime >= MIN) laatst = n; // de eerste seconden tellen niet mee voor "elke 5 s"
-      schrijf(kk(), el.currentTime, el.duration);
+      if (kk()) schrijf(k, el.currentTime, el.duration);
     });
-    el.addEventListener('pause', function () { schrijf(kk(), el.currentTime, el.duration); });
-    el.addEventListener('ended', function () { weg(kk()); });
+    el.addEventListener('pause', function () { if (kk()) schrijf(k, el.currentTime, el.duration); });
+    el.addEventListener('ended', function () { if (kk()) weg(k); });
     el.addEventListener('playing', function () {
       if (hervat) return;
       hervat = true;
-      var k = kk(), o = lees(k);
+      if (src === null) src = String(el.currentSrc || el.src || '');
+      var sl = kk(), o = sl && lees(sl);
       if (!o || el.currentTime > 5) return; // de speler begon zelf al ergens anders
       var d = el.duration;
       if (d > 0 && isFinite(d)) {
         if (o.d > 0 && Math.abs(o.d - d) > 2) return; // een andere video op die plek
-        if (o.t > d - EIND) { weg(k); return; }
+        if (o.t > d - EIND) { weg(sl); return; }
       }
       try { el.currentTime = o.t; } catch (e) { return; }
-      toon(el, k, o.t);
+      toon(el, sl, o.t);
     });
   }
 

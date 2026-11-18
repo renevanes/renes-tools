@@ -59,9 +59,10 @@ public class NieuwsVideoTest {
         check(!NieuwsVideo.koppen(v, "n").mag, "scripts uit: niet toevoegen");
 
         // Documenten, BOM en commentaar
-        check(NieuwsVideo.documentVraag(null, "/jHBL8SEz7x/player.html") && !NieuwsVideo.documentVraag(null, "/a/segment_000.m4s") && !NieuwsVideo.documentVraag("image/*", "/x.html"), "zonder Accept: alleen een .html-adres");
+        check(NieuwsVideo.documentVraag(null, "/jHBL8SEz7x/player.html") && !NieuwsVideo.documentVraag(null, "/a/") && !NieuwsVideo.documentVraag(null, "/a/segment_000.m4s") && !NieuwsVideo.documentVraag("image/*", "/x.html"), "zonder Accept: alleen een .html-adres");
         check(NieuwsVideo.injecteer("\u00ef\u00bb\u00bf<!doctype html><p>x", s, null).equals("\u00ef\u00bb\u00bf<!doctype html><script>X();</script><p>x"), "na de UTF-8-BOM en het doctype");
         check(NieuwsVideo.utf16(new byte[]{(byte) 0xff, (byte) 0xfe, 0x3c}) && NieuwsVideo.utf16(new byte[]{(byte) 0xfe, (byte) 0xff}) && !NieuwsVideo.utf16(new byte[]{0x3c, 0x68}), "UTF-16 herkennen (dan niets aanpassen)");
+        check(NieuwsVideo.injecteer("<!--><html><head><title>", s, null).equals("<!--><html><head><script>X();</script><title>"), "een leeg commentaar <!--> sluit meteen");
         check(NieuwsVideo.injecteer("<!-- <head> --><html><head><title>", s, null).equals("<!-- <head> --><html><head><script>X();</script><title>"), "<head> in commentaar telt niet");
 
         // Teksten en tekenset

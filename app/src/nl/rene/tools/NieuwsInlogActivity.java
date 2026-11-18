@@ -550,7 +550,7 @@ public class NieuwsInlogActivity extends Activity {
                     // de pagina van een videospeler: met het script dat onthoudt waar je was (alleen bij lezen; NieuwsVideo)
                     if (a.soort.equals(LEZEN) && !req.isForMainFrame() && NieuwsVideo.speler(u)) {
                         NieuwsVideo.Uitkomst r = NieuwsVideo.haal(req, a.videoScript(), a.derden);
-                        a.log("video", (r.reden == null ? "plek onthouden in " : "plek niet onthouden (" + r.reden + ") in ") + Nieuws.host(u));
+                        if (!NieuwsVideo.STIL.equals(r.reden)) a.log("video", (r.reden == null ? "plek onthouden in " : "plek niet onthouden (" + r.reden + ") in ") + Nieuws.host(u));
                         if (r.antwoord != null) return r.antwoord;
                     }
                     return null;

@@ -85,6 +85,24 @@ const BRON = fs.readFileSync(path.join(__dirname, '..', '..', 'web', 'nieuws-vid
   await laad();
   ok(await pg.evaluate(() => !localStorage.getItem('tools.plek:https://speler.example/oud') && !!localStorage.getItem('tools.plek:https://speler.example/jong') && localStorage.getItem('iets anders') === 'x'), 'oude plekken opgeruimd, de rest blijft');
 
+  // Eerst een reclame in hetzelfde element, dan de video zelf: de video gaat verder op zijn eigen plek
+  await pg.evaluate(() => localStorage.clear()); await laad();
+  await pg.evaluate(() => {
+    const v = document.createElement('video'); let t = 0, src = 'blob:reclame', d = 15;
+    Object.defineProperty(v, 'currentTime', { get: () => t, set: x => { t = +x; } }); Object.defineProperty(v, 'duration', { get: () => d });
+    Object.defineProperty(v, 'currentSrc', { get: () => src });
+    document.body.appendChild(v); window.__v = v;
+    localStorage.setItem('tools.plek:https://speler.example/v1/player.html', JSON.stringify({ t: 400, d: 1500, w: Date.now() }));
+    v.play().catch(() => {}); v.dispatchEvent(new Event('loadstart')); v.dispatchEvent(new Event('playing'));
+    window.__naReclame = t;
+    src = 'blob:video'; d = 1500; t = 0; v.dispatchEvent(new Event('emptied')); v.dispatchEvent(new Event('loadstart')); v.dispatchEvent(new Event('playing'));
+  });
+  ok(await pg.evaluate(() => window.__naReclame === 0 && window.__v.currentTime === 400), 'na een reclame: verder op de plek van de video');
+
+  // Een los geluid (niet op de pagina): niets onthouden
+  await pg.evaluate(() => { localStorage.clear(); const a = new Audio(); let t = 0; Object.defineProperty(a, 'currentTime', { get: () => t, set: x => { t = +x; } }); Object.defineProperty(a, 'duration', { get: () => 600 }); a.play().catch(() => {}); t = 200; a.dispatchEvent(new Event('pause')); });
+  ok(await pg.evaluate(() => localStorage.length === 0), 'los geluid: niets onthouden');
+
   // Twee keer het script (artikel na laden): geen dubbele regels
   await pg.evaluate(BRON);
   ok(await pg.evaluate(() => window.__toolsPlek === 1), 'tweede keer: doet niets');

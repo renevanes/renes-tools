@@ -88,7 +88,7 @@ final class NieuwsVideo {
     private static boolean inCommentaar(String laag, int i) {
         int open = laag.lastIndexOf("<!--", i);
         if (open < 0) return false;
-        int dicht = laag.indexOf("-->", open + 4);
+        int dicht = laag.indexOf("-->", open + 2); // ook <!--> en <!---> zijn (lege) commentaren
         return dicht < 0 || dicht > i;
     }
 
@@ -213,6 +213,7 @@ final class NieuwsVideo {
     }
 
     static final long TOTAAL_MS = 15_000;
+    private static int rest(long tot) { return (int) Math.max(0, Math.min(WACHT_MS, tot - System.currentTimeMillis())); }
 
     /** Wat haal() deed: het antwoord met het script, of null met de reden (voor Wat gebeurt er?). */
     static final class Uitkomst {
@@ -220,12 +221,14 @@ final class NieuwsVideo {
         Uitkomst(WebResourceResponse a, String r) { antwoord = a; reden = r; }
     }
     private static Uitkomst niet(String reden) { return new Uitkomst(null, reden); }
+    /** Geen poging (geen document, zoals de stukjes video zelf): niets in het logboek. */
+    static final String STIL = "";
 
-    /** Een document (venster)? Zegt de WebView geen Accept, dan een adres dat op .html of / eindigt. */
+    /** Een document (venster)? Zegt de WebView geen Accept, dan een adres dat op .html eindigt. */
     static boolean documentVraag(String accept, String pad) {
         if (accept != null) return document(accept);
         String p = pad == null ? "" : pad.toLowerCase(Locale.ROOT);
-        return p.endsWith(".html") || p.endsWith(".htm") || p.endsWith("/");
+        return p.endsWith(".html") || p.endsWith(".htm");
     }
 
     /**
@@ -234,21 +237,23 @@ final class NieuwsVideo {
      */
     static Uitkomst haal(WebResourceRequest req, String script, boolean cookies) {
         String u = req.getUrl().toString();
-        if (script == null) return niet("geen script");
-        if (req.isForMainFrame() || !"GET".equalsIgnoreCase(req.getMethod()) || !speler(u)) return niet("geen speler");
+        if (req.isForMainFrame() || !"GET".equalsIgnoreCase(req.getMethod()) || !speler(u)) return niet(STIL);
         Map<String, String> vraag = req.getRequestHeaders();
         String accept = null;
         if (vraag != null) for (Map.Entry<String, String> e : vraag.entrySet()) if ("accept".equalsIgnoreCase(e.getKey())) accept = e.getValue();
-        if (!documentVraag(accept, req.getUrl().getPath())) return niet("geen document");
+        if (!documentVraag(accept, req.getUrl().getPath())) return niet(STIL);
+        if (script == null) return niet("geen script");
         long tot = System.currentTimeMillis() + TOTAAL_MS;
         HttpURLConnection h = null;
         try {
             // zoals Nieuws.haal: niet naar het toestel of het thuisnetwerk
             for (java.net.InetAddress ia : java.net.InetAddress.getAllByName(java.net.IDN.toASCII(req.getUrl().getHost()))) if (Nieuws.intern(ia)) return niet("adres niet op internet");
+            int rest = rest(tot);
+            if (rest <= 0) return niet("te traag");
             h = (HttpURLConnection) new URL(u).openConnection();
             h.setInstanceFollowRedirects(false);
-            h.setConnectTimeout(WACHT_MS);
-            h.setReadTimeout(WACHT_MS);
+            h.setConnectTimeout(rest);
+            h.setReadTimeout(rest);
             if (vraag != null) for (Map.Entry<String, String> e : vraag.entrySet()) {
                 String k = e.getKey();
                 if (k == null || k.equalsIgnoreCase("accept-encoding") || k.equalsIgnoreCase("range")) continue;
@@ -264,14 +269,17 @@ final class NieuwsVideo {
             String cs = charset(type); // null: de pagina zegt het zelf (meta), de WebView kijkt dat na
             String nonce = nonce();
             Koppen k = koppen(h.getHeaderFields(), nonce);
-            if (cookies) for (String c : k.koekjes) CookieManager.getInstance().setCookie(u, c);
             boolean mag = k.mag && (cs == null || !cs.toUpperCase(Locale.ROOT).startsWith("UTF-16"));
+            if (!mag) { h.disconnect(); return niet(k.mag ? "tekenset" : "CSP"); } // dan laadt de WebView hem zelf
+            if (cookies) for (String c : k.koekjes) CookieManager.getInstance().setCookie(u, c);
             InputStream in = h.getInputStream();
             ByteArrayOutputStream buf = new ByteArrayOutputStream();
             byte[] b = new byte[16384];
             int n;
             while ((n = in.read(b)) > 0) {
                 buf.write(b, 0, n);
+                int r = rest(tot);
+                if (r > 0) h.setReadTimeout(r);
                 if (buf.size() > MAX_HTML || System.currentTimeMillis() > tot) {
                     // te groot of te traag om aan te passen: ongewijzigd doorgeven (het gelezen stuk plus de rest)
                     return new Uitkomst(antwoord(mime, cs, k.kop, new SequenceInputStream(new ByteArrayInputStream(buf.toByteArray()), in), h.getResponseMessage()),
@@ -280,10 +288,10 @@ final class NieuwsVideo {
             }
             in.close();
             byte[] ruw = buf.toByteArray();
-            if (utf16(ruw)) mag = false;
+            if (utf16(ruw)) mag = false; // al gelezen: dan ongewijzigd doorgeven
             // per byte (ISO-8859-1 houdt elke byte heel): de tekenset van de pagina blijft zoals hij was; het script is ASCII
             byte[] uit = mag ? injecteer(new String(ruw, StandardCharsets.ISO_8859_1), script, nonce).getBytes(StandardCharsets.ISO_8859_1) : ruw;
-            return new Uitkomst(antwoord(mime, cs, k.kop, new ByteArrayInputStream(uit), h.getResponseMessage()), mag ? null : "CSP of tekenset laat het script niet toe");
+            return new Uitkomst(antwoord(mime, cs, k.kop, new ByteArrayInputStream(uit), h.getResponseMessage()), mag ? null : "tekenset");
         } catch (Throwable e) {
             try { if (h != null) h.disconnect(); } catch (Throwable ignored) { }
             return niet("fout");
