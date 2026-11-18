@@ -308,8 +308,8 @@ function plQueuePlay(i){
 function plQueueMenu(i){
   const r = plQueue[i]; if (!r) return;
   const acts = [['Nu afspelen', () => plQueuePlay(i)]];
-  if (i > 0) acts.push(['⤒ Bovenaan (als volgende)', () => { Android.podQueueMove(r.ep.key, 0); plQueueSig = ''; plRender(); }]);
-  if (i < plQueue.length - 1) acts.push(['↓ Eén omlaag', () => { Android.podQueueMove(r.ep.key, i + 1); plQueueSig = ''; plRender(); }]);
+  if (i > 0) acts.push(['Bovenaan (als volgende)', () => { Android.podQueueMove(r.ep.key, 0); plQueueSig = ''; plRender(); }, 'up']);
+  if (i < plQueue.length - 1) acts.push(['Eén omlaag', () => { Android.podQueueMove(r.ep.key, i + 1); plQueueSig = ''; plRender(); }, 'down']);
   acts.push(['Uit Hierna halen', () => { Android.podQueueRemove(r.ep.key); plQueueSig = ''; plRender(); }]);
   openSheet(r.ep.title || 'Aflevering', (r.pod && r.pod.title) || '', acts);
 }
@@ -411,10 +411,10 @@ function plOutput(){
 function plOutSheet(){
   const m = plModel(); if (!m) return;
   const acts = [];
-  if (m.cast) acts.push(['📱 Terug naar deze telefoon', () => { Android.castStop(true); toast('Speelt weer op de telefoon'); setTimeout(plTick, 800); }],
-                        ['■ Stoppen met casten', () => { Android.castStop(false); setTimeout(plTick, 500); }]);
-  acts.push(['Bluetooth, koptelefoon of speaker…', () => { const e = Android.outputSwitcher(); if (e) toast(e); }]);
-  plCastDevs.forEach((d, i) => { if (d.name !== m.cast) acts.push(['📺 ' + d.name + (d.model ? ' (' + d.model + ')' : ''), () => plCastTo(i)]); });
+  if (m.cast) acts.push(['Terug naar deze telefoon', () => { Android.castStop(true); toast('Speelt weer op de telefoon'); setTimeout(plTick, 800); }, 'smartphone'],
+                        ['Stoppen met casten', () => { Android.castStop(false); setTimeout(plTick, 500); }, 'stop']);
+  acts.push(['Bluetooth, koptelefoon of speaker…', () => { const e = Android.outputSwitcher(); if (e) toast(e); }, 'headphones']);
+  plCastDevs.forEach((d, i) => { if (d.name !== m.cast) acts.push([d.model ? t('{naam} ({model})', { naam: d.name, model: d.model }) : d.name, () => plCastTo(i), 'cast']); });
   openSheet('Waar speelt het?', plOutScanning ? 'Zoeken naar Chromecasts in je wifi…' : plCastDevs.length ? 'Chromecasts in je wifi' : 'Geen Chromecast gevonden (zelfde wifi?)', acts);
   if (plOutScanning) uiWachtTekst($('#sheet-sub'), t('Zoeken naar Chromecasts in je wifi…'));
 }

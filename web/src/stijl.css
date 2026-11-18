@@ -799,6 +799,7 @@ body.pl-open{overflow:hidden}
 .player .logo,.player .pcart{background:rgba(255,255,255,.14);color:#fff}
 .pl-wide{display:block;width:100%;max-width:560px;margin:14px auto 0;padding:12px;border-radius:12px;background:rgba(255,255,255,.14);color:#fff;font-weight:700}
 .pl-wide:disabled{opacity:.45}
+.pl-wide[data-icon]{display:flex;align-items:center;justify-content:center;gap:8px}
 .pl-chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;opacity:.85;max-width:560px;margin:14px auto 0}
 .pl-qhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .pl-qhead h3{margin:0 0 6px;font-size:17px}
@@ -811,8 +812,9 @@ body.pl-open{overflow:hidden}
 .pl-empty{margin:4px 0;opacity:.8;font-size:14px}
 .pl-auto{margin:10px 2px 2px;font-size:14px;opacity:.85}
 .pl-castbar{max-width:560px;margin:4px auto 0;text-align:center;font-weight:700;font-size:14px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.14)}
-.pl-vol{display:flex;align-items:center;gap:10px;max-width:400px;margin:10px auto 0;font-size:16px}
-.pl-vol .plseek{flex:1;min-height:44px}.pl-vol .ui-icon{width:20px;height:20px;flex:none;opacity:.75}
+.pl-vol{display:flex;align-items:center;gap:10px;max-width:400px;margin:10px auto 0}
+.pl-vol .plseek{flex:1;min-height:44px}
+.pl-vol .ui-icon{opacity:.75}
 /* App-code op het slotscherm */
 .lockpad{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:300px}
 .lockdots{font-size:22px;letter-spacing:8px;min-height:32px}

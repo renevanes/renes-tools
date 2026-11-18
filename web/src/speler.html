@@ -58,7 +58,7 @@
     <!-- Alleen bij de radio: het nummer, herkennen, en meer over de zender -->
     <div id="pl-radio" style="display:none">
       <div class="pl-card nowsong" id="rd-song" style="display:none"></div>
-      <button class="pl-wide" id="rd-rec" onclick="rdRecognize()">♫ Welk nummer is dit?</button>
+      <button class="pl-wide" id="rd-rec" onclick="rdRecognize()" data-icon="music">Welk nummer is dit?</button>
       <details class="pl-card" id="rd-recent-wrap"><summary id="rd-recent-sum">Eerder gedraaid</summary><ul class="recent" id="rd-recent"></ul></details>
       <details class="pl-card" id="rd-info"><summary>Over deze zender</summary><dl class="fields" id="rd-info-dl"></dl></details>
       <label class="pl-chk"><input type="checkbox" id="rd-ts" onchange="Android.radioSetTimeshift(this.checked); toast(this.checked ? 'Geldt vanaf de volgende zender' : 'Uit; geldt vanaf de volgende zender')"> Pauzeren en terugspoelen (tot ca. 45 min buffer; tijdens pauze loopt de stream door, max. 1 uur)</label>

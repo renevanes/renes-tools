@@ -1,1 +1,1 @@
-Grote speler: de luidsprekers naast de volumeschuif zijn nu strakke lijniconen, net als de rest van de speler.
+Speler en radio: geen emoji meer als pictogram. Naast de volumeschuif, bij "Welk nummer is dit?" en in de menu's (waar het speelt, Hierna, je zenders) staan nu strakke lijniconen, net als in de rest van de app.

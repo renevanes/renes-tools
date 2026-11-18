@@ -22,10 +22,10 @@ function rdFavMenu(i){
   const s = rdFavs[i]; if (!s) return;
   const n = rdFavs.length, mv = to => { Android.radioMoveFavTo(i, to); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); };
   const acts = [['Afspelen', () => rdPlay('f', i)]];
-  if (i > 0) acts.push(['⤒ Bovenaan', () => mv(0)], ['↑ Eén naar voren', () => mv(i - 1)]);
-  if (i < n - 1) acts.push(['↓ Eén naar achteren', () => mv(i + 1)], ['⤓ Achteraan', () => mv(n - 1)]);
+  if (i > 0) acts.push(['Bovenaan', () => mv(0), 'up'], ['Eén naar voren', () => mv(i - 1), 'up']);
+  if (i < n - 1) acts.push(['Eén naar achteren', () => mv(i + 1), 'down'], ['Achteraan', () => mv(n - 1), 'down']);
   acts.push(['Op startscherm', () => { const e = Android.shortcutPinStation(JSON.stringify(s)); toast(e || t('Bevestig op je startscherm om {naam} toe te voegen', { naam: s.name })); }]);
-  acts.push(['☆ Uit favorieten', () => rdFav('f', i)]);
+  acts.push(['Uit favorieten', () => rdFav('f', i), 'star']);
   openSheet(s.name, t('Plek {n} van {totaal} · ook de volgorde in de auto', { n: i + 1, totaal: n }), acts);
 }
 /* Favoriet als voorkeuzetoets: tikken = afspelen */
