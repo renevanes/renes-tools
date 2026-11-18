@@ -812,7 +812,7 @@ body.pl-open{overflow:hidden}
 .pl-auto{margin:10px 2px 2px;font-size:14px;opacity:.85}
 .pl-castbar{max-width:560px;margin:4px auto 0;text-align:center;font-weight:700;font-size:14px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.14)}
 .pl-vol{display:flex;align-items:center;gap:10px;max-width:400px;margin:10px auto 0;font-size:16px}
-.pl-vol .plseek{flex:1;min-height:44px}
+.pl-vol .plseek{flex:1;min-height:44px}.pl-vol .ui-icon{width:20px;height:20px;flex:none;opacity:.75}
 /* App-code op het slotscherm */
 .lockpad{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:300px}
 .lockdots{font-size:22px;letter-spacing:8px;min-height:32px}

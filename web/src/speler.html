@@ -52,7 +52,7 @@
       <button class="pl-opt" id="pl-golive" onclick="rdShift('live')" data-icon="radio"><span class="pl-optl">Naar live</span></button>
       <button class="pl-opt" id="pl-stop" onclick="plStop()" data-icon="stop"><span class="pl-optl">Stop</span></button>
     </div>
-    <div class="pl-vol" id="pl-volwrap" style="display:none"><span aria-hidden="true">🔈</span><input type="range" class="plseek" id="pl-vol" min="0" max="20" step="1" value="10" aria-label="Volume" oninput="plVol(false)" onchange="plVol(true)"><span aria-hidden="true">🔊</span></div>
+    <div class="pl-vol" id="pl-volwrap" style="display:none"><span class="ui-icon" data-icon="volume" aria-hidden="true"></span><input type="range" class="plseek" id="pl-vol" min="0" max="20" step="1" value="10" aria-label="Volume" oninput="plVol(false)" onchange="plVol(true)"><span class="ui-icon" data-icon="volume-high" aria-hidden="true"></span></div>
     </div>
 
     <!-- Alleen bij de radio: het nummer, herkennen, en meer over de zender -->
