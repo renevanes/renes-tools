@@ -76,6 +76,7 @@ final class SettingsBackup {
     static JSONObject radioJson(Context c) throws Exception {
         JSONObject o = new JSONObject().put("src", Player.src(c));
         if (Player.prefs(c).contains(SleepFade.KEY)) o.put("sleepFade", (int) (SleepFade.gekozen(c) / 1000)); // slaaptimer: hoe lang zachter worden
+        if (Player.prefs(c).contains("fijnVolume")) o.put("fijnVolume", FijnVolume.aan(c)).put("fijnStappen", FijnVolume.fijn(c)); // volumeknoppen
         String last = Radio.prefs(c).getString("last", null);
         if (last != null) try { o.put("last", Radio.slimFav(new JSONObject(last))); } catch (Exception ignored) { }
         return o;
@@ -95,6 +96,8 @@ final class SettingsBackup {
             }
             // Slaaptimer: hoe lang zachter worden; alleen als het hier nog niet gekozen is, en alleen een vaste keuze
             if (o.has("sleepFade") && !Player.prefs(c).contains(SleepFade.KEY) && SleepFade.kies(c, o.optInt("sleepFade", -1))) n++;
+            // Fijner volume met de volumeknoppen; alleen als het hier nog niet gekozen is
+            if (o.has("fijnVolume") && !Player.prefs(c).contains("fijnVolume")) { FijnVolume.zet(c, o.optBoolean("fijnVolume", true), o.optInt("fijnStappen", FijnVolume.STANDAARD)); n++; }
             String src = o.optString("src", "");
             if ((Player.RADIO.equals(src) || Player.PODCAST.equals(src)) && Player.src(c).isEmpty()) Player.prefs(c).edit().putString("src", src).apply();
         } catch (Exception e) { App.log(c, "BACKUP", "radio terugzetten: " + AppData.safeMsg(e, "fout")); }

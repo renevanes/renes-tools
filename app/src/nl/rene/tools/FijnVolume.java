@@ -98,12 +98,20 @@ final class FijnVolume {
     private final Speelt speelt;
     private final Handler h = new Handler(Looper.getMainLooper());
     private final AudioAttributes attrs = new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build();
+    private final Runnable volgLater = this::volg;
     private MediaSession session;
     private Knoppen provider;
     private Kijker kijker;
-    private boolean actief = true, gekoppeld, bezig;
+    private Uitgangen uitgangen;
+    private boolean actief = true, gekoppeld, bezig, remoteMislukt;
     private int k = STANDAARD, min, max, niveau, gezet = -1;
-    private float gain = 1f;
+    private volatile float gain = 1f;
+
+    /**
+     * Het fijne niveau, gedeeld door alle spelers (podcast, radio, voorlezen): wisselen of opnieuw starten houdt het
+     * niveau zolang de stap van Android niet veranderd is (anders tot een hele stap harder).
+     */
+    private static int deelStap = -1, deelNiveau, deelK;
 
     FijnVolume(Context c, Gain uit, Speelt speelt) {
         app = c.getApplicationContext();
@@ -112,7 +120,7 @@ final class FijnVolume {
         this.speelt = speelt;
     }
 
-    /** De versterking die de speler nu moet toepassen (1 = gewoon). */
+    /** De versterking die de speler nu moet toepassen (1 = gewoon). Mag van elke thread gelezen worden. */
     float gain() { return gain; }
     int niveau() { return niveau; }
     int hoogste() { return max * k; }
@@ -122,19 +130,36 @@ final class FijnVolume {
      * speelde) of zonder (null: alleen de knoppen terwijl Tools in beeld is).
      */
     void koppel(MediaSession s) {
-        if (gekoppeld && s != session) stop(); // andere sessie: de oude terug naar gewoon
+        if (gekoppeld && s != session) { stop(); remoteMislukt = false; } // andere sessie: de oude terug naar gewoon
         session = s; gekoppeld = true; erbij(this); vernieuw();
     }
 
-    /** Uit voor bijvoorbeeld de wekker: dan gewoon het volume van Android. Ook bij elke andere stand van de speler
-     *  aanroepen: zo telt een auto die intussen verbonden is (autostand) meteen mee. */
+    /** Uit voor bijvoorbeeld de wekker: dan gewoon het volume van Android. Bij elke andere stand van de speler
+     *  aanroepen: de knoppen buiten Tools horen alleen bij Tools zolang er gespeeld wordt, en een auto die intussen
+     *  verbonden is (autostand) telt zo meteen mee. */
     void actief(boolean a) { actief = a; vernieuw(); }
 
     /** Loslaten (dienst of voorlezen stopt): knoppen terug naar Android. */
     void los() { stop(); session = null; gekoppeld = false; eraf(this); }
 
     void vernieuw() {
-        if (gekoppeld && actief && aan(app) && mag()) start(); else stop();
+        if (!(gekoppeld && actief && aan(app) && mag())) { stop(); return; }
+        start();
+        if (!bezig) return;
+        // Alleen tijdens het spelen een eigen volume voor Android (setPlaybackToRemote): gepauzeerd blijft alles gewoon,
+        // ook de knop "waar het speelt" in de mediabediening.
+        boolean wil = session != null && !remoteMislukt && speeltNu();
+        if (wil && provider == null) {
+            Knoppen p = new Knoppen(this, max * k, niveau);
+            try { session.setPlaybackToRemote(p); provider = p; } catch (Throwable e) { remoteMislukt = true; }
+        } else if (!wil && provider != null) lokaal();
+    }
+
+    private boolean speeltNu() { try { return speelt.nu(); } catch (Throwable e) { return false; } }
+
+    private void lokaal() {
+        provider = null;
+        try { if (session != null) session.setPlaybackToLocal(attrs); } catch (Throwable ignored) { }
     }
 
     private boolean mag() {
@@ -150,31 +175,34 @@ final class FijnVolume {
         int nmax = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         int nmin = Build.VERSION.SDK_INT >= 28 ? am.getStreamMinVolume(AudioManager.STREAM_MUSIC) : 0;
         if (nmax <= 0) { stop(); return; }
-        if (bezig && nk == k && nmax == max && (session == null) == (provider == null)) { volg(); return; }
+        if (bezig && nk == k && nmax == max) { volg(); return; }
+        if (provider != null) lokaal(); // andere schaal: straks opnieuw
         k = nk; max = nmax; min = Math.max(0, nmin);
         int idx = am.getStreamVolume(AudioManager.STREAM_MUSIC);
-        niveau = idx * k; gezet = idx; zetGain(1f);
-        bezig = true;
-        if (session != null) {
-            Knoppen p = new Knoppen(this, max * k, niveau);
-            try { session.setPlaybackToRemote(p); provider = p; } catch (Throwable e) { provider = null; }
-        } else if (provider != null) { provider = null; }
+        gezet = idx; bezig = true;
+        if (idx == deelStap && k == deelK && stap(deelNiveau, k, min, max) == idx) { niveau = deelNiveau; zetGain(gain(niveau, k, idx, db(idx - 1), db(idx))); }
+        else { niveau = idx * k; zetGain(1f); onthoud(); }
         if (kijker == null) {
             kijker = new Kijker(this, h);
             try { app.getContentResolver().registerContentObserver(android.provider.Settings.System.CONTENT_URI, true, kijker); } catch (Throwable e) { kijker = null; }
+        }
+        if (uitgangen == null && Build.VERSION.SDK_INT >= 23) {
+            uitgangen = new Uitgangen(this);
+            try { am.registerAudioDeviceCallback(uitgangen, h); } catch (Throwable e) { uitgangen = null; }
         }
     }
 
     private void stop() {
         if (kijker != null) { try { app.getContentResolver().unregisterContentObserver(kijker); } catch (Throwable ignored) { } kijker = null; }
-        if (provider != null) {
-            provider = null;
-            try { if (session != null) session.setPlaybackToLocal(attrs); } catch (Throwable ignored) { }
-        }
+        if (uitgangen != null) { try { am.unregisterAudioDeviceCallback(uitgangen); } catch (Throwable ignored) { } uitgangen = null; }
+        h.removeCallbacks(volgLater);
+        if (provider != null) lokaal();
         bezig = false;
         gezet = -1;
         zetGain(1f);
     }
+
+    private void onthoud() { deelStap = gezet; deelNiveau = niveau; deelK = k; }
 
     private void zetGain(float g) {
         if (g == gain) return;
@@ -182,17 +210,21 @@ final class FijnVolume {
         try { uit.gain(g); } catch (Throwable ignored) { }
     }
 
-    /** Is het volume ergens anders veranderd? Dan dat aanhouden, zonder eigen versterking. */
+    /** Is het volume ergens anders veranderd (ook: een ander apparaat)? Dan dat aanhouden, zonder eigen versterking. */
     void volg() {
         if (!bezig) return;
         int idx = am.getStreamVolume(AudioManager.STREAM_MUSIC);
         if (idx == gezet) return;
-        gezet = idx; niveau = idx * k; zetGain(1f);
+        gezet = idx; niveau = idx * k; zetGain(1f); onthoud();
         if (provider != null) try { provider.setCurrentVolume(niveau); } catch (Throwable ignored) { }
     }
 
+    /** Een ander apparaat (koptelefoon, Bluetooth): Android wisselt dan zelf van stap; even later nakijken. */
+    void uitgangVeranderd() { h.removeCallbacks(volgLater); h.postDelayed(volgLater, 600); }
+
     void stapje(int richting) {
         if (!bezig) return;
+        if (!mag()) { vernieuw(); return; } // intussen in de auto
         volg();
         if (richting == AudioManager.ADJUST_RAISE) naar(niveau + 1);
         else if (richting == AudioManager.ADJUST_LOWER) naar(niveau - 1);
@@ -206,17 +238,23 @@ final class FijnVolume {
         int s = stap(v, k, min, max);
         float g = gain(v, k, s, db(s - 1), db(s));
         // Eerst wat zachter maakt, dan wat harder maakt: geen tik te hard tussendoor
-        if (s > gezet) { zetGain(g); zetStap(s); } else { zetStap(s); zetGain(g); }
+        if (s > gezet) { zetGain(g); zetStap(s, 0); } else { zetStap(s, 0); zetGain(g); }
         int echt = am.getStreamVolume(AudioManager.STREAM_MUSIC);
-        if (echt != s) { gezet = echt; niveau = echt * k; zetGain(1f); } // geweigerd (bijv. de waarschuwing voor hard volume)
-        else niveau = v;
+        if (echt != s) {
+            // Geweigerd, meestal de waarschuwing voor hard volume op een koptelefoon: die laten zien (het volumevenster
+            // van Android), anders gebeurt er voor Rene niets zichtbaars.
+            gezet = echt; zetStap(s, AudioManager.FLAG_SHOW_UI);
+            gezet = echt = am.getStreamVolume(AudioManager.STREAM_MUSIC);
+            niveau = echt * k; zetGain(1f);
+        } else niveau = v;
+        onthoud();
         if (provider != null) try { provider.setCurrentVolume(niveau); } catch (Throwable ignored) { }
     }
 
-    private void zetStap(int s) {
+    private void zetStap(int s, int vlag) {
         if (s == gezet) return;
         gezet = s;
-        try { am.setStreamVolume(AudioManager.STREAM_MUSIC, s, 0); } catch (Throwable ignored) { }
+        try { am.setStreamVolume(AudioManager.STREAM_MUSIC, s, vlag); } catch (Throwable ignored) { }
     }
 
     /** Hoe hard een stap van Android klinkt op het apparaat waar het geluid nu heen gaat (dB), of NaN. */
@@ -227,6 +265,10 @@ final class FijnVolume {
     }
 
     private int uitgang() {
+        if (Build.VERSION.SDK_INT >= 33) try {
+            List<AudioDeviceInfo> l = am.getAudioDevicesForAttributes(attrs);
+            if (l != null && !l.isEmpty()) return l.get(0).getType();
+        } catch (Throwable ignored) { }
         int beste = AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
         try {
             for (AudioDeviceInfo d : am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
@@ -236,6 +278,14 @@ final class FijnVolume {
             }
         } catch (Throwable ignored) { }
         return beste;
+    }
+
+    /** Koptelefoon of Bluetooth erbij of eraf. */
+    static final class Uitgangen extends android.media.AudioDeviceCallback {
+        private final java.lang.ref.WeakReference<FijnVolume> f;
+        Uitgangen(FijnVolume f) { this.f = new java.lang.ref.WeakReference<>(f); }
+        @Override public void onAudioDevicesAdded(AudioDeviceInfo[] d) { FijnVolume v = f.get(); if (v != null) v.uitgangVeranderd(); }
+        @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] d) { FijnVolume v = f.get(); if (v != null) v.uitgangVeranderd(); }
     }
 
     /** De volumeknoppen (en de schuif in het volumevenster van Android) terwijl Tools speelt. */

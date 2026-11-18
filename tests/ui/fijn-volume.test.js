@@ -41,6 +41,9 @@ const URL = 'file://' + path.join(__dirname, 'ui', 'index.html');
 
     // Via het register (zoeken in Instellingen / de assistent)
     ok(await pg.evaluate(() => { const r = SET_REG.find(x => x.id === 'podcast.fijnstap'); return r.set('2') === '' && Android._fv.fijn === 2 && r.get() === '2'; }), 'register: hoe fijn');
+    ok(await pg.evaluate(() => { const r = SET_REG.find(x => x.id === 'voorlezen.fijnvolume'); const ok1 = r.set('uit') === '' && Android._fv.aan === false && r.get() === 'uit'; r.set('aan'); return ok1 && Android._fv.aan === true && Android._fv.fijn === 2; }), 'register bij Spraak: aan en uit');
+    // De assistent: "zet het volume uit" is niet deze instelling
+    ok(await pg.evaluate(() => { const r = setHandle('zet het volume uit'); return !(r && /volumeknoppen/i.test(r.text || '')) && Android._fv.aan === true; }), 'volume uit raakt de volumeknoppen niet');
 
     // Een volumeknop terwijl Tools speelt: korte melding met het volume
     await pg.evaluate(() => onFijnVolume(23, 45)); await pg.waitForTimeout(100);

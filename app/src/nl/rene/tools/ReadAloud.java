@@ -29,7 +29,9 @@ final class ReadAloud {
     private ReadAloud(){ }
     static final Object LOCK=new Object();
     /** Fijner volume met de knoppen tijdens voorlezen (niet bij de assistent: korte antwoorden). Alleen op de hoofdthread. */
-    private static FijnVolume fijn;private static volatile Handler main; // pas bij gebruik maken: de Java-tests kennen geen Looper
+    private static volatile FijnVolume fijn;private static volatile Handler main; // pas bij gebruik maken: de Java-tests kennen geen Looper
+    /** Pauze of verder (melding, headset): de knoppen buiten Tools horen alleen tijdens het spelen bij Tools. */
+    static void fijnVernieuw(){if(fijn!=null)opMain(()->{FijnVolume f=fijn;if(f!=null)f.actief(true);});}
     private static void opMain(Runnable r){Handler h=main;if(h==null)main=h=new Handler(Looper.getMainLooper());h.post(r);}
     private static FijnVolume fijn(Context c){if(fijn==null)fijn=new FijnVolume(c,g->{Job j=current;AudioTrack t=j==null?null:j.track;if(t!=null)try{t.setVolume(g);}catch(Throwable ignored){ }},()->{Job j=current;return j!=null&&j.track!=null&&!j.paused&&j.alive()&&!j.source.equals("ai");});return fijn;}
     static final ExecutorService WORK=Executors.newSingleThreadExecutor();
@@ -269,6 +271,7 @@ final class ReadAloud {
             job.track=new AudioTrack(job.attrs,new AudioFormat.Builder().setSampleRate(rate).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build(),buffer,AudioTrack.MODE_STREAM,AudioManager.AUDIO_SESSION_ID_GENERATE);
             AudioTrack track=job.track;if(track.getState()!=AudioTrack.STATE_INITIALIZED)throw new IOException("audiotrack");
             if(!job.source.equals("ai")){final android.media.session.MediaSession ses=job.background?ReadAloudService.sessie():null;opMain(()->{if(current!=job||!job.alive())return;FijnVolume f=fijn(job.context);f.koppel(ses);AudioTrack t=job.track;if(t!=null)try{t.setVolume(f.gain());}catch(Throwable ignored){ }});}
+            FijnVolume f0=fijn;if(f0!=null&&!job.source.equals("ai"))try{track.setVolume(f0.gain());}catch(Throwable ignored){ } // meteen, niet pas na koppel: geen tel te hard
             synchronized(LOCK){if(!job.alive())return;if(!job.paused)track.play();}
             long written=0;short[] samples=new short[4096];
             do{
