@@ -62,6 +62,37 @@ final class FijnVolume {
         return null;
     }
 
+    /** Voor de schuif in de speler: wat speelt, anders de laatste die nog aan het werk is (gepauzeerd), of null. */
+    static FijnVolume huidig() {
+        FijnVolume f = speler();
+        if (f != null) return f;
+        for (FijnVolume x : levend()) if (x.bezig) return x;
+        return null;
+    }
+
+    /** Het volume voor de schuif in de speler: [niveau, hoogste, fijn 1/0]. Fijn volume aan het werk: de fijne stappen;
+     *  anders de stappen van Android. Mag van elke thread. */
+    static int[] schuif(Context c) {
+        FijnVolume f = huidig();
+        if (f != null && f.max > 0) return new int[]{f.niveau, f.max * f.k, 1};
+        try {
+            AudioManager a = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+            return new int[]{a.getStreamVolume(AudioManager.STREAM_MUSIC), a.getStreamMaxVolume(AudioManager.STREAM_MUSIC), 0};
+        } catch (Throwable e) { return new int[]{0, 0, 0}; }
+    }
+
+    /** De schuif in de speler is verschoven (op de hoofdthread). */
+    static void schuifNaar(Context c, int n) {
+        FijnVolume f = huidig();
+        if (f != null) { f.naar(n); return; }
+        try {
+            AudioManager a = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+            if (a.isVolumeFixed()) return;
+            int max = a.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+            a.setStreamVolume(AudioManager.STREAM_MUSIC, Math.max(0, Math.min(max, n)), 0);
+        } catch (Throwable ignored) { }
+    }
+
     private static synchronized List<FijnVolume> levend() {
         List<FijnVolume> l = new ArrayList<>();
         for (int i = LEVEND.size() - 1; i >= 0; i--) { FijnVolume f = LEVEND.get(i).get(); if (f == null) LEVEND.remove(i); else l.add(f); }
@@ -123,8 +154,10 @@ final class FijnVolume {
     private Knoppen provider;
     private Kijker kijker;
     private Uitgangen uitgangen;
-    private boolean actief = true, gekoppeld, bezig, remoteMislukt;
-    private int k = STANDAARD, min, max, niveau, gezet = -1;
+    private boolean actief = true, gekoppeld, remoteMislukt;
+    private volatile boolean bezig;
+    private int min, gezet = -1;
+    private volatile int k = STANDAARD, max, niveau; // volatile: ook gelezen door de schuif in de speler (brug)
     private volatile float gain = 1f;
     private long vorigeDruk = -1;
     private int vorigeRichting, snelle;

@@ -45,6 +45,17 @@ public class PlayerBridge extends PodcastBridge {
     /** Aan of uit en hoe fijn (alleen een van de keuzes; anders de standaard). Geldt meteen, ook voor wat nu speelt. */
     @JavascriptInterface public void fijnVolumeSet(boolean aan, int fijn) { FijnVolume.zet(ctx, aan, fijn); }
 
+    /** Volume van de telefoon voor de schuif in de speler: {"n":niveau,"max":hoogste,"fijn":bool} (met Fijner volume in
+     *  fijne stappen, anders de stappen van Android voor media). */
+    @JavascriptInterface public String telefoonVolume() {
+        try { int[] v = FijnVolume.schuif(ctx); return new JSONObject().put("n", v[0]).put("max", v[1]).put("fijn", v[2] == 1).toString(); }
+        catch (Exception e) { return "{}"; }
+    }
+    /** Schuif verschoven: alleen het mediavolume, binnen 0..hoogste (FijnVolume kapt af). */
+    @JavascriptInterface public void telefoonVolumeZet(final int n) {
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> { try { FijnVolume.schuifNaar(ctx, n); } catch (Throwable ignored) { } });
+    }
+
     /** "1": deze app geeft hoesjes uit zijn eigen cache aan de interface (https://app.renes-tools.local/art?u=…). */
     @JavascriptInterface public String artLokaal() { return "1"; }
 

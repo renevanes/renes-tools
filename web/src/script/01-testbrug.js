@@ -1041,6 +1041,9 @@ if (!window.Android) window.Android = (function(){
     sleepFadeSet(s){ if (![0, 15, 20, 30, 60, 120, 180].includes(+s)) return false; this._fade = +s; return true; },
     _fv: { aan: true, fijn: 3 },
     fijnVolume(){ return JSON.stringify({ aan: this._fv.aan, fijn: this._fv.fijn, keuzes: [2, 3, 4], stappen: 15 }); },
+    _tv: 30,
+    telefoonVolume(){ const max = this._fv.aan ? 15 * this._fv.fijn : 15; return JSON.stringify({ n: Math.min(this._tv, max), max, fijn: this._fv.aan }); },
+    telefoonVolumeZet(n){ const max = this._fv.aan ? 15 * this._fv.fijn : 15; this._tv = Math.max(0, Math.min(max, +n | 0)); },
     fijnVolumeSet(aan, fijn){ this._fv = { aan: !!aan, fijn: [2, 3, 4].includes(+fijn) ? +fijn : 3 }; },
     playerNext(src){ return this._step(1, src); }, playerPrev(src){ return this._step(-1, src); },
     _step(d, src){

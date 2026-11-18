@@ -126,6 +126,31 @@ function plSetArt(el, m){
   laad(lokaal, () => plArtWacht(m.art, ok => { if (!nu()) return; if (ok) laad(plArtLokaal(m.art, true), zelf); else zelf(); }));
 }
 
+/** Volumeschuif in de grote speler: van de Chromecast tijdens casten, anders van de telefoon (met Fijner volume in de
+ *  fijne stappen, zoals de knoppen). */
+let plVolBezig = 0;
+function plVolRender(m){
+  const w = $('#pl-volwrap'), r = $('#pl-vol');
+  if (m && m.cast) {
+    w.style.display = m.volume >= 0 ? '' : 'none';
+    r.max = 20; r.setAttribute('aria-label', t('Volume van de Chromecast'));
+    if (m.volume >= 0 && document.activeElement !== r) r.value = Math.round(m.volume * 20);
+    return;
+  }
+  const v = typeof Android.telefoonVolume === 'function' ? rdJson(Android.telefoonVolume(), {}) : {};
+  w.style.display = v.max > 0 ? '' : 'none';
+  if (!(v.max > 0)) return;
+  r.max = v.max; r.setAttribute('aria-label', t('Volume'));
+  if (Date.now() - plVolBezig > 1200) r.value = v.n; // niet terugspringen terwijl je schuift
+  r.setAttribute('aria-valuetext', t('Volume {p}%', { p: fmtNum(Math.round(v.n / v.max * 100)) }));
+}
+function plVol(klaar){
+  const r = $('#pl-vol'), m = plModel();
+  if (m && m.cast) { if (klaar) Android.castVolume(r.value / 20); return; }
+  plVolBezig = Date.now();
+  if (typeof Android.telefoonVolumeZet === 'function') Android.telefoonVolumeZet(+r.value); // meteen: je hoort het tijdens het schuiven
+}
+
 function plRender(){
   plCastPoll();
   const m = plModel(), bar = $('#plbar');
@@ -213,8 +238,7 @@ function plRender(){
   plSetText($('#pl-out-l'), waar); $('#pl-out').dataset.icon = m.cast ? 'cast' : 'volume';
   $('#pl-out').setAttribute('aria-label', t('Waar speelt het? Nu: {waar}', { waar }));
   $('#pl-out').classList.toggle('on', !!m.cast);
-  $('#pl-volwrap').style.display = m.cast && m.volume >= 0 ? '' : 'none';
-  if (m.cast && m.volume >= 0 && document.activeElement !== $('#pl-vol')) $('#pl-vol').value = Math.round(m.volume * 20);
+  plVolRender(m);
   // Opties
   $('#pl-speed').style.display = m.src === 'podcast' ? '' : 'none';
   const snel = pcSpeedTxt(m.speed);
