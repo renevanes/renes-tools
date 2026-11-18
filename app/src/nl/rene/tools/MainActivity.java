@@ -2795,7 +2795,12 @@ public class MainActivity extends Activity {
             e.apply();
         }
 
-        @JavascriptInterface public void backupSetRotate(boolean on) { AllBackup.prefs(ctx).edit().putBoolean("rotate", on).apply(); }
+        @JavascriptInterface public void backupSetRotate(boolean on) {
+            // Vastleggen hoeveel er blijven, zodat aanzetten nooit ongemerkt een andere regel kiest
+            AllBackup.prefs(ctx).edit().putInt("keep", AllBackup.keep(ctx)).putBoolean("rotate", on).apply();
+        }
+        /** Hoeveel volledige backups er blijven bij opruimen (0 = de laatste 14 dagen en de nieuwste per maand). */
+        @JavascriptInterface public void backupSetKeep(int n) { AllBackup.prefs(ctx).edit().putInt("keep", Rotate.keep(n)).apply(); }
 
         /** Opruimen (dry = alleen tellen); uitkomst via onRotate({count, bytes} of {error}). */
         @JavascriptInterface public void backupRotate(boolean dry) {

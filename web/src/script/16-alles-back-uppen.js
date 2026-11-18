@@ -97,7 +97,7 @@ function bkRenderHerstel(st){
     (h.ok ? '' : rows.filter(r => !r[1]).map(r => r[2] ? '<button class="bkres bkfix" onclick="show(\'' + r[2] + '\')"><b>' + t(r[0]) + '</b><span class=bad>' + t('✗ ontbreekt') + '</span>' + uiIcon('chevron-right') + '</button>'
       : '<div class=bkres><b>' + t(r[0]) + '</b><span class=bad>' + t('✗ ontbreekt') + '</span><span class=bk-sp aria-hidden=true></span></div>').join('')) +
     (h.stopped ? '<p class="note warn" id=bk-herstel-stopped>' + t('De laatste nachtelijke backup werd door Android gestopt voordat alle appgegevens erin zaten. Maak hem één keer met Nu alles back-uppen en laat de app open tot hij klaar is.') + '</p>' : '') +
-    // Grootte: elke nacht een volledig archief erbij. Opruimen kiest Rene zelf.
+    // Grootte: elke nacht een volledig archief erbij. Opruimen staat standaard aan; alleen als Rene het uitzette deze uitleg.
     (h.part && h.enc && !h.rotate ? '<p class=note id=bk-herstel-size>' + (h.appBytes ? t('Elke nacht komt er een volledige backup bij (de appgegevens waren de laatste keer ongeveer {grootte}). Oude backups worden niet vanzelf weggehaald, dus je backup-map groeit elke nacht.', { grootte: fmtB(h.appBytes) }) : t('Elke nacht komt er een volledige backup bij. Oude backups worden niet vanzelf weggehaald, dus je backup-map groeit elke nacht.')) +
       '</p><button class="big ghost" id=bk-herstel-rotate onclick="bkRotateOn()">' + t('Oude backups vanzelf opruimen') + '</button>' : ''));
 }
@@ -106,7 +106,7 @@ function bkPlainOk(){
   askConfirm('Zonder versleutelen verder?', 'Backups worden dan weer gewone, leesbare bestanden in je backup-map (sms, oproepen, contacten, notities …), te lezen door iedereen die bij die map kan. Alle appgegevens (met wachtwoorden en sleutels) en de privé-onderdelen gaan dan niet mee. Je kunt later altijd weer een wachtwoord instellen.', 'Zonder versleutelen',
     () => { Android.herstelPlainOk(); toast('Backups gaan verder zonder versleutelen'); enterBackup(); });
 }
-function bkRotateOn(){ Android.backupSetRotate(true); toast('Na elke gelukte backup worden oude backups opgeruimd (de laatste 14 dagen en de nieuwste per maand blijven)'); enterBackup(); }
+function bkRotateOn(){ Android.backupSetRotate(true); toast(t('Na elke gelukte backup worden oude backups opgeruimd. {regel}.', { regel: bkKeepTekst(bkKeep(bkState(true))) })); enterBackup(); }
 function stopBkPoll(){ if (bkPoll) { clearInterval(bkPoll); bkPoll = null; } }
 /* Tijdens een backup: wat Java niet tegenhoudt (wachtwoord, versleutelen uit, opruimen, map) even niet, met een regel waarom */
 function bkBusyUi(){

@@ -208,7 +208,7 @@ const SET_REG = [
     get: () => setB(rdJson(Android.backupMapState(), {}).auto !== false), set: v => { Android.backupMapAuto(setOnV(v)); setIf(BK_SCR, enterBackup); return ''; } },
   { id: 'backup.opladen', scr: 'bkset', ctl: '#bk-charging', label: 'Backup alleen tijdens opladen', desc: 'De nachtelijke backup wacht tot de telefoon aan de lader ligt.', syn: 'backup opladen lader', need: /opla|lader|laad/,
     get: () => setB(setBk().charging !== false), set: v => { Android.backupSetAuto(!!setBk().auto, setOnV(v)); setIf(BK_SCR, enterBackup); return ''; } },
-  { id: 'backup.opruimen', scr: 'bkset', ctl: '#bk-rotate', label: 'Oude backups vanzelf opruimen', desc: 'Na elke gelukte backup: alles van de laatste 14 dagen blijft, en daarvoor de nieuwste per maand.', syn: 'backup opruimen oude verwijderen ruimte rotatie',
+  { id: 'backup.opruimen', scr: 'bkset', ctl: '#bk-rotate', label: 'Oude backups vanzelf opruimen', desc: 'Na elke gelukte backup oude backups weghalen; standaard blijven de laatste 7 staan (in te stellen).', syn: 'backup opruimen oude verwijderen ruimte rotatie bewaren laatste',
     get: () => setB(rdJson(Android.backupState(true), {}).rotate), set: v => { Android.backupSetRotate(setOnV(v)); setIf(BK_SCR, enterBackup); return ''; },
     warn: v => v === 'aan' ? 'Oudere backups worden dan na elke backup weggehaald.' : '' },
   { id: 'backup.versleutelen', scr: 'bkset', type: 'openen', vals: SET_AU, safe: 'beveiliging', label: 'Backups versleutelen', desc: 'Backups in één versleuteld bestand (AES-256) met een wachtwoord.', syn: 'versleutelen encryptie wachtwoord backup beveiligen',

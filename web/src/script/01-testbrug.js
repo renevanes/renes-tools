@@ -357,6 +357,8 @@ if (!window.Android) window.Android = (function(){
     kluisZoek(q){ if (!this._kl.open) { setTimeout(() => onKluisZoek('{"locked":true}'), 10); return; } const T = this._kl.tekst || {}, w = String(q).toLowerCase().split(/\s+/).filter(Boolean), hits = {}; let zonder = 0;
       for (const d of this._kl.docs) { const t = T[d.id]; if (t == null) { zonder++; continue; } const l = t.toLowerCase(); if (w.length && w.every(x => l.includes(x))) { const i = l.indexOf(w[0]); hits[d.id] = (i > 30 ? '… ' : '') + t.slice(Math.max(0, i - 30), i + 60); } }
       (this._klZoek = this._klZoek || []).push(q); setTimeout(() => onKluisZoek(JSON.stringify({ q, hits, zonder })), 20); },
+    kluisTekstStand(id){ if (!this._kl.open) return ''; return (this._kl.tekstStand || {})[id] || ''; },
+    kluisTekstOpnieuw(id){ if (!this._kl.open) return; (this._kl.opnieuw = this._kl.opnieuw || []).push(id); if (this._kl.tekstStand) delete this._kl.tekstStand[id]; this.kluisTekstBijwerken(); },
     kluisTekstBijwerken(){ if (!this._kl.open) return; this._klTekstStart = (this._klTekstStart || 0) + 1; const n = window.__testKluisLezen || 0; if (n) { setTimeout(() => onKluisTekst(JSON.stringify({ klaar: 0, totaal: n, bezig: true })), 10); setTimeout(() => onKluisTekst(JSON.stringify({ klaar: n, totaal: n, bezig: false })), 400); } },
     kluisList(){ return this._kl.open ? JSON.stringify({docs: this._kl.docs, left: 300000}) : '{"locked":true}'; },
     kluisAdd(){ this._kl.docs.push({id: 'k2abcdef', name: 'Polis <b>.pdf', mime: 'application/pdf', size: 1000, t: Date.now()}); setTimeout(() => onKluisChanged('ok'), 30); },
@@ -1392,9 +1394,9 @@ if (!window.Android) window.Android = (function(){
     /* Net ontgrendeld op het slotscherm (MainActivity.toolSlotNeem): één keer, voor die tool, hooguit een minuut */
     _tsNeem(tool){ const s=this._tslot; if(!s.net||s.net!==tool||Date.now()-s.netOp>60000) return false; s.net=''; return true; },
     toolSlotScherm(on){ this._tslot.scherm=!!on; },
-    _sec:{on:false,since:0,rotate:false,space:null},
+    _sec:{on:false,since:0,rotate:true,keep:7,space:null},
     backupSetPassword(pw){ setTimeout(()=>{ this._sec.on=true; this._sec.since=Date.now(); this._sec.pw=pw; onSecure(''); },200); },
-    backupEncryptOff(){ this._sec.on=false; this._bk.parts.ai=false; this._bk.parts.sleep=false; this._bk.parts.checkin=false; this._bk.plain={}; }, backupSetRotate(on){ this._sec.rotate=on; },
+    backupEncryptOff(){ this._sec.on=false; this._bk.parts.ai=false; this._bk.parts.sleep=false; this._bk.parts.checkin=false; this._bk.plain={}; }, backupSetRotate(on){ this._sec.rotate=on; }, backupSetKeep(n){ this._sec.keep=[0,3,7,14,30].includes(n)?n:7; },
     backupRotate(dry){ setTimeout(()=>{ if(!dry) this._sec.rotated=true; onRotate({count:6,bytes:48e6,dry}); },100); },
     backupSpace(){ setTimeout(()=>{ this._sec.space={t:Date.now(),total:5.4e9,dirs:[{name:'WhatsApp backup',bytes:4.9e9,files:8123},{name:'SMS backup',bytes:3.1e8,files:41},{name:'Versleuteld',bytes:1.9e8,files:9}]}; onSpace(this._sec.space); },200); },
     archivePick(){ setTimeout(()=>onArchivePicked(),100); },
@@ -1406,7 +1408,7 @@ if (!window.Android) window.Android = (function(){
     /* Elke nacht: zelf gekozen blijft; nooit gekozen = alleen met versleutelen en een backup-map (zoals AllBackup.auto) */
     _bkAuto(){ const b=this._bk; return b.auto==null ? (!!this._sec.on && !!this._wa.info.dest) : !!b.auto; },
     // Zoals AllBackup.stateJson: zonder full alleen busy, current, encrypted en last (licht, voor het pollen)
-    backupState(f){ const b=this._bk, auto=this._bkAuto(); if(!f) return JSON.stringify(Object.assign({busy:b.busy,current:b.current,encrypted:this._sec.on}, b.last?{last:b.last}:{})); return JSON.stringify({busy:b.busy,current:b.current,auto,charging:b.charging,dest:this._wa.info.dest,destName:'USB-stick',next:auto?Date.now()+5*36e5:0,parts:Object.assign({ai:false,sleep:false,checkin:false},b.parts),sleepAudio:b.sleepAudio,extra:b.extra,last:b.last,encrypted:this._sec.on,encSince:this._sec.since,rotate:this._sec.rotate,space:this._sec.space,herstel:this._herstelReady()}); },
+    backupState(f){ const b=this._bk, auto=this._bkAuto(); if(!f) return JSON.stringify(Object.assign({busy:b.busy,current:b.current,encrypted:this._sec.on}, b.last?{last:b.last}:{})); return JSON.stringify({busy:b.busy,current:b.current,auto,charging:b.charging,dest:this._wa.info.dest,destName:'USB-stick',next:auto?Date.now()+5*36e5:0,parts:Object.assign({ai:false,sleep:false,checkin:false},b.parts),sleepAudio:b.sleepAudio,extra:b.extra,last:b.last,encrypted:this._sec.on,encSince:this._sec.since,rotate:this._sec.rotate,keep:this._sec.keep,space:this._sec.space,herstel:this._herstelReady()}); },
     /* Klaar voor herinstallatie (zoals Herstel.ready) */
     _herstelReady(){ const b=this._bk, h=this._hs, dest=!!this._wa.info.dest, enc=!!this._sec.on, auto=this._bkAuto(), part=b.parts.app!==false, last=b.appLast||0, miss=[];
       const blocked=h.state==='nieuw'?'Nog niet: zet eerst je gegevens terug (of kies Overslaan)':h.needPw&&!enc?'Stel eerst het wachtwoord van je backup opnieuw in (Versleutelen): na het terugzetten gaan backups alleen versleuteld verder':'';

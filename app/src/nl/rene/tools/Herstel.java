@@ -448,13 +448,13 @@ final class Herstel {
         if (!part) miss.put(Taal.T("Vink Alle appgegevens aan"));
         if (!auto) miss.put(Taal.T("Zet Elke nacht alles back-uppen aan"));
         if (last == 0) miss.put(Taal.T("Nog geen complete backup gemaakt"));
-        // Hint bij de grootte: elke nacht komt er een volledig archief bij; opruimen kiest Rene zelf
+        // Hint bij de grootte: elke nacht komt er een volledig archief bij; opruimen staat standaard aan
         String lastRes = AllBackup.prefs(c).getString("last", null);
         boolean stopped = false;
         try { JSONObject lr = lastRes == null ? null : new JSONObject(lastRes); JSONObject ap = lr == null ? null : lr.optJSONObject("app"); stopped = ap != null && AllBackup.STOPPED.equals(ap.optString("msg")); }
         catch (Exception ignored) { }
         return new JSONObject().put("ok", miss.length() == 0).put("missing", miss).put("last", last).put("blocked", blocked == null ? "" : blocked)
-                .put("rotate", AllBackup.prefs(c).getBoolean("rotate", false)).put("appBytes", AllBackup.prefs(c).getLong("appBytes", 0)).put("stopped", stopped)
+                .put("rotate", AllBackup.rotateOn(c)).put("appBytes", AllBackup.prefs(c).getLong("appBytes", 0)).put("stopped", stopped)
                 .put("lastName", AllBackup.prefs(c).getString("appLastName", "")).put("enc", enc).put("dest", dest).put("auto", auto).put("part", part);
     }
 

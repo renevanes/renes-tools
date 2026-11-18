@@ -139,6 +139,8 @@ function klDocSheet(id){
   acts.push([t('Opslaan als…'), () => Android.kluisSaveAs(id, 0)]);
   if (!isPlay()) acts.push([t('Vergelijken met…'), () => { cmpVanKluis(0, id, 0); show('pdfcmp'); }]);
   if (nv) acts.push([tn(nv, 'Eerdere versie', '{n} eerdere versies'), () => klVersies(id), 'clock']);
+  // Drie keer niet te lezen (voor Zoeken in de tekst): op verzoek nog een keer proberen
+  if (Android.kluisTekstStand(id) === 'mislukt') acts.push([t('Tekst opnieuw lezen'), () => { Android.kluisTekstOpnieuw(id); toast(t('De tekst wordt opnieuw gelezen')); }, 'refresh']);
   acts.push([t('Verplaatsen naar map…'), () => klVerplaats(id), 'folder'],
     [x.favorite ? 'Uit favorieten halen' : 'Als favoriet markeren', () => klFavorite(id)],
     ['Naam wijzigen', () => askInput('Naam', '', x.name, 'Opslaan', v => { const e = Android.kluisRename(id, v); if (e) toast(e); klRender(); })],

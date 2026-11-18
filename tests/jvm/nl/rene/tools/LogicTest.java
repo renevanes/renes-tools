@@ -134,6 +134,22 @@ public class LogicTest {
                 del3.contains("backup-2026-10-02_0330_deels.rtb") && !del3.contains("backup-2026-10-03_0330_deels.rtb") && !del3.contains("backup-2026-10-01_0330.rtb"));
         java.util.Set<String> del4 = new java.util.HashSet<>(Rotate.toDelete(Arrays.asList("backup-2026-08-03_0330_deels.rtb"), now));
         check("opruimen: onvolledig archief ouder dan 14 dagen weg, ook als het het enige is", del4.contains("backup-2026-08-03_0330_deels.rtb"));
+        // Opruimen: de laatste N volledige backups per soort (standaard 7)
+        List<String> nacht = new java.util.ArrayList<>();
+        for (int dag = 1; dag <= 20; dag++) nacht.add(String.format("backup-2026-09-%02d_0330.rtb", dag));
+        nacht.add("backup-2026-09-20_0330_deels.rtb"); nacht.add("backup-2026-09-19_0330_deels.rtb");
+        nacht.add("sms-2026-09-01.xml"); nacht.add("sms-2026-09-02.xml"); nacht.add("notities.json"); nacht.add("contacten-versie-3.vcf");
+        java.util.Set<String> k7 = new java.util.HashSet<>(Rotate.toDelete(nacht, now, 7));
+        boolean laatste7 = true;
+        for (int dag = 1; dag <= 20; dag++) laatste7 &= k7.contains(String.format("backup-2026-09-%02d_0330.rtb", dag)) == (dag <= 13);
+        check("opruimen: laatste 7 volledige backups blijven, de rest weg", laatste7);
+        check("opruimen (7): onvolledig archief met een nieuwer archief weg, telt niet mee", k7.contains("backup-2026-09-19_0330_deels.rtb") && !k7.contains("backup-2026-09-14_0330.rtb"));
+        check("opruimen (7): andere soorten met minder dan 7 blijven, losse bestanden ook", !k7.contains("sms-2026-09-01.xml") && !k7.contains("notities.json") && !k7.contains("contacten-versie-3.vcf"));
+        check("opruimen (7): precies 13 + 2 onvolledige weg", k7.size() == 15);
+        java.util.Set<String> k3 = new java.util.HashSet<>(Rotate.toDelete(Arrays.asList("backup-2026-10-04_120000.rtb", "backup-2026-10-04_1200.rtb", "backup-2026-10-03_0330.rtb", "backup-2026-10-02_0330.rtb"), now, 3));
+        check("opruimen (3): de oudste weg, naam met seconden telt als nieuwer", k3.size() == 1 && k3.contains("backup-2026-10-02_0330.rtb"));
+        check("opruimen: keuze 0 = de oude regel", new java.util.HashSet<>(Rotate.toDelete(names, now, 0)).equals(del));
+        check("opruimen: onbekende keuze wordt 7", Rotate.keep(5) == 7 && Rotate.keep(-1) == 7 && Rotate.keep(0) == 0 && Rotate.keep(30) == 30 && Rotate.KEEP_DEFAULT == 7);
         java.util.Set<String> st = new java.util.HashSet<>(Rotate.stalePartials(Arrays.asList("backup-2026-10-03_0330_deels.rtb", "backup-2026-10-04_0330_deels.rtb", "backup-2026-10-04_0330.rtb", "sms-2026-10-01.xml"), now));
         check("opruimen: na een nieuw archief gaan oudere onvolledige weg (los van opruimen)", st.size() == 2 && st.contains("backup-2026-10-03_0330_deels.rtb") && st.contains("backup-2026-10-04_0330_deels.rtb"));
         check("opruimen: naam met _deels herkend", Rotate.parse("backup-2026-10-04_033012_deels.rtb") != null && Rotate.parse("backup-2026-10-04_033012_deels.rtb").partial);

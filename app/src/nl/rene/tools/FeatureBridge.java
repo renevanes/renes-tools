@@ -503,6 +503,17 @@ public class FeatureBridge {
             if (!a.kluisOk()) return;
             KluisTekst.start(ctx, json -> a.js("onKluisTekst", json));
         }
+        /** Stand van het lezen van één document: "mislukt", "gelezen", "leeg" of "" (nog niet); op slot of onbekend: "". */
+        @JavascriptInterface public String kluisTekstStand(String id) {
+            try { if (!a.kluisOk() || id == null || Kluis.find(ctx, id) == null) return ""; return KluisTekst.stand(ctx, id); }
+            catch (Throwable e) { return ""; }
+        }
+        /** Een document dat drie keer niet te lezen was, op verzoek nog een keer lezen. Voortgang via onKluisTekst. */
+        @JavascriptInterface public void kluisTekstOpnieuw(String id) {
+            try { if (!a.kluisOk() || id == null || Kluis.find(ctx, id) == null) return; }
+            catch (Throwable e) { return; }
+            KluisTekst.opnieuwLezen(ctx, id, json -> a.js("onKluisTekst", json));
+        }
         @JavascriptInterface public void kluisAdd() {
             if (!a.kluisOk()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
             a.h.post(() -> {

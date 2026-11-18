@@ -352,14 +352,14 @@ final class Secure {
         Uri tree = WaBackup.destUri(c);
         if (tree == null) throw new Exception("Kies eerst een backup-map");
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
-        int n = 0;
+        int n = 0, keep = AllBackup.keep(c);
         long bytes = 0;
         for (String d : ROTATE_DIRS) {
             WaBackup.DestDir dir = dest.dir(d, false);
             if (dir == null) continue;
             List<String> files = new ArrayList<>();
             for (Map.Entry<String, WaBackup.Child> e : dir.kids.entrySet()) if (!e.getValue().dir) files.add(e.getKey());
-            for (String name : Rotate.toDelete(files, System.currentTimeMillis())) {
+            for (String name : Rotate.toDelete(files, System.currentTimeMillis(), keep)) {
                 WaBackup.Child ch = dir.kids.get(name);
                 if (!dry) {
                     try { DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, ch.docId)); }

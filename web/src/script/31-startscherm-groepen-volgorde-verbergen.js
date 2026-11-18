@@ -153,12 +153,20 @@ function homeKlap(name){
   const namen = ['★ Favorieten'].concat(homeCfg().groups.map(g => g.name)), d = homeGroepenDicht().filter(x => namen.includes(x));
   store.set('homeGroepenDicht', d.includes(name) ? d.filter(x => x !== name) : d.concat(name));
   renderHome();
-  const h = [...document.querySelectorAll('#home-groups .hgroup h3')].find(e => e.dataset.g === name); if (h) h.focus({ preventScroll: true });
+  const h = [...document.querySelectorAll('#home-groups .hgroup h3')].find(e => e.dataset.g === name), k = h && h.querySelector('.hgkop'); if (k) k.focus({ preventScroll: true });
 }
+/* De kop van een groep: een echte knop in de h3 (schermlezers horen kop én knop, Enter en spatie werken vanzelf) */
 (function(){ const box = document.getElementById('home-groups'); if (!box) return;
-  box.addEventListener('click', e => { const h = e.target.closest && e.target.closest('.hgroup h3[data-g]'); if (h) homeKlap(h.dataset.g); });
-  box.addEventListener('keydown', e => { const h = e.target.closest && e.target.closest('.hgroup h3[data-g]'); if (h && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); homeKlap(h.dataset.g); } });
+  box.addEventListener('click', e => { const k = e.target.closest && e.target.closest('.hgroup .hgkop'), h = k && k.closest('h3[data-g]'); if (h) homeKlap(h.dataset.g); });
 })();
+/** De kop van een groep: naam, en ingeklapt ook hoeveel tools erin staan. */
+function homeKop(name, n, dicht){
+  const h = document.createElement('h3'); h.dataset.g = name;
+  const k = document.createElement('button'); k.type = 'button'; k.className = 'hgkop'; k.setAttribute('aria-expanded', dicht ? 'false' : 'true');
+  const s = document.createElement('span'); s.className = 'hgnaam'; s.textContent = name; k.appendChild(s);
+  if (dicht) { const m = document.createElement('small'); m.className = 'hgn'; m.textContent = tn(n, '{n} tool', '{n} tools'); k.appendChild(m); }
+  h.appendChild(k); return h;
+}
 function renderHome(){
   const c = homeCfg(), box = $('#home-groups'), pool = $('#tile-pool');
   // Tegels eerst terug in de verborgen pool, dan opnieuw verdelen (de tegels zelf blijven dezelfde knoppen)
@@ -170,7 +178,7 @@ function renderHome(){
     const g = document.createElement('div'); g.className = 'hgroup';
     // Een groep met een naam klap je in en uit met een tik op de kop (onthouden per groep, homeGroepenDicht)
     const dicht = !!name && homeGroepenDicht().includes(name);
-    if (name) { const h = document.createElement('h3'); h.textContent = name; h.dataset.g = name; h.tabIndex = 0; h.setAttribute('role', 'button'); h.setAttribute('aria-expanded', dicht ? 'false' : 'true'); g.appendChild(h); }
+    if (name) g.appendChild(homeKop(name, vis.length, dicht));
     if (dicht) g.classList.add('dicht');
     const grid = document.createElement('div'); grid.className = 'tiles'+(vis.length===1?' single':vis.length%2?' oneven':''); // oneven: de laatste tegel over de volle breedte, geen gat
     vis.forEach(tk => { const el = document.getElementById(TOOL_TILE[tk]); if (el) grid.appendChild(el); });
@@ -184,7 +192,38 @@ function renderHome(){
   renderHomeRecent();
   renderHomeNew();
   renderHomeStart();
+  homeTegelPasStraks();
 }
+/* ---------- Lange tegelnamen niet midden in een woord afbreken ----------
+ * Past het langste woord van een naam (Automatiseringen, Documentenkluis; in het Engels andere woorden) niet op de
+ * tegel, dan wordt alleen die naam iets kleiner (hooguit tot 10 px). Breken tussen woorden mag gewoon; past het ook dan
+ * niet, dan breekt de CSS het woord als laatste redmiddel (overflow-wrap: break-word). */
+let homeTpCv = null, homeTpRaf = 0;
+function homeTegelPasStraks(){ if (!homeTpRaf) homeTpRaf = requestAnimationFrame(() => { homeTpRaf = 0; homeTegelPas(); }); }
+function homeTegelPas(){
+  const tiles = document.querySelectorAll('#home-groups .tile > b');
+  if (!tiles.length) return;
+  homeTpCv = homeTpCv || document.createElement('canvas').getContext('2d');
+  tiles.forEach(b => {
+    b.style.fontSize = '';
+    // De ruimte van de naam zelf (max-width 100%: nooit breder dan zijn plek op de tegel, naast het pictogram)
+    const ruimte = b.clientWidth;
+    if (!(ruimte > 0)) return; // niet in beeld: bij tonen opnieuw (ResizeObserver hieronder)
+    const bs = getComputedStyle(b), fs = parseFloat(bs.fontSize), ls = parseFloat(bs.letterSpacing) || 0;
+    homeTpCv.font = bs.fontWeight + ' ' + fs + 'px ' + bs.fontFamily;
+    // Woorden, en bij een streepje (SMS-backup) mag de regel daarna ook verder: elk deel telt apart
+    const delen = b.textContent.trim().split(/\s+/).flatMap(w => w.match(/[^-]+-?|-/g) || []);
+    const breed = Math.max(0, ...delen.map(w => homeTpCv.measureText(w).width + ls * w.length));
+    if (breed > ruimte) b.style.fontSize = Math.max(10, Math.floor(fs * (ruimte - 1) / breed * 2) / 2) + 'px';
+  });
+}
+(function(){
+  const box = document.getElementById('home-groups'); if (!box) return;
+  // Ook als het startscherm weer in beeld komt, de breedte verandert (draaien, compact) of de taal wisselt
+  if (typeof ResizeObserver === 'function') new ResizeObserver(homeTegelPasStraks).observe(box);
+  if (typeof MutationObserver === 'function') new MutationObserver(recs => { if (recs.some(r => { const e = r.type === 'characterData' ? r.target.parentElement : r.target; return e && e.closest && e.closest('.tile > b'); })) homeTegelPasStraks(); })
+    .observe(box, { subtree: true, characterData: true, childList: true });
+})();
 /* ---------- Recent gebruikt: de laatste vier tools die Rene opende ----------
  * Alleen welke tool (bijv. "pdf"), geen tijden of wat erin gebeurde; alleen in deze WebView (localStorage rt.homeRecent).
  * Het is gebruik, geen instelling: niet in de interface-instellingen voor Alles back-uppen (WS_SKIP in 02-kern.js).

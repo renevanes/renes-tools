@@ -20,6 +20,7 @@ function bkRenderSecure(st){
   $('#bk-enc-btn').textContent = on ? 'Wachtwoord wijzigen' : 'Wachtwoord instellen';
   $('#bk-enc-off').style.display = on ? 'block' : 'none';
   $('#bk-rotate').checked = !!st.rotate;
+  bkKeepRender(st);
   if (st.parts) bkPrivRender(st); // de waarschuwing bij Privé hangt af van versleutelen
   if (st.parts && bkOn() && $('#bk-app-note')) { const n = $('#bk-app-note'); n.className = 'note' + (on ? '' : ' warn'); n.innerHTML = bkAppNote(on); }
   if (st.herstel) bkRenderHerstel(st);
@@ -52,12 +53,26 @@ function bkEncOff(){
     const st = bkState(true); bkRenderSecure(st); bkSums(st); toast(t(priv.length ? 'Versleutelen staat uit; privé-onderdelen gaan niet meer mee' : 'Versleutelen staat uit'));
   });
 }
+/* Oude backups opruimen: hoeveel volledige backups er blijven (Java: Rotate.KEEP_CHOICES, 0 = 14 dagen + per maand) */
+function bkKeep(st){ const k = Number((st || {}).keep); return [0, 3, 7, 14, 30].includes(k) ? k : 7; }
+function bkKeepTekst(k){
+  return k ? t('Van elke soort blijven de laatste {n} volledige backups staan', { n: k }) : t('De laatste 14 dagen blijven, en daarvoor de nieuwste per maand');
+}
+function bkKeepRender(st){
+  const k = bkKeep(st), sel = $('#bk-keep'), txt = $('#bk-keep-txt');
+  if (sel) sel.value = String(k);
+  if (txt) txt.textContent = st.rotate ? bkKeepTekst(k) : t('Uit: oude backups blijven staan tot je ze zelf weghaalt');
+}
+function bkKeepSet(v){
+  Android.backupSetKeep(Number(v) || 0);
+  bkKeepRender(bkState(true));
+}
 function bkRotate(){ uiBezig(t('Bezig met tellen…'), 'onRotate'); Android.backupRotate(true); }
 window.onRotate = function(r){
   if (r.error) { toast(r.error); return; }
   if (r.dry) {
     if (!r.count) { toast('Er is niets op te ruimen'); return; }
-    askConfirm(t('{n} oude bestanden verwijderen?', { n: r.count }), t('Samen {grootte}. Alles van de laatste 14 dagen en de nieuwste van elke maand blijven staan.', { grootte: fmtB(r.bytes) }), 'Verwijderen', () => { uiBezig(t('Oude bestanden verwijderen…'), 'onRotate'); Android.backupRotate(false); });
+    askConfirm(t('{n} oude bestanden verwijderen?', { n: r.count }), t('Samen {grootte}. {regel}.', { grootte: fmtB(r.bytes), regel: bkKeepTekst(bkKeep(bkState(true))) }), 'Verwijderen', () => { uiBezig(t('Oude bestanden verwijderen…'), 'onRotate'); Android.backupRotate(false); });
   } else { toast(t('✓ {n} oude bestanden verwijderd ({grootte})', { n: r.count, grootte: fmtB(r.bytes) })); }
 };
 function bkSpace(){ $('#bk-space-btn').disabled = true; $('#bk-space-btn').textContent = 'Bezig met tellen…'; Android.backupSpace(); }

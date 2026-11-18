@@ -47,6 +47,19 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => !$('#kl-list').children.length && !Object.keys(klT.hits).length && $('#kl-search').value === ''), scheme + ': weg van de kluis: lijst, stukjes en zoekvraag zijn weg uit de pagina');
     await pg.evaluate(() => { Android._kl.open = true; show('kluis'); }); await pg.waitForTimeout(150);
     if (await pg.evaluate(() => typeof tsZichtbaar === 'function' && tsZichtbaar())) { await pg.click('#ts-open'); await pg.waitForFunction(() => $('#kl-open').style.display === 'block'); await pg.waitForTimeout(30); }
+    // Drie keer niet te lezen: in het menu van het document "Tekst opnieuw lezen"; bij andere documenten niet
+    await pg.fill('#kl-search', ''); await pg.waitForTimeout(100);
+    const acts = () => pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent.trim()));
+    await pg.evaluate(() => { Android._kl.tekstStand = { k2abcdef: 'mislukt', k1abcdef: 'gelezen' }; klDocSheet('k1abcdef'); }); await pg.waitForTimeout(100);
+    ok(!(await acts()).some(x => /Tekst opnieuw lezen/.test(x)), scheme + ': gelezen document: geen "Tekst opnieuw lezen"');
+    await pg.evaluate(() => closeSheet()); await pg.waitForTimeout(100);
+    const start0 = await pg.evaluate(() => Android._klTekstStart || 0);
+    await pg.evaluate(() => klDocSheet('k2abcdef')); await pg.waitForTimeout(100);
+    ok((await acts()).some(x => /Tekst opnieuw lezen/.test(x)), scheme + ': niet te lezen document: "Tekst opnieuw lezen" in het menu');
+    await pg.locator('#sheet-acts button', { hasText: 'Tekst opnieuw lezen' }).click(); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(s0 => (Android._kl.opnieuw || []).join() === 'k2abcdef' && Android._klTekstStart === s0 + 1, start0), scheme + ': opnieuw lezen gevraagd voor precies dat document, en het lezen loopt weer');
+    ok(/opnieuw gelezen/.test(await pg.textContent('#toast')), scheme + ': met een korte melding');
+    await pg.waitForTimeout(500);
     // op slot: niets blijft hangen
     await pg.fill('#kl-search', 'premie'); await pg.waitForTimeout(500);
     await pg.evaluate(() => { Android._kl.open = false; window.klVanzelf = () => false; klRender(); }); // echt op slot (zonder vanzelf weer openen)

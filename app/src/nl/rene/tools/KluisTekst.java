@@ -36,6 +36,8 @@ final class KluisTekst {
     /** Zo vaak proberen we een document dat een fout gaf; daarna geldt het als "geen tekst". */
     static final int MAX_POGINGEN = 3;
     private static final AtomicBoolean BEZIG = new AtomicBoolean();
+    /** Gevraagd om opnieuw te lezen terwijl er al een ronde liep: daarna nog een ronde. */
+    private static final AtomicBoolean NOG = new AtomicBoolean();
     /** Volgnummer van de laatste zoekvraag: een oudere vraag stopt. */
     static final java.util.concurrent.atomic.AtomicInteger VRAAG = new java.util.concurrent.atomic.AtomicInteger();
 
@@ -95,6 +97,14 @@ final class KluisTekst {
      */
     static boolean opnieuw(int fout) { return fout > 0 && fout < MAX_POGINGEN; }
 
+    /** Stand van het lezen voor de interface: "mislukt" (MAX_POGINGEN keer een fout, nu blijvend zonder tekst), "gelezen", "leeg" of "" (nog niet). */
+    static String stand(boolean actueel, int fout, String tekst) {
+        if (!actueel) return "";
+        if (fout >= MAX_POGINGEN) return "mislukt";
+        if (fout > 0) return "";
+        return tekst == null || tekst.isEmpty() ? "leeg" : "gelezen";
+    }
+
     /** De vorige ronde is bij dit document gestopt zonder af te ronden (de app stopte): dit document niet meer lezen. */
     static boolean vastgelopen(String merk, String id) { return merk != null && !merk.isEmpty() && merk.trim().equals(id); }
 
@@ -136,6 +146,19 @@ final class KluisTekst {
     }
     private static void merkZet(Context c, String id) { try (java.io.FileOutputStream o = new java.io.FileOutputStream(merk(c))) { o.write(id.getBytes(StandardCharsets.UTF_8)); o.getFD().sync(); } catch (Throwable e) { /* dan zonder vangnet */ } }
 
+    /** Stand van één document (zie stand(…)); leest alleen het eigen tekstbestand. */
+    static String stand(Context c, String id) {
+        JSONObject o = staat(c, id);
+        return stand(o != null, o == null ? 0 : o.optInt("fout"), o == null ? null : o.optString("tekst"));
+    }
+
+    /** Op verzoek van Rene: een document dat niet te lezen was, nog een keer proberen (de telling begint opnieuw). */
+    static void opnieuwLezen(Context c, String id, Uit uit) {
+        synchronized (Kluis.class) { weg(c, id); }
+        NOG.set(true); // loopt er al een ronde (met een lijst van daarvoor), dan daarna nog een
+        start(c, uit);
+    }
+
     static void weg(Context c, String id) { try { bestand(c, id).delete(); } catch (Throwable e) { /* niets te doen */ } }
 
     private static File werk(Context c) { File d = new File(c.getCacheDir(), WERK); d.mkdirs(); return d; }
@@ -171,6 +194,7 @@ final class KluisTekst {
     /** Leest op de achtergrond de documenten die nog geen (actuele) tekst hebben, zolang de kluis open is. Eén tegelijk. */
     static void start(Context c, Uit uit) {
         if (!BEZIG.compareAndSet(false, true)) return;
+        NOG.set(false); // deze ronde maakt zijn lijst nu pas
         final Context app = c.getApplicationContext();
         new Thread(() -> {
             int klaar = 0, totaal = 0, nieuw = 0;
@@ -214,7 +238,11 @@ final class KluisTekst {
                 }
                 if (nieuw > 0) App.log(app, "KLUIS", "tekst gelezen: " + nieuw);
             } catch (Throwable e) { App.log(app, "KLUIS", "tekst lezen: " + e.getClass().getSimpleName()); }
-            finally { try { ruimWerk(app); } catch (Throwable e) { /* cache */ } BEZIG.set(false); stuur(uit, klaar, totaal, false); }
+            finally {
+                try { ruimWerk(app); } catch (Throwable e) { /* cache */ }
+                BEZIG.set(false); stuur(uit, klaar, totaal, false);
+                if (NOG.getAndSet(false) && Kluis.isOpen()) start(app, uit);
+            }
         }, "kluis-tekst").start();
     }
 

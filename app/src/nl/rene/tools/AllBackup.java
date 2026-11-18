@@ -39,6 +39,17 @@ final class AllBackup {
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("allbackup", Context.MODE_PRIVATE); }
 
+    /** Oude backups vanzelf opruimen: standaard aan (wens van Rene); zelf uitgezet blijft uit. */
+    static boolean rotateOn(Context c) { return prefs(c).getBoolean("rotate", true); }
+
+    /** Hoeveel volledige backups er blijven (Rotate.KEEP_CHOICES). Wie opruimen al aan had gezet zonder deze keuze,
+     *  houdt de regel van toen (0 = de laatste 14 dagen en de nieuwste per maand). */
+    static int keep(Context c) {
+        SharedPreferences p = prefs(c);
+        if (p.contains("keep")) return Rotate.keep(p.getInt("keep", Rotate.KEEP_DEFAULT));
+        return p.getBoolean("rotate", false) ? 0 : Rotate.KEEP_DEFAULT;
+    }
+
     /**
      * Elke nacht vanzelf. Zelf aan- of uitgezet: zo blijft het. Nog nooit gekozen: alleen aan als versleutelen aan staat
      * en er een backup-map is (dan gaat er nooit ongevraagd elke nacht leesbaar sms, oproepen en notities in de map).
@@ -179,7 +190,7 @@ final class AllBackup {
             boolean allOk = !res.has("all");
             for (String p : PARTS) { JSONObject r = res.optJSONObject(p); if (r != null && !r.optBoolean("ok")) allOk = false; }
             // Alleen opruimen na een volledig gelukte backup, anders kan een onvolledige backup de goede verdringen.
-            if (!stop && allOk && prefs(c).getBoolean("rotate", false)) {
+            if (!stop && allOk && rotateOn(c)) {
                 try { JSONObject r = Secure.rotate(c, false); if (r.optInt("count") > 0) res.put("rotated", r); }
                 catch (Exception e) { App.log(c, "BACKUP", "opruimen: " + e.getMessage()); }
             }
@@ -287,7 +298,7 @@ final class AllBackup {
                     .put("auto", auto(c)).put("charging", prefs(c).getBoolean("charging", true))
                     .put("dest", WaBackup.destUri(c) != null).put("destName", WaBackup.destName(c))
                     .put("next", prefs(c).getLong("next", 0))
-                    .put("rotate", prefs(c).getBoolean("rotate", false)).put("encrypted", Secure.on(c)).put("encBroken", Secure.broken(c))
+                    .put("rotate", rotateOn(c)).put("keep", keep(c)).put("encrypted", Secure.on(c)).put("encBroken", Secure.broken(c))
                     .put("encSince", Secure.prefs(c).getLong("since", 0));
             String space = Secure.prefs(c).getString("space", null);
             if (space != null) o.put("space", new JSONObject(space));

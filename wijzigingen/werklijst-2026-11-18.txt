@@ -1,0 +1,4 @@
+Alles back-uppen: oude backups worden nu standaard vanzelf opgeruimd; van elke soort blijven de laatste 7 volledige backups staan. Bij Instellingen van Alles back-uppen kies je 3, 7, 14 of 30, of de oude regel (14 dagen en de nieuwste per maand). Had je opruimen zelf uitgezet, dan blijft het uit.
+Startscherm: een ingeklapte groep laat in de kop zien hoeveel tools erin staan, en de kop is nu een echte knop (beter voor schermlezers).
+Startscherm: lange tegelnamen (zoals Automatiseringen en Documentenkluis) worden niet meer midden in een woord afgebroken; zo nodig wordt alleen die naam iets kleiner.
+Documentenkluis: een document waarvan de tekst drie keer niet te lezen was, heeft in het menu ⋯ de keuze "Tekst opnieuw lezen".

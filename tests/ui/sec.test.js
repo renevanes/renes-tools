@@ -28,7 +28,19 @@ const assert = require('node:assert/strict');
     console.log('toast', await pg.textContent('#toast'), '| state', await pg.textContent('#bk-enc-state'), '| btn', await pg.textContent('#bk-enc-btn'), '| off visible', await pg.isVisible('#bk-enc-off'));
     assert.equal(await pg.evaluate(() => Android._sec.on), true);
     assert.equal(await pg.isVisible('#bk-enc-off'), true);
-    await pg.click('#bk-rotate'); console.log('rotate on', await pg.evaluate(() => Android._sec.rotate));
+    // Oude backups opruimen: standaard aan, de laatste 7; instelbaar
+    assert.equal(await pg.isChecked('#bk-rotate'), true, 'opruimen staat standaard aan');
+    assert.equal(await pg.inputValue('#bk-keep'), '7', 'standaard de laatste 7');
+    assert.match(await pg.textContent('#bk-keep-txt'), /laatste 7 volledige backups/);
+    await pg.selectOption('#bk-keep', '14'); await pg.waitForTimeout(50);
+    assert.equal(await pg.evaluate(() => Android._sec.keep), 14, 'keuze gaat naar Java');
+    assert.match(await pg.textContent('#bk-keep-txt'), /laatste 14 volledige backups/);
+    await pg.selectOption('#bk-keep', '0'); await pg.waitForTimeout(50);
+    assert.match(await pg.textContent('#bk-keep-txt'), /nieuwste per maand/);
+    await pg.click('#bk-rotate'); await pg.waitForTimeout(50);
+    assert.equal(await pg.evaluate(() => Android._sec.rotate), false, 'uit te zetten');
+    assert.match(await pg.textContent('#bk-keep-txt'), /^Uit/);
+    await pg.click('#bk-rotate'); await pg.selectOption('#bk-keep', '7'); console.log('rotate on', await pg.evaluate(() => Android._sec.rotate));
     // backup met archief en opruimen
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
     await pg.click('#bk-run'); await pg.waitForTimeout(1600);
@@ -37,6 +49,7 @@ const assert = require('node:assert/strict');
     await pg.click('#bk-row-set'); await pg.waitForTimeout(150);
     await pg.click('button:has-text("Nu opruimen")'); await pg.waitForTimeout(300);
     console.log('rotate dialog', await pg.textContent('#modal-title'), '|', await pg.textContent('#modal-text'));
+    assert.match(await pg.textContent('#modal-text'), /laatste 7 volledige backups/, 'de vraag noemt wat er blijft');
     await pg.click('#modal-ok'); await pg.waitForTimeout(250);
     console.log('toast', await pg.textContent('#toast'), 'deleted', await pg.evaluate(() => Android._sec.rotated));
     // ruimte

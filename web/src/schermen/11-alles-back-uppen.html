@@ -93,10 +93,18 @@
     </div>
     <div class="card">
       <h2>Oude backups opruimen</h2>
-      <label class="sw"><span>Na elke gelukte backup opruimen<small>De laatste 14 dagen blijven, en daarvoor de nieuwste per maand</small></span><input type="checkbox" class="switch" role="switch" id="bk-rotate" onchange="Android.backupSetRotate(this.checked); bkSums()"></label>
+      <label class="sw"><span>Na elke gelukte backup opruimen<small id="bk-keep-txt"></small></span><input type="checkbox" class="switch" role="switch" id="bk-rotate" onchange="Android.backupSetRotate(this.checked); bkKeepRender(bkState(true)); bkSums()"></label>
+      <div class="row setrow" id="bk-keep-row"><label for="bk-keep" style="flex:1" data-taal="opruimen">Bewaren</label>
+        <select class="sel" id="bk-keep" onchange="bkKeepSet(this.value)">
+          <option value="3">Laatste 3</option>
+          <option value="7">Laatste 7</option>
+          <option value="14">Laatste 14</option>
+          <option value="30">Laatste 30</option>
+          <option value="0">14 dagen + per maand</option>
+        </select></div>
       <button class="big ghost" id="bk-rotate-btn" onclick="bkRotate()">Nu opruimen</button>
       <details class="help in"><summary data-icon="info">Wat wordt er opgeruimd?</summary><div class="help-body">
-        <p>De gedateerde sms-, oproepen- en contactbestanden en de versleutelde backups. De nieuwste blijft altijd staan, en je ziet eerst hoeveel er weg gaat.</p>
+        <p>De gedateerde sms-, oproepen- en contactbestanden en de versleutelde backups, per soort apart. Alleen na een backup die helemaal gelukt is; een backup die halverwege stopte telt niet mee. De nieuwste blijft altijd staan, en met Nu opruimen zie je eerst hoeveel er weg gaat.</p>
       </div></details>
     </div>
     <div class="card">

@@ -68,10 +68,13 @@ input[type=tel],textarea.key,.ntext{border-radius:8px;border-color:var(--outline
 .dash .ovhead button{width:auto;flex:none;border-top:0;min-height:44px;margin:-4px -10px -4px 0;padding:0 10px;color:var(--primary);font-weight:600}
 #home-ov.both #home-night{border-top:1px solid var(--line);margin-top:2px}
 .hnew{padding:12px 14px}.hnew p{margin:0 0 8px;font-size:14px}.hnew p b{display:block}.hnew p span{color:var(--muted)}.hnew .row{display:flex;gap:8px;flex-wrap:wrap}
-/* Groep inklappen: de kop is de knop (tikvlak 44 px), het pijltje draait mee */
-#s-home .hgroup h3[data-g]{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:-14px;margin-bottom:-7px;cursor:pointer;border-radius:8px}
-#s-home .hgroup h3[data-g]::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin:0 6px 4px 0;flex:none;opacity:.7}
-#s-home .hgroup.dicht h3[data-g]::after{transform:rotate(-45deg);margin-bottom:0}
+/* Groep inklappen: een knop in de kop (tikvlak 44 px), het pijltje draait mee; ingeklapt staat het aantal tools erbij */
+#s-home .hgroup h3[data-g]{margin-top:-14px;margin-bottom:-7px}
+#s-home .hgkop{width:100%;min-height:44px;display:flex;align-items:center;gap:8px;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;text-align:left;cursor:pointer;border-radius:8px}
+#s-home .hgkop .hgnaam{flex:1;min-width:0}
+#s-home .hgkop .hgn{font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted);white-space:nowrap}
+#s-home .hgkop::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin:0 6px 4px 0;flex:none;opacity:.7}
+#s-home .hgroup.dicht .hgkop::after{transform:rotate(-45deg);margin-bottom:0}
 #s-home .hgroup.dicht .tiles{display:none}#s-home .hgroup.dicht{margin-bottom:6px}
 #home-ov{margin-bottom:12px}#home-groups>.hgroup:first-child{margin-top:0}#s-home .hgroup h3{margin-bottom:8px}
 .hrecent{margin-bottom:20px}
