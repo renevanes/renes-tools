@@ -188,12 +188,12 @@ function nwBewaarArt(){
   a.isBewaard = aan; nwLaad(); nwBewaarKnop();
   toast(aan ? t('Bewaard') : t('Niet meer bewaard'));
 }
-/* Lees op de website: bij een bron met inloggen (en Lezen in Tools) in het venster van de bron, anders in de browser. */
 /** Opent "Lees op de website" het artikel in Tools zelf (bron met inloggen en Lezen in Tools)? */
 function nwInApp(a){
   const b = a && nwBronnen().find(x => x.id === a.bron);
   return !!(b && b.inlog && b.lezen === 'app' && typeof Android.nieuwsLees === 'function');
 }
+/* Lees op de website: bij een bron met inloggen (en Lezen in Tools) in het venster van de bron, anders in de browser. */
 function nwWeb(){
   const a = nw.open; if (!a || !a.link) return;
   if (nwInApp(a) && Android.nieuwsLees(a.bron, a.link) !== 'extern') return;

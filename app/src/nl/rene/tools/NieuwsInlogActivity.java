@@ -152,7 +152,7 @@ public class NieuwsInlogActivity extends Activity {
         if (lezen) {
             android.widget.ImageButton extern = new android.widget.ImageButton(this, null, android.R.attr.borderlessButtonStyle);
             extern.setImageResource(R.drawable.ic_extern);
-            extern.setImageTintList(android.content.res.ColorStateList.valueOf(titel.getCurrentTextColor()));
+            extern.setImageTintList(new Button(this, null, android.R.attr.borderlessButtonStyle).getTextColors()); // dezelfde kleur als ✕ en ?
             extern.setContentDescription(Taal.t(this, "Openen in de browser"));
             if (Build.VERSION.SDK_INT >= 26) extern.setTooltipText(Taal.t(this, "Openen in de browser"));
             extern.setMinimumWidth(dp(48));
@@ -399,9 +399,9 @@ public class NieuwsInlogActivity extends Activity {
     void inBrowser() {
         String u = null;
         try { u = wv != null ? wv.getUrl() : null; } catch (Throwable ignored) { }
-        if (u == null || !(u.startsWith("https://") || u.startsWith("http://"))) u = getIntent().getStringExtra("url");
+        if (u == null || !(u.startsWith("https://") || u.startsWith("http://")) || !Nieuws.siteMag(sites, u)) u = getIntent().getStringExtra("url"); // alleen een pagina van deze bron
         if (u == null || !(u.startsWith("https://") || u.startsWith("http://"))) return;
-        try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u)).addCategory(Intent.CATEGORY_BROWSABLE)); log("browser", NieuwsDiagnose.schoon(u)); }
+        try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u)).addCategory(Intent.CATEGORY_BROWSABLE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); log("browser", NieuwsDiagnose.schoon(u)); }
         catch (Throwable e) { Toast.makeText(this, Taal.t(this, "Geen app gevonden om dit te openen"), Toast.LENGTH_SHORT).show(); }
     }
 
