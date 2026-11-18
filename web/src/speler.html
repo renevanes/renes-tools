@@ -17,7 +17,7 @@
     <div class="pl-main" id="pl-main">
     <div class="pl-top" id="pl-top">
       <button class="pl-ic" onclick="plClose()" aria-label="Speler verkleinen"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
-      <div class="pl-src"><small id="pl-kind">Speelt nu</small><button class="pl-from" id="pl-from" onclick="plGoSource()" aria-label="Bron van de speler openen"></button></div>
+      <div class="pl-src"><button class="pl-kind" id="pl-kind" onclick="plGoTool()" aria-describedby="pl-kind-h">Speelt nu</button><span id="pl-kind-h" hidden></span><button class="pl-from" id="pl-from" onclick="plGoSource()" translate="no" aria-label="Bron van de speler openen"></button></div>
       <button class="pl-ic" onclick="plMenu()" aria-label="Meer opties"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
     </div>
 
@@ -27,7 +27,7 @@
     </div>
 
     <div class="pl-meta">
-      <div class="pl-titles"><h2 id="pl-title" tabindex="-1"></h2><p id="pl-sub"></p></div>
+      <div class="pl-titles"><h2 id="pl-titleh" tabindex="-1"><button class="pl-tlink" id="pl-titleb" onclick="plGoEp()" aria-labelledby="pl-title" aria-describedby="pl-title-h"><span id="pl-title" translate="no"></span></button></h2><button class="pl-tlink pl-sub" id="pl-subb" onclick="plGoSource()" aria-labelledby="pl-sub" aria-describedby="pl-sub-h"><span id="pl-sub" translate="no"></span></button><span id="pl-title-h" hidden></span><span id="pl-sub-h" hidden></span></div>
       <button class="pl-ic" id="pl-fav" onclick="plFav()" aria-label="Favoriet"></button>
     </div>
 
@@ -47,10 +47,10 @@
 
     <div class="pl-opts" id="pl-opts">
       <button class="pl-opt" id="pl-out" onclick="plOutput()" data-icon="volume"><span class="pl-optl" id="pl-out-l" translate="no">Deze telefoon</span></button>
-      <button class="pl-opt" id="pl-sleep" onclick="plSleep()" data-icon="moon"><span class="pl-optl" id="pl-sleep-l" translate="no">Slaaptimer</span></button>
       <button class="pl-opt" id="pl-speed" onclick="pcSpeedMenu()"><b class="pl-optv" id="pl-speed-v" translate="no" aria-hidden="true">1×</b><span class="pl-optl">Snelheid</span></button>
       <button class="pl-opt" id="pl-golive" onclick="rdShift('live')" data-icon="radio"><span class="pl-optl">Naar live</span></button>
       <button class="pl-opt" id="pl-stop" onclick="plStop()" data-icon="stop"><span class="pl-optl">Stop</span></button>
+      <button class="pl-opt" id="pl-sleep" onclick="plSleep()" data-icon="moon"><span class="pl-optl" id="pl-sleep-l" translate="no">Slaaptimer</span></button>
     </div>
     <div class="pl-vol" id="pl-volwrap" style="display:none"><span class="ui-icon" data-icon="volume" aria-hidden="true"></span><input type="range" class="plseek" id="pl-vol" min="0" max="20" step="1" value="10" aria-label="Volume" oninput="plVol(false)" onchange="plVol(true)"><span class="ui-icon" data-icon="volume-high" aria-hidden="true"></span></div>
     </div>

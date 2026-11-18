@@ -47,14 +47,14 @@ function plModel(){
     return { src: cs.src, status, playing: !!cs.playing, key: cs.key, title: cs.title || '', sub: cs.sub || '', kind: radio ? 'Radio' : 'Podcast',
       from: radio ? (st.name || 'Radio') : ((cs.pod && cs.pod.title) || 'Podcast'), art: pcImg(cs.art), ini: radio ? String(st.name || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '♪' : '🎧',
       pos: +cs.pos || 0, dur: +cs.dur || 0, error: cs.error, sleepAt: +cs.sleepAt || 0, sleepEnd: !!cs.sleepEnd, speed: cs.rate || 1,
-      desc: (cs.ep && cs.ep.desc) || '', station: st, cast: cs.device, volume: cs.volume };
+      desc: (cs.ep && cs.ep.desc) || '', station: st, cast: cs.device, volume: cs.volume, pod: radio ? null : cs.pod };
   }
   const src = plSrc();
   if (src === 'podcast') {
     const s = pcSt, e = s.ep || {}, p = s.pod || {}, status = s.status === 'idle' ? 'paused' : s.status;
     return { src, status, playing: status === 'playing' || status === 'connecting', key: e.key, title: e.title || 'Aflevering', sub: p.title || '',
       kind: 'Podcast', from: p.title || 'Podcast', art: pcImg(e.image) || pcImg(p.image), ini: '🎧', pos: +s.pos || 0, dur: +s.dur || 0,
-      error: s.error, sleepAt: +s.sleepAt || 0, sleepEnd: !!s.sleepEnd, speed: s.speed || 1, desc: e.desc || '', buffering: !!s.buffering };
+      error: s.error, sleepAt: +s.sleepAt || 0, sleepEnd: !!s.sleepEnd, speed: s.speed || 1, desc: e.desc || '', buffering: !!s.buffering, pod: s.pod };
   }
   if (src === 'radio') {
     const s = rdState, st = s.station || {}, inf = s.info || {}, status = s.status || 'stopped';
@@ -187,6 +187,14 @@ function plRender(){
   $('#pl-cover').setAttribute('aria-label', t(m.src === 'radio' ? 'Hoes van {titel}. Veeg naar links voor de volgende zender, naar rechts voor de vorige.' : 'Hoes van {titel}. Veeg naar links voor de volgende aflevering, naar rechts voor de vorige.', { titel: m.title }));
   plSetText($('#pl-title'), m.title);
   plSetText($('#pl-sub'), m.sub);
+  { // Waar de titel, de naam en de soort heen gaan (alleen als uitleg: de naam van de knop blijft de titel zelf)
+    const dt = plDoel(m, 'titel'), db = plDoel(m, 'bron'), dk = plDoel(m, 'tool');
+    const uitleg = (d, eigen) => !d ? '' : d.scherm === 'radio' ? t('Naar Radio') : d.scherm === 'podcasts' ? t('Naar Podcasts') : eigen;
+    plSetText($('#pl-title-h'), uitleg(dt, t('Tonen tussen de afleveringen')));
+    plSetText($('#pl-sub-h'), uitleg(db, t('Naar de podcast')));
+    plSetText($('#pl-kind-h'), uitleg(dk, ''));
+    [['#pl-titleb', dt], ['#pl-subb', db], ['#pl-kind', dk], ['#pl-from', db]].forEach(([id, d]) => { const el = $(id); if (d) el.removeAttribute('aria-disabled'); else el.setAttribute('aria-disabled', 'true'); });
+  }
   $('#pl-sub').classList.toggle('bad', m.status === 'error');
   const fav = $('#pl-fav');
   fav.style.visibility = m.src === 'radio' ? 'visible' : 'hidden';
@@ -379,10 +387,25 @@ function plDismiss(){
   });
 }
 function plFav(){ rdFavNow(); plQueueSig = ''; plRender(); }
+/** Waar een tik op de bron, de titel of de soort heen gaat; null = nergens (bijv. buiten deze losse app). */
+function plDoel(m, wat){
+  if (!m) return null;
+  const pod = m.src === 'podcast' && m.pod && m.pod.feed ? m.pod : null;
+  const d = wat === 'tool' || !(m.src === 'podcast') ? (m.src === 'podcast' ? 'podcasts' : 'radio') : pod ? 'podcast' : 'podcasts';
+  return typeof soloOk === 'function' && !soloOk(d) ? null : { scherm: d, pod };
+}
 function plGoSource(){
-  const m = plModel(); if (!m) return;
-  if (m.src === 'podcast') { if (pcSt.pod && pcSt.pod.feed) pdOpen(pcSt.pod); else show('podcasts'); }
-  else show('radio');
+  const m = plModel(), d = plDoel(m, 'bron'); if (!d) return;
+  if (d.pod) pdOpen(d.pod); else show(d.scherm);
+}
+/** Tik op de titel: bij een podcast het overzicht van de podcast, met deze aflevering in beeld; bij de radio de zenders. */
+function plGoEp(){
+  const m = plModel(), d = plDoel(m, 'titel'); if (!d) return;
+  if (d.pod) { pdOpen(d.pod); if (m.key) pdNaar = m.key; } else show(d.scherm);
+}
+/** Tik op "Podcast" of "Radio" bovenaan: het overzicht van die tool. */
+function plGoTool(){
+  const d = plDoel(plModel(), 'tool'); if (d) show(d.scherm);
 }
 function plMenu(){
   const m = plModel(); if (!m) return;
@@ -466,7 +489,7 @@ function plOpen(){
   plInert(true);
   $('#pl-scroll').scrollTop = 0;
   plRender();
-  setTimeout(() => $('#pl-title').focus({ preventScroll: true }), 30);
+  setTimeout(() => $('#pl-titleh').focus({ preventScroll: true }), 30);
   bars();
 }
 function plClose(){

@@ -1,6 +1,7 @@
 /* ---------- Podcasts: zoeken, volgen, luisteren, slaaptimer ---------- */
 let pcSt = {}, pcPollT = null, pcSeeking = false, pcSearchT = null, pcTop = null, pcRes = null, pcLastSig = '';
 let pdPod = null, pdFeed = null, pdShown = 50;
+let pdNaar = ''; // na het laden deze aflevering in beeld brengen (tik op de titel in de speler)
 
 /* Tijd als 1:02:03 of 4:05 */
 function fmtClock(ms){
@@ -304,7 +305,7 @@ window.onPodSearch = function(r){
    de afleveringen. Wat je zelden nodig hebt (op startscherm, over, bijwerken, ontvolgen) zit onder ⋯ in de balk. */
 let pdSort = 'new', pdHide = false, pdRes = null, pdResHtml = '';
 function pdOpen(p){
-  pdPod = pcSlimPod(p); pdFeed = null; pdShown = 50; pdRes = null;
+  pdPod = pcSlimPod(p); pdFeed = null; pdShown = 50; pdRes = null; pdNaar = '';
   show('podcast');
   $('#pd-h1').textContent = p.title || 'Podcast';
   pcSetArt($('#pd-art'), p.image);
@@ -358,7 +359,23 @@ window.onPodFeed = function(r){
   pdSubBtn(!!r.subscribed);
   if (r.subscribed && r.pod) Android.podSeen(r.pod.id);
   pcDlRefresh(); pdRender();
+  if (pdNaar) pdToon(pdNaar);
 };
+/** Een aflevering in het overzicht in beeld brengen en even laten oplichten. */
+let pdFlitsKey = '', pdFlitsTot = 0;
+function pdToon(key){
+  pdNaar = '';
+  let l = pdList(), i = l.findIndex(e => e.key === key);
+  if (i < 0 && pdHide && pdFeed && (pdFeed.items || []).some(e => e.key === key)) { pdHideToggle(); l = pdList(); i = l.findIndex(e => e.key === key); } // beluisterd en verborgen: weer tonen
+  if (i < 0) return;
+  pdFlitsKey = key; pdFlitsTot = Date.now() + 1800; // ook na het verversen van de rij (pdRefreshRows)
+  if (i >= pdShown) pdShown = i + 10;
+  pdRender();
+  const row = document.querySelector('#pd-eps .pcep[data-i="' + i + '"]'); if (!row) return;
+  row.scrollIntoView({ block: 'center' });
+  const b = row.querySelector('.pcepb'); if (b) b.focus({ preventScroll: true });
+  setTimeout(() => { pdFlitsKey = ''; document.querySelectorAll('#pd-eps .pcep-hl').forEach(r => r.classList.remove('pcep-hl')); }, 1850);
+}
 /* ⋯ in de balk: wat je niet elke dag nodig hebt */
 function pdMenu(){
   if (!pdPod) return;
@@ -427,7 +444,7 @@ function pdRowHtml(e, i, cur){
   const isCur = pdSyncCur(e, cur);
   const d = +e.pd || (+e.dur || 0) * 1000, p = +e.pos || 0;
   const info = pdRowInfo(e);
-  return '<div class="pcep' + (e.done ? ' done' : '') + (isCur ? ' cur' : '') + '" role="listitem" data-i="' + i + '"><button class="pcepb" onclick="pdPlay(' + i + ')">' +
+  return '<div class="pcep' + (e.done ? ' done' : '') + (isCur ? ' cur' : '') + (e.key === pdFlitsKey && Date.now() < pdFlitsTot ? ' pcep-hl' : '') + '" role="listitem" data-i="' + i + '"><button class="pcepb" onclick="pdPlay(' + i + ')">' +
     '<span class="pctxt"><b translate="no">' + esc(e.title) + '</b><small>' + esc(info) + '</small>' +
     (p > 0 && d > 0 && !e.done ? '<span class="pcprog"><i style="width:' + Math.min(100, p / d * 100).toFixed(1) + '%"></i></span>' : '') + '</span>' +
     '<span class="pcplayi" aria-hidden="true">' + uiIcon(isCur && pcActive() ? 'pause' : 'play') + '</span></button>' +

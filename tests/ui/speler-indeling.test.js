@@ -30,7 +30,7 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     assert.ok(Math.abs(m.rowL - m.rowR) < 1.5 && m.rowL >= 0, w + 'x' + h + ': rij opties in het midden (' + Math.round(m.rowL) + '/' + Math.round(m.rowR) + ')');
     const breedtes = m.opts.map(o => Math.round(o.w));
     assert.ok(Math.max(...breedtes) - Math.min(...breedtes) <= 1, w + 'x' + h + ': opties even breed ' + breedtes);
-    assert.deepStrictEqual(m.opts.map(o => o.id), ['pl-out', 'pl-sleep', 'pl-speed', 'pl-stop'], 'podcast: waar, slaaptimer, snelheid, stop');
+    assert.deepStrictEqual(m.opts.map(o => o.id), ['pl-out', 'pl-speed', 'pl-stop', 'pl-sleep'], 'podcast: waar, snelheid, stop, slaaptimer (rechts)');
     assert.strictEqual(new Set(m.opts.map(o => o.t)).size, 1, w + 'x' + h + ': opties in één rij');
     assert.ok(m.opts.every(o => o.w >= 44 && o.h >= 44), w + 'x' + h + ': opties minstens 44 px');
     assert.ok(Math.abs(m.art.w - m.art.h) < 1.5 && m.art.w >= 110, w + 'x' + h + ': hoes vierkant (' + Math.round(m.art.w) + '×' + Math.round(m.art.h) + ')');
@@ -89,7 +89,7 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
   await pg.click('#plbar-open'); await pg.waitForTimeout(500);
   await pg.click('#pl-back'); await pg.waitForTimeout(500);
   const rad = await pg.evaluate(() => [...document.querySelectorAll('#pl-opts .pl-opt')].filter(e => getComputedStyle(e).display !== 'none').map(e => [e.id, Math.round(e.getBoundingClientRect().top)]));
-  assert.deepStrictEqual(rad.map(x => x[0]), ['pl-out', 'pl-sleep', 'pl-golive', 'pl-stop'], 'radio: waar, slaaptimer, naar live, stop');
+  assert.deepStrictEqual(rad.map(x => x[0]), ['pl-out', 'pl-golive', 'pl-stop', 'pl-sleep'], 'radio: waar, naar live, stop, slaaptimer (rechts)');
   assert.strictEqual(new Set(rad.map(x => x[1])).size, 1, 'radio: één rij');
   await pg.evaluate(() => { plStop(); }); await pg.waitForTimeout(400);
 
@@ -125,7 +125,7 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     rij: [...document.querySelectorAll('#pl-opts .pl-optl')].filter(e => e.offsetParent).map(e => e.textContent),
     vraag: $('#sl-vraag').textContent, eigen: $('#sl-eigen summary').textContent, sluit: $('#sl-sluit').textContent, label: $('#pl-speed').getAttribute('aria-label') }));
   assert.strictEqual(en.lang, 'en');
-  assert.deepStrictEqual(en.rij, ['This phone', 'Sleep timer', 'Speed', 'Stop'], 'Engels: de rij');
+  assert.deepStrictEqual(en.rij, ['This phone', 'Speed', 'Stop', 'Sleep timer'], 'Engels: de rij');
   assert.deepStrictEqual([en.vraag, en.eigen, en.sluit], ['Stop the podcast after', 'Other time', 'Close'], 'Engels: het venster');
   assert.match(en.label, /^Playback speed /);
   await pg.click('#sl-quick button[data-m="90"]'); await pg.waitForTimeout(1300);
