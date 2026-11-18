@@ -152,9 +152,11 @@ final class KluisTekst {
         return stand(o != null, o == null ? 0 : o.optInt("fout"), o == null ? null : o.optString("tekst"));
     }
 
-    /** Op verzoek van Rene: een document dat niet te lezen was, nog een keer proberen (de telling begint opnieuw). */
+    /** Op verzoek van Rene: een document dat niet te lezen was, precies één keer opnieuw proberen (de telling gaat naar
+     *  MAX_POGINGEN - 1: mislukt het weer, of stopt de app erop, dan staat het meteen weer op "mislukt"). */
     static void opnieuwLezen(Context c, String id, Uit uit) {
-        synchronized (Kluis.class) { weg(c, id); }
+        try { synchronized (Kluis.class) { File b = blob(c, id); bewaar(c, id, "", b.length(), b.lastModified(), MAX_POGINGEN - 1); } }
+        catch (Throwable e) { synchronized (Kluis.class) { weg(c, id); } }
         NOG.set(true); // loopt er al een ronde (met een lijst van daarvoor), dan daarna nog een
         start(c, uit);
     }

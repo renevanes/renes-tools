@@ -50,8 +50,16 @@ final class Rotate {
     static List<String> toDelete(Collection<String> names, long now) { return toDelete(names, now, 0); }
 
     /** Namen die weg mogen, uitgaande van "nu": keep > 0 = per soort de nieuwste keep volledige bestanden houden. */
-    static List<String> toDelete(Collection<String> names, long now, int keep) {
-        if (keep > 0) return keepNewest(names, now, keep);
+    static List<String> toDelete(Collection<String> names, long now, int keep) { return toDelete(names, now, keep, null); }
+
+    /** Zelfde; namen in altijd (de nieuwste backup met alle appgegevens) gaan nooit weg. */
+    static List<String> toDelete(Collection<String> names, long now, int keep, Collection<String> altijd) {
+        List<String> out = keep > 0 ? keepNewest(names, now, keep) : rule(names, now);
+        if (altijd != null) out.removeAll(altijd);
+        return out;
+    }
+
+    private static List<String> rule(Collection<String> names, long now) {
         Calendar cut = Calendar.getInstance();
         cut.setTimeInMillis(now);
         cut.set(Calendar.HOUR_OF_DAY, 0); cut.set(Calendar.MINUTE, 0); cut.set(Calendar.SECOND, 0); cut.set(Calendar.MILLISECOND, 0);

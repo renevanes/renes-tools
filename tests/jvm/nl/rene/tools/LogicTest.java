@@ -148,6 +148,8 @@ public class LogicTest {
         check("opruimen (7): precies 13 + 2 onvolledige weg", k7.size() == 15);
         java.util.Set<String> k3 = new java.util.HashSet<>(Rotate.toDelete(Arrays.asList("backup-2026-10-04_120000.rtb", "backup-2026-10-04_1200.rtb", "backup-2026-10-03_0330.rtb", "backup-2026-10-02_0330.rtb"), now, 3));
         check("opruimen (3): de oudste weg, naam met seconden telt als nieuwer", k3.size() == 1 && k3.contains("backup-2026-10-02_0330.rtb"));
+        java.util.Set<String> k3a = new java.util.HashSet<>(Rotate.toDelete(Arrays.asList("backup-2026-10-04_120000.rtb", "backup-2026-10-04_1200.rtb", "backup-2026-10-03_0330.rtb", "backup-2026-10-02_0330.rtb", "backup-2026-10-01_0330.rtb"), now, 3, Arrays.asList("backup-2026-10-01_0330.rtb")));
+        check("opruimen: de nieuwste backup met alle appgegevens blijft altijd", k3a.size() == 1 && k3a.contains("backup-2026-10-02_0330.rtb"));
         check("opruimen: keuze 0 = de oude regel", new java.util.HashSet<>(Rotate.toDelete(names, now, 0)).equals(del));
         check("opruimen: onbekende keuze wordt 7", Rotate.keep(5) == 7 && Rotate.keep(-1) == 7 && Rotate.keep(0) == 0 && Rotate.keep(30) == 30 && Rotate.KEEP_DEFAULT == 7);
         java.util.Set<String> st = new java.util.HashSet<>(Rotate.stalePartials(Arrays.asList("backup-2026-10-03_0330_deels.rtb", "backup-2026-10-04_0330_deels.rtb", "backup-2026-10-04_0330.rtb", "sms-2026-10-01.xml"), now));

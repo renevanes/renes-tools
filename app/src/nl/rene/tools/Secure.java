@@ -359,7 +359,7 @@ final class Secure {
             if (dir == null) continue;
             List<String> files = new ArrayList<>();
             for (Map.Entry<String, WaBackup.Child> e : dir.kids.entrySet()) if (!e.getValue().dir) files.add(e.getKey());
-            for (String name : Rotate.toDelete(files, System.currentTimeMillis(), keep)) {
+            for (String name : Rotate.toDelete(files, System.currentTimeMillis(), keep, DIR.equals(d) ? appBlijft(c, dest, dir) : null)) {
                 WaBackup.Child ch = dir.kids.get(name);
                 if (!dry) {
                     try { DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, ch.docId)); }
@@ -370,6 +370,22 @@ final class Secure {
             }
         }
         return new JSONObject().put("count", n).put("bytes", bytes);
+    }
+
+    /** De nieuwste backup met alle appgegevens (Versleuteld/appgegevens.txt, en wat deze telefoon het laatst maakte):
+     *  die blijft altijd staan, ook als er daarna backups zonder appgegevens kwamen. */
+    static List<String> appBlijft(Context c, WaBackup.Dest dest, WaBackup.DestDir dir) {
+        List<String> uit = new ArrayList<>();
+        try {
+            WaBackup.Child l = dir.kids.get(Herstel.APP_LIST);
+            if (l != null && !l.dir) {
+                List<String> met = AppData.appNames(Herstel.readCapped(c, DocumentsContract.buildDocumentUriUsingTree(dest.tree, l.docId)));
+                for (String n : AppData.archives(new ArrayList<>(dir.kids.keySet()))) if (met.contains(n)) { uit.add(n); break; }
+            }
+        } catch (Throwable e) { /* dan alleen de naam uit de instellingen */ }
+        String laatst = AllBackup.prefs(c).getString("appLastName", "");
+        if (!laatst.isEmpty()) uit.add(laatst);
+        return uit;
     }
 
     // ---------- ruimtegebruik ----------

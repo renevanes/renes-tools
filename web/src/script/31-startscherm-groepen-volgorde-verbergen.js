@@ -204,18 +204,20 @@ function homeTegelPas(){
   const tiles = document.querySelectorAll('#home-groups .tile > b');
   if (!tiles.length) return;
   homeTpCv = homeTpCv || document.createElement('canvas').getContext('2d');
-  tiles.forEach(b => {
-    b.style.fontSize = '';
+  // Eerst alles terug, dan alles meten, dan pas schrijven: zo rekent de pagina de opmaak maar één keer uit
+  tiles.forEach(b => { b.style.fontSize = ''; });
+  const nieuw = [...tiles].map(b => {
     // De ruimte van de naam zelf (max-width 100%: nooit breder dan zijn plek op de tegel, naast het pictogram)
     const ruimte = b.clientWidth;
-    if (!(ruimte > 0)) return; // niet in beeld: bij tonen opnieuw (ResizeObserver hieronder)
+    if (!(ruimte > 0)) return null; // niet in beeld: bij tonen opnieuw (ResizeObserver hieronder)
     const bs = getComputedStyle(b), fs = parseFloat(bs.fontSize), ls = parseFloat(bs.letterSpacing) || 0;
     homeTpCv.font = bs.fontWeight + ' ' + fs + 'px ' + bs.fontFamily;
     // Woorden, en bij een streepje (SMS-backup) mag de regel daarna ook verder: elk deel telt apart
     const delen = b.textContent.trim().split(/\s+/).flatMap(w => w.match(/[^-]+-?|-/g) || []);
     const breed = Math.max(0, ...delen.map(w => homeTpCv.measureText(w).width + ls * w.length));
-    if (breed > ruimte) b.style.fontSize = Math.max(10, Math.floor(fs * (ruimte - 1) / breed * 2) / 2) + 'px';
+    return breed > ruimte ? Math.max(10, Math.floor(fs * (ruimte - 1) / breed * 2) / 2) + 'px' : null;
   });
+  tiles.forEach((b, i) => { if (nieuw[i]) b.style.fontSize = nieuw[i]; });
 }
 (function(){
   const box = document.getElementById('home-groups'); if (!box) return;
