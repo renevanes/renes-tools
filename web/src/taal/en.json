@@ -3035,7 +3035,7 @@
  "Elke pagina wordt een eigen bestand.": "Each page becomes a separate file.",
  "Elke rit met je locatie vanzelf opnemen zet je zelf aan.": "You turn on recording every trip with your location yourself.",
  "Elke ronde zoekt de app ongeveer 10 seconden (Android plant dat in; als de telefoon slaapt of de batterijbesparing aan staat, schuift het op).": "Each round the app searches for about 10 seconds (Android schedules this; if the phone is asleep or battery saver is on, it is postponed).",
- "Elke stap van de volumeknoppen wordt {n} kleinere: {m} stappen in plaats van {s}.": "Each step of the volume buttons becomes {n} smaller ones: {m} steps instead of {s}.",
+ "Elke stap van de volumeknoppen wordt {n} kleinere: {m} stappen in plaats van {s}. Vasthouden of snel drukken gaat met hele stappen.": "Each step of the volume buttons becomes {n} smaller ones: {m} steps instead of {s}. Holding or pressing quickly moves in whole steps.",
  "Elke vrijdag weer leeg": "Empty again every Friday",
  "elke week": "every week",
  "Elke week": "Every week",

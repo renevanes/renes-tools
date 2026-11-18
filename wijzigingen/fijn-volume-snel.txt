@@ -1,0 +1,1 @@
+Fijner volume: vasthouden of snel drukken op de volumeknop gaat nu met hele stappen, dus van hard naar zacht gaat weer vlot; één keer drukken blijft een klein stapje. De knop reageert ook sneller.

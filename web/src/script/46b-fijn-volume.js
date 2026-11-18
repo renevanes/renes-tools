@@ -9,7 +9,7 @@ function fvInfo(){
 /** Uitleg bij de stand. Zuiver. */
 function fvUitleg(i){
   if (!i.aan) return t('Uit: de gewone stappen van Android.');
-  return t('Elke stap van de volumeknoppen wordt {n} kleinere: {m} stappen in plaats van {s}.', { n: i.fijn, m: i.fijn * i.stappen, s: i.stappen });
+  return t('Elke stap van de volumeknoppen wordt {n} kleinere: {m} stappen in plaats van {s}. Vasthouden of snel drukken gaat met hele stappen.', { n: i.fijn, m: i.fijn * i.stappen, s: i.stappen });
 }
 function fvRender(pre){
   const kaart = $('#' + pre + '-fvk'); if (!kaart) return;

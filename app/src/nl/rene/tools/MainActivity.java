@@ -873,7 +873,7 @@ public class MainActivity extends Activity {
             FijnVolume f = FijnVolume.speler();
             if (f != null) {
                 if (e.getAction() == android.view.KeyEvent.ACTION_DOWN) {
-                    f.stapje(k == android.view.KeyEvent.KEYCODE_VOLUME_UP ? android.media.AudioManager.ADJUST_RAISE : android.media.AudioManager.ADJUST_LOWER);
+                    f.stapje(k == android.view.KeyEvent.KEYCODE_VOLUME_UP ? android.media.AudioManager.ADJUST_RAISE : android.media.AudioManager.ADJUST_LOWER, e.getRepeatCount() > 0); // vasthouden: hele stappen
                     js("onFijnVolume", f.niveau() + "," + f.hoogste());
                 }
                 return true;

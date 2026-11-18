@@ -90,6 +90,26 @@ final class FijnVolume {
         return (float) Math.pow(10, -d * rest / k / 20.0);
     }
 
+    /** Binnen zoveel ms na de vorige druk in dezelfde richting telt een druk als "snel achter elkaar" (of vasthouden). */
+    static final long SNEL_MS = 400;
+    /** Vanaf de zoveelste snelle druk gaat het met hele stappen van Android. */
+    static final int SNEL_NA = 2;
+
+    /**
+     * Waar een druk heen gaat: één fijne stap, of (snel) naar de volgende hele stap van Android in die richting. Zo is
+     * één keer drukken fijn, en gaat vasthouden of snel drukken net zo vlot als zonder fijn volume.
+     */
+    static int doel(int niveau, int k, int richting, boolean snel) {
+        if (richting > 0) return snel && k > 1 ? (niveau / k + 1) * k : niveau + 1;
+        if (richting < 0) return snel && k > 1 ? Math.max(0, (niveau - 1) / k * k) : niveau - 1;
+        return niveau;
+    }
+
+    /** Hoeveelste snelle druk dit is (0 = een losse druk). Zuiver. */
+    static int reeks(int vorige, long sinds, boolean zelfdeRichting) {
+        return zelfdeRichting && sinds >= 0 && sinds < SNEL_MS ? vorige + 1 : 0;
+    }
+
     // ---- per speler ----
 
     private final Context app;
@@ -106,6 +126,11 @@ final class FijnVolume {
     private boolean actief = true, gekoppeld, bezig, remoteMislukt;
     private int k = STANDAARD, min, max, niveau, gezet = -1;
     private volatile float gain = 1f;
+    private long vorigeDruk = -1;
+    private int vorigeRichting, snelle;
+    /** dB per stap van Android voor de uitgang van nu; leeg na een ander apparaat of opnieuw starten. */
+    private double[] dbs;
+    private int dbsUitgang = -1;
 
     /**
      * Het fijne niveau, gedeeld door alle spelers (podcast, radio, voorlezen): wisselen of opnieuw starten houdt het
@@ -177,6 +202,7 @@ final class FijnVolume {
         if (nmax <= 0) { stop(); return; }
         if (bezig && nk == k && nmax == max) { volg(); return; }
         if (provider != null) lokaal(); // andere schaal: straks opnieuw
+        dbs = null;
         k = nk; max = nmax; min = Math.max(0, nmin);
         int idx = am.getStreamVolume(AudioManager.STREAM_MUSIC);
         gezet = idx; bezig = true;
@@ -220,15 +246,22 @@ final class FijnVolume {
     }
 
     /** Een ander apparaat (koptelefoon, Bluetooth): Android wisselt dan zelf van stap; even later nakijken. */
-    void uitgangVeranderd() { h.removeCallbacks(volgLater); h.postDelayed(volgLater, 600); }
+    void uitgangVeranderd() { dbs = null; h.removeCallbacks(volgLater); h.postDelayed(volgLater, 600); }
 
-    void stapje(int richting) {
+    void stapje(int richting) { stapje(richting, false); }
+
+    /** vast = de knop wordt vastgehouden (herhaalde druk): meteen hele stappen. */
+    void stapje(int richting, boolean vast) {
         if (!bezig) return;
-        if (!mag()) { vernieuw(); return; } // intussen in de auto
+        if (richting == AudioManager.ADJUST_MUTE) { naar(0); return; }
+        int r = richting == AudioManager.ADJUST_RAISE ? 1 : richting == AudioManager.ADJUST_LOWER ? -1 : 0;
+        if (r == 0) return;
+        long nu = android.os.SystemClock.uptimeMillis();
+        snelle = reeks(snelle, vorigeDruk < 0 ? -1 : nu - vorigeDruk, r == vorigeRichting);
+        vorigeDruk = nu; vorigeRichting = r;
+        if (snelle == 0 && !mag()) { vernieuw(); return; } // intussen in de auto (niet bij elke druk van een reeks nakijken)
         volg();
-        if (richting == AudioManager.ADJUST_RAISE) naar(niveau + 1);
-        else if (richting == AudioManager.ADJUST_LOWER) naar(niveau - 1);
-        else if (richting == AudioManager.ADJUST_MUTE) naar(0);
+        naar(doel(niveau, k, r, vast || snelle >= SNEL_NA));
     }
 
     void naar(int v) {
@@ -260,8 +293,15 @@ final class FijnVolume {
     /** Hoe hard een stap van Android klinkt op het apparaat waar het geluid nu heen gaat (dB), of NaN. */
     private double db(int s) {
         if (s <= 0) return Double.NEGATIVE_INFINITY;
-        if (Build.VERSION.SDK_INT < 28) return Double.NaN;
-        try { return am.getStreamVolumeDb(AudioManager.STREAM_MUSIC, s, uitgang()); } catch (Throwable e) { return Double.NaN; }
+        if (Build.VERSION.SDK_INT < 28 || s > max) return Double.NaN;
+        // Onthouden per uitgang: zo vraagt een druk Android niets extra's (snel, ook bij vasthouden)
+        if (dbs == null || dbs.length != max + 1) { dbs = new double[max + 1]; java.util.Arrays.fill(dbs, Double.MAX_VALUE); dbsUitgang = uitgang(); }
+        if (dbs[s] == Double.MAX_VALUE) {
+            double d;
+            try { d = am.getStreamVolumeDb(AudioManager.STREAM_MUSIC, s, dbsUitgang); } catch (Throwable e) { d = Double.NaN; }
+            dbs[s] = d;
+        }
+        return dbs[s];
     }
 
     private int uitgang() {

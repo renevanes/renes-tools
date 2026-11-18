@@ -34,6 +34,19 @@ public class FijnVolumeTest {
         check(near(FijnVolume.gain(1, 3, 1, Double.NEGATIVE_INFINITY, -50), 1.0 / 3) && near(FijnVolume.gain(2, 4, 1, Double.NEGATIVE_INFINITY, -50), 0.5), "onderste stap: deel van stap 1");
         check(FijnVolume.gain(5, 1, 5, -20, -18) == 1f, "fijn 1: niets eigens");
 
+        // Een druk: één fijne stap; snel achter elkaar of vasthouden: naar de volgende hele stap van Android
+        check(FijnVolume.doel(9, 3, -1, false) == 8 && FijnVolume.doel(9, 3, 1, false) == 10, "losse druk: één fijne stap");
+        check(FijnVolume.doel(9, 3, -1, true) == 6 && FijnVolume.doel(8, 3, -1, true) == 6 && FijnVolume.doel(7, 3, -1, true) == 6, "snel omlaag: naar de hele stap eronder");
+        check(FijnVolume.doel(9, 3, 1, true) == 12 && FijnVolume.doel(10, 3, 1, true) == 12 && FijnVolume.doel(11, 3, 1, true) == 12, "snel omhoog: naar de hele stap erboven");
+        check(FijnVolume.doel(2, 3, -1, true) == 0 && FijnVolume.doel(0, 3, -1, true) == 0, "snel omlaag: niet onder 0");
+        check(FijnVolume.doel(5, 1, -1, true) == 4, "fijn 1: gewoon één stap");
+        // Van heel hard (45) naar zacht (15) met vasthouden: net zo veel drukken als zonder fijn volume (10)
+        int v = 45, n = 0; while (v > 15) { v = FijnVolume.doel(v, 3, -1, true); n++; }
+        check(n == 10, "vasthouden: 10 drukken van stap 15 naar 5 (" + n + ")");
+        // Wanneer telt een druk als snel
+        check(FijnVolume.reeks(0, 100, true) == 1 && FijnVolume.reeks(1, 200, true) == 2, "snel achter elkaar telt op");
+        check(FijnVolume.reeks(3, 900, true) == 0 && FijnVolume.reeks(3, 100, false) == 0 && FijnVolume.reeks(3, -1, true) == 0, "te laat, andere richting of eerste druk: opnieuw");
+
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("alles goed");
     }
