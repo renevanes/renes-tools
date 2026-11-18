@@ -29,7 +29,8 @@ final class ReadAloud {
     private ReadAloud(){ }
     static final Object LOCK=new Object();
     /** Fijner volume met de knoppen tijdens voorlezen (niet bij de assistent: korte antwoorden). Alleen op de hoofdthread. */
-    private static FijnVolume fijn;private static final Handler MAIN=new Handler(Looper.getMainLooper());
+    private static FijnVolume fijn;private static volatile Handler main; // pas bij gebruik maken: de Java-tests kennen geen Looper
+    private static void opMain(Runnable r){Handler h=main;if(h==null)main=h=new Handler(Looper.getMainLooper());h.post(r);}
     private static FijnVolume fijn(Context c){if(fijn==null)fijn=new FijnVolume(c,g->{Job j=current;AudioTrack t=j==null?null:j.track;if(t!=null)try{t.setVolume(g);}catch(Throwable ignored){ }},()->{Job j=current;return j!=null&&j.track!=null&&!j.paused&&j.alive()&&!j.source.equals("ai");});return fijn;}
     static final ExecutorService WORK=Executors.newSingleThreadExecutor();
     /** Alles met de spraakmotor. Wordt vervangen als een zin vastloopt in de native code (zie wedged). */
@@ -267,7 +268,7 @@ final class ReadAloud {
             buffer=(buffer+1)/2*2; // AudioTrack vereist hele mono-16bitframes (2 bytes).
             job.track=new AudioTrack(job.attrs,new AudioFormat.Builder().setSampleRate(rate).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build(),buffer,AudioTrack.MODE_STREAM,AudioManager.AUDIO_SESSION_ID_GENERATE);
             AudioTrack track=job.track;if(track.getState()!=AudioTrack.STATE_INITIALIZED)throw new IOException("audiotrack");
-            if(!job.source.equals("ai")){final android.media.session.MediaSession ses=job.background?ReadAloudService.sessie():null;MAIN.post(()->{if(current!=job||!job.alive())return;FijnVolume f=fijn(job.context);f.koppel(ses);AudioTrack t=job.track;if(t!=null)try{t.setVolume(f.gain());}catch(Throwable ignored){ }});}
+            if(!job.source.equals("ai")){final android.media.session.MediaSession ses=job.background?ReadAloudService.sessie():null;opMain(()->{if(current!=job||!job.alive())return;FijnVolume f=fijn(job.context);f.koppel(ses);AudioTrack t=job.track;if(t!=null)try{t.setVolume(f.gain());}catch(Throwable ignored){ }});}
             synchronized(LOCK){if(!job.alive())return;if(!job.paused)track.play();}
             long written=0;short[] samples=new short[4096];
             do{
@@ -301,7 +302,7 @@ final class ReadAloud {
         finally{
             if(noisy!=null)try{job.context.unregisterReceiver(noisy);}catch(Throwable ignored){ }
             AudioTrack track=job.track;job.track=null;if(track!=null)try{track.pause();track.flush();track.release();}catch(Throwable ignored){ }
-            MAIN.post(()->{Job c=current;if(fijn!=null&&(c==null||c==job||!c.alive()||c.track==null))fijn.los();});
+            opMain(()->{Job c=current;if(fijn!=null&&(c==null||c==job||!c.alive()||c.track==null))fijn.los();});
             // Vrijgeven op SYNTH: na een zin die nog bezig is, nooit tegelijk met de motor. Hij blijft nog even warm.
             final VoiceEngine used=engine;final Future<VoiceEngine> pending=loading;
             if(!wedged)try{SYNTH.execute(()->{try{VoiceEngine e=used!=null?used:pending!=null?pending.get():null;if(e!=null)releaseEngine(e);}catch(Throwable ignored){ }});}catch(Throwable ignored){ }
