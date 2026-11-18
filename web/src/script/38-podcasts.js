@@ -1,6 +1,7 @@
 /* ---------- Podcasts: zoeken, volgen, luisteren, slaaptimer ---------- */
 let pcSt = {}, pcPollT = null, pcSeeking = false, pcSearchT = null, pcTop = null, pcRes = null, pcLastSig = '';
 let pdPod = null, pdFeed = null, pdShown = 50;
+let pdNaar = ''; // na het laden deze aflevering in beeld brengen (tik op de titel in de speler)
 
 /* Tijd als 1:02:03 of 4:05 */
 function fmtClock(ms){
@@ -304,7 +305,7 @@ window.onPodSearch = function(r){
    de afleveringen. Wat je zelden nodig hebt (op startscherm, over, bijwerken, ontvolgen) zit onder ⋯ in de balk. */
 let pdSort = 'new', pdHide = false, pdRes = null, pdResHtml = '';
 function pdOpen(p){
-  pdPod = pcSlimPod(p); pdFeed = null; pdShown = 50; pdRes = null;
+  pdPod = pcSlimPod(p); pdFeed = null; pdShown = 50; pdRes = null; pdNaar = '';
   show('podcast');
   $('#pd-h1').textContent = p.title || 'Podcast';
   pcSetArt($('#pd-art'), p.image);
@@ -358,7 +359,19 @@ window.onPodFeed = function(r){
   pdSubBtn(!!r.subscribed);
   if (r.subscribed && r.pod) Android.podSeen(r.pod.id);
   pcDlRefresh(); pdRender();
+  if (pdNaar) pdToon(pdNaar);
 };
+/** Een aflevering in het overzicht in beeld brengen en even laten oplichten. */
+function pdToon(key){
+  pdNaar = '';
+  const l = pdList(), i = l.findIndex(e => e.key === key);
+  if (i < 0) return;
+  if (i >= pdShown) { pdShown = i + 10; pdRender(); }
+  const row = document.querySelector('#pd-eps .pcep[data-i="' + i + '"]'); if (!row) return;
+  row.scrollIntoView({ block: 'center' });
+  row.classList.add('flits'); setTimeout(() => row.classList.remove('flits'), 1800);
+  const b = row.querySelector('.pcepb'); if (b) b.focus({ preventScroll: true });
+}
 /* ⋯ in de balk: wat je niet elke dag nodig hebt */
 function pdMenu(){
   if (!pdPod) return;

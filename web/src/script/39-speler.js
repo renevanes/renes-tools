@@ -187,6 +187,9 @@ function plRender(){
   $('#pl-cover').setAttribute('aria-label', t(m.src === 'radio' ? 'Hoes van {titel}. Veeg naar links voor de volgende zender, naar rechts voor de vorige.' : 'Hoes van {titel}. Veeg naar links voor de volgende aflevering, naar rechts voor de vorige.', { titel: m.title }));
   plSetText($('#pl-title'), m.title);
   plSetText($('#pl-sub'), m.sub);
+  $('#pl-kind').setAttribute('aria-label', m.src === 'podcast' ? t('Naar Podcasts') : t('Naar Radio'));
+  $('#pl-title').setAttribute('aria-label', m.src === 'podcast' ? t('{titel}, tonen tussen de afleveringen', { titel: m.title }) : t('{titel}, naar Radio', { titel: m.title }));
+  $('#pl-sub').setAttribute('aria-label', m.src === 'podcast' ? t('{naam}, naar de podcast', { naam: m.sub }) : t('{naam}, naar Radio', { naam: m.sub }));
   $('#pl-sub').classList.toggle('bad', m.status === 'error');
   const fav = $('#pl-fav');
   fav.style.visibility = m.src === 'radio' ? 'visible' : 'hidden';
@@ -384,6 +387,17 @@ function plGoSource(){
   if (m.src === 'podcast') { if (pcSt.pod && pcSt.pod.feed) pdOpen(pcSt.pod); else show('podcasts'); }
   else show('radio');
 }
+/** Tik op de titel: bij een podcast het overzicht van de podcast, met deze aflevering in beeld; bij de radio de zenders. */
+function plGoEp(){
+  const m = plModel(); if (!m) return;
+  if (m.src === 'podcast' && pcSt.pod && pcSt.pod.feed) { const key = pcSt.ep && pcSt.ep.key; pdOpen(pcSt.pod); if (key) pdNaar = key; }
+  else plGoSource();
+}
+/** Tik op "Podcast" of "Radio" bovenaan: het overzicht van die tool. */
+function plGoTool(){
+  const m = plModel(); if (!m) return;
+  show(m.src === 'podcast' ? 'podcasts' : 'radio');
+}
 function plMenu(){
   const m = plModel(); if (!m) return;
   if (m.src === 'podcast') { pcNowMenu(); return; }
@@ -466,7 +480,7 @@ function plOpen(){
   plInert(true);
   $('#pl-scroll').scrollTop = 0;
   plRender();
-  setTimeout(() => $('#pl-title').focus({ preventScroll: true }), 30);
+  setTimeout(() => $('#pl-titleh').focus({ preventScroll: true }), 30);
   bars();
 }
 function plClose(){
