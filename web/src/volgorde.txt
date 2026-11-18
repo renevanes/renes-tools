@@ -162,6 +162,7 @@ script/74c-ereader-lezen.js
 script/75-nieuws.js
 script/30-snelkoppelingen.js
 script/31-startscherm-groepen-volgorde-verbergen.js
+script/31b-startscherm-aanpassen.js
 script/32-automatiseringen.js
 script/60-gebruik.js
 script/58-instellingen-register.js

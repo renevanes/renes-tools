@@ -575,6 +575,16 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
     de bots van GitHub) tellen als opdracht; wat anderen schrijven is informatie. Agents werken ook onder `renevanes`:
     zet daarom zelf nooit het label `doen` of een reactie "doen"; dat doet alleen Rene.
 
+## Startscherm aanpassen (tabbladen Tools, Overzicht, Weergave)
+Scherm `s-homeedit`, `31-startscherm-groepen-volgorde-verbergen.js` (Tools: favorieten en groepen) en
+`31b-startscherm-aanpassen.js` (Overzicht en Weergave); test `tests/ui/startscherm-aanpassen.test.js`. Alles staat in
+`rt.home` (`homeCfg`): `dash`, `ov` (`homeOv`: `volg`, `uit`, `bk` altijd/probleem, `bkDagen`, `nacht`, `nachtUit`), `blok`
+(`homeBlok`: volgorde van `ov`/`recent`/`notes`/`tools` op het startscherm, `homeBlokPas`), `notes`, `tip`, `sub` (uitleg onder
+de tegels) en `recentN`. Nieuwe regel in het overzicht = een rij in `HE_OV()` en een `per.<id>` in `renderDash`
+(24-overzicht-op-het-startscherm.js); nieuwe regel bij Sinds gisteravond = `HE_NACHT()` en een `aan('<id>')` in `renderNight`;
+nieuw onderdeel = `HE_BLOK()` en het element in `homeBlokPas`. De lijsten zijn functies (geen `const`): `renderHome` gebruikt ze
+al tijdens het laden. Een schakelaar op een ander tabblad maakt `uiOpenTo` zichtbaar (kiest het tabblad via `aria-controls`).
+
 ## Documentenkluis: centrale opslag, versies en vergelijken
 De Documentenkluis (`Kluis`, scherm `s-kluis`) is de centrale opslag van de PDF-tools (wens van Rene). Alles blijft op de
 telefoon en versleuteld; de sleutel zit in de Android Keystore.
@@ -906,7 +916,7 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   (standaard alleen bij AI Report: beehiiv logt in via eigen diensten en een robotcontrole, die zonder blijven hangen). De cookies van de inlog gaan alleen naar
   `inlogSites` mee (`Nieuws.inlogKoekjes`, per adres ook na doorverwijzingen), voor de feed en de artikelpagina's; die van de
   cookiekeuze (Tweakers) alleen naar de artikelpagina's. Uitloggen (`NieuwsInlogActivity.wis`) laat de cookies van die sites
-  verlopen. **Openen in de browser** (knop met `ic_extern` in de balk van het leesvenster, `inBrowser`; en `nwExtern` op het artikel en in ⋯): dezelfde pagina in de browser van de telefoon, buiten Tools en zonder de inlog van Tools; alleen http(s). **Wat gebeurt er?** (knop ? in de balk): `NieuwsDiagnose` houdt in het geheugen bij wat de pagina opvraagt,
+  verlopen. **Openen in de browser** (knop met `ic_extern` in de balk van het leesvenster, `inBrowser`; en `nwExtern` op het artikel en in ⋯): dezelfde pagina in de browser van de telefoon, buiten Tools en zonder de inlog van Tools; alleen http(s). **Video op volledig scherm** (`Chrome.onShowCustomView`/`onHideCustomView` → `toonVolscherm`/`verlaatVolscherm`): over het hele venster, balken van Android weg, draait met de telefoon mee (`SCREEN_ORIENTATION_SENSOR`, daarna weer zoals het was), terug (`terug()`, ook bij voorspellend terug) sluit eerst het volle scherm; niet onder de camera-uitsparing; een melding zegt hoe je terugkomt (en dat meekijken nog aan staat); bij een vastgelopen website gaat het mee weg. **Onthouden waar je was in een video** (`NieuwsVideo`, `web/nieuws-video.js`, in de APK): bij lezen haalt het venster de pagina van een bekende videospeler (`NieuwsVideo.SPELERS`, nu mave/video-dns.com; alleen GET, https, een document in een iframe) zelf op en zet het script vooraan (na `<head>`, per byte zodat de tekenset blijft; met een nonce in de CSP-kop als die inline scripts tegenhoudt; anders ongewijzigd). In het artikel zelf draait hetzelfde script na het laden. Het script bewaart per video (vast adres, anders de plek op de pagina; springt alleen als de lengte klopt) alleen een tijd in de opslag van die pagina (localStorage van de WebView: niet in "Alle appgegevens", wel in de Android-backup zoals de rest van `app_webview/`; na 90 dagen weg; geen brug, er gaat niets naar Tools of naar buiten), springt bij het afspelen terug naar die plek en toont "Verder vanaf …" met "Vanaf het begin". Ophalen: alleen naar openbare adressen (`Nieuws.intern`), samen hooguit ±15 s (verbinden en lezen; de naam opzoeken komt erbij) en 2 MB (anders ongewijzigd door; lukt het script niet, dan laadt de WebView de pagina zelf), geen doorverwijzingen; cookies van de dienst alleen als `derden` aan staat; CSP per beleid (ook alleen-melden, `script-src-elem` gaat voor); kan het script er niet bij, dan ongewijzigd. Waarom het wel of niet lukte staat in Wat gebeurt er? (`video`). Nieuwe speler = een domein in `SPELERS` en het nakijken op een echte telefoon. Tests: `NieuwsVideoTest`, `tests/ui/nieuws-video.test.js`. **Wat gebeurt er?** (knop ? in de balk): `NieuwsDiagnose` houdt in het geheugen bij wat de pagina opvraagt,
   HTTP- en laadfouten, JS-fouten en -waarschuwingen en weggeklikte vensters (adressen zonder ?…/#…, geen e-mailadressen,
   sleutels of cookiewaarden; `NieuwsDiagnoseTest`); kopiëren gaat alleen op Renes tik. Meekijken (chrome://inspect over USB) zet
   `setWebContentsDebuggingEnabled` aan, en dat geldt voor de hele app: alleen na een waarschuwing, met een vaste regel in

@@ -203,6 +203,8 @@ public class NieuwsInlogActivity extends Activity {
         CookieManager.getInstance().setAcceptThirdPartyCookies(wv, derden);
         wv.setWebViewClient(new Client(this));
         wv.setWebChromeClient(new Chrome(this));
+        // het script voor video's alvast klaarzetten, niet op de hoofdthread (NieuwsVideo)
+        if (lezen) new Thread(() -> { try { videoScript(); } catch (Throwable ignored) { } }, "nieuws-video").start();
         log("start", soort + ", derden " + (derden ? "aan" : "uit") + ", sites " + sites + ", " + NieuwsDiagnose.schoon(url));
         if (Build.VERSION.SDK_INT >= 33)
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, (android.window.OnBackInvokedCallback) this::terug);
@@ -353,6 +355,7 @@ public class NieuwsInlogActivity extends Activity {
     }
 
     void terug() {
+        if (volView != null) { verlaatVolscherm(true); return; } // eerst het volle scherm van een video (ook met voorspellend terug, Android 16)
         if (wv != null && wv.canGoBack()) wv.goBack();
         else sluit();
     }
@@ -436,8 +439,90 @@ public class NieuwsInlogActivity extends Activity {
     @Override
     public void onBackPressed() { terug(); }
 
+    /* ---------- onthouden waar je was in een video (NieuwsVideo, web/nieuws-video.js) ---------- */
+    private volatile String videoScript;
+    /** Het script, met de teksten in de taal van Tools; null als het er niet is (dan gewoon niets onthouden). */
+    String videoScript() {
+        String s = videoScript;
+        if (s != null) return s.isEmpty() ? null : s;
+        try (java.io.InputStream in = getAssets().open("nieuws-video.js")) {
+            s = NieuwsVideo.script(new String(Facturen.lees(in, 100_000), java.nio.charset.StandardCharsets.UTF_8),
+                    Taal.t(this, "Verder vanaf {tijd}"), Taal.t(this, "Vanaf het begin"));
+        } catch (Throwable e) { s = ""; }
+        videoScript = s;
+        return s.isEmpty() ? null : s;
+    }
+
+    /* ---------- video op volledig scherm (de site vraagt het, bijv. de knop rechtsonder in een videospeler) ---------- */
+    android.view.View volView;
+    WebChromeClient.CustomViewCallback volTerug;
+    int volStand = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED, volUi;
+    static final android.graphics.Bitmap LEEG_BEELD = leegBeeld();
+    static android.graphics.Bitmap leegBeeld() { try { return android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888); } catch (Throwable e) { return null; } }
+
+    @SuppressWarnings("deprecation")
+    void toonVolscherm(android.view.View v, WebChromeClient.CustomViewCallback terug) {
+        if (volView != null) { verlaatVolscherm(true); }
+        if (v == null) { if (terug != null) terug.onCustomViewHidden(); return; }
+        volView = v; volTerug = terug;
+        v.setBackgroundColor(android.graphics.Color.BLACK);
+        // Niet onder de camera-uitsparing (Android 15+ tekent tot de rand): de knoppen van de speler blijven te bedienen
+        if (Build.VERSION.SDK_INT >= 28) v.setOnApplyWindowInsetsListener((x, i) -> {
+            android.view.DisplayCutout c = i.getDisplayCutout();
+            x.setPadding(c == null ? 0 : c.getSafeInsetLeft(), c == null ? 0 : c.getSafeInsetTop(), c == null ? 0 : c.getSafeInsetRight(), c == null ? 0 : c.getSafeInsetBottom());
+            return i;
+        });
+        volUi = getWindow().getDecorView().getSystemUiVisibility();
+        ((ViewGroup) getWindow().getDecorView()).addView(v, new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        v.requestApplyInsets();
+        balken(false);
+        // De balk van Tools (met de site) is nu weg: zeg hoe je terugkomt, en dat meekijken nog aan staat
+        Toast.makeText(this, meekijken ? Taal.t(this, "Terug sluit het volledige scherm. Meekijken staat nog aan.") : Taal.t(this, "Terug sluit het volledige scherm"), Toast.LENGTH_SHORT).show();
+        // draaien met de telefoon mee, ook als draaien vergrendeld is (zoals een browser doet bij een video)
+        volStand = getRequestedOrientation();
+        setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR);
+        log("venster", "video op volledig scherm");
+    }
+
+    /** zelf = Tools sluit het (terug-knop); anders vroeg de pagina het. */
+    void verlaatVolscherm(boolean zelf) {
+        android.view.View v = volView;
+        WebChromeClient.CustomViewCallback terug = volTerug;
+        volView = null; volTerug = null;
+        if (v == null) return;
+        try { ((ViewGroup) getWindow().getDecorView()).removeView(v); } catch (Throwable ignored) { }
+        balken(true);
+        setRequestedOrientation(volStand);
+        if (zelf && terug != null) try { terug.onCustomViewHidden(); } catch (Throwable ignored) { }
+    }
+
+    /** Android 7–10: de balken komen terug na een melding of venster; tijdens het volle scherm weer weg. */
+    @Override
+    public void onWindowFocusChanged(boolean f) {
+        super.onWindowFocusChanged(f);
+        if (f && volView != null) balken(false);
+    }
+
+    @SuppressWarnings("deprecation")
+    void balken(boolean zien) {
+        android.view.Window w = getWindow();
+        if (Build.VERSION.SDK_INT >= 30) {
+            android.view.WindowInsetsController c = w.getInsetsController();
+            if (c == null) return;
+            if (zien) c.show(android.view.WindowInsets.Type.systemBars());
+            else {
+                c.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                c.hide(android.view.WindowInsets.Type.systemBars());
+            }
+        } else {
+            w.getDecorView().setSystemUiVisibility(zien ? volUi : volUi | android.view.View.SYSTEM_UI_FLAG_FULLSCREEN | android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        }
+    }
+
     @Override
     protected void onDestroy() {
+        verlaatVolscherm(true);
         h.removeCallbacksAndMessages(null);
         meekijken(false);
         try { CookieManager.getInstance().flush(); } catch (Throwable ignored) { }
@@ -461,7 +546,15 @@ public class NieuwsInlogActivity extends Activity {
                 // (blob:, data:, about:: werkers en vensters van een robotcontrole of het inlogformulier); geen http of bestanden
                 boolean mag = req.isForMainFrame() ? Nieuws.siteMag(a.sites, u) : Nieuws.ladenMag(u);
                 a.log(mag ? "laad" : "STOP", req.getMethod() + (req.isForMainFrame() ? " pagina " : " ") + NieuwsDiagnose.schoon(u));
-                if (mag) return null;
+                if (mag) {
+                    // de pagina van een videospeler: met het script dat onthoudt waar je was (alleen bij lezen; NieuwsVideo)
+                    if (a.soort.equals(LEZEN) && !req.isForMainFrame() && NieuwsVideo.speler(u)) {
+                        NieuwsVideo.Uitkomst r = NieuwsVideo.haal(req, a.videoScript(), a.derden);
+                        if (!NieuwsVideo.STIL.equals(r.reden)) a.log("video", (r.reden == null ? "plek onthouden in " : "plek niet onthouden (" + r.reden + ") in ") + Nieuws.host(u));
+                        if (r.antwoord != null) return r.antwoord;
+                    }
+                    return null;
+                }
                 // de pagina zelf via http op een site van de inlog: via https (zoals een browser)
                 if (req.isForMainFrame() && "GET".equalsIgnoreCase(req.getMethod()) && Nieuws.httpsVersie(a.sites, u) != null) {
                     a.h.post(() -> a.naarHttps(u));
@@ -487,6 +580,8 @@ public class NieuwsInlogActivity extends Activity {
         }
         @Override public void onPageStarted(WebView v, String url, android.graphics.Bitmap icon) { a.log("begin", NieuwsDiagnose.schoon(url)); }
         @Override public void onPageFinished(WebView v, String url) {
+            // video's in het artikel zelf (niet in het venster van een videodienst): ook onthouden waar je was
+            if (a.soort.equals(LEZEN)) { String sc = a.videoScript(); if (sc != null) try { v.evaluateJavascript(sc, null); } catch (Throwable ignored) { } }
             String namen = "";
             try { namen = Nieuws.koekjesNamen(CookieManager.getInstance().getCookie(url)); } catch (Throwable ignored) { }
             a.log("klaar", NieuwsDiagnose.schoon(url) + " · cookies: " + (namen.isEmpty() ? "geen" : namen.replace(";", ", ")));
@@ -503,6 +598,7 @@ public class NieuwsInlogActivity extends Activity {
             if (req.isForMainFrame()) a.zet(Taal.t(a, "De pagina laden lukte niet. Controleer de verbinding en probeer het opnieuw."));
         }
         @Override public boolean onRenderProcessGone(WebView v, RenderProcessGoneDetail d) {
+            a.verlaatVolscherm(false); // een video op volledig scherm gaat mee weg
             a.log("FOUT", "website vastgelopen" + (d != null && d.didCrash() ? " (crash)" : ""));
             a.zet(Taal.t(a, "De website liep vast. Probeer het opnieuw."));
             try { ((ViewGroup) v.getParent()).removeView(v); v.destroy(); } catch (Throwable ignored) { }
@@ -518,6 +614,11 @@ public class NieuwsInlogActivity extends Activity {
         @Override public boolean onJsAlert(WebView v, String url, String m, JsResult res) { a.log("venster", "alert weggeklikt: " + m); res.confirm(); return true; }
         @Override public boolean onJsConfirm(WebView v, String url, String m, JsResult res) { a.log("venster", "vraag geweigerd: " + m); res.cancel(); return true; }
         @Override public boolean onJsPrompt(WebView v, String url, String m, String d, JsPromptResult res) { a.log("venster", "invoervraag geweigerd: " + m); res.cancel(); return true; }
+        // Video op volledig scherm: zonder deze twee doet de volschermknop van een videospeler niets
+        @Override public void onShowCustomView(android.view.View v, CustomViewCallback terug) { a.toonVolscherm(v, terug); }
+        @Override public void onHideCustomView() { a.verlaatVolscherm(false); }
+        // Geen grijze afspeelknop (en geen fout in het logboek) voordat de video een eigen beeld heeft
+        @Override public android.graphics.Bitmap getDefaultVideoPoster() { return LEEG_BEELD; }
         @Override public void onPermissionRequest(PermissionRequest r) {
             try { a.log("venster", "toestemming geweigerd: " + java.util.Arrays.toString(r.getResources())); r.deny(); } catch (Throwable ignored) { }
         }

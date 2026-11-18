@@ -12,7 +12,7 @@ const { chromium } = require('playwright');
     // move Radio up (crosses into previous group), hide SMS
     await pg.click('#he-groups button.more[data-t="radio"]'); await pg.click('#sheet-acts button:has-text("Omhoog")'); await pg.waitForTimeout(100);
     await pg.click('#he-groups button.more[data-t="sms"]'); await pg.click('#sheet-acts button:has-text("Verbergen")'); await pg.waitForTimeout(100);
-    await pg.click('#he-compact'); await pg.waitForTimeout(100);
+    await pg.click('#he-tab-weer'); await pg.click('#he-compact'); await pg.waitForTimeout(100);
     await pg.screenshot({ path: __dirname + '/shots/homeedit-' + scheme + '.png', fullPage: true });
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
     console.log('edited', await groups());
@@ -20,7 +20,7 @@ const { chromium } = require('playwright');
     await pg.click('#tile-radio'); await pg.waitForTimeout(200);
     console.log('tile opens', await pg.evaluate(() => document.querySelector('.screen.on').id));
     await pg.evaluate(() => goBack());
-    await pg.click('.foot button:has-text("Startscherm aanpassen")'); await pg.click('#he-grouped'); await pg.waitForTimeout(100);
+    await pg.click('.foot button:has-text("Startscherm aanpassen")'); await pg.click('#he-tab-weer'); await pg.click('#he-grouped'); await pg.waitForTimeout(100);
     await pg.evaluate(() => goBack()); console.log('flat', (await groups()).length);
     await pg.click('.foot button:has-text("Startscherm aanpassen")'); await pg.click('button:has-text("Standaard herstellen")'); await pg.click('#modal-ok'); await pg.waitForTimeout(100);
     await pg.evaluate(() => goBack()); console.log('reset', (await groups()).length, 'errors', errs);

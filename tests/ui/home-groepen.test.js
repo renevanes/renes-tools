@@ -229,13 +229,13 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
     ok((await rec()) === 'pdf,notes,ai,car', 'en zet hem vooraan');
     // verborgen tool niet in de rij
     await pg.evaluate(() => heToggle('ai', false)); await pg.evaluate(() => show('home')); await pg.waitForTimeout(100);
-    ok((await rec()) === 'pdf,notes,car', 'verborgen tool niet in Recent');
+    ok((await rec()).startsWith('pdf,notes,car') && !(await rec()).split(',').includes('ai'), 'verborgen tool niet in Recent (een oudere schuift erbij)');
     await pg.evaluate(() => heToggle('ai', true));
     await pg.screenshot({ path: __dirname + '/shots/home-groepen-' + scheme + '.png' });
     // Uitzetten in Startscherm aanpassen: rij weg, lijst gewist, niets meer bijhouden
     await pg.evaluate(() => show('homeedit')); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => $('#he-recent').getAttribute('aria-checked') === 'true'), 'schakelaar Recent gebruikt staat aan');
-    await pg.click('#he-recent'); await pg.waitForTimeout(100);
+    await pg.click('#he-tab-weer'); await pg.click('#he-recent'); await pg.waitForTimeout(100);
     ok(await pg.evaluate(() => $('#he-recent').getAttribute('aria-checked') === 'false' && homeCfg().recent === false && !store.get('homeRecent', []).length), 'uit: keuze bewaard en lijst gewist');
     await pg.evaluate(() => { show('radio'); show('pdf'); show('home'); }); await pg.waitForTimeout(100);
     ok(!(await pg.isVisible('#home-recent')) && !(await pg.evaluate(() => store.get('homeRecent', []).length)), 'uit: niets bijgehouden, geen rij');
@@ -251,7 +251,7 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
     ok(en.join('|') === 'Calls & contacts|Messages & backup|Music & radio|Documents & money|Day & health|On the go|Smart', 'groepen in het Engels: ' + en.join(', '));
     ok((await pg.textContent('#home-recent h3')) === 'Recently used' && (await pg.textContent('#home-recent .hrtool')) === 'VPN', 'Recent gebruikt in het Engels');
     await pg.evaluate(() => show('homeedit')); await pg.waitForTimeout(150);
-    ok((await pg.evaluate(() => $('#he-recent').closest('.sw').textContent)).startsWith('Recently used'), 'schakelaar in het Engels');
+    ok((await pg.evaluate(() => $('#he-recent').closest('.herow').querySelector('.nm').textContent)).startsWith('Recently used'), 'schakelaar in het Engels');
     await pg.screenshot({ path: __dirname + '/shots/home-groepen-edit-en-' + scheme + '.png', fullPage: true });
     await pg.evaluate(() => rgSave({ lang: 'nl' })); await pg.waitForTimeout(200);
     await pg.evaluate(() => show('home'));

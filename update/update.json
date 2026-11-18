@@ -1,15 +1,33 @@
 {
   "app": "Tools",
-  "versionName": "1.226",
-  "versionCode": 227,
-  "nativeLevel": 194,
+  "versionName": "1.228",
+  "versionCode": 229,
+  "nativeLevel": 195,
   "web": "index.html",
-  "webSha256": "e33b9aac451084273f1e03d4a161f4105a359811c3f6a507550d3c6c8a3e1245",
+  "webSha256": "0200705641a699b5b97b20036e79d9a1bda2c88ee69b8ed9fc610e6d5f456ee5",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "33ae7339725eb33c99455406da3e1eea9648f41a081a34a0b1aeead795719cd1",
+  "apkSha256": "3345f85ae254e0daa7df22ea9aad97968f27d40dcd303238317aecbc867aa354",
   "changelog": [
+    {
+      "version": "1.228",
+      "date": "2026-11-18",
+      "changes": [
+        "Startscherm aanpassen: overzichtelijker, in drie tabbladen: Tools (favorieten en groepen), Overzicht en Weergave, in plaats van één lange lijst.",
+        "Startscherm aanpassen → Overzicht: kies welke regels bovenaan staan (backup, wekker, herinneringen, Auto redial, radio, zelftest) en in welke volgorde; de backup-regel kan alleen bij een probleem verschijnen, met een eigen termijn voor \"al even geleden\".",
+        "Startscherm aanpassen → Overzicht: Sinds gisteravond kan uit, of per soort regel (backup, gemiste oproepen, automatiseringen, beperkingen door Android, backup-controle).",
+        "Startscherm aanpassen → Weergave: zet de onderdelen van het startscherm (Overzicht, Recent gebruikt, Vastgezette notities, Tools) in je eigen volgorde, zet vastgezette notities, de tip onderaan en de uitleg onder de tegels uit, en kies hoeveel tools Recent gebruikt toont."
+      ]
+    },
+    {
+      "version": "1.227",
+      "date": "2026-11-18",
+      "changes": [
+        "Nieuws: een video in een artikel dat je in Tools leest (zoals bij AI Report) onthoudt waar je was. De volgende keer gaat hij daar verder, met \"Vanaf het begin\" om toch opnieuw te beginnen. Werkt na het installeren van de nieuwe APK.",
+        "Nieuws: een video in een artikel dat je in Tools leest (zoals bij AI Report) kan nu op volledig scherm, en draait mee als je je telefoon kantelt. Terug sluit het volle scherm. Werkt na het installeren van de nieuwe APK."
+      ]
+    },
     {
       "version": "1.226",
       "date": "2026-11-18",
@@ -161,21 +179,7 @@
         "Slaaptimer: het vreemde vakje met kruis is een maantje geworden, en het venster is rustiger: één tik op een tijd start de timer, een eigen tijd staat ingeklapt.",
         "Speler: hoesjes staan sneller in beeld. Met de nieuwe app komen ze verkleind uit de eigen opslag op de telefoon, in plaats van steeds van internet."
       ]
-    },
-    {
-      "version": "1.208",
-      "date": "2026-11-15",
-      "changes": [
-        "Nieuwe installatie: na het overslaan van terugzetten staat op het startscherm 'Aan de slag' met drie stappen (favorieten, backup, app-slot)"
-      ]
-    },
-    {
-      "version": "1.207",
-      "date": "2026-11-13",
-      "changes": [
-        "Check-in: al je antwoorden en opmerkingen exporteren als CSV-bestand voor een rekenblad (menu ⋯ rechtsboven)"
-      ]
     }
   ],
-  "webSig2": "jtM+xI9eXAAvSeTGDGu0E6OCmwzGv9Qhx752u7i6ikpSrNXcUdnYyTFJsQsgLIorh1mdQq1YA8Fq79B1XB2h8D/cxojbi9nq1K9nmj0zKFiFrCbF0m6uSQBIIaev4NM9aYyBsuNrcH7Mvmr5SGH+unBGlKyo67JcsYKXHhXD9K7r1lDrvxfj4ssW+AM6l98SrngtfS1Xjvxl/2EDdmWNDWysZwKsB4vSPx1kvjXDW9JjGPKGcqXmWMbUFu1obEMdMDrHjSQWCxKuAbR6RRmgoqfEQJ+YrSQQMtp+j4EKBE6nmcoMYvpOj3B1Vooun8o/OBEwm7VdnuT5q2uvxlRE3N2j9WouFybw8a1w39aj6DzAoVseuMTAuz4BFqtdS5ZfIrSIS4xWe095Z0EJnI6212NbKxtP2ms40pnngkKeDu9aswb8CcfakXG9xagdoqIjsqT4GxiEVCPD5KOBWW5unZq/64Pqz6GsxPjx/5xCpF6eeXRziLgXphVlKCjmMMrG"
+  "webSig2": "RU2rBxip7/VNKHb5T+2si4BOLt05IHVrxoE4vLv9Gbnn7bWf1y8kym094DKNf1bXZcEHeT37n1mkjKrhx503Oxws7pamNxLNMmNC7297wCRw9RU3HUExxUCzwFUX8yxh5OGVzKZZ/FJUrBiaa7jH511eceb7Am3jw4o9WEPa1JZITJrg9GBbd4R0k82miiMuFFbrBwJ54wUMTXfOwtg96a+PU+zgfdq0k8uxxN998gBXr9M8EJhA069vVtDqQEad1L1pm3wHHtq8vI5pFEaK7PKkOtBBXm3dX+hj3H/O+W2Nlr3SnXTQfZdfmWRUJxq/dPHRxoxwxbSEmYTwxOPHijjbt9lqR5lRDI9Q5li+CGTXWHE+RvbcVVx94rPMsAa2E1mpbzZuDuDiMoWNIkvgok5eaWV/2GKgGNmSee2HyOMzjhQxHuy/AA1WU4QagJCVsoUFsRxfDXsLIKREkQZveiUj8vqmGK3WGQGfzFhFXnVNthxWNXd4Y6D/xLgOksqO"
 }
