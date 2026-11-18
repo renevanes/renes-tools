@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.226",
+    "date": "2026-11-18",
+    "changes": [
+      "Nieuws: bij een bron waarvan je artikelen in Tools leest, staat nu ook \"Openen in de browser\" (onder het artikel, in het menu ⋯ en als knop bovenin het leesvenster), zodat je de pagina ook buiten de app kunt openen. Voor de knop in het leesvenster is de nieuwe APK nodig.",
+      "Grote speler: de slaaptimer staat nu rechts. Tik op de titel van de aflevering om hem in het overzicht van de podcast te zien, op de naam van de podcast voor alle afleveringen, of op \"Podcast\"/\"Radio\" bovenaan voor het hele overzicht."
+    ]
+  },
+  {
     "version": "1.225",
     "date": "2026-11-18",
     "changes": [
