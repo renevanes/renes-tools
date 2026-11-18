@@ -437,6 +437,20 @@ public class NieuwsInlogActivity extends Activity {
     @Override
     public void onBackPressed() { terug(); }
 
+    /* ---------- onthouden waar je was in een video (NieuwsVideo, web/nieuws-video.js) ---------- */
+    private volatile String videoScript;
+    /** Het script, met de teksten in de taal van Tools; null als het er niet is (dan gewoon niets onthouden). */
+    String videoScript() {
+        String s = videoScript;
+        if (s != null) return s.isEmpty() ? null : s;
+        try (java.io.InputStream in = getAssets().open("nieuws-video.js")) {
+            s = NieuwsVideo.script(new String(Facturen.lees(in, 100_000), java.nio.charset.StandardCharsets.UTF_8),
+                    Taal.t(this, "Verder vanaf {tijd}"), Taal.t(this, "Vanaf het begin"));
+        } catch (Throwable e) { s = ""; }
+        videoScript = s;
+        return s.isEmpty() ? null : s;
+    }
+
     /* ---------- video op volledig scherm (de site vraagt het, bijv. de knop rechtsonder in een videospeler) ---------- */
     android.view.View volView;
     WebChromeClient.CustomViewCallback volTerug;
@@ -530,7 +544,14 @@ public class NieuwsInlogActivity extends Activity {
                 // (blob:, data:, about:: werkers en vensters van een robotcontrole of het inlogformulier); geen http of bestanden
                 boolean mag = req.isForMainFrame() ? Nieuws.siteMag(a.sites, u) : Nieuws.ladenMag(u);
                 a.log(mag ? "laad" : "STOP", req.getMethod() + (req.isForMainFrame() ? " pagina " : " ") + NieuwsDiagnose.schoon(u));
-                if (mag) return null;
+                if (mag) {
+                    // de pagina van een videospeler: met het script dat onthoudt waar je was (alleen bij lezen; NieuwsVideo)
+                    if (a.soort.equals(LEZEN) && !req.isForMainFrame() && NieuwsVideo.speler(u)) {
+                        WebResourceResponse r = NieuwsVideo.haal(req, a.videoScript(), a.derden);
+                        if (r != null) { a.log("video", "plek onthouden in " + Nieuws.host(u)); return r; }
+                    }
+                    return null;
+                }
                 // de pagina zelf via http op een site van de inlog: via https (zoals een browser)
                 if (req.isForMainFrame() && "GET".equalsIgnoreCase(req.getMethod()) && Nieuws.httpsVersie(a.sites, u) != null) {
                     a.h.post(() -> a.naarHttps(u));
@@ -556,6 +577,8 @@ public class NieuwsInlogActivity extends Activity {
         }
         @Override public void onPageStarted(WebView v, String url, android.graphics.Bitmap icon) { a.log("begin", NieuwsDiagnose.schoon(url)); }
         @Override public void onPageFinished(WebView v, String url) {
+            // video's in het artikel zelf (niet in het venster van een videodienst): ook onthouden waar je was
+            if (a.soort.equals(LEZEN)) { String sc = a.videoScript(); if (sc != null) try { v.evaluateJavascript(sc, null); } catch (Throwable ignored) { } }
             String namen = "";
             try { namen = Nieuws.koekjesNamen(CookieManager.getInstance().getCookie(url)); } catch (Throwable ignored) { }
             a.log("klaar", NieuwsDiagnose.schoon(url) + " · cookies: " + (namen.isEmpty() ? "geen" : namen.replace(";", ", ")));
