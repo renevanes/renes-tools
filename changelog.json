@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.227",
+    "date": "2026-11-18",
+    "changes": [
+      "Nieuws: een video in een artikel dat je in Tools leest (zoals bij AI Report) onthoudt waar je was. De volgende keer gaat hij daar verder, met \"Vanaf het begin\" om toch opnieuw te beginnen. Werkt na het installeren van de nieuwe APK.",
+      "Nieuws: een video in een artikel dat je in Tools leest (zoals bij AI Report) kan nu op volledig scherm, en draait mee als je je telefoon kantelt. Terug sluit het volle scherm. Werkt na het installeren van de nieuwe APK."
+    ]
+  },
+  {
     "version": "1.226",
     "date": "2026-11-18",
     "changes": [
