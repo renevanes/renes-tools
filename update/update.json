@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.230",
-  "versionCode": 231,
-  "nativeLevel": 197,
+  "versionName": "1.231",
+  "versionCode": 232,
+  "nativeLevel": 198,
   "web": "index.html",
-  "webSha256": "4b81dd5c6554c6d7acc02dc25594b3669fbf544e6d350adcaa757fd86e1ae815",
+  "webSha256": "56a99a1b3fc8021953f23949b8c173ff16c6aa01048a4f435d7aaefdf160e76b",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "d01927459124a3cee0c8c728050fe730475180e14e548b7c56333e51f8082787",
+  "apkSha256": "c6e30b25b8e136015b99dce651311fdd3c194b99cd7c0d5a0dd9ba9052fb92f8",
   "changelog": [
+    {
+      "version": "1.231",
+      "date": "2026-11-19",
+      "changes": [
+        "Betalen vindt de naam van de ontvanger op een brief met vakken nu ook als de tekstherkenning er een los teken voor zet of de namen van de velden en de waarden los van elkaar leest."
+      ]
+    },
     {
       "version": "1.230",
       "date": "2026-11-19",
@@ -177,14 +184,7 @@
       "changes": [
         "Slaaptimer: het venster is overzichtelijker. \"Einde van deze aflevering\" staat als gewone keuze onder de tijden, en het zachter worden aan het eind is een rustige regel onderaan."
       ]
-    },
-    {
-      "version": "1.211",
-      "date": "2026-11-16",
-      "changes": [
-        "Slaaptimer: het langzaam zachter worden duurt standaard 20 seconden (keuze 20 seconden erbij in het slaaptimervenster)."
-      ]
     }
   ],
-  "webSig2": "FLr9Hj3VCIxhReXNnBvh5LVwrFcKQjAIZSTlgdiAfFDaFzXmsweOqxdjB6YaHYRkCEhPH+7ib2cu96MQICDjlEjCn9vF8XnoGo01OY+jkoe/HrSfzB+YCaKyJMTo0d4la7k4MJUNgVAPhxYSARxIlVcINMd8CAHNRvuucua+TwhB2pWwVpg3alSSPrJlcX9Xq0xBvCRP2LqK+3Ekq+z62J1dQAGFkV7LRDsk880VDS0pz/GUTNN+9NsdapEDHWGLr7YRN0L/WrL84oVhArdVP3TDDx/hZALIZZnaQUqrBjuAkACIYi2vMNTqvX8c+iSYcquVru+p05JFYGyEVgU6Y3A6Rrlt5XYlBxDcrSYyi4HTWBnuvKmzy/muYojShPY1HxLqJ2VOTV77Qmr+yjfpsFDyZHaKCKvimBq4RvgXLnyI2CyO+69BW7fI9c678rvsReT990WeTa4VW7uocaIpw5sJ36+Lz82KUIGwYzCwUNaFhhNL2HUCpqdd2SqfuorX"
+  "webSig2": "FfGa5hCpyYpChz7FGUGWNxgTP+RM9qRE/3k0H9XQXmHvXPzSv9D+R96DQ4QJf0TXhU/br/kXeKvMtQpVc6TW3RpLeA3GftbQNM2vlCOCBLlVC2k5N5PSdITA2jg0WBc4yDo9jc4b6dHB06usJz6aG8/GbsShWrmmdfRlJVJR7cB742Pj71BSbaEQOOKvd2dueT6e8q2W4x1l6rsf0l+6uqpd/FhA2Erxd7BZ1m1trGxIVr3ZEvFGMGqKZg/sMs5R6bSnR7CzRgW39NTCIciRqoxKCuDRRD7+66QGr//CLTd7mPeiHlrR7Ts1htUCEvqrSpgM2cmC/pwaOUp8J62YtUufScKFezpEG+cyeh0U1LnPbkGWwp9DL2RpMcqahSoN3Ej9s8nrZr2N7UTL61xmLjSX6BQNjMT11SKXKYl97tl+hgRwiSDmdfahZuEfcWWE/Obz3oqI0E+Ea3MsgnCiEXKsReMTgK60poRgpo0oV3VCy8V+rWVHK8Ee8dr1a+kG"
 }

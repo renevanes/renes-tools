@@ -1,1 +1,0 @@
-Betalen vindt de naam van de ontvanger op een brief met vakken nu ook als de tekstherkenning er een los teken voor zet of de namen van de velden en de waarden los van elkaar leest.
