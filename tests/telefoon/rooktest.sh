@@ -204,8 +204,21 @@ meld() {
   echo "::error title=Telefoontest $titel (API $SDK)::$tekst"
 }
 
+# De emulator is soms even "offline" voor adb (dan zegt elke adb-opdracht niets). Wacht dan tot hij terug is, zodat een
+# hapering van de emulator niet leest als een app die gestopt is. Geeft 1 als hij na ±1,5 minuut nog onbereikbaar is.
+adb_klaar() {
+  local i
+  for i in 1 2 3; do
+    [ "$(adb get-state 2>/dev/null | tr -d '\r')" = device ] && return 0
+    echo "adb: emulator onbereikbaar, even wachten (poging $i)"
+    timeout 30 adb wait-for-device 2>/dev/null || true
+  done
+  [ "$(adb get-state 2>/dev/null | tr -d '\r')" = device ]
+}
+
 draait() {
   local pid
+  adb_klaar || return 2
   pid=$(adb shell pidof "$PKG" 2>/dev/null | tr -d '\r')
   [ -n "$pid" ] && return 0
   # Android 8+ wil "ps -A"; Android 7 kent dat niet en toont alles met "ps"
@@ -221,7 +234,7 @@ stap() {
   adb exec-out screencap -p > "$UIT/$naam.png" 2>/dev/null || echo "(geen schermafdruk)"
   adb logcat -d -v threadtime > "$UIT/logcat-$naam.txt" 2>&1
   # Vastleggen: starttijd (TotalTime; 0 als de app al draaide) en overgeslagen beelden in deze stap
-  local tijd pid
+  local tijd pid status=0
   tijd=$(sed -n 's/^TotalTime: *//p' "$UIT/$naam-am.txt" | head -1)
   pid=$(adb shell pidof "$PKG" 2>/dev/null | tr -d '\r' | awk '{print $1}')
   echo "$naam starttijd_ms=${tijd:--} overgeslagen_beelden=$(overgeslagen "$UIT/logcat-$naam.txt" "$pid")" >> "$METINGEN" || true
@@ -233,8 +246,9 @@ stap() {
   elif grep -qE '^Error:|Exception' "$UIT/$naam-am.txt"; then
     meld "$naam: niet te starten" "$(cat "$UIT/$naam-am.txt")"
     FOUTEN=$((FOUTEN + 1))
-  elif [ "$moet_draaien" = ja ] && ! draait; then
-    meld "$naam: app draait niet meer" "Het proces $PKG is gestopt zonder crashmelding in logcat (zie het artifact)."
+  elif [ "$moet_draaien" = ja ] && { draait; status=$?; [ "$status" -ne 0 ]; }; then
+    if [ "$status" -eq 2 ]; then meld "$naam: emulator onbereikbaar" "adb kon de emulator niet meer bereiken; of de app nog draaide is onbekend (zie het artifact)."
+    else meld "$naam: app draait niet meer" "Het proces $PKG is gestopt zonder crashmelding in logcat (zie het artifact)."; fi
     FOUTEN=$((FOUTEN + 1))
   else
     echo "ok: $naam"
