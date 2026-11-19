@@ -61,11 +61,29 @@ public class DraadVeiligTest {
             else if (c == '"' || c == '\'') i = skipQuoted(s, i);
         }
     }
+    /** Broncode zonder commentaar (een apostrof of accolade in commentaar telt dan niet mee); tekst blijft staan. */
+    static String zonderCommentaar(String s) {
+        StringBuilder b = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '"' || c == '\'') { int e = skipQuoted(s, i); b.append(s, i, e + 1); i = e; }
+            else if (c == '/' && i + 1 < s.length() && s.charAt(i + 1) == '/') { while (i < s.length() && s.charAt(i) != '\n') i++; b.append('\n'); }
+            else if (c == '/' && i + 1 < s.length() && s.charAt(i + 1) == '*') {
+                int e = s.indexOf("*/", i + 2); if (e < 0) e = s.length() - 2;
+                for (int j = i; j < e + 2; j++) if (s.charAt(j) == '\n') b.append('\n'); // regelnummers blijven kloppen
+                i = e + 1;
+            } else b.append(c);
+        }
+        return b.toString();
+    }
+    static final Pattern VANG = Pattern.compile("catch\\s*\\(\\s*(?:final\\s+)?(?:java\\.lang\\.)?Throwable\\b");
+    static boolean vangt(String code) { return VANG.matcher(code).find(); }
+
     static boolean methodCatches(String cls, String m) {
         String s = SRC.get(cls);
         if (s == null) return false;
         Matcher mm = Pattern.compile("\\b" + Pattern.quote(m) + "\\s*\\([^;{)]*\\)\\s*(throws[^{;]*)?\\{").matcher(s);
-        while (mm.find()) if (s.substring(mm.end() - 1, block(s, mm.end() - 1)).contains("Throwable")) return true;
+        while (mm.find()) if (vangt(s.substring(mm.end() - 1, block(s, mm.end() - 1)))) return true;
         return false;
     }
     static final Pattern CALL = Pattern.compile("^\\(\\)\\s*->\\s*(?:(\\w+)\\.)?(\\w+)\\s*\\(");
@@ -73,7 +91,7 @@ public class DraadVeiligTest {
     static boolean beschermd(String cls, String arg) {
         String a = arg.trim();
         if (a.startsWith("App.veilig(")) return true;
-        if (a.matches("(?s)^\\(\\)\\s*->\\s*\\{.*")) return a.contains("Throwable");
+        if (a.matches("(?s)^\\(\\)\\s*->\\s*\\{.*")) return vangt(a);
         Matcher m = CALL.matcher(a);
         if (!m.find()) { m = REF.matcher(a); if (!m.find()) return false; }
         String c = m.group(1);
@@ -102,7 +120,7 @@ public class DraadVeiligTest {
         File dir = new File("app/src/nl/rene/tools");
         File[] files = dir.listFiles((d, n) -> n.endsWith(".java"));
         check(files != null && files.length > 100, "broncode gevonden");
-        for (File f : files) SRC.put(f.getName().replace(".java", ""), new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8));
+        for (File f : files) SRC.put(f.getName().replace(".java", ""), zonderCommentaar(new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8)));
 
         // De controle zelf
         SRC.put("ProefA", "class ProefA { void a(){ new Thread(() -> { try { x(); } catch (Throwable e) {} }, \"a\").start();"
@@ -110,10 +128,13 @@ public class DraadVeiligTest {
                 + " new Thread(App.veilig(() -> x()), \"e\").start(); new Thread(() -> ProefB.werk(\"}\"), \"f\").start(); }"
                 + " void lus(){ while (true) x(); } void veilig(){ try { x(); } catch (Throwable t) { } } }");
         SRC.put("ProefB", "class ProefB { static void werk(String s){ try { } catch (Throwable t) { } } }");
+        SRC.put("ProefC", zonderCommentaar("class ProefC { void a(){ new Thread(() -> { x(); // foto's { \n } , \"g\").start();"
+                + " new Thread(() -> { /* Throwable */ y(); }, \"h\").start(); } void z(){ try { } catch (Throwable t) { } } }"));
         List<String> proef = new ArrayList<>();
         for (String p : onbeschermd()) if (p.startsWith("Proef")) proef.add(p);
-        check(proef.size() == 2 && proef.contains("ProefA:1"), "controle herkent draden zonder Throwable (" + proef + ")");
-        SRC.remove("ProefA"); SRC.remove("ProefB");
+        check(proef.size() == 4 && proef.contains("ProefA:1") && proef.contains("ProefC:1") && proef.contains("ProefC:2"),
+                "controle herkent draden zonder Throwable, ook met commentaar (" + proef + ")");
+        SRC.remove("ProefA"); SRC.remove("ProefB"); SRC.remove("ProefC");
 
         Map<String, Integer> perBestand = new HashMap<>();
         List<String> zonder = onbeschermd();

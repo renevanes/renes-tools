@@ -48,7 +48,9 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   `for f in build/classes/nl/rene/tools/*.class; do javap -v "$f" | grep -q "<no name>" && echo ANON $f; done`
 - **Achtergrondthreads vangen `Throwable`**: een ongevangen fout op een thread laat de hele app stoppen. Gebruik
   `new Thread(App.veilig(() -> …), "naam")` (de fout komt als soort DRAAD in het foutlogboek), of vang `Throwable` in de
-  lambda of de aangeroepen methode. `DraadVeiligTest` bewaakt dat; alleen de lussen van VPN en Timeshift staan bewust apart.
+  lambda of de aangeroepen methode; heeft de interface een terugroep nodig, geef die mee: `App.veilig(werk, naFout)`.
+  `DraadVeiligTest` bewaakt elke `new Thread(…, "naam")` (executors zonder eigen ThreadFactory en `HandlerThread` niet);
+  alleen de lussen van VPN en Timeshift staan bewust apart.
 - **Nieuwe brugfunctie** (`@JavascriptInterface`) = ook een nabootsing in `01-testbrug.js`; `python3 tools/check-bridge.py` controleert dat.
 - **Privacy**: backups en exports bevatten alleen Rene's eigen gegevens en gaan naar plekken die hij zelf kiest.
   Geen meelezen van andermans berichten of meldingen voor toezicht, geen OSINT op contacten.

@@ -79,6 +79,11 @@ public class WaBackupService extends Service {
                     if (!restore && ("ok".equals(st.result) || "partial".equals(st.result)) && WaChats.autoReadable(ctx))
                         WaChats.makeReadable(ctx, l, !Secure.on(ctx));
                 }
+            } catch (Throwable e) {
+                // Ook dan de dienst, melding en wakelock afronden (anders blijven ze staan tot de wakelock na 12 uur afloopt)
+                App.draadFout("wabackup", e);
+                st = new WaBackup.Status(); st.mode = restore ? "restore" : mode;
+                WaBackup.finish(st, "error", "Er ging iets mis");
             } finally {
                 WaBackup.busy = false;
             }

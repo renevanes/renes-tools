@@ -2588,7 +2588,7 @@ public class MainActivity extends Activity {
                     }
                 }
                 a.js("onLockResult", JSONObject.quote(r));
-            }), "lock-code").start();
+            }, () -> a.js("onLockResult", JSONObject.quote("Er ging iets mis"))), "lock-code").start(); // anders blijft het slotscherm wachten
         }
 
         /**

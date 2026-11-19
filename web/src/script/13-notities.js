@@ -135,7 +135,10 @@ function enterNotes(prev){ if (prev !== 'note') notesToon = NOTES_TOON; loadRems
    tegelijk tekenen laat de telefoon seconden haperen. Terug uit een notitie houdt wat er al stond. */
 const NOTES_TOON = 100;
 let notesToon = NOTES_TOON, notesToonKey = '';
-function notesVerder(){ notesToon += NOTES_TOON; renderNotes(); }
+function notesVerder(){
+  const voor = notesToon; notesToon += NOTES_TOON; renderNotes();
+  const r = document.querySelectorAll('#notes-list .nrow')[voor]; if (r) r.focus({ preventScroll: true }); // de knop is weg: focus op de eerste nieuwe rij
+}
 /* kind 'note' of 'list'. Ontbreekt het, dan is het een lijst zodra er items, een bovenliggende lijst of een herhaling is. */
 function noteKind(n){
   if (!n) return 'note';

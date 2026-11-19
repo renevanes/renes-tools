@@ -42,6 +42,11 @@ public class WaBackupJob extends JobService {
                 st = WaBackup.backup(ctx, "auto", WaBackup.parseCats(cats), s -> WaBackup.saveStatus(ctx, s));
                 if (!stopped && ("ok".equals(st.result) || "partial".equals(st.result)) && WaChats.autoReadable(ctx))
                     WaChats.makeReadable(ctx, s -> WaBackup.saveStatus(ctx, s), !Secure.on(ctx));
+            } catch (Throwable e) {
+                // Ook dan de taak afmelden en opnieuw plannen (anders komt er geen volgende automatische backup)
+                App.draadFout("wabackup-auto", e);
+                st = new WaBackup.Status(); st.mode = "auto";
+                WaBackup.finish(st, "error", "Er ging iets mis");
             } finally {
                 WaBackup.busy = false;
             }

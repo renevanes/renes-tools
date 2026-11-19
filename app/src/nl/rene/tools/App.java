@@ -112,17 +112,29 @@ public class App extends Application {
      * hele app stoppen (zie de foutafhandeling in onCreate), maar komt als soort DRAAD in het foutlogboek.
      * AGENTS.md: achtergrondthreads vangen Throwable; DraadVeiligTest bewaakt dat.
      */
-    static Runnable veilig(Runnable r) {
+    static Runnable veilig(Runnable r) { return veilig(r, null); }
+
+    /** Zoals {@link #veilig(Runnable)}; na een fout draait naFout (bijv. de interface laten weten dat het mislukte). */
+    static Runnable veilig(Runnable r, Runnable naFout) {
         return () -> {
             try { r.run(); }
-            catch (Throwable e) { draadFout(Thread.currentThread().getName(), e); }
+            catch (Throwable e) {
+                draadFout(Thread.currentThread().getName(), e);
+                if (naFout != null) try { naFout.run(); } catch (Throwable ignored) { }
+            }
         };
     }
 
+    /**
+     * Een gevangen fout op een draad: in het foutlogboek (soort DRAAD) en in Statistiek als soort fout en plek in de
+     * eigen code (Statistiek.crash, zoals een vastloper), zodat Onderhoud hem blijft zien. Geen vraag "De app is
+     * vastgelopen" bij de volgende start (vlag crash/new): de app liep niet vast.
+     */
     static void draadFout(String draad, Throwable e) {
         try {
             Context c = logCtx;
             if (c == null) return;
+            Statistiek.crash(c, e);
             StringWriter sw = new StringWriter();
             e.printStackTrace(new PrintWriter(sw));
             log(c, "DRAAD", "thread " + draad + "\n" + sw);

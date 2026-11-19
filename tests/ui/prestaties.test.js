@@ -68,6 +68,7 @@ const WACHT = parseFloat(process.env.UI_WACHT || '1') || 1;
     ok(await page.isVisible('#notes-meer .notes-verder'), colorScheme + ': knop Meer tonen');
     await page.click('#notes-meer .notes-verder'); await page.waitForTimeout(100);
     ok(await rijen() === 200, colorScheme + ': Meer tonen: 100 rijen erbij (' + await rijen() + ')');
+    ok(await page.evaluate(() => document.activeElement === document.querySelectorAll('#notes-list .nrow')[100]), colorScheme + ': focus op de eerste nieuwe rij');
     // Terug uit een notitie houdt wat er stond; opnieuw openen vanaf het startscherm begint weer bij 100
     await page.evaluate(() => openNote('p150')); await page.waitForTimeout(150);
     ok(await page.evaluate(() => current) === 'note', colorScheme + ': notitie 150 te openen');
