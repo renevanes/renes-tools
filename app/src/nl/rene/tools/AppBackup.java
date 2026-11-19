@@ -89,6 +89,11 @@ final class AppBackup {
             if (sig != null) putBytes(zip, m, AppData.SIGNATURE, sig.toString().getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) { m.skipped.add(new String[]{"handtekening", "niet te lezen"}); }
 
+        try {
+            JSONObject cpap = CpapLog.load(c);
+            if (cpap != null) putBytes(zip, m, AppData.CPAP, cpap.toString().getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) { m.skipped.add(new String[]{"cpap", "niet te lezen"}); }
+
         // Foto's van Gebruik: op de telefoon met de kluissleutel versleuteld; hier ontsleuteld in het archief.
         exportGebruikPhotos(c, zip, m);
 
@@ -436,7 +441,7 @@ final class AppBackup {
         long all = 0, lastFree = 0;
         final Map<String, File> stagedFiles = new HashMap<>();   // naam in het archief → klaargezet bestand
         final Map<String, String> kinds = new HashMap<>();       // naam → "f" of "kluis"
-        byte[] prefs, secrets, kluisIndex, signature, models, state;
+        byte[] prefs, secrets, kluisIndex, signature, cpap, models, state;
         Ctx(Context c, File st, Staged s) throws IOException {
             this.c = c; this.st = st; this.s = s;
             stFiles = new File(st, "files"); stKluis = new File(st, "kluis");
@@ -449,7 +454,7 @@ final class AppBackup {
             if (all - lastFree > 32L * 1024 * 1024) { lastFree = all; checkFree(c); }
         }
         void wipeSecrets() {
-            for (byte[] b : new byte[][]{prefs, secrets, kluisIndex, signature}) if (b != null) java.util.Arrays.fill(b, (byte) 0);
+            for (byte[] b : new byte[][]{prefs, secrets, kluisIndex, signature, cpap}) if (b != null) java.util.Arrays.fill(b, (byte) 0);
         }
     }
 
@@ -516,14 +521,15 @@ final class AppBackup {
         } else {
             ByteArrayOutputStream b = new ByteArrayOutputStream();
             AppData.DigestOut d = new AppData.DigestOut(b);
-            int r;
-            while ((r = z.read(buf)) > 0) { d.write(buf, 0, r); if (d.n > MAX_SMALL) throw new Exception("Te groot in de backup: " + AppData.cut(name)); }
+            int r, max = "cpap".equals(t) ? CpapLog.MAX_BYTES : MAX_SMALL;
+            while ((r = z.read(buf)) > 0) { d.write(buf, 0, r); if (d.n > max) throw new Exception("Te groot in de backup: " + AppData.cut(name)); }
             en = d.n; esha = d.sha();
             byte[] v = b.toByteArray();
             if ("prefs".equals(t)) x.prefs = v;
             else if ("secrets".equals(t)) x.secrets = v;
             else if ("kluis-index".equals(t)) x.kluisIndex = v;
             else if ("signature".equals(t)) x.signature = v;
+            else if ("cpap".equals(t)) x.cpap = v;
             else if ("models".equals(t)) x.models = v;
             else if ("state".equals(t)) x.state = v;
         }
@@ -649,6 +655,10 @@ final class AppBackup {
                     s.signature = true;
                 } catch (Exception ex) { App.log(c, "HERSTEL", "handtekening overgeslagen"); }
             }
+            if (x.cpap != null) {
+                JSONObject cpap = CpapLog.normalize(new String(x.cpap, StandardCharsets.UTF_8));
+                Kluis.writeEncrypted(new File(st, CpapLog.FILE), cpap.toString().getBytes(StandardCharsets.UTF_8));
+            }
             if (x.models != null) Contacts.writeText(new File(st, "modellen.json"), new String(x.models, StandardCharsets.UTF_8), false);
             if (x.state != null) Contacts.writeText(new File(st, "toestand.json"), new String(x.state, StandardCharsets.UTF_8), false);
 
@@ -691,6 +701,7 @@ final class AppBackup {
             else if ("spotify".equals(k)) text = "de Spotify-koppeling (opnieuw koppelen)";
             else if (k.startsWith("vpn:")) text = "de sleutel van een VPN-tunnel (opnieuw instellen)";
             else if ("handtekening".equals(k)) text = "de bewaarde PDF-handtekening";
+            else if ("cpap".equals(k)) text = "het CPAP-logboek";
             else if ("niet te lezen".equals(sk[1]) || "dubbele naam".equals(sk[1])) text = "losse bestanden die bij het maken niet te lezen waren";
             else continue; // modellen, zoekindex e.d.: bewust, staat in de uitleg
             if (seen.add(text)) s.missing.add(text);
@@ -979,6 +990,8 @@ final class AppBackup {
             dst.delete();
             if (!sig.renameTo(dst)) App.log(c, "HERSTEL", "handtekening terugzetten lukt niet");
         }
+        File cpap = new File(st, CpapLog.FILE);
+        if (cpap.isFile()) CpapLog.restore(c, cpap);
         if (key == null) key = readKeyCopy(st);
         boolean keySet = false;
         if (key != null) {
@@ -1111,7 +1124,7 @@ final class AppBackup {
             if (tops != null) for (String r : AppData.restoreRoots(java.util.Arrays.asList(tops), null)) if (hasFiles(new File(c.getFilesDir(), r), r, 0)) return true;
             File[] kl = new File(c.getFilesDir(), "kluis").listFiles();
             if (kl != null && kl.length > 0) return true;
-            if (PdfSignature.file(c).getBaseFile().exists()) return true;
+            if (PdfSignature.file(c).getBaseFile().exists() || CpapLog.file(c).exists()) return true;
             for (String[] k : MEANINGFUL) {
                 Map<String, ?> all = c.getSharedPreferences(k[0], Context.MODE_PRIVATE).getAll();
                 if (k[1] == null ? !all.isEmpty() : meaningful(all.get(k[1]))) return true;

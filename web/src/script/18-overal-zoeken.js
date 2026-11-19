@@ -15,7 +15,7 @@ const GS = {
   agenda:   ['📅', 'Agenda', 'agenda', 'ag-zoek', () => { if (typeof agZoekNu === 'function') agZoekNu(); }]
 };
 /* ---------- zoeken in de app zelf: schermen, kaarten en instellingen ---------- */
-const GS_SYN = {'e-reader': 'epub ebook eboek e-boek boeken lezen tekst reader bibliotheek voorlezen voorlees helderheid nachtfilter blauw licht blauwlicht prettig ogen volle scherm', nieuws: 'nieuwsfeed rss atom feed krant kranten koppen artikelen nos nu.nl rijnmond news',toiletten: 'wc toilet plassen urinoir douche douchen openbaar tankstation verzorgingsplaats camping rolstoel invalidentoilet hoge nood', 'leesbare chats': 'whatsapp sleutel 64 cijfers versleuteld lezen', 'pdf bekijken': 'pdf lezen viewer openen afdrukken', formulieren: 'formulier toestemming reistoestemming invulhulp', 'tekst naar pdf': 'e-mail mail eml bericht', 'id-kopie': 'identiteitsbewijs identiteitskaart idkaart id-kaart paspoort BSN documentnummer afschermen anonimiseren watermerk identity passport redact redaction watermark', meldingen: 'notificaties melding geluid trillen stil dempen uitzetten', 'app-slot': 'vingerafdruk pincode slot vergrendelen beveiliging wachtwoord',
+const GS_SYN = {'cpap-analyse': 'myair resmed ahi masker maskerafdichting maskerlekkage', 'e-reader': 'epub ebook eboek e-boek boeken lezen tekst reader bibliotheek voorlezen voorlees helderheid nachtfilter blauw licht blauwlicht prettig ogen volle scherm', nieuws: 'nieuwsfeed rss atom feed krant kranten koppen artikelen nos nu.nl rijnmond news',toiletten: 'wc toilet plassen urinoir douche douchen openbaar tankstation verzorgingsplaats camping rolstoel invalidentoilet hoge nood', 'leesbare chats': 'whatsapp sleutel 64 cijfers versleuteld lezen', 'pdf bekijken': 'pdf lezen viewer openen afdrukken', formulieren: 'formulier toestemming reistoestemming invulhulp', 'tekst naar pdf': 'e-mail mail eml bericht', 'id-kopie': 'identiteitsbewijs identiteitskaart idkaart id-kaart paspoort BSN documentnummer afschermen anonimiseren watermerk identity passport redact redaction watermark', meldingen: 'notificaties melding geluid trillen stil dempen uitzetten', 'app-slot': 'vingerafdruk pincode slot vergrendelen beveiliging wachtwoord',
   backup: 'reservekopie back-up opslaan bewaren', 'telefoon-skin': 'startscherm launcher thuisscherm skin', weergave: 'tekstgrootte letters groot thema donker dark mode licht nachtmodus',
   foutrapport: 'fout crash probleem bug', modellen: 'taalmodel spraakmodel zoekmodel ai opslag ruimte downloaden verwijderen wifi', slaappraat: 'slapen slaap praten nacht snurken dromen microfoon', apparaten: 'bluetooth wifi airtag tracker smarttag tile scanner zoeken kwijt oortjes netwerk router apparaat buurt', 'check-in': 'checkin stemming humeur gevoel score cijfer dagboek bijhouden vraag werk hoe voel', agenda: 'kalender afspraak afspraken weeknummer weeknummers calendar appointment google', versleutel: 'wachtwoord encryptie geheim', batterij: 'accu energie stroom'};
 let gsIndex = null;
@@ -23,7 +23,7 @@ function gsBuildIndex(){
   gsIndex = [];
   const fold = tt => norm2(tt);
   // Detailschermen (één notitie, chat, route …) hebben iets nodig om te tonen: die niet los openen
-  const DETAIL = ['erbook', 'ercontents', 'erset', 'nieuwsart', 'note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'podlijst', 'sleepnight', 'checkined', 'checkinq', 'apdev', 'agafspraak'];
+  const DETAIL = ['erbook', 'ercontents', 'erset', 'nieuwsart', 'note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'podlijst', 'sleepnight', 'cpapnacht', 'checkined', 'checkinq', 'apdev', 'agafspraak'];
   const tiles = []; // tegels op een overzicht (bijv. PDF): {to, title, key, sub}
   document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {
     const scr = sec.id.slice(2);
@@ -35,6 +35,7 @@ function gsBuildIndex(){
     const ph = BACK[scr] && BACK[scr] !== 'home' && document.querySelector('#s-' + BACK[scr] + ' .hdr h1');
     const own = {scr, el: null, title: screen, sub: ph ? ph.textContent.trim() : 'Openen', key: fold(screen + ' ' + scr + ' ' + Object.keys(GS_SYN).filter(k => fold(screen).includes(k)).map(k => GS_SYN[k]).join(' '))};
     gsIndex.push(own);
+    if (scr === 'cpap') return; // alleen de vaste schermnaam en zoekwoorden, geen metingen of maskernamen
     // Rijen op dit scherm (bijv. de losse onderdelen bij Terugzetten): hun namen horen bij dit scherm
     sec.querySelectorAll('.stlist .strow .sttxt b').forEach(b => { if (!b.closest('.play-weg')) own.key += ' ' + fold(b.textContent); });
     sec.querySelectorAll('.card').forEach(card => {

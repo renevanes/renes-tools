@@ -12,6 +12,7 @@ nieuws.css
 agenda.css
 signalen.css
 betalen.css
+cpap.css
 body-begin.html
 schermen/01-home.html
 schermen/02-auto-redial.html
@@ -65,6 +66,7 @@ schermen/45-nieuws.html
 schermen/46-agenda.html
 schermen/47-signalen.html
 schermen/48-betalen.html
+schermen/49-cpap.html
 speler.html
 vensters.html
 taal/en.json
@@ -179,5 +181,6 @@ script/75-voorlezen.js
 script/76-agenda.js
 script/79-signalen.js
 script/80-betalen.js
+script/81-cpap.js
 script/29-start.js
 einde.html
