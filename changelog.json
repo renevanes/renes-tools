@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.233",
+    "date": "2026-11-19",
+    "changes": [
+      "Betalen vindt de naam van de ontvanger nu ook als de tekstherkenning het woord \"ontvanger\" in stukken leest."
+    ]
+  },
+  {
     "version": "1.232",
     "date": "2026-11-19",
     "changes": [

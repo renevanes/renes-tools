@@ -1,1 +1,0 @@
-Betalen vindt de naam van de ontvanger nu ook als de tekstherkenning het woord "ontvanger" in stukken leest.
