@@ -10,7 +10,7 @@ import org.json.JSONObject;
 final class KluisIndex {
     private KluisIndex() { }
     static final int MAX_VERSIONS = 20;
-    static final String[] SOURCES={"pdf","bewerkt","idkopie","formulier"};
+    static final String[] SOURCES={"pdf","bewerkt","idkopie","formulier","betalen"};
     static final String[] LINK_KEYS={"kind","ref","soort","ontvanger","doel","datum"};
 
     /** Alleen bekende velden, korte tekst zonder stuurtekens: {source, link:{kind, ref, soort, ontvanger, doel, datum}}. */
@@ -19,7 +19,7 @@ final class KluisIndex {
         String source=in.optString("source","");
         if(java.util.Arrays.asList(SOURCES).contains(source))out.put("source",source);
         JSONObject l=in.optJSONObject("link");
-        if(l!=null&&"id".equals(l.optString("kind"))&&l.optString("ref").matches("[A-Za-z0-9_-]{1,64}")){
+        if(l!=null&&("id".equals(l.optString("kind"))&&l.optString("ref").matches("[A-Za-z0-9_-]{1,64}")||"betaling".equals(l.optString("kind"))&&l.optString("ref").matches("b[0-9a-f]{12}"))){ // een identiteitsdocument (Stamgegevens) of een betaling (Betalen)
             JSONObject link=new JSONObject();
             for(String k:LINK_KEYS){String v=l.optString(k,"");if(!v.isEmpty())link.put(k,DocumentMeta.text(v,120,false,"Koppeling"));}
             out.put("link",link);

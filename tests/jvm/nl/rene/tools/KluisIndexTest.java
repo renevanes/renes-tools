@@ -19,6 +19,9 @@ public class KluisIndexTest {
         check("Verhuurder".equals(m.getJSONObject("link").optString("ontvanger")), "ontvanger blijft");
         check(!KluisIndex.meta(new JSONObject().put("source", "iets")).has("source"), "onbekende herkomst valt weg");
         check(!KluisIndex.meta(new JSONObject().put("link", new JSONObject().put("kind", "contact").put("ref", "1"))).has("link"), "alleen kind id");
+        JSONObject bet = KluisIndex.meta(new JSONObject().put("source", "betalen").put("link", new JSONObject().put("kind", "betaling").put("ref", "b0123456789ab")));
+        check("betalen".equals(bet.optString("source")) && "b0123456789ab".equals(bet.getJSONObject("link").optString("ref")), "een rekening uit Betalen: herkomst en koppeling met de betaling");
+        check(!KluisIndex.meta(new JSONObject().put("link", new JSONObject().put("kind", "betaling").put("ref", "../x"))).has("link"), "koppeling met een betaling: alleen een geldig id");
         check(!KluisIndex.meta(new JSONObject().put("link", new JSONObject().put("kind", "id").put("ref", "../x"))).has("link"), "ref zonder vreemde tekens");
         try { KluisIndex.meta(new JSONObject().put("link", new JSONObject().put("kind", "id").put("ref", "abc").put("ontvanger", "a\u0000b"))); throw new AssertionError("stuurteken toegestaan"); }
         catch (IllegalArgumentException expected) { }

@@ -235,6 +235,10 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
  `pdfSignaturePick` → `PdfSignatureImage`, alleen in het geheugen; `sigLijnen` maakt er lijnen van); nooit een eigen tekenvlak of rechtstreeks
  `Android.pdfSignature*` (dat laatste bewaakt `tests/ui/handtekening.test.js`). Opslag: `PdfSignature` (versleuteld, gaat
  mee in Alle appgegevens).
+- **Bekijken: één viewer voor de hele app.** PDF's en afbeeldingen (JPEG, PNG, WebP, GIF, HEIC; herkend aan de inhoud,
+  `PdfDoc.soort`) openen in de eigen viewer (`PdfViewActivity`, met `PdfDoc`; via `PdfProvider`, geen kopie buiten de app).
+  Een kluisdocument via `kluisOpen` (`klInViewer` kiest), een bestand onder Gemaakt via `pdfOpen`. Alleen wat de viewer niet
+  kan tonen (bijv. Word) gaat naar een andere app. Nieuwe plek die een document toont = deze viewer, geen eigen weergave.
 - **Lege lijst**: `uiEmpty('mic', t('Nog geen opnames.'), t('Knoptekst'), 'actie()')`: pictogram, één regel en hooguit één (tonale) knop.
 - **Eenmalig instellen**: een kaart `class="card setup"` die weg gaat als het klaar is (`<div … hidden>`), of inklapt als er
   ook later nog iets in staat (`<details class="card setup"><summary><span class="setup-h" role="heading" aria-level="2">Eenmalig instellen</span><small id="…">stand</small></summary>…</details>`;
@@ -763,8 +767,11 @@ Betalen (schermen `s-betalen`, `s-betaling`, `s-betalenset`; `web/src/script/80-
 van een foto, PDF of afbeelding van een rekening een betaling. **Tools betaalt nooit zelf**: het zet een voorstel klaar dat
 Rene controleert en bij zijn bank zelf verstuurt en ondertekent. Houd dat bij elke wijziging vast.
 - **Lezen** (`BetalenBridge.lees`/`leesTekst`): de tekst uit de PDF, of bij een scan of foto de tekstherkenning op de telefoon
-  (hooguit `BLZ` pagina's, met een tijdslimiet); het bestand staat alleen tijdens het lezen in `cache/betalen-werk` en wordt niet
-  bewaard. Bij tekstherkenning komen de woorden met hun plek (`RijbewijsOcr.pageWoorden`) en zet `OcrIndeling` (zuiver) ze terug
+  (hooguit `BLZ` pagina's, met een tijdslimiet); het bestand staat alleen tijdens het lezen in `cache/betalen-werk`. Daarna
+  gaat het (instelling `stuk`, standaard aan) versleuteld de documentenkluis in, map Betalen, met `source: "betalen"` en
+  `link: {kind: "betaling", ref: <id>}` (`bewaarStuk` houdt het even in het geheugen en de werkmap, `betalenStukNaarKluis` na
+  het slotscherm via `klMetKluis`; afgebroken = weg bij het volgende lezen, na een kwartier of bij opstarten). De betaling krijgt `doc` (het id in
+  de kluis); "Rekening bekijken" opent het in de viewer van de app. Kwam de rekening al uit de kluis (Bron), dan alleen `doc`. Bij tekstherkenning komen de woorden met hun plek (`RijbewijsOcr.pageWoorden`) en zet `OcrIndeling` (zuiver) ze terug
   in hun eigen kolom: op een brief met vakken (zoals een boete van het CJIB) plakt de tekstherkenning de kolommen anders per
   regel aan elkaar en staat een waarde niet meer onder zijn naam. De camera zit in de interface (`#bt-cam`, zoals de
   QR-scanner van VPN; `betalenCamera`/`betalenCameraDone`) en maakt een echte foto op volle resolutie (`ImageCapture`,

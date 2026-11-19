@@ -152,6 +152,14 @@ public class BetalenTest {
         // ----- klaarzetten bij de bank: de instellingen in web/bank-banken.json
         String json = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("web/bank-banken.json")), StandardCharsets.UTF_8);
 
+        // ----- de rekening zelf: instelling en koppeling, en wat de viewer kan tonen
+        check(Betalen.instNormaal(new JSONObject()).optBoolean("stuk") && !Betalen.instNormaal(new JSONObject().put("stuk", false)).optBoolean("stuk"), "rekening bewaren in de kluis: standaard aan, uit te zetten");
+        check("abcdef0123".equals(Betalen.normaal(new JSONObject().put("doc", "abcdef0123"), HOSTS).optString("doc")) && Betalen.normaal(new JSONObject().put("doc", "../kluis"), HOSTS).optString("doc").isEmpty(), "betaling met het id van de rekening in de kluis; alleen een geldig id");
+        byte[] jpg = {(byte) 0xff, (byte) 0xd8, (byte) 0xff, (byte) 0xe0, 0, 0, 0, 0, 0, 0, 0, 0}, png = {(byte) 0x89, 'P', 'N', 'G', 0, 0, 0, 0, 0, 0, 0, 0},
+                webp = {'R', 'I', 'F', 'F', 0, 0, 0, 0, 'W', 'E', 'B', 'P'}, heic = {0, 0, 0, 0, 'f', 't', 'y', 'p', 'h', 'e', 'i', 'c'}, pdf = {'%', 'P', 'D', 'F', '-', '1', '.', '7', 0, 0, 0, 0};
+        check("jpg".equals(PdfDoc.soort(jpg, 12)) && "png".equals(PdfDoc.soort(png, 12)) && "webp".equals(PdfDoc.soort(webp, 12)) && "heic".equals(PdfDoc.soort(heic, 12))
+                && PdfDoc.soort(pdf, 12) == null && PdfDoc.soort(jpg, 3) == null, "de viewer herkent een afbeelding aan de inhoud, niet aan de naam");
+
         // ----- klopt de ontvanger? (BetalenControle): de officiële lijst, de bank, eerdere betalingen
         JSONObject lijst = new JSONObject(json);
         JSONArray ontv = lijst.getJSONArray("ontvangers");

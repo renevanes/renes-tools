@@ -138,7 +138,7 @@ public class BetalenBridge extends FeatureBridge {
                 byte[] b = android.util.Base64.decode(dataUrl.substring(dataUrl.indexOf(',') + 1), android.util.Base64.DEFAULT);
                 f = werkBestand(ctx);
                 try (FileOutputStream o = new FileOutputStream(f)) { o.write(b); }
-                r = lees(ctx, f, "foto", false, v).toString();
+                r = bewaarStuk(ctx, f, lees(ctx, f, "foto", false, v), "").toString();
             } catch (Throwable t) { r = foutLezen(ctx, t); }
             finally { if (f != null) f.delete(); BEZIG.set(false); }
             meld(r);
@@ -165,11 +165,12 @@ public class BetalenBridge extends FeatureBridge {
             String r;
             File f = null;
             try (Voortgang v = Voortgang.van(a, "betalen", 1)) {
+                final String uitKluis = kluisId(u); // vóór het lezen: het token van Bron vervalt na een paar minuten
                 byte[] b;
                 try (java.io.InputStream in = v.open(a, u)) { b = Facturen.lees(in, MAX_BESTAND); }
                 f = werkBestand(ctx);
                 try (FileOutputStream o = new FileOutputStream(f)) { o.write(b); }
-                r = lees(ctx, f, "bestand", true, v).toString();
+                r = bewaarStuk(ctx, f, lees(ctx, f, "bestand", true, v), uitKluis).toString();
             } catch (Throwable t) { r = foutLezen(ctx, t); }
             finally { if (f != null) f.delete(); BEZIG.set(false); }
             a.js("onBetalenHerkend", r);
@@ -177,6 +178,79 @@ public class BetalenBridge extends FeatureBridge {
     }
 
     private void meld(String json) { a.js("onBetalenHerkend", json); }
+
+    // ---------------------------------------------------------------- de rekening zelf (in de documentenkluis)
+
+    /** Rekeningen die gelezen zijn en nog in de kluis moeten (token → bestand in de werkmap). Alleen in het geheugen. */
+    static final java.util.Map<String, File> STUK = new java.util.HashMap<>();
+
+    /**
+     * Na het lezen: komt de rekening al uit de kluis (Bron), dan alleen het id ("doc"). Anders, als Rene dat wil (instelling
+     * stuk, standaard aan), blijft het bestand even in de werkmap ("stuk": token), tot de interface het met
+     * betalenStukNaarKluis in de kluis zet (na het slotscherm) of het weggooit. f wordt dan verplaatst, niet gekopieerd.
+     */
+    /** Het id in de kluis als dit bestand uit de documentenkluis komt (via Bron), anders "". */
+    static String kluisId(Uri u) {
+        Bron.Bestand bron = u == null ? null : PdfProvider.bronVan(u);
+        return bron != null && "kluis".equals(bron.bron) && bron.id != null && bron.id.matches("[a-z0-9]{6,24}") ? bron.id : "";
+    }
+
+    static JSONObject bewaarStuk(android.content.Context c, File f, JSONObject uit, String uitKluis) {
+        try {
+            if (uitKluis != null && !uitKluis.isEmpty()) return uit.put("doc", uitKluis);
+            if (!PlayPolicy.allows(c, "kluis") || !Betalen.inst(Betalen.lees(c)).optBoolean("stuk", true)) return uit;
+            String ext = PdfCompare.isPdf(f) ? "pdf" : PdfDoc.soort(f);
+            if (ext == null) return uit;
+            String token = Long.toHexString(new java.security.SecureRandom().nextLong()) + Long.toHexString(System.nanoTime());
+            File naar = new File(werkMap(c), "stuk-" + token + "." + ext);
+            if (!f.renameTo(naar)) return uit;
+            synchronized (STUK) { // een vorige rekening die niet in de kluis kwam (slotscherm afgebroken) gaat weg
+                for (File x : STUK.values()) x.delete();
+                STUK.clear();
+                STUK.put(token, naar);
+            }
+            // kwam hij niet in de kluis (slotscherm afgebroken), dan na een kwartier weg
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> betalenStukWegNu(token), STUK_MS);
+            return uit.put("stuk", token);
+        } catch (Throwable t) { App.log(c, "BETALEN", "stuk: " + t.getClass().getSimpleName()); return uit; }
+    }
+
+    /** De gelezen rekening van een betaling in de documentenkluis zetten (map Betalen, gekoppeld aan de betaling). Antwoord via onBetalenStuk. */
+    @JavascriptInterface public void betalenStukNaarKluis(String token, String id) {
+        if (!mag()) return;
+        new Thread(App.veilig(() -> {
+            File f;
+            synchronized (STUK) { f = token == null ? null : STUK.remove(token); } // niet twee keer bewaren
+            String r;
+            try {
+                if (f == null || !f.isFile()) throw new Betalen.Fout(Taal.T("De rekening is er niet meer. Lees hem opnieuw in om hem te bewaren."));
+                if (!a.kluisOk()) throw new Betalen.Fout(Taal.T("De kluis is op slot"));
+                JSONObject b = Betalen.vind(Betalen.lijst(Betalen.lees(ctx)), id == null ? "" : id);
+                if (b == null) throw new Betalen.Fout(Taal.T("Deze betaling is er niet meer."));
+                String titel = b.optString("naam").isEmpty() ? Taal.t(ctx, "Rekening (Betalen)") : Taal.fill(Taal.t(ctx, "Rekening van {naam}"), "naam", b.optString("naam"));
+                JSONObject d = Kluis.addFile(ctx, f, DocumentMeta.text(titel + f.getName().replaceAll("^.*(\\.[a-z]{3,4})$", "$1"), 120, false, "Naam"),
+                        PdfDoc.mime(f), "Betalen", new JSONObject().put("source", "betalen").put("link", new JSONObject().put("kind", "betaling").put("ref", b.optString("id"))));
+                Betalen.zetDoc(ctx, b.optString("id"), d.optString("id"));
+                f.delete();
+                r = new JSONObject().put("ok", true).put("id", b.optString("id")).put("doc", d.optString("id")).toString();
+            } catch (Throwable t) {
+                // nog niet bewaard (bijv. de kluis was weer op slot): dan staat hij weer klaar voor een volgende poging
+                if (f != null && f.isFile()) synchronized (STUK) { if (STUK.isEmpty()) STUK.put(token, f); else f.delete(); }
+                String m = t instanceof Betalen.Fout && t.getMessage() != null ? t.getMessage() : Taal.T("Bewaren in de kluis lukte niet.");
+                try { r = new JSONObject().put("ok", false).put("fout", Taal.tx(ctx, m)).toString(); } catch (Exception x) { r = "{\"ok\":false}"; }
+            }
+            a.js("onBetalenStuk", r);
+        }, () -> a.js("onBetalenStuk", "{\"ok\":false}")), "betalen-stuk").start();
+    }
+
+    /** De gelezen rekening niet bewaren (de interface wil hem niet in de kluis, of de kluis bleef op slot). */
+    @JavascriptInterface public void betalenStukWeg(String token) { betalenStukWegNu(token); }
+    static void betalenStukWegNu(String token) {
+        File f;
+        synchronized (STUK) { f = token == null ? null : STUK.remove(token); }
+        if (f != null) f.delete();
+    }
+    static final long STUK_MS = 15 * 60_000L;
 
     private static String foutLezen(android.content.Context c, Throwable t) {
         App.log(c, "BETALEN", "fout: " + t.getClass().getSimpleName());
@@ -186,7 +260,7 @@ public class BetalenBridge extends FeatureBridge {
     /** Werkmap in de cache: het bestand staat er alleen tijdens het lezen (bij het opstarten leeggemaakt). */
     static File werkMap(android.content.Context c) { File d = new File(c.getCacheDir(), "betalen-werk"); d.mkdirs(); return d; }
     static File werkBestand(android.content.Context c) { return new File(werkMap(c), java.util.UUID.randomUUID().toString() + ".tmp"); }
-    static void ruimWerk(android.content.Context c) { try { File[] fs = werkMap(c).listFiles(); if (fs != null) for (File f : fs) f.delete(); } catch (Throwable ignored) { } }
+    static void ruimWerk(android.content.Context c) { synchronized (STUK) { STUK.clear(); } try { File[] fs = werkMap(c).listFiles(); if (fs != null) for (File f : fs) f.delete(); } catch (Throwable ignored) { } }
 
     /**
      * Leest een rekening: de tekst uit de PDF of met de tekstherkenning op de telefoon (hooguit BLZ pagina's), en daaruit het

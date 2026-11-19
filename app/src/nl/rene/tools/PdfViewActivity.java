@@ -224,7 +224,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         msg.setTextSize(16);
         msg.setGravity(Gravity.CENTER);
         msg.setPadding(px(32), px(12), px(32), 0);
-        msg.setText("PDF openen…");
+        msg.setText(Taal.t(this, "Openen…"));
         mid.addView(msg);
         root.addView(mid, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER));
 
@@ -276,7 +276,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
             getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
         }
         spin.setVisibility(View.VISIBLE);
-        msg.setText("PDF openen…");
+        msg.setText(Taal.t(this, "Openen…"));
         msg.setVisibility(View.VISIBLE);
         final Context app = getApplicationContext();
         final String pw = password;
@@ -292,14 +292,13 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
                     cleanup(app);
                     File mine = null;
                     try { mine = PdfProvider.file(app, u); } catch (Exception ignored) { }
-                    if (mine != null) { f = mine; own = false; nm = mine.getName().replaceAll("\\.pdf$", ""); } // eigen bestand: niet kopiëren of weggooien
+                    if (mine != null) { f = mine; own = false; nm = mine.getName().replaceAll(EXT, ""); } // eigen bestand: niet kopiëren of weggooien
                     else {
                         PdfTools.checkUri(app, u);
                         nm = PdfTools.base(PdfTools.displayName(app, u));
                         File dir = new File(PdfTools.dir(app, DIR), Long.toHexString(System.nanoTime()) + Integer.toHexString(new java.util.Random().nextInt()));
                         if (!dir.mkdirs()) throw new Exception("Geen ruimte om de PDF te openen");
-                        f = new File(dir, nm + ".pdf");
-                        copyIn(app, u, f);
+                        f = copyIn(app, u, new File(dir, nm + ".pdf"));
                         own = true;
                     }
                 }
@@ -330,20 +329,32 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
                 view.setDoc(dd, bg, (int) pos[0], pos[1]);
                 spin.setVisibility(View.GONE); msg.setVisibility(View.GONE);
                 title.setText(nn);
+                searchBtn.setVisibility(PdfDoc.canText() && !dd.isBeeld() ? View.VISIBLE : View.GONE); // in een afbeelding valt niets te zoeken
                 updateSub(view.currentPage());
                 if (old != null && old != dd) { bg.post(old::close); if (oldOwn && oldFile != null && !oldFile.equals(ff)) deleteCopy(oldFile); }
-                maybeHintDefault();
+                if (!dd.isBeeld()) maybeHintDefault();
             });
         });
     }
 
-    /** Kopie maken (een PDF uit een andere app is daarna nog te delen, op te slaan of te splitsen). */
-    private static void copyIn(Context c, Uri u, File to) throws Exception {
+    /** Extensies van wat de viewer kan tonen (PDF en afbeeldingen). */
+    static final String EXT = "(?i)\\.(pdf|jpe?g|png|webp|gif|heic)$";
+
+    /**
+     * Kopie maken (een PDF uit een andere app is daarna nog te delen, op te slaan of te splitsen). Een afbeelding krijgt de
+     * extensie die bij de inhoud hoort. Geeft het bestand.
+     */
+    private static File copyIn(Context c, Uri u, File to) throws Exception {
         PdfTools.copy(c, u, to, MAX); // controleert ook of we dit namens de andere app mogen lezen
-        // moet echt een PDF zijn
+        // moet echt een PDF of een afbeelding zijn
         byte[] head = new byte[1024]; int n;
         try (InputStream in = new FileInputStream(to)) { n = in.read(head); }
-        if (n <= 0 || !new String(head, 0, n, java.nio.charset.StandardCharsets.ISO_8859_1).contains("%PDF-")) { to.delete(); throw new Exception("Dit is geen PDF"); }
+        if (n > 0 && new String(head, 0, n, java.nio.charset.StandardCharsets.ISO_8859_1).contains("%PDF-")) return to;
+        String soort = PdfDoc.soort(head, n);
+        if (soort == null) { to.delete(); throw new Exception("Dit is geen PDF of afbeelding"); }
+        File beeld = new File(to.getParentFile(), to.getName().replaceAll(EXT, "") + "." + soort);
+        if (!to.renameTo(beeld)) { to.delete(); throw new Exception("Openen lukt niet"); }
+        return beeld;
     }
 
     private static void deleteCopy(File f) {
@@ -452,7 +463,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
     }
 
     private void updateSub(int page) {
-        if (doc == null) { sub.setText(""); return; }
+        if (doc == null || doc.isBeeld()) { sub.setText(""); return; }
         sub.setText("Pagina " + (page + 1) + " van " + doc.count);
     }
 
@@ -582,6 +593,13 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         PopupMenu pm = new PopupMenu(this, anchor);
         Menu m = pm.getMenu();
         boolean has = doc != null;
+        if (has && doc.isBeeld()) { // een afbeelding: alleen bewaren en met een andere app openen
+            m.add(0, 4, 0, Taal.t(this, "Opslaan als…"));
+            m.add(0, 7, 0, Taal.t(this, "Openen met andere app"));
+            pm.setOnMenuItemClickListener(it -> { if (it.getItemId() == 4) saveAs(); else if (it.getItemId() == 7) openWith(); return true; });
+            pm.show();
+            return;
+        }
         m.add(0, 1, 0, "Naar pagina…").setEnabled(has);
         if (PdfDoc.canText()) m.add(0, 2, 0, "Tekst van deze pagina kopiëren").setEnabled(has);
         m.add(0, 3, 0, "Donker lezen").setCheckable(true).setChecked(view.isDark());
@@ -693,7 +711,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
     private void share() {
         Uri u = shareUri();
         if (u == null) return;
-        Intent s = new Intent(Intent.ACTION_SEND).setType("application/pdf").putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        Intent s = new Intent(Intent.ACTION_SEND).setType(PdfDoc.mime(file)).putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         s.setClipData(ClipData.newRawUri("", u));
         try { startActivity(Intent.createChooser(s, "PDF delen")); } catch (Exception e) { Toast.makeText(this, Taal.tx(this, "Delen lukt niet"), Toast.LENGTH_SHORT).show(); }
     }
@@ -701,7 +719,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
     private void openWith() {
         Uri u = shareUri();
         if (u == null) return;
-        Intent v = new Intent(Intent.ACTION_VIEW).setDataAndType(u, "application/pdf").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        Intent v = new Intent(Intent.ACTION_VIEW).setDataAndType(u, PdfDoc.mime(file)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         v.setClipData(ClipData.newRawUri("", u));
         Intent ch = Intent.createChooser(v, "Openen met");
         ch.putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, new ComponentName[]{new ComponentName(this, PdfViewActivity.class)});
@@ -710,7 +728,8 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
 
     private void saveAs() {
         if (file == null) return;
-        Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/pdf").putExtra(Intent.EXTRA_TITLE, name + ".pdf");
+        String ext = file.getName().replaceAll("^.*\\.", "").toLowerCase(java.util.Locale.ROOT);
+        Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(PdfDoc.mime(file)).putExtra(Intent.EXTRA_TITLE, name + "." + (ext.matches("[a-z]{3,4}") ? ext : "pdf"));
         try { startActivityForResult(i, REQ_SAVE); } catch (Exception e) { Toast.makeText(this, Taal.tx(this, "Opslaan niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
     }
 

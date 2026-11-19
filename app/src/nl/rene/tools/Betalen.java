@@ -59,6 +59,8 @@ final class Betalen {
         o.put("omschrijving", BetalenHerken.netjes(in.optString("omschrijving"), 140));
         String genoemd = in.optString("genoemd"); // een organisatie uit de lijst die op de rekening genoemd wordt (BetalenControle)
         o.put("genoemd", genoemd.matches("[\\p{L} ]{1,40}") ? genoemd : "");
+        String doc = in.optString("doc"); // de rekening zelf in de documentenkluis (id); blijft daar ook als de betaling weg gaat
+        o.put("doc", doc.matches("[a-z0-9]{6,24}") ? doc : "");
         // de naam die op de rekening gelezen werd, als Tools hem verving door die van de lijst of van een eerdere betaling
         String van = in.optString("naamVan");
         o.put("naamVan", "lijst".equals(van) || "eerder".equals(van) ? van : "");
@@ -117,6 +119,7 @@ final class Betalen {
         o.put("eigen", eigen);
         String na = in == null ? "" : in.optString("naKlaar", "vragen");
         o.put("naKlaar", Arrays.asList("vragen", "betaald", "niets").contains(na) ? na : "vragen");
+        o.put("stuk", in == null || in.optBoolean("stuk", true)); // de rekening zelf bewaren in de documentenkluis (standaard aan)
         return o;
     }
 
@@ -173,6 +176,8 @@ final class Betalen {
         // Zelf bevestigd blijft alleen staan zolang het dezelfde betaalde betaling naar hetzelfde IBAN is
         b.put("bevestigd", was != null && was.optBoolean("bevestigd") && "betaald".equals(b.optString("status")) && b.optString("iban").equals(was.optString("iban")));
         b.put("gemaakt", was != null ? was.optLong("gemaakt") : nu).put("gewijzigd", nu);
+        // de koppeling met de rekening in de kluis zet alleen Java (zetDoc); een interface die hem niet meestuurt wist hem niet
+        if (b.optString("doc").isEmpty() && was != null) b.put("doc", was.optString("doc"));
         if ("betaald".equals(b.optString("status"))) b.put("betaaldOp", was != null && was.optLong("betaaldOp") > 0 ? was.optLong("betaaldOp") : nu);
         else b.put("betaaldOp", 0);
         if (was == null && oud.length() >= MAX) throw new Fout(Taal.T("Er staan te veel betalingen. Verwijder eerst oude betalingen."));
@@ -195,6 +200,16 @@ final class Betalen {
         if (b == null) return;
         boolean betaald = "betaald".equals(status);
         b.put("status", status).put("gewijzigd", System.currentTimeMillis()).put("betaaldOp", betaald ? System.currentTimeMillis() : 0).put("bevestigd", betaald && zelf);
+        schrijf(c, bestand);
+    }
+
+    /** De rekening van een betaling staat nu in de documentenkluis (id van dat document). */
+    static synchronized void zetDoc(Context c, String id, String doc) throws Exception {
+        if (doc == null || !doc.matches("[a-z0-9]{6,24}")) return;
+        JSONObject bestand = open(c);
+        JSONObject b = vind(lijst(bestand), id);
+        if (b == null) return;
+        b.put("doc", doc);
         schrijf(c, bestand);
     }
 

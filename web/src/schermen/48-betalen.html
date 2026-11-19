@@ -4,7 +4,7 @@
     <button class="icon-btn hset" id="bt-set" data-to="betalenset" aria-label="Instellingen van Betalen"></button>
   </div>
   <main>
-    <p class="hint" id="bt-priv">Tools betaalt nooit zelf. Je controleert elke betaling en ondertekent hem zelf bij je bank. De rekening wordt op je telefoon gelezen en niet bewaard.</p>
+    <p class="hint" id="bt-priv">Tools betaalt nooit zelf. Je controleert elke betaling en ondertekent hem zelf bij je bank. De rekening wordt op je telefoon gelezen en versleuteld in je documentenkluis bewaard (uit te zetten bij Instellingen).</p>
     <p class="note" id="bt-oud" hidden>Installeer de nieuwste versie van Tools om Betalen te gebruiken.</p>
     <button class="bar1" id="bt-slot" hidden onclick="btNaarSlot()"><span><b>Extra ontgrendelen staat uit</b><small>Iedereen die in Tools kan, ziet dan ook je betalingen. Tik om het voor Betalen aan te zetten.</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     <button class="big" id="bt-nieuw" type="button" onclick="btNieuw()">Rekening toevoegen</button>
@@ -60,6 +60,7 @@
     <button class="big" id="btd-klaar" type="button" onclick="btdKlaarzetten()">Klaarzetten bij je bank</button>
     <button class="big tonal" id="btd-link" type="button" onclick="btdLink()" hidden>Betalen via de link</button>
     <button class="big ghost" id="btd-kopieer" type="button" onclick="btdKopieer()">Gegevens kopiëren</button>
+    <button class="big ghost" id="btd-stuk" type="button" onclick="btdStuk()" hidden>Rekening bekijken</button>
     <button class="big ghost" id="btd-betaald" type="button" onclick="btdBetaald()">Betaald</button>
     <p class="hint" id="btd-stand" role="status"></p>
   </main>
@@ -83,6 +84,9 @@
       <input class="aein" id="bts-eigen" maxlength="600" autocomplete="off" autocapitalize="characters" spellcheck="false" translate="no" onchange="btsBewaar()" placeholder="NL00 BANK 0000 0000 00">
       <p class="hint">Met komma's ertussen. Staat je eigen IBAN op een rekening, dan ziet Tools dat niet aan voor de ontvanger.</p>
       <p class="note" id="bts-fout" role="alert" hidden></p>
+    </div>
+    <div class="card">
+      <div class="sw"><span>Rekening bewaren in de documentenkluis<small>Versleuteld, in de map Betalen. Bij een betaling kun je hem dan terugzien.</small></span><button class="tg" id="bts-stuk" role="switch" aria-label="Rekening bewaren in de documentenkluis" onclick="togUi(this); btsBewaar()"></button></div>
     </div>
     <div class="card stlist">
       <button class="strow" type="button" onclick="btNaarSlot()"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Extra ontgrendelen</b><small id="bts-slot"></small></span><span class="ui-icon stchev" data-icon="chevron-right"></span></button>

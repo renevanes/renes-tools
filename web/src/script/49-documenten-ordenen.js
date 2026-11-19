@@ -210,7 +210,7 @@ function klOrganizeClose(){
   ['soort','category','partij','datum','verloopt','bedrag','labels','note'].forEach(k=>{$('#kl-edit-'+k).value='';});
   $('#kl-edit-favorite').checked=false;$('#kl-edit-status').textContent='';
 }
-function klKaartBekijk(){ const d=klKaartDoc(); if(d) klIsPdf(d)?klOpen(d.id):klView(d.id); }
+function klKaartBekijk(){ const d=klKaartDoc(); if(d) klInViewer(d)?klOpen(d.id):klView(d.id); }
 function klKaartDeel(){ const d=klKaartDoc(); if(d) Android.kluisShare(d.id,0); }
 function klKaartMeer(){ if(klEditId) klDocSheet(klEditId); }
 function klOrganizeSave(){

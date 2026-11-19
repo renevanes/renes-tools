@@ -198,7 +198,7 @@ window.onBetalenHerkend = function(r){
 function btVoorstel(r, qrTekst){
   bt.lezen = false;
   const q = qrTekst ? rdJson(Android.betalenQr(qrTekst), null) : null;
-  const b = { bron: r.bron || 'bestand', genoemd: r.genoemd || '', naamVan: r.naamVan || '', naamGelezen: r.naamGelezen || '', naam: r.naam || '', iban: r.iban || '', bedrag: r.bedrag || '', kenmerk: r.kenmerk || '', omschrijving: r.omschrijving || '', vervaldatum: r.vervaldatum || '' };
+  const b = { doc: r.doc || '', bron: r.bron || 'bestand', genoemd: r.genoemd || '', naamVan: r.naamVan || '', naamGelezen: r.naamGelezen || '', naam: r.naam || '', iban: r.iban || '', bedrag: r.bedrag || '', kenmerk: r.kenmerk || '', omschrijving: r.omschrijving || '', vervaldatum: r.vervaldatum || '' };
   const eigenQr = !!(q && q.soort === 'epc' && q.eigen); // je eigen rekeningnummer in de QR-code: die code is niet om mee te betalen
   const anders = !!(q && q.soort === 'epc' && !q.eigen && (r.ibans || []).length && !(r.ibans || []).includes(q.iban));
   if (q && q.soort === 'epc' && !eigenQr) { // een QR-code met betaalgegevens is betrouwbaarder dan gelezen tekst
@@ -213,6 +213,7 @@ function btVoorstel(r, qrTekst){
   if (!res.ok) res = rdJson(Android.betalenBewaar(JSON.stringify({ bron: b.bron, naam: b.naam, link: b.link || '' })), {}); // iets klopte niet: dan alleen wat zeker kan
   if (!res.ok) { toast(res.fout || t('Opslaan lukte niet.')); if (current === 'betalen') { btLaad(); btRender(); } return; }
   bt.ibans[res.id] = (r.ibans || []).filter(x => typeof x === 'string').slice(0, 5);
+  if (r.stuk) btStukBewaren(r.stuk, res.id);
   bt.anders[res.id] = anders;
   const gevonden = !!(b.iban || b.bedrag || b.link), uitQr = !!(q && q.soort === 'epc' && !eigenQr && (btVindNu(res.id) || {}).iban === q.iban);
   toast(q && q.soort === 'link' ? t('Betaallink gevonden in de QR-code. Kijk de gegevens na.')
@@ -220,6 +221,24 @@ function btVoorstel(r, qrTekst){
     : uitQr ? t('Betaalgegevens gelezen uit de QR-code. Kijk ze na.')
     : gevonden ? t('Gelezen. Kijk de gegevens goed na.') : t('Tools kon de rekening niet lezen. Vul de betaling zelf in.'));
   if (BT_SCHERMEN.includes(current)) btOpen(res.id); else { btLaad(); }
+}
+
+/* ---------- de rekening zelf: versleuteld in de documentenkluis (map Betalen), te bekijken in de viewer van de app ---------- */
+function btKluisKan(){ return typeof Android.kluisList === 'function' && typeof klMetKluis === 'function'; }
+function btStukBewaren(token, id){
+  if (!btKluisKan()) { Android.betalenStukWeg(token); return; }
+  bt.stuk = { token, id };
+  klMetKluis(() => { if (bt.stuk && bt.stuk.token === token) Android.betalenStukNaarKluis(token, id); });
+}
+window.onBetalenStuk = function(r){
+  const s = bt.stuk; bt.stuk = null;
+  if (!r || !r.ok) { if (s) Android.betalenStukWeg(s.token); toast((r && r.fout) || t('Bewaren in de kluis lukte niet.')); }
+  btLaad(); if (current === 'betaling') btdKnoppen();
+};
+function btdStuk(){
+  const b = btVind(bt.id);
+  if (!b || !b.doc || !btKluisKan()) return;
+  klMetKluis(() => { const klaar = uiBezig(t('Rekening openen…'), ['onKluisChanged', 'onPauseApp']); setTimeout(klaar, 60000); Android.kluisOpen(b.doc, 0); });
 }
 
 /* ---------- één betaling ---------- */
@@ -291,6 +310,7 @@ function btdKnoppen(){
   klaar.textContent = bank ? t('Klaarzetten bij {bank}', { bank: bank.naam }) : t('Klaarzetten bij je bank');
   kop.className = kan || betaald ? 'big ghost' : 'big'; // kan je bank het niet automatisch, dan is kopiëren de hoofdknop
   kop.disabled = !(b.iban || b.bedrag || b.naam || b.kenmerk || b.omschrijving);
+  $('#btd-stuk').hidden = !(b.doc && btKluisKan());
   const lk = $('#btd-linkkaart'), lb = $('#btd-link');
   lk.hidden = !b.link; lb.hidden = !b.link || betaald;
   if (b.link) {
@@ -380,6 +400,7 @@ function btsRender(){
   sel.innerHTML = ((bt.staat && bt.staat.banken) || []).map(b => '<option value="' + esc(b.id) + '" translate="no">' + esc(b.naam) + '</option>').join('');
   sel.value = i.bank || 'rabobank';
   $('#bts-na').value = i.naKlaar || 'vragen';
+  const st = $('#bts-stuk'), stuk = i.stuk !== false; st.classList.toggle('on', stuk); st.setAttribute('aria-checked', stuk ? 'true' : 'false');
   $('#bts-eigen').value = (i.eigen || []).map(btIbanMooi).join(', ');
   $('#bts-fout').hidden = true;
   btsUitleg();
@@ -393,7 +414,7 @@ function btsUitleg(){
 }
 function btsBewaar(){
   const eigen = $('#bts-eigen').value.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
-  const r = rdJson(Android.betalenInst(JSON.stringify({ bank: $('#bts-bank').value, naKlaar: $('#bts-na').value, eigen })), {});
+  const r = rdJson(Android.betalenInst(JSON.stringify({ bank: $('#bts-bank').value, naKlaar: $('#bts-na').value, eigen, stuk: $('#bts-stuk').classList.contains('on') })), {});
   const fout = $('#bts-fout');
   fout.hidden = !!r.ok; fout.textContent = r.ok ? '' : (r.fout || t('Opslaan lukte niet.'));
   if (r.ok) { btLaad(); btsUitleg(); }

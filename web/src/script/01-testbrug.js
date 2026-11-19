@@ -975,7 +975,7 @@ if (!window.Android) window.Android = (function(){
       b.link = '';
       if (i.link) { const l = this._btLink(i.link); if (!l) return fout('Deze betaallink is geen veilig adres (https).'); b.link = l; b.linkHost = new URL(l).hostname; b.linkBekend = this._btBekend(b.linkHost); }
       b.status = ['open', 'klaargezet', 'betaald'].includes(i.status) ? i.status : 'open';
-      b.bron = ['foto', 'bestand', 'dossier', 'hand'].includes(i.bron) ? i.bron : 'hand'; b.sha = ''; b.genoemd = /^[\p{L} ]{1,40}$/u.test(i.genoemd || '') ? i.genoemd : ''; b.naamVan = ['lijst', 'eerder'].includes(i.naamVan) ? i.naamVan : ''; b.naamGelezen = b.naamVan ? netjes(i.naamGelezen, 70) : '';
+      b.bron = ['foto', 'bestand', 'dossier', 'hand'].includes(i.bron) ? i.bron : 'hand'; b.sha = ''; b.genoemd = /^[\p{L} ]{1,40}$/u.test(i.genoemd || '') ? i.genoemd : ''; b.doc = /^[a-z0-9]{6,24}$/.test(i.doc || '') ? i.doc : (was0 => was0 && was0.doc || '')(st.lijst.find(x => x.id === i.id)); b.naamVan = ['lijst', 'eerder'].includes(i.naamVan) ? i.naamVan : ''; b.naamGelezen = b.naamVan ? netjes(i.naamGelezen, 70) : '';
       const was = st.lijst.find(x => x.id === b.id), nu = Date.now();
       b.gemaakt = was ? was.gemaakt : nu; b.gewijzigd = nu; b.betaaldOp = b.status === 'betaald' ? (was && was.betaaldOp) || nu : 0; b.bevestigd = !!(was && was.bevestigd && b.status === 'betaald' && b.iban === was.iban);
       if (was) st.lijst[st.lijst.indexOf(was)] = b; else st.lijst.push(b);
@@ -985,9 +985,13 @@ if (!window.Android) window.Android = (function(){
       if (b && ['open', 'klaargezet', 'betaald'].includes(status)) { b.status = status; b.gewijzigd = Date.now(); b.betaaldOp = status === 'betaald' ? Date.now() : 0; b.bevestigd = soort === 'betaald'; }
       return JSON.stringify({ ok: true }); },
     betalenWis(id){ const st = this._btInit(); st.lijst = st.lijst.filter(x => x.id !== id); st.calls.push(['wis', id]); return JSON.stringify({ ok: true }); },
+    betalenStukNaarKluis(token, id){ const st = this._btInit(); st.calls.push(['stuk', token, id]);
+      setTimeout(() => { const b = st.lijst.find(x => x.id === id); if (!this._kl.open || !b) { window.onBetalenStuk({ ok: false, fout: 'De kluis is op slot' }); return; }
+        b.doc = 'stuk' + id.slice(1, 9); this._kl.docs.push({ id: b.doc, name: 'Rekening ' + b.naam + '.jpg', mime: 'image/jpeg', category: 'Betalen', size: 1000, t: Date.now() }); window.onBetalenStuk({ ok: true, id, doc: b.doc }); }, 30); },
+    betalenStukWeg(token){ this._btInit().calls.push(['stukWeg', token]); },
     betalenInst(j){ const st = this._btInit(), i = JSON.parse(j || '{}'), eigen = [];
       for (const e of (i.eigen || [])) { const n = this._btIban(e); if (!n) return JSON.stringify({ ok: false, fout: 'Een van je eigen rekeningnummers klopt niet.' }); eigen.push(n); }
-      st.inst = { bank: /^[a-z0-9-]{2,30}$/.test(i.bank || '') ? i.bank : 'rabobank', eigen, naKlaar: ['vragen', 'betaald', 'niets'].includes(i.naKlaar) ? i.naKlaar : 'vragen' };
+      st.inst = { bank: /^[a-z0-9-]{2,30}$/.test(i.bank || '') ? i.bank : 'rabobank', eigen, naKlaar: ['vragen', 'betaald', 'niets'].includes(i.naKlaar) ? i.naKlaar : 'vragen', stuk: i.stuk !== false };
       return JSON.stringify({ ok: true }); },
     betalenQr(inhoud){ const s = String(inhoud || '').trim(), r = s.replace(/\r/g, '').split('\n');
       if (r.length >= 7 && r[0] === 'BCD' && r[3] === 'SCT' && this._btIban(r[6])) {
@@ -1004,7 +1008,7 @@ if (!window.Android) window.Android = (function(){
       return JSON.stringify({ soort: 'link', link: l, host, bekend: this._btBekend(host) }); },
     betalenCamera(){ setTimeout(() => onBetalenCamera(!!window.__testCamera), 50); }, betalenCameraDone(){ this._btInit().calls.push(['cameraDicht']); },
     _btHerkend(bron){ const st = this._btInit();
-      return Object.assign({ naam: 'Energie Voorbeeld B.V.', iban: 'NL91ABNA0417164300', ibans: ['NL91ABNA0417164300', 'NL39RABO0300065264'], bedrag: '123,45', kenmerk: '', omschrijving: 'Factuur F2026-0042', vervaldatum: rgDayAdd(rgToday(), 14), nummer: 'F2026-0042', tekst: true }, st.herken || {}, { bron }); },
+      return Object.assign({ naam: 'Energie Voorbeeld B.V.', iban: 'NL91ABNA0417164300', ibans: ['NL91ABNA0417164300', 'NL39RABO0300065264'], bedrag: '123,45', kenmerk: '', omschrijving: 'Factuur F2026-0042', vervaldatum: rgDayAdd(rgToday(), 14), nummer: 'F2026-0042', tekst: true }, st.herken || {}, { bron }, st.metStuk && st.inst.stuk !== false ? { stuk: 'tok' + Date.now().toString(16) } : {}); }, // metStuk: zoals Java, de rekening wacht op de kluis
     betalenFoto(d){ const st = this._btInit(); st.calls.push(['foto', String(d || '').slice(0, 23)]); setTimeout(() => onBetalenHerkend(st.fout ? { error: st.fout } : this._btHerkend('foto')), st.traag); },
     betalenKies(){ const st = this._btInit(); st.calls.push(['kies']); setTimeout(() => onBetalenHerkend(st.fout !== undefined ? { error: st.fout } : this._btHerkend('bestand')), st.traag); },
     betalenKopieer(t){ this._copied = t; },

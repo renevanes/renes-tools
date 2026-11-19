@@ -31,7 +31,7 @@ const QR_EPC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0AQAAAAAVtj
       && BACK.betalen === 'home' && BACK.betaling === 'betalen' && BACK.betalenset === 'betalen' && SOLO_TOOLS.includes('betalen')), 'aangemeld: groep, tegel, TOOLS, pictogram, terug en losse app');
     await page.click('#tile-betalen'); await wacht(150);
     ok(await page.evaluate(() => current === 'betalen'), 'tegel opent Betalen');
-    ok((await tekst('#bt-priv')).includes('betaalt nooit zelf') && (await tekst('#bt-priv')).includes('niet bewaard'), 'zichtbaar: Tools betaalt nooit zelf en bewaart de rekening niet');
+    ok((await tekst('#bt-priv')).includes('betaalt nooit zelf') && (await tekst('#bt-priv')).includes('versleuteld in je documentenkluis'), 'zichtbaar: Tools betaalt nooit zelf, en waar de rekening blijft');
     let rijen = await page.evaluate(() => [...document.querySelectorAll('#bt-lijst .sn-item')].map(b => b.textContent));
     ok(rijen.length === 1 && rijen[0].includes('Waterbedrijf Test') && /45[,.]10/.test(rijen[0]) && rijen[0].includes('uiterlijk'), 'lijst: naam, bedrag en uiterste datum: ' + rijen);
 
@@ -175,6 +175,22 @@ const QR_EPC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0AQAAAAAVtj
     await page.click('#bt-nieuw'); await wacht(100); await sheet('Bestand op de telefoon'); await wacht(250);
     ok(await page.evaluate(n => current === 'betalen' && Android._bt.lijst.length === n && !bt.lezen && $('#toast').textContent.includes('niet te lezen'), n1), 'niet te lezen: melding en geen lege betaling');
     await page.evaluate(() => { delete Android._bt.fout; });
+
+    // ---- De rekening zelf in de documentenkluis, en terugzien in de viewer van de app
+    await page.evaluate(() => { Android._bt.metStuk = true; Android._kl.open = true; show('betalen'); });
+    await page.click('#bt-nieuw'); await wacht(100); await sheet('Bestand op de telefoon'); await wacht(400);
+    const stuk = await page.evaluate(() => { const b = btVind(bt.id); return { doc: b && b.doc, calls: Android._bt.calls.filter(c => c[0] === 'stuk').length }; });
+    ok(stuk.doc && stuk.calls === 1 && await page.evaluate(() => Android._kl.docs.some(d => d.category === 'Betalen' && d.id === btVind(bt.id).doc)), 'de gelezen rekening staat in de kluis (map Betalen), gekoppeld aan de betaling');
+    ok(await page.isVisible('#btd-stuk'), 'bij de betaling: Rekening bekijken');
+    await page.click('#btd-stuk'); await wacht(150);
+    ok(await page.evaluate(() => Android._kl.opened && Android._kl.opened.id === btVind(bt.id).doc), 'Rekening bekijken opent het document in de viewer van de app');
+    ok(await page.evaluate(() => klInViewer({ mime: 'image/jpeg', name: 'x.jpg' }) && klInViewer({ mime: 'application/pdf' }) && !klInViewer({ mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', name: 'brief.docx' })), 'PDF en afbeeldingen in de eigen viewer, de rest met een andere app');
+    await page.evaluate(() => { Android.betalenInst(JSON.stringify({ bank: 'rabobank', naKlaar: 'vragen', eigen: [], stuk: false })); Android._bt.calls = []; show('betalen'); });
+    await page.click('#bt-nieuw'); await wacht(100); await sheet('Bestand op de telefoon'); await wacht(400);
+    ok(await page.evaluate(() => !Android._bt.calls.some(c => c[0] === 'stuk') && !btVind(bt.id).doc && $('#btd-stuk').hidden), 'bewaren uit: de rekening gaat niet de kluis in');
+    await page.evaluate(() => { show('betalenset'); }); await wacht(100);
+    ok((await page.getAttribute('#bts-stuk', 'aria-checked')) === 'false', 'de instelling staat uit');
+    await page.evaluate(() => { Android.betalenInst(JSON.stringify({ bank: 'rabobank', naKlaar: 'vragen', eigen: [] })); Android._bt.metStuk = false; Android._kl.open = false; Android._bt.lijst = Android._bt.lijst.filter(x => x.naam !== 'Energie Voorbeeld B.V.' || !x.doc); show('betalen'); });
 
     // ---- Zelf invullen; leeg weer terug laat niets achter
     const n2 = await page.evaluate(() => Android._bt.lijst.length);

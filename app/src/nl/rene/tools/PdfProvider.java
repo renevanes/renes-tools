@@ -36,12 +36,12 @@ public final class PdfProvider extends ContentProvider {
             // Een kluisdocument dat de app net ontsleutelde om te bekijken; alleen zolang de kluis open is (daarna is de map leeg)
             if (!Kluis.isOpen()) { Kluis.clearViews(c); throw new Exception("niet gevonden"); }
             File d = Kluis.viewDir(c).getCanonicalFile(), f = new File(d, seg.get(1)).getCanonicalFile();
-            if (!d.equals(f.getParentFile()) || !f.isFile() || !f.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) throw new Exception("niet gevonden");
+            if (!d.equals(f.getParentFile()) || !f.isFile() || !f.getName().matches(".*" + PdfViewActivity.EXT)) throw new Exception("niet gevonden");
             return f;
         }
         if (seg.size() == 3 && "v".equals(seg.get(0))) {
             File d = new File(PdfTools.dir(c, PdfViewActivity.DIR), seg.get(1)).getCanonicalFile(), f = new File(d, seg.get(2)).getCanonicalFile();
-            if (!PdfTools.dir(c, PdfViewActivity.DIR).getCanonicalFile().equals(d.getParentFile()) || !d.equals(f.getParentFile()) || !f.isFile() || !f.getName().endsWith(".pdf")) throw new Exception("niet gevonden");
+            if (!PdfTools.dir(c, PdfViewActivity.DIR).getCanonicalFile().equals(d.getParentFile()) || !d.equals(f.getParentFile()) || !f.isFile() || !f.getName().matches(".*" + PdfViewActivity.EXT)) throw new Exception("niet gevonden");
             return f;
         }
         throw new Exception("niet gevonden");
@@ -49,6 +49,8 @@ public final class PdfProvider extends ContentProvider {
 
     /** Uri voor een bestand dat Bron klaarzette. */
     static Uri bronUri(Bron.Bestand b) { return new Uri.Builder().scheme("content").authority(AUTH).appendPath("b").appendPath(b.token).appendPath(b.naam).build(); }
+    /** Welk bestand van Bron achter deze uri zit (bijv. een document uit de kluis), of null. */
+    static Bron.Bestand bronVan(Uri uri) { return uri == null ? null : bron(uri); }
     private static Bron.Bestand bron(Uri uri) {
         java.util.List<String> seg = uri.getPathSegments();
         return AUTH.equals(uri.getAuthority()) && seg.size() == 3 && "b".equals(seg.get(0)) ? Bron.zoek(seg.get(1), seg.get(2), android.os.SystemClock.elapsedRealtime()) : null;
@@ -97,7 +99,9 @@ public final class PdfProvider extends ContentProvider {
 
     @Override public String getType(Uri uri) {
         if (bronPad(uri)) { Bron.Bestand b = bron(uri); return b == null ? null : b.mime; }
-        return "application/pdf";
+        String n = uri.getLastPathSegment() == null ? "" : uri.getLastPathSegment().toLowerCase(java.util.Locale.ROOT);
+        return n.endsWith(".jpg") || n.endsWith(".jpeg") ? "image/jpeg" : n.endsWith(".png") ? "image/png" : n.endsWith(".webp") ? "image/webp"
+                : n.endsWith(".gif") ? "image/gif" : n.endsWith(".heic") ? "image/heic" : "application/pdf";
     }
     @Override public Uri insert(Uri uri, ContentValues v) { throw new UnsupportedOperationException(); }
     @Override public int delete(Uri uri, String s, String[] a) { throw new UnsupportedOperationException(); }

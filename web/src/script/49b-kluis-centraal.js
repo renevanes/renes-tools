@@ -129,10 +129,12 @@ function klDanOnKluis(r){
 
 /* ---------- Menu van een kluisdocument ---------- */
 function klIsPdf(d){ return /pdf/.test(d.mime || '') || /\.pdf$/i.test(d.name || ''); }
+/** Opent in de eigen viewer van de app: een PDF of een afbeelding (geen kopie buiten de kluis). Anders met een andere app. */
+function klInViewer(d){ return klIsPdf(d) || /^image\/(jpeg|png|webp|gif|heic)/.test(d.mime || '') || /\.(jpe?g|png|webp|gif|heic)$/i.test(d.name || ''); }
 function klDocSheet(id){
   const x = (klRender.docs || []).find(d => d.id === id); if (!x) return;
   const pdf = klIsPdf(x), nv = (x.versions || []).length;
-  const acts = klEditId === id ? [] : [[t('Bekijken'), () => pdf ? klOpen(id) : klView(id), 'document']]; // op de documentkaart staan Bekijken en Delen al als knop
+  const acts = klEditId === id ? [] : [[t('Bekijken'), () => klInViewer(x) ? klOpen(id) : klView(id), 'document']]; // op de documentkaart staan Bekijken en Delen al als knop
   // Weggaan van het kluisscherm doet de kluis op slot: eerst de opdracht (Java controleert de kluis meteen), dan pas het andere scherm
   if (pdf && !isPlay()) acts.push([t('Bewerken en ondertekenen'), () => { klBewerk(id); show('pdfedit'); }, 'sign']);
   if (klEditId !== id) acts.push([t('Delen (bijv. mailen of WhatsApp)'), () => Android.kluisShare(id, 0), 'share']);

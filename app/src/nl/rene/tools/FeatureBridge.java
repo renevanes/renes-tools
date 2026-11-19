@@ -577,7 +577,7 @@ public class FeatureBridge {
                 a.js("onKluisStored", res);
             }, "kluis-bewaren").start();
         }
-        /** Een document (of een oudere versie) openen: een PDF in de eigen viewer (geen kopie buiten de kluis), anders met een andere app. */
+        /** Een document (of een oudere versie) openen: een PDF of afbeelding in de eigen viewer (geen kopie buiten de kluis), anders met een andere app. */
         @JavascriptInterface public void kluisOpen(String id, int version) { kluisShow(id, version, true); }
         private void kluisShow(String id, int version, boolean eigen) {
             if (!a.kluisOk()) { a.js("onKluisChanged", JSONObject.quote(Taal.T("De kluis is weer op slot"))); return; }
@@ -587,7 +587,7 @@ public class FeatureBridge {
                     if (d == null) throw new Exception(Taal.T("Document niet gevonden"));
                     File f = Kluis.viewVersion(ctx, id, version);
                     String mime = d.optString("mime").isEmpty() ? ctx.getContentResolver().getType(Uri.fromFile(f)) : d.optString("mime");
-                    if (eigen && f.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) {
+                    if (eigen && f.getName().matches(".*" + PdfViewActivity.EXT)) { // PDF of afbeelding: in de eigen viewer
                         final Intent v = new Intent(ctx, PdfViewActivity.class).setData(PdfProvider.uri(f)).putExtra(PdfViewActivity.EXTRA_KLUIS, id);
                         a.runOnUiThread(() -> { try { a.startActivity(v); } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote(Taal.T("Openen lukt niet"))); } });
                         return;
