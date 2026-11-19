@@ -1,15 +1,26 @@
 {
   "app": "Tools",
-  "versionName": "1.229",
-  "versionCode": 230,
-  "nativeLevel": 196,
+  "versionName": "1.230",
+  "versionCode": 231,
+  "nativeLevel": 197,
   "web": "index.html",
-  "webSha256": "21b4c45faff1859689dcfac4b04d22e0a1ea151ba0e17a4338f6128030469bff",
+  "webSha256": "4b81dd5c6554c6d7acc02dc25594b3669fbf544e6d350adcaa757fd86e1ae815",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "95ce6f6721e0e99f7e7274bda39d35c3d5366b7579446c427817b960d02731bc",
+  "apkSha256": "d01927459124a3cee0c8c728050fe730475180e14e548b7c56333e51f8082787",
   "changelog": [
+    {
+      "version": "1.230",
+      "date": "2026-11-19",
+      "changes": [
+        "Betalen leest brieven met vakken en kolommen (zoals een boete van het CJIB) nu goed: ontvanger, IBAN, bedrag, betalingskenmerk en de uiterste dag komen uit het juiste vak.",
+        "Betalen vindt de QR-code om mee te betalen ook als er meer QR-codes op de brief staan (bijvoorbeeld een adrescode bovenaan).",
+        "Betalen maakt met de camera een scherpere foto, zodat kleine letters en een kleine QR-code beter te lezen zijn.",
+        "Notities: met heel veel notities opent het overzicht weer vlot; eerst 100, met Meer tonen de rest.",
+        "Stabieler: een fout in een taak op de achtergrond laat de app niet meer stoppen, maar komt in het foutlogboek."
+      ]
+    },
     {
       "version": "1.229",
       "date": "2026-11-19",
@@ -173,14 +184,7 @@
       "changes": [
         "Slaaptimer: het langzaam zachter worden duurt standaard 20 seconden (keuze 20 seconden erbij in het slaaptimervenster)."
       ]
-    },
-    {
-      "version": "1.210",
-      "date": "2026-11-16",
-      "changes": [
-        "Slaaptimer: het langzaam zachter worden aan het eind is korter (standaard 1 minuut in plaats van 3) en zelf in te stellen in het slaaptimervenster: uit, 15 of 30 seconden, of 1, 2 of 3 minuten."
-      ]
     }
   ],
-  "webSig2": "AnPk6GXYGpLgpsctdwaRNM6hg5HiOQ+UAu4Klr1rjuPYUpZi/+yLC4X5JwepKIsYCn1x7BPwHyj2u0VUWH46lYYK4dREQuAHoyizvJlVPFwOMvNxir5se91v2+y4nWe7d8rIHmlxAwEy2F6NpHgBK9xX+aLAj4Pmt1zSF4SCB78hAlTGxU3sovckC74tzmUuOduBGrHMwocg36dPQ5s5H1Cmn/cPV8WeYyZWl+pvnMWl9pC0OQSpJJTp/qIudqxJEer3lEJQ363IdtZcqSmls37LUBJUqaL0dciMI21iv/3URZut3BtrHb91NlWbpDKnOLYXGULTvR9Eu2r5FXisdkKTCzBdZo12kH3WGTOMjisLWdkXwwF3cTKeiaNOwb+y/fTNM6JiJz4s/3v1Xb5pF48putWkdL93UTV5+IZKS7G97s9VWFg05CtuKtgA2NQapN+9sFMd2ZM51zZIMwVKZ5a8L4pTMnj+N03pTZXCYVEi3rUBAT4pL4XN65VK2F27"
+  "webSig2": "FLr9Hj3VCIxhReXNnBvh5LVwrFcKQjAIZSTlgdiAfFDaFzXmsweOqxdjB6YaHYRkCEhPH+7ib2cu96MQICDjlEjCn9vF8XnoGo01OY+jkoe/HrSfzB+YCaKyJMTo0d4la7k4MJUNgVAPhxYSARxIlVcINMd8CAHNRvuucua+TwhB2pWwVpg3alSSPrJlcX9Xq0xBvCRP2LqK+3Ekq+z62J1dQAGFkV7LRDsk880VDS0pz/GUTNN+9NsdapEDHWGLr7YRN0L/WrL84oVhArdVP3TDDx/hZALIZZnaQUqrBjuAkACIYi2vMNTqvX8c+iSYcquVru+p05JFYGyEVgU6Y3A6Rrlt5XYlBxDcrSYyi4HTWBnuvKmzy/muYojShPY1HxLqJ2VOTV77Qmr+yjfpsFDyZHaKCKvimBq4RvgXLnyI2CyO+69BW7fI9c678rvsReT990WeTa4VW7uocaIpw5sJ36+Lz82KUIGwYzCwUNaFhhNL2HUCpqdd2SqfuorX"
 }

@@ -1,2 +1,0 @@
-Notities: met heel veel notities opent het overzicht weer vlot; eerst 100, met Meer tonen de rest.
-Stabieler: een fout in een taak op de achtergrond laat de app niet meer stoppen, maar komt in het foutlogboek.

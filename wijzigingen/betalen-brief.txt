@@ -1,3 +1,0 @@
-Betalen leest brieven met vakken en kolommen (zoals een boete van het CJIB) nu goed: ontvanger, IBAN, bedrag, betalingskenmerk en de uiterste dag komen uit het juiste vak.
-Betalen vindt de QR-code om mee te betalen ook als er meer QR-codes op de brief staan (bijvoorbeeld een adrescode bovenaan).
-Betalen maakt met de camera een scherpere foto, zodat kleine letters en een kleine QR-code beter te lezen zijn.
