@@ -24,7 +24,9 @@ final class BetalenHerken {
 
     // ---------------------------------------------------------------- tekst van een rekening
 
-    private static final String TNV_WOORD = "(?:t\\.?\\s?n\\.?\\s?v\\.?|ten name van|ter attentie van rekeninghouder|naam (?:van de )?rekeninghouder|naam (?:van de )?begunstigde|naa(?:m|rn) (?:van de )?ontvan[gq]er|rekeninghouder|begunstigde|account holder|beneficiary)";
+    private static final String TNV_WOORD = "(?:t\\.?\\s?n\\.?\\s?v\\.?|ten name van|ter attentie van rekeninghouder|naam (?:van de )?rekeninghouder|naam (?:van de )?begunstigde|n ?a ?a ?(?:m|rn) ?(?:van de )?o ?n ?t ?v ?a ?n ?[gq] ?e ?r|rekeninghouder|begunstigde|account holder|beneficiary)";
+    /** Begint het gevonden woord met "naam" (ook met een spatie erin, zoals de tekstherkenning het soms leest)? */
+    private static final Pattern NAAM_BEGIN = Pattern.compile("(?i)[^\\p{L}\\d]*(?:\\p{Ll}[ |]{1,2})?n ?a ?a ?(?:m|rn)");
     private static final Pattern TNV = Pattern.compile("(?im)(?<![a-z])" + TNV_WOORD + "(?![a-z])[ \\t]{0,10}[:.]?[ \\t]{0,10}([^\\n]{2,90})");
     /** De naam alleen op de regel eronder (een vak op een brief: "naam ontvanger" met de naam daaronder). */
     // De tekstherkenning zet er soms een los teken voor (de rand van het vak) of een regel van een paar tekens tussen.
@@ -130,7 +132,7 @@ final class BetalenHerken {
             Matcher m = p.matcher(t);
             while (m.find()) {
                 // "controleer of de naam ontvanger juist is": een zin over de naam, niet de naam zelf
-                if (m.group().regionMatches(true, 0, "naam", 0, 4) && t.substring(Math.max(0, m.start() - 8), m.start()).matches("(?is).*\\b(?:de|het|uw|een|of)\\s+")) continue;
+                if (NAAM_BEGIN.matcher(m.group()).lookingAt() && t.substring(Math.max(0, m.start() - 8), m.start()).matches("(?is).*\\b(?:de|het|uw|een|of)\\s+")) continue;
                 String n = m.group(1);
                 n = n.split("(?i)\\s{3,}|\\s+(?:IBAN|BIC|SWIFT|KvK|BTW|o\\.?v\\.?v\\.?|onder vermelding)\\b", 2)[0];
                 n = netjes(n, 70).replaceAll("^[^\\p{L}\\d]+|[\\s:,;|-]+$", ""); // ook een los teken van de rand van het vak
