@@ -130,14 +130,15 @@ public final class MasterDeviceTest extends Instrumentation {
     }
     void documentOcr(android.graphics.Bitmap licence)throws Exception {
         java.io.ByteArrayOutputStream pdfBytes=new java.io.ByteArrayOutputStream();
-        try(android.graphics.pdf.PdfDocument pdf=new android.graphics.pdf.PdfDocument()){
+        android.graphics.pdf.PdfDocument pdf=new android.graphics.pdf.PdfDocument();
+        try{
             android.graphics.pdf.PdfDocument.Page page=pdf.startPage(new android.graphics.pdf.PdfDocument.PageInfo.Builder(1500,950,1).create());
             pdf.finishPage(page);
             page=pdf.startPage(new android.graphics.pdf.PdfDocument.PageInfo.Builder(1500,950,2).create());
             page.getCanvas().drawBitmap(licence,0,0,null);
             pdf.finishPage(page);
             pdf.writeTo(pdfBytes);
-        }
+        }finally{pdf.close();}
         java.io.ByteArrayOutputStream docxBytes=new java.io.ByteArrayOutputStream();
         try(java.util.zip.ZipOutputStream zip=new java.util.zip.ZipOutputStream(docxBytes)){
             zip.putNextEntry(new java.util.zip.ZipEntry("word/document.xml"));
