@@ -572,8 +572,11 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
    zijn uitvoer meteen in de release die telefoons ophalen. Nooit Publiceren: dat start alleen Rene (`allow_grow`, `major`).
 6. **Na de push naar main:** zoek de run Publiceren die je commit bevat
    (`gh api "repos/renevanes/renes-tools/actions/workflows/publiceren.yml/runs?branch=main&per_page=10" --jq '.workflow_runs[]|[.id,.head_sha,.status,.conclusion]|@tsv'`
-   en `git merge-base --is-ancestor <jouw commit> <head_sha>`). "De bron is sinds de telefoontest veranderd" betekent
-   dat main intussen verder ging: de volgende run publiceert het, controleer die. Groeit de APK meer dan 10%, dan
+   en `git merge-base --is-ancestor <jouw commit> <head_sha>`). Ging main tijdens het testen verder, dan slaat
+   een run na een push het publiceren over (melding "Overgeslagen", de run blijft groen; gebeurt het tijdens de
+   interfacetests of het publiceren zelf, of startte Rene de run met de hand, dan eindigt hij rood met "De bron is sinds
+   de telefoontest veranderd"): de volgende run publiceert het, controleer die. Groen is dus nog niet gepubliceerd: kijk
+   of er na je commit een commit "Versie X.Y" op main staat. Groeit de APK meer dan 10%, dan
    weigert Publiceren: nooit omzeilen, maar Rene vragen Publiceren met de hand te starten met `allow_grow`, met de reden
    van de groei. Dan staan ook de publicaties van anderen stil: zet dat bovenaan je bericht.
 7. **Te groot voor één sessie:** maak het logische deel af en publiceer dat; zet de rest met een afvinklijst in een
