@@ -146,6 +146,8 @@ const SET_REG = [
     why: 'Welke tools op slot gaan, kies je zelf; uitzetten vraagt je schermvergrendeling.' },
   { id: 'statistieken', scr: 'setcrash', ctl: '#st-stat-on', type: 'openen', safe: 'beveiliging', label: 'Statistieken voor verbeteringen', desc: 'Elke week tellingen en fouten (geen inhoud) naar een privé GitHub-repository die je zelf instelt.', syn: 'statistiek statistieken telemetrie logboek fouten verbeteren versturen github',
     why: 'Wat de app verstuurt en waarheen, stel je zelf in.' },
+  { id: 'diagnose-vanzelf', scr: 'setcrash', ctl: '#st-diag-auto', type: 'openen', safe: 'beveiliging', label: 'Diagnose vanzelf sturen', desc: 'Elke nieuwe diagnose (met inhoud, zoals de gelezen tekst van een rekening) zonder vraag naar je privé GitHub-repository sturen. Staat uit.', syn: 'diagnose logging logs versturen analyse probleem nazoeken github',
+    why: 'Wat de app verstuurt en waarheen, stel je zelf in.' },
   { id: 'toestemmingen', scr: 'setperm', type: 'openen', safe: 'beveiliging', label: 'Toestemmingen', desc: 'Wat de app van Android mag (sms, oproepen, contacten, microfoon, locatie …) en waarvoor.', syn: 'toestemming rechten permissie toegang android microfoon locatie sms',
     why: 'Toestemmingen geef je zelf, in Android.' },
   { id: 'backup.map', scr: 'bkset', type: 'openen', label: 'Backup-map', desc: 'De map (bijv. USB-stick, SD-kaart of OneDrive) waar alle tools hun backups en exports neerzetten.', syn: 'backup map folder usb onedrive sd kaart opslag export',
