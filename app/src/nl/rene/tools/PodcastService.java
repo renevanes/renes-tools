@@ -87,9 +87,9 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     private boolean local, endRetried;
     private final Runnable prepWatch = this::prepTimeout, seekWatch = this::seekTimeout;
     /** Netwerk (adres opzoeken) en een speler loslaten: nooit op de hoofdthread (dat kan seconden blokkeren). */
-    static final java.util.concurrent.ExecutorService NET = java.util.concurrent.Executors.newSingleThreadExecutor(r -> new Thread(r, "podcast-net"));
+    static final java.util.concurrent.ExecutorService NET = java.util.concurrent.Executors.newSingleThreadExecutor(r -> new Thread(App.veilig(r), "podcast-net"));
     /** Elke speler een eigen draad: blijft er één hangen in reset(), dan wachten de andere er niet op. */
-    static final java.util.concurrent.ExecutorService RELEASER = java.util.concurrent.Executors.newCachedThreadPool(r -> new Thread(r, "podcast-release"));
+    static final java.util.concurrent.ExecutorService RELEASER = java.util.concurrent.Executors.newCachedThreadPool(r -> new Thread(App.veilig(r), "podcast-release"));
 
     /** Wat er na deze aflevering gebeurt (instelling bij Podcasts → Instellingen; zie PodcastNa). */
     static String naMode(Context c) { return naMode(c, sleepAt > 0, sleepEnd); }
@@ -837,10 +837,10 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         if (url == null || !Podcasts.httpUrl(url) || url.equals(artFor)) return;
         artFor = url;
         final String u = url;
-        new Thread(() -> {
+        new Thread(App.veilig(() -> {
             final Bitmap bm = Art.small(Art.load(getApplicationContext(), u), 320); // klein: gaat via de mediasessie naar andere processen
             h.post(() -> { if (u.equals(artFor) && inst == this) { art = bm; if (!"stopped".equals(status)) update(); } });
-        }, "podcast-art").start();
+        }), "podcast-art").start();
     }
 
     static void createChannel(Context c) {

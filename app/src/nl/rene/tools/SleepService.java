@@ -142,7 +142,7 @@ public final class SleepService extends Service {
         if (wake != null && wake.isHeld()) try { wake.release(); } catch (Throwable ignored) { }
         holdWake();
         notifyNow();
-        if (writer == null) writer = Executors.newSingleThreadExecutor(r -> new Thread(r, "slaappraat-opslaan"));
+        if (writer == null) writer = Executors.newSingleThreadExecutor(r -> new Thread(App.veilig(r), "slaappraat-opslaan"));
         startDirect(night); // eerst: dan ziet het luisteren hem altijd als het (meteen) weer stopt
         Thread t = new Thread(this::listenThenWork, "slaappraat");
         worker = t;

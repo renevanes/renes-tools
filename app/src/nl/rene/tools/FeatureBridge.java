@@ -458,11 +458,11 @@ public class FeatureBridge {
         @JavascriptInterface public String carTripSet(String id, String type, String note) { return Car.setTrip(ctx, id, type, note); }
         @JavascriptInterface public String carTripDelete(String id) { return Car.deleteTrip(ctx, id); }
         @JavascriptInterface public void carExport(String month) {
-            new Thread(() -> {
+            new Thread(App.veilig(() -> {
                 String r;
                 try { r = "ok:" + Car.exportMonth(ctx, month); } catch (Exception e) { r = e.getMessage() == null ? "Exporteren lukt niet" : e.getMessage(); }
                 a.js("onCarExport", JSONObject.quote(r));
-            }, "car-export").start();
+            }), "car-export").start();
         }
         @JavascriptInterface public void carTripStart() { Car.startTrip(ctx); }
         @JavascriptInterface public void carTripStop() { Car.stopTrip(ctx); }
@@ -523,7 +523,7 @@ public class FeatureBridge {
         }
         @JavascriptInterface public void kluisView(String id) {
             if (!a.kluisOk()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
-            new Thread(() -> {
+            new Thread(App.veilig(() -> {
                 try {
                     File f = Kluis.view(ctx, id);
                     JSONObject d = Kluis.find(ctx, id);
@@ -536,7 +536,7 @@ public class FeatureBridge {
                             .putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, new android.content.ComponentName[]{new android.content.ComponentName(ctx, PdfViewActivity.class)});
                     a.runOnUiThread(() -> { try { a.startActivity(ch); } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote("Geen app om dit te openen")); } });
                 } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote(e.getMessage() == null ? "Openen lukt niet" : e.getMessage())); }
-            }, "kluis-view").start();
+            }), "kluis-view").start();
         }
         // ----- Documentenkluis als centrale opslag: gemaakte PDF's erin, bekijken in de eigen viewer, bewerken als nieuwe versie -----
 
@@ -799,7 +799,7 @@ public class FeatureBridge {
         @JavascriptInterface public long voiceElapsed() { return VoiceNote.elapsed(); }
         /** Nummer van de radio bewaren in Herkende muziek, zonder herkenning (kost geen AudD-tegoed). Geeft "" of "dubbel". */
         @JavascriptInterface public void radioSaveClip(int seconds) {
-            new Thread(() -> { String r = RadioService.saveClip(ctx, Math.max(30, Math.min(seconds, 3 * 3600))); a.js("onRadioClip", JSONObject.quote(r)); }, "radio-clip").start();
+            new Thread(App.veilig(() -> { String r = RadioService.saveClip(ctx, Math.max(30, Math.min(seconds, 3 * 3600))); a.js("onRadioClip", JSONObject.quote(r)); }), "radio-clip").start();
         }
         @JavascriptInterface public String musicSaveFromRadio(String artist, String title, String station) {
             try {

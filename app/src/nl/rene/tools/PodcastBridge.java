@@ -19,7 +19,7 @@ public class PodcastBridge extends AiBridge {
         return m;
     }
 
-    private void bg(String name, Runnable r) { new Thread(r, name).start(); }
+    private void bg(String name, Runnable r) { new Thread(App.veilig(r), name).start(); }
 
     /** Zoeken; antwoord via onPodSearch({q, results} of {q, error}). */
     @JavascriptInterface public void podSearch(final String q) {
@@ -141,7 +141,7 @@ public class PodcastBridge extends AiBridge {
             if (Cast.active()) { // er wordt gecast: daar afspelen
                 final JSONObject ep = e, pod = o.optJSONObject("pod");
                 final boolean fromStart = o.optBoolean("fromStart");
-                new Thread(() -> Cast.load(Cast.fromEpisode(ctx, ep, pod, fromStart)), "cast-load").start();
+                new Thread(App.veilig(() -> Cast.load(Cast.fromEpisode(ctx, ep, pod, fromStart))), "cast-load").start();
                 return "";
             }
             PodcastService.send(ctx, PodcastService.PLAY, o.toString());
@@ -154,7 +154,7 @@ public class PodcastBridge extends AiBridge {
     @JavascriptInterface public void podStop() { if (Cast.active()) castBg(Cast::stop); else PodcastService.send(ctx, PodcastService.STOP, null); }
 
     /** Chromecast-opdrachten gaan over het netwerk: niet op de brugthread laten wachten. */
-    static void castBg(Runnable r) { new Thread(r, "cast-cmd").start(); }
+    static void castBg(Runnable r) { new Thread(App.veilig(r), "cast-cmd").start(); }
     @JavascriptInterface public void podSeek(long ms) { Player.podSeek(ctx, Math.max(0, ms)); } // ook als er niets speelt (dan bewaard)
     @JavascriptInterface public void podSkip(int sec) {
         if (Cast.active()) { castBg(() -> Cast.seekBy(Math.max(-600, Math.min(600, sec)))); return; }

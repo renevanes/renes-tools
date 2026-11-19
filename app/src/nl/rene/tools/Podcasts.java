@@ -49,9 +49,9 @@ final class Podcasts {
     static boolean validKey(String k) { return k != null && k.matches("e[0-9a-f]{16}"); }
 
     /** Eén schrijf-thread voor de podcastbestanden (niet op de hoofdthread, en nooit twee tegelijk). */
-    static final java.util.concurrent.ExecutorService IO = java.util.concurrent.Executors.newSingleThreadExecutor(r -> new Thread(r, "podcast-io"));
+    static final java.util.concurrent.ExecutorService IO = java.util.concurrent.Executors.newSingleThreadExecutor(r -> new Thread(App.veilig(r), "podcast-io"));
     /** Alvast inlezen (alleen lezen) op een eigen draad: houdt het schrijven van voortgang op IO niet op. */
-    static final java.util.concurrent.ExecutorService WARM = java.util.concurrent.Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "podcast-warm"); t.setPriority(Thread.MIN_PRIORITY); return t; });
+    static final java.util.concurrent.ExecutorService WARM = java.util.concurrent.Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(App.veilig(r), "podcast-warm"); t.setPriority(Thread.MIN_PRIORITY); return t; });
     /** Eén slot per feed (een bijwerkronde en het openen van dezelfde podcast mogen niet door elkaar schrijven). */
     static final java.util.concurrent.ConcurrentHashMap<String, Object> FEED_LOCKS = new java.util.concurrent.ConcurrentHashMap<>();
     static final java.util.concurrent.atomic.AtomicBoolean REFRESHING = new java.util.concurrent.atomic.AtomicBoolean();

@@ -76,7 +76,7 @@ public class CastService extends Service {
             }
             return super.onMediaButtonEvent(i);
         }
-        private static void run(Runnable r) { new Thread(r, "cast-cmd").start(); } // netwerk niet op de hoofdthread
+        private static void run(Runnable r) { new Thread(App.veilig(r), "cast-cmd").start(); } // netwerk niet op de hoofdthread
     }
 
     /** Volumeknoppen van de telefoon = volume van de Chromecast (in 20 stappen). */
@@ -85,7 +85,7 @@ public class CastService extends Service {
         @Override public void onSetVolumeTo(int v) {
             Player.Now n = Cast.now();
             if (n == null || n.volume < 0) return; // nog niet bekend hoe hard de tv staat: niet ineens verspringen
-            setCurrentVolume(v); final double l = v / 20.0; new Thread(() -> Cast.setVolume(l), "cast-vol").start();
+            setCurrentVolume(v); final double l = v / 20.0; new Thread(App.veilig(() -> Cast.setVolume(l)), "cast-vol").start();
         }
         @Override public void onAdjustVolume(int dir) { onSetVolumeTo(Math.max(0, Math.min(20, getCurrentVolume() + dir))); }
     }
@@ -111,7 +111,7 @@ public class CastService extends Service {
         if (a != null) {
             Runnable r = PP.equals(a) ? (Runnable) Cast::playPause : STOP.equals(a) ? (Runnable) Cast::stop
                     : BACK.equals(a) ? (Runnable) () -> Cast.seekBy(-15) : FWD.equals(a) ? (Runnable) () -> Cast.seekBy(30) : null;
-            if (r != null) new Thread(r, "cast-cmd").start();
+            if (r != null) new Thread(App.veilig(r), "cast-cmd").start();
         }
         if (!Cast.active()) finish(); // geen sessie (meer): geen melding laten staan
         return START_NOT_STICKY;
@@ -186,7 +186,7 @@ public class CastService extends Service {
         final String url = n.art;
         if (url != null && !url.equals(artFor)) {
             artFor = url;
-            new Thread(() -> { final Bitmap b = Art.small(Art.load(getApplicationContext(), url), 320); h.post(() -> { if (url.equals(artFor) && inst == this) { art = b; update(); } }); }, "cast-art").start();
+            new Thread(App.veilig(() -> { final Bitmap b = Art.small(Art.load(getApplicationContext(), url), 320); h.post(() -> { if (url.equals(artFor) && inst == this) { art = b; update(); } }); }), "cast-art").start();
         }
     }
 

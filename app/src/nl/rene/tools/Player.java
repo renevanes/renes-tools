@@ -27,7 +27,7 @@ final class Player {
      */
     static long takeOver(Context c, String src) {
         if (!src.equals(src(c))) prefs(c).edit().putString("src", src).apply();
-        if (Cast.active()) new Thread(Cast::stop, "cast-stop").start(); // weer op de telefoon: de Chromecast stopt
+        if (Cast.active()) new Thread(App.veilig(Cast::stop), "cast-stop").start(); // weer op de telefoon: de Chromecast stopt
         long now = System.currentTimeMillis(), sleep = 0;
         if (PODCAST.equals(src)) {
             String st = RadioService.status;

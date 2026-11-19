@@ -189,7 +189,7 @@ function show(name){
   if (name==='history') enterHistory(); else stopHistoryPoll();
   if (name==='calls') enterCalls(current_prev==='home'); else stopCallsPoll();
   if (current_prev==='note' && name!=='note') leaveNote();
-  if (name==='notes') enterNotes();
+  if (name==='notes') enterNotes(current_prev);
   if (name==='contacts') enterContacts();
   if (name==='transcripts') enterTranscripts(); else stopTrPoll();
   if (name==='radio') enterRadio(); else stopRdPoll();

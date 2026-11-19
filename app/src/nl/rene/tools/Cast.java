@@ -64,13 +64,13 @@ final class Cast {
         final Finder f = new Finder(nsd);
         try { nsd.discoverServices("_googlecast._tcp", NsdManager.PROTOCOL_DNS_SD, f); }
         catch (Exception e) { done.run(); return; }
-        new Thread(() -> {
+        new Thread(App.veilig(() -> {
             try { Thread.sleep(ms); } catch (InterruptedException ignored) { }
             try { nsd.stopServiceDiscovery(f); } catch (Exception ignored) { }
             // Nog even wachten op lopende adres-opvragingen
             try { Thread.sleep(400); } catch (InterruptedException ignored) { }
             done.run();
-        }, "cast-scan").start();
+        }), "cast-scan").start();
     }
 
     /** mDNS-zoeker: elk gevonden apparaat wordt (één tegelijk) opgevraagd voor adres en naam. */
@@ -200,18 +200,18 @@ final class Cast {
             if (Player.PODCAST.equals(it.src)) PodcastService.send(c, PodcastService.HANDOFF, null);
             else RadioService.send(c, RadioService.STOP, null);
             final Item fit = it;
-            new Thread(() -> load(fit), "cast-load").start();
+            new Thread(App.veilig(() -> load(fit)), "cast-load").start();
             return "";
         }
         Session s = new Session(c.getApplicationContext(), d, it);
         cur = s; // eerst de nieuwe, dan pas de oude dicht (de service blijft dan staan)
-        if (old != null) { final Session o = old; new Thread(o::stopApp, "cast-stop").start(); } // het andere apparaat stopt
+        if (old != null) { final Session o = old; new Thread(App.veilig(o::stopApp), "cast-stop").start(); } // het andere apparaat stopt
         // De telefoon zelf stopt (plek bewaard); vanaf nu bedient de speler de Chromecast
         if (Player.PODCAST.equals(it.src)) PodcastService.send(c, PodcastService.HANDOFF, null);
         else RadioService.send(c, RadioService.STOP, null);
         Player.prefs(c).edit().putString("src", it.src).apply();
         CastService.start(c);
-        new Thread(s, "cast-" + d.name).start();
+        new Thread(App.veilig(s), "cast-" + d.name).start();
         return "";
     }
 
@@ -232,7 +232,7 @@ final class Cast {
         private int req = 1;
         private android.os.PowerManager.WakeLock wl;
         private android.net.wifi.WifiManager.WifiLock wifi;
-        private final java.util.concurrent.ScheduledExecutorService beat = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "cast-beat"));
+        private final java.util.concurrent.ScheduledExecutorService beat = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> new Thread(App.veilig(r), "cast-beat"));
 
         Session(Context c, Device d, Item it) { this.c = c; this.dev = d; this.item = it; }
 

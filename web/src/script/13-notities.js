@@ -130,7 +130,12 @@ function hl(text, q){
   const i = low.indexOf(q); if (i < 0) return tt;
   return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
 }
-function enterNotes(){ loadRems(); renderNotes(); refreshNotesTile(); }
+function enterNotes(prev){ if (prev !== 'note') notesToon = NOTES_TOON; loadRems(); renderNotes(); refreshNotesTile(); }
+/* Lange lijst: eerst NOTES_TOON rijen, met Meer tonen telkens evenveel erbij (zoals Nieuws en Contacten). Duizenden rijen
+   tegelijk tekenen laat de telefoon seconden haperen. Terug uit een notitie houdt wat er al stond. */
+const NOTES_TOON = 100;
+let notesToon = NOTES_TOON, notesToonKey = '';
+function notesVerder(){ notesToon += NOTES_TOON; renderNotes(); }
 /* kind 'note' of 'list'. Ontbreekt het, dan is het een lijst zodra er items, een bovenliggende lijst of een herhaling is. */
 function noteKind(n){
   if (!n) return 'note';
@@ -172,6 +177,7 @@ function saveQuickNote(){
 }
 function renderNotes(){
   const q = $('#notes-search').value.trim().toLowerCase();
+  const toonKey = q + '|' + notesScope; if (toonKey !== notesToonKey) { notesToonKey = toonKey; notesToon = NOTES_TOON; }
   const compose = $('#note-compose'); if (compose) compose.hidden = q.length > 0;
   const all = notesGet();
   const list = noteListTree(all);
@@ -192,7 +198,7 @@ function renderNotes(){
       while(ancestor!==null){if(!notesExpanded.has(ancestor)){hidden=true;break;}const a=byId.get(ancestor);ancestor=a?a.parent:null;}
       if(hidden)continue;
     }
-    const parent=r.parent!==null?noteById(r.parent):null;
+    const parent=r.parent!==null?(byId.get(r.parent)||{}).n||null:null;
     const items = n.items || [], open = items.filter(i => !i.done).length;
     const shown = noteLabel(n) || t('Zonder titel'), flat = (n.text||'').replace(/\s+/g, ' ');
     let sub = '';
@@ -228,7 +234,9 @@ function renderNotes(){
     : notesScope==='notes' ? t('Nog geen losse notities. Schrijf er hierboven een.')
     : notesScope==='lists' ? t('Nog geen lijsten. Tik op Nieuwe lijst.')
     : t('Nog geen notities. Schrijf er hierboven een, of tik op Nieuwe lijst.');
-  $('#notes-list').innerHTML = rows.join('') || '<p class=note style="padding:14px">' + esc(empty) + '</p>';
+  $('#notes-list').innerHTML = rows.slice(0, notesToon).join('') || '<p class=note style="padding:14px">' + esc(empty) + '</p>';
+  const meer = $('#notes-meer');
+  if (meer) meer.innerHTML = rows.length > notesToon ? '<button class="big ghost notes-verder" onclick="notesVerder()">' + esc(t('Meer tonen')) + '</button>' : '';
 }
 function noteById(id){ return notesGet().find(n => n.id === id); }
 function newNote(){

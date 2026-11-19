@@ -113,7 +113,7 @@ public class HomeActivity extends Activity {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT,
                     (OnBackInvokedCallback) this::back);
         }
-        new Thread(() -> pruneIcons(getApplicationContext()), "icon-prune").start();
+        new Thread(App.veilig(() -> pruneIcons(getApplicationContext())), "icon-prune").start();
         // Vangnet: pas als er echt iets getekend is (en het daarna even goed blijft gaan) is de start gelukt.
         frame.getViewTreeObserver().addOnDrawListener(() -> {
             if (firstFrame) return;
@@ -260,7 +260,7 @@ public class HomeActivity extends Activity {
         }
         js("onResumeHome", "");
         if (desk != null) desk.takePinned(); // snelkoppelingen die intussen vastgezet zijn
-        new Thread(() -> { if (Notes.applyRepeats(getApplicationContext())) js("renderNotes", ""); }, "repeats").start();
+        new Thread(App.veilig(() -> { if (Notes.applyRepeats(getApplicationContext())) js("renderNotes", ""); }), "repeats").start();
         if (desk != null && web != null) { WebView v = web; h.postDelayed(() -> { if (v == web) v.invalidate(); }, 150); }
         if (fellBack) { fellBack = false; h.postDelayed(() -> toast("Het nieuwe startscherm startte niet goed; je ziet de klassieke skin. Zie Look aanpassen."), 1500); }
     }
@@ -421,11 +421,11 @@ public class HomeActivity extends Activity {
         final Desk dk = desk;
         final float[] cell = dk.cellSize(); // maat van de cellen hier (hoofdthread) opvragen
         final int seq = ++pickerSeq;
-        new Thread(() -> {
+        new Thread(App.veilig(() -> {
             String j = dk.widgetsJson(cell);
             // Alleen voor de kiezer die nu open is (de pagina negeert het ook als de kiezer dicht is)
             h.post(() -> { if (seq == pickerSeq) ovCall("widgetPicker", j, false); });
-        }, "widgets").start();
+        }), "widgets").start();
     }
 
     /**
@@ -625,7 +625,7 @@ public class HomeActivity extends Activity {
 
         @JavascriptInterface public String apps() { return Launcher.appsJson(ctx); }
         /** Zelfde, op de achtergrond (de lijst ophalen duurt even): uitkomst via onApps(json). */
-        @JavascriptInterface public void appsAsync() { new Thread(() -> a.js("onApps", Launcher.appsJson(ctx)), "apps").start(); }
+        @JavascriptInterface public void appsAsync() { new Thread(App.veilig(() -> a.js("onApps", Launcher.appsJson(ctx))), "apps").start(); }
         /** De pagina meldt zelf dat hij klaar is (voor het geval onPageFinished uitblijft). */
         @JavascriptInterface public void ready() {
             a.h.post(() -> { if ("overlay".equals(mode)) { if (!a.overlayLoaded) a.pageReady(a.overlay); } else if (!a.loaded) a.pageReady(a.web); });
@@ -692,10 +692,10 @@ public class HomeActivity extends Activity {
 
         /** Weer op de achtergrond; uitkomst via onWeather(json). */
         @JavascriptInterface public void weather(boolean force) {
-            new Thread(() -> a.js("onWeather", Launcher.weatherJson(ctx, force)), "weather").start();
+            new Thread(App.veilig(() -> a.js("onWeather", Launcher.weatherJson(ctx, force))), "weather").start();
         }
         @JavascriptInterface public void cities(String q) {
-            new Thread(() -> a.js("onCities", Launcher.citiesJson(q)), "cities").start();
+            new Thread(App.veilig(() -> a.js("onCities", Launcher.citiesJson(q))), "cities").start();
         }
         @JavascriptInterface public void setPlace(String name, double lat, double lon) { Launcher.setPlace(ctx, name, lat, lon); }
         @JavascriptInterface public String placeName() { return Launcher.prefs(ctx).getString("placeName", ""); }

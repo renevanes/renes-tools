@@ -46,7 +46,9 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
 - **Geen anonieme inner classes** en **geneste classes altijd `static`** (ook enums en `LruCache`-subclasses): D8 crasht er
   anders op. Lambda's mogen wel. Controle na het bouwen:
   `for f in build/classes/nl/rene/tools/*.class; do javap -v "$f" | grep -q "<no name>" && echo ANON $f; done`
-- **Achtergrondthreads vangen `Throwable`**: een ongevangen fout op een thread laat de hele app stoppen.
+- **Achtergrondthreads vangen `Throwable`**: een ongevangen fout op een thread laat de hele app stoppen. Gebruik
+  `new Thread(App.veilig(() -> …), "naam")` (de fout komt als soort DRAAD in het foutlogboek), of vang `Throwable` in de
+  lambda of de aangeroepen methode. `DraadVeiligTest` bewaakt dat; alleen de lussen van VPN en Timeshift staan bewust apart.
 - **Nieuwe brugfunctie** (`@JavascriptInterface`) = ook een nabootsing in `01-testbrug.js`; `python3 tools/check-bridge.py` controleert dat.
 - **Privacy**: backups en exports bevatten alleen Rene's eigen gegevens en gaan naar plekken die hij zelf kiest.
   Geen meelezen van andermans berichten of meldingen voor toezicht, geen OSINT op contacten.
@@ -259,6 +261,19 @@ het ergens anders wilt), Java 17+ (javac; CI gebruikt 25), Python 3, Node 22+ (C
   crasht (script: `tests/telefoon/rooktest.sh`; logcat en schermafdrukken in het artifact). Rood = niet laten liggen,
   maar oplossen: meestal een startcrash door build-tools, targetSdk of Java-code.
 Nieuwe functie = ook een test in `tests/ui/` (en bij logica in `tests/jvm/`). Een UI-test slaagt als hij `errors []` afdrukt.
+
+**Prestaties: grenzen** (taak Prestaties en stabiliteit; logboek in het issue "Prestaties en stabiliteit: logboek").
+`tests/ui/prestaties.test.js` bewaakt wat vast te tellen is, met ruimte voor groei (stand 19-11-2026 tussen haakjes):
+`web/index.html` zonder testbrug hooguit 4,5 MB (3,43 MB), na het starten hooguit 10.000 elementen (7.783) en
+100 brugaanroepen (51). Lange lijsten tekenen niet alles tegelijk: Notities 100 rijen met Meer tonen, Contacten 600,
+Meldingsgeschiedenis 200, Nieuws 60 (gemeten met 5000 items in de testbrug). Een nieuwe lijst die duizenden items kan
+krijgen doet hetzelfde en komt in die test. Tijden alleen met een zeer ruime grens (start tot `uiReady` 5 s, Notities
+openen met 5000 notities 3 s; zo'n 10× de gemeten waarde, want de test draait naast veel andere) en nooit in de
+telefoontest. Raakt een telgrens op: kijk eerst wat er groeide en of het lichter kan; verhoog hem alleen bewust, met de
+reden in het logboek. De telefoontest (`rooktest.sh`) legt per API-niveau vast: starttijd per scherm (`TotalTime`),
+overgeslagen beelden (Choreographer), geheugen (`dumpsys meminfo`, PSS) en haperingen (`dumpsys gfxinfo`) na het starten
+en na alle schermen; in de uitvoer onder "Metingen" en in de samenvatting van de run. Dat is alleen vastleggen: een
+meetwaarde laat de telefoontest nooit falen. De emulator tekent in software: vergelijk alleen hetzelfde API-niveau.
 
 ## Tegelijk werken met andere agents
 **Publiceren gaat vanzelf (zoals bij renes-spelletjes):** elke push naar main die de app verandert, wordt door de

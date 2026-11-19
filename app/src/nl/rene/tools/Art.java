@@ -90,7 +90,7 @@ final class Art {
     }
 
     private static final java.util.concurrent.ExecutorService FETCH =
-            java.util.concurrent.Executors.newFixedThreadPool(2, r -> new Thread(r, "art-fetch"));
+            java.util.concurrent.Executors.newFixedThreadPool(2, r -> new Thread(App.veilig(r), "art-fetch"));
 
     private static Bitmap loadLocked(Context c, String url) {
         Long failedAt = FAILED.get(url);

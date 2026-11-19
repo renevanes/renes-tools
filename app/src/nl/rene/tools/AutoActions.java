@@ -250,9 +250,9 @@ public class AutoActions extends JobService {
                 return false;
             case JOB_BACKUP:
                 if (!AllBackup.tryBegin()) return false;
-                new Thread(() -> {
+                new Thread(App.veilig(() -> {
                     try { AllBackup.run(c, true); } finally { jobFinished(p, false); }
-                }, "auto-backup").start();
+                }), "auto-backup").start();
                 return true;
             default: return false;
         }

@@ -197,6 +197,7 @@ textarea.key:focus{outline:2px solid var(--primary);outline-offset:-1px;border-c
 .nlist button.nrow{display:block;width:100%;text-align:left;padding:12px 2px;border-top:1px solid var(--line)}
 .nlist button.nrow:first-child{border-top:0}
 .nlist .r1{display:flex;gap:8px;align-items:baseline}.nlist .r1 b{flex:1;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.notes-verder{margin-top:12px}
 .nlist .r1 small,.nlist .r2{color:var(--muted);font-size:13px}.nlist .r2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
 .note-parent-label{display:block;font-size:12px;color:var(--primary);margin:3px 0}
 .notes-dashboard{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 18px}

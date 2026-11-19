@@ -182,11 +182,11 @@ public class SpotifyBridge extends PlayerBridge {
 
     /** Laatste backup uit de backup-map overnemen (nieuwe telefoon). Antwoord via onSpotifyImported. */
     @JavascriptInterface public void spotifyImport() {
-        new Thread(() -> {
+        new Thread(App.veilig(() -> {
             JSONObject r = new JSONObject();
             try { r.put("count", Spotify.importFolder(ctx)); } catch (Exception e) { try { r.put("error", msg(e, "Overnemen lukt niet")); } catch (Exception ignored) { } }
             a.js("onSpotifyImported", r.toString());
-        }, "spotify-import").start();
+        }), "spotify-import").start();
     }
 
     /** Het adres om bij de developer app in te vullen, naar het klembord. */

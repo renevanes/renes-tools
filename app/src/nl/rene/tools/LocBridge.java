@@ -47,7 +47,7 @@ public class LocBridge extends VpnBridge {
     @JavascriptInterface public void locSearch(final String q) {
         if (q == null || q.trim().isEmpty()) return;
         if (q.length() > 200) { try { a.js("onLocSearch", new JSONObject().put("q", q).put("error", "Zoekopdracht is te lang").toString()); } catch (Exception ignored) { } return; }
-        new Thread(() -> {
+        new Thread(App.veilig(() -> {
             JSONObject r = new JSONObject();
             try {
                 r.put("q", q);
@@ -69,6 +69,6 @@ public class LocBridge extends VpnBridge {
                 try { r.put("error", e.getMessage() == null ? "Zoeken lukt niet" : e.getMessage()); } catch (Exception ignored) { }
             }
             a.js("onLocSearch", r.toString());
-        }, "loc-search").start();
+        }), "loc-search").start();
     }
 }

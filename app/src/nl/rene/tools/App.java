@@ -45,6 +45,7 @@ public class App extends Application {
         if (restartProcess()) return; // het korte herstart-proces na terugzetten: verder niets
         final Thread.UncaughtExceptionHandler prev = Thread.getDefaultUncaughtExceptionHandler();
         final Context c = getApplicationContext();
+        logCtx = c;
         try { KluisTekst.ruimWerk(c); } catch (Throwable e) { /* cache; ook als alleen een dienst het proces start */ }
         BetalenBridge.ruimWerk(c); // een rekening die net gelezen werd toen de app stopte
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
@@ -66,7 +67,7 @@ public class App extends Application {
         if (unlocked(c)) { try { AppBackup.recover(c); } catch (Throwable ignored) { } }
         if (unlocked(c)) PlayPolicy.sanitizePreferences(c);
         // Na geforceerd stoppen zijn alle wekkers weg: bij de eerstvolgende start terugzetten
-        new Thread(() -> AlarmReceiver.ensureArmed(c), "rearm").start();
+        new Thread(App.veilig(() -> AlarmReceiver.ensureArmed(c)), "rearm").start();
         // Ontsleuteld Slaappraat-geluid van een afgebroken terugzetten niet in de cache laten staan
         new Thread(() -> { try { AiSleepBackup.clearStage(c); } catch (Throwable ignored) { } }, "restore-stage").start();
         // De backup-map eenmalig opruimen na een update met een nieuwe indeling (dubbele mappen en bestanden)
@@ -101,6 +102,31 @@ public class App extends Application {
     static boolean unlocked(Context c) {
         android.os.UserManager um = (android.os.UserManager) c.getSystemService(Context.USER_SERVICE);
         return um == null || um.isUserUnlocked();
+    }
+
+    /** Voor {@link #veilig}: het logboek heeft een Context nodig, de draad zelf vaak niet. */
+    private static volatile Context logCtx;
+
+    /**
+     * Werk voor een achtergronddraad ({@code new Thread(App.veilig(() -> …), "naam")}): een fout erin laat niet de
+     * hele app stoppen (zie de foutafhandeling in onCreate), maar komt als soort DRAAD in het foutlogboek.
+     * AGENTS.md: achtergrondthreads vangen Throwable; DraadVeiligTest bewaakt dat.
+     */
+    static Runnable veilig(Runnable r) {
+        return () -> {
+            try { r.run(); }
+            catch (Throwable e) { draadFout(Thread.currentThread().getName(), e); }
+        };
+    }
+
+    static void draadFout(String draad, Throwable e) {
+        try {
+            Context c = logCtx;
+            if (c == null) return;
+            StringWriter sw = new StringWriter();
+            e.printStackTrace(new PrintWriter(sw));
+            log(c, "DRAAD", "thread " + draad + "\n" + sw);
+        } catch (Throwable ignored) { }
     }
 
     static File file(Context c) { return new File(c.getFilesDir(), "crash.log"); }

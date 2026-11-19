@@ -530,10 +530,10 @@ public class MainActivity extends Activity {
             if (s.has("pod") || s.optBoolean("resume")) {
                 if (App.tokenOk(this, i)) {
                     final Context app = getApplicationContext();
-                    if (s.optBoolean("resume")) new Thread(() -> { Player.Now n = Player.now(app); if (n != null && !n.playing) Player.playPause(app); }, "resume").start();
+                    if (s.optBoolean("resume")) new Thread(App.veilig(() -> { Player.Now n = Player.now(app); if (n != null && !n.playing) Player.playPause(app); }), "resume").start();
                     else {
                         final JSONObject pod = s.getJSONObject("pod");
-                        new Thread(() -> { String err = Podcasts.playFromShortcut(app, pod); if (err != null) js("toast", JSONObject.quote(err)); }, "pod-shortcut").start();
+                        new Thread(App.veilig(() -> { String err = Podcasts.playFromShortcut(app, pod); if (err != null) js("toast", JSONObject.quote(err)); }), "pod-shortcut").start();
                     }
                 }
                 i.removeExtra("play");
@@ -1963,7 +1963,7 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public String backupCheckLast() { return Care.prefs(ctx).getString("check", "{}"); }
         @JavascriptInterface public void backupCheckRun() {
-            new Thread(() -> a.js("onBackupCheck", Care.backupCheck(ctx).toString()), "backup-check").start();
+            new Thread(App.veilig(() -> a.js("onBackupCheck", Care.backupCheck(ctx).toString())), "backup-check").start();
         }
         @JavascriptInterface public String historyStamp() { return NotificationHistory.stamp(ctx); }
         @JavascriptInterface public String historyListBy(String query, String pkg, int limit) {
@@ -1988,12 +1988,12 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String historyExport() {
             if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map";
             if (NotificationHistory.exporting.get()) return "Er loopt al een meldingen-export";
-            new Thread(() -> {
+            new Thread(App.veilig(() -> {
                 String result;
                 try { int n = NotificationHistory.export(ctx); result = n < 0 ? "Nog geen meldingen om te exporteren" : "✓ " + n + " meldingen geëxporteerd naar Meldingen backup"; }
                 catch (Exception e) { result = e.getMessage() == null ? "Meldingen exporteren mislukt" : e.getMessage(); }
                 a.js("onHistoryExport", JSONObject.quote(result));
-            }, "history-export").start();
+            }), "history-export").start();
             return "";
         }
 
@@ -2221,12 +2221,12 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String recorderExport(String id) {
             try { CallRecordings.resolve(ctx, id); } catch (Exception e) { return "Opname niet gevonden"; }
             if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map";
-            new Thread(() -> {
+            new Thread(App.veilig(() -> {
                 String result;
                 try { CallRecordings.export(ctx, id); result = "✓ Opname geëxporteerd naar Gespreksopnames"; }
                 catch (Exception e) { result = "Opname exporteren mislukt; controleer de backup-map"; }
                 a.js("onRecorderMessage", JSONObject.quote(result));
-            }, "recording-export").start();
+            }), "recording-export").start();
             return "";
         }
 
@@ -2568,7 +2568,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void lockTryCode(String code) {
             if (a.isSolo()) return;
             final String cd = code == null ? "" : code;
-            new Thread(() -> { // het rekenwerk (PBKDF2) duurt even: niet de pagina laten wachten
+            new Thread(App.veilig(() -> { // het rekenwerk (PBKDF2) duurt even: niet de pagina laten wachten
                 String r;
                 if (!Lock.hasCode(ctx)) r = "Er is geen app-code ingesteld";
                 else {
@@ -2588,7 +2588,7 @@ public class MainActivity extends Activity {
                     }
                 }
                 a.js("onLockResult", JSONObject.quote(r));
-            }, "lock-code").start();
+            }), "lock-code").start();
         }
 
         /**
@@ -2624,28 +2624,28 @@ public class MainActivity extends Activity {
                 a.h.post(() -> Lock.prompt(a, title, (ok, msg) -> {
                     if (!ok) { a.js("onSettingsChanged", JSONObject.quote(msg == null ? "Niet bevestigd" : msg)); return; }
                     Lock.unlocked = true;
-                    new Thread(() -> a.js("onSettingsChanged", JSONObject.quote(ch.run())), "lock-set").start(); // rekenwerk niet op de hoofdthread
+                    new Thread(App.veilig(() -> a.js("onSettingsChanged", JSONObject.quote(ch.run()))), "lock-set").start(); // rekenwerk niet op de hoofdthread
                 }));
                 return;
             }
-            new Thread(() -> {
+            new Thread(App.veilig(() -> {
                 String r;
                 if (Lock.hasCode(ctx) && Lock.tryCode(ctx, old == null ? "" : old) != Lock.OK) r = "De huidige app-code klopt niet (of even wachten na te vaak fout)";
                 else r = ch.run();
                 a.js("onSettingsChanged", JSONObject.quote(r));
-            }, "lock-set").start();
+            }), "lock-set").start();
         }
 
         /** App-slot aan/uit op een telefoon zonder schermvergrendeling: bevestigen met de app-code. */
         @JavascriptInterface public void lockSetCode(boolean on, String code) {
             if (Lock.deviceSecure(ctx)) { lockSet(on); return; }
-            new Thread(() -> { // rekenwerk niet op de brug
+            new Thread(App.veilig(() -> { // rekenwerk niet op de brug
                 if (!Lock.hasCode(ctx) || Lock.tryCode(ctx, code == null ? "" : code) != Lock.OK) { a.js("onSettingsChanged", JSONObject.quote("De app-code klopt niet (of even wachten na te vaak fout)")); return; }
                 Lock.prefs(ctx).edit().putBoolean("on", on).apply();
                 Lock.unlocked = true;
                 a.h.post(a::applySecure);
                 a.js("onSettingsChanged", JSONObject.quote(""));
-            }, "lock-set").start();
+            }), "lock-set").start();
         }
 
         /** App-slot aan- of uitzetten; vraagt eerst de schermvergrendeling ter bevestiging. */
@@ -2795,12 +2795,12 @@ public class MainActivity extends Activity {
         // ----- Versleutelen, opruimen, ruimtegebruik -----
         /** Wachtwoord instellen (sleutel afleiden duurt even); uitkomst via onSecure("" of foutmelding). */
         @JavascriptInterface public void backupSetPassword(String pw) {
-            new Thread(() -> {
+            new Thread(App.veilig(() -> {
                 String r = "";
                 try { Secure.setPassword(ctx, pw); AllBackupJob.ensureScheduled(ctx); } // (elke nacht: standaard aan met versleutelen)
                 catch (Exception e) { r = e.getMessage() != null ? e.getMessage() : "Instellen mislukt"; App.log(ctx, "SECURE", "wachtwoord: " + e); }
                 a.js("onSecure", JSONObject.quote(r));
-            }, "secure").start();
+            }), "secure").start();
         }
 
         /** Versleutelen uit: de privé-onderdelen (assistent, Slaappraat, Check-in) gaan dan ook uit; weer aanzetten vraagt eerst. */
@@ -2821,21 +2821,21 @@ public class MainActivity extends Activity {
 
         /** Opruimen (dry = alleen tellen); uitkomst via onRotate({count, bytes} of {error}). */
         @JavascriptInterface public void backupRotate(boolean dry) {
-            new Thread(() -> {
+            new Thread(App.veilig(() -> {
                 String r;
                 try { r = Secure.rotate(ctx, dry).put("dry", dry).toString(); }
                 catch (Exception e) { r = errJson(e); }
                 a.js("onRotate", r);
-            }, "rotate").start();
+            }), "rotate").start();
         }
 
         @JavascriptInterface public void backupSpace() {
-            new Thread(() -> {
+            new Thread(App.veilig(() -> {
                 String r;
                 try { r = Secure.space(ctx).toString(); }
                 catch (Exception e) { r = errJson(e); }
                 a.js("onSpace", r);
-            }, "space").start();
+            }), "space").start();
         }
 
         /** Versleutelde backup openen: eerst kiezen (onArchivePicked), dan openen met of zonder wachtwoord (onArchive). */
@@ -2850,12 +2850,12 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void archiveOpen(String pw) {
             final Uri u = a.pendingArchive;
-            new Thread(() -> {
+            new Thread(App.veilig(() -> {
                 String r;
                 try { r = Secure.open(ctx, u, pw).toString(); }
                 catch (Exception e) { r = errJson(e); }
                 a.js("onArchive", r);
-            }, "archive").start();
+            }), "archive").start();
         }
 
         /** Contacten of notities uit het geopende archief: daarna hetzelfde overzicht als bij gewoon terugzetten. */
@@ -2878,13 +2878,13 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void archiveUnpack() {
-            new Thread(() -> {
+            new Thread(App.veilig(() -> {
                 String r;
                 try { r = "ok:" + Secure.unpack(ctx); }
                 catch (Exception e) { r = e.getMessage() != null ? e.getMessage() : "Uitpakken mislukt"; App.log(ctx, "SECURE", "uitpakken: " + e); }
                 finally { Secure.forget(); a.pendingArchive = null; }
                 a.js("onArchiveUnpacked", JSONObject.quote(r));
-            }, "archive-unpack").start();
+            }), "archive-unpack").start();
         }
 
         @JavascriptInterface public void archiveClose() {
@@ -3060,10 +3060,10 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String backupStart(boolean withWa) {
             if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map";
             if (!AllBackup.tryBegin()) return "Er loopt al een backup";
-            new Thread(() -> {
+            new Thread(App.veilig(() -> {
                 org.json.JSONObject r = AllBackup.run(ctx, false);
                 a.js("onBackupDone", r.toString());
-            }, "allbackup").start();
+            }), "allbackup").start();
             if (withWa) {
                 String w = waStart("all", WaBackup.ALL);
                 if (!w.isEmpty()) return "WhatsApp: " + w;
@@ -3372,7 +3372,7 @@ public class MainActivity extends Activity {
 
         /** Laadt de zenderlijst op de achtergrond; resultaat via window.onRadioStations(json). */
         @JavascriptInterface public void radioLoad(String q) {
-            new Thread(() -> {
+            new Thread(App.veilig(() -> {
                 String r;
                 try { r = new JSONObject().put("q", q == null ? "" : q).put("stations", new JSONArray(Radio.stations(ctx, q))).toString(); }
                 catch (Exception e) {
@@ -3380,7 +3380,7 @@ public class MainActivity extends Activity {
                     catch (Exception e2) { r = "{\"error\":\"Zenderlijst niet bereikbaar\"}"; }
                 }
                 a.js("onRadioStations", r);
-            }, "radio-load").start();
+            }), "radio-load").start();
         }
 
         @JavascriptInterface public String radioCache() { return Radio.prefs(ctx).getString("cache", "[]"); }
@@ -3404,7 +3404,7 @@ public class MainActivity extends Activity {
                 if (Cast.active()) { final JSONObject st = s; PodcastBridge.castBg(() -> Cast.load(Cast.fromStation(st))); } // er wordt gecast: daar afspelen
                 else RadioService.send(ctx, RadioService.PLAY, station);
                 final String id = s.optString("id");
-                new Thread(() -> Radio.click(ctx, id), "radio-click").start();
+                new Thread(App.veilig(() -> Radio.click(ctx, id)), "radio-click").start();
             } catch (Exception ignored) { }
         }
 

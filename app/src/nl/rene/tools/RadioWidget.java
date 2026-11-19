@@ -28,7 +28,7 @@ public class RadioWidget extends AppWidgetProvider {
 
     /** Eén tekenthread: hoesjes laden mag de hoofdthread niet ophouden. */
     private static final java.util.concurrent.ExecutorService EX =
-            java.util.concurrent.Executors.newSingleThreadExecutor(r -> new Thread(r, "player-widget"));
+            java.util.concurrent.Executors.newSingleThreadExecutor(r -> new Thread(App.veilig(r), "player-widget"));
     private static final java.util.concurrent.atomic.AtomicBoolean QUEUED = new java.util.concurrent.atomic.AtomicBoolean();
 
     static void refresh(Context c) { refresh(c, null); }

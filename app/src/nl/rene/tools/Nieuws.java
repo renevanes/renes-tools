@@ -1115,7 +1115,7 @@ final class Nieuws {
 
     private static ScheduledThreadPoolExecutor wachter() {
         ScheduledThreadPoolExecutor w = new ScheduledThreadPoolExecutor(1, r -> {
-            Thread t = new Thread(r, "nieuws-wachter");
+            Thread t = new Thread(App.veilig(r), "nieuws-wachter");
             t.setDaemon(true);
             return t;
         });

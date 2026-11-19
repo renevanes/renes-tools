@@ -751,7 +751,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     }
 
     private void closeShift() {
-        if (ts != null) { final Timeshift t = ts; ts = null; new Thread(t::close, "timeshift-close").start(); }
+        if (ts != null) { final Timeshift t = ts; ts = null; new Thread(App.veilig(t::close), "timeshift-close").start(); }
         shiftOn = false; shiftBehind = 0; shiftBack = 0; pausedPos = -1; lastPos = -1;
         h.removeCallbacks(tickRun);
         h.removeCallbacks(shiftExpire);
@@ -807,7 +807,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     /** Leest elke 20 seconden wat er nu speelt (als de zender dat meestuurt). */
     private void startMeta() {
         if (metaThread != null && metaThread.isAlive()) return;
-        metaThread = new Thread(() -> {
+        metaThread = new Thread(App.veilig(() -> {
             while (alive && ("playing".equals(status) || "connecting".equals(status))) {
                 String url;
                 try { url = new JSONObject(station).optString("url"); } catch (Exception e) { break; }
@@ -825,7 +825,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
                 }
                 try { Thread.sleep(20_000); } catch (InterruptedException e) { break; }
             }
-        }, "radio-meta");
+        }), "radio-meta");
         metaThread.start();
     }
 

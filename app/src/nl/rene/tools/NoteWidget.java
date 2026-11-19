@@ -56,12 +56,12 @@ public class NoteWidget extends AppWidgetProvider {
             if (note != null && item != null) {
                 final PendingResult pr = goAsync();
                 final Context app = c.getApplicationContext();
-                new Thread(() -> {
+                new Thread(App.veilig(() -> {
                     try {
                         // Notes.save werkt de widgets zelf bij; een geopende app leest het opnieuw in
                         if (Notes.toggleItem(app, note, item)) MainActivity.jsAll("onNotesMaybeChanged", "");
                     } finally { pr.finish(); }
-                }, "note-widget").start();
+                }), "note-widget").start();
             }
             return;
         }

@@ -214,7 +214,7 @@ final class Spotify {
         String challenge = android.util.Base64.encodeToString(dig, android.util.Base64.URL_SAFE | android.util.Base64.NO_PADDING | android.util.Base64.NO_WRAP);
         final String cid = clientId;
         final Context app = c.getApplicationContext();
-        new Thread(() -> {
+        new Thread(App.veilig(() -> {
             String err = null, name = null;
             Socket browser = null;
             try {
@@ -245,7 +245,7 @@ final class Spotify {
                 try { ss.close(); } catch (Exception ignored) { } if (waiting == ss) waiting = null;
             }
             if (err != null || name != null) done.done(err, name);
-        }, "spotify-login").start();
+        }), "spotify-login").start();
         return ACCOUNTS + "/authorize?response_type=code&client_id=" + enc(clientId) + "&scope=" + enc(SCOPES)
                 + "&redirect_uri=" + enc(redirect) + "&state=" + enc(state) + "&code_challenge_method=S256&code_challenge=" + enc(challenge);
     }

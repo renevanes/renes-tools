@@ -530,9 +530,9 @@ final class LocalAi {
 
     // ---------- de motoren (één voor het gesprek, één voor zoeken) ----------
 
-    static final ExecutorService AI = Executors.newSingleThreadExecutor(r -> new Thread(r, "ai"));
+    static final ExecutorService AI = Executors.newSingleThreadExecutor(r -> new Thread(App.veilig(r), "ai"));
     /** De zoekindex bijwerken (kan bij sms en WhatsApp minuten duren) op een eigen thread: de assistent wacht daar niet op. */
-    static final ExecutorService IDX = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "ai-index"); t.setPriority(Thread.MIN_PRIORITY); return t; });
+    static final ExecutorService IDX = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(App.veilig(r), "ai-index"); t.setPriority(Thread.MIN_PRIORITY); return t; });
     /** Eén vraag tegelijk aan het zoekmodel (de index en een zoekvraag delen hem). Volgorde: eerst EMB, dan LocalAi.class. */
     private static final java.util.concurrent.locks.ReentrantLock EMB = new java.util.concurrent.locks.ReentrantLock();
     /** Het gesprek heeft het taalmodel nodig: de index wacht dan even (anders delen ze de processor, of op een

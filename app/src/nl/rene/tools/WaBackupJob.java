@@ -36,7 +36,7 @@ public class WaBackupJob extends JobService {
         WaBackup.busy = true;
         WaBackup.cancel = false;
         WaBackup.cancelMsg = null;
-        new Thread(() -> {
+        new Thread(App.veilig(() -> {
             WaBackup.Status st;
             try {
                 st = WaBackup.backup(ctx, "auto", WaBackup.parseCats(cats), s -> WaBackup.saveStatus(ctx, s));
@@ -52,7 +52,7 @@ public class WaBackupJob extends JobService {
             if ("error".equals(st.result) || "partial".equals(st.result)) notifyProblem(ctx, st);
             jobFinished(params, false); // eerst afmelden; opnieuw plannen met hetzelfde id stopt anders deze taak
             schedule(ctx, "error".equals(st.result) ? RETRY_MS : 0);
-        }, "wabackup-auto").start();
+        }), "wabackup-auto").start();
         return true;
     }
 

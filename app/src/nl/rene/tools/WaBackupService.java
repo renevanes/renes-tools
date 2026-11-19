@@ -64,7 +64,7 @@ public class WaBackupService extends Service {
         wake.setReferenceCounted(false);
         wake.acquire(12 * 60 * 60 * 1000L);
         final Context ctx = getApplicationContext();
-        new Thread(() -> {
+        new Thread(App.veilig(() -> {
             WaBackup.Status st;
             WaBackup.Listener l = s -> {
                 WaBackup.saveStatus(ctx, s);
@@ -83,7 +83,7 @@ public class WaBackupService extends Service {
                 WaBackup.busy = false;
             }
             done(st, restore);
-        }, "wabackup").start();
+        }), "wabackup").start();
         return START_NOT_STICKY;
     }
 

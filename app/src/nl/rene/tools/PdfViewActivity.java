@@ -545,7 +545,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         qCount.setText("…");
         final PdfDoc d = doc;
         final int start = view.currentPage();
-        new Thread(() -> {
+        new Thread(App.veilig(() -> {
             for (int i = 0; i < d.count; i++) {
                 if (g != searchGen) return; // onDestroy verhoogt searchGen vóór het sluiten; search() geeft dan ook niets
                 final List<PdfDoc.Match> m = d.search(i, s);
@@ -564,7 +564,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
                 if (cur < 0) { cur = 0; view.showMatch(0); view.setMatches(matches, 0); }
                 qCount.setText((cur + 1) + " / " + matches.size());
             });
-        }, "pdf-search").start();
+        }), "pdf-search").start();
     }
 
     private void step(int d) {
@@ -667,7 +667,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         final PdfDoc d = doc;
         if (d == null) return;
         final int p = view.currentPage();
-        new Thread(() -> {
+        new Thread(App.veilig(() -> {
             final String t = d.text(p);
             ui.post(() -> {
                 if (t.isEmpty()) { Toast.makeText(this, Taal.tx(this, "Op deze pagina staat geen tekst (misschien een scan)"), Toast.LENGTH_SHORT).show(); return; }
@@ -675,7 +675,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
                 if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("PDF pagina " + (p + 1), t));
                 if (Build.VERSION.SDK_INT < 33) Toast.makeText(this, Taal.tx(this, "Tekst van pagina " + (p + 1) + " gekopieerd"), Toast.LENGTH_SHORT).show();
             });
-        }, "pdf-text").start();
+        }), "pdf-text").start();
     }
 
     /**
@@ -720,7 +720,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         final Uri to = data.getData();
         final File f = file;
         final Context app = getApplicationContext();
-        new Thread(() -> {
+        new Thread(App.veilig(() -> {
             String r = "✓ Opgeslagen";
             try (InputStream in = new FileInputStream(f); OutputStream o = app.getContentResolver().openOutputStream(to, "w")) {
                 if (o == null) throw new Exception();
@@ -728,7 +728,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
             } catch (Exception e) { r = "Opslaan lukt niet"; }
             final String rr = r;
             ui.post(() -> Toast.makeText(app, Taal.tx(app, rr), Toast.LENGTH_SHORT).show());
-        }, "pdf-save").start();
+        }), "pdf-save").start();
     }
 
     private void print() {
@@ -753,7 +753,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         /** Kopiëren op de achtergrond (een grote PDF zou het scherm laten hangen); antwoorden op de hoofdthread. */
         @Override public void onWrite(PageRange[] range, ParcelFileDescriptor dest, CancellationSignal cs, WriteResultCallback cb) {
             final Handler h = new Handler(Looper.getMainLooper());
-            new Thread(() -> {
+            new Thread(App.veilig(() -> {
                 int res = 0; // 0 klaar, 1 geannuleerd, 2 fout
                 try (InputStream in = new FileInputStream(f); OutputStream o = new FileOutputStream(dest.getFileDescriptor())) {
                     byte[] b = new byte[1 << 16]; int r;
@@ -761,7 +761,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
                 } catch (Exception e) { res = 2; }
                 final int fr = res;
                 h.post(() -> { if (fr == 0) cb.onWriteFinished(new PageRange[]{PageRange.ALL_PAGES}); else if (fr == 1) cb.onWriteCancelled(); else cb.onWriteFailed("Afdrukken lukt niet"); });
-            }, "pdf-print").start();
+            }), "pdf-print").start();
         }
     }
 

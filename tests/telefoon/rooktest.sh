@@ -72,6 +72,41 @@ for blok in out:
 PY
 }
 
+# Metingen (prestaties en stabiliteit): alleen vastleggen, een meetwaarde laat de test nooit falen.
+# overgeslagen <logcat> <pid>: som van "Choreographer … Skipped N frames" van dat proces (hapering op de hoofdthread).
+overgeslagen() {
+  python3 - "$1" "${2:-}" <<'PY'
+import re, sys
+path, pid = sys.argv[1], sys.argv[2]
+if not pid: print('-'); sys.exit()
+n = 0
+for l in open(path, encoding='utf-8', errors='replace'):
+    m = re.match(r'\d\d-\d\d \d\d:\d\d:\d\d\.\d+\s+(\d+)\s+\d+\s+\w\s+Choreographer\s*:.*Skipped (\d+) frames', l)
+    if m and m.group(1) == pid: n += int(m.group(2))
+print(n)
+PY
+}
+# geheugen <dumpsys meminfo>: totaal PSS in kB (Android 7 heeft een regel "TOTAL  12345 …", nieuwere ook "TOTAL PSS: 12345")
+geheugen() {
+  python3 - "$1" <<'PY'
+import re, sys
+s = open(sys.argv[1], encoding='utf-8', errors='replace').read()
+m = re.search(r'TOTAL PSS:\s+(\d+)', s) or re.search(r'^\s*TOTAL\s+(\d+)', s, re.M)
+print(m.group(1) if m else '-')
+PY
+}
+# haperingen <dumpsys gfxinfo>: getekende beelden, haperende beelden en het 90e percentiel
+haperingen() {
+  python3 - "$1" <<'PY'
+import re, sys
+s = open(sys.argv[1], encoding='utf-8', errors='replace').read()
+def g(p):
+    m = re.search(p, s)
+    return m.group(1) if m else '-'
+print('beelden=%s haperend=%s p90_ms=%s' % (g(r'Total frames rendered:\s*(\d+)'), g(r'Janky frames:\s*(\d+)'), g(r'90th percentile:\s*(\d+)ms')))
+PY
+}
+
 # Zelfcontrole van crashregels() met voorbeeldregels (draait ook in de workflow, vóór de emulator start).
 zelftest() {
   local d; d=$(mktemp -d)
@@ -115,6 +150,19 @@ EOF
   n=$(crashregels "$d/java.txt" nl.rene.tools)
   echo "$n" | grep -q 'MainActivity.java:42' || { echo "zelftest: stapelregel ontbreekt"; fout=1; }
   echo "$n" | grep -q 'iets anders' && { echo "zelftest: regel van een ander proces meegenomen"; fout=1; }
+  # Metingen
+  cat > "$d/frames.txt" <<'EOF'
+10-24 10:00:01.000  4321  4321 I Choreographer: Skipped 31 frames!  The application may be doing too much work on its main thread.
+10-24 10:00:02.000  5555  5555 I Choreographer: Skipped 99 frames!  The application may be doing too much work on its main thread.
+10-24 10:00:03.000  4321  4321 I Choreographer: Skipped 4 frames!  The application may be doing too much work on its main thread.
+EOF
+  [ "$(overgeslagen "$d/frames.txt" 4321)" = 35 ] || { echo "zelftest: overgeslagen beelden verkeerd geteld"; fout=1; }
+  [ "$(overgeslagen "$d/frames.txt" "")" = - ] || { echo "zelftest: zonder proces moet het - zijn"; fout=1; }
+  printf 'Applications Memory Usage (in Kilobytes):\n** MEMINFO in pid 4321 [nl.rene.tools] **\n           TOTAL   123456    100000\n' > "$d/mem24.txt"
+  printf '               TOTAL PSS:   234567            TOTAL RSS:   300000       TOTAL SWAP PSS:       12\n' > "$d/mem36.txt"
+  [ "$(geheugen "$d/mem24.txt")" = 123456 ] && [ "$(geheugen "$d/mem36.txt")" = 234567 ] || { echo "zelftest: geheugen niet gelezen"; fout=1; }
+  printf 'Total frames rendered: 812\nJanky frames: 97 (11.95%%)\n90th percentile: 23ms\n' > "$d/gfx.txt"
+  [ "$(haperingen "$d/gfx.txt")" = "beelden=812 haperend=97 p90_ms=23" ] || { echo "zelftest: haperingen niet gelezen"; fout=1; }
   rm -rf "$d"
   [ $fout = 0 ] && echo "zelftest crashcontrole: goed"
   return $fout
@@ -139,6 +187,15 @@ echo "Pakket $PKG, startscherm $LAUNCHER, Home ${HOME_ACT:-(geen)}"
 SDK=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
 echo "Android API $SDK"
 FOUTEN=0
+METINGEN=$UIT/metingen.txt
+: > "$METINGEN"
+# Geheugen en haperingen van dit moment vastleggen (alleen vastleggen; hooguit ±30 s per meting)
+meet_app() {
+  local wanneer=$1
+  timeout 30 adb shell dumpsys meminfo "$PKG" 2>&1 | tr -d '\r' > "$UIT/meminfo-$wanneer.txt" || true
+  timeout 30 adb shell dumpsys gfxinfo "$PKG" 2>&1 | tr -d '\r' > "$UIT/gfxinfo-$wanneer.txt" || true
+  echo "geheugen-$wanneer pss_kb=$(geheugen "$UIT/meminfo-$wanneer.txt") $(haperingen "$UIT/gfxinfo-$wanneer.txt")" >> "$METINGEN" || true
+}
 
 # Annotatie in GitHub (één regel; % en regeleinden gecodeerd zoals Actions dat wil)
 meld() {
@@ -163,6 +220,11 @@ stap() {
   sleep "$WACHT"
   adb exec-out screencap -p > "$UIT/$naam.png" 2>/dev/null || echo "(geen schermafdruk)"
   adb logcat -d -v threadtime > "$UIT/logcat-$naam.txt" 2>&1
+  # Vastleggen: starttijd (TotalTime; 0 als de app al draaide) en overgeslagen beelden in deze stap
+  local tijd pid
+  tijd=$(sed -n 's/^TotalTime: *//p' "$UIT/$naam-am.txt" | head -1)
+  pid=$(adb shell pidof "$PKG" 2>/dev/null | tr -d '\r' | awk '{print $1}')
+  echo "$naam starttijd_ms=${tijd:--} overgeslagen_beelden=$(overgeslagen "$UIT/logcat-$naam.txt" "$pid")" >> "$METINGEN" || true
   local crash; crash=$(crashregels "$UIT/logcat-$naam.txt" "$PKG")
   if [ -n "$crash" ]; then
     echo "!! $naam: crash"; echo "$crash"
@@ -193,6 +255,7 @@ fi
 adb logcat -c 2>/dev/null || true
 
 stap 1-start ja -n "$PKG/$LAUNCHER" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
+meet_app na-start
 [ -n "$HOME_ACT" ] && stap 2-home ja -n "$PKG/$HOME_ACT"
 # Een paar andere schermen die van buitenaf te openen zijn
 stap 3-pdf-zonder-bestand ja -n "$PKG/${LAUNCHER%.*}.PdfViewActivity" -a android.intent.action.VIEW
@@ -207,8 +270,15 @@ for scherm in gebruik apparaten herstel sleep ai agenda signalen nieuws wc factu
   WACHT=$WACHT_SCHERM stap "$n-$scherm" ja -n "$PKG/$LAUNCHER" --es open "$scherm"
   n=$((n + 1))
 done
+meet_app na-schermen
 # Tot slot terug naar het gewone startscherm van Tools: draait de app nog?
 stap "$n-terug" ja -n "$PKG/$LAUNCHER" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
+
+# Metingen tonen (logboek Prestaties en stabiliteit); in Actions ook in de samenvatting van de run
+echo "== Metingen (API $SDK)"; cat "$METINGEN"
+if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+  { echo "### Metingen telefoontest (API $SDK)"; echo '```'; cat "$METINGEN"; echo '```'; } >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+fi
 
 if [ "$FOUTEN" -gt 0 ]; then
   echo "Telefoontest (API $SDK): $FOUTEN stap(pen) mislukt; logcat en schermafdrukken staan in het artifact."
