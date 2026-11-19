@@ -1453,9 +1453,18 @@ if (!window.Android) window.Android = (function(){
     notifState(){ return JSON.stringify({muted: !!this._notifMuted, allowed: !this._notifOff, perm: !this._notifOff, kinds: [{id: 'reminders', name: 'Herinneringen', desc: 'Herinneringen die je bij een notitie zet', on: true, level: 4}, {id: 'radio', name: 'Radio', desc: 'Bediening van de radio', on: false, level: 0}]}); },
     notifOpen(id){ this._notifOpen = id; }, notifAsk(){ this._notifOff = false; this._notifAsk = true; },
     uiReady(){ this._uiReady = true; }, crashCopy(){ this._copied = true; toast('Foutrapport gekopieerd'); }, freshInstall(){ return true; }, crashClear(){ this._st.crashes=0; }, _stat: { on: true, repo: '', token: false, since: Date.now() - 3 * 864e5, lastSent: 0, lastResult: '', tags: { BACKUP: 2, PODCAST: 1 }, sent: 0 },
+    _diag: { items: [], auto: false, sent: [], n: 0 },
+    diagnoseStaat(){ const d = this._diag, s = this._stat; return JSON.stringify({ items: d.items.map(i => ({ id: i.id, tool: i.tool, titel: i.titel, tijd: i.tijd, tekens: this.diagnoseTekst(i.id).length, verstuurd: i.verstuurd || 0 })), auto: d.auto, kan: true, repo: s.repo, klaar: !!(s.repo && s.token), verstuurd: d.sent }); },
+    diagnoseTekst(id){ const i = this._diag.items.find(x => x.id === id); return i ? 'Diagnose Tools test\nTool: ' + i.tool + '\nWat: ' + i.titel + '\n\n' + i.tekst : ''; },
+    diagnoseLeg(tool, titel, tekst){ const d = this._diag, id = 'd' + (++d.n); d.items.unshift({ id, tool: String(tool), titel: String(titel), tekst: String(tekst), tijd: Date.now() }); d.items.length = Math.min(d.items.length, 12); if (d.auto && this._stat.repo && this._stat.token) this._diagWeg(id); },
+    _diagWeg(id){ const d = this._diag, i = d.items.find(x => x.id === id); if (!i || i.verstuurd) return; i.verstuurd = Date.now(); d.sent.unshift({ t: i.verstuurd, tool: i.tool, n: this.diagnoseTekst(id).length }); },
+    diagnoseWis(){ this._diag.items = []; },
+    diagnoseAuto(on){ this._diag.auto = !!on; },
+    diagnoseKopieer(id){ this._diag.gekopieerd = id; },
+    diagnoseStuur(id){ const s = this._stat; setTimeout(() => { if (!(s.repo && s.token)) { window.onDiagnose('Stel eerst de repository en de sleutel in'); return; } this._diagWeg(id); window.onDiagnose(''); }, 30); },
     statState(){ const s = this._stat; return JSON.stringify({ on: s.on, repo: s.repo, token: s.token, since: s.since, lastSent: s.lastSent, lastResult: s.lastResult }); },
     statOn(on){ this._stat.on = !!on; if (!on) this._stat.tags = {}; },
-    statDest(repo, token){ const s = this._stat; if (!repo && !token) { s.repo = ''; s.token = false; return ''; }
+    statDest(repo, token){ const s = this._stat; if (repo !== s.repo || token) this._diag.auto = false; if (!repo && !token) { s.repo = ''; s.token = false; return ''; }
       if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100}$/.test(repo)) return 'Vul de repository in als eigenaar/naam, bijv. renevanes/renes-tools-statistiek';
       if (token && !/^github_pat_[A-Za-z0-9_]{20,250}$/.test(token)) return 'Gebruik een fine-grained sleutel (begint met github_pat_) die alleen in deze repository mag schrijven';
       if (!token && !s.token) return 'Vul ook de sleutel in';

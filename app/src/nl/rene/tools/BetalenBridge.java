@@ -199,7 +199,8 @@ public class BetalenBridge extends FeatureBridge {
         final long tot = android.os.SystemClock.elapsedRealtime() + MAX_LEZEN_MS;
         v.tijd("herkennen", MAX_LEZEN_MS);
         String tekst = "";
-        try { tekst = leesTekst(c, s, () -> android.os.SystemClock.elapsedRealtime() < tot); }
+        StringBuilder ruw = new StringBuilder();
+        try { tekst = leesTekst(c, s, () -> android.os.SystemClock.elapsedRealtime() < tot, ruw); }
         catch (Throwable t) { App.log(c, "BETALEN", "lezen: " + t.getClass().getSimpleName()); }
         JSONObject bestand = Betalen.lees(c);
         List<String> eigen = BetalenHerken.lijst(Betalen.inst(bestand).optJSONArray("eigen"));
@@ -215,6 +216,12 @@ public class BetalenBridge extends FeatureBridge {
             finally { if (b != null) b.recycle(); }
         }
         App.log(c, "BETALEN", "gelezen");
+        try { // om na te zoeken waarom een veld niet goed kwam; alleen in het geheugen (Diagnose)
+            JSONObject kort = new JSONObject(uit.toString());
+            kort.remove("beeld");
+            Diagnose.leg(c, "betalen", "Rekening gelezen", "Bron: " + bron + (pdf ? " (pdf, " + blz + " blz)" : " (afbeelding)") + "\nHerkend: " + kort
+                    + "\n\n--- Tekst ---\n" + tekst + "\n--- Woorden met hun plek (pagina regel x0 y0 x1 y1 woord) ---\n" + ruw);
+        } catch (Throwable ignored) { }
         return uit;
     }
 
@@ -236,7 +243,10 @@ public class BetalenBridge extends FeatureBridge {
      * telefoon, met de woorden weer in hun eigen kolom gezet (OcrIndeling): op een brief met vakken staan naam en waarde
      * anders door elkaar.
      */
-    static String leesTekst(android.content.Context c, PdfCompare.Slot s, java.util.function.BooleanSupplier door) throws Exception {
+    static String leesTekst(android.content.Context c, PdfCompare.Slot s, java.util.function.BooleanSupplier door) throws Exception { return leesTekst(c, s, door, null); }
+
+    /** ruw (mag null): daar komen de woorden van de tekstherkenning met hun plek in, voor Diagnose. */
+    static String leesTekst(android.content.Context c, PdfCompare.Slot s, java.util.function.BooleanSupplier door, StringBuilder ruw) throws Exception {
         StringBuilder uit = new StringBuilder();
         PdfDoc doc = s.pdf && PdfDoc.canText() ? new PdfDoc(s.file, s.name, null) : null;
         try {
@@ -245,7 +255,9 @@ public class BetalenBridge extends FeatureBridge {
                 if (t == null || t.trim().length() < 40) {
                     Bitmap b = PdfCompare.render(s, i, 2400);
                     try {
-                        t = OcrIndeling.tekst(RijbewijsOcr.pageWoorden(c, b, door));
+                        List<OcrIndeling.Woord> ws = RijbewijsOcr.pageWoorden(c, b, door);
+                        t = OcrIndeling.tekst(ws);
+                        if (ruw != null) for (OcrIndeling.Woord w : ws) { if (ruw.length() > 60_000) break; ruw.append(i).append(' ').append(w.regel).append(' ').append(w.x0).append(' ').append(w.y0).append(' ').append(w.x1).append(' ').append(w.y1).append(' ').append(w.tekst).append('\n'); }
                         if (t.trim().isEmpty()) t = RijbewijsOcr.pageText(c, b, door);
                     } finally { b.recycle(); }
                 }

@@ -2499,6 +2499,35 @@ public class MainActivity extends Activity {
             }, "statistiek").start();
         }
 
+        // ----- Diagnose: wat een tool vastlegde om een probleem na te zoeken; alleen in het geheugen, versturen op Rene's keuze -----
+
+        @JavascriptInterface public String diagnoseStaat() { return Diagnose.staat(ctx).toString(); }
+        /** Precies wat er gekopieerd of verstuurd zou worden. */
+        @JavascriptInterface public String diagnoseTekst(String id) { return a.isSolo() ? "" : Diagnose.tekst(id); } // losse app: zonder app-slot, dus geen inhoud
+        /** De interface legt iets vast (bijv. hoeveel QR-codes er gevonden zijn); alleen in het geheugen. */
+        @JavascriptInterface public void diagnoseLeg(String tool, String titel, String tekst) { Diagnose.leg(ctx, tool, titel, tekst); }
+        @JavascriptInterface public void diagnoseWis() { Diagnose.wis(); }
+        /** Vanzelf sturen aan of uit (standaard uit). Niet vanuit een losse app: die slaat het app-slot over. */
+        @JavascriptInterface public void diagnoseAuto(boolean on) { if (!a.isSolo()) Diagnose.setAuto(ctx, on); }
+        @JavascriptInterface public void diagnoseKopieer(String id) {
+            final String tekst = a.isSolo() ? "" : Diagnose.tekst(id);
+            if (tekst.isEmpty()) return;
+            a.h.post(() -> {
+                try {
+                    android.content.ClipboardManager cm = (android.content.ClipboardManager) a.getSystemService(Context.CLIPBOARD_SERVICE);
+                    android.content.ClipData cd = android.content.ClipData.newPlainText("Diagnose Tools", tekst);
+                    if (Build.VERSION.SDK_INT >= 33) { android.os.PersistableBundle x = new android.os.PersistableBundle(); x.putBoolean("android.content.extra.IS_SENSITIVE", true); cd.getDescription().setExtras(x); }
+                    cm.setPrimaryClip(cd);
+                    if (Build.VERSION.SDK_INT < 33) Toast.makeText(a, Taal.tx(a, "Diagnose gekopieerd"), Toast.LENGTH_SHORT).show();
+                } catch (Throwable e) { Toast.makeText(a, Taal.tx(a, "Kopiëren lukt niet"), Toast.LENGTH_SHORT).show(); }
+            });
+        }
+        /** Eén stuk nu versturen; de uitkomst komt via onDiagnose("" of de reden). */
+        @JavascriptInterface public void diagnoseStuur(String id) {
+            if (a.isSolo()) { a.js("onDiagnose", JSONObject.quote("Kan alleen vanuit de gewone app")); return; }
+            new Thread(App.veilig(() -> a.js("onDiagnose", JSONObject.quote(Diagnose.stuur(ctx, id))), () -> a.js("onDiagnose", JSONObject.quote("Versturen lukte niet"))), "diagnose").start();
+        }
+
         @JavascriptInterface public void crashClear() {
             App.file(ctx).delete();
             ctx.getSharedPreferences("crash", Context.MODE_PRIVATE).edit().remove("new").apply();

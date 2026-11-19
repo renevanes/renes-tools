@@ -111,6 +111,16 @@ telefoon, de Android-versie, de periode, of de app op de achtergrond beperkt wor
 tekens voor deze installatie. Nooit namen, berichten, telefoonnummers, bestandsnamen, adressen of locaties. Je zet het
 uit bij Instellingen → Foutrapport en statistieken.
 
+### Diagnose
+
+Om een probleem na te zoeken legt een tool vast wat er bij een actie gebeurde, bijvoorbeeld de tekst die Betalen uit
+een rekening las en wat daaruit herkend is. Dat bevat inhoud (namen, adressen, nummers). Het staat alleen in het
+geheugen van de app, hooguit een uur, en is weg zodra de app stopt; het komt niet in een bestand of backup. Het verlaat de telefoon
+alleen als je bij Instellingen → Foutrapport en statistieken → Diagnose zelf een stuk kopieert of verstuurt (na een
+vraag), of als je daar "Vanzelf sturen" aanzet (staat uit; aanzetten vraagt eerst). Versturen gaat naar dezelfde eigen
+(privé) GitHub-repository als de statistieken, in de map `diagnose`. Op hetzelfde scherm staat wat er verstuurd is
+(tijd, tool en omvang). De Play-versie verstuurt geen diagnose.
+
 ## Backups
 
 - Backups die je in de app maakt (contacten, sms, notities, alle appgegevens enzovoort) gaan naar een map of plek die

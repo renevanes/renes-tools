@@ -172,6 +172,11 @@ async function btQrUitCanvas(bron){
   const alle = await btQrAlle(bron);
   let best = '', score = 0;
   for (const q of alle) { const s = btQrSoort(q); if (s > score) { best = q; score = s; } }
+  /* taal-vast-begin: tekst voor Diagnose (om een probleem na te zoeken), geen tekst van de interface */
+  try { // voor Diagnose: hoeveel codes en van welke soort, nooit de inhoud (een betaallink is een sleutel)
+    if (typeof Android.diagnoseLeg === 'function') Android.diagnoseLeg('betalen', 'QR-codes gezocht', 'Beeld: ' + (bron.width || bron.videoWidth || 0) + ' x ' + (bron.height || bron.videoHeight || 0) + '\nGevonden: ' + alle.length + '\nSoorten (3 = SEPA-QR, 2 = bekende betaallink, 1 = link, 0 = iets anders): ' + alle.map(q => btQrSoort(q) + ' (' + q.length + ' tekens)').join(', ') + '\nGekozen: ' + (best ? 'soort ' + score : alle[0] ? 'geen betaalcode' : 'niets'));
+  } catch (e) { /* diagnose mag nooit iets tegenhouden */ }
+  /* taal-vast-eind */
   return best || alle[0] || '';
 }
 function btQrUitBeeld(dataUrl){

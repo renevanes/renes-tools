@@ -197,10 +197,12 @@ final class Statistiek {
     static String setDest(Context c, String repo, String token) {
         repo = repo == null ? "" : repo.trim();
         token = token == null ? "" : token.trim();
-        if (repo.isEmpty() && token.isEmpty()) { prefs(c).edit().remove("repo").remove("token").apply(); return ""; }
+        // een andere of geen bestemming: Diagnose vanzelf sturen gaat uit (dat is voor één repository aangezet)
+        if (repo.isEmpty() && token.isEmpty()) { prefs(c).edit().remove("repo").remove("token").remove("diagAuto").remove("diagAutoRepo").apply(); return ""; }
         if (!validRepo(repo)) return "Vul de repository in als eigenaar/naam, bijv. renevanes/renes-tools-statistiek";
         if (!token.isEmpty() && !validToken(token)) return "Gebruik een fine-grained sleutel (begint met github_pat_) die alleen in deze repository mag schrijven";
         SharedPreferences.Editor e = prefs(c).edit().putString("repo", repo);
+        if (!repo.equals(prefs(c).getString("repo", "")) || !token.isEmpty()) e.remove("diagAuto").remove("diagAutoRepo");
         if (!token.isEmpty()) {
             try { e.putString("token", seal(token)); } catch (Exception x) { return "Versleuteld bewaren lukt niet"; }
         } else if (prefs(c).getString("token", "").isEmpty()) return "Vul ook de sleutel in";
@@ -249,7 +251,7 @@ final class Statistiek {
                                 .remove("tags").remove("crashes").putLong("since", now).commit();
                     }
                 }
-                int code = put(repo, open(sealed), path, body);
+                int code = put(repo, open(sealed), path, body, "Statistiek " + path.substring(path.lastIndexOf('/') + 1));
                 if (delivered(code, retry)) {
                     synchronized (LOCK) {
                         p.edit().remove("pendingPath").remove("pendingBody").putLong("lastSent", System.currentTimeMillis()).apply();
@@ -263,6 +265,24 @@ final class Statistiek {
             p.edit().putString("lastResult", result.isEmpty() ? "ok" : result).putLong("lastTry", System.currentTimeMillis()).apply();
             return result;
         } finally { SENDING.set(false); }
+    }
+
+    /**
+     * Zet één tekstbestand in dezelfde privé repository (voor Diagnose, map diagnose/). Los van de weekrapporten en van de
+     * schakelaar daarvan: alleen aangeroepen als Rene dat stuk zelf verstuurt of vanzelf sturen heeft aangezet.
+     * "" bij succes, anders de reden. Niet op de hoofdthread.
+     */
+    static String zet(Context c, String path, String tekst, String bericht) {
+        if (!PlayPolicy.allows(c, "statistiek")) return PlayPolicy.unavailable(c);
+        if (path == null || !path.matches("diagnose/[A-Za-z0-9T_-]{1,120}\\.txt")) return "Versturen lukte niet";
+        SharedPreferences p = prefs(c);
+        String repo = p.getString("repo", ""), sealed = p.getString("token", "");
+        if (!validRepo(repo) || sealed.isEmpty()) return "Stel eerst de repository en de sleutel in";
+        try {
+            int code = put(repo, open(sealed), path, tekst, bericht);
+            return code == 200 || code == 201 ? "" : code == 401 || code == 403 ? "De sleutel werkt niet (meer), of mag niet in deze repository schrijven"
+                    : code == 404 ? "Repository niet gevonden (of de sleutel mag er niet bij)" : "Versturen lukte niet (HTTP " + code + ")";
+        } catch (Exception e) { return "Versturen lukte niet (geen verbinding?)"; }
     }
 
     /** Bestandsnaam van een nieuw rapport: tot op de seconde, dus nooit dezelfde als een eerder rapport. */
@@ -287,7 +307,7 @@ final class Statistiek {
     }
 
     /** PUT naar de GitHub-API (vaste host, alleen https). Geeft de HTTP-status. */
-    private static int put(String repo, String token, String path, String json) throws Exception {
+    private static int put(String repo, String token, String path, String json, String bericht) throws Exception {
         URL u = new URL("https://api.github.com/repos/" + repo + "/contents/" + path);
         HttpURLConnection h = (HttpURLConnection) u.openConnection();
         try {
@@ -301,7 +321,7 @@ final class Statistiek {
             h.setRequestProperty("X-GitHub-Api-Version", "2022-11-28");
             h.setRequestProperty("User-Agent", "Renes-Tools/" + Version.NAME);
             h.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-            byte[] body = new JSONObject().put("message", "Statistiek " + path.substring(path.lastIndexOf('/') + 1))
+            byte[] body = new JSONObject().put("message", bericht)
                     .put("content", Secure.b64(json.getBytes(StandardCharsets.UTF_8))).toString().getBytes(StandardCharsets.UTF_8);
             h.setFixedLengthStreamingMode(body.length);
             try (OutputStream o = h.getOutputStream()) { o.write(body); }

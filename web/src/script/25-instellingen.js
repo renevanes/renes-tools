@@ -78,6 +78,7 @@ function enterSettings(){
     (p.ok ? '<span class=permok>✓ Aan</span>' : '<button class="mini" style="float:none" data-p="' + esc(p.id) + '" onclick="Android.permRequest(this.dataset.p)">Toestaan</button>') + '</div>').join('');
   $('#st-crash').textContent = i.crashes ? tn(i.crashes, '{n} fout vastgelegd.', '{n} fouten vastgelegd.') : t('Er zijn geen fouten vastgelegd. ✓');
   stStatRender();
+  dg.vrij = ''; dg.open = ''; dgRender(); // een vrijgave na het slotscherm geldt tot je dit scherm opnieuw opent
   stSummaries(i);
 }
 function stHomeRender(){
@@ -135,9 +136,68 @@ function stStatOn(on){ Android.statOn(on); stStatRender(); toast(on ? 'Statistie
 function stStatSave(){
   const tt = $('#st-stat-token'), e = Android.statDest($('#st-stat-repo').value.trim(), tt.value.trim());
   if (e) { toast(e); return; }
-  tt.value = ''; stStatRender(); toast($('#st-stat-repo').value.trim() ? 'Bestemming bewaard' : 'Bestemming verwijderd');
+  tt.value = ''; stStatRender(); dgRender(); toast($('#st-stat-repo').value.trim() ? 'Bestemming bewaard' : 'Bestemming verwijderd');
 }
 function stStatSend(){ const b = $('#st-stat-send'); b.disabled = true; b.textContent = 'Versturen…'; Android.statSend(); }
+/* Diagnose: wat tools vastlegden om een probleem na te zoeken. Alleen in het geheugen; versturen of kopiëren per stuk. */
+const dg = { open: '', vrij: '', bezig: '' };
+function dgToolNaam(tool){ return TOOLS[tool] ? t(TOOLS[tool][0]) : tool; }
+function dgDicht(it){ return dg.vrij !== it.id && typeof tsVerborgen === 'function' && !!TOOLS[it.tool] && tsVerborgen(it.tool); }
+function dgRender(){
+  const kaart = $('#st-diag');
+  if (typeof Android.diagnoseStaat !== 'function') { kaart.style.display = 'none'; return; }
+  const s = stJson(Android.diagnoseStaat()), items = s.items || [], lijst = $('#st-diag-lijst');
+  $('#st-diag-waar').textContent = s.klaar ? t('Versturen gaat naar je eigen privé repository {repo}, map diagnose.', { repo: s.repo }) : t('Nog geen bestemming: stel hierboven bij Statistieken je repository en sleutel in. Kopiëren kan wel.');
+  if (!items.find(i => i.id === dg.open)) dg.open = '';
+  lijst.innerHTML = items.length ? '' : '<p class="note">' + esc(t('Nog niets vastgelegd. Doe in de tool opnieuw wat niet goed ging en kom dan hier terug.')) + '</p>';
+  items.forEach(it => {
+    const rij = document.createElement('div'); rij.className = 'dg-item';
+    const kop = document.createElement('p'); kop.className = 'dg-kop';
+    const b = document.createElement('b'); b.textContent = dgToolNaam(it.tool) + ': ' + t(it.titel); kop.appendChild(b);
+    const klein = document.createElement('small');
+    klein.textContent = fmtDT(it.tijd) + ' · ' + tn(it.tekens, 'Eén teken', '{n} tekens') + (it.verstuurd ? ' · ' + t('verstuurd') : '');
+    kop.appendChild(klein); rij.appendChild(kop);
+    const knoppen = document.createElement('div'); knoppen.className = 'row';
+    const knop = (tekst, klas, fn) => { const k = document.createElement('button'); k.type = 'button'; k.className = klas; k.style.flex = '1'; k.textContent = tekst; k.addEventListener('click', fn); knoppen.appendChild(k); return k; };
+    if (dgDicht(it)) {
+      knop(t('Ontgrendelen om te bekijken'), 'mini', () => { if (!tsVraag(it.tool, () => { dg.vrij = it.id; dg.open = it.id; dgRender(); }, () => {}, t('Ontgrendel om deze diagnose te zien.'))) { dg.vrij = it.id; dgRender(); } });
+    } else {
+      knop(dg.open === it.id ? t('Verbergen') : t('Bekijken'), 'mini', () => { dg.open = dg.open === it.id ? '' : it.id; dgRender(); });
+      knop(t('Kopiëren'), 'mini', () => Android.diagnoseKopieer(it.id));
+      const st = knop(it.verstuurd ? t('Verstuurd') : dg.bezig === it.id ? t('Versturen…') : t('Versturen'), 'mini', () => dgStuur(it, s));
+      st.disabled = !s.klaar || !!it.verstuurd || !!dg.bezig;
+      if (s.kan === false) st.hidden = true; // de Play-versie verstuurt niets
+    }
+    rij.appendChild(knoppen);
+    if (dg.open === it.id && !dgDicht(it)) {
+      const pre = document.createElement('pre'); pre.className = 'note dg-tekst'; pre.setAttribute('translate', 'no'); pre.textContent = Android.diagnoseTekst(it.id); rij.appendChild(pre);
+    }
+    lijst.appendChild(rij);
+  });
+  const au = $('#st-diag-auto'); au.closest('.sw').style.display = s.kan === false ? 'none' : '';
+  if (s.kan === false) $('#st-diag-waar').textContent = t('Deze versie verstuurt geen diagnose. Kopiëren kan wel.');
+  au.classList.toggle('on', !!s.auto); au.setAttribute('aria-checked', s.auto ? 'true' : 'false');
+  $('#st-diag-sub').textContent = s.auto ? (s.klaar ? t('Aan: elke nieuwe diagnose gaat meteen naar {repo}', { repo: s.repo }) : t('Aan, maar nog geen bestemming: er gaat niets weg')) : t('Uit: er gaat niets weg zonder dat jij erop tikt');
+  $('#st-diag-wis').disabled = !items.length;
+  const weg = $('#st-diag-verstuurd'), v = s.verstuurd || [];
+  weg.textContent = '';
+  if (!v.length) weg.textContent = t('Nog niets. Hier staat straks wanneer welke diagnose verstuurd is.');
+  v.forEach(x => { const p = document.createElement('p'); p.textContent = fmtDT(x.t) + ' · ' + dgToolNaam(x.tool) + ' · ' + tn(x.n, 'Eén teken', '{n} tekens'); weg.appendChild(p); });
+}
+function dgStuur(it, s){
+  askConfirm(t('Diagnose versturen?'), t('De hele tekst die je bij Bekijken ziet ({n} tekens) gaat naar je privé repository {repo}. Er kunnen namen, adressen en nummers in staan.', { n: it.tekens, repo: s.repo }), t('Versturen'), () => {
+    dg.bezig = it.id; dgRender(); Android.diagnoseStuur(it.id);
+  });
+}
+window.onDiagnose = function(e){ dg.bezig = ''; toast(e ? t(e) : t('Verstuurd ✓')); if (current === 'setcrash') dgRender(); };
+function dgAuto(knop){
+  const aan = !knop.classList.contains('on'), s = stJson(Android.diagnoseStaat());
+  if (!aan) { Android.diagnoseAuto(false); dgRender(); return; }
+  askConfirm(t('Diagnose vanzelf sturen?'), t('Elke nieuwe diagnose gaat dan zonder vraag naar je privé repository {repo}, met de inhoud erbij (zoals de gelezen tekst van een rekening). Je kunt het hier altijd weer uitzetten.', { repo: s.repo || '…' }), t('Aanzetten'), () => {
+    Android.diagnoseAuto(true); dgRender();
+  });
+}
+function dgWis(){ Android.diagnoseWis(); dg.open = ''; dg.vrij = ''; dgRender(); toast(t('Diagnose gewist')); }
 window.onStatSent = function(e){ const b = $('#st-stat-send'); if (b) b.textContent = 'Nu versturen'; toast(e || 'Verstuurd ✓'); if (current === 'setcrash') stStatRender(); };
 function stCrashClear(){ askConfirm('Foutrapport wissen?', 'De vastgelegde foutmeldingen worden verwijderd.', 'Wissen', () => { Android.crashClear(); enterSettings(); }); }
 

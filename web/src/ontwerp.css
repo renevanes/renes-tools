@@ -260,3 +260,6 @@ details.card.setup>summary .setup-h{flex:1;min-width:0;font-size:15px;font-weigh
 .wacht::after{width:30%;background:var(--primary);animation:wachtLoop 1.2s ease-in-out infinite}
 @keyframes wachtLoop{from{transform:translateX(-100%)}to{transform:translateX(340%)}}
 @media (prefers-reduced-motion:reduce){.wacht::after{animation:none;width:100%;opacity:.5}}
+/* Diagnose (Instellingen → Foutrapport en statistieken): een stuk per regel, met de tekst uitklapbaar */
+.dg-item{padding:10px 0;border-top:1px solid var(--line)}.dg-kop{margin:0 0 8px}.dg-kop small{display:block;color:var(--muted);margin-top:2px}
+.dg-item .mini{min-height:44px}.dg-tekst{white-space:pre-wrap;word-break:break-word;font-size:12px;max-height:50vh;overflow:auto;margin:8px 0 0}

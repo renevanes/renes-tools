@@ -335,6 +335,16 @@
       </div>
       <details id="st-stat-what"><summary>Wat wordt er verstuurd?</summary><pre class="note" id="st-stat-preview" style="white-space:pre-wrap;word-break:break-word;font-size:12px"></pre></details>
     </div>
+    <div class="card" id="st-diag">
+      <h2>Diagnose</h2>
+      <p class="note" style="margin-top:0">Gaat er in een tool iets niet goed (een rekening wordt verkeerd gelezen), dan staat hier wat de tool daarbij vastlegde, zodat het na te zoeken is. Het staat alleen in het geheugen: hooguit een uur, en weg zodra de app stopt.</p>
+      <p class="hint" id="st-diag-waar"></p>
+      <div id="st-diag-lijst"></div>
+      <div class="sw"><span>Vanzelf sturen<small id="st-diag-sub"></small></span><button class="tg" id="st-diag-auto" role="switch" aria-label="Diagnose vanzelf sturen" onclick="dgAuto(this)"></button></div>
+      <p class="note"><b>Let op:</b> een diagnose bevat inhoud, zoals de gelezen tekst van een rekening met namen, adressen en nummers. Staat Vanzelf sturen uit, dan verlaat een diagnose de telefoon alleen als jij op Versturen of Kopiëren tikt.</p>
+      <div class="row"><button class="big ghost" style="flex:1" id="st-diag-wis" onclick="dgWis()">Alles wissen</button></div>
+      <details id="st-diag-weg"><summary>Wat heeft de telefoon verlaten?</summary><div class="note" id="st-diag-verstuurd"></div></details>
+    </div>
   </main>
 </section>
 

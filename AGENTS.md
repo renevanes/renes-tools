@@ -59,6 +59,16 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   tellingen en versies: per vaste logsoort (`App.log`-naam zoals BACKUP) een aantal, en bij een vastloper het soort fout en
   de plek in de eigen code. Nooit foutteksten, namen, nummers, berichten, bestandsnamen, adressen of locaties
   (`StatistiekTest` controleert dat). Iets toevoegen aan het rapport = eerst Rene vragen en de test uitbreiden.
+  **Diagnose** (`Diagnose.java`, kaart Diagnose op hetzelfde scherm; `DiagnoseTest`, `tests/ui/diagnose.test.js`) is
+  de centrale plek voor wat wél inhoud bevat en nodig is om een probleem na te zoeken (bijv. de gelezen tekst van een
+  rekening): een tool roept `Diagnose.leg(ctx, "tool", "Wat", tekst)` aan (interface: `Android.diagnoseLeg`). Alleen in
+  het geheugen (hooguit `MAX` stukken, weg als de app stopt; nooit in een bestand, het logboek, de statistieken of een
+  backup). De telefoon verlaat het alleen als Rene een stuk kopieert of na een vraag verstuurt, of als hij Vanzelf sturen
+  aanzette (standaard uit, aanzetten vraagt eerst); versturen gaat via `Statistiek.zet` naar de map `diagnose/` van
+  dezelfde privé repository, en het scherm toont wat er wegging (tijd, tool, omvang). Een stuk van een tool op slot is
+  pas na dat slotscherm te bekijken (`dgDicht`). Geen geheimen vastleggen (wachtwoorden, sleutels, een betaallink).
+  Een agent leest de map `diagnose/` alleen als die repository aan de sessie gekoppeld is, en neemt er niets uit over
+  in de openbare repository (geen echte brieven in tests, issues of commits).
   VPN-sleutels en wachtwoorden blijven versleuteld (`Secure.deviceKey`, AES-GCM) en buiten Android-backups.
   Alleen "Alle appgegevens" (`AppBackup`/`AppData`, terugzetten na herinstallatie) neemt ze mee, en alleen binnen het
   versleutelde archief (.rtb, wachtwoord van de backup); bij terugzetten worden ze opnieuw versleuteld met de sleutel van

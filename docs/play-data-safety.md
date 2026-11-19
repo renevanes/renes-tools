@@ -11,7 +11,7 @@ Versieprofiel: `play/basis.json`; controle 4 november 2026. Dit is de onderbouwi
 | PDF/document/export | Bestandskiezer en door gebruiker gekozen ontvanger/map | Zelfgekozen bestanden apart wissen | Door gebruiker gekozen delen/export correct onderscheiden van automatische verzameling |
 | Podcastvoortgang/favorieten | Toestel, optionele Android-back-up | Appgegevens en systeem/cloudback-up afzonderlijk wissen | Systeemoverdracht apart beoordelen volgens de actuele formulierinstructies |
 | Cast | Door gebruiker gekozen apparaat op lokaal netwerk | Afhankelijk van ontvanger | Media-URL/titel naar eigen ontvanger |
-| Diagnostiek | Lokaal foutlog; geen rapport naar ontwikkelaar | Android-appgegevens wissen | PlayPolicy blokkeert Statistiek.send in basis |
+| Diagnostiek | Lokaal foutlog; geen rapport naar ontwikkelaar | Android-appgegevens wissen | PlayPolicy blokkeert Statistiek.send en Statistiek.zet (Diagnose versturen) in basis |
 
 Geen eigen gebruikersaccount, advertentie-ID, advertentie-SDK, betaling, ontwikkelaarstelemetrie, microfoon-, contacten-, sms-, oproep- of locatiegegevens in de Play-basis. Geen generatieve taalmodeldownloads of generatieve inhoud. Een voorleesstem kan na een bewuste keuze via GitHub worden gedownload; notitietekst en geproduceerde spraak blijven uitsluitend in het geheugen van het toestel. Privacybeleid is in de app onder Instellingen en Info bereikbaar.
 
