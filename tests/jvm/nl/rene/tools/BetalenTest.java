@@ -151,6 +151,42 @@ public class BetalenTest {
 
         // ----- klaarzetten bij de bank: de instellingen in web/bank-banken.json
         String json = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("web/bank-banken.json")), StandardCharsets.UTF_8);
+
+        // ----- klopt de ontvanger? (BetalenControle): de officiële lijst, de bank, eerdere betalingen
+        JSONObject lijst = new JSONObject(json);
+        JSONArray ontv = lijst.getJSONArray("ontvangers");
+        check(ontv.length() >= 2, "officiële lijst met organisaties");
+        for (int i = 0; i < ontv.length(); i++) {
+            JSONObject o = ontv.getJSONObject(i);
+            check(o.optString("bron").startsWith("https://") && o.optString("gecontroleerd").matches("20\\d{2}-\\d{2}-\\d{2}") && o.getJSONArray("iban").length() > 0, "organisatie met bron en datum: " + o.optString("naam"));
+            for (String veld : new String[]{"iban", "oud"}) {
+                JSONArray ib = o.optJSONArray(veld);
+                if (ib != null) for (int k = 0; k < ib.length(); k++) check(FacturenHerken.ibanOk(ib.getString(k)), "officieel IBAN heeft een kloppend controlegetal: " + o.optString("naam") + " " + veld + " " + k);
+            }
+        }
+        JSONObject cj = BetalenControle.controle(new JSONObject().put("id", "b000000000001").put("iban", "NL56INGB0705005100").put("naam", "CHB Verkeersboetes"), new JSONArray(), lijst, "");
+        check("CJIB".equals(cj.optString("bekend")) && "CJIB".equals(cj.optString("naam")) && "ING".equals(cj.optString("bank")) && !cj.optBoolean("buitenland") && !cj.has("verdacht"),
+                "officieel rekeningnummer: de naam van de lijst (ook als de tekstherkenning zich vergiste), bank ING");
+        JSONObject vals = BetalenControle.controle(new JSONObject().put("iban", "NL91ABNA0417164300").put("naam", "C.J.I.B. Verkeersboetes"), new JSONArray(), lijst, "");
+        check("CJIB".equals(vals.optString("verdacht")) && !vals.has("bekend") && !vals.has("naam") && "ABN AMRO".equals(vals.optString("bank")), "de naam van een organisatie uit de lijst met een ander rekeningnummer: waarschuwing");
+        check("Belastingdienst".equals(BetalenControle.controle(new JSONObject().put("iban", "NL91ABNA0417164300"), new JSONArray(), lijst, "Belastingdienst\nUw aanslag").optString("verdacht")), "de organisatie bovenaan de gelezen tekst (afzender) telt ook");
+        check(!BetalenControle.controle(new JSONObject().put("iban", "NL91ABNA0417164300").put("naam", "Gemeente Voorbeeld"), new JSONArray(), lijst,
+                "Gemeente Voorbeeld\nParkeren\nFactuur\nBedrag\nDatum\nKenmerk\nBetaalt u niet, dan dragen wij de vordering over aan het CJIB.").has("verdacht"), "een organisatie alleen in de lopende tekst: geen waarschuwing");
+        JSONObject oudNr = BetalenControle.controle(new JSONObject().put("iban", "NL86INGB0002445588"), new JSONArray(), lijst, "");
+        check("Belastingdienst".equals(oudNr.optString("bekend")) && oudNr.optBoolean("oud") && "Belastingdienst".equals(BetalenControle.controle(new JSONObject().put("iban", "NL04RABO0200112244"), new JSONArray(), lijst, "").optString("bekend"))
+                && !BetalenControle.controle(new JSONObject().put("iban", "NL04RABO0200112244"), new JSONArray(), lijst, "").optBoolean("oud"), "oud nummer van de Belastingdienst: bekend, maar als oud nummer");
+        check(!BetalenControle.controle(new JSONObject().put("iban", "NL91ABNA0417164300").put("naam", "Jansen B.V."), new JSONArray(), lijst, "Verkeersboetes en belasting").has("verdacht"), "geen organisatie genoemd: geen waarschuwing");
+        JSONObject buiten = BetalenControle.controle(new JSONObject().put("iban", "DE89370400440532013000"), new JSONArray(), lijst, "");
+        check(buiten.optBoolean("buitenland") && "DE".equals(buiten.optString("land")) && buiten.optString("bank").isEmpty(), "buitenlandse rekening");
+        check(BetalenControle.controle(new JSONObject().put("iban", "NL00GEEN0000000000"), new JSONArray(), lijst, "").length() == 0, "zonder kloppend IBAN: geen controle");
+        JSONArray eerder = new JSONArray()
+                .put(new JSONObject().put("id", "b1").put("iban", "NL91ABNA0417164300").put("naam", "Jansen B.V.").put("status", "betaald").put("bevestigd", true).put("gewijzigd", 10))
+                .put(new JSONObject().put("id", "b2").put("iban", "NL91ABNA0417164300").put("naam", "Jansen BV").put("status", "betaald").put("bevestigd", true).put("gewijzigd", 20))
+                .put(new JSONObject().put("id", "b3").put("iban", "NL91ABNA0417164300").put("naam", "Iets anders").put("status", "klaargezet").put("gewijzigd", 30));
+        JSONObject ee = BetalenControle.controle(new JSONObject().put("id", "b4").put("iban", "NL91ABNA0417164300").put("naam", "Jansen 8.V."), eerder, lijst, "");
+        check(ee.optInt("eerder") == 2 && "Jansen BV".equals(ee.optString("eerderNaam")) && "Jansen BV".equals(ee.optString("naam")), "eerder zelf op Betaald gezet: het aantal en de naam van de laatste keer");
+        check(BetalenControle.genoemd("Centraal Justitieel Incassobureau", lijst) != null && BetalenControle.genoemd("Rijksbelastingdienst", lijst) == null, "een organisatie wordt alleen als heel woord gevonden");
+
         JSONArray banken = BankLink.banken(json);
         JSONObject rabo = BankLink.bank(banken, "rabobank");
         check(BetaalLink.kan(rabo) && !BetaalLink.kan(BankLink.bank(banken, "ing")) && !BetaalLink.kan(null), "Rabobank kan klaarzetten; een bank zonder instellingen niet");

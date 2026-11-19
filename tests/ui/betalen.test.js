@@ -207,6 +207,20 @@ const QR_EPC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0AQAAAAAVtj
     await page.click('#btd-betaald'); await wacht(60);
     ok(await page.evaluate(() => btVind(bt.id).status) === 'open', 'toch nog niet betaald: weer te betalen');
 
+    // ---- Klopt de ontvanger? (officiële lijst, bank, eerdere betalingen, zelf zoeken)
+    ok(await page.isVisible('#btd-controle') && (await tekst('#btd-checks')).includes('Rekening bij ABN AMRO'), 'controle: de bank achter het rekeningnummer');
+    await page.evaluate(() => { Android.betalenBewaar(JSON.stringify({ naam: 'CJIB', naamVan: 'lijst', naamGelezen: 'CHB Verkeersboetes', iban: 'NL56INGB0705005100', bedrag: '65', bron: 'bestand' })); Android.betalenBewaar(JSON.stringify({ naam: 'CJIB Verkeersboetes', iban: 'NL91ABNA0417164300', bedrag: '65', genoemd: 'CJIB', bron: 'bestand' })); btLaad(); });
+    await page.evaluate(() => btOpen(Android._bt.lijst.find(x => x.iban === 'NL56INGB0705005100').id)); await wacht(100);
+    ok((await tekst('#btd-checks')).includes('officieel rekeningnummer van CJIB') && await page.isVisible('#btd-checks .linkish'), 'officieel rekeningnummer: met de bron erbij');
+    ok((await tekst('#btd-checks')).includes('Op de rekening las Tools: CHB Verkeersboetes') && await page.evaluate(() => $('#btd-naam').value) === 'CJIB', 'de naam uit de officiële lijst, met wat er op de rekening gelezen werd');
+    await page.evaluate(() => btOpen(Android._bt.lijst.find(x => x.naam === 'CJIB Verkeersboetes').id)); await wacht(100);
+    ok(/niet in de officiële lijst van CJIB/.test(await tekst('#btd-checks')) && await page.isVisible('#btd-checks .bt-check.let'), 'de naam van CJIB met een ander rekeningnummer: duidelijke waarschuwing');
+    await page.click('#btd-zoek'); await wacht(100);
+    ok((await tekst('#modal-text')).includes('ziet het rekeningnummer') && !(await tekst('#toast')).includes('duckduckgo'), 'zoeken op internet: eerst zeggen wat de zoekmachine ziet');
+    await page.click('#modal-ok'); await wacht(100);
+    ok((await tekst('#toast')).includes('https://duckduckgo.com/?q='), 'daarna pas zoeken');
+    await page.evaluate(() => { Android._bt.lijst = Android._bt.lijst.filter(x => !/^CJIB/.test(x.naam)); btOpen(Android._bt.lijst.find(x => x.naam === 'Waterbedrijf Test').id); }); await wacht(80);
+
     // ---- Verwijderen
     const n3 = await page.evaluate(() => Android._bt.lijst.length);
     await page.click('#btd-menu'); await wacht(100); await sheet('Verwijderen'); await wacht(100);

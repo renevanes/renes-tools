@@ -1,3 +1,10 @@
 /* Betalen: wat verborgen is blijft verborgen (ook knoppen en kaarten met een eigen display) */
 #s-betalen [hidden], #s-betaling [hidden], #s-betalenset [hidden]{display:none!important}
 #btd-ibans button{font-variant-numeric:tabular-nums}
+
+/* Klopt de ontvanger? */
+.bt-check{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:0 0 10px}.bt-check>span:nth-child(2){flex:1;min-width:60%}
+.bt-checkic{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-weight:700;flex:none;background:var(--tonal);color:var(--ink)}
+.bt-check.ok .bt-checkic{background:var(--ok);color:var(--card)}
+.bt-check.let{font-weight:600}.bt-check.let .bt-checkic{background:var(--bad);color:var(--on-bad)}
+.bt-check .linkish{min-height:44px}

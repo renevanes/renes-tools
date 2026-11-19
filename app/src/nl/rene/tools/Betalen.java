@@ -57,6 +57,12 @@ final class Betalen {
         if (kenmerk.startsWith("RF") && !BetalenHerken.rfOk(kenmerk)) throw new Fout(Taal.T("Dit betalingskenmerk klopt niet. Kijk het na op de rekening."));
         o.put("kenmerk", kenmerk);
         o.put("omschrijving", BetalenHerken.netjes(in.optString("omschrijving"), 140));
+        String genoemd = in.optString("genoemd"); // een organisatie uit de lijst die op de rekening genoemd wordt (BetalenControle)
+        o.put("genoemd", genoemd.matches("[\\p{L} ]{1,40}") ? genoemd : "");
+        // de naam die op de rekening gelezen werd, als Tools hem verving door die van de lijst of van een eerdere betaling
+        String van = in.optString("naamVan");
+        o.put("naamVan", "lijst".equals(van) || "eerder".equals(van) ? van : "");
+        o.put("naamGelezen", o.optString("naamVan").isEmpty() ? "" : BetalenHerken.netjes(in.optString("naamGelezen"), 70));
         String verval = in.optString("vervaldatum");
         o.put("vervaldatum", verval.matches("20\\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])") ? verval : "");
         String link = in.optString("link");

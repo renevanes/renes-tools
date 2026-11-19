@@ -946,7 +946,18 @@ if (!window.Android) window.Android = (function(){
     betalenStaat(){ const st = this._btInit();
       const compleet = b => !!(b.naam && this._btIban(b.iban) && this._btBedrag(b.bedrag));
       const nieuw = b => !!b.iban && !st.lijst.some(x => x.id !== b.id && x.iban === b.iban && x.status === 'betaald' && x.bevestigd);
-      return JSON.stringify({ betalingen: st.lijst.map(b => Object.assign({}, b, { compleet: compleet(b), nieuw: nieuw(b) })), inst: st.inst, banken: st.banken, onleesbaar: false, lopend: false, bezig: false }); },
+      // zoals BetalenControle: officiële lijst (een stukje), bank uit het IBAN, eerdere betalingen
+      const lijst = [{ naam: 'CJIB', namen: ['cjib'], bron: 'https://cjib.nl/en/account-numbers', iban: ['NL56INGB0705005100'] }, { naam: 'Belastingdienst', namen: ['belastingdienst'], bron: 'https://www.belastingdienst.nl/', iban: ['NL86INGB0002445588'] }];
+      const banken = { ABNA: 'ABN AMRO', INGB: 'ING', RABO: 'Rabobank' };
+      const controle = b => { if (!this._btIban(b.iban)) return {};
+        const c = { land: b.iban.slice(0, 2), buitenland: !b.iban.startsWith('NL'), bank: b.iban.startsWith('NL') ? banken[b.iban.slice(4, 8)] || '' : '' };
+        const k = lijst.find(o => o.iban.includes(b.iban)), tekst = ' ' + ((b.naam || '') + ' ' + (b.genoemd || '')).toLowerCase() + ' ';
+        if (k) Object.assign(c, { bekend: k.naam, bron: k.bron, naam: k.naam });
+        else { const g = lijst.find(o => o.namen.some(n => tekst.includes(' ' + n + ' '))); if (g) Object.assign(c, { verdacht: g.naam, bron: g.bron }); }
+        const eerder = st.lijst.filter(x => x.id !== b.id && x.iban === b.iban && x.status === 'betaald' && x.bevestigd);
+        c.eerder = eerder.length; if (eerder.length) c.eerderNaam = eerder[eerder.length - 1].naam;
+        return c; };
+      return JSON.stringify({ betalingen: st.lijst.map(b => Object.assign({}, b, { compleet: compleet(b), nieuw: nieuw(b), controle: controle(b) })), inst: st.inst, banken: st.banken, onleesbaar: false, lopend: false, bezig: false }); },
     betalenBewaar(j){ const st = this._btInit(); let i; try { i = JSON.parse(j || '{}'); } catch (e) { return JSON.stringify({ ok: false, fout: 'Opslaan lukte niet.' }); }
       const fout = m => JSON.stringify({ ok: false, fout: m }), netjes = (v, n) => String(v || '').replace(/[\u0000-\u001f]+/g, ' ').replace(/\s{2,}/g, ' ').trim().slice(0, n);
       const b = { id: /^b[0-9a-f]{12}$/.test(i.id || '') ? i.id : 'b' + Math.random().toString(16).slice(2).padEnd(12, '0').slice(0, 12), naam: netjes(i.naam, 70) };
@@ -964,7 +975,7 @@ if (!window.Android) window.Android = (function(){
       b.link = '';
       if (i.link) { const l = this._btLink(i.link); if (!l) return fout('Deze betaallink is geen veilig adres (https).'); b.link = l; b.linkHost = new URL(l).hostname; b.linkBekend = this._btBekend(b.linkHost); }
       b.status = ['open', 'klaargezet', 'betaald'].includes(i.status) ? i.status : 'open';
-      b.bron = ['foto', 'bestand', 'dossier', 'hand'].includes(i.bron) ? i.bron : 'hand'; b.sha = '';
+      b.bron = ['foto', 'bestand', 'dossier', 'hand'].includes(i.bron) ? i.bron : 'hand'; b.sha = ''; b.genoemd = /^[\p{L} ]{1,40}$/u.test(i.genoemd || '') ? i.genoemd : ''; b.naamVan = ['lijst', 'eerder'].includes(i.naamVan) ? i.naamVan : ''; b.naamGelezen = b.naamVan ? netjes(i.naamGelezen, 70) : '';
       const was = st.lijst.find(x => x.id === b.id), nu = Date.now();
       b.gemaakt = was ? was.gemaakt : nu; b.gewijzigd = nu; b.betaaldOp = b.status === 'betaald' ? (was && was.betaaldOp) || nu : 0; b.bevestigd = !!(was && was.bevestigd && b.status === 'betaald' && b.iban === was.iban);
       if (was) st.lijst[st.lijst.indexOf(was)] = b; else st.lijst.push(b);

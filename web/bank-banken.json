@@ -73,5 +73,14 @@
       "robot": false,
       "uitleg": "Download bij je bank je transacties als CAMT.053 (XML), MT940 of CSV met een kopregel (datum, bedrag, naam). Dat kan bij bijna elke bank."
     }
-  ]
+  ],
+  "ontvangersUitleg": "Officiële rekeningnummers van organisaties die vaak nagemaakt worden. Alleen nummers die de organisatie zelf op haar eigen website noemt (bron en datum erbij). Betalen gebruikt dit om de naam goed te zetten en om te waarschuwen als een rekening de naam van zo'n organisatie gebruikt maar een ander rekeningnummer noemt. Nieuwe organisatie of nummer = alleen van de eigen website van die organisatie, met een test. Bij oud staan nummers die de organisatie nog aanneemt maar niet meer zelf noemt (zoals de ING-nummers van de Belastingdienst van vóór 1 mei 2026).",
+  "ontvangers": [
+    {"naam": "CJIB", "namen": ["cjib", "centraal justitieel incassobureau"], "bron": "https://cjib.nl/en/account-numbers", "gecontroleerd": "2026-11-19",
+     "iban": ["NL56INGB0705005100", "NL90INGB0705005070", "NL84INGB0705005275", "NL34INGB0705005593"]},
+    {"naam": "Belastingdienst", "namen": ["belastingdienst", "belastingtelefoon"], "bron": "https://www.belastingdienst.nl/wps/wcm/connect/nl/contact/content/alle-rekeningnummers-van-de-belastingdienst", "gecontroleerd": "2026-11-19",
+     "iban": ["NL04RABO0200112244", "NL04RABO0200115251", "NL04RABO0200144448", "NL04RABO0200144545", "NL04RABO0200181696", "NL04RABO0200181890", "NL04RABO0200184121", "NL04RABO0200196634"],
+     "oud": ["NL86INGB0002445588", "NL04INGB0000361564", "NL09INGB0000940079", "NL11INGB0000004866", "NL12INGB0000004848", "NL26INGB0000441290", "NL28INGB0000524383", "NL36INGB0003445588", "NL40INGB0000734657", "NL41INGB0000756755", "NL42INGB0000064933", "NL43INGB0000190821", "NL49INGB0000441070", "NL51INGB0000068457", "NL61INGB0000940113", "NL72INGB0000361795", "NL72INGB0000940109", "NL73INGB0000004817", "NL73INGB0000940091", "NL78INGB0000444040", "NL78INGB0000940001", "NL85INGB0000004892", "NL88INGB0000145100", "NL88INGB0000441047", "NL89INGB0000004820", "NL96INGB0000004791", "NL96INGB0000128951"]}
+  ],
+  "bankcodes": {"ABNA": "ABN AMRO", "ASNB": "ASN Bank", "BUNQ": "bunq", "FVLB": "Van Lanschot", "INGB": "ING", "KNAB": "Knab", "RABO": "Rabobank", "RBRB": "RegioBank", "SNSB": "SNS", "TRIO": "Triodos Bank", "NNBA": "Nationale-Nederlanden", "REVO": "Revolut", "DEUT": "Deutsche Bank", "HAND": "Handelsbanken", "BNPA": "BNP Paribas", "ADYB": "Adyen", "NWAB": "Nederlandse Waterschapsbank", "BNGH": "BNG Bank"}
 }

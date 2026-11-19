@@ -51,6 +51,12 @@
       <p id="btd-linkhost" translate="no" style="overflow-wrap:anywhere"></p>
       <p class="hint" id="btd-linkuitleg" style="margin-bottom:0"></p>
     </div>
+    <div class="card" id="btd-controle" hidden>
+      <h2 style="margin-top:0">Klopt de ontvanger?</h2>
+      <div id="btd-checks"></div>
+      <p class="hint">Bij het overboeken controleert je bank ook of de naam bij het rekeningnummer hoort (IBAN-Naam Check). Krijg je daar een waarschuwing, maak dan niets over.</p>
+      <button class="big ghost" id="btd-zoek" type="button" onclick="btdZoek()">Zoek het rekeningnummer op internet</button>
+    </div>
     <button class="big" id="btd-klaar" type="button" onclick="btdKlaarzetten()">Klaarzetten bij je bank</button>
     <button class="big tonal" id="btd-link" type="button" onclick="btdLink()" hidden>Betalen via de link</button>
     <button class="big ghost" id="btd-kopieer" type="button" onclick="btdKopieer()">Gegevens kopiëren</button>

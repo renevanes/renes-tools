@@ -54,7 +54,8 @@ public class BetalenBridge extends FeatureBridge {
                 // Het domein van een betaallink altijd uit de link zelf (het bestand kan uit een backup komen)
                 String link = BetalenHerken.link(b.optString("link")), host = link == null ? "" : Facturen.host(link);
                 uit.put(new JSONObject(b.toString()).put("link", link == null ? "" : link).put("linkHost", host).put("linkBekend", BetalenHerken.hostBekend(host, BetaalLink.hosts(ctx)))
-                        .put("compleet", Betalen.compleet(b)).put("nieuw", Betalen.nieuweOntvanger(lijst, b)));
+                        .put("compleet", Betalen.compleet(b)).put("nieuw", Betalen.nieuweOntvanger(lijst, b))
+                        .put("controle", BetalenControle.controle(b, lijst, BetalenControle.lijst(ctx), b.optString("genoemd"))));
             }
             JSONArray banken = new JSONArray(), l = BankLink.banken(ctx);
             for (int i = 0; i < l.length(); i++) {
@@ -205,6 +206,12 @@ public class BetalenBridge extends FeatureBridge {
         JSONObject bestand = Betalen.lees(c);
         List<String> eigen = BetalenHerken.lijst(Betalen.inst(bestand).optJSONArray("eigen"));
         JSONObject uit = BetalenHerken.herken(tekst, eigen).put("bron", bron).put("tekst", !tekst.trim().isEmpty());
+        try { // de naam van de officiële lijst of van een eerdere betaling gaat voor de gelezen naam (tekstherkenning vergist zich)
+            JSONObject lijst = BetalenControle.lijst(c), g = BetalenControle.genoemd(BetalenControle.kop(uit.optString("naam"), tekst), lijst);
+            if (g != null) uit.put("genoemd", g.optString("naam"));
+            JSONObject k = BetalenControle.controle(uit, Betalen.lijst(bestand), lijst, tekst);
+            if (!k.optString("naam").isEmpty()) uit.put("naamGelezen", uit.optString("naam")).put("naam", k.optString("naam")).put("naamVan", k.has("bekend") ? "lijst" : "eerder");
+        } catch (Throwable t) { App.log(c, "BETALEN", "controle: " + t.getClass().getSimpleName()); }
         if (metBeeld) {
             Bitmap b = null;
             try {

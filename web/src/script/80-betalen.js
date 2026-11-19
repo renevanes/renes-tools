@@ -198,10 +198,12 @@ window.onBetalenHerkend = function(r){
 function btVoorstel(r, qrTekst){
   bt.lezen = false;
   const q = qrTekst ? rdJson(Android.betalenQr(qrTekst), null) : null;
-  const b = { bron: r.bron || 'bestand', naam: r.naam || '', iban: r.iban || '', bedrag: r.bedrag || '', kenmerk: r.kenmerk || '', omschrijving: r.omschrijving || '', vervaldatum: r.vervaldatum || '' };
+  const b = { bron: r.bron || 'bestand', genoemd: r.genoemd || '', naamVan: r.naamVan || '', naamGelezen: r.naamGelezen || '', naam: r.naam || '', iban: r.iban || '', bedrag: r.bedrag || '', kenmerk: r.kenmerk || '', omschrijving: r.omschrijving || '', vervaldatum: r.vervaldatum || '' };
   const eigenQr = !!(q && q.soort === 'epc' && q.eigen); // je eigen rekeningnummer in de QR-code: die code is niet om mee te betalen
   const anders = !!(q && q.soort === 'epc' && !q.eigen && (r.ibans || []).length && !(r.ibans || []).includes(q.iban));
   if (q && q.soort === 'epc' && !eigenQr) { // een QR-code met betaalgegevens is betrouwbaarder dan gelezen tekst
+    // de naam van de lijst of van een eerdere betaling hoort bij het gelezen IBAN: een ander IBAN uit de QR-code = de gelezen naam
+    if (q.iban !== r.iban && r.naamVan) { b.naam = r.naamGelezen || ''; b.naamVan = ''; b.naamGelezen = ''; }
     b.iban = q.iban; if (q.naam) b.naam = q.naam; if (q.bedrag) b.bedrag = q.bedrag;
     if (q.kenmerk) { b.kenmerk = q.kenmerk; b.omschrijving = ''; } else if (q.omschrijving) { b.omschrijving = q.omschrijving; b.kenmerk = ''; }
   }
@@ -244,6 +246,39 @@ function btdRender(){
   box.innerHTML = andere.map(x => '<button type="button" data-iban="' + esc(x) + '" translate="no">' + esc(btIbanMooi(x)) + '</button>').join('');
   box.querySelectorAll('button').forEach(el => el.addEventListener('click', () => { $('#btd-iban').value = btIbanMooi(el.dataset.iban); btdBewaar(); }));
   btdKnoppen();
+  btdControle(b);
+}
+/* Klopt de ontvanger? Wat Java op de telefoon nakeek (BetalenControle): officiële lijst, bank, eerdere betalingen. */
+function btdControle(b){
+  const c = b.controle || {}, kaart = $('#btd-controle'), box = $('#btd-checks');
+  kaart.hidden = !c.land;
+  box.textContent = '';
+  if (!c.land) return;
+  const rij = (soort, tekst, bron) => {
+    const p = document.createElement('p'); p.className = 'bt-check ' + soort;
+    const ic = document.createElement('span'); ic.className = 'bt-checkic'; ic.setAttribute('aria-hidden', 'true'); ic.textContent = soort === 'ok' ? '✓' : soort === 'let' ? '!' : '•';
+    const tx = document.createElement('span'); tx.textContent = tekst;
+    p.append(ic, tx);
+    if (bron && /^https:\/\/[a-z0-9.-]+\//i.test(bron)) {
+      const a = document.createElement('button'); a.type = 'button'; a.className = 'linkish'; a.textContent = t('Bron bekijken');
+      a.addEventListener('click', () => Android.openUrl(bron)); p.appendChild(a);
+    }
+    box.appendChild(p);
+  };
+  if (c.bekend) rij('ok', c.oud ? t('Dit is een oud rekeningnummer van {org}. Dat mag je nog gebruiken als het zo op de brief staat.', { org: c.bekend }) : t('Dit is een officieel rekeningnummer van {org}.', { org: c.bekend }), c.bron);
+  if (b.naamVan && b.naamGelezen && b.naamGelezen !== b.naam) rij('info', b.naamVan === 'lijst' ? t('De naam komt uit de officiële lijst. Op de rekening las Tools: {naam}.', { naam: b.naamGelezen })
+    : t('De naam komt van je vorige betaling naar dit rekeningnummer. Op de rekening las Tools: {naam}.', { naam: b.naamGelezen }));
+  if (c.verdacht) rij('let', t('Let op: de rekening noemt {org}, maar dit rekeningnummer staat niet in de officiële lijst van {org}. Maak niets over voordat je het bij {org} zelf hebt nagekeken.', { org: c.verdacht }), c.bron);
+  rij(c.buitenland ? 'let' : 'info', c.buitenland ? t('Buitenlandse rekening (landcode {land}). Klopt dat bij deze ontvanger?', { land: c.land })
+    : c.bank ? t('Rekening bij {bank}.', { bank: c.bank }) : t('Nederlandse rekening.'));
+  if (c.eerder) rij('ok', tn(c.eerder, 'Je betaalde al eens vanuit Tools naar dit rekeningnummer (aan {naam}).', 'Je betaalde al {n} keer vanuit Tools naar dit rekeningnummer (laatst aan {naam}).', { naam: c.eerderNaam || '?' }));
+}
+function btdZoek(){
+  const b = btVind(bt.id);
+  if (!b || !b.iban) return;
+  askConfirm(t('Zoeken op internet?'), t('Je browser zoekt dan bij DuckDuckGo naar dit rekeningnummer. De zoekmachine ziet het rekeningnummer, verder niets van de rekening.'), t('Zoeken'), () => {
+    Android.openUrl('https://duckduckgo.com/?q=' + encodeURIComponent('"' + btIbanMooi(b.iban) + '"'));
+  });
 }
 function btdKnoppen(){
   const b = btVind(bt.id);

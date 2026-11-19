@@ -789,7 +789,13 @@ Rene controleert en bij zijn bank zelf verstuurt en ondertekent. Houd dat bij el
   `betalen` met de zoekpatronen (`BetaalLink.kan`), getest met `tests/ui/betaal-robot.test.js`. Kan het bij een bank niet,
   dan kopieert Rene de velden (`betalenKopieer`). Geen PSD2-tussendiensten of andere partijen zonder Rene.
 - **Controle vóór de bank**: een IBAN waar vanuit Tools nog niet naar betaald is krijgt de waarschuwing Nieuwe ontvanger en
-  een vraag met IBAN en naam (`Betalen.nieuweOntvanger`).
+  een vraag met IBAN en naam (`Betalen.nieuweOntvanger`). De kaart "Klopt de ontvanger?" (`BetalenControle`, zuiver, op de
+  telefoon) toont de bank achter het IBAN (`bankcodes`), of het een officieel rekeningnummer is van een organisatie die vaak
+  nagemaakt wordt (`ontvangers` in `web/bank-banken.json`: alleen nummers van de eigen website van die organisatie, met
+  `bron` en `gecontroleerd`; `BetalenTest` controleert elk controlegetal), een waarschuwing als de rekening zo'n organisatie
+  noemt (`genoemd`) maar een ander IBAN geeft, en eerdere betalingen. De naam van de lijst of van de laatste eigen betaling
+  gaat voor de gelezen naam (tekstherkenning vergist zich). Zoeken op internet doet Rene zelf (DuckDuckGo in de browser,
+  na een vraag; alleen het IBAN). Nieuwe organisatie = nummers van haar eigen website, bron en datum erbij.
 - **Opslag**: `betalen/betalingen.json` (betalingen en instellingen: bank, eigen rekeningnummers, wat er na het klaarzetten
   gebeurt) gaat mee in "Alle appgegevens", niet in de Android-backup en niet in de leesbare Toolgegevens. Logsoort
   `BETALEN` alleen met vaste woorden, nooit namen, rekeningnummers of bedragen. Betalen doet mee met Extra ontgrendelen
