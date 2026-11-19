@@ -199,7 +199,7 @@ public class BetalenBridge extends FeatureBridge {
         final long tot = android.os.SystemClock.elapsedRealtime() + MAX_LEZEN_MS;
         v.tijd("herkennen", MAX_LEZEN_MS);
         String tekst = "";
-        try { tekst = PdfCompare.pagesText(c, s, () -> android.os.SystemClock.elapsedRealtime() < tot, new boolean[1], Voortgang.GEEN, new int[1], s.pages); }
+        try { tekst = leesTekst(c, s, () -> android.os.SystemClock.elapsedRealtime() < tot); }
         catch (Throwable t) { App.log(c, "BETALEN", "lezen: " + t.getClass().getSimpleName()); }
         JSONObject bestand = Betalen.lees(c);
         List<String> eigen = BetalenHerken.lijst(Betalen.inst(bestand).optJSONArray("eigen"));
@@ -229,6 +229,30 @@ public class BetalenBridge extends FeatureBridge {
                 cm.setPrimaryClip(cd);
             } catch (Throwable ignored) { }
         });
+    }
+
+    /**
+     * De tekst van de rekening. Uit de PDF zelf als die tekst heeft; anders (een scan of een foto) de tekstherkenning op de
+     * telefoon, met de woorden weer in hun eigen kolom gezet (OcrIndeling): op een brief met vakken staan naam en waarde
+     * anders door elkaar.
+     */
+    static String leesTekst(android.content.Context c, PdfCompare.Slot s, java.util.function.BooleanSupplier door) throws Exception {
+        StringBuilder uit = new StringBuilder();
+        PdfDoc doc = s.pdf && PdfDoc.canText() ? new PdfDoc(s.file, s.name, null) : null;
+        try {
+            for (int i = 0; i < Math.min(s.pages, BLZ) && door.getAsBoolean(); i++) {
+                String t = doc == null ? "" : doc.text(i);
+                if (t == null || t.trim().length() < 40) {
+                    Bitmap b = PdfCompare.render(s, i, 2400);
+                    try {
+                        t = OcrIndeling.tekst(RijbewijsOcr.pageWoorden(c, b, door));
+                        if (t.trim().isEmpty()) t = RijbewijsOcr.pageText(c, b, door);
+                    } finally { b.recycle(); }
+                }
+                uit.append(t).append('\n');
+            }
+        } finally { if (doc != null) doc.close(); }
+        return uit.toString();
     }
 
     // ---------------------------------------------------------------- klaarzetten en betalen

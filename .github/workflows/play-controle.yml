@@ -21,7 +21,7 @@ jobs:
   play:
     name: Play naast volledige app (API ${{ matrix.api }})
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 70  # ruimte voor één herkansing van de emulator
     strategy:
       fail-fast: false
       matrix:
@@ -64,7 +64,10 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      # De action voert elke regel van "script" apart uit met sh; daarom één regel. De map "gestart" zegt dat de test begon.
       - name: Naast elkaar installeren en Play starten
+        id: emulator
+        continue-on-error: true   # zie de herkansing hieronder
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: ${{ matrix.api }}
@@ -74,7 +77,35 @@ jobs:
           disk-size: 4096M
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: bash tests/telefoon/playtest.sh
+          script: mkdir -p build-play/gestart && bash tests/telefoon/playtest.sh
+
+      # Herkansing alleen als de emulator nooit opstartte (bijv. "Premature EOF" bij het downloaden): dan is de test niet
+      # begonnen en bestaat de map "gestart" niet. Is de app wel getest en faalde die, dan geen herkansing. (Zoals de Telefoontest.)
+      - name: Herkansing nodig?
+        id: herkansing
+        if: steps.emulator.outcome == 'failure'
+        run: |
+          if [ -d build-play/gestart ]; then
+            echo "::error title=Play-controle::De app is in de emulator getest en faalde; geen herkansing."
+            exit 1
+          fi
+          echo "::warning title=Play-controle::De emulator startte niet (downloaden of opstarten mislukt); nog één poging."
+          echo "nodig=1" >> "$GITHUB_OUTPUT"
+          pkill -f qemu-system || true   # een half opgestarte emulator mag de poort niet bezet houden
+          sleep 30
+
+      - name: Naast elkaar installeren en Play starten (herkansing)
+        if: steps.herkansing.outputs.nodig == '1'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          ram-size: 3072M
+          disk-size: 4096M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: mkdir -p build-play/gestart && bash tests/telefoon/playtest.sh
       - name: Testbundel en telefoonresultaten bewaren
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

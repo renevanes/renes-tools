@@ -24,7 +24,14 @@ final class BetalenHerken {
 
     // ---------------------------------------------------------------- tekst van een rekening
 
-    private static final Pattern TNV = Pattern.compile("(?im)(?<![a-z])(?:t\\.?\\s?n\\.?\\s?v\\.?|ten name van|ter attentie van rekeninghouder|naam rekeninghouder|rekeninghouder|begunstigde|naam ontvanger|account holder|beneficiary)(?![a-z])[ \\t]{0,10}[:.]?[ \\t]{0,10}([^\\n]{2,90})");
+    private static final String TNV_WOORD = "(?:t\\.?\\s?n\\.?\\s?v\\.?|ten name van|ter attentie van rekeninghouder|naam (?:van de )?rekeninghouder|naam (?:van de )?begunstigde|naam (?:van de )?ontvanger|rekeninghouder|begunstigde|account holder|beneficiary)";
+    private static final Pattern TNV = Pattern.compile("(?im)(?<![a-z])" + TNV_WOORD + "(?![a-z])[ \\t]{0,10}[:.]?[ \\t]{0,10}([^\\n]{2,90})");
+    /** De naam alleen op de regel eronder (een vak op een brief: "naam ontvanger" met de naam daaronder). */
+    private static final Pattern TNV_ONDER = Pattern.compile("(?im)^[ \\t|>]{0,6}" + TNV_WOORD + "[ \\t]{0,10}[:.]?[ \\t]{0,10}\\n[ \\t|:>.]{0,6}([^\\n]{2,90})");
+    /** Wat te betalen is, met het bedrag erachter of op een van de twee regels eronder. */
+    private static final Pattern TE_BETALEN = Pattern.compile("(?i)(?<![a-z])(?:door u te betalen|totaal te betalen|te betalen bedrag|nog te betalen|te betalen|te voldoen|amount due|total due)(?![a-z])[^\\d\u20ac\\n]{0,30}(?:\\n[^\\d\u20ac\\n]{0,12}){0,2}(?:\u20ac|eur|euro)?[ \\t]{0,3}(\\d{1,3}(?:\\.\\d{3})*,\\d{2}|\\d{1,6}[.,]\\d{2})(?![\\d]|[.,]\\d)");
+    /** "Betaal vóór 7 januari 2027" (de ó wordt bij tekstherkenning vaak iets anders): de dag ervoor is de uiterste dag. */
+    private static final Pattern BETAAL_VOOR = Pattern.compile("(?i)(?<![a-z])(?:betaal|betalen|te betalen)[ \\t]{1,3}v[^\\s]{1,3}r(?![a-z])[ \\t]{0,3}[:.]?[ \\t]{0,3}(?:\\n[^\\dA-Za-z\\n]{0,6}|[^\\dA-Za-z\\n]{0,6})(\\d{1,2}[-/. ](?:\\d{1,2}|[A-Za-z]{3,9})[-/. ]\\d{2,4})");
     private static final Pattern KENMERK_LABEL = Pattern.compile("(?i)(?<![a-z])(?:betalingskenmerk|betaalkenmerk|betalings\\s?kenmerk|payment reference|kenmerk)(?![a-z])[^0-9A-Z\\n]{0,20}(?:\\n\\s*)?((?:\\d[ ]?){7,20}|RF\\d{2}(?:[ ]?[A-Z0-9]){1,21})");
     private static final Pattern ZESTIEN = Pattern.compile("(?<![0-9])((?:\\d{4}[ ]?){3}\\d{4})(?![0-9])");
     private static final Pattern RF = Pattern.compile("(?<![A-Z0-9])(RF\\d{2}(?:[ ]?[A-Z0-9]){1,21})(?![A-Z0-9])");
@@ -43,15 +50,20 @@ final class BetalenHerken {
             for (String i : FacturenHerken.iban(t)) if (!isEigen(i, eigen)) ibans.put(i);
             if (ibans.length() > 0) uit.put("iban", ibans.getString(0));
             uit.put("ibans", ibans);
+            t = t.replaceAll("[ ]+\\n", "\n").replaceAll("\\n{2,}", "\n\n");
             JSONObject f = FacturenDossier.herken(t);
-            String bedrag = f.optString("bedrag");
+            String dicht = t.replace("\n\n", "\n"); // zonder lege regels: een bedrag of naam staat vaak een regel lager dan zijn naam
+            String bedrag = teBetalen(dicht);
+            if (bedrag.isEmpty()) bedrag = f.optString("bedrag");
             if (!bedrag.isEmpty() && bedragOk(bedrag)) uit.put("bedrag", bedrag);
-            if (!f.optString("vervaldatum").isEmpty()) uit.put("vervaldatum", f.optString("vervaldatum"));
+            String voor = betaalVoor(dicht);
+            if (!voor.isEmpty()) uit.put("vervaldatum", voor);
+            else if (!f.optString("vervaldatum").isEmpty()) uit.put("vervaldatum", f.optString("vervaldatum"));
             if (!f.optString("nummer").isEmpty()) uit.put("nummer", f.optString("nummer"));
             String k = kenmerk(t);
             if (!k.isEmpty()) uit.put("kenmerk", k);
             else if (!f.optString("nummer").isEmpty()) uit.put("omschrijving", "Factuur " + f.optString("nummer"));
-            String naam = naam(t);
+            String naam = naam(dicht);
             if (!naam.isEmpty()) uit.put("naam", naam);
         } catch (Exception ignored) { }
         return uit;
@@ -76,16 +88,62 @@ final class BetalenHerken {
         return Long.parseLong(nl.replace(",", ""));
     }
 
-    /** De naam achter "t.n.v." (of een ander woord voor de rekeninghouder), zonder wat er op dezelfde regel nog achter staat. */
-    static String naam(String t) {
-        Matcher m = TNV.matcher(t);
+    /**
+     * Het bedrag dat "te betalen" heet, als 123,45; anders "". "Totaal te betalen" en "door u te betalen" gaan voor;
+     * anders het eerste (verderop staat vaak het bedrag bij te laat betalen).
+     */
+    static String teBetalen(String t) {
+        String eerste = "";
+        Matcher m = TE_BETALEN.matcher(t);
         while (m.find()) {
-            String n = m.group(1);
-            n = n.split("(?i)\\s{3,}|\\s+(?:IBAN|BIC|SWIFT|KvK|BTW|o\\.?v\\.?v\\.?|onder vermelding)\\b", 2)[0];
-            n = netjes(n, 70).replaceAll("^[\\s:.,;-]+|[\\s:,;-]+$", "");
-            if (n.length() >= 2 && !FacturenHerken.ibanOk(n) && n.matches(".*\\p{L}.*")) return n;
+            String b = FacturenDossier.bedrag(m.group(1));
+            if (b == null || !bedragOk(b)) continue;
+            if (m.group().toLowerCase(Locale.ROOT).matches("(?s)(?:door u|totaal) te betalen.*")) return b;
+            if (eerste.isEmpty()) eerste = b;
+        }
+        return eerste;
+    }
+
+    /** "Betaal vóór <datum>": de dag vóór die datum als uiterste betaaldatum (jjjj-mm-dd), of "". */
+    static String betaalVoor(String t) {
+        Matcher m = BETAAL_VOOR.matcher(t);
+        while (m.find()) {
+            String d = FacturenDossier.datum(m.group(1));
+            if (d == null || !d.matches("\\d{4}-\\d{2}-\\d{2}")) continue;
+            java.util.Calendar c = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"), Locale.ROOT); // alleen rekenen met een datum, geen tijdzone
+            c.clear();
+            c.set(Integer.parseInt(d.substring(0, 4)), Integer.parseInt(d.substring(5, 7)) - 1, Integer.parseInt(d.substring(8, 10)));
+            c.add(java.util.Calendar.DAY_OF_MONTH, -1);
+            return String.format(Locale.ROOT, "%04d-%02d-%02d", c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH) + 1, c.get(java.util.Calendar.DAY_OF_MONTH));
         }
         return "";
+    }
+
+    /**
+     * De naam achter "t.n.v." (of een ander woord voor de rekeninghouder), zonder wat er op dezelfde regel nog achter staat;
+     * of, als er achter dat woord niets staat, de naam op de regel eronder.
+     */
+    static String naam(String t) {
+        for (Pattern p : new Pattern[]{TNV, TNV_ONDER}) {
+            Matcher m = p.matcher(t);
+            while (m.find()) {
+                // "controleer of de naam ontvanger juist is": een zin over de naam, niet de naam zelf
+                if (m.group().regionMatches(true, 0, "naam", 0, 4) && t.substring(Math.max(0, m.start() - 8), m.start()).matches("(?is).*\\b(?:de|het|uw|een|of)\\s+")) continue;
+                String n = m.group(1);
+                n = n.split("(?i)\\s{3,}|\\s+(?:IBAN|BIC|SWIFT|KvK|BTW|o\\.?v\\.?v\\.?|onder vermelding)\\b", 2)[0];
+                n = netjes(n, 70).replaceAll("^[\\s:.,;|>-]+|[\\s:,;|-]+$", "");
+                if (naamOk(n)) return n;
+            }
+        }
+        return "";
+    }
+
+    /** Een naam heeft letters, is geen rekeningnummer of ander veld, en geen losse zin uit de brief ("juist is, of"). */
+    static boolean naamOk(String n) {
+        if (n.length() < 2 || !n.matches(".*\\p{L}{2}.*") || FacturenHerken.ibanOk(n)) return false;
+        if (n.matches("(?i)^(?:IBAN|BIC|SWIFT|rekening|bedrag|kenmerk|betalingskenmerk|omschrijving|datum|klopt)\\b.*|(?i)^juist.*")) return false;
+        if (n.matches("^(?:is|of|en|met|op|die|dat)\\b.*")) return false; // een zin over de naam ("is juist"), niet "Op Maat B.V."
+        return !n.matches("(?i).*\\b[A-Z]{2}\\d{2}[ ]?[A-Z]{4}[ ]?\\d{4}.*");
     }
 
     /** Het betalingskenmerk: wat zo heet, anders een geldig kenmerk van 16 cijfers of een RF-kenmerk. Zonder spaties. */

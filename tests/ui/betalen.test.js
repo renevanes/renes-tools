@@ -4,6 +4,7 @@ const { chromium } = require('playwright');
 const path = require('path');
 const W = +process.env.UI_WACHT || 1;
 const QR_LINK = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJQAAACUAQAAAABdRz15AAABLUlEQVR4Xu2WsW3FQAxDqSA9bwPvP5Y3oCZgwDtXCVLJ5T+4kA34gZZEyWX8Pv315xHwefZvDqpqJWOr1gmHuaIN9CpZO5zyUAsFYfUO5zwAvArNp08m3/v9MALr69xMeHnXQqNvcIczXhmFkPZpgJr6w96qGv2Ek++FTYAmCDmRNeTZcLCGAh7zBNEyzPTzXB9sCYFR0pwnkoIO64X8gfKuCMA38md5YyLtDX2GUgoYEF/IX1iyrFzT/MVvbpau4zZg5rc0skJJdXcmZ/28vSX5yrxaWPdwvkTf6b7YDcTcbzlUJgL3QJjOg/Tx8Qcjb8xjRhZjjTh4qC/1qBWBd6EL0/327KNOMbJGXuKh2erANNtH0Wcsl1aKMt6X2H8Y3CQ5A39W3/r8T472+Q8jyPEvHTqYvAAAAABJRU5ErkJggg==';
+const QR_ADRES = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0AQAAAAAVtjufAAABtElEQVR4Xu1XMZIcQQhTu5yLH+z/nzU/EC/AJXrP5WCd6bKjagImELQQNH0Gn6x/ffwN/Py/FuThnFOnG3W6DspuFJ8zEF/7DdbN4f8GcOivnr7U2E3yY3sRKEA4ivP/tmcG7Dd8NP8R8OCFgwJr3Rj+GRzAjH9ZA1SsfzFrJEYcUNdXSv+Y4RAkMBhaoBhG8SFqsUUfxF4Un9oCXI4gKIwvR+A4cYcYO0n+nb7PMLqnELP4RpW2vJQU59/c0Kz7EJt8tr4jl4CWv8w/wvzABbjKdOqUa5zsrwVdXMJdEObHY5lW5jYvXOpo/h4HztrYI3kORfGd/AbwIPoG/a80x0FWQg4Vzd9TwZLE0OAeD1F8N5dLan62hcP15bi4wzv/v2H+bO7m312W179b946Gnf+Kzn/vV/V494FKBbLL9QjOB9zRhr3Fdv/J6seGVf69yLxSxObbe//pabAaY6J6cu+X3U+szW2x2SUoef+6jqewW2G/cNhnt7lUfa0fa6dLOlMs4nGAFP5fHDWE7vcbIIbv/AfVREGmpuf4nknl/8/+3PSaTgfL7c/n532dfi9/tP/p4Q/vfniNqxPizgAAAABJRU5ErkJggg=='; // een code die niets met betalen te maken heeft (zoals de adrescode op een brief)
 const QR_EPC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0AQAAAAAVtjufAAABtklEQVR4Xu1XMY7DMAyjitvpH+T/z+oPqBfoQCXdehvHc4sCzsCoJEXLNfi2+vX1MfD//F5BHqrqFFDVVdW7jeJzBkQPMdS12xz+D4AiutQqqXC8zeE/PAvnYE5zFOff6wg8R1SfLL75GRjZrJR/B0F9a1CAsT+rASrWv5h7URDBefYK+v/Y94bXoKdxkv7fejEGJyWOZshc/cY3M/blfgVMFl/j4ocQSRfPydYvV20B1qQ3Syl9zY/oN9AWEifOD+hkI5YgUU64WP2v1VSNloQ30Fe0fzF2JJzJwkhcIXL1G1n3S/RpZWTxXf+mA0yRNc7ikzAuiNXWvZDlx7AEnT9ek+5fQlZ4ybFb3RLB/nJjGXxlgGZJCuLb/wY1RZs+YXxn2iaERd4ozdZv/7j21WDkgyDKj62pjU0tO4jzs65Zfzrqtp2D+hoaWGrsT/hvJPHvE3g/e7ak88eE3+PVw1BS35fVHMCj57zRDrp3cL79zM+ee9Bi947PsfuF0+wxjzxC+DBI5qfrd9v28QnWEFieplP+fObnvqYJXEBzKsvPHi0OHfPkBkjmf/3fr9P35a/rL7/9ApiahZPCsySpAAAAAElFTkSuQmCC';
 (async () => {
   const browser = await chromium.launch(), errors = [];
@@ -139,6 +140,16 @@ const QR_EPC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0AQAAAAAVtj
     ok(gelezen[0] === 'https://www.ideal.nl/betalen?trxid=test123', 'QR-code met een betaallink gelezen van de foto: ' + gelezen[0]);
     ok(gelezen[1].startsWith('BCD\n002') && gelezen[1].includes('DE89370400440532013000'), 'QR-code met betaalgegevens gelezen van de foto');
     ok(gelezen[2] === '' && gelezen[3] === '', 'geen QR-code: niets; een beeld van internet wordt niet geladen');
+    // Twee codes op één brief: de adrescode bovenaan, de betaalcode onderaan: de betaalcode telt
+    const twee = await page.evaluate(async ([adres, link]) => {
+      const laad = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = src; });
+      const c = document.createElement('canvas'); c.width = 1800; c.height = 2500; const g = c.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.imageSmoothingEnabled = false;
+      const a = await laad(adres), l = await laad(link);
+      g.drawImage(a, 600, 500, a.width * 1.5, a.height * 1.5); g.drawImage(l, 700, 2050, l.width * 1.5, l.height * 1.5);
+      return [await btQrAlle(c), await btQrUitCanvas(c)];
+    }, [QR_ADRES, QR_LINK]);
+    ok(twee[0].length === 2 && twee[1] === 'https://www.ideal.nl/betalen?trxid=test123', 'twee QR-codes op de brief: beide gevonden, de betaalcode gekozen: ' + JSON.stringify(twee));
 
     // ---- Foto maken met de camera in de app
     await page.evaluate(() => show('betalen')); await wacht(80);

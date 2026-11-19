@@ -14,6 +14,14 @@ public class BetalenTest {
 
     static final List<String> HOSTS = Arrays.asList("ideal.nl", "betaalverzoek.rabobank.nl");
 
+    /** Woorden zoals de tekstherkenning ze geeft: per regel (dwars door de kolommen heen) de stukken tekst met hun plek. */
+    static void regel(List<OcrIndeling.Woord> uit, int nr, int y, Object... kolommen) {
+        for (int k = 0; k < kolommen.length; k += 2) {
+            int x = (Integer) kolommen[k];
+            for (String w : ((String) kolommen[k + 1]).split(" ")) { uit.add(new OcrIndeling.Woord(w, x, y, x + w.length() * 14, y + 36, nr)); x += w.length() * 14 + 12; }
+        }
+    }
+
     static String fout(JSONObject in) { try { Betalen.normaal(in, HOSTS); return ""; } catch (Exception e) { return String.valueOf(e.getMessage()); } }
 
     public static void main(String[] args) throws Exception {
@@ -49,6 +57,40 @@ public class BetalenTest {
         check(System.currentTimeMillis() - t0 < 4000, "veel lege regels en losse woorden kosten geen eindeloze tijd");
         check(BetalenHerken.naam("Rekeninghouder:\nIBAN NL91ABNA0417164300").isEmpty() && "Jansen B.V.".equals(BetalenHerken.naam("t.n.v.: Jansen B.V.")), "de naam staat op dezelfde regel, niet op de volgende");
         check(BetalenHerken.kenmerk("Klantnummer 8234567890123456").isEmpty() && "8234567890123456".equals(BetalenHerken.kenmerk("8234 5678 9012 3456")), "16 cijfers zonder het woord kenmerk: alleen in vier groepjes");
+
+        // ----- een brief met drie kolommen en vakken: de tekstherkenning plakt de kolommen per regel aan elkaar
+        List<OcrIndeling.Woord> ws = new java.util.ArrayList<>();
+        regel(ws, 1, 100, 100, "Omschrijving overtreding", 900, "Door u te betalen", 1500, "Betaal op tijd. Zo voorkomt u dat de");
+        regel(ws, 2, 150, 100, "6 km per uur harder", 900, "\u20ac 65,00", 1500, "boete hoger wordt.");
+        regel(ws, 3, 260, 100, "Wanneer", 900, "Betaal v\u00f3\u00f3r");
+        regel(ws, 4, 310, 100, "1 november 2026 om 00.19 uur", 900, "7 januari 2027", 1500, "Meer informatie");
+        regel(ws, 5, 420, 900, "op rekeningnummer", 1500, "Log voor meer informatie");
+        regel(ws, 6, 470, 100, "Waar", 900, "NL91 ABNA 0417 1643 00", 1500, "deze direct bekijken.");
+        regel(ws, 7, 580, 900, "naam ontvanger", 1500, "Betaal dan nog niet. Ga uiterlijk");
+        regel(ws, 8, 630, 100, "Gemeente Voorbeeld", 900, "Voorbeeld Verkeersboetes", 1500, "24 december 2026 in beroep");
+        regel(ws, 9, 740, 900, "met betalingskenmerk", 1500, "Schrijft u liever? Stuur uw brief");
+        regel(ws, 10, 790, 100, "Kenteken", 900, "8234 5678 9012 3456", 1500, "Postbus 1, 1234 AB Utrecht.");
+        regel(ws, 11, 900, 900, "| |", 1500, "Controleer of de naam ontvanger juist is, of");
+        String kolommen = OcrIndeling.tekst(ws);
+        check(kolommen.contains("naam ontvanger\nVoorbeeld Verkeersboetes") && kolommen.contains("op rekeningnummer\nNL91 ABNA 0417 1643 00") && kolommen.contains("met betalingskenmerk\n8234 5678 9012 3456")
+                && kolommen.contains("Door u te betalen\n\u20ac 65,00") && !kolommen.contains("| |"), "kolommen: de waarde staat weer onder zijn eigen naam; losse streepjes van een kader vallen weg");
+        JSONObject brief = BetalenHerken.herken(kolommen, null);
+        check("NL91ABNA0417164300".equals(brief.optString("iban")) && "65,00".equals(brief.optString("bedrag")) && "8234567890123456".equals(brief.optString("kenmerk"))
+                && "Voorbeeld Verkeersboetes".equals(brief.optString("naam")) && "2027-01-06".equals(brief.optString("vervaldatum")), "brief met vakken: IBAN, bedrag, kenmerk, naam en uiterste dag (de dag v\u00f3\u00f3r 'betaal v\u00f3\u00f3r'): " + brief);
+        check(OcrIndeling.tekst(null).isEmpty() && OcrIndeling.tekst(new java.util.ArrayList<OcrIndeling.Woord>()).isEmpty(), "geen woorden: lege tekst");
+        List<OcrIndeling.Woord> veel = new java.util.ArrayList<>();
+        for (int i = 0; i < 20000; i++) veel.add(new OcrIndeling.Woord("w" + i, (i % 50) * 40, (i / 50) * 40, (i % 50) * 40 + 30, (i / 50) * 40 + 30, i / 50));
+        long t1 = System.currentTimeMillis();
+        OcrIndeling.tekst(veel);
+        check(System.currentTimeMillis() - t1 < 5000, "heel veel woorden: begrensd en binnen de tijd");
+        check("65,00".equals(BetalenHerken.teBetalen("Door u te betalen\nr \u20ac 65,00\nDit bedrag is inclusief\n\u20ac 9,00 administratiekosten.\nBedrag na 1e verhoging \u20ac 93,00")), "het bedrag achter 'te betalen', niet de kosten of de verhoging");
+        check(BetalenHerken.teBetalen("U hoeft niets te betalen. Bijvoorbeeld\nwanneer uw voertuig 3 maanden").isEmpty(), "'te betalen' zonder bedrag erachter: niets");
+        check("2027-01-06".equals(BetalenHerken.betaalVoor("Betaal vo6r\n\u20ac 7 januari 2027")) && "2026-12-31".equals(BetalenHerken.betaalVoor("Betaal v\u00f3\u00f3r 01-01-2027")) && BetalenHerken.betaalVoor("Betaal voor uw gemak via iDEAL").isEmpty(), "betaal v\u00f3\u00f3r een datum, ook als de tekstherkenning de \u00f3 anders leest");
+        check("Jansen B.V.".equals(BetalenHerken.naam("Naam van de begunstigde: Jansen B.V.")) && "Jansen B.V.".equals(BetalenHerken.naam("Maak over naar NL91ABNA0417164300 of t.n.v. Jansen B.V."))
+                && "Op Maat B.V.".equals(BetalenHerken.naam("t.n.v. Op Maat B.V.")) && BetalenHerken.naam("of de naam ontvanger juist is").isEmpty(), "naam: ook na 'de' of 'of', en een naam die met Op begint; een zin over de naam telt niet");
+        check("65,00".equals(BetalenHerken.teBetalen("Totaal te betalen \u20ac 65,00\nBetaalt u te laat, dan is het te betalen bedrag \u20ac 97,50"))
+                && "65,00".equals(BetalenHerken.teBetalen("Te betalen \u20ac 97,50 bij te laat\nTotaal te betalen \u20ac 65,00")), "te betalen: het totaal gaat voor, anders het eerste");
+        check(BetalenHerken.naam("Controleer of\nde naam ontvanger juist is, of").isEmpty() && "Jansen B.V.".equals(BetalenHerken.naam("naam ontvanger\n| Jansen B.V.")) && BetalenHerken.naam("naam ontvanger\nIBAN NL91ABNA0417164300").isEmpty(), "de naam op de regel onder 'naam ontvanger'; geen zin over de naam en geen rekeningnummer");
 
         // ----- QR-codes
         JSONObject epc = BetalenHerken.qr("BCD\n002\n1\nSCT\nABNANL2A\nWaterbedrijf Voorbeeld B.V.\nNL91ABNA0417164300\nEUR123.45\n\n8234567890123456\n", HOSTS);

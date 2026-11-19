@@ -138,6 +138,39 @@ final class RijbewijsOcr {
         finally{current[0]=null;if(api!=null)api.recycle();}
     }
 
+    /**
+     * Zoals pageText, maar per woord met zijn plek op de pagina (voor OcrIndeling: brieven en rekeningen met kolommen). Een
+     * kleine foto wordt eerst vergroot (de tekstherkenning leest kleine letters slecht). Leeg als het niet lukt.
+     */
+    static synchronized List<OcrIndeling.Woord> pageWoorden(Context context,Bitmap page,BooleanSupplier active) {
+        List<OcrIndeling.Woord> uit=new ArrayList<>();
+        TessBaseAPI api=null;TessBaseAPI[] current=new TessBaseAPI[1];Bitmap groot=null;
+        try {
+            if(!active.getAsBoolean())return uit;
+            File root=model(context);
+            api=new TessBaseAPI(progress->{if(!active.getAsBoolean()&&current[0]!=null)current[0].stop();});current[0]=api;
+            Map<String,String> config=new HashMap<>();config.put("debug_file","/dev/null");
+            if(!api.init(root.getAbsolutePath(),"eng",TessBaseAPI.OEM_LSTM_ONLY,config))return uit;
+            api.setDebug(false);api.setVariable("tessedit_write_images","0");api.setVariable("user_defined_dpi","300");
+            api.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
+            int side=Math.max(page.getWidth(),page.getHeight());Bitmap bron=page;
+            if(side<2000){float f=Math.min(2.5f,2400f/side);groot=Bitmap.createScaledBitmap(page,Math.max(1,Math.round(page.getWidth()*f)),Math.max(1,Math.round(page.getHeight()*f)),true);bron=groot;}
+            Bitmap bw=binary(bron,2400);
+            try{
+                api.setImage(bw);String t=api.getUTF8Text();
+                if(t==null||!active.getAsBoolean())return uit;
+                ResultIterator iterator=api.getResultIterator();if(iterator==null)return uit;
+                try{iterator.begin();int regel=0;do{
+                    if(iterator.isAtBeginningOf(TessBaseAPI.PageIteratorLevel.RIL_TEXTLINE))regel++;
+                    String w=iterator.getUTF8Text(TessBaseAPI.PageIteratorLevel.RIL_WORD);int[] b=iterator.getBoundingBox(TessBaseAPI.PageIteratorLevel.RIL_WORD);
+                    if(w!=null&&b!=null&&b.length==4&&!w.trim().isEmpty())uit.add(new OcrIndeling.Woord(w.trim(),b[0],b[1],b[2],b[3],regel));
+                }while(uit.size()<OcrIndeling.MAX_WOORDEN&&iterator.next(TessBaseAPI.PageIteratorLevel.RIL_WORD));}finally{iterator.delete();}
+            }finally{bw.recycle();}
+            return uit;
+        }catch(Throwable ignored){return uit;}
+        finally{current[0]=null;if(api!=null)api.recycle();if(groot!=null)groot.recycle();}
+    }
+
     /** Alles wat een rijbewijs nodig heeft gevonden (nummer zeker, einddatum en geboortedatum): dan niet verder zoeken. */
     static boolean complete(JSONObject r) {
         if(r==null)return false;JSONObject d=r.optJSONObject("document"),p=r.optJSONObject("persoon");
