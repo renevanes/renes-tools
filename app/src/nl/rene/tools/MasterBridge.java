@@ -129,12 +129,21 @@ public class MasterBridge extends BankBridge {
      * of zoals herkend uit de strook) met de foto als bijlage en voorstellen.
      */
     @JavascriptInterface public void masterScanPick(String token,String person,String soort,String request){
+        scanPick(token,person,soort,request,"scan");
+    }
+    @JavascriptInterface public void masterScanPairPick(String token,String person,String soort,String request){
+        scanPick(token,person,soort,request,"pair");
+    }
+    @JavascriptInterface public void masterScanPairSave(String token,String id,boolean swap,String request){
+        work(token,request,key->a.masterPhotos.saveReview(key,a.masterSession,token,id,swap));
+    }
+    private void scanPick(String token,String person,String soort,String request,String side){
         if(request==null||request.length()>100)return;
         new Thread(()->{JSONObject result=new JSONObject();try{
             if(!a.masterForeground)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
             a.masterSession.require(token);SecretKey key=MasterKeys.authenticated(ctx);
             MasterStore.scanStart(ctx,key,a.masterSession,token,person);a.masterSession.require(token);
-            a.masterPhotos.pick(token,person,0,"scan",request,soort==null?"":soort);result.put("picking",true);
+            a.masterPhotos.pick(token,person,0,side,request,soort==null?"":soort);result.put("picking",true);
         }catch(Throwable e){try{result.put("error",why(e)).put("locked",!a.masterSession.accepts(token));}catch(Exception ignored){ }}reply(request,token,result);},"master-scan-pick").start();
     }
     /** Gegevens herkennen vanaf de bewaarde kaartfoto van een document (op de telefoon, niets gaat weg). */

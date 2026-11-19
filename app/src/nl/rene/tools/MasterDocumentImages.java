@@ -12,6 +12,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -30,6 +33,75 @@ final class MasterDocumentImages {
             this.image = image;
             this.fields = fields;
         }
+    }
+
+    static final class Pair {
+        final byte[] front, back;
+        final JSONObject fields;
+
+        Pair(byte[] front, byte[] back, JSONObject fields) {
+            this.front = front;
+            this.back = back;
+            this.fields = fields;
+        }
+    }
+
+    /** De gebruiker heeft bevestigd dat het document twee losse foto's van hetzelfde bewijs bevat. */
+    static Pair findPair(Context context, byte[] bytes, String today, String type, BooleanSupplier active) throws Exception {
+        long deadline = SystemClock.elapsedRealtime() + SEARCH_MS;
+        BooleanSupplier searching = () -> active.getAsBoolean() && SystemClock.elapsedRealtime() < deadline;
+        List<byte[]> images = pdf(bytes) ? pdfImages(bytes, searching) : wordPairImages(bytes, searching);
+        if (images.size() != 2 || Arrays.equals(images.get(0), images.get(1))) return null;
+
+        Match first = recognize(context, images.get(0), today, searching);
+        if (!searching.getAsBoolean()) return null;
+        Match second = recognize(context, images.get(1), today, searching);
+        return searching.getAsBoolean() ? pair(images.get(0), fields(first), images.get(1), fields(second), type) : null;
+    }
+
+    private static JSONObject fields(Match match) { return match == null ? null : match.fields; }
+
+    static Pair pair(byte[] first, JSONObject a, byte[] second, JSONObject b, String type) {
+        if (a == null && b == null) return null;
+        JSONObject recognized = a == null ? b : a;
+        JSONObject document = recognized.optJSONObject("document");
+        if (document == null || !type.equals(document.optString("documentsoort"))) return null;
+        String number = document.optString("document");
+        if (number.isEmpty()) return null;
+        if (a != null && b != null) {
+            JSONObject other = b.optJSONObject("document");
+            if (other == null || !type.equals(other.optString("documentsoort")) ||
+                !number.equals(other.optString("document"))) return null;
+        }
+        boolean firstIsFront = "front".equals(MasterSchema.scanSide(type, recognized)) == (a != null);
+        return new Pair(firstIsFront ? first : second, firstIsFront ? second : first, recognized);
+    }
+
+    /** Haal alleen losse JPEG-objecten op. Een hele PDF-pagina kan ook andere gegevens bevatten. */
+    private static List<byte[]> pdfImages(byte[] bytes, BooleanSupplier active) throws IOException {
+        PdfSplit pdf = new PdfSplit(bytes);
+        List<PdfSplit.Stream> images = new ArrayList<>();
+        if (pdf.pageCount() > MAX_CANDIDATES) return new ArrayList<>();
+        for (PdfSplit.Dict page : pdf.pages) {
+            if (!active.getAsBoolean()) return new ArrayList<>();
+            Object resources = pdf.resolve(page.get("Resources"));
+            if (!(resources instanceof PdfSplit.Dict)) continue;
+            Object objects = pdf.resolve(((PdfSplit.Dict) resources).get("XObject"));
+            if (!(objects instanceof PdfSplit.Dict)) continue;
+            for (Object value : ((PdfSplit.Dict) objects).m.values()) {
+                Object resolved = pdf.resolve(value);
+                if (!(resolved instanceof PdfSplit.Stream)) continue;
+                PdfSplit.Stream image = (PdfSplit.Stream) resolved;
+                if (!new PdfSplit.Name("Image").equals(image.dict.get("Subtype")) || images.contains(image)) continue;
+                if (!new PdfSplit.Name("DCTDecode").equals(pdf.resolve(image.dict.get("Filter"))) || images.size() == 2) {
+                    return new ArrayList<>();
+                }
+                images.add(image);
+            }
+        }
+        List<byte[]> result = new ArrayList<>();
+        for (PdfSplit.Stream image : images) result.add(image.raw());
+        return result;
     }
 
     static boolean pdf(byte[] bytes) {
@@ -127,6 +199,32 @@ final class MasterDocumentImages {
             }
         }
         return null;
+    }
+
+    private static List<byte[]> wordPairImages(byte[] bytes, BooleanSupplier active) throws IOException {
+        int expanded = 0, entries = 0;
+        boolean document = false;
+        List<byte[]> images = new ArrayList<>();
+        byte[] buffer = new byte[8192];
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(bytes))) {
+            ZipEntry entry;
+            while (active.getAsBoolean() && (entry = zip.getNextEntry()) != null) {
+                if (++entries > 512) return new ArrayList<>();
+                String name = entry.getName();
+                if ("word/document.xml".equals(name)) document = true;
+                boolean media = !entry.isDirectory() && name.startsWith("word/media/");
+                if (media && images.size() == 2) return new ArrayList<>();
+                ByteArrayOutputStream out = media ? new ByteArrayOutputStream() : null;
+                int n;
+                while ((n = zip.read(buffer)) != -1) {
+                    expanded += n;
+                    if (expanded > MAX_EXPANDED_BYTES || !active.getAsBoolean()) return new ArrayList<>();
+                    if (out != null) out.write(buffer, 0, n);
+                }
+                if (out != null) images.add(out.toByteArray());
+            }
+        }
+        return document ? images : new ArrayList<>();
     }
 
     private static Match recognize(Context context, byte[] image, String today, BooleanSupplier active) {

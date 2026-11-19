@@ -276,8 +276,15 @@ function cmcDocHow(person,soort){
   const tip=soort==='paspoort'?t('Kies een foto van de pagina met je foto, met de twee regels tekens onderaan. Herkennen gebeurt op je telefoon.')
     :soort==='rijbewijs'?t('Kies een foto van de voorkant, met naam, datums en nummer. Herkennen gebeurt op je telefoon.')
     :t('Kies eerst een foto van de achterkant, met de strook tekens (<<<). Herkennen gebeurt op je telefoon.');
-  const bestanden=t('Je kunt ook een PDF of Word-document (.docx) met een foto van het ID-bewijs kiezen.');
-  openSheet(t(CMC_SOORTEN.find(x=>x[0]===soort)[1]),[tip,bestanden].join(' '),[[t('Foto of document kiezen'),()=>cmhScanPick(person,soort),'camera'],[t('Zelf invullen'),()=>cmiDocNew(person,soort),'edit']]);
+  let bestanden=t('Je kunt ook een PDF of Word-document (.docx) met een foto van het ID-bewijs kiezen.');
+  const title=t(CMC_SOORTEN.find(x=>x[0]===soort)[1]);
+  const actions=[[t('Foto of document kiezen'),()=>cmhScanPick(person,soort),'camera']];
+  if(soort!=='paspoort'&&typeof Android.masterScanPairPick==='function'){
+    bestanden=t('Voor beide zijden kies je een Word-bestand met twee losse foto’s of een PDF met twee ingesloten JPEG-foto’s.');
+    actions.push([t('Document met beide zijden kiezen'),()=>cmhScanPick(person,soort,true),'document']);
+  }
+  actions.push([t('Zelf invullen'),()=>cmiDocNew(person,soort),'edit']);
+  openSheet(title,[tip,bestanden].join(' '),actions);
 }
 function cmiDocNew(person,soort){
   if(!cmOpen()||cm.mutating)return;
