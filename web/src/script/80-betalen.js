@@ -59,7 +59,7 @@ function btRender(){
     const bedrag = b.bedrag ? fmtMoney(btGetal(b.bedrag)) : t('bedrag ontbreekt');
     const wanneer = b.status === 'betaald' ? (b.betaaldOp ? t('betaald op {dag}', { dag: fmtDate(b.betaaldOp) }) : '')
       : b.vervaldatum ? (b.vervaldatum < vandaag ? t('had betaald moeten zijn op {dag}', { dag: fmtDate(b.vervaldatum) }) : t('uiterlijk {dag}', { dag: fmtDate(b.vervaldatum) })) : '';
-    const mist = b.status !== 'betaald' && !b.compleet && !b.link ? t('nog niet compleet') : '';
+    const mist = b.status === 'betaald' ? '' : b.link ? t('met betaallink') : !b.compleet ? t('nog niet compleet') : '';
     return '<button type="button" class="' + (b.status === 'open' && b.vervaldatum && b.vervaldatum < vandaag ? 'sn-item nieuw' : 'sn-item') + '" data-id="' + esc(b.id) + '"><b translate="no">' + esc(b.naam || btIbanMooi(b.iban) || t('Betaling')) + '</b>'
       + '<small translate="no">' + esc([bedrag, wanneer, mist].filter(Boolean).join(' · ')) + '</small></button>';
   }).join('');
@@ -87,7 +87,7 @@ window.onBetalenCamera = function(ok){
   if (current !== 'betalen') { Android.betalenCameraDone(); return; }
   if (!ok) { toast(t('Zonder camera kan het ook: kies een foto of PDF van de rekening')); return; }
   const box = $('#bt-cam'), v = $('#bt-video');
-  box.classList.add('on'); $('#bt-camfoto').disabled = true; $('#bt-cammsg').textContent = t('Camera starten…');
+  box.classList.add('on'); bt.camNr = (bt.camNr || 0) + 1; $('#bt-camfoto').disabled = true; $('#bt-cammsg').textContent = t('Camera starten…');
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('#bt-cammsg').textContent = t('De camera is hier niet beschikbaar. Kies een foto of PDF van de rekening.'); return; }
   navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false }).then(stream => {
     if (!btCamOpen()) { stream.getTracks().forEach(tt => tt.stop()); return; }
@@ -102,13 +102,30 @@ function btCamDicht(){
   $('#bt-cam').classList.remove('on');
   Android.betalenCameraDone();
 }
-function btCamFoto(){
-  const v = $('#bt-video');
-  if (!v.videoWidth) return;
-  const s = Math.min(1, 2600 / Math.max(v.videoWidth, v.videoHeight));
-  const c = document.createElement('canvas'); c.width = Math.round(v.videoWidth * s); c.height = Math.round(v.videoHeight * s);
-  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+/** Het beeld voor de foto: liefst een echte foto op volle resolutie (scherper dan het videobeeld), anders het videobeeld. */
+async function btCamBeeld(){
+  const v = $('#bt-video'), spoor = bt.stream && bt.stream.getVideoTracks ? bt.stream.getVideoTracks()[0] : null;
+  const opCanvas = (bron, w, h) => { const s = Math.min(1, 3200 / Math.max(w, h)), c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(w * s)); c.height = Math.max(1, Math.round(h * s)); c.getContext('2d').drawImage(bron, 0, 0, c.width, c.height); return c; };
+  if (spoor && typeof ImageCapture === 'function' && typeof createImageBitmap === 'function') {
+    try {
+      const blob = await Promise.race([new ImageCapture(spoor).takePhoto(), new Promise((_, nee) => setTimeout(() => nee(new Error('te laat')), 5000))]);
+      const beeld = await createImageBitmap(blob);
+      const goed = beeld.width >= v.videoWidth && beeld.height > 0, c = goed ? opCanvas(beeld, beeld.width, beeld.height) : null;
+      if (beeld.close) beeld.close();
+      if (c) return c;
+    } catch (e) { /* dan het videobeeld */ }
+  }
+  return v.videoWidth ? opCanvas(v, v.videoWidth, v.videoHeight) : null;
+}
+async function btCamFoto(){
+  const knop = $('#bt-camfoto');
+  if (knop.disabled || !$('#bt-video').videoWidth) return;
+  knop.disabled = true; $('#bt-cammsg').textContent = t('Foto maken… houd de telefoon stil');
+  const nr = bt.camNr, c = await btCamBeeld();
+  if (!btCamOpen() || bt.camNr !== nr) return; // intussen weggegaan, of de camera is opnieuw geopend
   btCamDicht();
+  if (!c) { toast(t('De foto is niet gelukt. Probeer het opnieuw.')); return; }
   bt.lezen = true; btRender();
   bt.qrKlaar = btQrUitCanvas(c); // meteen zoeken, terwijl Java de tekst leest
   Android.betalenFoto(c.toDataURL('image/jpeg', 0.9));
@@ -120,24 +137,42 @@ function btQrLaad(){
   return new Promise(res => { const s = document.createElement('script'); s.src = 'vendor/jsQR.js'; s.onload = () => res(typeof jsQR === 'function'); s.onerror = () => res(false); document.head.appendChild(s); });
 }
 const btPauze = () => new Promise(r => setTimeout(r, 0));
-/** Zoekt een QR-code: eerst het hele beeld (verkleind), dan in overlappende stukken op volle grootte. Geeft de inhoud of ''. */
-async function btQrUitCanvas(bron){
-  if (!(await btQrLaad())) return '';
+/**
+ * Zoekt alle QR-codes op het beeld: het hele beeld (verkleind) en daarna overlappende stukken, ook vergroot. Op een brief
+ * staan er vaak meer (een adrescode bovenaan, de betaalcode onderaan), dus niet stoppen bij de eerste.
+ */
+async function btQrAlle(bron){
+  const uit = [];
+  if (!(await btQrLaad())) return uit;
   const lees = (sx, sy, sw, sh, max) => {
-    const s = Math.min(1, max / Math.max(sw, sh)), w = Math.max(1, Math.round(sw * s)), h = Math.max(1, Math.round(sh * s));
+    const s = Math.min(2.5, max / Math.max(sw, sh)), w = Math.max(1, Math.round(sw * s)), h = Math.max(1, Math.round(sh * s));
     const c = document.createElement('canvas'); c.width = w; c.height = h;
     const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(bron, sx, sy, sw, sh, 0, 0, w, h);
-    try { const r = jsQR(x.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' }); return r && r.data ? r.data : ''; } catch (e) { return ''; }
+    try { const r = jsQR(x.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' }); if (r && r.data && !uit.includes(r.data)) uit.push(r.data); } catch (e) { }
   };
   const W = bron.width, H = bron.height;
-  let uit = lees(0, 0, W, H, 1400);
-  if (uit) return uit;
-  const n = 3, sw = Math.ceil(W / 2), sh = Math.ceil(H / 2);
-  for (let i = 0; i < n && !uit; i++) for (let j = 0; j < n && !uit; j++) {
-    await btPauze();
-    uit = lees(Math.round((W - sw) * i / (n - 1)), Math.round((H - sh) * j / (n - 1)), sw, sh, 1400);
+  lees(0, 0, W, H, 1400);
+  for (const n of [3, 4]) { // stukken van de helft en van een derde van het beeld, overlappend
+    const sw = Math.ceil(W * 2 / (n + 1)), sh = Math.ceil(H * 2 / (n + 1));
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      await btPauze();
+      lees(Math.round((W - sw) * i / (n - 1)), Math.round((H - sh) * j / (n - 1)), sw, sh, 1400);
+    }
+    if (uit.some(q => btQrSoort(q) > 0)) break; // een betaalcode gevonden: klaar
   }
   return uit;
+}
+/** Hoe bruikbaar is deze QR-code om mee te betalen? 3 = betaalgegevens, 2 = betaallink van een bekende dienst, 1 = andere https-link, 0 = iets anders. */
+function btQrSoort(tekst){
+  const q = rdJson(Android.betalenQr(tekst), null);
+  return !q ? 0 : q.soort === 'epc' ? (q.eigen ? 0 : 3) : q.soort === 'link' ? (q.bekend ? 2 : 1) : 0;
+}
+/** De QR-code op het beeld waarmee je kunt betalen (de beste), of '' als die er niet is. */
+async function btQrUitCanvas(bron){
+  const alle = await btQrAlle(bron);
+  let best = '', score = 0;
+  for (const q of alle) { const s = btQrSoort(q); if (s > score) { best = q; score = s; } }
+  return best || alle[0] || '';
 }
 function btQrUitBeeld(dataUrl){
   return new Promise(res => {

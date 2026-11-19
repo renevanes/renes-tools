@@ -447,7 +447,7 @@ alles kunnen lezen, dat controleert Bouwen en testen):
 | Playwright (alleen tests) | `package.json` en `package-lock.json`; in CI geïnstalleerd met `.github/scripts/playwright-installeren.sh` (systeempakketten via apt, elke poging hooguit 4 minuten; zijn de servers van ubuntu.com onbereikbaar, dan via spiegelservers buiten ubuntu.com (`SPIEGELS`: kernel.org, NLUUG), en anders door met de lettertypen van het image als Chromium start) | Onderhoud: npm | agent |
 | Node en Java (alleen CI-gereedschap) | `node-version`/`java-version` in de workflows | Onderhoud: Node-schema, Adoptium | agent, naar de nieuwste LTS |
 | AI-modellen (Qwen3/Qwen3.5 GGUF) | `LocalAi.java` (vaste commit + SHA-256) | Onderhoud: Hugging Face (zelfde maker, zelfde grootte) | agent voegt een nieuw `Model` toe na overleg met Rene (1–3 GB); Rene kiest zelf of hij downloadt |
-| Lokale voorleesbibliotheken (sherpa-onnx/Piper, ONNX Runtime, Apache Ant-codecs) | `tools/voorlezen/deps.json` (URL's, SHA-256, ONNX Runtime-versie; `deps.py` controleert die), licenties in `app/voorlezen/` | Onderhoud: nieuwste sherpa-onnx 1.x (GitHub) + OSV (sherpa-onnx, onnxruntime, ant); sherpa 2 heeft de eSpeak-fonemizer niet meer | agent: vastgezette archieven, SHA-256 en `VoiceEngine.ENGINE` bijwerken; Play-controle (echte Android-synthesetest op API 24/36) moet slagen |
+| Lokale voorleesbibliotheken (sherpa-onnx/Piper, ONNX Runtime, Apache Ant-codecs) | `tools/voorlezen/deps.json` (URL's, SHA-256, ONNX Runtime-versie; `deps.py` controleert die; `spiegels` = tweede adressen voor hetzelfde bestand, omdat Maven Central de bouwmachines soms weigert: bij een nieuwe versie ook die adressen bijwerken), licenties in `app/voorlezen/` | Onderhoud: nieuwste sherpa-onnx 1.x (GitHub) + OSV (sherpa-onnx, onnxruntime, ant); sherpa 2 heeft de eSpeak-fonemizer niet meer | agent: vastgezette archieven, SHA-256 en `VoiceEngine.ENGINE` bijwerken; Play-controle (echte Android-synthesetest op API 24/36) moet slagen |
 | espeak-ng en piper-phonemize (in sherpa-onnx, fonemizer voor Piper) | `tools/voorlezen/deps.json` (`csukuangfj/espeak-ng@ed530aa…`, `csukuangfj/piper-phonemize@f3ff95a…`; vorken, espeak-ng 1.52-dev) | Onderhoud: commit gelijk aan `cmake/*.cmake` van de vastgezette sherpa-onnx + OSV (espeak-ng) | komt mee met een nieuwe sherpa-onnx; dan de commits in `deps.json` bijwerken |
 | Voorleesstemmen (Piper: int8 = compact, of volledige precisie; een NC-licentie krijgt `.nonCommercial()` en zit niet in de Play-versie) | `VoiceModels.java` (grootte + SHA-256), modelkaarten in `app/voorlezen/` | Onderhoud: bestaat het releasebestand nog met dezelfde grootte | alleen op verzoek van Rene; een ander bestand krijgt een eigen id (de app weigert een gewijzigd bestand). De bron is het upstream releaselabel `tts-models` (kan veranderen): Rene kan later een eigen kopie toevoegen met `.withMirror("https://…")` (zelfde bestand en SHA-256, geprobeerd als de bron faalt); agents maken zelf geen releases of uploads |
 | Spraakmodellen (whisper ggml) | `Transcribe.java` (vaste SHA-256) | niet automatisch: het formaat verandert zelden | alleen op verzoek van Rene |
@@ -749,14 +749,22 @@ Rene's inkomsten en uitgaven. **Niets mag de telefoon verlaten** (wens van Rene)
 Betalen (schermen `s-betalen`, `s-betaling`, `s-betalenset`; `web/src/script/80-betalen.js`, `Betal*.java`, `BetaalLink*.java`) maakt
 van een foto, PDF of afbeelding van een rekening een betaling. **Tools betaalt nooit zelf**: het zet een voorstel klaar dat
 Rene controleert en bij zijn bank zelf verstuurt en ondertekent. Houd dat bij elke wijziging vast.
-- **Lezen** (`BetalenBridge.lees`): de tekst uit de PDF of de tekstherkenning op de telefoon (`PdfCompare.pagesText`, hooguit
-  `BLZ` pagina's, met een tijdslimiet); het bestand staat alleen tijdens het lezen in `cache/betalen-werk` en wordt niet
-  bewaard. De camera zit in de interface (`#bt-cam`, zoals de QR-scanner van VPN; `betalenCamera`/`betalenCameraDone`).
+- **Lezen** (`BetalenBridge.lees`/`leesTekst`): de tekst uit de PDF, of bij een scan of foto de tekstherkenning op de telefoon
+  (hooguit `BLZ` pagina's, met een tijdslimiet); het bestand staat alleen tijdens het lezen in `cache/betalen-werk` en wordt niet
+  bewaard. Bij tekstherkenning komen de woorden met hun plek (`RijbewijsOcr.pageWoorden`) en zet `OcrIndeling` (zuiver) ze terug
+  in hun eigen kolom: op een brief met vakken (zoals een boete van het CJIB) plakt de tekstherkenning de kolommen anders per
+  regel aan elkaar en staat een waarde niet meer onder zijn naam. De camera zit in de interface (`#bt-cam`, zoals de
+  QR-scanner van VPN; `betalenCamera`/`betalenCameraDone`) en maakt een echte foto op volle resolutie (`ImageCapture`,
+  `btCamBeeld`; anders het videobeeld): het videobeeld alleen is te grof voor kleine letters en een kleine QR-code.
   Een bestand komt via `bronKies` (kiezer `betalen`): ook uit de kluis, Gemaakt of het facturendossier.
 - **Herkennen** (`BetalenHerken`, zuiver, `BetalenTest`): IBAN (alleen met een kloppend controlegetal, nooit Rene's eigen
   rekeningnummers uit de instellingen), bedrag en uiterste datum (`FacturenDossier.herken`), betalingskenmerk (16 cijfers met
-  controlecijfer, of RF), de naam achter "t.n.v.". Alles is een voorstel; een naam wordt nooit verzonnen.
-- **QR-code** (jsQR in de interface, `btQrUitCanvas`; duiden in Java: `BetalenHerken.qr`): een SEPA-QR (EPC) vult de velden
+  controlecijfer, of RF), de naam achter "t.n.v." of op de regel onder "naam ontvanger". Eigen patronen gaan voor: het bedrag
+  achter "te betalen" (`teBetalen`, ook een regel lager) en "betaal vóór <datum>" (`betaalVoor`: de dag ervoor). Alles is een
+  voorstel; een naam wordt nooit verzonnen. Nieuwe soort brief die niet goed gaat = een voorbeeld met verzonnen gegevens in
+  `BetalenTest` (woorden met hun plek via `regel(…)`), nooit een echte brief in de repository.
+- **QR-code** (jsQR in de interface; duiden in Java: `BetalenHerken.qr`): `btQrAlle` zoekt alle codes op het beeld (op een
+  brief staat vaak ook een adrescode) en `btQrUitCanvas` kiest de code waarmee je kunt betalen. Een SEPA-QR (EPC) vult de velden
   en gaat voor de gelezen tekst; een betaallink mag alleen https met een gewone domeinnaam zijn (`BetalenHerken.link`). De
   domeinen van bekende betaaldiensten staan in `web/bank-banken.json` (`betaallinks`); een ander domein krijgt een zichtbare
   waarschuwing. De link opent alleen via `betalenOpenLink` (de bewaarde, gecontroleerde link), na een vraag met het adres.
