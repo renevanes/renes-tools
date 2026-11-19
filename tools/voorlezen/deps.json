@@ -17,5 +17,12 @@
    "https://repo.maven.apache.org/maven2/org/apache/ant/ant/1.10.18/ant-1.10.18.jar",
    "a12d775f581ad87592b1b1c7ff6fa5bcf6bb784974b94c848b0695ae15765f46"
   ]
+ },
+ "_spiegels": "Tweede adressen voor hetzelfde bestand (zelfde SHA-256). Maven Central weigert de bouwmachines van GitHub soms (429 of 404); dan probeert deps.py deze.",
+ "spiegels": {
+  "ant.jar": [
+   "https://repo1.maven.org/maven2/org/apache/ant/ant/1.10.18/ant-1.10.18.jar",
+   "https://maven-central.storage-download.googleapis.com/maven2/org/apache/ant/ant/1.10.18/ant-1.10.18.jar"
+  ]
  }
 }

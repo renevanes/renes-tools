@@ -9,8 +9,15 @@ for name,(url,digest) in manifest['files'].items():
     if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest()!=digest:
         tmp=out/(name+'.part')
         # GitHub-releases geven soms minutenlang 504: tot ±10 minuten blijven proberen (de SHA-256 controleert alles).
+        # Weigert het eerste adres (Maven Central geeft de bouwmachines soms 429 of 404), dan de spiegels uit deps.json:
+        # hetzelfde bestand, dezelfde SHA-256-controle.
+        adressen=[url]+[u for u in manifest.get('spiegels',{}).get(name,[]) if u.startswith('https://')]
         for attempt in range(7):
-            if subprocess.run(['curl','--fail','--location','--proto','=https','--proto-redir','=https','--silent','--show-error','--retry','3','--retry-delay','10','--max-time','180','--output',str(tmp),url]).returncode==0: break
+            gelukt=False
+            for adres in adressen:
+                if subprocess.run(['curl','--fail','--location','--proto','=https','--proto-redir','=https','--silent','--show-error','--retry','1' if len(adressen)>1 else '3','--retry-delay','10','--max-time','180','--output',str(tmp),adres]).returncode==0 \
+                        and hashlib.sha256(tmp.read_bytes()).hexdigest()==digest: gelukt=True; break
+            if gelukt: break
             if attempt==6: raise SystemExit('Voorleesbibliotheek niet te downloaden: '+url)
             wait=min(120,15*2**attempt); print(f'{name}: download mislukt, over {wait} s opnieuw',file=sys.stderr); time.sleep(wait)
         if hashlib.sha256(tmp.read_bytes()).hexdigest()!=digest:
