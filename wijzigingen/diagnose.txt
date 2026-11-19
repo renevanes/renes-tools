@@ -1,3 +1,0 @@
-Nieuw bij Instellingen → Foutrapport en statistieken: Diagnose. Gaat er iets niet goed (een rekening wordt verkeerd gelezen), dan zie je daar wat de tool vastlegde en kun je het kopiëren of naar je eigen privé repository sturen.
-Diagnose blijft op de telefoon tot jij op Kopiëren of Versturen tikt; Vanzelf sturen staat uit en je ziet altijd wat er verstuurd is.
-Betalen legt voor Diagnose vast welke tekst uit de rekening gelezen is en hoeveel QR-codes er gevonden zijn.
