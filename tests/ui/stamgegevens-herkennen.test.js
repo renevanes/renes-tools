@@ -86,7 +86,7 @@ for(const colorScheme of ['light','dark']){
   await scan('Paspoort');
   await p.waitForFunction(()=>current==='cmedit'&&$('#cm-edit-status').textContent.includes('Gegevens uit de PDF gevonden'));
   assert.equal(await p.evaluate(()=>!!Android._cm.records.find(r=>r.id===cm.edit.id).images),false);
-  assert.equal(await p.isVisible('#cmh-panel'),true);
+  await p.waitForSelector('#cmh-panel', {state:'visible'});
   await p.close();
 }
 console.log('errors',errors);await b.close();assert.deepEqual(errors,[]);})().catch(e=>{console.error(e);process.exit(1);});
