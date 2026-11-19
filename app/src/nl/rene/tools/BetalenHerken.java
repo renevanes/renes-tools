@@ -24,10 +24,11 @@ final class BetalenHerken {
 
     // ---------------------------------------------------------------- tekst van een rekening
 
-    private static final String TNV_WOORD = "(?:t\\.?\\s?n\\.?\\s?v\\.?|ten name van|ter attentie van rekeninghouder|naam (?:van de )?rekeninghouder|naam (?:van de )?begunstigde|naam (?:van de )?ontvanger|rekeninghouder|begunstigde|account holder|beneficiary)";
+    private static final String TNV_WOORD = "(?:t\\.?\\s?n\\.?\\s?v\\.?|ten name van|ter attentie van rekeninghouder|naam (?:van de )?rekeninghouder|naam (?:van de )?begunstigde|naa(?:m|rn) (?:van de )?ontvan[gq]er|rekeninghouder|begunstigde|account holder|beneficiary)";
     private static final Pattern TNV = Pattern.compile("(?im)(?<![a-z])" + TNV_WOORD + "(?![a-z])[ \\t]{0,10}[:.]?[ \\t]{0,10}([^\\n]{2,90})");
     /** De naam alleen op de regel eronder (een vak op een brief: "naam ontvanger" met de naam daaronder). */
-    private static final Pattern TNV_ONDER = Pattern.compile("(?im)^[ \\t|>]{0,6}" + TNV_WOORD + "[ \\t]{0,10}[:.]?[ \\t]{0,10}\\n[ \\t|:>.]{0,6}([^\\n]{2,90})");
+    // De tekstherkenning zet er soms een los teken voor (de rand van het vak) of een regel van een paar tekens tussen.
+    private static final Pattern TNV_ONDER = Pattern.compile("(?im)^[^\\p{L}\\d\\n]{0,6}(?:\\p{Ll}[ |]{1,2})?" + TNV_WOORD + "[ \\t]{0,10}[:.]?[ \\t]{0,10}\\n(?:[^\\p{L}\\d\\n]{0,3}\\n)?[^\\p{L}\\d\\n]{0,6}([^\\n]{2,90})");
     /** Wat te betalen is, met het bedrag erachter of op een van de twee regels eronder. */
     private static final Pattern TE_BETALEN = Pattern.compile("(?i)(?<![a-z])(?:door u te betalen|totaal te betalen|te betalen bedrag|nog te betalen|te betalen|te voldoen|amount due|total due)(?![a-z])[^\\d\u20ac\\n]{0,30}(?:\\n[^\\d\u20ac\\n]{0,12}){0,2}(?:\u20ac|eur|euro)?[ \\t]{0,3}(\\d{1,3}(?:\\.\\d{3})*,\\d{2}|\\d{1,6}[.,]\\d{2})(?![\\d]|[.,]\\d)");
     /** "Betaal vóór 7 januari 2027" (de ó wordt bij tekstherkenning vaak iets anders): de dag ervoor is de uiterste dag. */
@@ -64,6 +65,7 @@ final class BetalenHerken {
             if (!k.isEmpty()) uit.put("kenmerk", k);
             else if (!f.optString("nummer").isEmpty()) uit.put("omschrijving", "Factuur " + f.optString("nummer"));
             String naam = naam(dicht);
+            if (naam.isEmpty()) naam = naamBijIban(dicht, uit.optString("iban"));
             if (!naam.isEmpty()) uit.put("naam", naam);
         } catch (Exception ignored) { }
         return uit;
@@ -131,9 +133,38 @@ final class BetalenHerken {
                 if (m.group().regionMatches(true, 0, "naam", 0, 4) && t.substring(Math.max(0, m.start() - 8), m.start()).matches("(?is).*\\b(?:de|het|uw|een|of)\\s+")) continue;
                 String n = m.group(1);
                 n = n.split("(?i)\\s{3,}|\\s+(?:IBAN|BIC|SWIFT|KvK|BTW|o\\.?v\\.?v\\.?|onder vermelding)\\b", 2)[0];
-                n = netjes(n, 70).replaceAll("^[\\s:.,;|>-]+|[\\s:,;|-]+$", "");
+                n = netjes(n, 70).replaceAll("^[^\\p{L}\\d]+|[\\s:,;|-]+$", ""); // ook een los teken van de rand van het vak
+                if (p == TNV_ONDER) n = n.replaceFirst("^\\p{Ll}\\s+(?=\\p{Lu})", "");
                 if (naamOk(n)) return n;
             }
+        }
+        return "";
+    }
+
+    private static final Pattern TNV_REGEL = Pattern.compile("(?i)^[^\\p{L}\\d]{0,6}(?:\\p{Ll}[ |]{1,2})?" + TNV_WOORD + "[ \\t:.]{0,6}$");
+
+    /**
+     * Staan in een vak eerst alle namen van de velden onder elkaar en daarna pas de waarden, dan staat de naam niet
+     * onder "naam ontvanger". Alleen als dat woord wel los op een regel staat: de regel direct onder het IBAN, als die
+     * met een hoofdletter begint (een naam, niet het volgende veld). Anders "".
+     */
+    private static final String GEEN_NAAM = "(?i)^(?:te betalen|door u|totaal|met |op |uw |u |geachte|beste|pagina|factuur|vervaldatum|betaal|bedrag|kenmerk|datum|postbus|t\\.a\\.v|ter attentie|in \\p{L}+ keer|rekeningnummer|omschrijving).*";
+
+    static String naamBijIban(String t, String iban) {
+        if (iban == null || iban.isEmpty()) return "";
+        String[] regels = t.split("\n");
+        boolean woord = false;
+        for (String r : regels) if (TNV_REGEL.matcher(r).matches()) { woord = true; break; }
+        if (!woord) return "";
+        for (int i = 0; i + 1 < regels.length; i++) {
+            // de regel is alleen het IBAN (hooguit het woord IBAN of een los teken ervoor), en het woord staat vlak erboven
+            String r = regels[i].replaceAll("[^A-Za-z0-9]", "").toUpperCase(Locale.ROOT);
+            if (!r.equals(iban) && !r.equals("IBAN" + iban) && !(r.length() == iban.length() + 1 && r.endsWith(iban))) continue;
+            boolean erboven = false;
+            for (int j = Math.max(0, i - 4); j < i; j++) if (TNV_REGEL.matcher(regels[j]).matches()) erboven = true;
+            if (!erboven) continue;
+            String n = netjes(regels[i + 1], 70).replaceAll("^[^\\p{L}\\d]+|[\\s:,;|-]+$", "").replaceFirst("^\\p{Ll}\\s+(?=\\p{Lu})", "");
+            if (n.matches("^\\p{Lu}[^\\d]*") && !n.matches(GEEN_NAAM) && !n.matches("[A-Z]{6}[A-Z0-9]{2,5}") && !TNV_REGEL.matcher(n).matches() && naamOk(n)) return n;
         }
         return "";
     }
@@ -141,7 +172,7 @@ final class BetalenHerken {
     /** Een naam heeft letters, is geen rekeningnummer of ander veld, en geen losse zin uit de brief ("juist is, of"). */
     static boolean naamOk(String n) {
         if (n.length() < 2 || !n.matches(".*\\p{L}{2}.*") || FacturenHerken.ibanOk(n)) return false;
-        if (n.matches("(?i)^(?:IBAN|BIC|SWIFT|rekening|bedrag|kenmerk|betalingskenmerk|omschrijving|datum|klopt)\\b.*|(?i)^juist.*")) return false;
+        if (n.matches("(?i)^(?:IBAN|BIC|SWIFT|rekening|bedrag|kenmerk|betalingskenmerk|rekeningnummer|omschrijving|datum|klopt)\\b.*|(?i)^juist.*")) return false;
         if (n.matches("^(?:is|of|en|met|op|die|dat)\\b.*")) return false; // een zin over de naam ("is juist"), niet "Op Maat B.V."
         return !n.matches("(?i).*\\b[A-Z]{2}\\d{2}[ ]?[A-Z]{4}[ ]?\\d{4}.*");
     }
