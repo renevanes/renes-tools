@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.229",
+    "date": "2026-11-19",
+    "changes": [
+      "Nieuw: Betalen. Maak een foto van een rekening (of kies een PDF of afbeelding, ook uit de kluis of het facturendossier) en Tools leest op je telefoon de ontvanger, het IBAN, het bedrag, het kenmerk en de uiterste betaaldatum.",
+      "Betalen leest ook de QR-code op een rekening: een betaallink (bijvoorbeeld iDEAL) open je met één tik, een QR-code met betaalgegevens vult de velden in.",
+      "Betalen zet de overboeking klaar bij Rabobank: je logt zelf in met de Rabo App, Tools vult het formulier in, en jij controleert en ondertekent. Bij andere banken kopieer je de gegevens veld voor veld.",
+      "Bouwen: een tweede adres voor een bouwbibliotheek van het voorlezen, zodat publiceren niet meer strandt als het eerste adres weigert; je merkt er niets van."
+    ]
+  },
+  {
     "version": "1.228",
     "date": "2026-11-18",
     "changes": [

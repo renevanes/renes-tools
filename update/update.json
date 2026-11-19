@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.228",
-  "versionCode": 229,
-  "nativeLevel": 195,
+  "versionName": "1.229",
+  "versionCode": 230,
+  "nativeLevel": 196,
   "web": "index.html",
-  "webSha256": "0200705641a699b5b97b20036e79d9a1bda2c88ee69b8ed9fc610e6d5f456ee5",
+  "webSha256": "21b4c45faff1859689dcfac4b04d22e0a1ea151ba0e17a4338f6128030469bff",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3345f85ae254e0daa7df22ea9aad97968f27d40dcd303238317aecbc867aa354",
+  "apkSha256": "95ce6f6721e0e99f7e7274bda39d35c3d5366b7579446c427817b960d02731bc",
   "changelog": [
+    {
+      "version": "1.229",
+      "date": "2026-11-19",
+      "changes": [
+        "Nieuw: Betalen. Maak een foto van een rekening (of kies een PDF of afbeelding, ook uit de kluis of het facturendossier) en Tools leest op je telefoon de ontvanger, het IBAN, het bedrag, het kenmerk en de uiterste betaaldatum.",
+        "Betalen leest ook de QR-code op een rekening: een betaallink (bijvoorbeeld iDEAL) open je met één tik, een QR-code met betaalgegevens vult de velden in.",
+        "Betalen zet de overboeking klaar bij Rabobank: je logt zelf in met de Rabo App, Tools vult het formulier in, en jij controleert en ondertekent. Bij andere banken kopieer je de gegevens veld voor veld.",
+        "Bouwen: een tweede adres voor een bouwbibliotheek van het voorlezen, zodat publiceren niet meer strandt als het eerste adres weigert; je merkt er niets van."
+      ]
+    },
     {
       "version": "1.228",
       "date": "2026-11-18",
@@ -170,16 +180,7 @@
       "changes": [
         "Slaaptimer: het langzaam zachter worden aan het eind is korter (standaard 1 minuut in plaats van 3) en zelf in te stellen in het slaaptimervenster: uit, 15 of 30 seconden, of 1, 2 of 3 minuten."
       ]
-    },
-    {
-      "version": "1.209",
-      "date": "2026-11-16",
-      "changes": [
-        "Speler: het belangrijkste past nu op één scherm. De hoes past zich aan de schermhoogte aan, en waar het speelt, slaaptimer, snelheid en stoppen staan in één rij.",
-        "Slaaptimer: het vreemde vakje met kruis is een maantje geworden, en het venster is rustiger: één tik op een tijd start de timer, een eigen tijd staat ingeklapt.",
-        "Speler: hoesjes staan sneller in beeld. Met de nieuwe app komen ze verkleind uit de eigen opslag op de telefoon, in plaats van steeds van internet."
-      ]
     }
   ],
-  "webSig2": "RU2rBxip7/VNKHb5T+2si4BOLt05IHVrxoE4vLv9Gbnn7bWf1y8kym094DKNf1bXZcEHeT37n1mkjKrhx503Oxws7pamNxLNMmNC7297wCRw9RU3HUExxUCzwFUX8yxh5OGVzKZZ/FJUrBiaa7jH511eceb7Am3jw4o9WEPa1JZITJrg9GBbd4R0k82miiMuFFbrBwJ54wUMTXfOwtg96a+PU+zgfdq0k8uxxN998gBXr9M8EJhA069vVtDqQEad1L1pm3wHHtq8vI5pFEaK7PKkOtBBXm3dX+hj3H/O+W2Nlr3SnXTQfZdfmWRUJxq/dPHRxoxwxbSEmYTwxOPHijjbt9lqR5lRDI9Q5li+CGTXWHE+RvbcVVx94rPMsAa2E1mpbzZuDuDiMoWNIkvgok5eaWV/2GKgGNmSee2HyOMzjhQxHuy/AA1WU4QagJCVsoUFsRxfDXsLIKREkQZveiUj8vqmGK3WGQGfzFhFXnVNthxWNXd4Y6D/xLgOksqO"
+  "webSig2": "AnPk6GXYGpLgpsctdwaRNM6hg5HiOQ+UAu4Klr1rjuPYUpZi/+yLC4X5JwepKIsYCn1x7BPwHyj2u0VUWH46lYYK4dREQuAHoyizvJlVPFwOMvNxir5se91v2+y4nWe7d8rIHmlxAwEy2F6NpHgBK9xX+aLAj4Pmt1zSF4SCB78hAlTGxU3sovckC74tzmUuOduBGrHMwocg36dPQ5s5H1Cmn/cPV8WeYyZWl+pvnMWl9pC0OQSpJJTp/qIudqxJEer3lEJQ363IdtZcqSmls37LUBJUqaL0dciMI21iv/3URZut3BtrHb91NlWbpDKnOLYXGULTvR9Eu2r5FXisdkKTCzBdZo12kH3WGTOMjisLWdkXwwF3cTKeiaNOwb+y/fTNM6JiJz4s/3v1Xb5pF48putWkdL93UTV5+IZKS7G97s9VWFg05CtuKtgA2NQapN+9sFMd2ZM51zZIMwVKZ5a8L4pTMnj+N03pTZXCYVEi3rUBAT4pL4XN65VK2F27"
 }
