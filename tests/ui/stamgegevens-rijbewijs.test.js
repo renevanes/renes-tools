@@ -13,7 +13,7 @@ for(const colorScheme of ['light','dark']){
  await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
  await T.kaart('owner');await p.click('#cmc-doc-add');await p.waitForSelector('#sheet.on');
  await p.getByRole('button',{name:'Rijbewijs',exact:true}).click();await p.waitForFunction(()=>$('#sheet.on')&&$('#sheet-title').textContent==='Rijbewijs');
- await p.getByRole('button',{name:'Foto kiezen',exact:true}).click();await p.waitForFunction(()=>cm.mutating);
+ await p.getByRole('button',{name:'Foto of document kiezen',exact:true}).click();await p.waitForFunction(()=>cm.mutating);
  await p.evaluate(()=>{Android._cm.replyDelay=150;});
  assert.equal(await p.isDisabled('#cmc-doc-add'),true,'geen andere acties tijdens verwerking gekozen foto');
  await p.evaluate(()=>goBack());assert.equal(await p.evaluate(()=>current+' '+cmc.rec?.id),'cmkaart owner','kaartje blijft staan tijdens verwerking');

@@ -124,8 +124,40 @@ public final class MasterDeviceTest extends Instrumentation {
             check(fields.getString("geldig").equals("2030-04-03")&&!person.has("bsn"),"actual OCR expiry, no inferred BSN");
             if(page!=image)page.recycle();
         }
+        documentOcr(image);
         image.recycle();File model=new File(context.getNoBackupFilesDir(),"document-ocr/tessdata/eng.traineddata");check(model.isFile(),"public OCR model available offline");
         File[] cached=model.getParentFile().listFiles();check(cached!=null&&cached.length==1,"no photo or recognized text cached with model");
+    }
+    void documentOcr(android.graphics.Bitmap licence)throws Exception {
+        java.io.ByteArrayOutputStream pdfBytes=new java.io.ByteArrayOutputStream();
+        try(android.graphics.pdf.PdfDocument pdf=new android.graphics.pdf.PdfDocument()){
+            android.graphics.pdf.PdfDocument.Page page=pdf.startPage(new android.graphics.pdf.PdfDocument.PageInfo.Builder(1500,950,1).create());
+            pdf.finishPage(page);
+            page=pdf.startPage(new android.graphics.pdf.PdfDocument.PageInfo.Builder(1500,950,2).create());
+            page.getCanvas().drawBitmap(licence,0,0,null);
+            pdf.finishPage(page);
+            pdf.writeTo(pdfBytes);
+        }
+        java.io.ByteArrayOutputStream docxBytes=new java.io.ByteArrayOutputStream();
+        try(java.util.zip.ZipOutputStream zip=new java.util.zip.ZipOutputStream(docxBytes)){
+            zip.putNextEntry(new java.util.zip.ZipEntry("word/document.xml"));
+            zip.write("<document/>".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            zip.closeEntry();
+            zip.putNextEntry(new java.util.zip.ZipEntry("word/media/image1.png"));
+            licence.compress(android.graphics.Bitmap.CompressFormat.PNG,100,zip);
+            zip.closeEntry();
+        }
+        Class<?> images=type("MasterDocumentImages");
+        Class<?>[] signature={Context.class,byte[].class,String.class,java.util.function.BooleanSupplier.class};
+        for(byte[] bytes:new byte[][]{pdfBytes.toByteArray(),docxBytes.toByteArray()}){
+            Object match=call(images,null,"find",signature,context,bytes,"2026-11-08",(java.util.function.BooleanSupplier)()->true);
+            check(match!=null,"ID recognized inside document");
+            java.lang.reflect.Field image=match.getClass().getDeclaredField("image");image.setAccessible(true);
+            check((image.get(match)==null)==(bytes[0]=='%'),"only the embedded Word image can become a card photo");
+            java.lang.reflect.Field fields=match.getClass().getDeclaredField("fields");fields.setAccessible(true);
+            check(((JSONObject)fields.get(match)).getJSONObject("document").getString("document").equals("0123456789"),"ID number from document photo");
+            check(call(images,null,"find",signature,context,bytes,"2026-11-08",(java.util.function.BooleanSupplier)()->false)==null,"no recognition after cancellation");
+        }
     }
     void runChecks()throws Exception {
         store=type("MasterStore");sessionType=type("MasterSession");keys=type("MasterKeys");

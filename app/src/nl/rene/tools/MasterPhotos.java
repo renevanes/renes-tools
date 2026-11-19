@@ -41,7 +41,11 @@ final class MasterPhotos {
             if(!activity.masterForeground||!activity.masterSession.accepts(token)||!job.view.equals(activity.masterView)){clear(job);notify(job,false,Taal.T("Ontgrendel de stamgegevens opnieuw"));return;}
             // Zolang de kiezer open is (hooguit 2 minuten) niet op slot: zie MainActivity.masterPickUntil.
             if(activity.masterSession.accepts(token)){activity.masterPickReturned=false;activity.masterPickKind="photo";activity.masterPickUntil=android.os.SystemClock.elapsedRealtime()+MainActivity.MASTER_PICK_MS;activity.h.postDelayed(activity::masterPickExpired,MainActivity.MASTER_PICK_MS+500);}
-            Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("image/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            if("scan".equals(job.side))intent.setType("*/*").putExtra(Intent.EXTRA_MIME_TYPES,new String[]{
+                "image/*","application/pdf","application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            });
             try{activity.startActivityForResult(intent,REQUEST);}catch(Throwable e){activity.masterPickUntil=0;clear(job);notify(job,false,Taal.T("Bestandskiezer niet beschikbaar"));}
         });
     }
@@ -76,10 +80,30 @@ final class MasterPhotos {
         try(Voortgang v=Voortgang.van(activity,"kaartfoto",1)){
             if(job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kies de kaartfoto opnieuw vanuit Stamgegevens"));
             session.require(token);byte[] bytes=read(v.open(activity,job.uri));
-            JSONObject diag=new JSONObject();v.tijd("herkennen",HERKEN_MS);
-            JSONObject found=recognize(activity,bytes,Regio.dayKey(activity,System.currentTimeMillis()),()->session.accepts(token)&&activity.masterForeground&&activity.masterWanted&&job.dataset==MasterSession.datasetEpoch(),false,diag);session.require(token);
+            JSONObject diag=new JSONObject();
+            String today=Regio.dayKey(activity,System.currentTimeMillis());
+            java.util.function.BooleanSupplier active=()->session.accepts(token)&&activity.masterForeground
+                &&activity.masterWanted&&job.dataset==MasterSession.datasetEpoch();
+            boolean document="scan".equals(job.side)&&(MasterDocumentImages.pdf(bytes)||MasterDocumentImages.zip(bytes));
+            JSONObject found;
+            if(document){
+                v.tijd("herkennen",MasterDocumentImages.SEARCH_MS);
+                MasterDocumentImages.Match match;
+                try{match=MasterDocumentImages.find(activity,bytes,today,active);}
+                catch(java.io.IOException|IllegalArgumentException|SecurityException e){
+                    throw new MasterError(Taal.T("Dit document kan niet worden geopend. Kies een leesbare PDF of een Word-document (.docx)."));
+                }
+                session.require(token);
+                if(match==null)throw new MasterError(Taal.T("Geen ID-bewijs herkend in dit document. Kies een document met een scherpe foto van het ID-bewijs."));
+                bytes=match.image;
+                found=match.fields;
+            }else{
+                v.tijd("herkennen",HERKEN_MS);
+                found=recognize(activity,bytes,today,active,false,diag);
+            }
+            session.require(token);
             v.stap("opslaan",0,0);
-            String image=normalize(bytes);session.require(token);
+            String image=bytes==null?null:normalize(bytes);session.require(token);
             // Herkennen uit foto (bij een persoon): een nieuw document met deze foto als bijlage, daarna voorstellen.
             if("scan".equals(job.side))return scanDocument(key,session,token,job,image,found).put("diag",diag);
             result=MasterStore.photo(activity,key,session,token,job.id,job.revision,job.side,image,false,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});result.put("saved",true).put("diag",diag);if(found!=null)result.put("herkend",found);
@@ -98,7 +122,7 @@ final class MasterPhotos {
         JSONObject out=MasterStore.scanCreate(activity,key,session,token,job.id,soort,side,image,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});
         try{MasterStore.refreshContext(activity,key,session,token);}catch(Throwable e){out.put("contextError",Taal.T("Gegevens opgeslagen; de gedeelde app-context kon niet worden ververst"));}
         MainActivity.appIdentityChanged(MasterAppContext.read(activity).toString());
-        out.put("saved",true).put("scan",true).put("person",job.id).put("side",side);if(found!=null)out.put("herkend",found);
+        out.put("saved",true).put("scan",true).put("person",job.id).put("side",side).put("photoSaved",image!=null);if(found!=null)out.put("herkend",found);
         return out;
     }
     /** Herkennen vanaf een bewaarde kaartfoto (data:image/jpeg;base64,…). Geeft null als er geen betrouwbare strook op staat. */

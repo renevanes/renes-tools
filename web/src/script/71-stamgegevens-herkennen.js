@@ -3,18 +3,18 @@
  * een bewaarde foto kan opnieuw herkend worden. Het resultaat is een voorstel: Rene vinkt aan wat hij overneemt. */
 const cmh={data:null,current:null,reveal:false,photoBusy:false,epoch:0,back:null,scanEpoch:0,scanBusy:false,hulp:null};
 const CMH_DOC=['documentsoort','document','geldig','afgifte','afgegevenDoor','categorieen','uitgifteland'],CMH_PERSON=['naam','voornamen','geboortedatum','geslacht','nationaliteit','bsn'];
-/* Document toevoegen met een foto: de soort bepaalt welke kant eerst (ID-kaart: achterkant met de strook; paspoort en rijbewijs: voorkant). */
+/* Document toevoegen vanuit een bestand: de soort bepaalt welke kant eerst (ID-kaart: achterkant met de strook; paspoort en rijbewijs: voorkant). */
 function cmhScanPick(person,soort=''){
   if(!cmOpen()||!person||cm.mutating||cm.edit&&cm.dirty){cmNote(t('Sla je wijzigingen eerst op.'));return;}
   if(cmi.photoRequest||typeof Android.masterScanPick!=='function')return;
   cmh.scanning=true;cmi.photoRequest=cmRequest('masterScanPick',[person,soort],()=>{},false,()=>cmiPhotoCancel());
 }
 function cmhPendingText(){
-  $('#cmi-photo-pending-text').textContent=cmh.scanning?t('Een foto is gekozen. Na ontgrendelen maakt de app een nieuw document met deze foto als bijlage en herkent de gegevens.'):t('Een kaartfoto is gekozen. Na ontgrendelen wordt hij bij het document opgeslagen. Je vorige bewerking is bij het verlaten van de app gewist.');
+  $('#cmi-photo-pending-text').textContent=cmh.scanning?t('Een bestand is gekozen. Na ontgrendelen zoekt de app daarin naar de gegevens van het ID-bewijs.'):t('Een kaartfoto is gekozen. Na ontgrendelen wordt hij bij het document opgeslagen. Je vorige bewerking is bij het verlaten van de app gewist.');
 }
 const cmhPicked=window.onMasterPhotoPicked;window.onMasterPhotoPicked=function(r){
   // Binnen 2 minuten terug uit de kiezer en nog ontgrendeld: geen kaart "Na ontgrendelen…", de foto wordt meteen verwerkt.
-  if(r&&r.request===cmi.photoRequest&&r.picked&&r.direct&&cmOpen()){cmh.photoBusy=true;cmBusy(true);cmNote(t('Foto verwerken…'));return;}
+  if(r&&r.request===cmi.photoRequest&&r.picked&&r.direct&&cmOpen()){cmh.photoBusy=true;cmBusy(true);cmNote(cmh.scanning?t('Bestand verwerken…'):t('Foto verwerken…'));return;}
   cmhPendingText();cmhPicked(r);
 };
 window.onMasterPhotoDone=function(r){
@@ -34,7 +34,7 @@ const cmhAfterUnlock=cmiPhotoAfterUnlock;cmiPhotoAfterUnlock=function(photo){
     // Een gewone kaartfoto (bijv. de voorkant van een ID-kaart, zonder strook) geeft geen melding.
     else if(photo.diag&&(photo.scan||photo.diag.rijbewijs))cmh.hulp={doc:photo.id,diag:photo.diag};
     // Uit "Document toevoegen" met een foto: een nieuw document; na nakijken naar het documentkaartje.
-    if(photo.scan)cmh.back={id:photo.person};
+    if(photo.scan)cmh.back={id:photo.person,photoSaved:photo.photoSaved!==false};
   }
   cmhAfterUnlock(photo);
 };
@@ -42,7 +42,7 @@ const cmhAfterList=cmiAfterList;cmiAfterList=function(){
   const id=cmi.reopen,b=cmh.back;
   if(id&&(cmh.data?.doc===id||b||cmh.photoBusy)){
     cmi.reopen='';cmh.back=null;
-    const note=b?(cmh.data?t('De foto is bewaard. Controleer de gevonden gegevens en kies wat je bewaart.'):t('De foto is bewaard, maar er zijn geen gegevens herkend. Vul zelf in of kies een scherpere foto.')):cmh.data?t('Controleer de gevonden gegevens en kies wat je bewaart.'):cmh.hulp?t('Kaartfoto opgeslagen, maar er zijn geen gegevens herkend. Hieronder staat wat je kunt proberen.'):t('Kaartfoto opgeslagen.');
+    const note=b?(cmh.data?(b.photoSaved?t('De foto is bewaard. Controleer de gevonden gegevens en kies wat je bewaart.'):t('Gegevens uit de PDF gevonden. Controleer ze en kies wat je bewaart.')):t('De foto is bewaard, maar er zijn geen gegevens herkend. Vul zelf in of kies een scherpere foto.')):cmh.data?t('Controleer de gevonden gegevens en kies wat je bewaart.'):cmh.hulp?t('Kaartfoto opgeslagen, maar er zijn geen gegevens herkend. Hieronder staat wat je kunt proberen.'):t('Kaartfoto opgeslagen.');
     // Gevonden gegevens: nakijken in het blok Document; niets gevonden: de hulp bij Foto's; anders het documentkaartje.
     if(!cmh.data&&!cmh.hulp){if(cmh.photoBusy)cmhPhotoReady();cmKaartOpen(id,true,note);return;}
     cmEdit(id,cmh.data?'document':'fotos',null,note,cmh.photoBusy?cmhPhotoReady:null);return;

@@ -292,12 +292,12 @@ final class MasterStore {
             append(db,k,h,"scan","masterdata","",r,null);return new JSONObject();});
     }
     /**
-     * Herkennen uit foto: in één keer een nieuw identiteitsdocument bij de persoon mét de foto als bijlage (geen document
-     * zonder foto als er halverwege iets misgaat). De commit-controle (nog dezelfde keuze, venster en sessie) gaat vóór het vastleggen.
+     * Nieuw identiteitsdocument bij de persoon, met een kaartfoto als de bron een losse afbeelding leverde.
+     * De commit-controle (nog dezelfde keuze, venster en sessie) gaat vóór het vastleggen.
      */
     static JSONObject scanCreate(Context c,SecretKey key,MasterSession session,String token,String person,String soort,String side,String image,Commit commit)throws Exception{
         if(!side.equals("front")&&!side.equals("back"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
-        if(image==null||!image.startsWith("data:image/jpeg;base64,")||image.length()>MasterPhotos.MAX_DATA)throw new MasterError(Taal.T("De kaartfoto is te groot"));
+        if(image!=null&&(!image.startsWith("data:image/jpeg;base64,")||image.length()>MasterPhotos.MAX_DATA))throw new MasterError(Taal.T("De kaartfoto is te groot"));
         return transaction(c,key,session,token,(db,k,h)->{
             JSONObject p=record(db,k,person);if(!"persoon".equals(p.getString("type")))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
             if(number(db,"SELECT COUNT(*) FROM records")>=2000)throw new MasterError(Taal.T("Maximaal 2000 stamgegevens"));
@@ -306,11 +306,13 @@ final class MasterStore {
             JSONObject fields=new JSONObject().put("persoon",person);if(!soort.isEmpty())fields.put("documentsoort",soort);
             JSONObject clean=MasterSchema.clean(new JSONObject().put("type","identiteit").put("label",label).put("fields",fields));
             String id=java.util.UUID.randomUUID().toString();long now=System.currentTimeMillis();
-            JSONObject r=new JSONObject(clean.toString()).put("id",id).put("revision",1).put("created",now).put("updated",now).put("images",new JSONObject().put(side,image));
+            JSONObject r=new JSONObject(clean.toString()).put("id",id).put("revision",1).put("created",now).put("updated",now);
+            if(image!=null)r.put("images",new JSONObject().put(side,image));
             ContentValues values=new ContentValues();values.put("id",id);values.put("rev",1);values.put("body",MasterCipher.encrypt(k,"record/"+id+"/1",bytes(r)));
             MasterAppContext.invalidate(c);db.insertOrThrow("records",null,values);
             JSONArray changed=names(r.getJSONObject("fields"));changed.put("label");
-            append(db,k,h,"create","masterdata","",r,changed);append(db,k,h,"photo_add","masterdata","",r,new JSONArray().put(side));
+            append(db,k,h,"create","masterdata","",r,changed);
+            if(image!=null)append(db,k,h,"photo_add","masterdata","",r,new JSONArray().put(side));
             return new JSONObject().put("id",id).put("revision",1);
         },commit);
     }
