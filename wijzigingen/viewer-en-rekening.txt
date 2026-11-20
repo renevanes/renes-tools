@@ -1,2 +1,0 @@
-Betalen bewaart de rekening zelf versleuteld in je documentenkluis (map Betalen). Bij een betaling tik je op Rekening bekijken om het origineel te zien. Uit te zetten bij Betalen → Instellingen.
-De viewer van de app toont nu ook foto's en afbeeldingen (JPEG, PNG, WebP, GIF, HEIC), niet alleen PDF's. Een foto uit de documentenkluis opent daardoor ook in Tools zelf, in plaats van in een andere app.
