@@ -26,6 +26,30 @@ public class KluisIndexTest {
         try { KluisIndex.meta(new JSONObject().put("link", new JSONObject().put("kind", "id").put("ref", "abc").put("ontvanger", "a\u0000b"))); throw new AssertionError("stuurteken toegestaan"); }
         catch (IllegalArgumentException expected) { }
 
+        String sha = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        JSONObject factuurLink = new JSONObject().put("kind", "factuur").put("ref", sha)
+                .put("leverancier", "Voorbeeldbedrijf").put("datum", "2026-11-20").put("bedrag", "48.37").put("nummer", "800123");
+        JSONObject factuur = new JSONObject().put("id", "eeeeeeeeeeee").put("source", "factuur").put("link", factuurLink);
+        JSONObject hersteld = KluisIndex.clean(factuur, id -> true);
+        JSONObject bewaard = hersteld.getJSONObject("link");
+        check("factuur".equals(hersteld.optString("source")) && "factuur".equals(bewaard.optString("kind"))
+                && sha.equals(bewaard.optString("ref")) && "Voorbeeldbedrijf".equals(bewaard.optString("leverancier"))
+                && "2026-11-20".equals(bewaard.optString("datum")), "factuurkoppeling blijft na terugzetten");
+        check(!bewaard.has("bedrag") && !bewaard.has("nummer"), "factuurkoppeling bevat geen bedrag of nummer");
+        factuurLink.put("datum", "2026-02-30").put("leverancier", new JSONObject().put("naam", "Voorbeeldbedrijf"));
+        JSONObject zonderOngeldigeVelden = KluisIndex.meta(factuur).getJSONObject("link");
+        check(sha.equals(zonderOngeldigeVelden.optString("ref")) && !zonderOngeldigeVelden.has("datum")
+                && !zonderOngeldigeVelden.has("leverancier"), "ongeldige optionele velden vallen weg");
+        factuurLink.put("leverancier", "Ongeldig\u0000bedrijf");
+        JSONObject zonderLeverancier = KluisIndex.clean(factuur, id -> true);
+        JSONObject hersteldeLink = zonderLeverancier.getJSONObject("link");
+        check("factuur".equals(zonderLeverancier.optString("source")) && sha.equals(hersteldeLink.optString("ref"))
+                && !hersteldeLink.has("leverancier"), "ongeldige leverancier kost de factuurkoppeling niet");
+        factuurLink.put("ref", "abc");
+        check(!KluisIndex.meta(factuur).has("link"), "factuurkoppeling vereist een volledige SHA-256");
+        factuurLink.put("ref", new java.math.BigInteger("1234567890123456789012345678901234567890123456789012345678901234"));
+        check(!KluisIndex.meta(factuur).has("link"), "de SHA-256 is tekst, geen getal");
+
         // blobs: document eerst, dan versies; ongeldige en dubbele namen vallen weg
         JSONObject d = new JSONObject().put("id", "aaaaaaaaaaaa").put("name", "Contract.pdf").put("mime", "application/pdf").put("size", 10).put("t", 5)
                 .put("category", "Wonen").put("source", "bewerkt").put("vnote", "Bewerkt")
