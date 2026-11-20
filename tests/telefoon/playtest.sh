@@ -9,8 +9,16 @@ adb shell am force-stop nl.rene.tools.play
 
 # Google APIs-emulators zijn userdebug: herstel oude voorkeuren vóór het starten,
 # zoals na toesteloverdracht. Geen toegang tot een gebruikersapparaat of echte gegevens.
-adb root
-adb wait-for-device
+# adb root start adbd opnieuw; dat meldt soms "unable to connect for root: closed" terwijl het wel lukte. Kijk dus
+# zelf of de shell root is, en probeer het anders nog eens.
+root_ok() { [ "$(adb shell id -u 2>/dev/null | tr -d '\r')" = 0 ]; }
+for poging in 1 2 3; do
+  adb root || echo "adb root meldde een fout (poging $poging); nakijken"
+  timeout 60 adb wait-for-device || true
+  sleep 2
+  root_ok && break
+done
+root_ok || { echo 'adb root lukte niet'; exit 1; }
 PLAY_PREFS=/data/user/0/nl.rene.tools.play/shared_prefs
 PLAY_UID=$(adb shell stat -c %u /data/user/0/nl.rene.tools.play | tr -d '\r')
 [[ $PLAY_UID =~ ^[0-9]+$ ]] || { echo 'Play-appgebruiker niet gevonden'; exit 1; }
