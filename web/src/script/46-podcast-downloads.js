@@ -90,7 +90,7 @@ function pcDlMenu(i){
   openSheet(d.ep.title || 'Aflevering', [d.pod && d.pod.title, pcDlTxt(d)].filter(Boolean).join(' · '), acts.concat(pcDlActs(d.ep, d.pod)));
 }
 function pcDlSettings(){ jumpTo('podset'); } // de instellingen voor downloaden staan op Instellingen van Podcasts
-function pcDlClearAsk(){ askConfirm('Alle downloads verwijderen?', 'De afleveringen blijven gewoon te beluisteren via internet. Podcasts met "nieuwe afleveringen downloaden" halen de nieuwste later opnieuw op.', 'Verwijderen', () => { Android.podDlClear(); pcDlRefresh(); toast('Downloads verwijderd'); }); }
+function pcDlClearAsk(){ askConfirm('Alle downloads verwijderen?', 'De afleveringen blijven gewoon te beluisteren via internet. Wat vanzelf gedownload was, wordt niet opnieuw gedownload; nieuwe afleveringen wel.', 'Verwijderen', () => { Android.podDlClear(); pcDlRefresh(); toast('Downloads verwijderd'); }); }
 
 /* Eén podcast: nieuwe afleveringen vanzelf downloaden (knop naast Volgend, en in het menu ⋯) */
 function pdDlOn(){ const s = rdJson(Android.podSubs(), []).find(x => pdPod && x.id === pdPod.id); return psDoetMee(s, rdJson(Android.podDlPrefs(), {})); }
@@ -153,8 +153,8 @@ function psPeriodeRender(pr){
   const subs = rdJson(Android.podSubs(), []), n = subs.filter(s => psDoetMee(s, pr)).length;
   $('#ps-periode-u').textContent = !on ? '' : !subs.length ? t('Je volgt nog geen podcasts.')
     : !n ? t('Nog geen podcast doet mee: zet Vanzelf downloaden aan bij een podcast.')
-    : t('{podcasts}: wat je nog niet beluisterde van {periode}, de nieuwste eerst.', { podcasts: tn(n, 'Eén podcast doet mee', '{n} podcasts doen mee'), periode: psPeriodeTxt(pr.periodeDagen) })
-      + (pr.wifiOnly ? ' ' + t('Alleen via wifi.') : '');
+    : t(pr.wifiOnly ? '{podcasts}: wat je nog niet beluisterde van {periode}, de nieuwste eerst, alleen via wifi.' : '{podcasts}: wat je nog niet beluisterde van {periode}, de nieuwste eerst, ook via mobiele data.',
+      { podcasts: tn(n, 'Eén podcast doet mee', '{n} podcasts doen mee'), periode: psPeriodeTxt(pr.periodeDagen) });
 }
 function psPeriodeZet(o){
   const e = Android.podDlPeriode(JSON.stringify(o));

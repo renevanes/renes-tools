@@ -70,7 +70,7 @@ bij elke internetverbinding zo. Daarnaast:
 | Open-Meteo | Weer op het startscherm en de weerwidget, als je die gebruikt | De laatst bekende locatie van de telefoon (op ongeveer 10 meter) of een plaatsnaam |
 | Hugging Face | Een onderbroken download van een AI-model gaat vanzelf verder | Niets persoonlijks |
 
-**Taken die je zelf hebt aangezet, op de achtergrond:** podcasts ophalen, de Spotify-backup, facturen ophalen en
+**Taken op de achtergrond:** podcasts ophalen en vanzelf downloaden (staat standaard aan voor de podcasts die je volgt, alleen via wifi tenzij je dat uitzet; uit te zetten bij Instellingen van Podcasts), en wat je zelf hebt aangezet: de Spotify-backup, facturen ophalen en
 aanleveren, de gegevens van Toiletten en douches bijwerken, en de wekelijkse statistieken (zie hieronder). Ze gebruiken de diensten uit de volgende tabel.
 
 **Als je een tool gebruikt of iets instelt:**

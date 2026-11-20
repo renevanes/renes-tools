@@ -17,7 +17,7 @@ const { chromium } = require('playwright');
     ok(await pg.inputValue('#ps-bewaar') === '14', 'standaard: na 2 weken weer weg');
     ok(await pg.inputValue('#ps-welke') === 'alle' && await pg.inputValue('#ps-maxmb') === '2000', 'standaard: alle gevolgde podcasts, hooguit 2 GB');
     const uitleg = await pg.textContent('#ps-periode-u');
-    ok(/2 podcasts doen mee/.test(uitleg) && /de afgelopen 2 weken/.test(uitleg) && /Alleen via wifi/.test(uitleg), 'uitleg: ' + uitleg);
+    ok(/2 podcasts doen mee/.test(uitleg) && /de afgelopen 2 weken/.test(uitleg) && /alleen via wifi/.test(uitleg), 'uitleg: ' + uitleg);
     await pg.selectOption('#ps-dagen', '7'); await pg.selectOption('#ps-bewaar', '30'); await pg.selectOption('#ps-maxmb', '5000');
     let p = await pr();
     ok(p.periodeDagen === 7 && p.bewaarDagen === 30 && p.maxMb === 5000, 'keuzes bewaard');
@@ -45,7 +45,7 @@ const { chromium } = require('playwright');
 
     // ---- Engels ----
     await pg.evaluate(() => { Android.podDlPeriode(JSON.stringify({ periodeWelke: 'alle', periodeDagen: 14 })); rgSave({ lang: 'en' }); psRender(); }); await pg.waitForTimeout(250);
-    ok(/podcasts take part: what you haven't played from the last 2 weeks/.test(await pg.textContent('#ps-periode-u')), 'Engels: ' + await pg.textContent('#ps-periode-u'));
+    ok(/podcasts take part: what you haven't played from the last 2 weeks, newest first, only via Wi-Fi/.test(await pg.textContent('#ps-periode-u')), 'Engels: ' + await pg.textContent('#ps-periode-u'));
     await pg.evaluate(() => rgSave({ lang: 'nl' }));
     await pg.close();
   }

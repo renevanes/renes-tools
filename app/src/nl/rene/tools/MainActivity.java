@@ -321,7 +321,8 @@ public class MainActivity extends Activity {
             if (System.currentTimeMillis() - Auto.prefs(this).getLong("armedAt", 0) > 6 * 3600_000L) Auto.armPlaces(this, true);
         }
         PodcastDownloads.warm(this);
-        PodcastDownloadJob.schedule(this);
+        final Context appCtx = getApplicationContext();
+        Podcasts.IO.execute(() -> { try { PodcastDownloadJob.schedule(appCtx); } catch (Throwable ignored) { } }); // leest de downloadlijst: niet op de hoofdthread
         // Net teruggezet na een herinstallatie: alles opnieuw inplannen en de modellen weer downloaden
         if (!isSolo() && !Updater.viaPlay(this)) {
             final Context app = getApplicationContext();

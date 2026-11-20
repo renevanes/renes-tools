@@ -1001,7 +1001,9 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   `s-podset`): van elke podcast die meedoet (`doetMee`: bij "alle" tenzij `dlUit`, anders `dl`) wat nog niet beluisterd is
   van de periode, nieuwste eerst, binnen de ruimte (`kiesPeriode`, grootte uit de feed of geschat met `schat`), hooguit
   `MAX_PER_KEER` per ronde; de hoofdstukken komen mee. `opruimen` haalt vanzelf gedownloade afleveringen na `bewaarDagen`
-  weer weg (niet wat speelt, niet wat Rene zelf downloadde) en zet ze bij "weggehaald" zodat ze niet terugkomen. Uit =
+  weer weg, gerekend vanaf klaar met downloaden (`tk`) of de laatste keer luisteren als hij half beluisterd is
+  (`magWeg`; niet wat speelt, niet wat Rene zelf downloadde), en zet ze bij "weggehaald" (`goneErbij`: met tijd, opgeruimd na
+  `GONE_DAGEN`) zodat ze niet terugkomen. Een grootte uit de feed onder 1 MB telt als onbekend; er blijft `VRIJ_HOUDEN` vrij. Uit =
   het oude gedrag per podcast (de nieuwste 3). Tests: `PodcastPeriodeTest`, `tests/ui/podcast-periode.test.js`.
 - Herkennen aan het geluid (uitgeschreven tekst, terugkerende jingles) is een mogelijke volgende stap; vraag Rene eerst.
 

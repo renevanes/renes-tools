@@ -903,7 +903,10 @@ final class Podcasts {
             SharedPreferences.Editor de = dp.edit();
             if (dl.has("wifiOnly") && !dp.contains("wifiOnly")) de.putBoolean("wifiOnly", dl.optBoolean("wifiOnly", true));
             if (dl.has("autoDelete") && !dp.contains("autoDelete")) de.putBoolean("autoDelete", dl.optBoolean("autoDelete", true));
-            if (dl.has("periode") && !dp.contains("periode")) PodcastDownloads.zetPeriode(de, dl);
+            // Vanzelf downloaden over een periode: per instelling, alleen wat hier nog niet gekozen is
+            JSONObject per = new JSONObject();
+            for (String k : new String[]{"periode", "periodeWelke", "periodeDagen", "bewaarDagen", "maxMb"}) if (dl.has(k) && !dp.contains(k)) try { per.put(k, dl.get(k)); } catch (Exception ignored) { }
+            PodcastDownloads.zetPeriode(de, per);
             de.apply();
         }
         // Overslaan (reclame, begin en einde): alleen als hier nog niets ingesteld is

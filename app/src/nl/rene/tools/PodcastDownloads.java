@@ -37,6 +37,7 @@ final class PodcastDownloads {
     // Vanzelf downloaden over een periode (alle gevolgde podcasts), en vanzelf gedownloade afleveringen weer verwijderen
     static final int[] PERIODE_DAGEN = {3, 7, 14, 21, 30}, BEWAAR_DAGEN = {0, 7, 14, 21, 30}, MAX_MB = {0, 1000, 2000, 5000, 10000};
     static final int STD_DAGEN = 14, STD_BEWAAR = 14, STD_MB = 2000, MAX_PER_KEER = 40;
+    static final long VRIJ_HOUDEN = 500L * 1024 * 1024;
     static final long DAG = 24 * 3_600_000L, SCHAT_PER_SEC = 16_000, SCHAT_ONBEKEND = 50L * 1024 * 1024; // 128 kbit/s
     static boolean periode(Context c) { return prefs(c).getBoolean("periode", true); }
     static boolean periodeAlle(Context c) { return !"gekozen".equals(prefs(c).getString("periodeWelke", "alle")); }
@@ -61,7 +62,11 @@ final class PodcastDownloads {
     }
 
     /** Geschatte grootte van een aflevering: de opgegeven grootte, anders uit de lengte (128 kbit/s), anders 50 MB. */
-    static long schat(long size, long durSec) { return size > 0 ? size : durSec > 0 ? durSec * SCHAT_PER_SEC : SCHAT_ONBEKEND; }
+    static long schat(long size, long durSec) {
+        // Veel feeds zetten een nepwaarde (0, 1, een vast getal): onder 1 MB telt als onbekend
+        if (size >= 1024L * 1024) return size;
+        return durSec > 0 ? durSec * SCHAT_PER_SEC : SCHAT_ONBEKEND;
+    }
 
     /**
      * Welke afleveringen over de periode (zuiver, getest): nieuwste eerst, alleen wat nog in de ruimte past
@@ -84,17 +89,30 @@ final class PodcastDownloads {
     /** Is een vanzelf gedownloade aflevering (gedownload op {@code t}) oud genoeg om weg te gaan? bewaar 0 = nooit. Zuiver. */
     static boolean teOud(long t, long nu, int bewaarDagen) { return bewaarDagen > 0 && t > 0 && t < nu - bewaarDagen * DAG; }
 
+    /**
+     * Mag een vanzelf gedownloade aflevering weg? Telt vanaf het later van: klaar met downloaden (anders in de wachtrij
+     * gezet) en de laatste keer luisteren als je er nog middenin zit. Zuiver.
+     */
+    static boolean magWeg(long gezet, long klaar, long geluisterd, boolean middenin, long nu, int bewaarDagen) {
+        long basis = Math.max(klaar > 0 ? klaar : gezet, middenin ? geluisterd : 0);
+        return teOud(basis, nu, bewaarDagen);
+    }
+
     /** Vanzelf gedownloade afleveringen die langer dan de bewaartijd staan: weg (niet wat nu speelt, niet wat je zelf downloadde). */
     static synchronized int opruimen(Context c) {
         int dagen = bewaarDagen(c);
         if (dagen <= 0) return 0;
+        try { list(c); } catch (Throwable ignored) { } // markeert wat intussen klaar is (met het moment: tk)
         long nu = System.currentTimeMillis();
         String speelt = PodcastService.playingKey();
-        JSONObject idx = index(c);
+        JSONObject idx = index(c), prog = Podcasts.progress(c);
         List<String> weg = new ArrayList<>();
         for (Iterator<String> k = idx.keys(); k.hasNext(); ) {
             String key = k.next(); JSONObject it = idx.optJSONObject(key);
-            if (it != null && it.optBoolean("auto") && teOud(it.optLong("t"), nu, dagen) && !key.equals(speelt)) weg.add(key);
+            if (it == null || !it.optBoolean("auto") || key.equals(speelt)) continue;
+            JSONObject p = prog.optJSONObject(key);
+            boolean middenin = p != null && !p.optBoolean("done") && p.optLong("p") > 0;
+            if (magWeg(it.optLong("t"), it.optLong("tk"), p == null ? 0 : p.optLong("t"), middenin, nu, dagen)) weg.add(key);
         }
         for (String key : weg) remove(c, key); // remove zet hem ook bij "weggehaald": niet nog eens vanzelf
         if (!weg.isEmpty()) App.log(c, "PODCAST", "vanzelf verwijderd: " + weg.size());
@@ -263,7 +281,7 @@ final class PodcastDownloads {
             if (it == null) continue;
             try {
                 JSONObject s = m == null ? new JSONObject().put("state", "failed") : status(c, m, it);
-                if ("done".equals(s.optString("state")) && !it.optBoolean("done")) { it.put("done", true); changed = true; }
+                if ("done".equals(s.optString("state")) && !it.optBoolean("done")) { it.put("done", true).put("tk", System.currentTimeMillis()); changed = true; }
                 File rf = fileIn(dir(c), it.optString("file"));
                 if ("done".equals(s.optString("state")) && rf != null) READY.put(key, rf.getAbsolutePath()); else READY.remove(key);
                 s.put("key", key).put("ep", it.optJSONObject("ep")).put("pod", it.optJSONObject("pod")).put("t", it.optLong("t")).put("auto", it.optBoolean("auto"));
@@ -367,27 +385,49 @@ final class PodcastDownloads {
 
     // ---------- vanzelf downloaden van nieuwe afleveringen ----------
 
+    /*
+     * Weggehaald (niet nog eens vanzelf downloaden): een lijst "sleutel@tijd" (oudere versies: alleen de sleutel). Opruimen
+     * gaat op leeftijd (GONE_DAGEN, langer dan de langste periode) en pas daarna op aantal, zodat een aflevering die nog in
+     * de periode valt er niet uit schuift en opnieuw gedownload wordt.
+     */
+    static final int GONE_DAGEN = 60, GONE_HARD = 5000;
+
+    /** De sleutel uit een regel van de lijst. Zuiver. */
+    static String goneKey(String regel) { int i = regel == null ? -1 : regel.indexOf('@'); return regel == null ? "" : i < 0 ? regel : regel.substring(0, i); }
+    static long goneTijd(String regel) { int i = regel == null ? -1 : regel.indexOf('@'); try { return i < 0 ? 0 : Long.parseLong(regel.substring(i + 1)); } catch (Exception e) { return 0; } }
+
+    /** De lijst bijgewerkt met deze sleutel en opgeruimd (zuiver, getest). */
+    static JSONArray goneErbij(JSONArray a, String key, long nu) {
+        JSONArray b = new JSONArray();
+        for (int i = 0; i < a.length(); i++) {
+            String r = a.optString(i);
+            if (key != null && key.equals(goneKey(r))) continue; // komt hieronder opnieuw, met de tijd van nu
+            if (a.length() > MAX_GONE && goneTijd(r) < nu - GONE_DAGEN * DAG) continue; // oud genoeg (of zonder tijd)
+            b.put(r);
+        }
+        if (key != null) b.put(key + "@" + nu);
+        while (b.length() > GONE_HARD) b.remove(0);
+        return b;
+    }
+
+    private static JSONArray goneLijst(Context c) { try { return new JSONArray(prefs(c).getString("gone", "[]")); } catch (Exception e) { return new JSONArray(); } }
+
     private static void gone(Context c, String key) {
-        try {
-            JSONArray a = new JSONArray(prefs(c).getString("gone", "[]"));
-            for (int i = 0; i < a.length(); i++) if (key.equals(a.optString(i))) return;
-            a.put(key);
-            while (a.length() > MAX_GONE) a.remove(0);
-            prefs(c).edit().putString("gone", a.toString()).apply();
-        } catch (Exception ignored) { }
+        prefs(c).edit().putString("gone", goneErbij(goneLijst(c), key, System.currentTimeMillis()).toString()).apply();
     }
     private static void unGone(Context c, String key) {
-        try {
-            JSONArray a = new JSONArray(prefs(c).getString("gone", "[]")), b = new JSONArray();
-            for (int i = 0; i < a.length(); i++) if (!key.equals(a.optString(i))) b.put(a.optString(i));
-            if (b.length() != a.length()) prefs(c).edit().putString("gone", b.toString()).apply();
-        } catch (Exception ignored) { }
+        JSONArray a = goneLijst(c), b = new JSONArray();
+        for (int i = 0; i < a.length(); i++) if (!key.equals(goneKey(a.optString(i)))) b.put(a.optString(i));
+        if (b.length() != a.length()) prefs(c).edit().putString("gone", b.toString()).apply();
     }
-    private static boolean isGone(Context c, String key) {
-        try { JSONArray a = new JSONArray(prefs(c).getString("gone", "[]")); for (int i = 0; i < a.length(); i++) if (key.equals(a.optString(i))) return true; }
-        catch (Exception ignored) { }
-        return false;
+    /** Alle weggehaalde sleutels (één keer lezen). */
+    static java.util.Set<String> goneSet(Context c) {
+        java.util.Set<String> s = new java.util.HashSet<>();
+        JSONArray a = goneLijst(c);
+        for (int i = 0; i < a.length(); i++) s.add(goneKey(a.optString(i)));
+        return s;
     }
+    private static boolean isGone(Context c, String key) { return goneSet(c).contains(key); }
 
     static boolean anyAuto(Context c) {
         JSONArray s = Podcasts.subs(c);
@@ -460,9 +500,11 @@ final class PodcastDownloads {
             if (it == null || !it.optBoolean("auto")) continue;
             File f = fileIn(d, it.optString("file"));
             JSONObject e = it.optJSONObject("ep");
-            inGebruik += f != null && f.isFile() && f.length() > 0 ? f.length() : schat(e == null ? 0 : e.optLong("size"), e == null ? 0 : e.optLong("dur"));
+            long geschat = schat(e == null ? 0 : e.optLong("size"), e == null ? 0 : e.optLong("dur")), echt = f != null && f.isFile() ? f.length() : 0;
+            inGebruik += it.optBoolean("done") && echt > 0 ? echt : Math.max(echt, geschat); // nog bezig: wat hij wordt
         }
         List<JSONObject> eps = new ArrayList<>(), pods = new ArrayList<>();
+        java.util.Set<String> weg = goneSet(c);
         for (int i = 0; i < subs.length(); i++) {
             JSONObject s = subs.optJSONObject(i);
             if (!doetMee(c, s)) continue;
@@ -473,7 +515,7 @@ final class PodcastDownloads {
                 JSONObject e = items.optJSONObject(k);
                 if (e == null) continue;
                 String key = e.optString("key");
-                if (!Podcasts.validKey(key) || e.optLong("date") < van || idx.has(key) || isGone(c, key)) continue;
+                if (!Podcasts.validKey(key) || e.optLong("date") < van || idx.has(key) || weg.contains(key)) continue;
                 JSONObject p = prog.optJSONObject(key);
                 if (p != null && p.optBoolean("done")) continue;
                 eps.add(e); pods.add(s);
@@ -482,6 +524,8 @@ final class PodcastDownloads {
         long[] dates = new long[eps.size()], sizes = new long[eps.size()];
         for (int i = 0; i < dates.length; i++) { dates[i] = eps.get(i).optLong("date"); sizes[i] = schat(eps.get(i).optLong("size"), eps.get(i).optLong("dur")); }
         long ruimte = mb <= 0 ? -1 : Math.max(0, mb * 1024L * 1024L - inGebruik);
+        // Nooit de telefoon vol: minstens VRIJ_HOUDEN blijft vrij
+        if (d != null) { long vrij = Math.max(0, d.getUsableSpace() - VRIJ_HOUDEN); ruimte = ruimte < 0 ? vrij : Math.min(ruimte, vrij); }
         int n = 0;
         for (int i : kiesPeriode(dates, sizes, ruimte, MAX_PER_KEER)) if ("".equals(start(c, eps.get(i), pods.get(i), true))) n++;
         if (n > 0) App.log(c, "PODCAST", "vanzelf downloaden (periode): " + n);

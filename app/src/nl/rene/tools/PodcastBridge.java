@@ -90,13 +90,17 @@ public class PodcastBridge extends AiBridge {
     }
     /** Vanzelf downloaden over een periode: {periode, periodeWelke, periodeDagen, bewaarDagen, maxMb}; daarna meteen bijwerken. */
     @JavascriptInterface public String podDlPeriode(String json) {
+        final boolean aan;
         try {
+            JSONObject o = new JSONObject(json);
+            aan = o.optBoolean("periode") && !PodcastDownloads.periode(ctx);
             android.content.SharedPreferences.Editor e = PodcastDownloads.prefs(ctx).edit();
-            PodcastDownloads.zetPeriode(e, new JSONObject(json));
-            e.apply();
+            PodcastDownloads.zetPeriode(e, o);
+            e.commit(); // meteen: de draad hieronder leest het
         } catch (Exception x) { return "Bewaren lukt niet"; }
         PodcastDownloadJob.schedule(ctx);
-        new Thread(App.veilig(() -> { if (Podcasts.refreshAll(ctx) < 0) PodcastDownloads.autoQueue(ctx); a.js("onPodDl", ""); }), "podcast-periode").start(); // refreshAll downloadt daarna vanzelf
+        // Net aangezet: eerst de feeds bijwerken (dat downloadt daarna vanzelf); anders alleen opnieuw kiezen en opruimen
+        new Thread(App.veilig(() -> { if (!aan || Podcasts.refreshAll(ctx) < 0) PodcastDownloads.autoQueue(ctx); a.js("onPodDl", ""); }), "podcast-periode").start();
         return "";
     }
 

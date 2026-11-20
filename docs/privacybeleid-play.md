@@ -8,7 +8,7 @@ Notities, lijstjes, gekozen radiozenders, podcastabonnementen, afspeelvoortgang 
 
 ## Internet en andere diensten
 
-Voor radio gebruikt de app Radio Browser en de stream en informatie van de gekozen zender. Voor podcasts gebruikt zij Apple Podcasts voor zoeken en de gekozen uitgevers voor feeds, afbeeldingen, hoofdstukken (om reclame over te slaan), afleveringen en downloads. Die diensten ontvangen je zoekopdracht of het gevraagde adres en je IP-adres, zoals bij een normale internetverbinding. Hun eigen privacybeleid geldt ook. Sommige zenders en uitgevers gebruiken nog onversleutelde HTTP-adressen; gebruik alleen bronnen die je vertrouwt. De app bouwt geen advertentieprofiel op.
+Voor radio gebruikt de app Radio Browser en de stream en informatie van de gekozen zender. Voor podcasts gebruikt zij Apple Podcasts voor zoeken en de gekozen uitgevers voor feeds, afbeeldingen, hoofdstukken (om reclame over te slaan), afleveringen en downloads (van de podcasts die je volgt standaard vanzelf, de afgelopen twee weken, alleen via wifi tenzij je dat uitzet). Die diensten ontvangen je zoekopdracht of het gevraagde adres en je IP-adres, zoals bij een normale internetverbinding. Hun eigen privacybeleid geldt ook. Sommige zenders en uitgevers gebruiken nog onversleutelde HTTP-adressen; gebruik alleen bronnen die je vertrouwt. De app bouwt geen advertentieprofiel op.
 
 Als je een externe link opent, geldt het privacybeleid van die website. Als je zelf cast naar een apparaat op je netwerk, stuurt de app de gekozen media-informatie naar dat apparaat. Er gaat geen gebruiksrapport naar de ontwikkelaar in de Play-basis. Technische foutmeldingen blijven lokaal; stuur alleen zelf informatie door die je wilt delen.
 
