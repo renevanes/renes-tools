@@ -174,9 +174,3 @@ function klVraag(){
 }
 window.onKluisChanged = function(r){ if (r === 'ok' && typeof klNieuwInMap === 'function') klNieuwInMap(); else if (typeof klNieuwIn !== 'undefined') klNieuwIn = null; toast(r === 'ok' ? t('Toegevoegd aan de kluis') : t(r)); if (current === 'kluis') klRender(); };
 function klLock(){ Android.kluisClose(); klRender(); }
-// Ontsleutelen kan bij een groot document even duren; de balk gaat weg zodra de keuze van de app (of een fout) verschijnt.
-function klView(id){
-  const klaar = uiBezig(t('Document ontsleutelen…'), ['onKluisChanged', 'onPauseApp']);
-  setTimeout(klaar, 60000);
-  Android.kluisView(id);
-}

@@ -182,12 +182,14 @@ const QR_EPC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0AQAAAAAVtj
     const stuk = await page.evaluate(() => { const b = btVind(bt.id); return { doc: b && b.doc, calls: Android._bt.calls.filter(c => c[0] === 'stuk').length }; });
     ok(stuk.doc && stuk.calls === 1 && await page.evaluate(() => Android._kl.docs.some(d => d.category === 'Betalen' && d.id === btVind(bt.id).doc)), 'de gelezen rekening staat in de kluis (map Betalen), gekoppeld aan de betaling');
     ok(await page.isVisible('#btd-stuk'), 'bij de betaling: Rekening bekijken');
+    ok(await page.isHidden('#btd-geenstuk'), 'met rekening: geen uitleg dat hij ontbreekt');
     await page.click('#btd-stuk'); await wacht(150);
     ok(await page.evaluate(() => Android._kl.opened && Android._kl.opened.id === btVind(bt.id).doc), 'Rekening bekijken opent het document in de viewer van de app');
     ok(await page.evaluate(() => klInViewer({ mime: 'image/jpeg', name: 'x.jpg' }) && klInViewer({ mime: 'application/pdf' }) && !klInViewer({ mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', name: 'brief.docx' })), 'PDF en afbeeldingen in de eigen viewer, de rest met een andere app');
     await page.evaluate(() => { Android.betalenInst(JSON.stringify({ bank: 'rabobank', naKlaar: 'vragen', eigen: [], stuk: false })); Android._bt.calls = []; show('betalen'); });
     await page.click('#bt-nieuw'); await wacht(100); await sheet('Bestand op de telefoon'); await wacht(400);
     ok(await page.evaluate(() => !Android._bt.calls.some(c => c[0] === 'stuk') && !btVind(bt.id).doc && $('#btd-stuk').hidden), 'bewaren uit: de rekening gaat niet de kluis in');
+    ok(await page.isVisible('#btd-geenstuk') && (await tekst('#btd-geenstuk')).includes('staat uit'), 'zonder bewaarde rekening en bewaren uit: uitleg met de instelling');
     await page.evaluate(() => { show('betalenset'); }); await wacht(100);
     ok((await page.getAttribute('#bts-stuk', 'aria-checked')) === 'false', 'de instelling staat uit');
     await page.evaluate(() => { Android.betalenInst(JSON.stringify({ bank: 'rabobank', naKlaar: 'vragen', eigen: [] })); Android._bt.metStuk = false; Android._kl.open = false; Android._bt.lijst = Android._bt.lijst.filter(x => x.naam !== 'Energie Voorbeeld B.V.' || !x.doc); show('betalen'); });

@@ -134,7 +134,7 @@ function klInViewer(d){ return klIsPdf(d) || /^image\/(jpeg|png|webp|gif|heic)/.
 function klDocSheet(id){
   const x = (klRender.docs || []).find(d => d.id === id); if (!x) return;
   const pdf = klIsPdf(x), nv = (x.versions || []).length;
-  const acts = klEditId === id ? [] : [[t('Bekijken'), () => klInViewer(x) ? klOpen(id) : klView(id), 'document']]; // op de documentkaart staan Bekijken en Delen al als knop
+  const acts = klEditId === id ? [] : [[t('Bekijken'), () => klOpen(id), 'document']]; // op de documentkaart staan Bekijken en Delen al als knop
   // Weggaan van het kluisscherm doet de kluis op slot: eerst de opdracht (Java controleert de kluis meteen), dan pas het andere scherm
   if (pdf && !isPlay()) acts.push([t('Bewerken en ondertekenen'), () => { klBewerk(id); show('pdfedit'); }, 'sign']);
   if (klEditId !== id) acts.push([t('Delen (bijv. mailen of WhatsApp)'), () => Android.kluisShare(id, 0), 'share']);

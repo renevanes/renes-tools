@@ -311,6 +311,10 @@ function btdKnoppen(){
   kop.className = kan || betaald ? 'big ghost' : 'big'; // kan je bank het niet automatisch, dan is kopiëren de hoofdknop
   kop.disabled = !(b.iban || b.bedrag || b.naam || b.kenmerk || b.omschrijving);
   $('#btd-stuk').hidden = !(b.doc && btKluisKan());
+  const geen = $('#btd-geenstuk'); // gelezen voordat Tools de rekening bewaarde, of bewaren staat uit
+  geen.hidden = !!b.doc || b.bron === 'hand' || !btKluisKan();
+  geen.textContent = btInst().stuk === false ? t('Rekening bewaren staat uit (Betalen → Instellingen). Zet het aan en lees de rekening opnieuw in, dan kun je hem hier bekijken.')
+    : t('De rekening zelf is bij deze betaling niet bewaard. Lees hem opnieuw in, dan bewaart Tools hem in je documentenkluis en kun je hem hier bekijken.');
   const lk = $('#btd-linkkaart'), lb = $('#btd-link');
   lk.hidden = !b.link; lb.hidden = !b.link || betaald;
   if (b.link) {
