@@ -8,6 +8,9 @@ const { chromium } = require('playwright');
   for (const scheme of ['light', 'dark']) {
     const pg = await b.newPage({ viewport: { width: 390, height: 844 }, colorScheme: scheme });
     pg.on('pageerror', e => errs.push(e.message));
+    // De klok op vandaag 12:00 (en daarna gewoon door): de test rekent met vandaag en gisteren en mocht niet vlak voor
+    // middernacht beginnen (dan was "gisteren" halverwege eergisteren)
+    const middag = new Date(); middag.setHours(12, 0, 0, 0); await pg.clock.install({ time: middag });
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
     // Een vraag van 40 dagen geleden, elke dag om 08:00; de afgelopen 12 dagen afwisselend ingevuld (via achteraf)
     const D = await pg.evaluate(() => {
