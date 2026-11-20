@@ -402,7 +402,8 @@ final class PodcastDownloads {
         for (int i = 0; i < a.length(); i++) {
             String r = a.optString(i);
             if (key != null && key.equals(goneKey(r))) continue; // komt hieronder opnieuw, met de tijd van nu
-            if (a.length() > MAX_GONE && goneTijd(r) < nu - GONE_DAGEN * DAG) continue; // oud genoeg (of zonder tijd)
+            if (goneTijd(r) <= 0) r = goneKey(r) + "@" + nu; // uit een oudere versie: vanaf nu meetellen
+            if (a.length() > MAX_GONE && goneTijd(r) < nu - GONE_DAGEN * DAG) continue; // oud genoeg
             b.put(r);
         }
         if (key != null) b.put(key + "@" + nu);

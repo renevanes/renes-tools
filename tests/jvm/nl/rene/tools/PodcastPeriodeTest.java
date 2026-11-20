@@ -42,7 +42,9 @@ public class PodcastPeriodeTest {
         org.json.JSONArray oud = new org.json.JSONArray();
         for (int i = 0; i < PodcastDownloads.MAX_GONE + 10; i++) oud.put("o" + i); // oude lijst zonder tijd
         org.json.JSONArray na = PodcastDownloads.goneErbij(oud, "nieuw", nu);
-        check(na.length() == 1 && PodcastDownloads.goneKey(na.optString(0)).equals("nieuw"), "vol met oude regels zonder tijd: die gaan weg");
+        check(na.length() == PodcastDownloads.MAX_GONE + 11 && PodcastDownloads.goneTijd(na.optString(0)) == nu, "oude regels zonder tijd krijgen de tijd van nu (vallen er niet meteen uit)");
+        org.json.JSONArray later = PodcastDownloads.goneErbij(na, "nog", nu + (PodcastDownloads.GONE_DAGEN + 1) * dag);
+        check(later.length() == 1, "na " + PodcastDownloads.GONE_DAGEN + " dagen gaan ze wel weg: " + later.length());
         check(PodcastDownloads.goneKey("eabc@123").equals("eabc") && PodcastDownloads.goneTijd("eabc@123") == 123 && PodcastDownloads.goneKey("eabc").equals("eabc"), "regel lezen (met en zonder tijd)");
         org.json.JSONArray dub = PodcastDownloads.goneErbij(PodcastDownloads.goneErbij(new org.json.JSONArray(), "x", 1), "x", 2);
         check(dub.length() == 1 && PodcastDownloads.goneTijd(dub.optString(0)) == 2, "dezelfde twee keer: één regel, nieuwste tijd");
