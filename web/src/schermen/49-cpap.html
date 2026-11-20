@@ -1,0 +1,71 @@
+<!-- ============ CPAP-ANALYSE ============ -->
+<section class="screen" id="s-cpap">
+  <div class="hdr"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">CPAP-analyse</h1></div>
+  <main>
+    <p class="hint">Neem je nachtwaarden uit ResMed myAir over en vergelijk je maskers. Tools bewaart je metingen versleuteld op je telefoon.</p>
+    <button class="big" id="cp-nieuw" type="button" onclick="cpOpen()">Nacht toevoegen</button>
+    <p class="note" id="cp-fout" role="alert" hidden></p>
+    <div id="cp-leeg"></div>
+    <div id="cp-overzicht" hidden>
+      <label class="f" for="cp-periode">Periode</label>
+      <select class="sel" id="cp-periode" onchange="cpPeriode()">
+        <option value="7">Laatste 7 dagen</option><option value="30" selected>Laatste 30 dagen</option>
+        <option value="90">Laatste 90 dagen</option><option value="all">Alle nachten</option>
+      </select>
+      <p class="hint" id="cp-geen-periode" hidden>In deze periode staan geen nachten.</p>
+      <div id="cp-metingen" hidden>
+        <div class="card cp-kaart">
+          <h2>Verloop maskerlekkage</h2>
+          <label class="f" for="cp-meting">Meting</label>
+          <select class="sel" id="cp-meting" onchange="cpVerloop()">
+            <option value="seal">Maskerafdichting in punten</option><option value="leak">Lekkage in L/min</option>
+          </select>
+          <ul id="cp-verloop" class="cp-balken" aria-label="Laatste metingen"></ul>
+          <p class="hint" id="cp-geen-verloop" hidden>Voor deze meting zijn er geen waarden in de gekozen periode.</p>
+        </div>
+        <div class="card cp-kaart">
+          <h2>Vergelijk per masker</h2>
+          <p class="hint">Gemiddelden per nacht. Bij elke waarde staat hoeveel nachten meetellen.</p>
+          <div id="cp-maskers"></div>
+          <button class="big ghost" id="cp-meer-maskers" type="button" onclick="cpMeer('maskers')" hidden>Meer maskers tonen</button>
+        </div>
+        <h2>Nachten</h2>
+        <div class="card stlist" id="cp-nachten"></div>
+        <button class="big ghost" id="cp-meer-nachten" type="button" onclick="cpMeer('nachten')" hidden>Meer nachten tonen</button>
+      </div>
+    </div>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Open de details van een nacht in myAir. Gebruik dezelfde datum en geef hetzelfde masker steeds dezelfde naam. Laat waarden die je niet ziet leeg.</p>
+      <p>Maskerafdichting loopt van 0 tot 20 punten. Meer punten betekent minder lekkage volgens myAir. Lekkage in liter per minuut is een aparte meting. Gebruik daarvoor steeds hetzelfde type lekkagewaarde van je apparaat.</p>
+      <p>AHI is het aantal ademhalingsgebeurtenissen per uur dat je apparaat rapporteert. Het overzicht is bedoeld om je metingen te volgen en desgewenst met je behandelaar te bespreken.</p>
+      <p>Het logboek gaat mee in de versleutelde backup Alle appgegevens.</p>
+    </div></details>
+  </main>
+</section>
+<section class="screen" id="s-cpapnacht">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 id="cp-titel" tabindex="-1">Nacht toevoegen</h1>
+    <button class="icon-btn" id="cp-menu" type="button" onclick="cpMenu()" aria-label="Meer" hidden><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
+  </div>
+  <main>
+    <form id="cp-form" autocomplete="off" onsubmit="event.preventDefault();cpOpslaan()">
+      <div class="card cp-kaart">
+        <label class="f" for="cp-day">Datum in myAir</label>
+        <input class="aein" id="cp-day" type="date" required>
+        <label class="f" for="cp-mask">Naam of model van je masker</label>
+        <input class="aein" id="cp-mask" type="text" maxlength="64" placeholder="Bijv. AirFit P10" required>
+        <p class="hint">Vul minstens één meting in.</p>
+        <div class="cp-velden">
+          <div><label class="f" for="cp-seal">Maskerafdichting (0–20 punten)</label><input class="aein" id="cp-seal" inputmode="numeric" maxlength="2"></div>
+          <div><label class="f" for="cp-leak">Lekkage (L/min)</label><input class="aein" id="cp-leak" inputmode="decimal" maxlength="7"></div>
+          <div><label class="f" for="cp-ahi">AHI (gebeurtenissen/uur)</label><input class="aein" id="cp-ahi" inputmode="decimal" maxlength="7"></div>
+          <div><label class="f" for="cp-usage">Gebruiksduur (uur:min)</label><input class="aein" id="cp-usage" placeholder="7:30" maxlength="5" aria-describedby="cp-duur-tip"></div>
+          <div><label class="f" for="cp-off">Masker op/af (aantal)</label><input class="aein" id="cp-off" inputmode="numeric" maxlength="3"></div>
+          <div><label class="f" for="cp-score">myAir-score (0–100)</label><input class="aein" id="cp-score" inputmode="numeric" maxlength="3"></div>
+        </div>
+        <span id="cp-duur-tip" class="sr-only">Gebruik bijvoorbeeld 7:30 voor zeven uur en dertig minuten.</span>
+        <p class="note" id="cp-form-fout" role="alert" hidden></p>
+      </div>
+      <button class="big" type="submit">Opslaan</button>
+    </form>
+  </main>
+</section>

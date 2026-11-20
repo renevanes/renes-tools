@@ -51,6 +51,7 @@ final class AppData {
     static final String SECRETS = SECRET_DIR + "/waarden.json";
     static final String KLUIS_DIR = SECRET_DIR + "/kluis";
     static final String KLUIS_INDEX = KLUIS_DIR + "/index.json";
+    static final String CPAP = SECRET_DIR + "/cpap.json";
     static final String SIGNATURE = SECRET_DIR + "/pdf-handtekening.json";
     static final String HISTORY = DIR + "/meldingen.jsonl";
     static final String MODELS = DIR + "/modellen.json";
@@ -271,6 +272,7 @@ final class AppData {
         if (p.equals(PREFS)) return "prefs";
         if (p.equals(SECRETS)) return "secrets";
         if (p.equals(KLUIS_INDEX)) return "kluis-index";
+        if (p.equals(CPAP)) return "cpap";
         if (p.equals(SIGNATURE)) return "signature";
         if (p.equals(HISTORY)) return "history";
         if (p.equals(MODELS)) return "models";

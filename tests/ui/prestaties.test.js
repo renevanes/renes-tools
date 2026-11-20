@@ -57,6 +57,8 @@ const WACHT = parseFloat(process.env.UI_WACHT || '1') || 1;
       const h = A._historyRows, hs = []; for (let i = 0; i < N; i++) hs.push(Object.assign({}, h[i % h.length], { time: Date.now() - i * 6e4, title: 'T' + i })); A._historyRows = hs;
       A._ct.perm = true; const c = A._ct.list, cs = []; for (let i = 0; i < N; i++) cs.push(Object.assign({}, c[i % c.length], { id: 'c' + i, n: 'Contact ' + i })); A._ct.list = cs;
       const s = A._nwInit(), as = []; for (let i = 0; i < N; i++) as.push(Object.assign({}, s.artikelen[i % s.artikelen.length], { id: 'a' + i, titel: 'Artikel ' + i, datum: Date.now() - i * 6e4 })); s.artikelen = as;
+      const dag = rgToday();
+      A._cpNachten = Array.from({length: N}, (_, i) => ({ day: rgDayAdd(dag, -i), mask: 'Masker ' + i, seal: 18 }));
     }, N);
     const open = tool => page.evaluate(async t => { show('home'); const s = performance.now(); openTool(t); await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0))); return Math.round(performance.now() - s); }, tool);
 
@@ -94,6 +96,11 @@ const WACHT = parseFloat(process.env.UI_WACHT || '1') || 1;
     await open('nieuws'); await page.waitForTimeout(600);
     const nwr = await page.evaluate(() => document.querySelectorAll('#nw-lijst .nw-rij').length);
     ok(nwr > 0 && nwr <= 60, colorScheme + ': Nieuws met ' + N + ' artikelen tekent hooguit 60 rijen (' + nwr + ')');
+    await open('cpap');
+    await page.selectOption('#cp-periode', 'all');
+    const cpap = await page.evaluate(() => ({nachten: document.querySelectorAll('#cp-nachten button').length,
+      maskers: document.querySelectorAll('#cp-maskers article').length}));
+    ok(cpap.nachten === 30 && cpap.maskers === 12, colorScheme + ': CPAP tekent eerst 30 nachten en 12 maskers');
     await ctx.close();
   }
   await browser.close();

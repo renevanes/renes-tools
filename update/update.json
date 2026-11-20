@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.233",
-  "versionCode": 234,
-  "nativeLevel": 200,
+  "versionName": "1.234",
+  "versionCode": 235,
+  "nativeLevel": 201,
   "web": "index.html",
-  "webSha256": "94526296211dd28d7cff1765dbb40966895cb19793412460eeeceb9d18b907a7",
+  "webSha256": "a1d5f31bc79b80a20e6a7019c02ee665e025fd0e790aa552c4934a77c9892bfc",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "153333fb413fe5b3153150136940f55ea4a6562c80d1b721a0ee19e9be215f0f",
+  "apkSha256": "2a2c7d0a90fa7e7281d5b2d47a1a895fe59ccaaf4fd1167c32bd916b75511ade",
   "changelog": [
+    {
+      "version": "1.234",
+      "date": "2026-11-20",
+      "changes": [
+        "Betalen kijkt na of de ontvanger klopt: of het een officieel rekeningnummer is van bijvoorbeeld het CJIB of de Belastingdienst, bij welke bank de rekening is en of je er eerder naartoe betaalde. Noemt een rekening het CJIB of de Belastingdienst met een ander rekeningnummer, dan zie je een duidelijke waarschuwing.",
+        "Betalen zet bij een officieel rekeningnummer de juiste naam (bijvoorbeeld CJIB), ook als de tekstherkenning de naam verkeerd las; anders de naam van je vorige betaling naar dat rekeningnummer.",
+        "Nieuw bij een betaling: Zoek het rekeningnummer op internet (na een vraag, in je browser).",
+        "CPAP-analyse: neem je nachtwaarden uit ResMed myAir over, volg maskerlekkage en vergelijk je maskers onder Dag & gezondheid."
+      ]
+    },
     {
       "version": "1.233",
       "date": "2026-11-19",
@@ -179,14 +189,7 @@
       "changes": [
         "Documentenkluis: het zoekveld vindt nu ook woorden in de tekst van je documenten (PDF's en foto's), met het stukje tekst erbij"
       ]
-    },
-    {
-      "version": "1.214",
-      "date": "2026-11-16",
-      "changes": [
-        "Instellingen: nieuw scherm Koppelingen met alle diensten buiten je telefoon (Spotify, Google, Eigen Cloud, mailserver, AudD, statistieken) en hun stand"
-      ]
     }
   ],
-  "webSig2": "ag1RFDhn/c1lGqrQgO/HQC1B/BUQhr7jI/DgOahteGF4/KxMrUJDnUZlQP0orizlthn5pbYNFfYNdOTympBzkWZ+t08CmmV7xcTDaHSVTy5zl/6LE/7riPepZGCU7ZRH0OtO0pUH11iZIgTGe2WBuq5Pz4h5RDcIAD6QxAgOnoTmd3SRP9QZiszHYftZ0JWsY4jHElFvKF8m0Sa/anpQjE3kKoUcgiwYeQXeebQ9hOsLZQ4YGWOJfRJ3RQyU8o0sWIKIs7rUiNtwOjsMNWoEc6/ntgzvA2tTd5npdKdfAiws6jotioam5/cWBbDoNk7/8Xiop3xJKAKtkitI73CHHjJdCX7H2PfH1LcbDtgzelO9EHWJjVG88fpoNu4vpYjzKWPNMD/gzSmZwkHe8kKGXGM5Bl0/tiFERZ9986tRlrt+CAM8eOujEFRVes4OM/grLXGpDN8O/Lj/4Xkp4Lni/fydhXgP7UfI0uEu+dRkPH0ALrsu5rvXDLcAwnvRIqMi"
+  "webSig2": "e5xmPwOVoIhsvCZ0lC/jvHBqEFhFirMGt9kGLQhLYgw8f84j+WYk27XGTdB/BLamI7IYmt6C34HgkBR5JZASYItlqek7Yu4dE7v79cZKPvDE34vfBTs/CGWhOtyWlJmAjEZkwgcw9aA1R7qjFXRtQNDOECRfF6pkNjPRU7m1VMeGS0l1RCqqFxrXw6Hszmzcyj7RnUc3iB3neKVQcBLet0bvXp8kJ3iivSE9mjmwyjkqXaxu7SD1itoM2AzC5lOKdufiuWmjJYVUdgLGXaH9/EvPBTkMWYZ1hi/0i/rda33lO1+3JDS8PMMMWtg8bzf/tW8ohsN9KdcuiVUcHXSlf1Tb6ma1FzB74aFZW8MVgT9ruEE9JEeKBNjHnk9KdBq91/Xszl4XmPTYpgx299KubeeggfhVVBQBmMjGWGhmgwEKla1bypr5UX1D9cRppNzHLBQwvdG8N+uYiNFkdkkBx3h1OyZwqzaDT0qapwfKJJNQigdDOb9hUrDjFq4EeQn7"
 }

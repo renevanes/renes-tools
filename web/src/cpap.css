@@ -1,0 +1,18 @@
+#s-cpap [hidden],#s-cpapnacht [hidden]{display:none!important}
+.cp-kaart h2{margin-top:0}
+.cp-kaart .sel,.cp-kaart .aein,#cp-periode{box-sizing:border-box;width:100%;min-width:0;min-height:44px}
+.cp-kaart .f{display:block;margin-top:10px}
+.cp-velden{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
+.cp-balken{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:10px}
+.cp-balken li{display:grid;grid-template-columns:5.4em minmax(0,1fr) max-content;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.cp-balk{display:block;height:9px;border-radius:6px;background:var(--tonal);overflow:hidden}
+.cp-balk i{display:block;height:100%;background:var(--primary);border-radius:inherit}
+.cp-masker{padding:12px 0;border-top:1px solid var(--line)}
+.cp-masker h3{margin:0;overflow-wrap:anywhere}
+.cp-masker p{margin:4px 0 8px}
+.cp-waarden{margin:0;display:grid;gap:4px}
+.cp-waarden div{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.cp-waarden dd{margin:0;font-weight:600}
+.cp-waarden small{color:var(--muted);font-weight:400}
+#cp-nachten .sttxt small{white-space:normal;overflow-wrap:anywhere}
+@media(max-width:340px){.cp-velden{grid-template-columns:minmax(0,1fr)}}

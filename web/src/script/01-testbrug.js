@@ -11,6 +11,23 @@ if (!window.Android) window.Android = (function(){
     st.nextAt = t0 + (a-1)*per + per; st.now = Date.now();
   };
   return {
+    _cpNachten: [],
+    cpapList(){ return JSON.stringify({ nights: this._cpNachten }); },
+    cpapSave(data, verwacht){
+      const nacht = JSON.parse(data);
+      const i = this._cpNachten.findIndex(n => n.day === nacht.day);
+      if (!verwacht && i !== -1) return 'date';
+      if (verwacht && JSON.stringify(this._cpNachten[i]) !== verwacht) return 'changed';
+      if (verwacht) this._cpNachten[i] = nacht;
+      else this._cpNachten.push(nacht);
+      return '';
+    },
+    cpapDelete(dag, verwacht){
+      const i = this._cpNachten.findIndex(n => n.day === dag);
+      if (JSON.stringify(this._cpNachten[i]) !== verwacht) return 'changed';
+      this._cpNachten.splice(i, 1);
+      return '';
+    },
     _erBooks: [], _erTexts: {},
     ereaderList(){ return JSON.stringify({ books: this._erBooks }); },
     ereaderChapter(id, chapter){ const texts = this._erTexts[id]; return JSON.stringify(texts && texts[chapter] != null ? { text: texts[chapter] } : { error: "Boek openen lukt niet" }); },
