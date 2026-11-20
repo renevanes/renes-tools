@@ -15,6 +15,33 @@ function pkSecTxt(s){
   return t('{m} min {s} s', { m: Math.floor(s / 60), s: s % 60 });
 }
 
+/*
+ * Werkt reclame overslaan bij deze podcast? 'aan' (hoofdstukken en aan), 'uit' (hoofdstukken, maar uitgezet), 'geen' (geen
+ * hoofdstukken) of '' (nog onbekend: de feed is sinds deze versie nog niet bijgewerkt). p = een gevolgde podcast (hs/hsVan
+ * uit Podcasts.updateSub) of {id, items} van de open podcast.
+ */
+function pkStatus(p, inst){
+  if (!p) return '';
+  let hs = p.hs, van = p.hsVan;
+  if (Array.isArray(p.items)) {
+    const l = p.items.slice(0, 10);
+    if (!l.length || !l.some(e => 'ch' in e)) return '';
+    hs = l.filter(e => e.ch).length; van = l.length;
+  }
+  if (hs == null || !van) return '';
+  if (!hs) return 'geen';
+  inst = inst || pkInst() || {};
+  const eigen = (inst.per || {})[p.id] || {};
+  return ('reclame' in eigen ? eigen.reclame : inst.reclame !== false) ? 'aan' : 'uit';
+}
+/* De regel onder de kop van een podcast: kort wat de reclamefilter hier doet */
+function pkRcRegel(){
+  const el = $('#pd-rc'); if (!el) return;
+  const st = pdFeed && pdPod ? pkStatus({ id: pdPod.id, items: pdFeed.items || [] }) : '';
+  el.classList.toggle('aan', st === 'aan');
+  el.innerHTML = !st ? '' : uiIcon('scissors') + '<span>' + esc(st === 'aan' ? t('Reclame wordt overgeslagen') : st === 'uit' ? t('Reclame overslaan staat uit') : t('Reclame overslaan kan hier niet')) + '</span>';
+}
+
 /* Het scherm Overslaan van één podcast (vanuit ⋯ op de podcast) */
 function pkOpen(){
   if (!pdPod || !pkInst()) return;
@@ -54,6 +81,7 @@ function pkSave(){
   const fout = Android.podOverslaanZet(JSON.stringify(inst));
   if (fout) toast(t(fout));
   pkRender();
+  if (typeof pkRcRegel === 'function') pkRcRegel();
 }
 
 /* Algemeen (Instellingen van Podcasts) */
@@ -66,6 +94,10 @@ function psOvRender(){
   b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
   const w = $('#ps-woorden');
   if (document.activeElement !== w) w.value = inst.woorden || '';
+  // Bij welke podcasts het werkt (het schaartje op Luisteren), en bij hoeveel niet
+  const subs = rdJson(Android.podSubs(), []), st = subs.map(s => pkStatus(s, inst));
+  const aan = st.filter(x => x === 'aan').length;
+  $('#ps-ov-n').textContent = !subs.length ? '' : t('Werkt nu bij {aan} van de {n} podcasts die je volgt; daar staat een schaartje bij op Luisteren.', { aan, n: subs.length });
 }
 function psOvZet(wijzig){
   const inst = pkInst(); if (!inst) return;

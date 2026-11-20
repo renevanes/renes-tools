@@ -321,6 +321,10 @@ final class Podcasts {
             int fresh = 0;
             for (int k = 0; k < items.length(); k++) if (items.getJSONObject(k).optLong("date") > s.optLong("seen")) fresh++;
             s.put("newest", newest).put("fresh", fresh).put("checked", System.currentTimeMillis());
+            // Reclame overslaan kan alleen met hoofdstukken: hoeveel van de nieuwste afleveringen die meegeven (voor het schaartje)
+            int van = Math.min(items.length(), 10), hs = 0;
+            for (int k = 0; k < van; k++) if (!items.getJSONObject(k).optString("ch").isEmpty()) hs++;
+            s.put("hs", hs).put("hsVan", van);
             changed = true;
         }
         if (changed) saveSubs(c, a);

@@ -997,6 +997,10 @@ artikelen uit RSS-, Atom- en RDF-feeds.
 - De speler zet `overgeslagen` in de toestand (`skip`); de interface toont het (`pkMeld`) met Terug (`podOverslaanTerug`):
   dat stuk speelt dan deze keer (alleen bij dezelfde aflevering). Elk stuk hooguit één keer per beurt. Zelf terugspoelen of naar een plek slepen in een stuk = dat stuk speelt ook (`staToe`).
   Vooruit springen in een stuk slaat het wel over. Op een Chromecast wordt niets overgeslagen.
+- **Waar het werkt** (`pkStatus`: aan/uit/geen/onbekend): `Podcasts.updateSub` telt per gevolgde podcast hoeveel van de
+  nieuwste 10 afleveringen hoofdstukken meegeven (`hs`/`hsVan`). Alleen waar het werkt een klein schaartje op de tegel
+  (`.pcrc`, geen teken = werkt niet of nog onbekend); op de podcast zelf een regel onder de kop (`#pd-rc`, alle drie de
+  standen) en op Instellingen van Podcasts het aantal (`#ps-ov-n`).
 - Logsoort `PODCAST` alleen met vaste woorden (`overgeslagen: reclame`), nooit titels of adressen.
 - **Vanzelf downloaden over een periode** (`PodcastDownloads.periodeQueue`, instellingen in `podcast_dl`: `periode` standaard
   aan, `periodeWelke` alle/gekozen, `periodeDagen` 14, `bewaarDagen` 14, `maxMb` 2000; brug `podDlPeriode`, kaart op

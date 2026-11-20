@@ -38,11 +38,27 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => pkOpen()); await pg.waitForTimeout(200);
     ok(/geen hoofdstukken/.test(await pg.textContent('#pk-ch')), 'zonder hoofdstukken: dat staat erbij');
 
+    // ---- Werkt de reclamefilter hier? Regel onder de kop, schaartje op Luisteren ----
+    await pg.evaluate(() => pdOpen(Android._pc.top[0])); await pg.waitForTimeout(400);
+    ok(/Reclame wordt overgeslagen/.test(await pg.textContent('#pd-rc')) && await pg.evaluate(() => $('#pd-rc').classList.contains('aan')), 'podcast met hoofdstukken: "Reclame wordt overgeslagen"');
+    await pg.evaluate(() => pdOpen(Android._pc.top[1])); await pg.waitForTimeout(400);
+    ok(/Reclame overslaan kan hier niet$/.test(await pg.textContent('#pd-rc')), 'zonder hoofdstukken: dat staat er ook');
+    await pg.evaluate(() => { Android._ov.per.p1 = { reclame: false }; pdOpen(Android._pc.top[0]); }); await pg.waitForTimeout(400);
+    ok(/staat uit/.test(await pg.textContent('#pd-rc')), 'zelf uitgezet: "staat uit"');
+    await pg.evaluate(() => { Android._ov.per = {}; Android._pc.subs = [Object.assign({}, Android._pc.top[0]), Object.assign({}, Android._pc.top[1])]; show('podcasts'); pcSetTab('listen'); pcRenderSubs(); });
+    await pg.waitForTimeout(300);
+    const tegels = await pg.$$eval('#pc-subs .pcsub', x => x.map(b => ({ rc: !!b.querySelector('.pcrc'), l: b.getAttribute('aria-label') })));
+    ok(tegels.length === 2 && tegels[0].rc && !tegels[1].rc, 'schaartje alleen bij de podcast waar het werkt: ' + JSON.stringify(tegels.map(x => x.rc)));
+    ok(/reclame wordt overgeslagen/.test(tegels[0].l) && !/reclame/.test(tegels[1].l), 'ook voor de schermlezer');
+    await pg.evaluate(() => { delete Android._pc.subs[0].hs; }); // nog niet bijgewerkt na de update: geen schaartje (onbekend), geen fout
+
     // ---- Algemeen ----
     await pg.evaluate(() => show('podset')); await pg.waitForTimeout(200);
     ok(await pg.isVisible('#ps-ov') && await pg.getAttribute('#ps-reclame', 'aria-checked') === 'true', 'Instellingen: reclame overslaan staat aan');
+    ok(/Werkt nu bij 1 van de 2 podcasts die je volgt/.test(await pg.textContent('#ps-ov-n')), 'overzicht: bij hoeveel het werkt: ' + await pg.textContent('#ps-ov-n'));
     await pg.click('#ps-reclame');
     ok(await pg.getAttribute('#ps-reclame', 'aria-checked') === 'false' && await pg.evaluate(() => Android._ov.reclame === false), 'uit te zetten');
+    ok(/Werkt nu bij 0 van de 2/.test(await pg.textContent('#ps-ov-n')), 'overal uit: bij geen enkele');
     await pg.fill('#ps-woorden', 'partner, aanbieding'); await pg.press('#ps-woorden', 'Tab');
     ok(await pg.evaluate(() => Android._ov.woorden) === 'partner, aanbieding', 'extra woorden bewaard');
     await pg.evaluate(() => pdOpen(Android._pc.top[0])); await pg.waitForTimeout(400);

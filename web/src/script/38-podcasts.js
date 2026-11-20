@@ -201,6 +201,7 @@ function pcxRender(){
   $('#pcx-h1').textContent = subs ? 'Mijn podcasts' : 'Nieuwe afleveringen';
   nw.hidden = subs; gr.hidden = !subs;
   if (subs) {
+    pcSubTile.inst = typeof pkInst === 'function' ? pkInst() : null;
     gr.innerHTML = pcSubs.map(pcSubTile).join('') || '<p class="note" style="padding:14px">Je volgt nog geen podcasts.</p>';
     pcListRole(gr, pcSubs.length);
   } else {
@@ -237,14 +238,16 @@ function pcRenderSubs(){
   more.setAttribute('aria-label', t('Alle {n} podcasts tonen', { n: pcSubs.length }));
   pcListenEmpty();
   pcListRole($('#pc-subs'), pcSubs.length);
+  pcSubTile.inst = typeof pkInst === 'function' ? pkInst() : null; // één keer per keer tekenen
   $('#pc-subs').innerHTML = pcSubs.map(pcSubTile).join('');
   if (current === 'podlijst' && pcxKind === 'subs') pcxRender();
   const n = pcSubs.reduce((a, s) => a + (+s.fresh || 0), 0), el = $('#tile-podcasts-sub');
   if (el) el.textContent = n ? tn(n, '{n} nieuwe aflevering', '{n} nieuwe afleveringen') : t('Zoeken, volgen en luisteren');
 }
 function pcSubTile(s, i){
-  return '<div class="pcsubw" role="listitem"><button class="pcsub" onclick="pdOpenSub(' + i + ')" aria-label="' + esc(s.title) + (s.fresh ? ', ' + t('{n} nieuw', { n: s.fresh }) : '') + '">' +
-    pcArt(s.image) + (s.fresh ? '<span class="badge">' + (+s.fresh > 99 ? '99+' : +s.fresh) + '</span>' : '') + '<span class="t">' + esc(s.title) + '</span></button></div>';
+  const rc = typeof pkStatus === 'function' && pkStatus(s, pcSubTile.inst) === 'aan';
+  return '<div class="pcsubw" role="listitem"><button class="pcsub" onclick="pdOpenSub(' + i + ')" aria-label="' + esc(s.title) + (s.fresh ? ', ' + t('{n} nieuw', { n: s.fresh }) : '') + (rc ? ', ' + t('reclame wordt overgeslagen') : '') + '">' +
+    pcArt(s.image) + (s.fresh ? '<span class="badge">' + (+s.fresh > 99 ? '99+' : +s.fresh) + '</span>' : '') + (rc ? '<span class="pcrc" aria-hidden="true">' + uiIcon('scissors') + '</span>' : '') + '<span class="t">' + esc(s.title) + '</span></button></div>';
 }
 /* Vanuit de lijst "Alle": terug komt weer bij die lijst uit */
 function pdOpenSub(i){ const s = pcSubs[i]; if (!s) return; if (current === 'podlijst') jumpTo('podcast', () => pdOpen(s)); else pdOpen(s); }
@@ -342,6 +345,7 @@ function pdSubBtn(on){
 function pdMeta(){
   const l = (pdFeed && pdFeed.items) || [];
   $('#pd-meta').textContent = l.length ? [tn(l.length, '{n} aflevering', '{n} afleveringen'), l[0].date ? t('nieuwste {datum}', { datum: pcDate(l[0].date) }) : ''].filter(Boolean).join(' · ') : '';
+  if (typeof pkRcRegel === 'function') pkRcRegel();
 }
 window.onPodFeed = function(r){
   if (!pdPod || r.feedUrl !== pdPod.feed) return;

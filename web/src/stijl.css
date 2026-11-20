@@ -666,6 +666,13 @@ body.solo .toolslot .hdr .back{display:none}
 .pdhtxt b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:18px;line-height:1.25;font-weight:600;overflow-wrap:anywhere}
 .pdhtxt small{display:block;color:var(--muted);font-size:13px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pdhtxt small:empty{display:none}
+.pdhtxt small.pd-rc{display:flex;align-items:center;gap:4px;white-space:normal}
+.pdhtxt small.pd-rc:empty{display:none}
+.pd-rc .ui-icon{width:14px;height:14px;flex:none}
+.pd-rc.aan{color:var(--primary)}
+/* Schaartje op een podcast: reclame overslaan werkt hier (geen schaartje = werkt hier niet of nog onbekend) */
+.pcsub .pcrc{position:absolute;left:6px;top:6px;width:22px;height:22px;border-radius:999px;background:var(--card);color:var(--primary);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.pcsub .pcrc .ui-icon{width:14px;height:14px}
 .pdacts,.pdbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
 .pdchip{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border-radius:8px;border:1px solid var(--outline);background:var(--card);color:var(--ink);font-size:14px;font-weight:600;white-space:nowrap}
 .pdchip .ui-icon{width:18px;height:18px}
