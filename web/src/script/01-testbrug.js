@@ -760,7 +760,7 @@ if (!window.Android) window.Android = (function(){
       const act = this._aiAct(A.reply, r.noAct || r.messages.some(m => m.att)), wantAct = act.wanted(q), lrn = learn && !wantAct && !r.noLearn;
       if (wantAct || r.settings) onAiActWanted();
       const set = this._aiSet(A.reply, r.settings); // instellingen zoals LocalAi/AiSettings
-      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; A.busy = false; onAiDone(Object.assign({ done: true, n: words.length, turn }, used ? { mem: used } : {}, lrn ? { learning: true } : {}, wantAct && act.clean != null ? { clean: act.clean } : {}, act.action && wantAct ? { action: act.action } : {}, set.clean != null ? { clean: set.clean } : {}, set.list.length ? { settings: set.list } : {}));
+      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, A.tokMs || 60); } else { A.timer = null; A.busy = false; onAiDone(Object.assign({ done: true, n: words.length, turn }, used ? { mem: used } : {}, lrn ? { learning: true } : {}, wantAct && act.clean != null ? { clean: act.clean } : {}, act.action && wantAct ? { action: act.action } : {}, set.clean != null ? { clean: set.clean } : {}, set.list.length ? { settings: set.list } : {}));
         if (lrn) { A.learningNow = true; setTimeout(() => onAiMemory({ thinking: true, turn }), 20); setTimeout(() => {
           A.learningNow = false;
           if (A.learnStop) { A.learnStop = false; onAiMemory({ none: true, stopped: true, turn }); return; }
@@ -1608,7 +1608,7 @@ if (!window.Android) window.Android = (function(){
     backupStart(wa){ const b=this._bk; if(!this._wa.info.dest) return 'Kies eerst een backup-map'; b.busy=true; const ks=['sms','calls','contacts','notes','transcripts','music']; let i=0;
       const t=setInterval(()=>{ b.current=ks[i++]; if(i>ks.length){ clearInterval(t); b.busy=false; b.current='';
         b.last={t:Date.now(),auto:false,sms:{ok:true,count:1234},calls:{ok:true,count:842},contacts:{ok:true,count:311},notes:{ok:true,count:4},transcripts:{ok:true,count:0,msg:'Niets te bewaren'},music:{ok:false,count:0,msg:'Geen toestemming'}}; if(this._sec.on) b.last.archive='backup-2026-10-04_1342.rtb'; if(this._sec.rotate) b.last.rotated={count:2,bytes:31e6};
-        onBackupDone(b.last); } },150); return ''; },
+        onBackupDone(b.last); } },b.stap||150); return ''; },
     restorePick(k){ this._restoreKind = k; const P = {contacts:{kind:k,total:320,fresh:9,dup:311,sample:['Oom Kees','Tandarts']}, settings:{kind:k,total:12,fresh:5,dup:7,rules:2,favs:3,alarm:true,plan:false,reminders:0,sample:['Parkeren starten']}, route:{kind:k,total:1,fresh:1,dup:0,title:'Rondje Plas',points:420,stats:{distance:5230},sample:['Rondje Plas']},
         ai:{kind:'ai',memTotal:14,memFresh:3,memDup:11,memFull:0,chatTotal:9,chatFresh:2,chatDup:7,chatFull:0,total:23,fresh:5,sample:['Woont in <b>Rotterdam</b>.','Sport op dinsdag.']},
         sleep:{kind:'sleep',total:6,fresh:3,dup:1,old:2,running:0,bad:0,keep:14,clips:17,audio:0,audioBytes:0,withAudio:true,sample:[Date.now()-864e5,Date.now()-2*864e5,Date.now()-3*864e5]},

@@ -162,7 +162,7 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._sl.txMs = 4000; });
     await pg.click('#sl-btn');
     ok(await pg.waitForFunction(() => Android._sl.phase === 'uitschrijven' && $('#sl-status').textContent.includes('Uitschrijven… 0 van 2'), null, { timeout: 3500, polling: 50 }).then(() => true, () => false), 'na het stoppen: alleen de rest (2) uitschrijven');
-    await pg.waitForFunction(() => Android._sl.phase === '' && ($('#sl-nights .strow') || {}).textContent.includes('2 keer gepraat'), null, { timeout: 15000, polling: 100 }).catch(() => {});
+    await pg.waitForFunction(() => Android._sl.phase === '' && ($('#sl-nights .strow')?.textContent || '').includes('2 keer gepraat'), null, { timeout: 15000, polling: 100 }).catch(() => {});
     ok(await pg.evaluate(() => Android._sl.phase === '' && Android._sl.txLast === 2) && (await pg.textContent('#sl-nights .strow:first-child')).includes('2 keer gepraat'), 'klaar: de rest is uitgeschreven');
     await pg.evaluate(() => { Android._sl.txMs = 0; Android._sl.directWait = ''; });
     await pg.click('#sl-nights .strow:first-child'); await pg.waitForTimeout(200);

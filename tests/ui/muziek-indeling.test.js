@@ -35,10 +35,13 @@ const path = require('path');
 
     // Herkennen: de knop heet Stoppen tijdens het luisteren; de stand is een status
     ok(await pg.getAttribute('#mu-state', 'role') === 'status', tag + 'stand wordt voorgelezen (role=status)');
-    await pg.click('#mu-btn'); await pg.waitForTimeout(250); // eerst de microfoon, daarna start hij vanzelf
-    await pg.waitForFunction(() => $('#mu-btn').classList.contains('busy'), null, { timeout: 3000 }).catch(() => {});
-    ok(await pg.getAttribute('#mu-btn', 'aria-label') === 'Stoppen', tag + 'tijdens het luisteren heet de knop Stoppen');
-    await pg.waitForSelector('#mu-result .mucard', { timeout: 6000 }).catch(() => {});
+    await pg.evaluate(() => { window.__muLabels = []; window.__muStatus = 0; const b = $('#mu-btn');
+      new MutationObserver(() => window.__muLabels.push((b.classList.contains('busy') ? 'busy:' : '') + b.getAttribute('aria-label'))).observe(b, { attributes: true });
+      new MutationObserver(() => window.__muStatus++).observe($('#mu-state'), { childList: true, characterData: true, subtree: true }); });
+    await pg.click('#mu-btn'); // eerst de microfoon, daarna start hij vanzelf
+    await pg.waitForSelector('#mu-result .mucard', { timeout: 8000 }).catch(() => {});
+    ok(await pg.evaluate(() => window.__muLabels.includes('busy:Stoppen')), tag + 'tijdens het luisteren heet de knop Stoppen');
+    ok(await pg.evaluate(() => window.__muStatus <= 6), tag + 'de stand verandert alleen bij een nieuwe stand (' + await pg.evaluate(() => window.__muStatus) + ' keer)');
     ok(await pg.getAttribute('#mu-btn', 'aria-label') === 'Herkennen', tag + 'daarna weer Herkennen');
     ok(await pg.evaluate(() => [...document.querySelectorAll('#mu-result .mulinks button')].every(x => /^https:/.test(x.dataset.u) && x.getBoundingClientRect().height >= 44 && /^Openen in /.test(x.getAttribute('aria-label')))), tag + 'links: https, 44 px hoog en een naam');
     ok(await pg.evaluate(() => !$('#mu-hist-h').hidden && $('#mu-hist-h').textContent === 'Herkende nummers (1)' && $('#mu-search').hidden), tag + 'één nummer: kop met aantal, nog geen zoekveld');

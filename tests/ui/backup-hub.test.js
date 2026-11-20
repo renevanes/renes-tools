@@ -173,11 +173,16 @@ const FOLD = 844;
     await pg.evaluate(() => { Android._bk.auto = null; });
     // Nu alles back-uppen: tijdens de backup bezig (ook op Automatisch en versleutelen), daarna weer te gebruiken
     await naar(pg, 'backup');
-    await pg.click('#bk-run'); await pg.waitForTimeout(350 * W);
+    // De nagebootste backup duurt hier ±4 s (anders ±1 s): onder belasting of bij de herkansing was hij al klaar
+    await pg.evaluate(() => { Android._bk.stap = 600; });
+    await pg.click('#bk-run');
+    await pg.waitForFunction(() => $('#bk-run').disabled && /Bezig/.test($('#bk-run').textContent), null, { timeout: 3000 }).catch(() => {});
     ok(await pg.isDisabled('#bk-run') && /Bezig/.test(await pg.textContent('#bk-run')), tag + ': tijdens de backup: bezig');
-    await naar(pg, 'bkset'); await pg.waitForTimeout(250 * W);
+    await naar(pg, 'bkset'); await pg.waitForTimeout(250);
     ok(await pg.isVisible('#bk-set-busy') && await pg.isDisabled('#bk-enc-btn') && await pg.isDisabled('#bk-rotate-btn') && await pg.isDisabled('#bk-dest-btn'), tag + ': Automatisch en versleutelen: regel "bezig", wachtwoord, opruimen en map even niet');
-    await naar(pg, 'backup'); await pg.waitForTimeout(1500 * W);
+    await naar(pg, 'backup');
+    await pg.waitForFunction(() => !Android._bk.busy && !$('#bk-run').disabled, null, { timeout: 15000 }).catch(() => {}); await pg.waitForTimeout(150);
+    await pg.evaluate(() => { delete Android._bk.stap; });
     ok(!(await pg.isDisabled('#bk-run')) && (await pg.textContent('#bk-run')) === 'Nu alles back-uppen', tag + ': na de backup is Nu alles back-uppen weer te gebruiken');
     await naar(pg, 'bkset');
     ok(!(await pg.isVisible('#bk-set-busy')) && !(await pg.isDisabled('#bk-enc-btn')) && !(await pg.isDisabled('#bk-rotate-btn')), tag + ': daarna alles weer aan te passen');

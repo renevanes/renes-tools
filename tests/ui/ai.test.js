@@ -24,9 +24,13 @@ const { chromium } = require('playwright');
     await pg.click('#ai-sugg .chip:has-text("Vertaal")'); await pg.waitForTimeout(100);
     ok((await pg.inputValue('#ai-in')).startsWith('Vertaal naar het Engels'), 'suggestie vult het invoerveld');
     await pg.fill('#ai-in', 'Wie ben jij?'); await pg.evaluate(() => aiGrow());
-    await pg.click('#ai-send'); await pg.waitForTimeout(300);
+    // Wachten op de toestand (met een trager antwoord): bij de herkansing met dubbele wachttijd was het antwoord al klaar
+    await pg.evaluate(() => { Android._ai.tokMs = 250; });
+    await pg.click('#ai-send');
+    await pg.waitForFunction(() => $('#ai-send').getAttribute('aria-label') === 'Stoppen', null, { timeout: 3000 }).catch(() => {});
     ok((await pg.getAttribute('#ai-send', 'aria-label')) === 'Stoppen', 'tijdens het antwoord: stopknop');
-    await pg.waitForTimeout(900);
+    await pg.waitForFunction(() => $('#ai-send').getAttribute('aria-label') === 'Versturen', null, { timeout: 15000 }).catch(() => {});
+    await pg.evaluate(() => { delete Android._ai.tokMs; }); await pg.waitForTimeout(100);
     ok((await pg.textContent('#ai-msgs .aimsg:not(.me) .aib')).includes('Hallo! Ik ben je assistent.') && await pg.$('#ai-msgs .aimsg:not(.me) .aib b') && (await pg.$$('#ai-msgs .aimsg:not(.me) li')).length === 2, 'antwoord in stukjes, met opmaak');
     ok((await pg.getAttribute('#ai-send', 'aria-label')) === 'Versturen', 'klaar: weer versturen');
     ok(await pg.evaluate(() => Android._ai.last.messages.length === 1 && Android._ai.last.messages[0].content === 'Wie ben jij?' && !Android._ai.last.notes), 'de vraag gaat naar de assistent');
@@ -56,8 +60,12 @@ const { chromium } = require('playwright');
     await pg.click('#aic-list .pcep .pcepb'); await pg.waitForTimeout(200);
     ok((await pg.$$('#ai-msgs .aimsg')).length === 4, 'eerder gesprek weer open');
     // Nieuw gesprek tijdens een antwoord: het oude gesprek wordt (tot dan) bewaard, de nieuwe blijft leeg
-    await pg.fill('#ai-in', 'Lange vraag'); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(320);
+    // Het antwoord loopt hier traag (400 ms per woord), zodat het onder belasting nog bezig is als je op Nieuw tikt
+    await pg.evaluate(() => { Android._ai.tokMs = 400; });
+    await pg.fill('#ai-in', 'Lange vraag'); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send');
+    await pg.waitForFunction(() => aiBusy && aiCur && aiCur.c, null, { timeout: 5000 }).catch(() => {});
     await pg.click('#ai-new'); await pg.waitForTimeout(300);
+    await pg.evaluate(() => { delete Android._ai.tokMs; });
     ok((await pg.$$('#ai-msgs .aimsg')).length === 0 && (await pg.getAttribute('#ai-send', 'aria-label')) === 'Versturen', 'nieuw gesprek tijdens een antwoord: leeg en weer klaar');
     ok(await pg.evaluate(() => { const c = Android._ai.chats[0]; const l = c.msgs[c.msgs.length - 1]; return c.msgs.length === 6 && l.r === 'ai' && l.stopped; }), 'het onderbroken antwoord is bewaard in het oude gesprek');
     await pg.click('#ai-menu'); await pg.click('#sheet-acts button:has-text("Eerdere gesprekken")'); await pg.waitForTimeout(150);

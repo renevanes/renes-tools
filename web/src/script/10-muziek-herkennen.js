@@ -45,8 +45,10 @@ function muPollOnce(){
   const label = busy ? t('Stoppen') : t('Herkennen');
   if (btn.getAttribute('aria-label') !== label) btn.setAttribute('aria-label', label);
   const stateTxt = st.state === 'recording' ? t('Luisteren…') : t('Tik om te herkennen');
-  if (st.state === 'sending') uiWachtTekst($('#mu-state'), t('Zoeken…'));
-  else if ($('#mu-state').textContent !== stateTxt) $('#mu-state').textContent = stateTxt;
+  const stEl = $('#mu-state');
+  // alleen bij een verandering: de stand is een status (TalkBack leest elke nieuwe tekst voor)
+  if (st.state === 'sending') { if (stEl.textContent !== t('Zoeken…')) uiWachtTekst(stEl, t('Zoeken…')); }
+  else if (stEl.textContent !== stateTxt) stEl.textContent = stateTxt;
   const sub = st.state === 'recording' ? t('Tik nogmaals om te stoppen') : st.state === 'sending' ? t('Even geduld') : t('Houd de telefoon bij de muziek');
   if ($('#mu-sub').textContent !== sub) $('#mu-sub').textContent = sub;
   if ((st.state === 'done' || st.state === 'error') && st.at !== muLastAt) {
