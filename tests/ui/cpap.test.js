@@ -95,6 +95,23 @@ const { chromium } = require('playwright');
       await page.getByRole('heading', {name: 'CPAP analysis', exact: true}).waitFor();
       await page.getByRole('heading', {name: 'Compare by mask'}).waitFor();
       assert.match(await page.locator('#cp-maskers').innerText(), /15\/20 points · 2 nights/);
+      await page.evaluate(day => {
+        Android._cpImport = [
+          { day: rgDayAdd(day, -2), mask: 'Onbekend masker', usage: 0, score: 20 },
+          { day: rgDayAdd(day, -3), mask: 'Onbekend masker', usage: 390, ahi: 5.5, leak95: 21, sessions: 2 },
+          { day, mask: 'Onbekend masker', usage: 2, ahi: 12 }
+        ];
+      }, vandaag);
+      await page.getByRole('button', {name: 'Import myAir ZIP'}).click();
+      await page.getByText('Added: 2. Already present: 1.').waitFor();
+      assert.equal(await page.locator('#cp-nachten button').count(), 4);
+      assert.match(await page.locator('#cp-samenvatting').innerText(), /2 of 3/);
+      assert.match(await page.locator('#cp-samenvatting').innerText(), /Average AHI\s+3\/h/);
+      assert.equal(await page.locator('#cp-meting').inputValue(), 'ahi');
+      await page.selectOption('#cp-meting', 'leak95');
+      assert.equal(await page.locator('#cp-verloop li').count(), 1);
+      await page.getByRole('button', {name: 'Import myAir ZIP'}).click();
+      await page.getByText('Added: 0. Already present: 3.').waitFor();
       await page.close();
     }
   } finally {
