@@ -2848,7 +2848,7 @@ public class MainActivity extends Activity {
                 try { Secure.setPassword(ctx, pw); AllBackupJob.ensureScheduled(ctx); } // (elke nacht: standaard aan met versleutelen)
                 catch (Exception e) { r = e.getMessage() != null ? e.getMessage() : "Instellen mislukt"; App.log(ctx, "SECURE", "wachtwoord: " + e); }
                 a.js("onSecure", JSONObject.quote(r));
-            }), "secure").start();
+            }, () -> a.js("onSecure", JSONObject.quote(Taal.t(ctx, "Instellen mislukt")))), "secure").start();
         }
 
         /** Versleutelen uit: de privé-onderdelen (assistent, Slaappraat, Check-in) gaan dan ook uit; weer aanzetten vraagt eerst. */
