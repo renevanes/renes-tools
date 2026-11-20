@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.241",
+    "date": "2026-11-20",
+    "changes": [
+      "Muziek herkennen: de grote knop staat bovenaan met meteen eronder wat er naar AudD gaat; sleutel wijzigen en het aantal herkenningen staan nu onder ⋯ rechtsboven, en boven de herkende nummers staat een kop met het aantal (zoeken pas bij een langere lijst)",
+      "Muziek herkennen: beter met TalkBack (de knop zegt Stoppen tijdens het luisteren, de stand wordt voorgelezen) en een te korte sleutel geeft een melding bij het veld"
+    ]
+  },
+  {
     "version": "1.240",
     "date": "2026-11-20",
     "changes": [

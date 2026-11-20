@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.240",
-  "versionCode": 241,
+  "versionName": "1.241",
+  "versionCode": 242,
   "nativeLevel": 207,
   "web": "index.html",
-  "webSha256": "1f1b62b72f91409497fc7cfccd05563d9e3f463cb925d7cadc8090ac73bd7e63",
+  "webSha256": "cf01c0c90eae493b1266d23a3c745868035dcc322d2612f3d3740ef309b0ea18",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "dfd7e7687027638e992194db0de854a2862a906d7a9897dbec446d86187dd687",
+  "apkSha256": "142dbb02222d7d89696d2b607b3da8aef04103afc8e3f3a3a64d0bdc67276cbb",
   "changelog": [
+    {
+      "version": "1.241",
+      "date": "2026-11-20",
+      "changes": [
+        "Muziek herkennen: de grote knop staat bovenaan met meteen eronder wat er naar AudD gaat; sleutel wijzigen en het aantal herkenningen staan nu onder ⋯ rechtsboven, en boven de herkende nummers staat een kop met het aantal (zoeken pas bij een langere lijst)",
+        "Muziek herkennen: beter met TalkBack (de knop zegt Stoppen tijdens het luisteren, de stand wordt voorgelezen) en een te korte sleutel geeft een melding bij het veld"
+      ]
+    },
     {
       "version": "1.240",
       "date": "2026-11-20",
@@ -172,16 +180,7 @@
         "Startscherm: lange tegelnamen (zoals Automatiseringen en Documentenkluis) worden niet meer midden in een woord afgebroken; zo nodig wordt alleen die naam iets kleiner.",
         "Documentenkluis: een document waarvan de tekst drie keer niet te lezen was, heeft in het menu ⋯ de keuze \"Tekst opnieuw lezen\"."
       ]
-    },
-    {
-      "version": "1.221",
-      "date": "2026-11-17",
-      "changes": [
-        "WhatsApp backup: \"Alles back-uppen\" is pas te kiezen als Tools bij de bestanden kan en de WhatsApp-map vindt; de uitleg over wat er gekopieerd wordt staat nu onder \"Hoe werkt dit?\".",
-        "WhatsApp backup: zonder backup-map opent \"Alles back-uppen\" nu ook in het Engels meteen de mapkiezer; \"Selectie back-uppen\" is uit zolang er niets is aangevinkt.",
-        "WhatsApp backup: TalkBack hoort bij Selectie per onderdeel of het aangevinkt is."
-      ]
     }
   ],
-  "webSig2": "CKHVvzzG5Z7EvZ/Ux2PMBeiCTB49xKYQ9/12y0tAGpuEoQDD5jF1gXMNPlSSanTW+TkRWZfgWY0ad+raYlJ0u7eLYNtwDmgonAToeTKv70lfL599EonWWeKmlVkkOrmGATwP6QzgDk8Viy6GUsGZacv/N5n6Ed5afoYht6cQw39zACCFH72495x/L9GCfzafjaItlBS/3/CIHvMO0SLg8fLc+JMVo8cIz3h8lJAvNZJMeJS8phKfx4FlyDQaczDUI/X8KDjPgSkBFy+VyuA9UaKcSpngW/TluG3MZp5OcxdULSinz1R2HSrdbme22O1n3DLcIxJr9zweT2vtnq1+TOhmKdbyK8FsuDwkwEICot7c033Yi2spCKwhKIk7iu3YrDxklG+XDuFOR0XrPTqMcrDb2GZ6Nl19zdlWXvQ72FHCohjk0latDCCmz7EtM8bzqQlRWrtObEcD8VWHmVGvjjrTtAi8e4ZUDDXjsMP8BmMEGsR8HNNmo3iHkT0LUpHW"
+  "webSig2": "USQ6rYhFuH5PSfOgOGlw4yd054DOf4lzst2BtZZQUaKK6r4OmbwucDY5c7MmnDOcuf8Ku8bJA5CpF6AhUil2h8pLUJipwSYLEJwjGd7pfHb8sOjiBxx5MxrmZEkPDYypwzIMioXmnWKu4IgtmogHjdoBKTv9hobs0X0o8DAAsVZCeT/naB1nVSpUtArTaDBBnUhZokiCSpRv9xPHpFsYJfXzbtNjjA61JkmuREmpvDIgiBIn2QKI0MPd1F0rb+9T0NFqQ3k2pp0qALp+8wdHEA43kQ9j8tCmiSPO+z51u3lBik0OxwpwfNhoRBikS2LnmTNqkoyOhCsYmx3V+sdao9g0cXVRHkD8QXvhdLSG9QfRpzXIs4KqKIt1WvWXeXJduXOsEu75pIprE7tT18JinIlsym2Xw0F4GYMMlCtemnDOifZsN0rcA+ACtKPLJeEIX7zcij/mdR81ux/gUdvvlm7y6uE+PGu2HrXbVwNSPf11EBwzJ4JHU7JJRDVrA4Z3"
 }
