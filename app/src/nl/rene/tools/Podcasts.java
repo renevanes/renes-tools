@@ -904,7 +904,7 @@ final class Podcasts {
         }
         // Overslaan (reclame, begin en einde): alleen als hier nog niets ingesteld is
         JSONObject ov = o.optJSONObject("overslaan");
-        if (ov != null && !PodcastOverslaan.bestand(c).isFile()) try { PodcastOverslaan.bewaar(c, ov); } catch (Exception ignored) { }
+        if (ov != null && !PodcastOverslaan.bestand(c).isFile()) try { PodcastOverslaan.bewaar(c, ov); PodcastService.instellingenGewijzigd(); } catch (Exception ignored) { }
         JSONObject pr = o.optJSONObject("progress");
         if (pr != null) {
             long now = System.currentTimeMillis();

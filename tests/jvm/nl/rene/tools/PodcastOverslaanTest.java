@@ -17,11 +17,14 @@ public class PodcastOverslaanTest {
         // Reclame aan de titel
         for (String t : new String[]{"Reclame", "Advertentie", "Reclameblok 2", "Sponsor: Bol", "Gesponsorde inhoud", "Ad", "Ads", "ad break",
                 "Ad 2", "Midroll", "Pre-roll", "Advertisement", "Onze sponsors", "COMMERCIAL", "Promo", "Een woord van onze sponsor",
-                "Brought to you by Acme", "Commerciële onderbreking", "Sponsor - Coolblue en meer", "Reclame (2)"})
+                "Brought to you by Acme", "Commerciële onderbreking", "Sponsor - Coolblue en meer", "Reclame (2)", "Thanks to our sponsors",
+                "Sponsor: Bol.com", "Ads: Squarespace", "Reclame — Albert Heijn"})
             check(PodcastOverslaan.isReclame(t, geen), "reclame: " + t);
         for (String t : new String[]{"Ad Melkert over de PvdA", "Adverbia in het Nederlands", "Inleiding", "Bad Bunny", "Ads in de krant van toen", "",
                 "Commercial real estate in 2026", "De toekomst van advertising", "Sponsoring in de sport", "Reclame in de jaren 80",
-                "Gesprek met de reclamecodecommissie", "Een advertentie in de krant", "Promotie van het team"})
+                "Gesprek met de reclamecodecommissie", "Een advertentie in de krant", "Promotie van het team",
+                "Sponsor-deal Ajax besproken", "Ad (Melkert) over de PvdA", "Promo - nieuwe single van Goldband", "De macht van reclame",
+                "Waarom wij geen sponsor", "Sponsoring in sport", "Ads van vroeger"})
             check(!PodcastOverslaan.isReclame(t, geen), "geen reclame: " + t);
         check(PodcastOverslaan.isReclame("Een woord van onze partner", PodcastOverslaan.woorden("partner, aanbieding")), "eigen woord telt");
         check(!PodcastOverslaan.isReclame("Partnerschap", PodcastOverslaan.woorden("partner")), "eigen woord alleen als heel woord");
@@ -63,6 +66,10 @@ public class PodcastOverslaanTest {
         check(PodcastOverslaan.outroVanaf(k, 60_000) == -1 && PodcastOverslaan.stukken(k, r, 50_000).isEmpty(), "korte aflevering: niets van begin en einde");
         k.reclame = false;
         check(PodcastOverslaan.stukken(k, r, 1800_000).size() == 1, "reclame uit: alleen de intro");
+        k.reclame = true; k.intro = 0;
+        List<PodcastOverslaan.Stuk> heel = PodcastOverslaan.reclameUit("{\"chapters\":[{\"startTime\":0,\"title\":\"Advertorial\"}]}", 900_000, geen);
+        check(heel.size() == 1 && PodcastOverslaan.stukken(k, heel, 900_000).isEmpty(), "gesponsorde aflevering (reclame over meer dan de helft): niet overslaan");
+        k.intro = 30;
         k.reclame = true;
         Set<Long> toe = new HashSet<>();
         check(PodcastOverslaan.nu(st, 5_000, toe).waarom.equals("intro"), "in de intro");
@@ -90,6 +97,7 @@ public class PodcastOverslaanTest {
         check(k1.reclame && k1.intro == 600, "eigen keuze gaat voor");
         check(!k3.reclame && k3.outro == 20 && !k9.reclame && k9.intro == 0, "anders de standaard");
         check(PodcastOverslaan.schoon(null).optBoolean("reclame"), "standaard: reclame overslaan aan");
+        check(PodcastOverslaan.schoon(new JSONObject(s.toString())).toString().equals(s.toString()), "bewaren en terugzetten (backup): hetzelfde");
 
         // Feed: het hoofdstukkenadres per aflevering (alleen https, alleen JSON)
         String rss = "<rss xmlns:podcast=\"https://podcastindex.org/namespace/1.0\"><channel><title>T</title>"

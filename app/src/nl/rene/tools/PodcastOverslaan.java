@@ -47,11 +47,14 @@ final class PodcastOverslaan {
      *   sponsor") of vooraan met een scheidingsteken erna ("Sponsor: Bol"). Zo blijft "Reclame in de jaren 80" staan.
      * - KORT: woorden die alleen als hele titel reclame zijn ("Ad", "Commercial", "Promo"; niet "Ad Melkert").
      */
-    private static final String WOORD = "reclame\\w*|advertentie\\w*|advertorial|advertisement\\w*|sponsor\\w*|gesponsord\\w*|ad ?break|ad ?read|ad ?spot";
+    private static final String WOORD = "reclames?|reclameblok\\w*|reclamespot\\w*|reclameboodschap\\w*|reclamepauze|advertenties?|advertorial|"
+            + "advertisements?|sponsors?|sponsoren|sponsored|gesponsord\\w*|ad ?break|ad ?read|ad ?spot";
     private static final Pattern ZIN = Pattern.compile("\\b(brought to you by|commerciele (boodschap|onderbreking)|mid ?roll|pre ?roll|post ?roll)\\b");
     private static final Pattern STERK = Pattern.compile("\\b(" + WOORD + ")\\b");
-    private static final Pattern VOORAAN = Pattern.compile("^[^\\p{L}\\p{N}]*(" + WOORD + "|ads?|promo)\\s*[:|(\\[–—-]");
-    private static final Pattern EIND = Pattern.compile("\\b(sponsor|sponsors|sponsoren|reclame|advertentie|advertenties|advertorial|advertisement|advertisements)$");
+    /* Vooraan met een dubbele punt, of met een los streepje (" - ", "–", "—") erna; "ads" en "promo" alleen met een dubbele punt */
+    private static final Pattern VOORAAN = Pattern.compile("^[^\\p{L}\\p{N}]*((" + WOORD + ")\\s*(:|\\s[-–—]\\s|[–—])|(ads?|promos?)\\s*:)");
+    /* "Een woord van onze sponsor", "Thanks to our sponsors": de sponsor van deze aflevering */
+    private static final Pattern EIND = Pattern.compile("\\b(onze|our|deze|this|todays|today s)( \\w+){0,2} (sponsor|sponsors|sponsoren)$");
     private static final Pattern KORT = Pattern.compile("^(ad|ads|advert|adverts|advertising|commercial|commercials|promo|promos|commercial break)( \\d+)?$");
 
     static String normaal(String s) {
@@ -136,7 +139,8 @@ final class PodcastOverslaan {
         long intro = k == null ? 0 : Math.max(0, Math.min(MAX_SEC, k.intro)) * 1000L;
         // Bij een korte aflevering (of onbekende lengte niet groter dan de helft) geen intro overslaan
         if (intro > 0 && (durMs <= 0 || intro < durMs / 2)) l.add(new Stuk(0, intro, INTRO, ""));
-        if (k == null || k.reclame) for (Stuk s : reclame) if (durMs <= 0 || s.van < durMs) l.add(s);
+        // Beslaat "reclame" meer dan de helft van de aflevering (een gesponsorde aflevering), dan niet: anders is hij meteen af
+        if (k == null || k.reclame) for (Stuk s : reclame) if (durMs <= 0 || (s.van < durMs && s.tot - s.van <= durMs / 2)) l.add(s);
         Collections.sort(l, (x, y) -> Long.compare(x.van, y.van));
         return l;
     }

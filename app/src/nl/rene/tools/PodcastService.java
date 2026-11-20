@@ -669,6 +669,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         sleepEnd = false; sleepAt = 0;
         h.removeCallbacks(sleepTick);
         releaseWifi();
+        releaseAutoWake(); // ook als hij al bij het laden af was (een stuk tot het eind overgeslagen)
         abandonFocus();
         update();
         detach();
