@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.234",
+    "date": "2026-11-20",
+    "changes": [
+      "Betalen kijkt na of de ontvanger klopt: of het een officieel rekeningnummer is van bijvoorbeeld het CJIB of de Belastingdienst, bij welke bank de rekening is en of je er eerder naartoe betaalde. Noemt een rekening het CJIB of de Belastingdienst met een ander rekeningnummer, dan zie je een duidelijke waarschuwing.",
+      "Betalen zet bij een officieel rekeningnummer de juiste naam (bijvoorbeeld CJIB), ook als de tekstherkenning de naam verkeerd las; anders de naam van je vorige betaling naar dat rekeningnummer.",
+      "Nieuw bij een betaling: Zoek het rekeningnummer op internet (na een vraag, in je browser).",
+      "CPAP-analyse: neem je nachtwaarden uit ResMed myAir over, volg maskerlekkage en vergelijk je maskers onder Dag & gezondheid."
+    ]
+  },
+  {
     "version": "1.233",
     "date": "2026-11-19",
     "changes": [
