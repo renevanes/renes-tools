@@ -375,7 +375,9 @@ kijkt per gebied naar de hele app, ook naar code die al lang bestaat.
   gegevens wegsturen alleen na een handeling of instelling van Rene, en alleen naar bestemmingen die hij zelf koos.
 - **Nieuwe toestemmingen, geëxporteerde onderdelen** (`exported="true"`, intent-filters, providers, `PendingIntent`-vlaggen)
   **en verbindingen naar buiten**: bewust, met de reden erbij, en bijgewerkt in `docs/privacybeleid*.md` en
-  `docs/play-data-safety.md`.
+  `docs/play-data-safety.md`. De reden staat in `tests/manifest/lijst.json`: `tests/manifest/controle.py` (vanuit
+  `run-ui.sh`) faalt op elke toestemming, elk geëxporteerd onderdeel (met acties en data), `android:permission`,
+  `grantUriPermissions`, `<queries>`-item of instelling op `<application>` die niet (zo) op die lijst staat.
 - **WebView-instellingen**: geen `file://`- of `content://`-toegang, geen mixed content; `setWebContentsDebuggingEnabled`
   alleen zoals bij Meekijken in Nieuws (na een waarschuwing, zichtbaar, en vanzelf weer uit). Vensters met websites van buiten (Bank, Facturen, Nieuws-inloggen) krijgen nooit de brug
   `Android`, hooguit een eigen kleine brug (`BrBrug`, `FrBrug`) die alleen doet wat dat venster nodig heeft, en laden
