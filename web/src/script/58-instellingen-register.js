@@ -534,7 +534,7 @@ const SET_EXCLUDE = [
   ['#sn-filter', 'Filter in de lijst van Signalen, geen instelling'],
   ['#bt-filter, #btd-ibans', 'Filter in de lijst van Betalen en keuze uit de gelezen rekeningnummers, geen instelling'],
   ['#s-betaling input', 'Hoort bij één betaling'],
-  ['#s-betalenset select, #s-betalenset input', 'Betalen: je bank en je eigen rekeningnummers stel je op het scherm in (een IBAN wordt daar gecontroleerd)'],
+  ['#s-betalenset select, #s-betalenset input, #bts-stuk', 'Betalen: je bank, je eigen rekeningnummers en of de rekening in de kluis gaat stel je op het scherm in (een IBAN wordt daar gecontroleerd; de kluis is privé)'],
   ['#s-snset .tg, #s-snset input, #s-snbron .tg, #s-snbron select', 'Signalen: bronnen, stille uren en het dagoverzicht stel je op het scherm in (een bron heeft een adres en trefwoorden nodig)'],
   ['#s-agafspraak .tg, #s-agafspraak select, #s-agafspraak input', 'Hoort bij één afspraak; je vult het in en bewaart het op dat scherm'],
   ['#s-wcbewerk select, #s-wcbewerk input', 'Hoort bij één plek van Toiletten en douches (aanpassen of toevoegen); bewaard met Bewaren'],
