@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.237",
+    "date": "2026-11-20",
+    "changes": [
+      "Podcasts slaan reclame vanzelf over als de podcast hoofdstukken meegeeft en een hoofdstuk reclame, advertentie of sponsor heet; je ziet dan even \"Reclame overgeslagen\" met Terug.",
+      "Per podcast (⋯ → Overslaan) kies je of reclame overgeslagen wordt en hoeveel seconden van het begin en het einde; bij Instellingen van Podcasts zet je het voor alles aan of uit en voeg je eigen woorden toe."
+    ]
+  },
+  {
     "version": "1.236",
     "date": "2026-11-20",
     "changes": [

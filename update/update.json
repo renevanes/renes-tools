@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.236",
-  "versionCode": 237,
-  "nativeLevel": 203,
+  "versionName": "1.237",
+  "versionCode": 238,
+  "nativeLevel": 204,
   "web": "index.html",
-  "webSha256": "31764c62f5ba5560797b0ec516ac6568cb6116144e70334f0fe3dad590b24ba0",
+  "webSha256": "9626740351f911977821c4d6da71b528d27dfe05dbe03eed306d7721251e13b0",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1caebf723e41d433c77a529366459353a33d13fbcbe009ef49c7d153afd8ce7a",
+  "apkSha256": "1458b8f54cd7e4220d15c42c9df13603f0f87ab23b6c27f9a174013a35641a4b",
   "changelog": [
+    {
+      "version": "1.237",
+      "date": "2026-11-20",
+      "changes": [
+        "Podcasts slaan reclame vanzelf over als de podcast hoofdstukken meegeeft en een hoofdstuk reclame, advertentie of sponsor heet; je ziet dan even \"Reclame overgeslagen\" met Terug.",
+        "Per podcast (⋯ → Overslaan) kies je of reclame overgeslagen wordt en hoeveel seconden van het begin en het einde; bij Instellingen van Podcasts zet je het voor alles aan of uit en voeg je eigen woorden toe."
+      ]
+    },
     {
       "version": "1.236",
       "date": "2026-11-20",
@@ -177,18 +185,7 @@
         "Signalen, Taken van Tools: als de backup, facturen ophalen of het bijwerken van Toiletten en douches mislukt.",
         "Signalen: staat een tool op slot (Extra ontgrendelen), dan staat de inhoud van zijn berichten niet in de melding en niet in de lijst tot je ontgrendelt."
       ]
-    },
-    {
-      "version": "1.217",
-      "date": "2026-11-16",
-      "changes": [
-        "Nieuw: Signalen. Volg een website (bijvoorbeeld het nieuws van A Seal) op trefwoorden en krijg een melding als er iets nieuws staat. Je vindt het op het startscherm bij Dag & gezondheid.",
-        "Signalen: per bron kies je hoe vaak Tools kijkt (elk uur tot elke week, standaard 4 keer per dag en alleen via wifi) en hoe je het hoort: meteen een melding, in het dagoverzicht of alleen in Signalen.",
-        "Signalen: stille uren (standaard 22:00 tot 07:30), behalve voor een bron die je belangrijk noemt. Werkt een bron drie keer achter elkaar niet, dan krijg je daar één melding van.",
-        "Signalen: staat er een datum in een bericht, dan zet je het met één tik in je agenda. Je kunt er ook een notitie van maken, het laten voorlezen, laten samenvatten door de lokale AI of je er later aan laten herinneren.",
-        "Signalen: met Proef zie je vooraf wat een bron nu zou vinden. Alles gebeurt op je telefoon; er zit geen dienst tussen."
-      ]
     }
   ],
-  "webSig2": "Q4YzCrV/eGav4BUFopLu8mtssX6AorbV9XgaSlc42fbyk4nezptTwyrhoOqGOa37JtVf6l4Uf61uIMjS0IMsLQ1/Hg/DJGaf/azHr1rctpKXm8N4T9qCL6A+1W+8/hwoOauhhlPMTecX8PfCibB4+qbMEn2x0befjg6sEviXyElmhrNU8a+lPXFlexTZdJnxQ82hq03zNZp3YP96A5k4IcB4YqXbSqjJeMftvPXc2L1f9rxfHXEtbJ6uSeE8QcHpoHB42u2vyssfYXzaERsK5Dh/FnphEa1YqCQ2I4NGl+oqc/XSCEXxc4tUybirNgi51K56UTGqKnS0LiV+mI39UfEyPYEBuPmdkH4Qz+1nBa2TjWyfdTpIpVxQ4BVnInDgLVW0Rcj+b093WF5Mx0CVKIR+d6S5cquVnMo5FjSoKrS1wiVHgizYPG+iN4HaW60gZjxSJoS0UTs6UpTe2f5bUhZH7hY98yqQrxTLIANMFqJr1aPVF7PgzilWdV/4CQSg"
+  "webSig2": "XTdXx5FKT9h2xCo5PUmDBNbxrC+SxAbqnGJgDTp5D9aktc/jRNPCT1HtQHzh+Wc77TRJW0aLDWzUcy0/PwuLpmq/U/lNnv35Ws5tDxJSy4axFfTfynqniLcK+ErYFKDW7EollitPmHzxoOTaiqBM7kxQGQWedpgvBMwSOnuf5w1mU+KplUWRNbx/wQIrx+ptwzNjyyYycN21E3TdniX+Nb/vo7mq6DhvTuf5j/Zr/WDTYSCAqk0PLGnkmCE3VEXY/8KieGk9na/Aqlc3MX9oul6QD5LLxzjJNTNOQlFZ/YQjCE1Quqc4Tz05k7LhjxZ5KPbnCf/k/ct6N+WR8O2XGDgmzkKFYlzNGu8ytP+VzMdZNW0qJihFmjbVOt8u4wT9Sho6Oddhw7Mv7B3D3ojEQQ1MnFPo+86SZJPfJWystazt8sv+b+HGZA7RiUPmecdcL8Ala0AVNW4A7uarfXi+iRDr0VdYIlp7A1iaoBotQTjBJh9fMhDyoO8I8bYRYKb6"
 }
