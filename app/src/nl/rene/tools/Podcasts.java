@@ -804,6 +804,7 @@ final class Podcasts {
                 .put("dl", new JSONObject().put("wifiOnly", PodcastDownloads.wifiOnly(c)).put("autoDelete", PodcastDownloads.autoDelete(c)));
         String last = prefs(c).getString("last", null);
         if (last != null) o.put("last", last);
+        if (PodcastOverslaan.bestand(c).isFile()) o.put("overslaan", PodcastOverslaan.lees(c)); // reclame, begin en einde overslaan
         return o;
     }
 
@@ -901,6 +902,9 @@ final class Podcasts {
             if (dl.has("autoDelete") && !dp.contains("autoDelete")) de.putBoolean("autoDelete", dl.optBoolean("autoDelete", true));
             de.apply();
         }
+        // Overslaan (reclame, begin en einde): alleen als hier nog niets ingesteld is
+        JSONObject ov = o.optJSONObject("overslaan");
+        if (ov != null && !PodcastOverslaan.bestand(c).isFile()) try { PodcastOverslaan.bewaar(c, ov); } catch (Exception ignored) { }
         JSONObject pr = o.optJSONObject("progress");
         if (pr != null) {
             long now = System.currentTimeMillis();

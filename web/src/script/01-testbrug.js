@@ -1154,7 +1154,7 @@ if (!window.Android) window.Android = (function(){
         if (typeof p.reclame === 'boolean') q.reclame = p.reclame; ['intro', 'outro'].forEach(k => { const v = Math.max(0, Math.min(600, +p[k] || 0)); if (v) q[k] = v; });
         if (Object.keys(q).length) per[id] = q; });
       this._ov = { reclame: o.reclame !== false, woorden: String(o.woorden || '').slice(0, 300), per }; return ''; },
-    podOverslaanTerug(van){ const st = this._pc.st; this._pc.terug = van; st.pos = van; st.at = Date.now(); delete st.skip; },
+    podOverslaanTerug(key, van){ const st = this._pc.st; if (!st.ep || st.ep.key !== key) return; this._pc.terug = van; st.pos = van; st.at = Date.now(); delete st.skip; },
     /* De ene speler: wie begint, neemt het over */
     _src: '', playerSrc(){ return this._src; },
     _take(src){ this._src = src;

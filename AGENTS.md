@@ -988,9 +988,12 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   downloaden meteen mee. Het geluid zelf wordt niet beluisterd.
 - **Begin en einde** per podcast in seconden (hooguit `MAX_SEC`), alleen als de aflevering meer dan twee keer zo lang is.
   Het einde overslaan = de aflevering is af (`onEnded`, zoals na elke aflevering).
-- **Instellingen** in `podcasts/overslaan.json` (`schoon`: alleen bekende velden; gaat mee in de backup).
+- **Instellingen** in `podcasts/overslaan.json` (`schoon`: alleen bekende velden; mee in Alle appgegevens en in het
+  onderdeel Instellingen via `Podcasts.backupJson`, teruggezet als er nog niets ingesteld is).
+- Herkennen (`isReclame`): een reclamewoord alleen in een korte titel, als laatste woord of vooraan met een scheidingsteken;
+  `toc: false` (stil hoofdstuk) is geen grens. Nieuwe woorden of voorbeelden = ook in `PodcastOverslaanTest`.
 - De speler zet `overgeslagen` in de toestand (`skip`); de interface toont het (`pkMeld`) met Terug (`podOverslaanTerug`):
-  dat stuk speelt dan deze keer. Zelf terugspoelen of naar een plek slepen in een stuk = dat stuk speelt ook (`staToe`).
+  dat stuk speelt dan deze keer (alleen bij dezelfde aflevering). Elk stuk hooguit één keer per beurt. Zelf terugspoelen of naar een plek slepen in een stuk = dat stuk speelt ook (`staToe`).
   Vooruit springen in een stuk slaat het wel over. Op een Chromecast wordt niets overgeslagen.
 - Logsoort `PODCAST` alleen met vaste woorden (`overgeslagen: reclame`), nooit titels of adressen.
 - Herkennen aan het geluid (uitgeschreven tekst, terugkerende jingles) is een mogelijke volgende stap; vraag Rene eerst.

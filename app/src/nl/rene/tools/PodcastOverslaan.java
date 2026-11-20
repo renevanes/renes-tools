@@ -40,12 +40,19 @@ final class PodcastOverslaan {
 
     // ---------- reclame herkennen aan de titel van een hoofdstuk ----------
 
-    /* Woorden die altijd reclame betekenen (overal in de titel), en "ad"/"ads" alleen als dat de hele titel is
-     * (anders slaat "Ad Melkert" of "Ads in de krant" over). */
-    private static final Pattern STERK = Pattern.compile(
-            "\\b(reclame\\w*|advertentie\\w*|advertorial|advertisement\\w*|advertising|adverteerder\\w*|sponsor\\w*|gesponsord\\w*|"
-            + "commercial|commercials|mid ?roll|pre ?roll|post ?roll|ad ?break|ad ?read)\\b");
-    private static final Pattern KORT = Pattern.compile("^(ad|ads|advert|adverts)( \\d+)?$");
+    /*
+     * Drie soorten:
+     * - ZIN: overal in de titel reclame ("brought to you by", "commerciële boodschap", "midroll").
+     * - STERK: een reclamewoord, maar alleen in een korte titel (hooguit 3 woorden), als laatste woord ("Een woord van onze
+     *   sponsor") of vooraan met een scheidingsteken erna ("Sponsor: Bol"). Zo blijft "Reclame in de jaren 80" staan.
+     * - KORT: woorden die alleen als hele titel reclame zijn ("Ad", "Commercial", "Promo"; niet "Ad Melkert").
+     */
+    private static final String WOORD = "reclame\\w*|advertentie\\w*|advertorial|advertisement\\w*|sponsor\\w*|gesponsord\\w*|ad ?break|ad ?read|ad ?spot";
+    private static final Pattern ZIN = Pattern.compile("\\b(brought to you by|commerciele (boodschap|onderbreking)|mid ?roll|pre ?roll|post ?roll)\\b");
+    private static final Pattern STERK = Pattern.compile("\\b(" + WOORD + ")\\b");
+    private static final Pattern VOORAAN = Pattern.compile("^[^\\p{L}\\p{N}]*(" + WOORD + "|ads?|promo)\\s*[:|(\\[–—-]");
+    private static final Pattern EIND = Pattern.compile("\\b(sponsor|sponsors|sponsoren|reclame|advertentie|advertenties|advertorial|advertisement|advertisements)$");
+    private static final Pattern KORT = Pattern.compile("^(ad|ads|advert|adverts|advertising|commercial|commercials|promo|promos|commercial break)( \\d+)?$");
 
     static String normaal(String s) {
         String t = s == null ? "" : s.toLowerCase(Locale.ROOT);
@@ -68,7 +75,11 @@ final class PodcastOverslaan {
     static boolean isReclame(String titel, List<String> extra) {
         String t = normaal(titel);
         if (t.isEmpty()) return false;
-        if (STERK.matcher(t).find() || KORT.matcher(t).matches()) return true;
+        if (ZIN.matcher(t).find() || KORT.matcher(t).matches()) return true;
+        java.util.regex.Matcher m = STERK.matcher(t);
+        if ((m.find() && t.split(" ").length <= 3) || EIND.matcher(t).find()) return true;
+        String los = java.text.Normalizer.normalize(titel.toLowerCase(Locale.ROOT), java.text.Normalizer.Form.NFD).replaceAll("\\p{M}+", "");
+        if (VOORAAN.matcher(los).find()) return true;
         if (extra != null) for (String w : extra) if ((" " + t + " ").contains(" " + w + " ")) return true;
         return false;
     }
@@ -89,7 +100,7 @@ final class PodcastOverslaan {
         List<String> titels = new ArrayList<>();
         for (int i = 0; i < a.length() && i < MAX_HOOFDSTUKKEN; i++) {
             JSONObject h = a.optJSONObject(i);
-            if (h == null) continue;
+            if (h == null || !h.optBoolean("toc", true)) continue; // "toc": false = stil hoofdstuk (bijv. een andere afbeelding), geen grens
             double st = h.optDouble("startTime", Double.NaN), et = h.optDouble("endTime", Double.NaN);
             if (Double.isNaN(st) || Double.isInfinite(st) || st < 0 || st > 1e6) continue;
             long eind = Double.isNaN(et) || Double.isInfinite(et) || et <= st || et > 1e6 ? -1 : Math.round(et * 1000);
@@ -109,6 +120,7 @@ final class PodcastOverslaan {
                 for (int j = k + 1; j < volg.length && tot < 0; j++) if (tijden.get(volg[j])[0] > van) tot = tijden.get(volg[j])[0];
                 if (tot < 0) tot = durMs > van ? durMs : -1;
             }
+            if (durMs > 0) { if (van >= durMs) continue; tot = Math.min(tot, durMs); } // nooit voorbij het eind
             if (tot <= van) continue;
             String titel = Podcasts.FeedText.clip(titels.get(i), 120);
             Stuk vorige = uit.isEmpty() ? null : uit.get(uit.size() - 1);
@@ -215,6 +227,8 @@ final class PodcastOverslaan {
     // ---------- hoofdstukken ophalen (alleen https naar openbare adressen, begrensd; in de cache) ----------
 
     static final long HAAL_MS = 15_000, CACHE_MS = 7L * 24 * 3600_000L;
+    /** Vooruit ophalen bij downloaden: een eigen draad, zodat het ophalen voor wat nu speelt er niet achter hoeft te wachten. */
+    static final java.util.concurrent.ExecutorService VOORUIT = java.util.concurrent.Executors.newSingleThreadExecutor(r -> new Thread(App.veilig(r), "podcast-hoofdstuk-vooruit"));
     static final int MAX_BYTES = 512 * 1024;
 
     static File cacheDir(Context c) { return new File(c.getCacheDir(), "podcast-hoofdstukken"); }

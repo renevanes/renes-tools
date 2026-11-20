@@ -76,7 +76,7 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { rgSave({ lang: 'en' }); pdOpen(Android._pc.top[0]); }); await pg.waitForTimeout(400);
     await pg.evaluate(() => pkOpen()); await pg.waitForTimeout(250);
     ok(/includes chapters with 32 of its 64/.test(await pg.textContent('#pk-ch')), 'Engels: ' + await pg.textContent('#pk-ch'));
-    ok(await pg.evaluate(() => $('#pk-intro').options[0].textContent === "Don't" && $('#pk-outro').options[3].textContent === '15 seconds'), 'Engels: tijden');
+    ok(await pg.evaluate(() => $('#pk-intro').options[0].textContent === 'Off' && $('#pk-outro').options[3].textContent === '15 seconds'), 'Engels: tijden');
     await pg.evaluate(() => rgSave({ lang: 'nl' }));
     await pg.close();
   }

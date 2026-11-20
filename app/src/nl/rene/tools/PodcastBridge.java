@@ -232,9 +232,9 @@ public class PodcastBridge extends AiBridge {
     }
 
     /** Na "Reclame overgeslagen": terug naar het begin van dat stuk (en dat stuk deze keer laten spelen). */
-    @JavascriptInterface public void podOverslaanTerug(long van) {
-        if (PodcastService.inst == null || Cast.active()) return;
-        PodcastService.send(ctx, PodcastService.TERUG, String.valueOf(Math.max(0, van)));
+    @JavascriptInterface public void podOverslaanTerug(String key, long van) {
+        if (PodcastService.inst == null || Cast.active() || !Podcasts.validKey(key)) return;
+        PodcastService.send(ctx, PodcastService.TERUG, key + "|" + Math.max(0, van));
     }
 
     /** Deel de aflevering (titel + link naar de podcast of het audiobestand). */

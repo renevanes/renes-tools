@@ -251,6 +251,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
                     JSONObject saved = Podcasts.progressOf(this, e.optString("key"));
                     long start = o.optBoolean("fromStart") || saved == null || saved.optBoolean("done") ? 0 : Math.max(0, saved.optLong("p"));
                     retries = 0; stall.reconnects = 0; endRetried = false; // een nieuwe aflevering: opnieuw alle kansen
+                    stukkenKey = ""; // een nieuwe beurt: opnieuw overslaan (ook als het dezelfde aflevering is)
                     Podcasts.touchRecent(this, e, new JSONObject(pod));
                     final String qk = e.optString("key");
                     final Context app = getApplicationContext();
@@ -299,7 +300,12 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
             case SEEK: try { long to = Long.parseLong(x); staToe(to); seekTo(to); } catch (Exception ignored) { } break;
             case SKIP: try { int sec = Integer.parseInt(x); long to = curPos() + sec * 1000L; if (sec < 0) staToe(to); seekTo(to); } catch (Exception ignored) { } break;
             case TERUG: // na "Reclame overgeslagen": terug naar het begin van dat stuk, en dat stuk deze keer niet overslaan
-                try { long van = Long.parseLong(x); staToe(van); overgeslagen = null; seekTo(van); } catch (Exception ignored) { }
+                try {
+                    int i = x.lastIndexOf('|');
+                    long van = Long.parseLong(x.substring(i + 1));
+                    if (i <= 0 || !x.substring(0, i).equals(stukkenKey)) break; // intussen een andere aflevering
+                    toegestaan.add(van); staToe(van); overgeslagen = null; seekTo(van);
+                } catch (Exception ignored) { }
                 break;
             case SPEED:
                 try {
@@ -399,7 +405,11 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
                 long at = pos; // ook als er tijdens het laden geschoven is
                 // Begint hij in een stuk dat overgeslagen wordt (intro, reclame): meteen erna
                 PodcastOverslaan.Stuk st = PodcastOverslaan.nu(stukken, at, toegestaan);
-                if (st != null) { at = st.tot; pos = at; meld(st); }
+                if (st != null) {
+                    meld(st);
+                    if (dur > 0 && st.tot >= dur - 5000) { onEnded(); return; } // een stuk tot het eind: de aflevering is af
+                    at = st.tot; pos = at;
+                }
                 if ((st != null || at > 5000) && (dur <= 0 || at < dur - 5000) && sk.ask(at)) doSeek(mp, at);
                 play();
             });
@@ -600,12 +610,13 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
 
     /** Rene ging zelf naar deze plek: het stuk waar die in valt deze keer niet overslaan (ook het einde). */
     private void staToe(long ms) {
-        PodcastOverslaan.Stuk st = PodcastOverslaan.bij(stukken, ms);
-        if (st != null) toegestaan.add(st.van);
+        for (PodcastOverslaan.Stuk st : stukken) if (ms >= st.van && ms < st.tot) toegestaan.add(st.van);
         if (outroVan > 0 && ms >= outroVan) outroToe = true;
     }
 
     private void meld(PodcastOverslaan.Stuk st) {
+        // Elk stuk hooguit één keer per beurt: een sprong landt soms net vóór het eind (synchronisatiepunt), dan niet opnieuw
+        toegestaan.add(st.van);
         try {
             overgeslagen = new JSONObject().put("van", st.van).put("tot", st.tot).put("waarom", st.waarom).put("titel", st.titel)
                     .put("key", stukkenKey).put("t", System.currentTimeMillis()).toString();
@@ -738,7 +749,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     }
 
     /** Hoeveel speeltijd de aflevering nog heeft (rekening houdend met de snelheid). */
-    private long endLeft() { return (long) ((dur - pos) / Math.max(0.5f, speed)); }
+    private long endLeft() { long eind = outroVan > 0 && !outroToe ? outroVan : dur; return (long) ((eind - pos) / Math.max(0.5f, speed)); }
     /** Uitfaden aan het eind van de aflevering: zo lang als gekozen, bij een heel korte aflevering hooguit een derde. */
     private long endFade() { return SleepFade.length(dur, SleepFade.gekozen(this)); }
     /** Uitfaden bij een slaaptimer op tijd: zo lang als gekozen (ook als het intussen anders gekozen is). */

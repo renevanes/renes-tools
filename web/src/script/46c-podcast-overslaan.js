@@ -9,7 +9,7 @@ function pkInst(){ return typeof Android.podOverslaan === 'function' ? rdJson(An
 /** "45 seconden", "1 minuut", "1 min 30 s"; 0 = Niet. */
 function pkSecTxt(s){
   s = +s || 0;
-  if (!s) return t('Niet');
+  if (!s) return tc('duur', 'Niet');
   if (s < 60) return tn(s, '{n} seconde', '{n} seconden');
   if (s % 60 === 0) return tn(s / 60, '{n} minuut', '{n} minuten');
   return t('{m} min {s} s', { m: Math.floor(s / 60), s: s % 60 });
@@ -36,7 +36,8 @@ function pkRender(){
   // Geeft de feed hoofdstukken mee? Alleen dan kan reclame herkend worden
   const items = (pdFeed && pdFeed.pod && pkPod && pdFeed.pod.id === pkPod.id && pdFeed.items) || [];
   const met = items.filter(e => e.ch).length;
-  $('#pk-ch').textContent = !items.length ? '' : met
+  // Een feed die nog van vóór deze functie bewaard is, weet het nog niet: dan niets zeggen
+  $('#pk-ch').textContent = !items.length || !items.some(e => 'ch' in e) ? '' : met
     ? t('Deze podcast geeft bij {n} van de {totaal} afleveringen hoofdstukken mee: daaraan herkent de speler reclame.', { n: met, totaal: items.length })
     : t('Deze podcast geeft geen hoofdstukken mee, dus reclame herkennen lukt hier (nog) niet. Begin en einde overslaan werkt wel.');
 }
@@ -87,6 +88,6 @@ function pkMeld(st){
     : sk.waarom === 'outro' ? t('Einde overgeslagen ({duur})', { duur })
     : t('Reclame overgeslagen ({duur})', { duur });
   // Terug alleen bij wat nu speelt (na het einde speelt er al iets anders)
-  if (sk.waarom !== 'outro' && st.ep && st.ep.key === sk.key) undoToast(tekst, () => Android.podOverslaanTerug(+sk.van || 0), t('Terug'));
+  if (sk.waarom !== 'outro' && st.ep && st.ep.key === sk.key) undoToast(tekst, () => Android.podOverslaanTerug(sk.key, +sk.van || 0), tc('overslaan', 'Terug'));
   else toast(tekst);
 }

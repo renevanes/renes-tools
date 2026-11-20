@@ -16,9 +16,12 @@ public class PodcastOverslaanTest {
         List<String> geen = Arrays.asList();
         // Reclame aan de titel
         for (String t : new String[]{"Reclame", "Advertentie", "Reclameblok 2", "Sponsor: Bol", "Gesponsorde inhoud", "Ad", "Ads", "ad break",
-                "Ad 2", "Midroll", "Pre-roll", "Advertisement", "Onze sponsors", "COMMERCIAL"})
+                "Ad 2", "Midroll", "Pre-roll", "Advertisement", "Onze sponsors", "COMMERCIAL", "Promo", "Een woord van onze sponsor",
+                "Brought to you by Acme", "Commerciële onderbreking", "Sponsor - Coolblue en meer", "Reclame (2)"})
             check(PodcastOverslaan.isReclame(t, geen), "reclame: " + t);
-        for (String t : new String[]{"Ad Melkert over de PvdA", "Adverbia in het Nederlands", "Inleiding", "Bad Bunny", "Ads in de krant van toen", ""})
+        for (String t : new String[]{"Ad Melkert over de PvdA", "Adverbia in het Nederlands", "Inleiding", "Bad Bunny", "Ads in de krant van toen", "",
+                "Commercial real estate in 2026", "De toekomst van advertising", "Sponsoring in de sport", "Reclame in de jaren 80",
+                "Gesprek met de reclamecodecommissie", "Een advertentie in de krant", "Promotie van het team"})
             check(!PodcastOverslaan.isReclame(t, geen), "geen reclame: " + t);
         check(PodcastOverslaan.isReclame("Een woord van onze partner", PodcastOverslaan.woorden("partner, aanbieding")), "eigen woord telt");
         check(!PodcastOverslaan.isReclame("Partnerschap", PodcastOverslaan.woorden("partner")), "eigen woord alleen als heel woord");
@@ -44,6 +47,13 @@ public class PodcastOverslaanTest {
         List<PodcastOverslaan.Stuk> d = PodcastOverslaan.reclameUit(door, 600_000, geen);
         check(d.size() == 1 && d.get(0).van == 100_000 && d.get(0).tot == 300_000, "door elkaar gezet en ongeldige tijden overgeslagen");
 
+        // "toc": false is geen grens; een hoofdstuk voorbij het eind wordt begrensd
+        String stil = "{\"chapters\":[{\"startTime\":100,\"title\":\"Sponsor\"},{\"startTime\":130,\"title\":\"plaatje\",\"toc\":false},"
+                + "{\"startTime\":160,\"title\":\"Gesprek\"},{\"startTime\":500,\"endTime\":900,\"title\":\"Reclame\"},{\"startTime\":700,\"title\":\"Ads\"}]}";
+        List<PodcastOverslaan.Stuk> sl = PodcastOverslaan.reclameUit(stil, 600_000, geen);
+        check(sl.size() == 2 && sl.get(0).tot == 160_000, "stil hoofdstuk breekt de reclame niet af");
+        check(sl.get(1).van == 500_000 && sl.get(1).tot == 600_000, "niet voorbij het eind, en wat na het eind begint telt niet");
+
         // Intro, outro en de plek
         PodcastOverslaan.Keuze k = new PodcastOverslaan.Keuze();
         k.reclame = true; k.intro = 30; k.outro = 45;
@@ -62,6 +72,11 @@ public class PodcastOverslaanTest {
         toe.add(60_500L);
         check(PodcastOverslaan.nu(st, 61_000, toe) == null, "zelf teruggegaan: speelt");
         check(PodcastOverslaan.bij(st, 61_000).van == 60_500, "bij() vindt het stuk ook als het mag spelen");
+        // Overgeslagen = hooguit één keer: landt de sprong net vóór het eind, dan niet nog eens (de speler zet het in toegestaan)
+        Set<Long> gedaan = new HashSet<>();
+        PodcastOverslaan.Stuk eerst = PodcastOverslaan.nu(st, 1_500_500, gedaan);
+        gedaan.add(eerst.van);
+        check(PodcastOverslaan.nu(st, 1_555_000, gedaan) == null, "na overslaan geen lus als de sprong te vroeg landt");
 
         // Instellingen
         JSONObject in = new JSONObject("{\"reclame\":false,\"woorden\":\"x\",\"per\":{\"p1\":{\"reclame\":true,\"intro\":9999,\"outro\":-3},"

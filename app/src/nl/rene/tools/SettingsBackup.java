@@ -222,6 +222,7 @@ final class SettingsBackup {
             if (pc.optJSONArray("queue") != null && pc.optJSONArray("queue").length() > 0) { pl.total++; if (Podcasts.queue(c).length() == 0) { pl.fresh++; any = true; } }
             if (pc.has("last")) { pl.total++; if (!Podcasts.prefs(c).contains("last")) { pl.fresh++; any = true; } }
             if (pc.optJSONObject("dl") != null) { pl.total++; if (!PodcastDownloads.prefs(c).contains("wifiOnly")) { pl.fresh++; any = true; } }
+            if (pc.optJSONObject("overslaan") != null) { pl.total++; if (!PodcastOverslaan.bestand(c).isFile()) { pl.fresh++; any = true; } }
             if (any) pl.podcasts = pc;
         }
         pl.radio = o.optJSONObject("radio");

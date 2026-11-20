@@ -130,7 +130,7 @@ final class PodcastDownloads {
             // De hoofdstukken (voor reclame overslaan) meteen mee, zodat dat offline ook werkt
             final Context app = c.getApplicationContext();
             final JSONObject e0 = slimEp, p0 = slimPod;
-            PodcastService.HOOFDSTUK.execute(() -> {
+            PodcastOverslaan.VOORUIT.execute(() -> {
                 String adres = PodcastOverslaan.adres(app, e0, p0);
                 if (!adres.isEmpty() && PodcastOverslaan.keuze(PodcastOverslaan.lees(app), PodcastOverslaan.podId(p0)).reclame) PodcastOverslaan.hoofdstukken(app, adres);
             });

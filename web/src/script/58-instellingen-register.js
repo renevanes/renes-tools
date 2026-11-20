@@ -502,6 +502,7 @@ const SET_NEED = [['wa.leesbaar', /whatsapp|whats app|leesba|chats/], ['wa.', /w
 
 /* Schakelaars en keuzes die bewust niet in het register staan, met de reden */
 const SET_EXCLUDE = [
+  ['#pk-reclame, #pk-intro, #pk-outro', 'Overslaan per podcast; dat kies je op het scherm Overslaan van die podcast (algemeen: podcast.reclame)'],
   ['#he-ov-list, #he-nacht-list, #he-ov-bk, #he-ov-bkdagen, #he-recentn', 'Regels, volgorde en keuzes van het overzicht en de onderdelen op het startscherm (één voor één aan te passen bij Startscherm aanpassen)'],
   ['#er-font, #er-line, #er-margin, #er-align, #er-theme, #er-mode, #er-filters, #er-sort, #er-tabs', 'Navigatie en leesweergave in de boeklezer, geen algemene appinstellingen'],
   ['#s-masterdata input, #s-masterdata select, #s-cmedit input, #s-cmedit select, #s-cmedit textarea, #s-cmlog input, #s-cmwis input, #cm-picker input, #s-cmkaart button, #s-cmkaart input, #s-cmai button', 'Centrale persoonsgegevens en expliciete vrijgave; geen toegang via de assistent (ook wat de assistent mag weten kies je zelf, in de kluis)'],
