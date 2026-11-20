@@ -144,7 +144,7 @@ final class Podcasts {
 
     static JSONObject epJsonKey(String key, PodcastFeed.Episode e) throws Exception {
         return new JSONObject().put("key", key).put("guid", e.guid).put("title", e.title).put("url", e.url).put("type", e.type)
-                .put("date", e.date).put("dur", e.dur).put("image", e.image).put("desc", e.desc).put("n", e.number).put("s", e.season);
+                .put("date", e.date).put("dur", e.dur).put("image", e.image).put("desc", e.desc).put("n", e.number).put("s", e.season).put("ch", e.chapters);
     }
 
     /** Feed ophalen en bewaren. Geeft {pod:{…}, items:[…], t}. */

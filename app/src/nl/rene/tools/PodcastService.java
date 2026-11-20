@@ -38,7 +38,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     static final String CHANNEL = "podcast";
     static final int NOTIF_ID = 4501;
     static final String PLAY = "play", PAUSE = "pause", RESUME = "resume", STOP = "stop", SEEK = "seek", SKIP = "skip", SPEED = "speed",
-            SLEEP = "sleep", SLEEP_ADD = "sleepAdd", YIELD = "yield", HANDOFF = "handoff";
+            SLEEP = "sleep", SLEEP_ADD = "sleepAdd", YIELD = "yield", HANDOFF = "handoff", TERUG = "terug";
     static final int BACK_S = 15, FWD_S = 30;
     static final long ACTIONS = PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_STOP
             | PlaybackState.ACTION_SEEK_TO | PlaybackState.ACTION_REWIND | PlaybackState.ACTION_FAST_FORWARD;
@@ -56,6 +56,8 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     static volatile long sleepAt = 0;             // 0 = geen slaaptimer
     static volatile boolean buffering;            // speelt, maar wacht op gegevens (de interface toont "Bufferen…")
     static volatile boolean sleepEnd = false;     // stoppen aan het einde van de aflevering
+    /** Het laatst overgeslagen stuk (reclame, intro of einde) als JSON, voor de melding met Terug; null = niets. */
+    static volatile String overgeslagen;
     private long sleepTotalMs = 0;  // hoe lang de slaaptimer nog liep toen hij gezet werd (bij een korte timer korter uitfaden)
     private float fadeMin = 1f;     // zo zacht als het uitfaden al was: alleen omlaag (SleepFade.omlaag)
     static volatile PodcastService inst;
@@ -85,6 +87,17 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     private final PodcastNa.Stall stall = new PodcastNa.Stall();
     private int beginSeq;
     private boolean local, endRetried;
+    // Overslaan (PodcastOverslaan): alleen op de hoofdthread
+    private java.util.List<PodcastOverslaan.Stuk> stukken = new java.util.ArrayList<>();
+    private final java.util.Set<Long> toegestaan = new java.util.HashSet<>();
+    private PodcastOverslaan.Keuze keuze = new PodcastOverslaan.Keuze();
+    private java.util.List<String> woorden = new java.util.ArrayList<>();
+    private String stukkenKey = "", hoofdstukJson;
+    private long outroVan = -1;
+    private boolean outroToe;
+    private int stukSeq;
+    /** Hoofdstukken ophalen: eigen draad, zodat een trage server het afspelen en opzoeken niet ophoudt. */
+    static final java.util.concurrent.ExecutorService HOOFDSTUK = java.util.concurrent.Executors.newSingleThreadExecutor(r -> new Thread(App.veilig(r), "podcast-hoofdstuk"));
     private final Runnable prepWatch = this::prepTimeout, seekWatch = this::seekTimeout;
     /** Netwerk (adres opzoeken) en een speler loslaten: nooit op de hoofdthread (dat kan seconden blokkeren). */
     static final java.util.concurrent.ExecutorService NET = java.util.concurrent.Executors.newSingleThreadExecutor(r -> new Thread(App.veilig(r), "podcast-net"));
@@ -131,6 +144,8 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
             if (ep != null) o.put("ep", new JSONObject(ep));
             if (pod != null) o.put("pod", new JSONObject(pod));
             if (error != null) o.put("error", error);
+            String sk = overgeslagen;
+            if (sk != null) o.put("skip", new JSONObject(sk));
             return o.toString();
         } catch (Exception e) { return "{\"status\":\"stopped\"}"; }
     }
@@ -281,8 +296,11 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
                 Podcasts.prefs(this).edit().remove("last").apply();
                 stopAll();
                 break;
-            case SEEK: try { seekTo(Long.parseLong(x)); } catch (Exception ignored) { } break;
-            case SKIP: try { seekTo(curPos() + Integer.parseInt(x) * 1000L); } catch (Exception ignored) { } break;
+            case SEEK: try { long to = Long.parseLong(x); staToe(to); seekTo(to); } catch (Exception ignored) { } break;
+            case SKIP: try { int sec = Integer.parseInt(x); long to = curPos() + sec * 1000L; if (sec < 0) staToe(to); seekTo(to); } catch (Exception ignored) { } break;
+            case TERUG: // na "Reclame overgeslagen": terug naar het begin van dat stuk, en dat stuk deze keer niet overslaan
+                try { long van = Long.parseLong(x); staToe(van); overgeslagen = null; seekTo(van); } catch (Exception ignored) { }
+                break;
             case SPEED:
                 try {
                     speed = clampSpeed(Float.parseFloat(x));
@@ -334,6 +352,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         try { e = new JSONObject(ep); } catch (Exception x) { stopAll(); return; }
         pos = startMs;
         dur = e.optLong("dur") * 1000L;
+        laadStukken(e);
         if (!foreground) startFg(); // eerst voorgrond: Android 15+ geeft anders geen audiofocus vanaf de achtergrond
         if (!requestFocus()) { error = "Geluid is nu in gebruik (bijvoorbeeld door een gesprek)"; status = "error"; releaseAutoWake(); releaseWifi(); update(); detach(); return; }
         status = "connecting";
@@ -376,8 +395,12 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
                 prepared = true;
                 long d = mp.getDuration();
                 if (d > 0) dur = d;
+                herreken();
                 long at = pos; // ook als er tijdens het laden geschoven is
-                if (at > 5000 && (dur <= 0 || at < dur - 5000) && sk.ask(at)) doSeek(mp, at);
+                // Begint hij in een stuk dat overgeslagen wordt (intro, reclame): meteen erna
+                PodcastOverslaan.Stuk st = PodcastOverslaan.nu(stukken, at, toegestaan);
+                if (st != null) { at = st.tot; pos = at; meld(st); }
+                if ((st != null || at > 5000) && (dur <= 0 || at < dur - 5000) && sk.ask(at)) doSeek(mp, at);
                 play();
             });
             p.setOnCompletionListener(mp -> {
@@ -538,6 +561,68 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         return pos;
     }
 
+    // ---------- overslaan ----------
+
+    /** Bij het begin van een aflevering: instellingen van deze podcast en (op de achtergrond) de hoofdstukken. */
+    private void laadStukken(JSONObject e) {
+        String key = e.optString("key");
+        if (key.equals(stukkenKey)) { herreken(); return; } // opnieuw verbinden: dezelfde aflevering, zelfde keuzes
+        stukkenKey = key;
+        toegestaan.clear(); outroToe = false; hoofdstukJson = null; // overgeslagen blijft: de melding over het einde van de vorige
+        laadKeuze(e);
+    }
+
+    private void laadKeuze(JSONObject e) {
+        JSONObject p;
+        try { p = new JSONObject(pod == null ? "{}" : pod); } catch (Exception x) { p = new JSONObject(); }
+        JSONObject cfg = PodcastOverslaan.lees(this);
+        keuze = PodcastOverslaan.keuze(cfg, PodcastOverslaan.podId(p));
+        woorden = PodcastOverslaan.woorden(cfg.optString("woorden"));
+        herreken();
+        if (!keuze.reclame || hoofdstukJson != null) return;
+        final int seq = ++stukSeq;
+        final String key = stukkenKey;
+        final Context app = getApplicationContext();
+        final JSONObject ep0 = e, pod0 = p;
+        HOOFDSTUK.execute(() -> {
+            String json = PodcastOverslaan.hoofdstukken(app, PodcastOverslaan.adres(app, ep0, pod0));
+            if (json == null) return;
+            h.post(() -> { if (seq == stukSeq && key.equals(stukkenKey) && inst == this) { hoofdstukJson = json; herreken(); } });
+        });
+    }
+
+    /** De stukken opnieuw uitrekenen (lengte bekend, hoofdstukken binnen, instellingen veranderd). */
+    private void herreken() {
+        java.util.List<PodcastOverslaan.Stuk> reclame = hoofdstukJson == null ? new java.util.ArrayList<>() : PodcastOverslaan.reclameUit(hoofdstukJson, dur, woorden);
+        stukken = PodcastOverslaan.stukken(keuze, reclame, dur);
+        outroVan = PodcastOverslaan.outroVanaf(keuze, dur);
+    }
+
+    /** Rene ging zelf naar deze plek: het stuk waar die in valt deze keer niet overslaan (ook het einde). */
+    private void staToe(long ms) {
+        PodcastOverslaan.Stuk st = PodcastOverslaan.bij(stukken, ms);
+        if (st != null) toegestaan.add(st.van);
+        if (outroVan > 0 && ms >= outroVan) outroToe = true;
+    }
+
+    private void meld(PodcastOverslaan.Stuk st) {
+        try {
+            overgeslagen = new JSONObject().put("van", st.van).put("tot", st.tot).put("waarom", st.waarom).put("titel", st.titel)
+                    .put("key", stukkenKey).put("t", System.currentTimeMillis()).toString();
+        } catch (Exception ignored) { }
+        App.log(this, "PODCAST", "overgeslagen: " + st.waarom);
+    }
+
+    /** De instellingen voor overslaan zijn veranderd: meteen gebruiken voor wat er nu speelt. */
+    static void instellingenGewijzigd() {
+        PodcastService s = inst;
+        if (s == null) return;
+        s.h.post(() -> {
+            if (ep == null) return;
+            try { s.laadKeuze(new JSONObject(ep)); } catch (Exception ignored) { }
+        });
+    }
+
     private void onEnded() {
         pos = 0;
         release(); prepared = false;
@@ -632,6 +717,15 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         if (prepared && stall.check(now, pos, true, sk.busy(), buffering)) {
             if (dur > 0 && pos >= dur - 5000) { onEnded(); return; } // stil aan het einde: gewoon afgelopen
             reconnect(pos, "vastgelopen"); return;
+        }
+        // Overslaan: reclame of intro → erna; het einde (outro) → de aflevering is af
+        if (prepared && !sk.busy()) {
+            PodcastOverslaan.Stuk st = PodcastOverslaan.nu(stukken, pos, toegestaan);
+            if (st != null) { meld(st); seekTo(st.tot); h.postDelayed(tickRun, 1000); return; }
+            if (outroVan > 0 && !outroToe && pos >= outroVan && pos < dur - 2000) {
+                meld(new PodcastOverslaan.Stuk(outroVan, dur, "outro", ""));
+                onEnded(); return;
+            }
         }
         if (now - saveAt > 10_000) { saveAt = now; saveNow(); }
         if (now - shownAt > 30_000) { shownAt = now; Player.changed(this); } // voortgang in de widget

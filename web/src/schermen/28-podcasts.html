@@ -84,6 +84,14 @@
       <div class="sw"><span>Doorgaan zolang de slaaptimer loopt<small>Met een slaaptimer op tijd gaat hij in elk geval door met de volgende van dezelfde podcast, ook als Hierna leeg is of je hierboven Stoppen koos. "Stoppen na deze aflevering" stopt altijd.</small></span><button class="tg" id="ps-naslaap" role="switch" aria-checked="true" onclick="psSlaap()" aria-label="Doorgaan zolang de slaaptimer loopt"></button></div>
       <p class="hint" id="ps-next" translate="no"></p>
     </div>
+    <div class="card" id="ps-ov" hidden>
+      <h2><span class="ui-icon" data-icon="scissors" aria-hidden="true"></span>Reclame overslaan</h2>
+      <div class="sw"><span>Reclame overslaan<small>Bij podcasts die hoofdstukken meegeven: een hoofdstuk dat reclame, advertentie of sponsor heet, slaat de speler over</small></span><button class="tg" id="ps-reclame" role="switch" aria-checked="false" onclick="psReclame()" aria-label="Reclame overslaan"></button></div>
+      <label class="f" for="ps-woorden">Extra woorden voor reclame</label>
+      <input class="search" id="ps-woorden" type="text" maxlength="300" autocomplete="off" placeholder="bijvoorbeeld: partner, aanbieding" onchange="psWoorden()">
+      <p class="hint">Met een komma ertussen. Een hoofdstuk met zo'n woord in de titel telt ook als reclame.</p>
+      <p class="hint">Per podcast (⋯ → Overslaan) kies je of reclame overgeslagen wordt, en hoeveel van het begin en het einde.</p>
+    </div>
     <div class="card" id="ps-fvk">
       <h2><span class="ui-icon" data-icon="volume-high" aria-hidden="true"></span>Volumeknoppen</h2>
       <div class="sw"><span>Fijner volume<small>Kleinere stappen met de volumeknoppen van je telefoon, bij podcasts, radio en voorlezen</small></span><button class="tg" id="ps-fv" role="switch" aria-checked="false" onclick="fvZet('ps', 'aan')" aria-label="Fijner volume"></button></div>
@@ -147,6 +155,40 @@
       <p class="note">Overnemen voegt podcasts toe. Bestaande podcasts en luisterposities blijven behouden. Je kunt later opnieuw ophalen om nieuwe podcasts over te nemen.</p>
       <div class="psp-footer"><button class="big" id="psp-add" data-icon="plus" onclick="pspImport()" disabled>Overnemen</button><button class="big ghost" onclick="show('podcasts')">Naar Mijn podcasts</button></div>
     </div>
+  </main>
+</section>
+
+<section class="screen" id="s-podskip">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Overslaan</h1>
+  </div>
+  <main>
+    <p class="hint" id="pk-pod" translate="no"></p>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="scissors" aria-hidden="true"></span>Reclame</h2>
+      <label class="f" for="pk-reclame">Reclame overslaan bij deze podcast</label>
+      <select class="sel" id="pk-reclame" onchange="pkSave()">
+        <option value="">Zoals bij alle podcasts</option>
+        <option value="1">Aan</option>
+        <option value="0">Uit</option>
+      </select>
+      <p class="hint" id="pk-ch" role="status"></p>
+    </div>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="clock" aria-hidden="true"></span>Begin en einde</h2>
+      <label class="f" for="pk-intro">Het begin overslaan</label>
+      <select class="sel" id="pk-intro" onchange="pkSave()"></select>
+      <label class="f" for="pk-outro">Het einde overslaan</label>
+      <select class="sel" id="pk-outro" onchange="pkSave()"></select>
+      <p class="hint">Bij het einde telt de aflevering als beluisterd en gaat de speler verder zoals na elke aflevering.</p>
+    </div>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Veel podcasts geven per aflevering hoofdstukken mee (Podcasting 2.0). Heet een hoofdstuk reclame, advertentie of sponsor (of een van je extra woorden bij Instellingen van Podcasts), dan springt de speler eroverheen. Hij leest alleen de titels van de hoofdstukken; aan het geluid zelf hoort hij niets.</p>
+      <p>Na het overslaan zie je even een melding met Terug: dan speelt dat stuk deze keer wel. Spoel je zelf terug in een overgeslagen stuk, dan speelt het ook gewoon.</p>
+      <p>Begin en einde slaat hij alleen over als de aflevering meer dan twee keer zo lang is als wat je overslaat. Op een Chromecast slaat hij niets over.</p>
+      <p>De hoofdstukken haalt de app op bij de server van de podcast (alleen via https) en bewaart ze op de telefoon. Download je een aflevering, dan haalt hij de hoofdstukken meteen mee, zodat het offline ook werkt.</p>
+    </div></details>
   </main>
 </section>
 

@@ -979,6 +979,22 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   Logsoort `OPML` alleen met aantallen. Test: `tests/ui/opml.test.js`.
 - Tests: `tests/ui/nieuws.test.js`, `tests/ui/nieuws-bron.test.js`; Java: `NieuwsFeedTest`, `NieuwsTest`.
 
+## Podcasts: reclame, begin en einde overslaan
+`PodcastOverslaan` (zuiver deel getest in `PodcastOverslaanTest`), de speler in `PodcastService`, interface
+`46c-podcast-overslaan.js` (scherm `s-podskip` vanuit ⋯ op een podcast, kaart `#ps-ov` op Instellingen van Podcasts).
+- **Reclame** = hoofdstukken uit de feed (`podcast:chapters`, alleen https en JSON; `ch` per aflevering) met een titel als
+  reclame, advertentie, sponsor of "ad" (alleen als hele titel), plus Rene's eigen woorden. Ophalen via `Nieuws.haal`
+  (openbare https-adressen, begrensd), bewaard in `cache/podcast-hoofdstukken` (af te leiden, niet in backups); bij
+  downloaden meteen mee. Het geluid zelf wordt niet beluisterd.
+- **Begin en einde** per podcast in seconden (hooguit `MAX_SEC`), alleen als de aflevering meer dan twee keer zo lang is.
+  Het einde overslaan = de aflevering is af (`onEnded`, zoals na elke aflevering).
+- **Instellingen** in `podcasts/overslaan.json` (`schoon`: alleen bekende velden; gaat mee in de backup).
+- De speler zet `overgeslagen` in de toestand (`skip`); de interface toont het (`pkMeld`) met Terug (`podOverslaanTerug`):
+  dat stuk speelt dan deze keer. Zelf terugspoelen of naar een plek slepen in een stuk = dat stuk speelt ook (`staToe`).
+  Vooruit springen in een stuk slaat het wel over. Op een Chromecast wordt niets overgeslagen.
+- Logsoort `PODCAST` alleen met vaste woorden (`overgeslagen: reclame`), nooit titels of adressen.
+- Herkennen aan het geluid (uitgeschreven tekst, terugkerende jingles) is een mogelijke volgende stap; vraag Rene eerst.
+
 ## Berichten aan Rene
 Kort en in het Nederlands: wat er nu anders is, waar hij het vindt en of hij iets moet doen (bijv. een nieuwe APK
 installeren als `NATIVE_LEVEL` omhoog ging, of opnieuw koppelen).

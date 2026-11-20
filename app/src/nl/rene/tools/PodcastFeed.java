@@ -25,6 +25,7 @@ final class PodcastFeed {
 
     static final class Episode {
         String guid = "", title = "", url = "", type = "", image = "", desc = "";
+        String chapters = ""; // adres van de hoofdstukken (Podcasting 2.0, JSON), alleen https
         long date, dur, size; // date in ms, dur in seconden, size in bytes
         int season, number;
     }
@@ -153,6 +154,10 @@ final class PodcastFeed {
             } else if (n.equals("media:content") && ep != null) {
                 String u = attr(a, "url"), t = attr(a, "type");
                 if (mediaUrl.isEmpty() && !u.isEmpty() && (t.startsWith("audio") || t.startsWith("video") || t.isEmpty())) { mediaUrl = u.trim(); mediaType = t; }
+            } else if (n.equals("podcast:chapters") && ep != null) {
+                String u = attr(a, "url").trim(), t = attr(a, "type").toLowerCase(Locale.ROOT);
+                // Alleen het JSON-formaat (application/json+chapters); andere soorten (bijv. Podlove) lezen we niet
+                if (ep.chapters.isEmpty() && u.length() <= 1000 && u.regionMatches(true, 0, "https://", 0, 8) && (t.isEmpty() || t.contains("json"))) ep.chapters = u;
             } else if (n.equals("itunes:image")) {
                 String href = attr(a, "href").trim();
                 if (ep != null) { if (ep.image.isEmpty()) ep.image = href; }

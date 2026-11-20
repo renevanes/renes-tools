@@ -455,7 +455,7 @@ if (!window.Android) window.Android = (function(){
     _pcFeed(feed){ const known = this._pc.top.concat(this._pc.subs).find(p => p.feed === feed && p.id && p.title); // anders: de vaste testpodcast
       const n = known ? known.title : feed.endsWith('tech') ? 'Tech in 20 minuten' : 'Nieuws van Vandaag', id = known ? known.id : feed.endsWith('tech') ? 'p2' : 'p1';
       const items = Array.from({ length: 64 }, (_, i) => ({ key: this._pcKey(id + ':' + i), guid: 'g' + i, title: 'Aflevering ' + (64 - i) + (i === 0 ? ' <b>nieuw</b>' : ''), url: 'https://cdn.example.org/' + id + '/' + i + '.mp3',
-        type: 'audio/mpeg', date: (this._pc.t0 = this._pc.t0 || Date.now()) - i * 864e5 - 36e5, dur: 1200 + i * 60, image: '', desc: 'Over aflevering ' + (64 - i) + '.\nMet een tweede regel.' }));
+        type: 'audio/mpeg', date: (this._pc.t0 = this._pc.t0 || Date.now()) - i * 864e5 - 36e5, dur: 1200 + i * 60, image: '', desc: 'Over aflevering ' + (64 - i) + '.\nMet een tweede regel.', ch: id === 'p1' && i % 2 === 0 ? 'https://cdn.example.org/' + id + '/' + i + '.chapters.json' : '' }));
       items.forEach(e => { const p = this._pc.prog[e.key]; if (p) { e.pos = p.p; e.done = p.done; e.pd = p.d; } });
       return { feedUrl: feed, pod: { id, feed, title: n, author: 'Omroep X', image: '', desc: 'Elke dag het belangrijkste nieuws.', link: 'https://example.org' }, items, subscribed: this._pc.subs.some(x => x.feed === feed) }; },
     podSearch(q){ this._pc.calls.push(['search', q]); setTimeout(() => onPodSearch(q === 'fout' ? { q, error: 'Geen internetverbinding' } : { q, results: this._pc.top.filter(p => p.title.toLowerCase().includes(q.toLowerCase())) }), 120); },
@@ -1146,6 +1146,15 @@ if (!window.Android) window.Android = (function(){
     podSleepAdd(m){ const st = this._pc.st; if (!st.ep) return 'Start eerst een aflevering'; st.sleepAt = Math.max(st.sleepAt || 0, Date.now()) + m * 6e4; st.sleepEnd = false; return ''; },
     podState(){ const st = this._pc.st; return JSON.stringify(Object.assign({}, st, { pos: this._pcPos(), speed: this._pc.speed })); },
     podShare(t, l){ this._pc.shared = [t, l]; },
+    /* Overslaan (PodcastOverslaan): instellingen, en Terug na een overgeslagen stuk */
+    _ov: { reclame: true, woorden: '', per: {} },
+    podOverslaan(){ return JSON.stringify({ versie: 1, reclame: this._ov.reclame !== false, woorden: this._ov.woorden || '', per: this._ov.per || {} }); },
+    podOverslaanZet(j){ const o = JSON.parse(j), per = {};
+      Object.entries(o.per || {}).forEach(([id, p]) => { if (!/^[A-Za-z0-9_-]{1,80}$/.test(id) || !p) return; const q = {};
+        if (typeof p.reclame === 'boolean') q.reclame = p.reclame; ['intro', 'outro'].forEach(k => { const v = Math.max(0, Math.min(600, +p[k] || 0)); if (v) q[k] = v; });
+        if (Object.keys(q).length) per[id] = q; });
+      this._ov = { reclame: o.reclame !== false, woorden: String(o.woorden || '').slice(0, 300), per }; return ''; },
+    podOverslaanTerug(van){ const st = this._pc.st; this._pc.terug = van; st.pos = van; st.at = Date.now(); delete st.skip; },
     /* De ene speler: wie begint, neemt het over */
     _src: '', playerSrc(){ return this._src; },
     _take(src){ this._src = src;

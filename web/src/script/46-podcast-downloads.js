@@ -129,6 +129,7 @@ function psRender(){
   tg('#ps-naslaap', n.naSlaap !== false); tg('#ps-wifi', !!pr.wifiOnly); tg('#ps-autodel', !!pr.autoDelete);
   $('#ps-next').textContent = psNextTxt(n);
   fvRender('ps');
+  psOvRender();
 }
 /** "Daarna: <titel> (<podcast>)" of waarom er niets komt. Zuiver. */
 function psNextTxt(n){

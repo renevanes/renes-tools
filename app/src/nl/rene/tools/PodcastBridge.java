@@ -219,6 +219,24 @@ public class PodcastBridge extends AiBridge {
         return s;
     }
 
+    /** Overslaan (reclame, intro, einde): de instellingen {versie, reclame, woorden, per:{podId:{reclame, intro, outro}}}. */
+    @JavascriptInterface public String podOverslaan() { return PodcastOverslaan.lees(ctx).toString(); }
+
+    /** Bewaart de instellingen voor overslaan (opgeschoond) en gebruikt ze meteen; "" of een melding. */
+    @JavascriptInterface public String podOverslaanZet(String json) {
+        try {
+            PodcastOverslaan.bewaar(ctx, new JSONObject(json));
+            PodcastService.instellingenGewijzigd();
+            return "";
+        } catch (Throwable t) { return "Bewaren lukt niet"; }
+    }
+
+    /** Na "Reclame overgeslagen": terug naar het begin van dat stuk (en dat stuk deze keer laten spelen). */
+    @JavascriptInterface public void podOverslaanTerug(long van) {
+        if (PodcastService.inst == null || Cast.active()) return;
+        PodcastService.send(ctx, PodcastService.TERUG, String.valueOf(Math.max(0, van)));
+    }
+
     /** Deel de aflevering (titel + link naar de podcast of het audiobestand). */
     @JavascriptInterface public void podShare(String title, String link) {
         if (link == null || !Podcasts.httpUrl(link)) return;

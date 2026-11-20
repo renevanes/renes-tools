@@ -25,7 +25,7 @@ function pcArtInner(u){ const s = pcImg(u); return s ? '<img src="' + esc(s) + '
 function pcArt(u, cls){ return '<span class="pcart' + (cls ? ' ' + cls : '') + '" aria-hidden="true">' + pcArtInner(u) + '</span>'; }
 function pcSetArt(el, u){ const s = pcImg(u); if (el.dataset.src === s && el.innerHTML) return; el.dataset.src = s; el.innerHTML = pcArtInner(u); }
 function pcSpeedTxt(v){ return fmtNum(+(+v || 1).toFixed(2), { maximumFractionDigits: 2 }) + '×'; }
-function pcSlimEp(e){ return { key: e.key, guid: e.guid, title: e.title, url: e.url, type: e.type, date: e.date, dur: e.dur, image: e.image, desc: String(e.desc || '').slice(0, 1500) }; }
+function pcSlimEp(e){ return { key: e.key, guid: e.guid, title: e.title, url: e.url, type: e.type, date: e.date, dur: e.dur, image: e.image, desc: String(e.desc || '').slice(0, 1500), ch: e.ch || '' }; }
 function pcSlimPod(p){ p = p || {}; return { id: p.id, feed: p.feed, title: p.title, author: p.author, image: p.image, link: p.link }; }
 
 /* ---------- hoofdscherm: drie tabbladen (Luisteren, Ontdekken, Downloads) ---------- */
@@ -82,6 +82,7 @@ function pcPoll(force){
     if (keyChanged && (current === 'podcasts' || current === 'podlijst')) { pcRenderCont(); pcRenderNew(); }
     if (current === 'podcast') { pdRefreshRows(); pdResumeShow(); } // ▶/❚❚ en voortgang in de lijst bijwerken
   }
+  if (typeof pkMeld === 'function') pkMeld(pcSt);
   if (typeof plRender === 'function') plRender();
 }
 function pcActive(){ return pcSt.status === 'playing' || pcSt.status === 'connecting'; }
@@ -386,6 +387,7 @@ function pdMenu(){
   if (desc) acts.push(['Over deze podcast', () => pdAbout(), 'info']);
   acts.push(['Afleveringen bijwerken', stay(pdUpdate), 'refresh']);
   if (on) acts.push([(pdDlOn() ? '✓ ' : '') + t('Nieuwe afleveringen vanzelf downloaden'), stay(pdDlToggle), 'download']);
+  if (typeof Android.podOverslaan === 'function') acts.push(['Overslaan: reclame, begin en einde', () => pkOpen(), 'scissors']);
   acts.push(['Instellingen voor downloaden', () => pcDlSettings(), 'settings']);
   acts.push(['Op startscherm', stay(pdPin), 'pin']);
   if (pdPod.link) acts.push(['Delen', stay(() => Android.podShare(pdPod.title || '', pdPod.link)), 'share']);

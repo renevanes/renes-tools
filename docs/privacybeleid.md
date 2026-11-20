@@ -94,7 +94,7 @@ aanleveren, de gegevens van Toiletten en douches bijwerken, en de wekelijkse sta
 | Websites die je volgt in Signalen | Als Signalen een bron nakijkt (zo vaak als je per bron kiest) of bij Proef | Een vraag om de pagina die je invulde en om de pagina's van nieuwe berichten die bij je trefwoorden passen (alleen https, alleen op die site). Volg je in Signalen het nieuws op trefwoorden, dan haalt Tools de nieuwsbronnen uit Nieuws ook op de achtergrond op (bij een bron waar je bent ingelogd met de cookies van die inlog, alleen naar de sites van die bron). Bronnen uit Tools zelf (Agenda, Facturen, Notities, taken) leest Signalen alleen op de telefoon. Je trefwoorden, de gevonden berichten en wat je ermee doet blijven op de telefoon |
 | Apple (podcasts zoeken en de top 40) | Als je podcasts zoekt of bekijkt | Je zoekterm |
 | radio-browser.info | Als je radiozenders zoekt of afspeelt | Je zoekterm en een telling bij afspelen |
-| Radiostreams, podcastfeeds, hoesjes en zenderlogo's | Als je luistert of afleveringen ophaalt | Alleen wat nodig is om de stream of het bestand op te halen, bij de server van de zender of podcast |
+| Radiostreams, podcastfeeds, hoofdstukken van afleveringen, hoesjes en zenderlogo's | Als je luistert of afleveringen ophaalt (hoofdstukken: om reclame over te slaan, alleen via https) | Alleen wat nodig is om de stream of het bestand op te halen, bij de server van de zender of podcast |
 | Chromecast of ander afspeelapparaat in je eigen netwerk | Als je naar zo'n apparaat cast | Het adres van de stream, de titel en de hoes |
 | Hugging Face | Als je een AI- of spraakmodel downloadt | Niets persoonlijks |
 | Je eigen VPN-server of VPN-aanbieder | Als je een VPN-verbinding gebruikt | Je internetverkeer, zoals bij elke VPN |

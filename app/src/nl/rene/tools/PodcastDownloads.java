@@ -121,12 +121,19 @@ final class PodcastDownloads {
             long id = m.enqueue(r);
             JSONObject slimEp = new JSONObject().put("key", key).put("title", ep.optString("title")).put("url", url).put("type", ep.optString("type"))
                     .put("date", ep.optLong("date")).put("dur", ep.optLong("dur")).put("image", ep.optString("image")).put("guid", ep.optString("guid"))
-                    .put("desc", Podcasts.FeedText.clip(ep.optString("desc"), 600));
+                    .put("desc", Podcasts.FeedText.clip(ep.optString("desc"), 600)).put("ch", ep.optString("ch"));
             JSONObject slimPod = pod == null ? new JSONObject() : new JSONObject().put("id", pod.optString("id")).put("feed", pod.optString("feed"))
                     .put("title", pod.optString("title")).put("author", pod.optString("author")).put("image", pod.optString("image")).put("link", pod.optString("link"));
             idx.put(key, new JSONObject().put("id", id).put("file", name).put("t", System.currentTimeMillis()).put("auto", auto).put("ep", slimEp).put("pod", slimPod));
             save(c, idx);
             unGone(c, key);
+            // De hoofdstukken (voor reclame overslaan) meteen mee, zodat dat offline ook werkt
+            final Context app = c.getApplicationContext();
+            final JSONObject e0 = slimEp, p0 = slimPod;
+            PodcastService.HOOFDSTUK.execute(() -> {
+                String adres = PodcastOverslaan.adres(app, e0, p0);
+                if (!adres.isEmpty() && PodcastOverslaan.keuze(PodcastOverslaan.lees(app), PodcastOverslaan.podId(p0)).reclame) PodcastOverslaan.hoofdstukken(app, adres);
+            });
             return "";
         } catch (Exception e) {
             return "Downloaden lukt niet";
