@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.239",
+    "date": "2026-11-20",
+    "changes": [
+      "Podcasts downloaden nu vanzelf alles wat je nog niet beluisterde van de afgelopen 2 weken, van alle podcasts die je volgt, met de hoofdstukken erbij: zo slaat de speler reclame ook offline over.",
+      "Vanzelf gedownloade afleveringen gaan na 2 weken weer van je telefoon; wat je zelf downloadt blijft staan.",
+      "Bij Instellingen van Podcasts kies je welke podcasts meedoen, hoe ver terug, wanneer ze weer weg gaan en hoeveel ruimte het mag gebruiken (standaard hooguit 2 GB, en met Alleen via wifi aan alleen op wifi)."
+    ]
+  },
+  {
     "version": "1.238",
     "date": "2026-11-20",
     "changes": [

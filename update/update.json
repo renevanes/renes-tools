@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.238",
-  "versionCode": 239,
-  "nativeLevel": 205,
+  "versionName": "1.239",
+  "versionCode": 240,
+  "nativeLevel": 206,
   "web": "index.html",
-  "webSha256": "498a4e5fbd299bc270710baabaa34a271710536fb67678b61ad26f10922f8a3a",
+  "webSha256": "d94ea1fa1de857c767a1485bca494035b5811f57c75aa8c9a5d1b187c11c46de",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "0cfa1e9fe9e3fff3b02e6d7a16592cba7ab3cbe87143666559fd1668ae7cbcab",
+  "apkSha256": "ad1b47f87c6fd6c5271a60aa8a4ef9a85ed5c39eb4e18c64da81ed57848663ce",
   "changelog": [
+    {
+      "version": "1.239",
+      "date": "2026-11-20",
+      "changes": [
+        "Podcasts downloaden nu vanzelf alles wat je nog niet beluisterde van de afgelopen 2 weken, van alle podcasts die je volgt, met de hoofdstukken erbij: zo slaat de speler reclame ook offline over.",
+        "Vanzelf gedownloade afleveringen gaan na 2 weken weer van je telefoon; wat je zelf downloadt blijft staan.",
+        "Bij Instellingen van Podcasts kies je welke podcasts meedoen, hoe ver terug, wanneer ze weer weg gaan en hoeveel ruimte het mag gebruiken (standaard hooguit 2 GB, en met Alleen via wifi aan alleen op wifi)."
+      ]
+    },
     {
       "version": "1.238",
       "date": "2026-11-20",
@@ -171,16 +180,7 @@
         "Documentenkluis: je facturen staan als map Facturen in de verkenner, per leverancier, en doen mee met zoeken. Tik op een factuur om hem te bekijken; beheren doe je nog bij Facturen.",
         "Documentenkluis: een document dat je toevoegt terwijl je in een map staat, komt in die map. Zoeken kijkt ook in de mappen eronder."
       ]
-    },
-    {
-      "version": "1.219",
-      "date": "2026-11-16",
-      "changes": [
-        "Documentenkluis: tik op een document voor de documentkaart, met Bekijken, Delen en alle andere acties onder Meer.",
-        "Documentenkluis: elk document kan eigenschappen krijgen: soort, van of voor wie, datum, bedrag, verloopdatum en labels. Je ziet ze in de lijst en kunt erop zoeken en sorteren.",
-        "Documentenkluis: nieuwe keuze \"Verloopt binnenkort\" voor documenten die binnen 90 dagen verlopen of al verlopen zijn."
-      ]
     }
   ],
-  "webSig2": "EekIBYv0l6K3gJQ6w5cnHP+uNcWaY01I2bHsajlbrVcfMm4tUPtoS6UMc3LuXF9RcZaTpEadcMk9pTztw+0onUQxbH6YeB0n0HvGx7fHfz3Acs5L2F1IOshx46ZUBFYewOsQBJ+7P2HkTwncAVp/FcaGsi+ULPlUZLIQYgiMFq1aSemhOHAVUUitL4Rsi2vcTNJHFnMASY73Q6oE5LzkDTBpTSXbZLrP247icFtszhpzeYuCxHL3xrSkEE1BxMRAIkxIdCAqigcREgwYc9At50DwD1r8nxjs6LkYhumP7epEDMVShOfBKFZIPWVhz1SSZb+lEuE0XnOEBpljMbUczb9vuPoLhaLgCoHy0pKSdz+9qC56ltzqoCNRranukOx2tY54SGvEpyvc9dLhdXLX46MWPfL/G6GukCfvxfCKAG1hu31E7v9/4EqFzuvCyjBsi4txwuHqr0WqDgcX1cW9D8IomO/kcZJfEWXPxHcmcpEE91UcKdjnIbbrU7zlifCT"
+  "webSig2": "DWtXy+77KLbWf7FG9fEttzKUrvUo7uTTQWdbmMobhY4QxjAaXwqCGcQXJUIDTQFb26lfOktbJb+QRk2S7xCF6aTCGxI8wXuhKsdI55YhVqUJyRTWo4HNs5+Bktc9yFTICkX9lREvlRk0V58VxVHN3v66Zd92urSSPhe+HQ8l5wMSTo8UX/lbRBPEfeLx0MNjXrshKQ4eOn+lyFZ1iId/mpG/KdeiFVYo6i/BmgeMQapj+mbGKjuJn+2l4vDBsu7SxhFECZMWN29REk8GTlWf+p/7GCG1IhZCMKmmkOymag5mOKyPQv8OQJGV2jsJFqgT4pFV8YcvRVYiT4AVqde0L7i+pbxA0iqwhJXdHRDkYRZ3YflZehw/twVdNXK1TWiiLRIis44+pQzKIjk7pfpgreq2RhdHRKdyM95qLUX6kg8b7VQa9XGfB394wM2pAhdoXQ5dPzowG2lIrnj9GPfEJ9XCaKGvW7B9s61BKpfB1/9ZFgGLTjhjRZdRRzjKzcWI"
 }
