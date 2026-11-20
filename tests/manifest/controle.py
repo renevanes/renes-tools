@@ -5,11 +5,14 @@ reden in tests/manifest/lijst.json.
 Gecontroleerd (zelfde aanpak als play/check.py met play/basis.json, maar voor de volledige app):
 - elke toestemming (uses-permission, ook maxSdkVersion);
 - elk onderdeel dat andere apps kunnen aanroepen (android:exported="true", of een intent-filter zonder exported):
-  welke acties, categorieen en data het aanneemt en welke android:permission ervoor nodig is;
+  per intent-filter welke acties, categorieen en data het aanneemt, zijn meta-data en welke android:permission ervoor
+  nodig is;
 - elke android:permission op een onderdeel (ook niet-geexporteerde, zoals BIND_JOB_SERVICE);
 - elke provider met grantUriPermissions, en dat geen provider zonder reden exported is;
 - elk <queries>-item (welke andere apps Tools mag zien);
-- de beveiligingsinstellingen op <application> (allowBackup, usesCleartextTraffic, debuggable, …);
+- elk android:-attribuut op <manifest> en <application> dat niet onschuldig is (allowBackup, usesCleartextTraffic,
+  debuggable, backupAgent, sharedUserId, …), de meta-data op <application> en wat er direct onder <manifest> staat;
+- ja/nee-attributen (exported, grantUriPermissions, enabled) alleen letterlijk true of false;
 - dat build.sh de app niet als debugversie bouwt.
 
 Iets nieuws, iets wat verdwenen is of iets wat anders is dan op de lijst laat de controle falen. Bijwerken = de lijst
@@ -31,9 +34,13 @@ MANIFEST = ROOT / 'app/AndroidManifest.xml'
 LIJST = Path(__file__).resolve().parent / 'lijst.json'
 A = '{http://schemas.android.com/apk/res/android}'
 ONDERDELEN = ('activity', 'activity-alias', 'service', 'receiver', 'provider')
-# Instellingen op <application> die over beveiliging gaan; afwezig = null in de lijst
-APP_ATTR = ('allowBackup', 'usesCleartextTraffic', 'debuggable', 'testOnly', 'networkSecurityConfig',
-            'fullBackupContent', 'dataExtractionRules', 'requestLegacyExternalStorage', 'sharedUserId')
+# Elementen direct onder <manifest>; al het andere (bijv. <permission>, een tweede <application>) valt op
+TOP = {'uses-permission', 'queries', 'uses-feature', 'uses-sdk', 'application'}
+# Onschuldige attributen; elk ander android:-attribuut op <manifest> of <application> moet op de lijst staan
+ONSCHULDIG_MANIFEST = {'versionCode', 'versionName', 'compileSdkVersion', 'compileSdkVersionCodename'}
+ONSCHULDIG_APP = {'name', 'label', 'icon', 'roundIcon', 'theme', 'supportsRtl', 'extractNativeLibs'}
+# Ja/nee-attributen die alleen letterlijk true of false mogen zijn (geen @bool/…: dat ziet deze controle niet)
+LETTERLIJK = ('exported', 'grantUriPermissions', 'enabled')
 
 
 def _reden(fouten, waar, item):
@@ -42,37 +49,81 @@ def _reden(fouten, waar, item):
         fouten.append(waar + ': geen (duidelijke) reden in tests/manifest/lijst.json')
 
 
-def _filters(c):
-    acties, cats, data = set(), set(), set()
-    for f in c.findall('intent-filter'):
-        acties |= {a.get(A + 'name') for a in f.findall('action')}
-        cats |= {a.get(A + 'name') for a in f.findall('category')}
-        for d in f.findall('data'):
-            data |= {k[len(A):] + '=' + v for k, v in d.attrib.items() if k.startswith(A)}
-    return sorted(acties), sorted(cats), sorted(data)
+def _attrs(e):
+    return {k[len(A):]: v for k, v in e.attrib.items() if k.startswith(A)}
+
+
+def _filter(f):
+    """Eén intent-filter als vaste tekst: acties, categorieën, elk <data> apart, priority en autoVerify."""
+    acties = sorted(a.get(A + 'name') for a in f.findall('action'))
+    cats = sorted(a.get(A + 'name') for a in f.findall('category'))
+    data = sorted(';'.join(k + '=' + v for k, v in sorted(_attrs(d).items())) for d in f.findall('data'))
+    extra = {k: v for k, v in _attrs(f).items() if k not in ('label', 'icon')}
+    onbekend = sorted({c.tag for c in f} - {'action', 'category', 'data'})
+    s = 'acties=' + ','.join(acties) + ' | cat=' + ','.join(cats) + ' | data=' + ','.join('[' + d + ']' for d in data)
+    for k, v in sorted(extra.items()):
+        s += ' | ' + k + '=' + v
+    if onbekend:
+        s += ' | onbekend=' + ','.join(onbekend)
+    return s
+
+
+def _meta(e):
+    """<meta-data> en <property> direct onder een element, als "soort naam=waarde"."""
+    out = []
+    for m in e:
+        if m.tag in ('meta-data', 'property'):
+            a = _attrs(m)
+            out.append(m.tag + ' ' + a.get('name', '?') + '=' + (a.get('value') or a.get('resource') or ''))
+    return sorted(out)
 
 
 def _intent(q):
-    """Een <queries>-item als korte tekst, bijv. "intent action=… category=… data=…" of "package=…"."""
+    """Een <queries>-item als korte tekst, bijv. "intent action.name=… category.name=…" of "package=…"."""
     if q.tag == 'package':
         return 'package=' + (q.get(A + 'name') or '')
     if q.tag == 'provider':
         return 'provider=' + (q.get(A + 'authorities') or '')
     delen = [q.tag]
     for e in q:
-        for k, v in sorted(e.attrib.items()):
-            if k.startswith(A):
-                delen.append(e.tag + '.' + k[len(A):] + '=' + v)
+        for k, v in sorted(_attrs(e).items()):
+            delen.append(e.tag + '.' + k + '=' + v)
     return ' '.join(delen)
+
+
+def _attributen(fouten, waar, attrs, lijst, onschuldig):
+    """Elk attribuut moet onschuldig zijn of met precies deze waarde op de lijst staan; null op de lijst = afwezig."""
+    for k, v in attrs.items():
+        if k in onschuldig:
+            continue
+        item = lijst.get(k)
+        if item is None:
+            fouten.append(waar + '/' + k + '="' + v + '" staat niet op de lijst')
+        elif item.get('waarde') != v:
+            fouten.append(waar + '/' + k + ' is ' + v + ', op de lijst ' + str(item.get('waarde')))
+    for k, item in lijst.items():
+        _reden(fouten, waar + '/' + k, item)
+        if k not in attrs and item.get('waarde') is not None:
+            fouten.append(waar + '/' + k + ' is afwezig, op de lijst ' + str(item.get('waarde')))
 
 
 def controleer(root, lijst, build_sh=''):
     fouten = []
+    # Wat er direct onder <manifest> staat, en de attributen van <manifest> zelf
+    for e in root:
+        if e.tag not in TOP:
+            fouten.append('Onbekend element onder <manifest> (eerst met een reden in deze controle opnemen): <' + e.tag + '>')
+    if len(root.findall('application')) != 1:
+        fouten.append('Het manifest moet precies één <application> hebben')
+    _attributen(fouten, 'manifest', _attrs(root), lijst['manifest'], ONSCHULDIG_MANIFEST)
+
     # Toestemmingen
     gezien = {}
-    for e in root:
-        if e.tag in ('uses-permission', 'uses-permission-sdk-23'):
-            gezien[e.get(A + 'name')] = e.get(A + 'maxSdkVersion')
+    for e in root.findall('uses-permission'):
+        naam = e.get(A + 'name')
+        if naam in gezien:
+            fouten.append('Toestemming staat twee keer in het manifest: ' + naam)
+        gezien[naam] = e.get(A + 'maxSdkVersion')
     verwacht = lijst['toestemmingen']
     for naam, max_sdk in gezien.items():
         if naam not in verwacht:
@@ -87,39 +138,43 @@ def controleer(root, lijst, build_sh=''):
 
     app = root.find('application')
     if app is None:
-        return fouten + ['Geen <application> in het manifest']
-    # Instellingen op <application>
-    for a in APP_ATTR:
-        v = app.get(A + a)
-        item = lijst['application'].get(a)
-        if item is None:
-            fouten.append('application/' + a + ' staat niet op de lijst')
-            continue
-        if item.get('waarde') != v:
-            fouten.append('application/' + a + ' is ' + str(v) + ', op de lijst ' + str(item.get('waarde')))
-        _reden(fouten, 'application/' + a, item)
+        return fouten
+    # Instellingen en meta-data op <application>
+    _attributen(fouten, 'application', _attrs(app), lijst['application'], ONSCHULDIG_APP)
     if app.get(A + 'debuggable') == 'true' or app.get(A + 'testOnly') == 'true':
         fouten.append('De app mag nooit debuggable of testOnly zijn')
-    if re.search(r'--debug-mode\b', build_sh):
+    if re.search(r'debug-mode', build_sh):
         fouten.append('build.sh bouwt met aapt2 --debug-mode (debuggable)')
+    am, lam = _meta(app), lijst['applicationMeta']
+    for m in am:
+        if m not in lam:
+            fouten.append('Nieuwe ' + m + ' op <application> zonder reden')
+        else:
+            _reden(fouten, 'application ' + m, lam[m])
+    for m in lam:
+        if m not in am:
+            fouten.append(m + ' op <application> staat op de lijst maar niet in het manifest (lijst bijwerken)')
 
     # Onderdelen
     exp, perms, grant = {}, {}, {}
     for c in app:
         if c.tag not in ONDERDELEN:
             continue
-        naam = c.get(A + 'name') or c.get(A + 'targetActivity') or '?'
+        naam = c.get(A + 'name') or '?'
+        for a in LETTERLIJK:
+            v = c.get(A + a)
+            if v is not None and v not in ('true', 'false'):
+                fouten.append(c.tag + ' ' + naam + ': android:' + a + '="' + v + '" moet letterlijk true of false zijn')
         ex = c.get(A + 'exported')
         heeft_filter = c.find('intent-filter') is not None
         if ex is None and heeft_filter:
             fouten.append(c.tag + ' ' + naam + ': intent-filter zonder android:exported (zet het expliciet)')
-        if ex == 'true' or (ex is None and heeft_filter):
-            acties, cats, data = _filters(c)
-            exp[naam] = {'soort': c.tag, 'acties': acties, 'categorieen': cats, 'data': data,
-                         'permissie': c.get(A + 'permission')}
+        if ex not in (None, 'false') or (ex is None and heeft_filter):
+            exp[naam] = {'soort': c.tag, 'filters': sorted(_filter(f) for f in c.findall('intent-filter')),
+                         'meta': _meta(c), 'permissie': c.get(A + 'permission')}
         if c.get(A + 'permission'):
             perms[naam] = c.get(A + 'permission')
-        if c.tag == 'provider' and c.get(A + 'grantUriPermissions') == 'true':
+        if c.tag == 'provider' and c.get(A + 'grantUriPermissions') not in (None, 'false'):
             grant[naam] = c.get(A + 'authorities')
     lexp = lijst['geexporteerd']
     for naam, o in exp.items():
@@ -128,12 +183,12 @@ def controleer(root, lijst, build_sh=''):
             continue
         l = lexp[naam]
         _reden(fouten, 'Geexporteerd ' + naam, l)
-        for k in ('soort', 'acties', 'categorieen', 'data', 'permissie'):
+        for k in ('soort', 'filters', 'meta', 'permissie'):
             lv = l.get(k)
-            if k in ('acties', 'categorieen', 'data'):
+            if k in ('filters', 'meta'):
                 lv = sorted(lv or [])
             if lv != o[k]:
-                fouten.append('Geexporteerd ' + naam + ': ' + k + ' is ' + json.dumps(o[k]) + ', op de lijst ' + json.dumps(lv))
+                fouten.append('Geexporteerd ' + naam + ': ' + k + ' is ' + json.dumps(o[k], ensure_ascii=False) + ', op de lijst ' + json.dumps(lv, ensure_ascii=False))
     for naam in lexp:
         if naam not in exp:
             fouten.append('Staat als geexporteerd op de lijst maar is dat niet (meer) (lijst bijwerken): ' + naam)
@@ -259,6 +314,40 @@ def zelftest():
     faalt(backup_uit_regels, 'backupregels weg')
 
     faalt(lambda r: None, 'aapt2 --debug-mode', build.replace('$AAPT2 link', '$AAPT2 link --debug-mode', 1))
+
+    def onderdeel(r, naam):
+        return next(c for c in r.find('application') if c.get(A + 'name') == naam)
+
+    def exported_bool(r):
+        for c in r.find('application').findall('activity'):
+            if c.get(A + 'exported') == 'false':
+                c.set(A + 'exported', '@bool/aan')
+                return
+    faalt(exported_bool, 'exported met een resourcewaarde')
+    faalt(lambda r: onderdeel(r, '.PdfProvider').set(A + 'grantUriPermissions', '@bool/aan'), 'grantUriPermissions met een resourcewaarde')
+
+    def mime_verplaatst(r):
+        f = onderdeel(r, '.PdfShareActivity').findall('intent-filter')[1]
+        ET.SubElement(f, 'data', {A + 'mimeType': 'application/pdf'})
+    faalt(mime_verplaatst, 'data toegevoegd aan een ander intent-filter van hetzelfde onderdeel')
+
+    def browsable(r):
+        f = onderdeel(r, '.PdfViewActivity').findall('intent-filter')[1]
+        ET.SubElement(f, 'category', {A + 'name': 'android.intent.category.BROWSABLE'})
+    faalt(browsable, 'categorie toegevoegd aan een tweede intent-filter')
+    faalt(lambda r: onderdeel(r, '.MainActivity').find('intent-filter').set(A + 'priority', '999'), 'priority op een intent-filter')
+    faalt(lambda r: r.set(A + 'sharedUserId', 'nl.rene.gedeeld'), 'sharedUserId op <manifest>')
+    faalt(lambda r: r.find('application').set(A + 'backupAgent', '.Agent'), 'backupAgent')
+    faalt(lambda r: r.find('application').set(A + 'iets', 'x'), 'onbekend attribuut op <application>')
+
+    def dubbel(r):
+        r.insert(0, ET.Element('uses-permission', {A + 'name': 'android.permission.WRITE_EXTERNAL_STORAGE'}))
+    faalt(dubbel, 'toestemming twee keer (zonder maxSdkVersion)')
+    faalt(lambda r: r.insert(0, ET.Element('uses-permission-sdk-23', {A + 'name': 'android.permission.CAMERA'})), 'uses-permission-sdk-23')
+    faalt(lambda r: r.insert(0, ET.Element('permission', {A + 'name': 'nl.rene.tools.X', A + 'protectionLevel': 'normal'})), 'eigen <permission>')
+    faalt(lambda r: r.append(ET.Element('application')), 'tweede <application>')
+    faalt(lambda r: ET.SubElement(r.find('application'), 'meta-data', {A + 'name': 'android.webkit.WebView.EnableSafeBrowsing', A + 'value': 'false'}), 'meta-data op <application>')
+    faalt(lambda r: ET.SubElement(onderdeel(r, '.VpnSvc'), 'meta-data', {A + 'name': 'x', A + 'value': 'y'}), 'meta-data op een geexporteerd onderdeel')
 
     l2 = copy.deepcopy(lijst)
     l2['toestemmingen']['android.permission.CAMERA']['reden'] = ''

@@ -1,99 +1,446 @@
 {
   "uitleg": "Alles wat de app van Android vraagt of voor andere apps openzet, met de reden. Gecontroleerd door tests/manifest/controle.py (vanuit tests/run-ui.sh). Nieuw of anders = hier bijwerken met een reden, en bij een nieuwe toestemming of verbinding naar buiten ook docs/privacybeleid*.md en docs/play-data-safety.md (AGENTS.md, Beveiliging).",
+  "manifest": {
+    "sharedUserId": {
+      "waarde": null,
+      "reden": "Geen gedeelde gebruiker (en dus geen gedeelde gegevens) met een andere app"
+    },
+    "sharedUserMaxSdkVersion": {
+      "waarde": null,
+      "reden": "Hoort bij sharedUserId, dat er niet is"
+    },
+    "installLocation": {
+      "waarde": null,
+      "reden": "Standaard: de app staat in de interne opslag, niet op een SD-kaart"
+    }
+  },
   "toestemmingen": {
-    "android.permission.INTERNET": { "reden": "Radio, podcasts, nieuws, Signalen, updates van de app, modellen downloaden, Facturen, Spotify-backup, VPN en de andere verbindingen uit het privacybeleid" },
-    "android.permission.ACCESS_NETWORK_STATE": { "reden": "Zien of er wifi of internet is (alleen via wifi downloaden, ophalen uitstellen tot er netwerk is)" },
-    "android.permission.CALL_PHONE": { "reden": "Auto redial: het nummer dat Rene kiest opnieuw bellen tot er wordt opgenomen" },
-    "android.permission.READ_PHONE_STATE": { "reden": "Auto redial en Gesprekken opnemen: zien wanneer een gesprek begint en voorbij is" },
-    "android.permission.READ_CALL_LOG": { "reden": "Oproepen (eigen overzicht en backup) en Auto redial: zien of er is opgenomen" },
-    "android.permission.POST_NOTIFICATIONS": { "reden": "Meldingen van de app zelf (voortgang, herinneringen, Signalen, check-in)" },
-    "android.permission.FOREGROUND_SERVICE": { "reden": "Diensten die zichtbaar met een melding doorlopen (radio, backups, opnemen, route opnemen)" },
-    "android.permission.FOREGROUND_SERVICE_SPECIAL_USE": { "reden": "RedialService (bellen tot er wordt opgenomen) en VpnSvc (de VPN-tunnel); beide met PROPERTY_SPECIAL_USE_FGS_SUBTYPE" },
-    "android.permission.WAKE_LOCK": { "reden": "Doorgaan met afspelen, backups en uitschrijven als het scherm uit gaat" },
-    "android.permission.VIBRATE": { "reden": "Korte trilling bij knoppen en uitkomsten (Auto redial, schakelaars)" },
-    "android.permission.REQUEST_INSTALL_PACKAGES": { "reden": "De app werkt zichzelf bij: de ondertekende APK uit update/ installeren (Rene bevestigt in het installatiescherm van Android)" },
-    "android.permission.MANAGE_EXTERNAL_STORAGE": { "reden": "WhatsApp backup en terugzetten, gespreksopnames vinden en de backup-map: bestanden buiten de eigen map (bijzondere toegang die Rene zelf geeft)" },
-    "android.permission.READ_EXTERNAL_STORAGE": { "maxSdk": "32", "reden": "Oudere Android-versies: bestanden lezen voor backups en opnames" },
-    "android.permission.WRITE_EXTERNAL_STORAGE": { "maxSdk": "29", "reden": "Android 10 en ouder: backups in de gekozen map schrijven" },
-    "android.permission.FOREGROUND_SERVICE_DATA_SYNC": { "reden": "Backups, downloads en uitschrijven als zichtbare dienst" },
-    "android.permission.RECEIVE_BOOT_COMPLETED": { "reden": "Na het opstarten van de telefoon wekkers, taken en automatiseringen opnieuw plannen" },
-    "android.permission.READ_CONTACTS": { "reden": "Contacten: eigen versies en backup van de contacten, namen bij oproepen en sms" },
-    "android.permission.WRITE_CONTACTS": { "reden": "Contacten: een verwijderd contact terugzetten (alleen na een vraag)" },
-    "android.permission.READ_SMS": { "reden": "SMS-backup: Rene's eigen sms'jes bekijken en exporteren naar een map die hij kiest" },
-    "android.permission.ACCESS_FINE_LOCATION": { "reden": "Mijn routes, Toiletten in de buurt, weer en zon voor het thema, automatiseringen op een plek" },
-    "android.permission.ACCESS_COARSE_LOCATION": { "reden": "Hoort bij ACCESS_FINE_LOCATION (Android vraagt beide)" },
-    "android.permission.FOREGROUND_SERVICE_LOCATION": { "reden": "Mijn routes en Locatie kiezen als zichtbare dienst met locatie" },
-    "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK": { "reden": "Radio, podcasts en voorlezen als zichtbare dienst" },
-    "android.permission.RECORD_AUDIO": { "reden": "Muziek herkennen, Slaappraat, Gesprekken opnemen en spreken tegen de assistent (alleen als Rene het start)" },
-    "android.permission.FOREGROUND_SERVICE_MICROPHONE": { "reden": "Slaappraat en Gesprekken opnemen als zichtbare dienst met microfoon" },
-    "android.permission.USE_BIOMETRIC": { "reden": "App-slot en Extra ontgrendelen met vingerafdruk of gezicht" },
-    "android.permission.USE_EXACT_ALARM": { "reden": "Radiowekker en herinneringen op de minuut" },
-    "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS": { "reden": "Nachtelijke backups en wekkers laten doorgaan; Rene kiest dit zelf in de vraag van Android" },
-    "android.permission.READ_CALENDAR": { "reden": "Agenda: de agenda's van de telefoon tonen (en de assistent als Rene die bron aanzet)" },
-    "android.permission.WRITE_CALENDAR": { "reden": "Agenda: een afspraak in een agenda van de telefoon zetten als Rene dat kiest" },
-    "com.android.alarm.permission.SET_ALARM": { "reden": "Assistent: een timer of wekker zetten in de Klok-app (zichtbaar, niets ongemerkt)" },
-    "android.permission.EXPAND_STATUS_BAR": { "reden": "Telefoon-skin (HomeActivity): omlaag vegen opent de meldingen, zoals op een gewoon startscherm" },
-    "android.permission.CAMERA": { "reden": "QR-code van VPN, Betalen (foto van een rekening), ID-kopie en Gebruik (foto bij een mislukte ontgrendeling, als Rene dat aanzet)" },
-    "android.permission.ACCESS_MOCK_LOCATION": { "reden": "Locatie kiezen: in de Ontwikkelaarsopties als app voor de locatie te kiezen" },
-    "android.permission.SYSTEM_ALERT_WINDOW": { "reden": "Zwevende speler boven andere apps (alleen als Rene die zelf aanzet)" },
-    "android.permission.ACCESS_BACKGROUND_LOCATION": { "reden": "Automatiseringen op een plek en Apparaten, ook als de app niet open is (Rene geeft dit zelf in Instellingen)" },
-    "android.permission.BLUETOOTH": { "maxSdk": "30", "reden": "Android 11 en ouder: Bluetooth van de auto (automatiseringen) en Apparaten" },
-    "android.permission.BLUETOOTH_CONNECT": { "reden": "Automatiseringen en Mijn auto: zien welk Bluetooth-apparaat verbonden is" },
-    "android.permission.PACKAGE_USAGE_STATS": { "reden": "Gebruik: schermtijd en ontgrendelingen (bijzondere toegang die Rene zelf geeft)" },
-    "android.permission.BLUETOOTH_ADMIN": { "maxSdk": "30", "reden": "Android 11 en ouder: Apparaten in de buurt zoeken" },
-    "android.permission.BLUETOOTH_SCAN": { "reden": "Apparaten: Bluetooth-apparaten in de buurt (trackerwaarschuwing); zonder neverForLocation omdat de app er grof de plek uit afleidt" },
-    "android.permission.NEARBY_WIFI_DEVICES": { "reden": "Apparaten: wifi-netwerken in de buurt" },
-    "android.permission.ACCESS_WIFI_STATE": { "reden": "Apparaten en automatiseringen: welk wifi-netwerk er is" },
-    "android.permission.CHANGE_WIFI_STATE": { "reden": "Apparaten: een wifi-scan starten (ApparatenScan)" },
-    "android.permission.SCHEDULE_EXACT_ALARM": { "maxSdk": "32", "reden": "Android 12: exacte wekkers (vanaf 13 USE_EXACT_ALARM)" }
+    "android.permission.INTERNET": {
+      "reden": "Radio, podcasts, nieuws, Signalen, updates van de app, modellen downloaden, Facturen, Spotify-backup, VPN en de andere verbindingen uit het privacybeleid"
+    },
+    "android.permission.ACCESS_NETWORK_STATE": {
+      "reden": "Zien of er wifi of internet is (alleen via wifi downloaden, ophalen uitstellen tot er netwerk is)"
+    },
+    "android.permission.CALL_PHONE": {
+      "reden": "Auto redial: het nummer dat Rene kiest opnieuw bellen tot er wordt opgenomen"
+    },
+    "android.permission.READ_PHONE_STATE": {
+      "reden": "Auto redial en Gesprekken opnemen: zien wanneer een gesprek begint en voorbij is"
+    },
+    "android.permission.READ_CALL_LOG": {
+      "reden": "Oproepen (eigen overzicht en backup) en Auto redial: zien of er is opgenomen"
+    },
+    "android.permission.POST_NOTIFICATIONS": {
+      "reden": "Meldingen van de app zelf (voortgang, herinneringen, Signalen, check-in)"
+    },
+    "android.permission.FOREGROUND_SERVICE": {
+      "reden": "Diensten die zichtbaar met een melding doorlopen (radio, backups, opnemen, route opnemen)"
+    },
+    "android.permission.FOREGROUND_SERVICE_SPECIAL_USE": {
+      "reden": "RedialService (bellen tot er wordt opgenomen) en VpnSvc (de VPN-tunnel); beide met PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+    },
+    "android.permission.WAKE_LOCK": {
+      "reden": "Doorgaan met afspelen, backups en uitschrijven als het scherm uit gaat"
+    },
+    "android.permission.VIBRATE": {
+      "reden": "Korte trilling bij knoppen en uitkomsten (Auto redial, schakelaars)"
+    },
+    "android.permission.REQUEST_INSTALL_PACKAGES": {
+      "reden": "De app werkt zichzelf bij: de ondertekende APK uit update/ installeren (Rene bevestigt in het installatiescherm van Android)"
+    },
+    "android.permission.MANAGE_EXTERNAL_STORAGE": {
+      "reden": "WhatsApp backup en terugzetten, gespreksopnames vinden en de backup-map: bestanden buiten de eigen map (bijzondere toegang die Rene zelf geeft)"
+    },
+    "android.permission.READ_EXTERNAL_STORAGE": {
+      "maxSdk": "32",
+      "reden": "Oudere Android-versies: bestanden lezen voor backups en opnames"
+    },
+    "android.permission.WRITE_EXTERNAL_STORAGE": {
+      "maxSdk": "29",
+      "reden": "Android 10 en ouder: backups in de gekozen map schrijven"
+    },
+    "android.permission.FOREGROUND_SERVICE_DATA_SYNC": {
+      "reden": "Backups, downloads en uitschrijven als zichtbare dienst"
+    },
+    "android.permission.RECEIVE_BOOT_COMPLETED": {
+      "reden": "Na het opstarten van de telefoon wekkers, taken en automatiseringen opnieuw plannen"
+    },
+    "android.permission.READ_CONTACTS": {
+      "reden": "Contacten: eigen versies en backup van de contacten, namen bij oproepen en sms"
+    },
+    "android.permission.WRITE_CONTACTS": {
+      "reden": "Contacten: een verwijderd contact terugzetten (alleen na een vraag)"
+    },
+    "android.permission.READ_SMS": {
+      "reden": "SMS-backup: Rene's eigen sms'jes bekijken en exporteren naar een map die hij kiest"
+    },
+    "android.permission.ACCESS_FINE_LOCATION": {
+      "reden": "Mijn routes, Toiletten in de buurt, weer en zon voor het thema, automatiseringen op een plek"
+    },
+    "android.permission.ACCESS_COARSE_LOCATION": {
+      "reden": "Hoort bij ACCESS_FINE_LOCATION (Android vraagt beide)"
+    },
+    "android.permission.FOREGROUND_SERVICE_LOCATION": {
+      "reden": "Mijn routes en Locatie kiezen als zichtbare dienst met locatie"
+    },
+    "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK": {
+      "reden": "Radio, podcasts, Chromecast (CastService) en voorlezen als zichtbare dienst"
+    },
+    "android.permission.RECORD_AUDIO": {
+      "reden": "Muziek herkennen, Slaappraat, Gesprekken opnemen en spreken tegen de assistent (alleen als Rene het start)"
+    },
+    "android.permission.FOREGROUND_SERVICE_MICROPHONE": {
+      "reden": "Slaappraat en Gesprekken opnemen als zichtbare dienst met microfoon"
+    },
+    "android.permission.USE_BIOMETRIC": {
+      "reden": "App-slot en Extra ontgrendelen met vingerafdruk of gezicht"
+    },
+    "android.permission.USE_EXACT_ALARM": {
+      "reden": "Radiowekker en herinneringen op de minuut"
+    },
+    "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS": {
+      "reden": "Nachtelijke backups en wekkers laten doorgaan; Rene kiest dit zelf in de vraag van Android"
+    },
+    "android.permission.READ_CALENDAR": {
+      "reden": "Agenda: de agenda's van de telefoon tonen (en de assistent als Rene die bron aanzet)"
+    },
+    "android.permission.WRITE_CALENDAR": {
+      "reden": "Agenda: een afspraak in een agenda van de telefoon zetten als Rene dat kiest"
+    },
+    "com.android.alarm.permission.SET_ALARM": {
+      "reden": "Assistent: een timer of wekker zetten in de Klok-app (zichtbaar, niets ongemerkt)"
+    },
+    "android.permission.EXPAND_STATUS_BAR": {
+      "reden": "Telefoon-skin (HomeActivity): omlaag vegen opent de meldingen, zoals op een gewoon startscherm"
+    },
+    "android.permission.CAMERA": {
+      "reden": "QR-code van VPN, Betalen (foto van een rekening) en Gebruik (foto bij een mislukte ontgrendeling, als Rene dat aanzet)"
+    },
+    "android.permission.ACCESS_MOCK_LOCATION": {
+      "reden": "Locatie kiezen: in de Ontwikkelaarsopties als app voor de locatie te kiezen"
+    },
+    "android.permission.SYSTEM_ALERT_WINDOW": {
+      "reden": "Zwevende speler boven andere apps, en Gebruik: foto bij ontgrendelen vanaf het vergrendelscherm (beide alleen als Rene het zelf aanzet)"
+    },
+    "android.permission.ACCESS_BACKGROUND_LOCATION": {
+      "reden": "Automatiseringen op een plek en Apparaten, ook als de app niet open is (Rene geeft dit zelf in Instellingen)"
+    },
+    "android.permission.BLUETOOTH": {
+      "maxSdk": "30",
+      "reden": "Android 11 en ouder: Bluetooth van de auto (automatiseringen) en Apparaten"
+    },
+    "android.permission.BLUETOOTH_CONNECT": {
+      "reden": "Automatiseringen en Mijn auto: zien welk Bluetooth-apparaat verbonden is"
+    },
+    "android.permission.PACKAGE_USAGE_STATS": {
+      "reden": "Gebruik: schermtijd en ontgrendelingen (bijzondere toegang die Rene zelf geeft)"
+    },
+    "android.permission.BLUETOOTH_ADMIN": {
+      "maxSdk": "30",
+      "reden": "Android 11 en ouder: Apparaten in de buurt zoeken"
+    },
+    "android.permission.BLUETOOTH_SCAN": {
+      "reden": "Apparaten: Bluetooth-apparaten in de buurt (trackerwaarschuwing); zonder neverForLocation omdat de app er grof de plek uit afleidt"
+    },
+    "android.permission.NEARBY_WIFI_DEVICES": {
+      "reden": "Apparaten: wifi-netwerken in de buurt"
+    },
+    "android.permission.ACCESS_WIFI_STATE": {
+      "reden": "Apparaten en automatiseringen: welk wifi-netwerk er is"
+    },
+    "android.permission.CHANGE_WIFI_STATE": {
+      "reden": "Apparaten: een wifi-scan starten (ApparatenScan)"
+    },
+    "android.permission.SCHEDULE_EXACT_ALARM": {
+      "maxSdk": "32",
+      "reden": "Android 12: exacte wekkers (vanaf 13 USE_EXACT_ALARM)"
+    }
   },
   "application": {
-    "allowBackup": { "waarde": "true", "reden": "Android-backup met eigen regels (backup_rules, data_rules) die geheimen, Bankzaken en de kluis uitsluiten" },
-    "usesCleartextTraffic": { "waarde": "true", "reden": "Bewust: radiozenders, podcasts en apparaten in het thuisnetwerk gebruiken http naar adressen die Rene kiest (AGENTS.md, gebied 6)" },
-    "debuggable": { "waarde": null, "reden": "Nooit debuggable: de WebView en de gegevens zouden dan via adb te bereiken zijn" },
-    "testOnly": { "waarde": null, "reden": "Een gewone, installeerbare app" },
-    "networkSecurityConfig": { "waarde": null, "reden": "Geen eigen netwerkregels: alleen de certificaten van het systeem, geen certificaten die de gebruiker toevoegt" },
-    "fullBackupContent": { "waarde": "@xml/backup_rules", "reden": "Regels voor de Android-backup (Android 11 en ouder): wat buiten de backup blijft" },
-    "dataExtractionRules": { "waarde": "@xml/data_rules", "reden": "Regels voor de Android-backup en overzetten (Android 12+): wat buiten de backup blijft" },
-    "requestLegacyExternalStorage": { "waarde": "true", "reden": "Android 10: bestanden buiten de eigen map voor de WhatsApp backup en opnames" },
-    "sharedUserId": { "waarde": null, "reden": "Geen gedeelde gebruiker met een andere app" }
+    "allowBackup": {
+      "waarde": "true",
+      "reden": "Android-backup met eigen regels (backup_rules, data_rules) die geheimen, Bankzaken en de kluis uitsluiten"
+    },
+    "usesCleartextTraffic": {
+      "waarde": "true",
+      "reden": "Bewust: radiozenders, podcasts en apparaten in het thuisnetwerk gebruiken http naar adressen die Rene kiest (AGENTS.md, gebied 6)"
+    },
+    "debuggable": {
+      "waarde": null,
+      "reden": "Nooit debuggable: de WebView en de gegevens zouden dan via adb te bereiken zijn"
+    },
+    "testOnly": {
+      "waarde": null,
+      "reden": "Een gewone, installeerbare app"
+    },
+    "networkSecurityConfig": {
+      "waarde": null,
+      "reden": "Geen eigen netwerkregels: alleen de certificaten van het systeem, geen certificaten die de gebruiker toevoegt"
+    },
+    "fullBackupContent": {
+      "waarde": "@xml/backup_rules",
+      "reden": "Regels voor de Android-backup (Android 11 en ouder): wat buiten de backup blijft"
+    },
+    "dataExtractionRules": {
+      "waarde": "@xml/data_rules",
+      "reden": "Regels voor de Android-backup en overzetten (Android 12+): wat buiten de backup blijft"
+    },
+    "requestLegacyExternalStorage": {
+      "waarde": "true",
+      "reden": "Android 10: bestanden buiten de eigen map voor de WhatsApp backup en opnames"
+    },
+    "backupAgent": {
+      "waarde": null,
+      "reden": "Geen eigen backup-agent: de Android-backup volgt alleen backup_rules en data_rules"
+    },
+    "fullBackupOnly": {
+      "waarde": null,
+      "reden": "Geen eigen backup-agent, dus ook geen fullBackupOnly"
+    }
+  },
+  "applicationMeta": {
+    "meta-data com.google.android.gms.car.application=@xml/automotive_app_desc": {
+      "reden": "Android Auto: radio en podcasts in de auto (alleen media, automotive_app_desc)"
+    }
   },
   "geexporteerd": {
-    ".CallRecordingReceiver": { "soort": "receiver", "acties": ["android.intent.action.BOOT_COMPLETED", "android.intent.action.PHONE_STATE"], "categorieen": [], "data": [], "permissie": null, "reden": "Gesprekken opnemen: het systeem meldt het begin en eind van een gesprek en het opstarten" },
-    ".HistoryListener": { "soort": "service", "acties": ["android.service.notification.NotificationListenerService"], "categorieen": [], "data": [], "permissie": "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE", "reden": "Meldingsgeschiedenis: alleen het systeem kan de meldingenlezer binden (toegang geeft Rene zelf)" },
-    ".HomeActivity": { "soort": "activity", "acties": ["android.intent.action.MAIN"], "categorieen": ["android.intent.category.DEFAULT", "android.intent.category.HOME"], "data": [], "permissie": null, "reden": "Telefoon-skin: Tools als startscherm" },
-    ".MainActivity": { "soort": "activity", "acties": ["android.intent.action.MAIN", "android.intent.action.SEND"], "categorieen": ["android.intent.category.DEFAULT", "android.intent.category.LAUNCHER"], "data": ["mimeType=text/plain"], "permissie": null, "reden": "Het app-pictogram en Delen → Notitie in Tools (gedeelde tekst is tekst van buiten)" },
-    ".RadioService": { "soort": "service", "acties": ["android.media.browse.MediaBrowserService"], "categorieen": [], "data": [], "permissie": null, "reden": "Radio en podcasts in Android Auto en bij Bluetooth-bediening (MediaBrowserService)" },
-    ".VpnSvc": { "soort": "service", "acties": ["android.net.VpnService"], "categorieen": [], "data": [], "permissie": "android.permission.BIND_VPN_SERVICE", "reden": "De VPN-tunnel; alleen het systeem kan hem binden" },
-    ".VpnTile": { "soort": "service", "acties": ["android.service.quicksettings.action.QS_TILE"], "categorieen": [], "data": [], "permissie": "android.permission.BIND_QUICK_SETTINGS_TILE", "reden": "Tegel in Snelle instellingen voor de VPN; alleen het systeem kan hem binden" },
-    ".PdfShareActivity": { "soort": "activity", "acties": ["android.intent.action.SEND", "android.intent.action.SEND_MULTIPLE"], "categorieen": ["android.intent.category.DEFAULT"], "data": ["mimeType=application/pdf", "mimeType=image/*", "mimeType=message/rfc822", "mimeType=text/html", "mimeType=text/plain"], "permissie": null, "reden": "Delen → PDF maken: plaatjes, een PDF, tekst of een e-mail uit een andere app (bestanden van buiten)" },
-    ".PdfViewActivity": { "soort": "activity", "acties": ["android.intent.action.VIEW"], "categorieen": ["android.intent.category.BROWSABLE", "android.intent.category.DEFAULT"], "data": ["mimeType=application/pdf", "mimeType=application/x-pdf", "scheme=content"], "permissie": null, "reden": "Eigen PDF-viewer voor PDF's uit andere apps (alleen content://)" },
-    ".PinShortcutActivity": { "soort": "activity", "acties": ["android.content.pm.action.CONFIRM_PIN_SHORTCUT"], "categorieen": [], "data": [], "permissie": null, "reden": "Snelkoppelingen van andere apps op het startscherm zetten als Tools het startscherm is" },
-    ".NoteWidgetConfig": { "soort": "activity", "acties": ["android.appwidget.action.APPWIDGET_CONFIGURE"], "categorieen": [], "data": [], "permissie": null, "reden": "Een lijstje kiezen bij het plaatsen van de widget (het startscherm start dit venster)" },
-    ".AutoReceiver": { "soort": "receiver", "acties": ["android.bluetooth.device.action.ACL_CONNECTED", "android.bluetooth.device.action.ACL_DISCONNECTED"], "categorieen": [], "data": [], "permissie": null, "reden": "Automatiseringen: het systeem meldt dat een Bluetooth-apparaat (de auto) verbindt of loskoppelt" },
-    ".AutoA11y": { "soort": "service", "acties": ["android.accessibilityservice.AccessibilityService"], "categorieen": [], "data": [], "permissie": "android.permission.BIND_ACCESSIBILITY_SERVICE", "reden": "Automatiseringen: knoppen indrukken (toegankelijkheid, zet Rene zelf aan); alleen het systeem kan binden" },
-    ".CallRecordingAccess": { "soort": "service", "acties": ["android.accessibilityservice.AccessibilityService"], "categorieen": [], "data": [], "permissie": "android.permission.BIND_ACCESSIBILITY_SERVICE", "reden": "Hulp bij gespreksopname (toegankelijkheid, zet Rene zelf aan); alleen het systeem kan binden" },
-    ".GebruikAdmin": { "soort": "receiver", "acties": ["android.app.action.DEVICE_ADMIN_ENABLED"], "categorieen": [], "data": [], "permissie": "android.permission.BIND_DEVICE_ADMIN", "reden": "Gebruik: apparaatbeheer om mislukte ontgrendelingen te zien (zet Rene zelf aan); alleen het systeem mag dit aanroepen" }
+    ".CallRecordingReceiver": {
+      "soort": "receiver",
+      "filters": [
+        "acties=android.intent.action.BOOT_COMPLETED,android.intent.action.PHONE_STATE | cat= | data="
+      ],
+      "meta": [],
+      "permissie": null,
+      "reden": "Gesprekken opnemen: het systeem meldt het begin en eind van een gesprek en het opstarten"
+    },
+    ".HistoryListener": {
+      "soort": "service",
+      "filters": [
+        "acties=android.service.notification.NotificationListenerService | cat= | data="
+      ],
+      "meta": [],
+      "permissie": "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE",
+      "reden": "Meldingsgeschiedenis: alleen het systeem kan de meldingenlezer binden (toegang geeft Rene zelf)"
+    },
+    ".HomeActivity": {
+      "soort": "activity",
+      "filters": [
+        "acties=android.intent.action.MAIN | cat=android.intent.category.DEFAULT,android.intent.category.HOME | data="
+      ],
+      "meta": [],
+      "permissie": null,
+      "reden": "Telefoon-skin: Tools als startscherm"
+    },
+    ".MainActivity": {
+      "soort": "activity",
+      "filters": [
+        "acties=android.intent.action.MAIN | cat=android.intent.category.LAUNCHER | data=",
+        "acties=android.intent.action.SEND | cat=android.intent.category.DEFAULT | data=[mimeType=text/plain]"
+      ],
+      "meta": [],
+      "permissie": null,
+      "reden": "Het app-pictogram en Delen → Notitie in Tools (gedeelde tekst is tekst van buiten)"
+    },
+    ".RadioService": {
+      "soort": "service",
+      "filters": [
+        "acties=android.media.browse.MediaBrowserService | cat= | data="
+      ],
+      "meta": [],
+      "permissie": null,
+      "reden": "Radio en podcasts in Android Auto en bij Bluetooth-bediening (MediaBrowserService)"
+    },
+    ".VpnSvc": {
+      "soort": "service",
+      "filters": [
+        "acties=android.net.VpnService | cat= | data="
+      ],
+      "meta": [
+        "meta-data android.net.VpnService.SUPPORTS_ALWAYS_ON=true",
+        "property android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE=WireGuard VPN tunnel that the user set up and switched on"
+      ],
+      "permissie": "android.permission.BIND_VPN_SERVICE",
+      "reden": "De VPN-tunnel; alleen het systeem kan hem binden"
+    },
+    ".VpnTile": {
+      "soort": "service",
+      "filters": [
+        "acties=android.service.quicksettings.action.QS_TILE | cat= | data="
+      ],
+      "meta": [
+        "meta-data android.service.quicksettings.TOGGLEABLE_TILE=true"
+      ],
+      "permissie": "android.permission.BIND_QUICK_SETTINGS_TILE",
+      "reden": "Tegel in Snelle instellingen voor de VPN; alleen het systeem kan hem binden"
+    },
+    ".PdfShareActivity": {
+      "soort": "activity",
+      "filters": [
+        "acties=android.intent.action.SEND | cat=android.intent.category.DEFAULT | data=[mimeType=application/pdf],[mimeType=image/*],[mimeType=message/rfc822],[mimeType=text/html],[mimeType=text/plain]",
+        "acties=android.intent.action.SEND_MULTIPLE | cat=android.intent.category.DEFAULT | data=[mimeType=image/*]"
+      ],
+      "meta": [],
+      "permissie": null,
+      "reden": "Delen → PDF maken: plaatjes, een PDF, tekst of een e-mail uit een andere app (bestanden van buiten)"
+    },
+    ".PdfViewActivity": {
+      "soort": "activity",
+      "filters": [
+        "acties=android.intent.action.VIEW | cat=android.intent.category.BROWSABLE,android.intent.category.DEFAULT | data=[mimeType=application/pdf],[scheme=content]",
+        "acties=android.intent.action.VIEW | cat=android.intent.category.DEFAULT | data=[mimeType=application/x-pdf],[scheme=content]"
+      ],
+      "meta": [],
+      "permissie": null,
+      "reden": "Eigen PDF-viewer voor PDF's uit andere apps (alleen content://)"
+    },
+    ".PinShortcutActivity": {
+      "soort": "activity",
+      "filters": [
+        "acties=android.content.pm.action.CONFIRM_PIN_SHORTCUT | cat= | data="
+      ],
+      "meta": [],
+      "permissie": null,
+      "reden": "Snelkoppelingen van andere apps op het startscherm zetten als Tools het startscherm is"
+    },
+    ".NoteWidgetConfig": {
+      "soort": "activity",
+      "filters": [
+        "acties=android.appwidget.action.APPWIDGET_CONFIGURE | cat= | data="
+      ],
+      "meta": [],
+      "permissie": null,
+      "reden": "Een lijstje kiezen bij het plaatsen van de widget (het startscherm start dit venster)"
+    },
+    ".AutoReceiver": {
+      "soort": "receiver",
+      "filters": [
+        "acties=android.bluetooth.device.action.ACL_CONNECTED,android.bluetooth.device.action.ACL_DISCONNECTED | cat= | data="
+      ],
+      "meta": [],
+      "permissie": null,
+      "reden": "Automatiseringen: het systeem meldt dat een Bluetooth-apparaat (de auto) verbindt of loskoppelt"
+    },
+    ".AutoA11y": {
+      "soort": "service",
+      "filters": [
+        "acties=android.accessibilityservice.AccessibilityService | cat= | data="
+      ],
+      "meta": [
+        "meta-data android.accessibilityservice=@xml/auto_a11y"
+      ],
+      "permissie": "android.permission.BIND_ACCESSIBILITY_SERVICE",
+      "reden": "Automatiseringen: knoppen indrukken (toegankelijkheid, zet Rene zelf aan); alleen het systeem kan binden"
+    },
+    ".CallRecordingAccess": {
+      "soort": "service",
+      "filters": [
+        "acties=android.accessibilityservice.AccessibilityService | cat= | data="
+      ],
+      "meta": [
+        "meta-data android.accessibilityservice=@xml/call_recording_access"
+      ],
+      "permissie": "android.permission.BIND_ACCESSIBILITY_SERVICE",
+      "reden": "Hulp bij gespreksopname (toegankelijkheid, zet Rene zelf aan); alleen het systeem kan binden"
+    },
+    ".GebruikAdmin": {
+      "soort": "receiver",
+      "filters": [
+        "acties=android.app.action.DEVICE_ADMIN_ENABLED | cat= | data="
+      ],
+      "meta": [
+        "meta-data android.app.device_admin=@xml/device_admin"
+      ],
+      "permissie": "android.permission.BIND_DEVICE_ADMIN",
+      "reden": "Gebruik: apparaatbeheer om mislukte ontgrendelingen te zien (zet Rene zelf aan); alleen het systeem mag dit aanroepen"
+    }
   },
   "onderdeelpermissies": {
-    "android.permission.BIND_JOB_SERVICE": { "reden": "Taken van JobScheduler: alleen het systeem mag ze starten", "onderdelen": [".PodcastDownloadJob", ".FacturenJob", ".ToilettenJob", ".SignalenJob", ".WaBackupJob", ".Care", ".AllBackupJob", ".AutoActions", ".ContactsJob", ".SpotifyJob", ".TranscribeJob", ".ApparatenJob", ".GebruikJob"] },
-    "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE": { "reden": "Meldingenlezer: alleen het systeem mag binden", "onderdelen": [".HistoryListener"] },
-    "android.permission.BIND_VPN_SERVICE": { "reden": "VPN-dienst: alleen het systeem mag binden", "onderdelen": [".VpnSvc"] },
-    "android.permission.BIND_QUICK_SETTINGS_TILE": { "reden": "Tegel in Snelle instellingen: alleen het systeem mag binden", "onderdelen": [".VpnTile"] },
-    "android.permission.BIND_REMOTEVIEWS": { "reden": "Lijst in de widget: alleen het systeem mag binden", "onderdelen": [".NoteWidgetService"] },
-    "android.permission.BIND_ACCESSIBILITY_SERVICE": { "reden": "Toegankelijkheidsdiensten: alleen het systeem mag binden", "onderdelen": [".AutoA11y", ".CallRecordingAccess"] },
-    "android.permission.BIND_DEVICE_ADMIN": { "reden": "Apparaatbeheer: alleen het systeem mag dit aanroepen", "onderdelen": [".GebruikAdmin"] }
+    "android.permission.BIND_JOB_SERVICE": {
+      "reden": "Taken van JobScheduler: alleen het systeem mag ze starten",
+      "onderdelen": [
+        ".PodcastDownloadJob",
+        ".FacturenJob",
+        ".ToilettenJob",
+        ".SignalenJob",
+        ".WaBackupJob",
+        ".Care",
+        ".AllBackupJob",
+        ".AutoActions",
+        ".ContactsJob",
+        ".SpotifyJob",
+        ".TranscribeJob",
+        ".ApparatenJob",
+        ".GebruikJob"
+      ]
+    },
+    "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE": {
+      "reden": "Meldingenlezer: alleen het systeem mag binden",
+      "onderdelen": [
+        ".HistoryListener"
+      ]
+    },
+    "android.permission.BIND_VPN_SERVICE": {
+      "reden": "VPN-dienst: alleen het systeem mag binden",
+      "onderdelen": [
+        ".VpnSvc"
+      ]
+    },
+    "android.permission.BIND_QUICK_SETTINGS_TILE": {
+      "reden": "Tegel in Snelle instellingen: alleen het systeem mag binden",
+      "onderdelen": [
+        ".VpnTile"
+      ]
+    },
+    "android.permission.BIND_REMOTEVIEWS": {
+      "reden": "Lijst in de widget: alleen het systeem mag binden",
+      "onderdelen": [
+        ".NoteWidgetService"
+      ]
+    },
+    "android.permission.BIND_ACCESSIBILITY_SERVICE": {
+      "reden": "Toegankelijkheidsdiensten: alleen het systeem mag binden",
+      "onderdelen": [
+        ".AutoA11y",
+        ".CallRecordingAccess"
+      ]
+    },
+    "android.permission.BIND_DEVICE_ADMIN": {
+      "reden": "Apparaatbeheer: alleen het systeem mag dit aanroepen",
+      "onderdelen": [
+        ".GebruikAdmin"
+      ]
+    }
   },
   "grantUriPermissions": {
-    ".KluisProvider": { "authorities": "nl.rene.tools.kluis", "reden": "Een kluisdocument tijdelijk aan een app geven die Rene kiest (alleen met een tijdelijke leesrechten-intent; provider niet exported)" },
-    ".RecordingProvider": { "authorities": "nl.rene.tools.recordings", "reden": "Een opname delen of afspelen met een app die Rene kiest (provider niet exported)" },
-    ".PdfProvider": { "authorities": "nl.rene.tools.pdf", "reden": "PDF's en afbeeldingen voor de eigen viewer en delen met een app die Rene kiest (provider niet exported)" },
-    ".GpxProvider": { "authorities": "nl.rene.tools.files", "reden": "Een route (GPX) delen met een app die Rene kiest; alleen .gpx uit de routemap, alleen-lezen (provider niet exported)" }
+    ".KluisProvider": {
+      "authorities": "nl.rene.tools.kluis",
+      "reden": "Een kluisdocument tijdelijk aan een app geven die Rene kiest (alleen met een tijdelijke leesrechten-intent; provider niet exported)"
+    },
+    ".RecordingProvider": {
+      "authorities": "nl.rene.tools.recordings",
+      "reden": "Een opname delen of afspelen met een app die Rene kiest (provider niet exported)"
+    },
+    ".PdfProvider": {
+      "authorities": "nl.rene.tools.pdf",
+      "reden": "PDF's en afbeeldingen voor de eigen viewer en delen met een app die Rene kiest (provider niet exported)"
+    },
+    ".GpxProvider": {
+      "authorities": "nl.rene.tools.files",
+      "reden": "Een route (GPX) delen met een app die Rene kiest; alleen .gpx uit de routemap, alleen-lezen (provider niet exported)"
+    }
   },
   "queries": {
-    "intent action.name=android.intent.action.VIEW data.mimeType=application/pdf data.scheme=content": { "reden": "Zien welke app nu PDF's opent (Standaard PDF-app)" },
-    "intent action.name=android.intent.action.MAIN category.name=android.intent.category.LAUNCHER": { "reden": "Telefoon-skin en Gebruik: alle apps met een pictogram tonen en openen" },
-    "intent action.name=android.intent.action.TTS_SERVICE": { "reden": "Voorlezen: de tekst-naar-spraak van de telefoon gebruiken" },
-    "intent action.name=android.content.pm.action.CONFIRM_INSTALL": { "reden": "Het installatiescherm van Android voor een update van de app" }
+    "intent action.name=android.intent.action.VIEW data.mimeType=application/pdf data.scheme=content": {
+      "reden": "Zien welke app nu PDF's opent (Standaard PDF-app)"
+    },
+    "intent action.name=android.intent.action.MAIN category.name=android.intent.category.LAUNCHER": {
+      "reden": "Telefoon-skin en Gebruik: alle apps met een pictogram tonen en openen"
+    },
+    "intent action.name=android.intent.action.TTS_SERVICE": {
+      "reden": "Voorlezen: de tekst-naar-spraak van de telefoon gebruiken"
+    },
+    "intent action.name=android.content.pm.action.CONFIRM_INSTALL": {
+      "reden": "Het installatiescherm van Android voor een update van de app"
+    }
   }
 }
