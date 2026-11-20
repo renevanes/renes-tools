@@ -169,20 +169,20 @@ final class BankImport {
         List<List<String>> out = new ArrayList<>();
         List<String> row = new ArrayList<>();
         StringBuilder f = new StringBuilder();
-        boolean q = false, any = false;
+        boolean q = false, any = false, whitespace = true;
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
             if (q) {
-                if (c == '"') { if (i + 1 < text.length() && text.charAt(i + 1) == '"') { f.append('"'); i++; } else q = false; }
-                else f.append(c);
-            } else if (c == '"' && f.toString().trim().isEmpty()) { q = true; f.setLength(0); any = true; }
-            else if (c == sep) { row.add(f.toString()); f.setLength(0); any = true; }
+                if (c == '"') { if (i + 1 < text.length() && text.charAt(i + 1) == '"') { f.append('"'); whitespace = false; i++; } else q = false; }
+                else { f.append(c); whitespace &= c <= ' '; }
+            } else if (c == '"' && whitespace) { q = true; f.setLength(0); whitespace = true; any = true; }
+            else if (c == sep) { row.add(f.toString()); f.setLength(0); whitespace = true; any = true; }
             else if (c == '\n' || c == '\r') {
                 if (c == '\r' && i + 1 < text.length() && text.charAt(i + 1) == '\n') i++;
                 if (any || f.length() > 0) { row.add(f.toString()); out.add(row); }
-                row = new ArrayList<>(); f.setLength(0); any = false;
+                row = new ArrayList<>(); f.setLength(0); whitespace = true; any = false;
                 if (out.size() > MAX_ROWS + 10) break;
-            } else { f.append(c); if (c != ' ') any = true; }
+            } else { f.append(c); whitespace &= c <= ' '; if (c != ' ') any = true; }
         }
         if (any || f.length() > 0) { row.add(f.toString()); out.add(row); }
         return out;

@@ -2,8 +2,10 @@
 <section class="screen" id="s-cpap">
   <div class="hdr"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">CPAP-analyse</h1></div>
   <main>
-    <p class="hint">Neem je nachtwaarden uit ResMed myAir over en vergelijk je maskers. Tools bewaart je metingen versleuteld op je telefoon.</p>
+    <p class="hint">Importeer je myAir-export of voeg handmatig een nacht toe. Tools bewaart je metingen versleuteld op je telefoon.</p>
     <button class="big" id="cp-nieuw" type="button" onclick="cpOpen()">Nacht toevoegen</button>
+    <button class="big ghost" id="cp-import" type="button" onclick="cpImport()" hidden>myAir-ZIP importeren</button>
+    <p class="note" id="cp-import-status" role="status" hidden></p>
     <p class="note" id="cp-fout" role="alert" hidden></p>
     <div id="cp-leeg"></div>
     <div id="cp-overzicht" hidden>
@@ -15,10 +17,16 @@
       <p class="hint" id="cp-geen-periode" hidden>In deze periode staan geen nachten.</p>
       <div id="cp-metingen" hidden>
         <div class="card cp-kaart">
-          <h2>Verloop maskerlekkage</h2>
+          <h2>Gebruik en AHI</h2>
+          <dl class="cp-waarden" id="cp-samenvatting"></dl>
+        </div>
+        <div class="card cp-kaart">
+          <h2>Verloop per nacht</h2>
           <label class="f" for="cp-meting">Meting</label>
           <select class="sel" id="cp-meting" onchange="cpVerloop()">
             <option value="seal">Maskerafdichting in punten</option><option value="leak">Lekkage in L/min</option>
+            <option value="leak95">Lekkage (95e percentiel)</option><option value="ahi">AHI</option>
+            <option value="usage">Gebruiksduur</option>
           </select>
           <ul id="cp-verloop" class="cp-balken" aria-label="Laatste metingen"></ul>
           <p class="hint" id="cp-geen-verloop" hidden>Voor deze meting zijn er geen waarden in de gekozen periode.</p>
@@ -35,6 +43,7 @@
       </div>
     </div>
     <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Importeren voegt nieuwe datums toe uit SLEEP_RECORD.csv. Vul het masker per nacht aan als je weet welk model je die nacht droeg.</p>
       <p>Open de details van een nacht in myAir. Gebruik dezelfde datum en geef hetzelfde masker steeds dezelfde naam. Laat waarden die je niet ziet leeg.</p>
       <p>Maskerafdichting loopt van 0 tot 20 punten. Meer punten betekent minder lekkage volgens myAir. Lekkage in liter per minuut is een aparte meting. Gebruik daarvoor steeds hetzelfde type lekkagewaarde van je apparaat.</p>
       <p>AHI is het aantal ademhalingsgebeurtenissen per uur dat je apparaat rapporteert. Het overzicht is bedoeld om je metingen te volgen en desgewenst met je behandelaar te bespreken.</p>
@@ -57,6 +66,8 @@
         <div class="cp-velden">
           <div><label class="f" for="cp-seal">Maskerafdichting (0–20 punten)</label><input class="aein" id="cp-seal" inputmode="numeric" maxlength="2"></div>
           <div><label class="f" for="cp-leak">Lekkage (L/min)</label><input class="aein" id="cp-leak" inputmode="decimal" maxlength="7"></div>
+          <div><label class="f" for="cp-leak95">Lekkage (95e percentiel)</label><input class="aein" id="cp-leak95" inputmode="decimal" maxlength="7"></div>
+          <div><label class="f" for="cp-sessions">Maskersessies</label><input class="aein" id="cp-sessions" inputmode="numeric" maxlength="3"></div>
           <div><label class="f" for="cp-ahi">AHI (gebeurtenissen/uur)</label><input class="aein" id="cp-ahi" inputmode="decimal" maxlength="7"></div>
           <div><label class="f" for="cp-usage">Gebruiksduur (uur:min)</label><input class="aein" id="cp-usage" placeholder="7:30" maxlength="5" aria-describedby="cp-duur-tip"></div>
           <div><label class="f" for="cp-off">Masker op/af (aantal)</label><input class="aein" id="cp-off" inputmode="numeric" maxlength="3"></div>

@@ -1,0 +1,1 @@
+CPAP-analyse kan je myAir-ZIP importeren en toont je gebruiksduur en AHI per periode.

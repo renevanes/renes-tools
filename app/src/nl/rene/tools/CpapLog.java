@@ -20,8 +20,8 @@ final class CpapLog {
     static final int MAX_BYTES = 2 * 1024 * 1024, MAX_NIGHTS = 10000;
     static final String FILE = "cpap.bin";
     private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
-    private static final String[] METRICS = {"seal", "leak", "ahi", "usage", "off", "score"};
-    private static final int[] LIMITS = {20, 999, 999, 1440, 999, 100};
+    private static final String[] METRICS = {"seal", "leak", "ahi", "usage", "off", "score", "leak95", "sessions"};
+    private static final int[] LIMITS = {20, 999, 999, 1440, 999, 100, 999, 999};
 
     private CpapLog() { }
 
@@ -52,7 +52,7 @@ final class CpapLog {
             Object value = night.get(field);
             if (!(value instanceof Number)) throw new JSONException("Ongeldige meting");
             double n = ((Number) value).doubleValue();
-            boolean whole = !field.equals("leak") && !field.equals("ahi");
+            boolean whole = !field.equals("leak") && !field.equals("leak95") && !field.equals("ahi");
             if (!(n >= 0 && n <= LIMITS[i]) || (whole && n != Math.floor(n))) throw new JSONException("Ongeldige meting");
             clean.put(field, value);
         }
@@ -110,6 +110,28 @@ final class CpapLog {
         nights.put(day, night);
         write(c, nights);
         return "";
+    }
+
+    static synchronized JSONObject importNights(Context c, JSONObject imported) throws Exception {
+        JSONObject nights = nights(c);
+        JSONObject result = merge(nights, imported);
+        if (result.getInt("added") > 0) write(c, nights);
+        return result;
+    }
+
+    static JSONObject merge(JSONObject nights, JSONObject imported) throws JSONException {
+        int added = 0, existing = 0;
+        for (Iterator<String> keys = imported.keys(); keys.hasNext(); ) {
+            String day = keys.next();
+            if (nights.has(day)) {
+                existing++;
+                continue;
+            }
+            if (nights.length() >= MAX_NIGHTS) throw new JSONException("Te veel nachten");
+            nights.put(day, imported.getJSONObject(day));
+            added++;
+        }
+        return new JSONObject().put("added", added).put("existing", existing);
     }
 
     static synchronized String delete(Context c, String day, String expected) throws Exception {

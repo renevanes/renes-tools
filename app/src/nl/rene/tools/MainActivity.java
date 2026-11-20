@@ -1057,6 +1057,24 @@ public class MainActivity extends Activity {
         super.onActivityResult(req, res, data);
         if(req==MasterPhotos.REQUEST){masterPickReturned=masterPickUntil!=0&&res==RESULT_OK&&data!=null&&data.getData()!=null;masterPhotos.result(res,data);return;}
         if(req==MasterContacts.REQUEST){masterPickReturned=masterPickUntil!=0&&"contact".equals(masterPickKind)&&masterContacts.result(res,data);return;}
+        if (req == CpapBridge.REQ_MYAIR) {
+            final Uri uri = res == RESULT_OK && data != null ? data.getData() : null;
+            if (uri == null) {
+                js("onCpapImport", "{\"cancelled\":true}");
+                return;
+            }
+            new Thread(() -> {
+                try {
+                    java.io.InputStream input = getContentResolver().openInputStream(uri);
+                    if (input == null) throw new java.io.IOException();
+                    JSONObject imported = MyAirImport.read(input);
+                    js("onCpapImport", CpapLog.importNights(getApplicationContext(), imported).toString());
+                } catch (Throwable e) {
+                    js("onCpapImport", "{\"error\":true}");
+                }
+            }, "myair-import").start();
+            return;
+        }
         if (req == REQ_SIG_IMG) {
             // Terug uit de eigen kiezer (ook bij annuleren): Stamgegevens hoeft dan niet op slot.
             if ("sig".equals(masterPickKind)) masterPickReturned = masterPickUntil != 0;
