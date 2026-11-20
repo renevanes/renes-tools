@@ -158,10 +158,11 @@ const { chromium } = require('playwright');
     const st2 = await pg.textContent('#sl-status');
     ok(st2.includes('wacht: accu onder 40%') && st2.includes('2 nog uit te schrijven') && st2.includes('na het luisteren'), 'wacht (accu): zegt waarom, en dat de rest na het luisteren komt');
     // Stoppen: alleen wat er nog over is wordt uitgeschreven
-    await pg.evaluate(() => { Android._sl.txMs = 1500; });
-    await pg.click('#sl-btn'); await pg.waitForTimeout(800);
-    ok(await pg.evaluate(() => Android._sl.phase === 'uitschrijven') && (await pg.textContent('#sl-status')).includes('Uitschrijven… 0 van 2'), 'na het stoppen: alleen de rest (2) uitschrijven');
-    await pg.waitForTimeout(1500);
+    // Wacht op de toestand, niet een vaste tijd: met langere wachttijden (herkansing, UI_WACHT) was het uitschrijven al klaar
+    await pg.evaluate(() => { Android._sl.txMs = 4000; });
+    await pg.click('#sl-btn');
+    ok(await pg.waitForFunction(() => Android._sl.phase === 'uitschrijven' && $('#sl-status').textContent.includes('Uitschrijven… 0 van 2'), null, { timeout: 3500, polling: 50 }).then(() => true, () => false), 'na het stoppen: alleen de rest (2) uitschrijven');
+    await pg.waitForFunction(() => Android._sl.phase === '' && ($('#sl-nights .strow') || {}).textContent.includes('2 keer gepraat'), null, { timeout: 15000, polling: 100 }).catch(() => {});
     ok(await pg.evaluate(() => Android._sl.phase === '' && Android._sl.txLast === 2) && (await pg.textContent('#sl-nights .strow:first-child')).includes('2 keer gepraat'), 'klaar: de rest is uitgeschreven');
     await pg.evaluate(() => { Android._sl.txMs = 0; Android._sl.directWait = ''; });
     await pg.click('#sl-nights .strow:first-child'); await pg.waitForTimeout(200);

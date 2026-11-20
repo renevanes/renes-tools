@@ -13,7 +13,9 @@ const { chromium } = require('playwright');
       Android._pc.recent = [{ ep: { key: 'e1', title: 'Aflevering 12', url: 'https://example.org/12.mp3', dur: 1200, date: Date.now() - 864e5 }, pod: { id: 'p1', feed: 'https://feeds.example.org/vandaag', title: 'Nieuws van Vandaag' } }];
       show('ai'); }); await pg.waitForTimeout(200);
     const last = '#ai-msgs .aimsg:last-child', card = last + ' .cmdcard';
-    const ask = async (q, ms) => { await pg.fill('#ai-in', q); await pg.click('#ai-send'); await pg.waitForTimeout(ms || 250); };
+    // Eerst wachten tot het vorige antwoord klaar is: onder belasting liep dat soms nog, en dan telde de nieuwe vraag niet
+    const idle = () => pg.waitForFunction(() => !aiBusy, null, { timeout: 15000 }).catch(() => {});
+    const ask = async (q, ms) => { await idle(); await pg.fill('#ai-in', q); await pg.click('#ai-send'); await pg.waitForTimeout(ms || 250); };
     const done = () => pg.evaluate(() => (Android._aiDone || []).slice());
     const asked0 = await pg.evaluate(() => Android._ai.asked || 0);
 

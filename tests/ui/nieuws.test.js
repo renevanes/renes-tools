@@ -92,13 +92,14 @@ const BEELD = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><
 
     // Bijwerken: een nieuw artikel, één bron lukt niet
     await page.evaluate(() => {
-      const s = Android._nw; s.wacht = 300; s.mislukt.rijnmond = 'Geen verbinding';
+      const s = Android._nw; s.wacht = 1500; s.mislukt.rijnmond = 'Geen verbinding';
       s.erbij.push({ id: 'n00000000000f0001', bron: 'nos', titel: 'Net binnen: trein rijdt weer', link: 'https://nos.nl/l/1', datum: Date.now(), blokken: [{ t: 'De treinen rijden weer.' }] });
     });
     await page.click('#nw-ververs');
     await page.waitForTimeout(80);
     ok(await page.locator('#nw-ververs').isDisabled() && (await page.locator('#nw-stand').innerText()) === 'Bijwerken…', 'bezig met bijwerken');
-    await page.waitForTimeout(400);
+    await page.waitForFunction(() => !document.querySelector('#nw-ververs').disabled, null, { timeout: 10000 }).catch(() => {}); await page.waitForTimeout(100);
+    await page.evaluate(() => { Android._nw.wacht = 300; }); // de rest van de test zoals voorheen
     ok(await rijen() === 10 && (await page.locator('#nw-lijst .nw-rij b').first().innerText()).startsWith('Net binnen'), 'nieuw artikel bovenaan');
     ok((await page.locator('#toast').innerText()) === 'Eén nieuw artikel', 'melding: één nieuw artikel');
     ok((await page.locator('#nw-stand').innerText()).includes('Eén bron lukte niet') && (await nwCalls()).includes('verversen:true'), 'stand: welke niet lukte');

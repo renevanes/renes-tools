@@ -14,8 +14,8 @@ const SHOTS = process.env.PDF_SHOTS || path.join(__dirname, 'shots');
     const cur = () => pg.evaluate(() => current);
     // Vier gemaakte bestanden: het overzicht toont er drie
     await pg.evaluate(() => {
-      const now = Date.now();
-      Android._pdf.outs.push({ name: 'Contract ondertekend.pdf', size: 140000, t: now - 60000 }, { name: 'Bonnetjes oktober.pdf', size: 820000, t: now - 3600e3 },
+      const now = Date.now(); // vlak na middernacht: het nieuwste bestand is toch van vandaag (anders 'gisteren' in plaats van 'vandaag')
+      Android._pdf.outs.push({ name: 'Contract ondertekend.pdf', size: 140000, t: Math.max(now - 60000, rgStartOfDay(now)) }, { name: 'Bonnetjes oktober.pdf', size: 820000, t: now - 3600e3 },
         { name: 'Reservering.pdf', size: 12000, t: now - 3 * 86400e3 }, { name: 'Oud.pdf', size: 1000, t: now - 5 * 86400e3 });
       openTool('pdf');
     });

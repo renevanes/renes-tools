@@ -280,7 +280,8 @@ stap 4-delen-pdf ja -n "$PKG/${LAUNCHER%.*}.PdfShareActivity" -a android.intent.
 WACHT_SCHERM=${WACHT_SCHERM:-8}
 n=5
 for scherm in gebruik apparaten herstel sleep ai agenda signalen nieuws wc facturen pdf settings \
-    ereader podcasts radio spotify vpn car recorder transcripts sms wa tracks history kluis masterdata bank backup; do
+    ereader podcasts radio spotify vpn car recorder transcripts sms wa tracks history kluis masterdata bank backup \
+    checkin betalen cpap loc music notes redial calls contacts auto player; do
   WACHT=$WACHT_SCHERM stap "$n-$scherm" ja -n "$PKG/$LAUNCHER" --es open "$scherm"
   n=$((n + 1))
 done

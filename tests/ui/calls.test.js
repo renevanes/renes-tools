@@ -26,7 +26,9 @@ const { chromium } = require('playwright');
   console.log('rij', withDur[0]);
   if (!withDur.some(t => t.includes('–'))) errs.push('geen eindtijd in de lijst');
   const idx = await pg.evaluate(() => callsShown.findIndex(c => c.duration > 0 && c.number));
-  await pg.click('#calls-list button >> nth=' + idx); await pg.waitForTimeout(200);
+  await pg.click('#calls-list button >> nth=' + idx);
+  // wacht tot het menu echt open is (onder belasting duurde dat soms langer dan 200 ms)
+  await pg.waitForFunction(() => document.querySelector('#sheet.on') && /tot \d\d:/.test(document.querySelector('#sheet-sub').textContent), null, { timeout: 5000 }).catch(() => {});
   const sub = await pg.evaluate(() => document.querySelector('#sheet-sub, #sheet .sub, #sheet small') ? document.querySelector('#sheet-sub, #sheet .sub, #sheet small').textContent : document.querySelector('#sheet').textContent);
   console.log('sheet', sub);
   if (!/\d\d:\d\d:\d\d tot \d\d:\d\d:\d\d/.test(sub)) errs.push('geen eindtijd in het menu');

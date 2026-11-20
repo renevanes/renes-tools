@@ -9,6 +9,7 @@ const { chromium } = require('playwright');
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
     await pg.evaluate(() => { Android._ai.st.klein = { state: 'ready' }; Android._tx.models.base = true; Android._tts.ms = 1500; show('ai'); }); await pg.waitForTimeout(200);
     await pg.fill('#ai-in', 'Hallo'); await pg.click('#ai-send'); await pg.waitForTimeout(900);
+    await pg.waitForSelector('#ai-msgs .aispk', { timeout: 8000 }).catch(() => {}); // onder belasting kwam het antwoord later dan 900 ms
     ok(await pg.evaluate(() => Android._tts.said.length === 0), 'getypte vraag: niet vanzelf voorgelezen');
     // Knop onder het antwoord
     ok(await pg.isVisible('#ai-msgs .aispk') && (await pg.textContent('#ai-msgs .aispk')).includes('Voorlezen'), 'knop Voorlezen onder het antwoord');
