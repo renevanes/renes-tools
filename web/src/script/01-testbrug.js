@@ -13,6 +13,16 @@ if (!window.Android) window.Android = (function(){
   return {
     _cpNachten: [],
     cpapList(){ return JSON.stringify({ nights: this._cpNachten }); },
+    cpapImport(){
+      const bron = this._cpImport;
+      if (!Array.isArray(bron)) return setTimeout(() => onCpapImport(bron || { cancelled: true }), 0);
+      let added = 0, existing = 0;
+      for (const nacht of bron) {
+        if (this._cpNachten.some(n => n.day === nacht.day)) existing++;
+        else { this._cpNachten.push({ ...nacht }); added++; }
+      }
+      setTimeout(() => onCpapImport({ added, existing }), 0);
+    },
     cpapSave(data, verwacht){
       const nacht = JSON.parse(data);
       const i = this._cpNachten.findIndex(n => n.day === nacht.day);
