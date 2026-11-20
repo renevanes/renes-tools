@@ -124,8 +124,87 @@ public final class MasterDeviceTest extends Instrumentation {
             check(fields.getString("geldig").equals("2030-04-03")&&!person.has("bsn"),"actual OCR expiry, no inferred BSN");
             if(page!=image)page.recycle();
         }
+        documentOcr(image);
+        documentSides(image);
         image.recycle();File model=new File(context.getNoBackupFilesDir(),"document-ocr/tessdata/eng.traineddata");check(model.isFile(),"public OCR model available offline");
         File[] cached=model.getParentFile().listFiles();check(cached!=null&&cached.length==1,"no photo or recognized text cached with model");
+    }
+    void documentOcr(android.graphics.Bitmap licence)throws Exception {
+        java.io.ByteArrayOutputStream pdfBytes=new java.io.ByteArrayOutputStream();
+        android.graphics.pdf.PdfDocument pdf=new android.graphics.pdf.PdfDocument();
+        try{
+            android.graphics.pdf.PdfDocument.Page page=pdf.startPage(new android.graphics.pdf.PdfDocument.PageInfo.Builder(1500,950,1).create());
+            pdf.finishPage(page);
+            page=pdf.startPage(new android.graphics.pdf.PdfDocument.PageInfo.Builder(1500,950,2).create());
+            page.getCanvas().drawBitmap(licence,0,0,null);
+            pdf.finishPage(page);
+            pdf.writeTo(pdfBytes);
+        }finally{pdf.close();}
+        java.io.ByteArrayOutputStream docxBytes=new java.io.ByteArrayOutputStream();
+        try(java.util.zip.ZipOutputStream zip=new java.util.zip.ZipOutputStream(docxBytes)){
+            zip.putNextEntry(new java.util.zip.ZipEntry("word/document.xml"));
+            zip.write("<document/>".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            zip.closeEntry();
+            zip.putNextEntry(new java.util.zip.ZipEntry("word/media/image1.png"));
+            licence.compress(android.graphics.Bitmap.CompressFormat.PNG,100,zip);
+            zip.closeEntry();
+        }
+        Class<?> images=type("MasterDocumentImages");
+        Class<?>[] signature={Context.class,byte[].class,String.class,java.util.function.BooleanSupplier.class};
+        for(byte[] bytes:new byte[][]{pdfBytes.toByteArray(),docxBytes.toByteArray()}){
+            Object match=call(images,null,"find",signature,context,bytes,"2026-11-08",(java.util.function.BooleanSupplier)()->true);
+            check(match!=null,"ID recognized inside document");
+            java.lang.reflect.Field image=match.getClass().getDeclaredField("image");image.setAccessible(true);
+            check((image.get(match)==null)==(bytes[0]=='%'),"only the embedded Word image can become a card photo");
+            java.lang.reflect.Field fields=match.getClass().getDeclaredField("fields");fields.setAccessible(true);
+            check(((JSONObject)fields.get(match)).getJSONObject("document").getString("document").equals("0123456789"),"ID number from document photo");
+            check(call(images,null,"find",signature,context,bytes,"2026-11-08",(java.util.function.BooleanSupplier)()->false)==null,"no recognition after cancellation");
+        }
+    }
+    void documentSides(android.graphics.Bitmap licence)throws Exception {
+        java.io.ByteArrayOutputStream front=new java.io.ByteArrayOutputStream(),back=new java.io.ByteArrayOutputStream();
+        licence.compress(android.graphics.Bitmap.CompressFormat.JPEG,95,front);
+        android.graphics.Bitmap blank=android.graphics.Bitmap.createBitmap(900,560,android.graphics.Bitmap.Config.ARGB_8888);
+        blank.eraseColor(android.graphics.Color.LTGRAY);
+        blank.compress(android.graphics.Bitmap.CompressFormat.JPEG,95,back);
+        blank.recycle();
+        // Bewust achterkant eerst, in beide bestandstypen.
+        java.io.ByteArrayOutputStream word=new java.io.ByteArrayOutputStream(),pdf=new java.io.ByteArrayOutputStream();
+        try(java.util.zip.ZipOutputStream zip=new java.util.zip.ZipOutputStream(word)){
+            zip.putNextEntry(new java.util.zip.ZipEntry("word/document.xml"));
+            zip.write("<document/>".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            zip.closeEntry();
+            zip.putNextEntry(new java.util.zip.ZipEntry("word/media/image1.jpg"));
+            back.writeTo(zip);
+            zip.closeEntry();
+            zip.putNextEntry(new java.util.zip.ZipEntry("word/media/image2.jpg"));
+            front.writeTo(zip);
+            zip.closeEntry();
+        }
+        Class<?> writer=type("PdfWriter");
+        Class<?>[] layout={byte[].class,int.class,int.class,boolean.class,boolean.class,float.class};
+        Object backPage=call(writer,null,"layout",layout,back.toByteArray(),900,560,false,true,28f);
+        Object frontPage=call(writer,null,"layout",layout,front.toByteArray(),1500,950,false,true,28f);
+        call(writer,null,"write",new Class<?>[]{java.io.OutputStream.class,java.util.List.class,String.class},pdf,Arrays.asList(backPage,frontPage),"Test");
+        Class<?> images=type("MasterDocumentImages");
+        Class<?>[] pairSignature={byte[].class,JSONObject.class,byte[].class,JSONObject.class,String.class};
+        JSONObject td1=new JSONObject().put("soort","TD1").put("document",new JSONObject().put("documentsoort","identiteitskaart").put("document","ID1234567"));
+        Object card=call(images,null,"pair",pairSignature,back.toByteArray(),td1,front.toByteArray(),null,"identiteitskaart");
+        check(card!=null,"TD1 card sides classified");
+        java.lang.reflect.Field cardBack=card.getClass().getDeclaredField("back");cardBack.setAccessible(true);
+        check(Arrays.equals((byte[])cardBack.get(card),back.toByteArray()),"TD1 strip identifies the back");
+        JSONObject otherCard=new JSONObject(td1.toString());
+        otherCard.getJSONObject("document").put("document","ID2345678");
+        check(call(images,null,"pair",pairSignature,back.toByteArray(),td1,front.toByteArray(),otherCard,"identiteitskaart")==null,"two different documents are never paired");
+        Class<?>[] signature={Context.class,byte[].class,String.class,String.class,java.util.function.BooleanSupplier.class};
+        for(byte[] bytes:new byte[][]{word.toByteArray(),pdf.toByteArray()}){
+            Object pair=call(type("MasterDocumentImages"),null,"findPair",signature,context,bytes,"2026-11-08","rijbewijs",(java.util.function.BooleanSupplier)()->true);
+            check(pair!=null,"both sides recognized");
+            java.lang.reflect.Field frontField=pair.getClass().getDeclaredField("front");frontField.setAccessible(true);
+            java.lang.reflect.Field backField=pair.getClass().getDeclaredField("back");backField.setAccessible(true);
+            check(Arrays.equals((byte[])frontField.get(pair),front.toByteArray()),"recognized licence classified as front");
+            check(Arrays.equals((byte[])backField.get(pair),back.toByteArray()),"other photo classified as back");
+        }
     }
     void runChecks()throws Exception {
         store=type("MasterStore");sessionType=type("MasterSession");keys=type("MasterKeys");

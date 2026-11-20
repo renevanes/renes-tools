@@ -418,6 +418,9 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .wn{display:block;margin:4px 0 12px;color:var(--ink);font-size:14px;line-height:1.5}
 #modal-text b{color:var(--ink)}
 #modal-text{max-height:58vh;overflow:auto}
+#cmh-pair-preview:not([hidden]){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px;text-align:center}
+#cmh-pair-preview img{display:block;width:100%;height:clamp(60px,15vh,135px);object-fit:contain}
+#cmh-pair-preview button{grid-column:1/-1}
 .lockscr{position:fixed;inset:0;z-index:3000;background:var(--bg);color:var(--ink);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
 .lockscr.on{display:flex}.lockscr>svg{color:var(--primary)}.lockscr h2{margin:6px 0 0;font-size:24px;font-weight:400;color:var(--ink)}
 .lockscr button{margin-top:10px;padding:14px 28px;border-radius:28px;background:var(--primary);color:var(--on-primary);font-weight:600;font-size:17px}

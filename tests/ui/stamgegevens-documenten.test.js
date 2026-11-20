@@ -48,7 +48,7 @@ for(const colorScheme of ['light','dark']){
   // 3. Nieuw document vanuit de persoon: eerst de soort, dan foto of zelf invullen; persoon vooraf gekozen, naam vanzelf.
   await p.click('#cmc-doc-add');await p.waitForSelector('#sheet.on');assert.equal(await p.textContent('#sheet-title'),'Welk document van Zoë <b>?');
   await p.getByRole('button',{name:'Paspoort',exact:true}).click();await p.waitForFunction(()=>$('#sheet.on')&&$('#sheet-title').textContent==='Paspoort');
-  assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),['Foto kiezen','Zelf invullen'],'een foto eerst');
+  assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),['Foto of document kiezen','Zelf invullen'],'een foto eerst');
   await p.getByRole('button',{name:'Zelf invullen',exact:true}).click();await p.waitForFunction(()=>cm.edit&&cm.edit.type==='identiteit'&&!cm.edit.id&&current==='cmedit');
   assert.deepEqual(await p.evaluate(()=>[cm.edit.fields.persoon,cm.edit.fields.documentsoort,cmLabel(cm.edit)]),[zoe,'paspoort','Paspoort Zoë <b>']);
   await T.select('#cm-field-documentsoort','rijbewijs');assert.equal(await p.evaluate(()=>cmLabel(cm.edit)),'Rijbewijs Zoë <b>','naam volgt de soort');await T.select('#cm-field-documentsoort','paspoort');

@@ -699,10 +699,10 @@ public class MainActivity extends Activity {
 
     void scheduleMasterExpiry(){h.removeCallbacks(masterExpiry);long left=masterSession.remaining();if(left>0)h.postDelayed(masterExpiry,left);}
     void suspendMaster(boolean explicit){
-        if(explicit)masterPhotos.cancel();
         masterContacts.cancel();
         pdfFormAi.cancel(null);
         synchronized(masterSession){masterSession.close();masterGrants.clear();if(explicit||!masterAuthPending)masterAuthSerial.incrementAndGet();}
+        if(explicit)masterPhotos.cancel();else masterPhotos.cancelReview();
         h.removeCallbacks(masterExpiry);
         long generation;
         synchronized(masterSecurityGeneration){generation=masterSecurityGeneration.incrementAndGet();if(masterScreen){masterCover=true;coverOn();}}

@@ -15,9 +15,9 @@ for(const colorScheme of ['light','dark']){
   const scan=async soort=>{
     await T.kaart(kid);await p.click('#cmc-doc-add');await p.waitForSelector('#sheet.on');
     await p.getByRole('button',{name:soort,exact:true}).click();await p.waitForFunction(s=>$('#sheet.on')&&$('#sheet-title').textContent===s,soort);
-    await p.getByRole('button',{name:'Foto kiezen',exact:true}).click();
+    await p.getByRole('button',{name:'Foto of document kiezen',exact:true}).click();
   };
-  // 1. Foto kiezen: terug uit de kiezer gaat het meteen verder, zonder opnieuw ontgrendelen; een nieuw document met de foto als bijlage, en voorstellen.
+  // 1. Foto of document kiezen: terug uit de kiezer gaat het meteen verder, zonder opnieuw ontgrendelen; een nieuw document met de foto als bijlage, en voorstellen.
   await scan('Identiteitskaart');await p.waitForFunction(()=>current==='cmedit'&&cm.edit&&cm.edit.type==='identiteit'&&cm.edit.id&&cm.tab==='document'&&!$('#cmh-panel').hidden&&document.querySelectorAll('#cmh-list input').length>0);
   const doc=await p.evaluate(()=>cm.edit.id);
   assert.deepEqual(await p.evaluate(()=>Android._cm.scanSoorten),['identiteitskaart'],'de gekozen soort gaat mee');
@@ -57,7 +57,7 @@ for(const colorScheme of ['light','dark']){
   // Geen strook gevonden, en te lang weg uit de app (kluis vergrendeld): na ontgrendelen wel een document met de foto, en hulp.
   await p.evaluate(()=>{Android._cm.herkend=null;Android._cm.slowPick=true;cm.dirty=false;cmCancelEdit();});await p.waitForFunction(()=>current==='cmkaart'&&!cm.navigating);
   await scan('Paspoort');await p.waitForFunction(()=>!$('#cmi-photo-pending').hidden&&current==='masterdata');
-  await p.waitForFunction(()=>tsZichtbaar());assert.match(await p.textContent('#ts-msg'),/Na ontgrendelen maakt de app een nieuw document/,'het slotscherm zegt waarom');await p.click('#ts-open');
+  await p.waitForFunction(()=>tsZichtbaar());assert.match(await p.textContent('#ts-msg'),/Na ontgrendelen zoekt de app daarin/,'het slotscherm zegt waarom');await p.click('#ts-open');
   await p.waitForFunction(()=>current==='cmedit'&&cm.edit&&cm.edit.type==='identiteit'&&cm.tab==='fotos'&&/geen gegevens herkend/.test($('#cm-edit-status').textContent));
   assert.equal(await p.isVisible('#cmh-hulp'),true,'wat je kunt proberen');
   assert.equal(await p.evaluate(()=>Android._cm.records.filter(r=>r.type==='identiteit').length),2);
@@ -80,6 +80,30 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>{Android._cm.herkend={document:{document:'X1'},persoon:{},zeker:true};});
   await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!cmOpen());
   assert.equal(await p.evaluate(()=>cmh.data===null&&$('#cmh-list').children.length===0),true);
+  // PDF: dezelfde voorstellen, zonder een hele documentpagina als kaartfoto.
+  await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+  await p.evaluate(()=>{Android._cm.scanPdf=true;Android._cm.herkend={document:{documentsoort:'paspoort',document:'PDF123456'},persoon:{},soort:'TD3',zeker:true};});
+  await scan('Paspoort');
+  await p.waitForFunction(()=>current==='cmedit'&&$('#cm-edit-status').textContent.includes('Gegevens uit de PDF gevonden'));
+  assert.equal(await p.evaluate(()=>!!Android._cm.records.find(r=>r.id===cm.edit.id).images),false);
+  await p.waitForSelector('#cmh-panel', {state:'visible'});
+  // Een document met twee zijden zet beide foto's op hetzelfde documentkaartje.
+  await p.evaluate(()=>{cm.dirty=false;cmCancelEdit();Android._cm.scanPdf=false;Android._cm.herkend={document:{documentsoort:'identiteitskaart',document:'ID1234567'},persoon:{},soort:'TD1',zeker:true};});
+  await p.waitForFunction(()=>!cm.navigating&&!cm.mutating);
+  await T.kaart(kid);
+  await p.click('#cmc-doc-add');
+  await p.getByRole('button',{name:'Identiteitskaart',exact:true}).click();
+  const count=await p.evaluate(()=>Android._cm.records.length);
+  await p.getByRole('button',{name:'Document met beide zijden kiezen',exact:true}).click();
+  await p.waitForSelector('#cmh-pair-preview img');
+  assert.equal(await p.evaluate(()=>Android._cm.records.length),count,'preview does not save a document');
+  const back=await p.locator('#cmh-pair-preview img').last().getAttribute('src');
+  await p.getByRole('button',{name:'Wissel voor- en achterkant'}).click();
+  assert.equal(await p.locator('#cmh-pair-preview img').first().getAttribute('src'),back);
+  await p.click('#modal-ok');
+  await p.waitForFunction(()=>current==='cmedit'&&$('#cm-edit-status').textContent.includes('Voor- en achterkant zijn bewaard'));
+  assert.deepEqual(await p.evaluate(()=>Object.keys(Android._cm.records.find(r=>r.id===cm.edit.id).images).sort()),['back','front']);
+  assert.equal(await p.evaluate(()=>Android._cm.records.find(r=>r.id===cm.edit.id).images.front),back,'swap is saved');
   await p.close();
 }
 console.log('errors',errors);await b.close();assert.deepEqual(errors,[]);})().catch(e=>{console.error(e);process.exit(1);});
