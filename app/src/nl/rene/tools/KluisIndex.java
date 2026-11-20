@@ -10,21 +10,44 @@ import org.json.JSONObject;
 final class KluisIndex {
     private KluisIndex() { }
     static final int MAX_VERSIONS = 20;
-    static final String[] SOURCES={"pdf","bewerkt","idkopie","formulier","betalen"};
+    static final String[] SOURCES={"pdf","bewerkt","idkopie","formulier","betalen","factuur"};
     static final String[] LINK_KEYS={"kind","ref","soort","ontvanger","doel","datum"};
 
-    /** Alleen bekende velden, korte tekst zonder stuurtekens: {source, link:{kind, ref, soort, ontvanger, doel, datum}}. */
+    /** Bekende velden voor koppelingen met een identiteitsdocument, betaling of factuur. */
     static JSONObject meta(JSONObject in) throws Exception {
         JSONObject out=new JSONObject();if(in==null)return out;
         String source=in.optString("source","");
         if(java.util.Arrays.asList(SOURCES).contains(source))out.put("source",source);
         JSONObject l=in.optJSONObject("link");
-        if(l!=null&&("id".equals(l.optString("kind"))&&l.optString("ref").matches("[A-Za-z0-9_-]{1,64}")||"betaling".equals(l.optString("kind"))&&l.optString("ref").matches("b[0-9a-f]{12}"))){ // een identiteitsdocument (Stamgegevens) of een betaling (Betalen)
-            JSONObject link=new JSONObject();
-            for(String k:LINK_KEYS){String v=l.optString(k,"");if(!v.isEmpty())link.put(k,DocumentMeta.text(v,120,false,"Koppeling"));}
-            out.put("link",link);
+        if (l == null) return out;
+        String kind = l.optString("kind"), ref = l.optString("ref");
+        if ("factuur".equals(kind)) {
+            if (l.opt("ref") instanceof String && ref.matches("[0-9a-f]{64}")) out.put("link", factuurLink(l, ref));
+        } else if (("id".equals(kind) && ref.matches("[A-Za-z0-9_-]{1,64}"))
+                || ("betaling".equals(kind) && ref.matches("b[0-9a-f]{12}"))) {
+            JSONObject link = new JSONObject();
+            for (String key : LINK_KEYS) {
+                String value = l.optString(key, "");
+                if (!value.isEmpty()) link.put(key, DocumentMeta.text(value, 120, false, "Koppeling"));
+            }
+            out.put("link", link);
         }
         return out;
+    }
+
+    private static JSONObject factuurLink(JSONObject in, String ref) throws Exception {
+        JSONObject link = new JSONObject().put("kind", "factuur").put("ref", ref);
+        if (in.opt("leverancier") instanceof String) {
+            try {
+                String leverancier = DocumentMeta.text(in.getString("leverancier"), 120, false, "Leverancier");
+                if (!leverancier.isEmpty()) link.put("leverancier", leverancier);
+            } catch (IllegalArgumentException ignored) {
+                // Een ongeldige optionele leverancier kost de factuurkoppeling niet.
+            }
+        }
+        String datum = in.optString("datum");
+        if (in.opt("datum") instanceof String && datum(datum)) link.put("datum", datum);
+        return link;
     }
 
     static final int MAX_LABELS = 12;

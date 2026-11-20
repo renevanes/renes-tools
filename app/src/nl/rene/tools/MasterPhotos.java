@@ -27,13 +27,14 @@ final class MasterPhotos {
     static final java.util.List<String> SOORTEN=java.util.Arrays.asList("","paspoort","identiteitskaart","rijbewijs","verblijfsdocument");
     static final class Pending {
         final String id,side,request,view,soort;final long revision,dataset;Uri uri;
+        String reviewId,reviewToken;JSONObject images,found;
         Pending(String id,long revision,String side,String request,String view,String soort){this.id=id;this.revision=revision;this.side=side;this.request=request;this.view=view;this.soort=soort;this.dataset=MasterSession.datasetEpoch();}
     }
     synchronized void pick(String token,String id,long revision,String side,String request)throws Exception {pick(token,id,revision,side,request,"");}
     /** soort: bij een nieuw document (side "scan") de soort die Rene koos; wat uit de strook herkend wordt, gaat voor. */
     synchronized void pick(String token,String id,long revision,String side,String request,String soort)throws Exception {
         if(pending!=null)throw new MasterError(Taal.T("Er staat al een kaartfoto klaar; ontgrendel om die op te slaan"));
-        if(!side.equals("front")&&!side.equals("back")&&!side.equals("scan"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
+        if(!side.equals("front")&&!side.equals("back")&&!side.equals("scan")&&!side.equals("pair"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
         if(soort==null||!SOORTEN.contains(soort))throw new MasterError(Taal.T("Kies wat voor document het is"));
         Pending job=new Pending(id,revision,side,request,activity.masterView,soort);pending=job;
         activity.h.post(()->{
@@ -41,12 +42,51 @@ final class MasterPhotos {
             if(!activity.masterForeground||!activity.masterSession.accepts(token)||!job.view.equals(activity.masterView)){clear(job);notify(job,false,Taal.T("Ontgrendel de stamgegevens opnieuw"));return;}
             // Zolang de kiezer open is (hooguit 2 minuten) niet op slot: zie MainActivity.masterPickUntil.
             if(activity.masterSession.accepts(token)){activity.masterPickReturned=false;activity.masterPickKind="photo";activity.masterPickUntil=android.os.SystemClock.elapsedRealtime()+MainActivity.MASTER_PICK_MS;activity.h.postDelayed(activity::masterPickExpired,MainActivity.MASTER_PICK_MS+500);}
-            Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("image/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            if("scan".equals(job.side))intent.setType("*/*").putExtra(Intent.EXTRA_MIME_TYPES,new String[]{
+                "image/*","application/pdf","application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            });
+            if("pair".equals(job.side))intent.setType("*/*").putExtra(Intent.EXTRA_MIME_TYPES,new String[]{
+                "application/pdf","application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            });
             try{activity.startActivityForResult(intent,REQUEST);}catch(Throwable e){activity.masterPickUntil=0;clear(job);notify(job,false,Taal.T("Bestandskiezer niet beschikbaar"));}
         });
     }
     synchronized void clear(Pending job){if(pending==job)pending=null;}
     synchronized void cancel(){pending=null;}
+    synchronized void cancelReview(){if(pending!=null&&pending.reviewId!=null)pending=null;}
+    private JSONObject review(Pending job,String token,JSONObject images,JSONObject found)throws Exception{
+        synchronized(activity.masterSession){
+            activity.masterSession.require(token);
+            synchronized(this){
+                if(pending!=job||!activity.masterForeground||!activity.masterWanted||
+                    !job.view.equals(activity.masterView)||job.dataset!=MasterSession.datasetEpoch())
+                    throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
+                job.reviewId=java.util.UUID.randomUUID().toString();
+                job.reviewToken=token;
+                job.images=images;
+                job.found=found;
+                job.uri=null;
+                return new JSONObject().put("reviewId",job.reviewId).put("images",images);
+            }
+        }
+    }
+    JSONObject saveReview(SecretKey key,MasterSession session,String token,String id,boolean swap)throws Exception{
+        Pending job;
+        JSONObject images;
+        synchronized(this){
+            job=pending;
+            if(job==null||id==null||!id.equals(job.reviewId)||!token.equals(job.reviewToken)||job.images==null)
+                throw new MasterError(Taal.T("Kies het bestand opnieuw."));
+            images=job.images;
+            job.images=null;
+        }
+        try{
+            if(swap)images=new JSONObject().put("front",images.getString("back")).put("back",images.getString("front"));
+            return scanDocument(key,session,token,job,images,job.found);
+        }finally{clear(job);}
+    }
     void notify(Pending job,boolean picked,String error){try{JSONObject out=new JSONObject().put("request",job.request).put("picked",picked).put("direct",picked&&activity.masterPicking());if(error!=null)out.put("error",error);activity.js("onMasterPhotoPicked",out.toString());}catch(Exception ignored){ }}
     void result(int result,Intent data){
         Pending job;synchronized(this){job=pending;}if(job==null)return;
@@ -76,15 +116,48 @@ final class MasterPhotos {
         try(Voortgang v=Voortgang.van(activity,"kaartfoto",1)){
             if(job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kies de kaartfoto opnieuw vanuit Stamgegevens"));
             session.require(token);byte[] bytes=read(v.open(activity,job.uri));
-            JSONObject diag=new JSONObject();v.tijd("herkennen",HERKEN_MS);
-            JSONObject found=recognize(activity,bytes,Regio.dayKey(activity,System.currentTimeMillis()),()->session.accepts(token)&&activity.masterForeground&&activity.masterWanted&&job.dataset==MasterSession.datasetEpoch(),false,diag);session.require(token);
+            JSONObject diag=new JSONObject();
+            String today=Regio.dayKey(activity,System.currentTimeMillis());
+            java.util.function.BooleanSupplier active=()->session.accepts(token)&&activity.masterForeground
+                &&activity.masterWanted&&job.dataset==MasterSession.datasetEpoch();
+            if("pair".equals(job.side)){
+                v.tijd("herkennen",MasterDocumentImages.SEARCH_MS);
+                MasterDocumentImages.Pair pair=null;
+                try{pair=MasterDocumentImages.findPair(activity,bytes,today,job.soort,active);}
+                catch(java.io.IOException|IllegalArgumentException|SecurityException ignored){ }
+                session.require(token);
+                if(pair==null)throw new MasterError(Taal.T("De twee zijden konden niet worden ingedeeld. Kies een bestand met twee losse kaartfoto’s of voeg de zijden apart toe."));
+                return review(job,token,new JSONObject().put("front",normalize(pair.front))
+                    .put("back",normalize(pair.back)),pair.fields);
+            }
+            boolean document="scan".equals(job.side)&&(MasterDocumentImages.pdf(bytes)||MasterDocumentImages.zip(bytes));
+            JSONObject found;
+            if(document){
+                v.tijd("herkennen",MasterDocumentImages.SEARCH_MS);
+                MasterDocumentImages.Match match;
+                try{match=MasterDocumentImages.find(activity,bytes,today,active);}
+                catch(java.io.IOException|IllegalArgumentException|SecurityException e){
+                    throw new MasterError(Taal.T("Dit document kan niet worden geopend. Kies een leesbare PDF of een Word-document (.docx)."));
+                }
+                session.require(token);
+                if(match==null)throw new MasterError(Taal.T("Geen ID-bewijs herkend in dit document. Kies een document met een scherpe foto van het ID-bewijs."));
+                bytes=match.image;
+                found=match.fields;
+            }else{
+                v.tijd("herkennen",HERKEN_MS);
+                found=recognize(activity,bytes,today,active,false,diag);
+            }
+            session.require(token);
             v.stap("opslaan",0,0);
-            String image=normalize(bytes);session.require(token);
+            String image=bytes==null?null:normalize(bytes);session.require(token);
             // Herkennen uit foto (bij een persoon): een nieuw document met deze foto als bijlage, daarna voorstellen.
-            if("scan".equals(job.side))return scanDocument(key,session,token,job,image,found).put("diag",diag);
+            if("scan".equals(job.side)){
+                String type=found==null?job.soort:found.getJSONObject("document").optString("documentsoort",job.soort);
+                return scanDocument(key,session,token,job,new JSONObject().put(MasterSchema.scanSide(type,found),image),found).put("diag",diag);
+            }
             result=MasterStore.photo(activity,key,session,token,job.id,job.revision,job.side,image,false,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});result.put("saved",true).put("diag",diag);if(found!=null)result.put("herkend",found);
         }catch(Throwable e){try{result.put("error",e instanceof MasterError?e.getMessage():Taal.T("De kaartfoto kan niet worden opgeslagen. Kies een duidelijke afbeelding."));}catch(Exception ignored){ }}
-        finally{clear(job);}
+        finally{synchronized(this){if(job.reviewId==null)clear(job);}}
         return result;
     }
     /**
@@ -92,13 +165,13 @@ final class MasterPhotos {
      * die van een paspoort op de fotopagina (voorkant). Niets herkend: de soort die Rene koos en de kant waar de app om vroeg.
      * Herkende gegevens worden niet vanzelf ingevuld; die zijn een voorstel.
      */
-    JSONObject scanDocument(SecretKey key,MasterSession session,String token,Pending job,String image,JSONObject found)throws Exception{
+    JSONObject scanDocument(SecretKey key,MasterSession session,String token,Pending job,JSONObject images,JSONObject found)throws Exception{
         String soort=found==null?job.soort:found.getJSONObject("document").optString("documentsoort",job.soort);
         String side=MasterSchema.scanSide(soort,found);
-        JSONObject out=MasterStore.scanCreate(activity,key,session,token,job.id,soort,side,image,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});
+        JSONObject out=MasterStore.scanCreate(activity,key,session,token,job.id,soort,images,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});
         try{MasterStore.refreshContext(activity,key,session,token);}catch(Throwable e){out.put("contextError",Taal.T("Gegevens opgeslagen; de gedeelde app-context kon niet worden ververst"));}
         MainActivity.appIdentityChanged(MasterAppContext.read(activity).toString());
-        out.put("saved",true).put("scan",true).put("person",job.id).put("side",side);if(found!=null)out.put("herkend",found);
+        out.put("saved",true).put("scan",true).put("person",job.id).put("side",side).put("photoSaved",images.length()>0).put("bothSides",images.length()==2);if(found!=null)out.put("herkend",found);
         return out;
     }
     /** Herkennen vanaf een bewaarde kaartfoto (data:image/jpeg;base64,…). Geeft null als er geen betrouwbare strook op staat. */

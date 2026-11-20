@@ -3,30 +3,64 @@
  * een bewaarde foto kan opnieuw herkend worden. Het resultaat is een voorstel: Rene vinkt aan wat hij overneemt. */
 const cmh={data:null,current:null,reveal:false,photoBusy:false,epoch:0,back:null,scanEpoch:0,scanBusy:false,hulp:null};
 const CMH_DOC=['documentsoort','document','geldig','afgifte','afgegevenDoor','categorieen','uitgifteland'],CMH_PERSON=['naam','voornamen','geboortedatum','geslacht','nationaliteit','bsn'];
-/* Document toevoegen met een foto: de soort bepaalt welke kant eerst (ID-kaart: achterkant met de strook; paspoort en rijbewijs: voorkant). */
-function cmhScanPick(person,soort=''){
+/* Document toevoegen vanuit een bestand: de soort bepaalt welke kant eerst (ID-kaart: achterkant met de strook; paspoort en rijbewijs: voorkant). */
+function cmhScanPick(person,soort='',both=false){
   if(!cmOpen()||!person||cm.mutating||cm.edit&&cm.dirty){cmNote(t('Sla je wijzigingen eerst op.'));return;}
-  if(cmi.photoRequest||typeof Android.masterScanPick!=='function')return;
-  cmh.scanning=true;cmi.photoRequest=cmRequest('masterScanPick',[person,soort],()=>{},false,()=>cmiPhotoCancel());
+  const method=both?'masterScanPairPick':'masterScanPick';
+  if(cmi.photoRequest||typeof Android[method]!=='function')return;
+  cmh.scanning=true;cmi.photoRequest=cmRequest(method,[person,soort],()=>{},false,()=>cmiPhotoCancel());
 }
 function cmhPendingText(){
-  $('#cmi-photo-pending-text').textContent=cmh.scanning?t('Een foto is gekozen. Na ontgrendelen maakt de app een nieuw document met deze foto als bijlage en herkent de gegevens.'):t('Een kaartfoto is gekozen. Na ontgrendelen wordt hij bij het document opgeslagen. Je vorige bewerking is bij het verlaten van de app gewist.');
+  $('#cmi-photo-pending-text').textContent=cmh.scanning?t('Een bestand is gekozen. Na ontgrendelen zoekt de app daarin naar de gegevens van het ID-bewijs.'):t('Een kaartfoto is gekozen. Na ontgrendelen wordt hij bij het document opgeslagen. Je vorige bewerking is bij het verlaten van de app gewist.');
 }
 const cmhPicked=window.onMasterPhotoPicked;window.onMasterPhotoPicked=function(r){
   // Binnen 2 minuten terug uit de kiezer en nog ontgrendeld: geen kaart "Na ontgrendelen…", de foto wordt meteen verwerkt.
-  if(r&&r.request===cmi.photoRequest&&r.picked&&r.direct&&cmOpen()){cmh.photoBusy=true;cmBusy(true);cmNote(t('Foto verwerken…'));return;}
+  if(r&&r.request===cmi.photoRequest&&r.picked&&r.direct&&cmOpen()){cmh.photoBusy=true;cmBusy(true);cmNote(cmh.scanning?t('Bestand verwerken…'):t('Foto verwerken…'));return;}
   cmhPendingText();cmhPicked(r);
 };
 window.onMasterPhotoDone=function(r){
   if(!r||!r.photo||!cmi.photoRequest||r.request!==cmi.photoRequest)return;
   // Intussen op slot of opnieuw ontgrendeld: de foto is weg; niet blijven wachten (anders reageren de fotoknoppen niet meer).
   if(r.token!==cm.token||!cmOpen()){cmhPhotoReady();cmiPhotoCancel();if(cmOpen())cmNote(t('De foto is niet verwerkt. Kies hem opnieuw.'));return;}
+  if(r.photo.reviewId){cmhPhotoReady();cmhPairPreview(r.photo);return;}
   if(r.photo.error)cmhPhotoReady();
   cmiPhotoAfterUnlock(r.photo);if(!r.photo.error)cmListLoad(undefined,cmhPhotoReady);
 };
 function cmhPhotoReady(){cmh.photoBusy=false;cmBusy(false);}
-const cmhCancel=cmiPhotoCancel;cmiPhotoCancel=function(){cmh.scanning=false;if(!cmh.photoBusy)cmBusy(false);cmhCancel();};
+const cmhCancel=cmiPhotoCancel;cmiPhotoCancel=function(){
+  const preview=$('#cmh-pair-preview');
+  if(!preview.hidden){preview.hidden=true;preview.replaceChildren();if($('#modal').classList.contains('on'))closeModal(null);}
+  cmh.scanning=false;if(!cmh.photoBusy)cmBusy(false);cmhCancel();};
+function cmhPairPreview(photo){
+  const sides=['front','back'],images=photo.images;
+  if(!cmOpen()||typeof photo.reviewId!=='string'||!sides.every(side=>typeof images?.[side]==='string'
+    &&images[side].length<=350000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(images[side]))){cmiPhotoCancel();return;}
+  cmi.photoRequest='';cmh.scanning=false;$('#cmi-photo-pending').hidden=true;
+  const preview=$('#cmh-pair-preview');
+  let swapped=false;
+  const labels=[t('Voorkant'),t('Achterkant')];
+  const pictures=sides.map((side,i)=>{
+    const item=document.createElement('div');
+    const image=document.createElement('img');image.alt=labels[i];
+    const label=document.createElement('div');label.textContent=labels[i];
+    item.append(label,image);preview.append(item);return image;
+  });
+  const redraw=()=>pictures.forEach((image,i)=>image.src=images[sides[swapped?1-i:i]]);
+  const swap=document.createElement('button');swap.className='big ghost';swap.type='button';
+  swap.textContent=t('Wissel voor- en achterkant');swap.onclick=()=>{swapped=!swapped;redraw();};
+  preview.append(swap);preview.hidden=false;redraw();
+  const clear=()=>{preview.hidden=true;preview.replaceChildren();};
+  askConfirm('Controleer beide zijden','Controleer of de foto’s van hetzelfde ID-bewijs zijn en bij de juiste zijde staan.','Beide zijden bewaren',()=>{
+    clear();
+    if(!cmOpen()){cmiPhotoCancel();return;}
+    cmBusy(true);
+    cmRequest('masterScanPairSave',[photo.reviewId,swapped],out=>{
+      cmBusy(false);cmiPhotoAfterUnlock(out);cmListLoad();
+    },false,()=>{cmBusy(false);cmiPhotoCancel();});
+  },()=>{clear();cmiPhotoCancel();});
+}
 const cmhAfterUnlock=cmiPhotoAfterUnlock;cmiPhotoAfterUnlock=function(photo){
+  if(photo?.reviewId){cmhPairPreview(photo);return;}
   cmh.data=null;cmh.back=null;cmh.hulp=null;
   if(photo&&!photo.error&&photo.saved){
     if(photo.herkend)cmh.data={doc:photo.id,fields:cmhLanden(photo.herkend)};
@@ -34,7 +68,7 @@ const cmhAfterUnlock=cmiPhotoAfterUnlock;cmiPhotoAfterUnlock=function(photo){
     // Een gewone kaartfoto (bijv. de voorkant van een ID-kaart, zonder strook) geeft geen melding.
     else if(photo.diag&&(photo.scan||photo.diag.rijbewijs))cmh.hulp={doc:photo.id,diag:photo.diag};
     // Uit "Document toevoegen" met een foto: een nieuw document; na nakijken naar het documentkaartje.
-    if(photo.scan)cmh.back={id:photo.person};
+    if(photo.scan)cmh.back={id:photo.person,photoSaved:photo.photoSaved!==false,bothSides:photo.bothSides===true};
   }
   cmhAfterUnlock(photo);
 };
@@ -42,7 +76,7 @@ const cmhAfterList=cmiAfterList;cmiAfterList=function(){
   const id=cmi.reopen,b=cmh.back;
   if(id&&(cmh.data?.doc===id||b||cmh.photoBusy)){
     cmi.reopen='';cmh.back=null;
-    const note=b?(cmh.data?t('De foto is bewaard. Controleer de gevonden gegevens en kies wat je bewaart.'):t('De foto is bewaard, maar er zijn geen gegevens herkend. Vul zelf in of kies een scherpere foto.')):cmh.data?t('Controleer de gevonden gegevens en kies wat je bewaart.'):cmh.hulp?t('Kaartfoto opgeslagen, maar er zijn geen gegevens herkend. Hieronder staat wat je kunt proberen.'):t('Kaartfoto opgeslagen.');
+    const note=b?.bothSides?t('Voor- en achterkant zijn bewaard. Controleer de gevonden gegevens en kies wat je bewaart.'):b?(cmh.data?(b.photoSaved?t('De foto is bewaard. Controleer de gevonden gegevens en kies wat je bewaart.'):t('Gegevens uit de PDF gevonden. Controleer ze en kies wat je bewaart.')):t('De foto is bewaard, maar er zijn geen gegevens herkend. Vul zelf in of kies een scherpere foto.')):cmh.data?t('Controleer de gevonden gegevens en kies wat je bewaart.'):cmh.hulp?t('Kaartfoto opgeslagen, maar er zijn geen gegevens herkend. Hieronder staat wat je kunt proberen.'):t('Kaartfoto opgeslagen.');
     // Gevonden gegevens: nakijken in het blok Document; niets gevonden: de hulp bij Foto's; anders het documentkaartje.
     if(!cmh.data&&!cmh.hulp){if(cmh.photoBusy)cmhPhotoReady();cmKaartOpen(id,true,note);return;}
     cmEdit(id,cmh.data?'document':'fotos',null,note,cmh.photoBusy?cmhPhotoReady:null);return;

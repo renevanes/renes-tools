@@ -15,7 +15,7 @@ for(const colorScheme of ['light','dark']){
   await T.kaart('owner');await p.click('#cmc-doc-add');await p.waitForSelector('#sheet.on');
   await p.getByRole('button',{name:'Rijbewijs',exact:true}).click();await p.waitForFunction(()=>$('#sheet.on')&&$('#sheet-title').textContent==='Rijbewijs');
   assert.match(await p.textContent('#sheet-sub'),/voorkant/,'zegt welke kant');
-  await p.getByRole('button',{name:'Foto kiezen',exact:true}).click();
+  await p.getByRole('button',{name:'Foto of document kiezen',exact:true}).click();
   await p.waitForFunction(()=>cm.edit?.type==='identiteit'&&cm.tab==='fotos'&&!$('#cmh-hulp').hidden);
   assert.match(await p.textContent('#cmh-hulp-tekst'),/rijbewijs is herkend/);
   const tips=await p.textContent('#cmh-hulp-tips');

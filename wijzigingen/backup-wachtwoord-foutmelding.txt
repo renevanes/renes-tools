@@ -1,0 +1,1 @@
+Het instellen van een backupwachtwoord geeft ook bij een onverwachte fout een melding, zodat het scherm bedienbaar blijft.

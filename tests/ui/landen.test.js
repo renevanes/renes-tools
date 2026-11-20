@@ -162,7 +162,7 @@ for(const [nu,rij] of [['','nationaliteit:v'],['Nederlandse','nationaliteit:-'],
   await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
   await T.kaart('kid');await p.click('#cmc-doc-add');await p.waitForSelector('#sheet.on');
   await p.getByRole('button',{name:'Paspoort',exact:true}).click();await p.waitForFunction(()=>$('#sheet.on')&&$('#sheet-title').textContent==='Paspoort');
-  await p.getByRole('button',{name:'Foto kiezen',exact:true}).click();
+  await p.getByRole('button',{name:'Foto of document kiezen',exact:true}).click();
   await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.id&&!$('#cmh-panel').hidden&&document.querySelectorAll('#cmh-list input').length>0);
   const rows=await p.$$eval('#cmh-list input',x=>x.map(i=>i.dataset.key+':'+(i.checked?'v':'-')+(i.disabled?'x':'')));
   assert.ok(rows.includes(rij),nu+': '+rows);assert.ok(rows.includes('uitgifteland:v'));
