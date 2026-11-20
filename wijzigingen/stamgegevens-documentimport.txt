@@ -1,2 +1,0 @@
-Stamgegevens: kies bij Document toevoegen ook een PDF of Word-document met een foto van je ID-bewijs en neem de gevonden gegevens over.
-Stamgegevens: importeer de voor- en achterkant uit één PDF of Word-bestand met twee losse kaartfoto’s.

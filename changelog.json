@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.240",
+    "date": "2026-11-20",
+    "changes": [
+      "Het instellen van een backupwachtwoord geeft ook bij een onverwachte fout een melding, zodat het scherm bedienbaar blijft.",
+      "Voorbereiding op één documentenarchief: de kluis kan een factuurkoppeling bewaren en uit een backup terugzetten.",
+      "Op Luisteren staat een klein schaartje bij podcasts waar reclame overslaan werkt; op de pagina van een podcast staat onder de titel of het daar werkt (of bij een deel van de afleveringen), uit staat of niet kan.",
+      "Stamgegevens: kies bij Document toevoegen ook een PDF of Word-document met een foto van je ID-bewijs en neem de gevonden gegevens over.",
+      "Stamgegevens: importeer de voor- en achterkant uit één PDF of Word-bestand met twee losse kaartfoto’s."
+    ]
+  },
+  {
     "version": "1.239",
     "date": "2026-11-20",
     "changes": [
