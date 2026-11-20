@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.236",
+    "date": "2026-11-20",
+    "changes": [
+      "Een foto of afbeelding uit de documentenkluis opent altijd in de viewer van Tools, ook als de naam geen extensie heeft (Tools kijkt naar de inhoud).",
+      "Bij een betaling waarvan de rekening niet bewaard is, staat nu hoe je hem er alsnog bij krijgt."
+    ]
+  },
+  {
     "version": "1.235",
     "date": "2026-11-20",
     "changes": [
