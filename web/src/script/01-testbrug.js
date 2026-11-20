@@ -473,7 +473,7 @@ if (!window.Android) window.Android = (function(){
     podOpen(feed, force){ this._pc.calls.push(['open', feed, force]); setTimeout(() => onPodFeed(this._pcFeed(feed)), 120); },
     podSubscribe(j){ const p = JSON.parse(j); if (!/^https?:/.test(p.feed || '')) return 'Ongeldig feed-adres'; if (!this._pc.subs.some(x => x.feed === p.feed)) this._pc.subs.push(Object.assign({ fresh: 2 }, p)); return ''; },
     podUnsubscribe(id){ this._pc.subs = this._pc.subs.filter(x => x.id !== id); },
-    podSubs(){ return JSON.stringify(this._pc.subs.map(s => { const l = this._pcFeed(s.feed).items.slice(0, 10); return Object.assign({ hs: l.filter(e => e.ch).length, hsVan: l.length }, s); })); },
+    podSubs(){ return JSON.stringify(this._pc.subs.map(s => { if (s.hsOnbekend) return s; const l = this._pcFeed(s.feed).items.slice(0, 10); return Object.assign({ hs: l.filter(e => e.ch).length, hsVan: l.length }, s); })); },
     /* OPML (OpmlWerk): aantallen terug; __testOpml bepaalt de uitkomst van importeren, 'weg' = de kiezer weggetikt */
     _opml: [],
     opmlExport(soort){ if (!['podcasts','nieuws'].includes(soort)) return; this._opml.push('export:' + soort); const n = soort === 'podcasts' ? this._pc.subs.length : 3;

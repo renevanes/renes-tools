@@ -40,7 +40,9 @@ const { chromium } = require('playwright');
 
     // ---- Werkt de reclamefilter hier? Regel onder de kop, schaartje op Luisteren ----
     await pg.evaluate(() => pdOpen(Android._pc.top[0])); await pg.waitForTimeout(400);
-    ok(/Reclame wordt overgeslagen/.test(await pg.textContent('#pd-rc')) && await pg.evaluate(() => $('#pd-rc').classList.contains('aan')), 'podcast met hoofdstukken: "Reclame wordt overgeslagen"');
+    ok(/Reclame overslaan werkt bij een deel van de afleveringen/.test(await pg.textContent('#pd-rc')) && await pg.evaluate(() => $('#pd-rc').classList.contains('aan')), 'hoofdstukken bij een deel van de afleveringen: dat staat er');
+    await pg.evaluate(() => { pdFeed.items.forEach(e => { e.ch = 'https://cdn.example.org/h.json'; }); pkRcRegel(); });
+    ok(/Reclame overslaan werkt hier$/.test(await pg.textContent('#pd-rc')), 'alle nieuwste met hoofdstukken: "werkt hier"');
     await pg.evaluate(() => pdOpen(Android._pc.top[1])); await pg.waitForTimeout(400);
     ok(/Reclame overslaan kan hier niet$/.test(await pg.textContent('#pd-rc')), 'zonder hoofdstukken: dat staat er ook');
     await pg.evaluate(() => { Android._ov.per.p1 = { reclame: false }; pdOpen(Android._pc.top[0]); }); await pg.waitForTimeout(400);
@@ -49,8 +51,13 @@ const { chromium } = require('playwright');
     await pg.waitForTimeout(300);
     const tegels = await pg.$$eval('#pc-subs .pcsub', x => x.map(b => ({ rc: !!b.querySelector('.pcrc'), l: b.getAttribute('aria-label') })));
     ok(tegels.length === 2 && tegels[0].rc && !tegels[1].rc, 'schaartje alleen bij de podcast waar het werkt: ' + JSON.stringify(tegels.map(x => x.rc)));
-    ok(/reclame wordt overgeslagen/.test(tegels[0].l) && !/reclame/.test(tegels[1].l), 'ook voor de schermlezer');
-    await pg.evaluate(() => { delete Android._pc.subs[0].hs; }); // nog niet bijgewerkt na de update: geen schaartje (onbekend), geen fout
+    ok(/reclame overslaan werkt hier/.test(tegels[0].l) && !/reclame/.test(tegels[1].l), 'ook voor de schermlezer');
+    // Nog niet bijgewerkt na de update: geen schaartje (onbekend) en niet meegeteld als "werkt niet"
+    await pg.evaluate(() => { Android._pc.subs[1].hsOnbekend = true; pcRenderSubs(); show('podset'); }); await pg.waitForTimeout(200);
+    ok(/Werkt bij 1 van de 1 podcasts waarvan het al bekend is/.test(await pg.textContent('#ps-ov-n')), 'onbekend telt niet mee: ' + await pg.textContent('#ps-ov-n'));
+    await pg.evaluate(() => { Android._pc.subs.forEach(s => { s.hsOnbekend = true; }); psOvRender(); });
+    ok(await pg.evaluate(() => $('#ps-ov-n').hidden), 'alles nog onbekend: geen telling');
+    await pg.evaluate(() => { Android._pc.subs.forEach(s => { delete s.hsOnbekend; }); });
 
     // ---- Algemeen ----
     await pg.evaluate(() => show('podset')); await pg.waitForTimeout(200);

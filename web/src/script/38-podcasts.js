@@ -245,8 +245,8 @@ function pcRenderSubs(){
   if (el) el.textContent = n ? tn(n, '{n} nieuwe aflevering', '{n} nieuwe afleveringen') : t('Zoeken, volgen en luisteren');
 }
 function pcSubTile(s, i){
-  const rc = typeof pkStatus === 'function' && pkStatus(s, pcSubTile.inst) === 'aan';
-  return '<div class="pcsubw" role="listitem"><button class="pcsub" onclick="pdOpenSub(' + i + ')" aria-label="' + esc(s.title) + (s.fresh ? ', ' + t('{n} nieuw', { n: s.fresh }) : '') + (rc ? ', ' + t('reclame wordt overgeslagen') : '') + '">' +
+  const st = typeof pkStatus === 'function' ? pkStatus(s, pcSubTile.inst) : '', rc = st === 'aan' || st === 'deel';
+  return '<div class="pcsubw" role="listitem"><button class="pcsub" onclick="pdOpenSub(' + i + ')" aria-label="' + esc(s.title) + (s.fresh ? ', ' + t('{n} nieuw', { n: s.fresh }) : '') + (rc ? ', ' + t('reclame overslaan werkt hier') : '') + '">' +
     pcArt(s.image) + (s.fresh ? '<span class="badge">' + (+s.fresh > 99 ? '99+' : +s.fresh) + '</span>' : '') + (rc ? '<span class="pcrc" aria-hidden="true">' + uiIcon('scissors') + '</span>' : '') + '<span class="t">' + esc(s.title) + '</span></button></div>';
 }
 /* Vanuit de lijst "Alle": terug komt weer bij die lijst uit */

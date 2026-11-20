@@ -1000,7 +1000,8 @@ artikelen uit RSS-, Atom- en RDF-feeds.
 - **Waar het werkt** (`pkStatus`: aan/uit/geen/onbekend): `Podcasts.updateSub` telt per gevolgde podcast hoeveel van de
   nieuwste 10 afleveringen hoofdstukken meegeven (`hs`/`hsVan`). Alleen waar het werkt een klein schaartje op de tegel
   (`.pcrc`, geen teken = werkt niet of nog onbekend); op de podcast zelf een regel onder de kop (`#pd-rc`, alle drie de
-  standen) en op Instellingen van Podcasts het aantal (`#ps-ov-n`).
+  standen; "deel" als niet alle nieuwste hoofdstukken hebben) en op Instellingen van Podcasts het aantal (`#ps-ov-n`, onbekend
+  telt niet mee). Het zegt alleen dat het kán: of er een hoofdstuk reclame heet, blijkt pas bij het luisteren.
 - Logsoort `PODCAST` alleen met vaste woorden (`overgeslagen: reclame`), nooit titels of adressen.
 - **Vanzelf downloaden over een periode** (`PodcastDownloads.periodeQueue`, instellingen in `podcast_dl`: `periode` standaard
   aan, `periodeWelke` alle/gekozen, `periodeDagen` 14, `bewaarDagen` 14, `maxMb` 2000; brug `podDlPeriode`, kaart op
