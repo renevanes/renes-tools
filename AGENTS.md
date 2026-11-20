@@ -996,6 +996,13 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   dat stuk speelt dan deze keer (alleen bij dezelfde aflevering). Elk stuk hooguit één keer per beurt. Zelf terugspoelen of naar een plek slepen in een stuk = dat stuk speelt ook (`staToe`).
   Vooruit springen in een stuk slaat het wel over. Op een Chromecast wordt niets overgeslagen.
 - Logsoort `PODCAST` alleen met vaste woorden (`overgeslagen: reclame`), nooit titels of adressen.
+- **Vanzelf downloaden over een periode** (`PodcastDownloads.periodeQueue`, instellingen in `podcast_dl`: `periode` standaard
+  aan, `periodeWelke` alle/gekozen, `periodeDagen` 14, `bewaarDagen` 14, `maxMb` 2000; brug `podDlPeriode`, kaart op
+  `s-podset`): van elke podcast die meedoet (`doetMee`: bij "alle" tenzij `dlUit`, anders `dl`) wat nog niet beluisterd is
+  van de periode, nieuwste eerst, binnen de ruimte (`kiesPeriode`, grootte uit de feed of geschat met `schat`), hooguit
+  `MAX_PER_KEER` per ronde; de hoofdstukken komen mee. `opruimen` haalt vanzelf gedownloade afleveringen na `bewaarDagen`
+  weer weg (niet wat speelt, niet wat Rene zelf downloadde) en zet ze bij "weggehaald" zodat ze niet terugkomen. Uit =
+  het oude gedrag per podcast (de nieuwste 3). Tests: `PodcastPeriodeTest`, `tests/ui/podcast-periode.test.js`.
 - Herkennen aan het geluid (uitgeschreven tekst, terugkerende jingles) is een mogelijke volgende stap; vraag Rene eerst.
 
 ## Berichten aan Rene

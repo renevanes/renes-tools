@@ -55,7 +55,11 @@ public class PodcastBridge extends AiBridge {
     }
 
     @JavascriptInterface public String podSubscribe(String podJson) {
-        try { Podcasts.subscribe(ctx, new JSONObject(podJson)); return ""; } catch (Exception e) { return err(e, "Abonneren lukt niet"); }
+        try {
+            Podcasts.subscribe(ctx, new JSONObject(podJson));
+            PodcastDownloadJob.schedule(ctx); // doet hij mee met vanzelf downloaden (alle podcasts), dan staat de taak klaar
+            return "";
+        } catch (Exception e) { return err(e, "Abonneren lukt niet"); }
     }
 
     @JavascriptInterface public void podUnsubscribe(String id) { try { Podcasts.unsubscribe(ctx, id); } catch (Exception ignored) { } PodcastDownloadJob.schedule(ctx); }
@@ -70,7 +74,12 @@ public class PodcastBridge extends AiBridge {
     @JavascriptInterface public void podDlClear() { PodcastDownloads.removeAll(ctx); }
     @JavascriptInterface public String podDlList() { return PodcastDownloads.list(ctx).toString(); }
     @JavascriptInterface public String podDlPrefs() {
-        try { return new JSONObject().put("wifiOnly", PodcastDownloads.wifiOnly(ctx)).put("autoDelete", PodcastDownloads.autoDelete(ctx)).toString(); }
+        try {
+            return new JSONObject().put("wifiOnly", PodcastDownloads.wifiOnly(ctx)).put("autoDelete", PodcastDownloads.autoDelete(ctx))
+                    .put("periode", PodcastDownloads.periode(ctx)).put("periodeWelke", PodcastDownloads.periodeAlle(ctx) ? "alle" : "gekozen")
+                    .put("periodeDagen", PodcastDownloads.periodeDagen(ctx)).put("bewaarDagen", PodcastDownloads.bewaarDagen(ctx))
+                    .put("maxMb", PodcastDownloads.maxMb(ctx)).toString();
+        }
         catch (Exception e) { return "{}"; }
     }
     @JavascriptInterface public void podDlPref(String name, boolean on) {
@@ -79,6 +88,18 @@ public class PodcastBridge extends AiBridge {
         PodcastDownloadJob.schedule(ctx);
         if ("wifiOnly".equals(name) && !on) new Thread(() -> { try { if (PodcastDownloads.requeueWaiting(ctx) > 0) a.js("onPodDl", ""); } catch (Throwable ignored) { } }, "podcast-dl-requeue").start();
     }
+    /** Vanzelf downloaden over een periode: {periode, periodeWelke, periodeDagen, bewaarDagen, maxMb}; daarna meteen bijwerken. */
+    @JavascriptInterface public String podDlPeriode(String json) {
+        try {
+            android.content.SharedPreferences.Editor e = PodcastDownloads.prefs(ctx).edit();
+            PodcastDownloads.zetPeriode(e, new JSONObject(json));
+            e.apply();
+        } catch (Exception x) { return "Bewaren lukt niet"; }
+        PodcastDownloadJob.schedule(ctx);
+        new Thread(App.veilig(() -> { if (Podcasts.refreshAll(ctx) < 0) PodcastDownloads.autoQueue(ctx); a.js("onPodDl", ""); }), "podcast-periode").start(); // refreshAll downloadt daarna vanzelf
+        return "";
+    }
+
     /** Nieuwe afleveringen van deze (gevolgde) podcast vanzelf downloaden. */
     @JavascriptInterface public String podAutoDl(String podId, boolean on) {
         if (podId == null || !Podcasts.isSub(ctx, podId)) return "Volg de podcast eerst";

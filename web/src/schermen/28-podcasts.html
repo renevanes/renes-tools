@@ -103,11 +103,46 @@
       <h2><span class="ui-icon" data-icon="download" aria-hidden="true"></span>Downloaden</h2>
       <div class="sw"><span>Alleen via wifi downloaden<small>Voor offline luisteren en Vanzelf downloaden</small></span><button class="tg" id="ps-wifi" role="switch" aria-checked="false" onclick="psDl('wifiOnly')" aria-label="Alleen via wifi downloaden"></button></div>
       <div class="sw"><span>Beluisterde afleveringen vanzelf verwijderen<small>Van je telefoon; in de podcast blijven ze staan</small></span><button class="tg" id="ps-autodel" role="switch" aria-checked="false" onclick="psDl('autoDelete')" aria-label="Beluisterde afleveringen vanzelf verwijderen"></button></div>
+      <div class="sw"><span>Vanzelf downloaden<small>De afleveringen van de afgelopen periode, met de hoofdstukken erbij: zo slaat de speler reclame ook offline over</small></span><button class="tg" id="ps-periode" role="switch" aria-checked="false" onclick="psPeriodeAan()" aria-label="Vanzelf downloaden"></button></div>
+      <div id="ps-periode-k">
+        <label class="f" for="ps-welke">Van welke podcasts</label>
+        <select class="sel" id="ps-welke" onchange="psPeriode()">
+          <option value="alle">Alle podcasts die je volgt</option>
+          <option value="gekozen">Alleen waar je Vanzelf downloaden aanzet</option>
+        </select>
+        <label class="f" for="ps-dagen">Hoe ver terug</label>
+        <select class="sel" id="ps-dagen" onchange="psPeriode()">
+          <option value="3">De afgelopen 3 dagen</option>
+          <option value="7">De afgelopen week</option>
+          <option value="14">De afgelopen 2 weken</option>
+          <option value="21">De afgelopen 3 weken</option>
+          <option value="30">De afgelopen maand</option>
+        </select>
+        <label class="f" for="ps-maxmb">Ruimte voor vanzelf downloaden</label>
+        <select class="sel" id="ps-maxmb" onchange="psPeriode()">
+          <option value="1000">Hooguit 1 GB</option>
+          <option value="2000">Hooguit 2 GB</option>
+          <option value="5000">Hooguit 5 GB</option>
+          <option value="10000">Hooguit 10 GB</option>
+          <option value="0">Geen grens</option>
+        </select>
+        <p class="hint" id="ps-periode-u" role="status"></p>
+      </div>
+      <label class="f" for="ps-bewaar">Vanzelf gedownloade afleveringen verwijderen</label>
+      <select class="sel" id="ps-bewaar" onchange="psPeriode()">
+        <option value="7">Na 1 week</option>
+        <option value="14">Na 2 weken</option>
+        <option value="21">Na 3 weken</option>
+        <option value="30">Na een maand</option>
+        <option value="0">Nooit</option>
+      </select>
+      <p class="hint">Alleen wat vanzelf gedownload is; wat je zelf downloadt, blijft staan. De aflevering blijft via internet te beluisteren.</p>
       <button class="big ghost" onclick="pcDlClearAsk()">Alle downloads verwijderen</button>
     </div>
     <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
       <p>Hierna is je wachtrij: zet afleveringen erin via ⋯ bij een aflevering (Als volgende afspelen of Toevoegen aan Hierna). Na een aflevering speelt de speler de bovenste uit Hierna en haalt hem eruit.</p>
       <p>Is Hierna leeg, dan kiest hij volgens de instelling de volgende van dezelfde podcast: eerst de nieuwere afleveringen in de volgorde waarin ze verschenen, dan de oudere; wat je al beluisterde slaat hij over. Bij "nieuwe afleveringen" kiest hij daarna de nieuwste die je nog niet hoorde van alles wat je volgt.</p>
+      <p>Vanzelf downloaden: een paar keer per dag (met Alleen via wifi alleen op wifi) haalt de app van de podcasts die meedoen wat je nog niet beluisterde van de gekozen periode, de nieuwste eerst, tot de gekozen ruimte vol is. De hoofdstukken komen meteen mee, zodat reclame overslaan ook zonder internet werkt. Wat vanzelf gedownload is, gaat na de gekozen tijd weer van je telefoon en wordt daarna niet opnieuw gedownload.</p>
       <p>Hapert de verbinding (de speler staat 15 seconden stil, of een sprong blijft hangen), dan verbindt hij vanzelf opnieuw op dezelfde plek.</p>
       <p>Fijner volume: zolang Tools speelt, wordt elke stap van de volumeknoppen in 2 tot 4 kleinere stappen verdeeld. Met Tools in beeld werkt dat op elke telefoon (in de e-reader alleen als de knoppen niet bladeren). Met het scherm uit of in een andere app alleen als je telefoon dat toelaat; anders gelden daar de gewone stappen. Tijdens het spelen toont het volumevenster van Android dan een eigen schuif van Tools, en werkt de knop in de mediabediening om te kiezen waar het geluid speelt misschien niet: kies dat dan via de instellingen van de telefoon of zet Fijner volume even uit. Niet bij de radio als wekker en niet in de auto.</p>
     </div></details>

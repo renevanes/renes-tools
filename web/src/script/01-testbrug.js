@@ -1115,12 +1115,16 @@ if (!window.Android) window.Android = (function(){
     aiChatDelete(id){ this._ai.chats = id === '*' ? [] : this._ai.chats.filter(x => x.id !== id); },
     aiSearch(q){ const id = ++this._ai.seq; this._ai.calls.push(['search', q]); setTimeout(() => onAiSearch({ id, q, items: [{ kind: 'notes', id: (notesGet()[0] || {}).id || 'x', title: 'Auto naar de garage', snip: 'APK-keuring in maart, banden wisselen', t: Date.now(), score: 0.58 }, { kind: 'tx', id: 't1', title: 'Jos', snip: 'we spraken over de garage', from: 12000, score: 0.44 }].concat(this._ai.src.sms ? [{ kind: 'sms', id: '7', title: 'Jos', snip: '[1 okt] Jos: de garage belt morgen', score: 0.4 }] : [], this._ai.src.contacts ? [{ kind: 'contacts', id: 'k1|5', title: 'Garage Jansen', snip: 'Contact: Garage Jansen', score: 0.35 }] : []), updating: !!this._ai.updating }), 80); return id; },
     aiIndex(force){ this._ai.calls.push(['index', force]); setTimeout(() => onAiIndex({ busy: true, done: 2, total: 4 }), 50); setTimeout(() => onAiIndex({ items: 3, chunks: 7, at: Date.now() }), this._ai.idxMs || 200); },
-    _dl: { list: [], prefs: { wifiOnly: true, autoDelete: true } },
+    _dl: { list: [], prefs: { wifiOnly: true, autoDelete: true, periode: true, periodeWelke: 'alle', periodeDagen: 14, bewaarDagen: 14, maxMb: 2000 } },
+    podDlPeriode(j){ const o = JSON.parse(j), p = this._dl.prefs, kies = (v, mag, std) => mag.includes(+v) ? +v : std;
+      if ('periode' in o) p.periode = !!o.periode; if ('periodeWelke' in o) p.periodeWelke = o.periodeWelke === 'gekozen' ? 'gekozen' : 'alle';
+      if ('periodeDagen' in o) p.periodeDagen = kies(o.periodeDagen, [3, 7, 14, 21, 30], 14); if ('bewaarDagen' in o) p.bewaarDagen = kies(o.bewaarDagen, [0, 7, 14, 21, 30], 14);
+      if ('maxMb' in o) p.maxMb = kies(o.maxMb, [0, 1000, 2000, 5000, 10000], 2000); this._dl.periodeCalls = (this._dl.periodeCalls || 0) + 1; return ''; },
     podDlStart(j){ const o = JSON.parse(j); if (this._dl.list.some(d => d.key === o.ep.key)) return ''; this._dl.list.unshift({ key: o.ep.key, ep: o.ep, pod: o.pod, t: Date.now(), state: 'running', bytes: 0, total: 40e6 });
       const d = this._dl.list[0]; setTimeout(() => { d.bytes = 2e7; }, 300); setTimeout(() => { d.state = 'done'; d.bytes = d.total; }, 900); return ''; },
     podDlRemove(k){ this._dl.list = this._dl.list.filter(d => d.key !== k); }, podDlClear(){ this._dl.list = []; },
     podDlList(){ return JSON.stringify(this._dl.list); }, podDlPrefs(){ return JSON.stringify(this._dl.prefs); }, podDlPref(n, on){ this._dl.prefs[n] = on; },
-    podAutoDl(id, on){ const s = this._pc.subs.find(x => x.id === id); if (!s) return 'Volg de podcast eerst'; s.dl = on; return ''; }, podSeen(id){ this._pc.subs.forEach(x => { if (x.id === id) x.fresh = 0; }); },
+    podAutoDl(id, on){ const s = this._pc.subs.find(x => x.id === id); if (!s) return 'Volg de podcast eerst'; s.dl = on; if (on) delete s.dlUit; else s.dlUit = true; return ''; }, podSeen(id){ this._pc.subs.forEach(x => { if (x.id === id) x.fresh = 0; }); },
     podRefresh(){ this._pc.refreshed = Date.now(); setTimeout(() => onPodRefreshed({ fresh: 0 }), 100); }, podRefreshedAt(){ return this._pc.refreshed; },
     podContinue(){ return JSON.stringify(this._pc.recent.filter(r => !(this._pc.prog[r.ep.key] || {}).done).map(r => Object.assign({}, r, { ep: Object.assign({}, r.ep, { pos: (this._pc.prog[r.ep.key] || {}).p || 0, pd: (this._pc.prog[r.ep.key] || {}).d || 0 }) }))); },
     podForget(k){ this._pc.recent = this._pc.recent.filter(r => r.ep.key !== k); this.podLatestHide(k); },

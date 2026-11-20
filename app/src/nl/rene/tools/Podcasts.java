@@ -144,7 +144,7 @@ final class Podcasts {
 
     static JSONObject epJsonKey(String key, PodcastFeed.Episode e) throws Exception {
         return new JSONObject().put("key", key).put("guid", e.guid).put("title", e.title).put("url", e.url).put("type", e.type)
-                .put("date", e.date).put("dur", e.dur).put("image", e.image).put("desc", e.desc).put("n", e.number).put("s", e.season).put("ch", e.chapters);
+                .put("date", e.date).put("dur", e.dur).put("image", e.image).put("desc", e.desc).put("n", e.number).put("s", e.season).put("ch", e.chapters).put("size", e.size);
     }
 
     /** Feed ophalen en bewaren. Geeft {pod:{…}, items:[…], t}. */
@@ -801,7 +801,9 @@ final class Podcasts {
     static JSONObject backupJson(Context c) throws Exception {
         JSONObject o = new JSONObject().put("subs", subs(c)).put("progress", progress(c)).put("speed", prefs(c).getFloat("speed", 1f))
                 .put("recent", recent(c)).put("queue", queue(c)).put("hidden", prefs(c).getString("latestHidden", ""))
-                .put("dl", new JSONObject().put("wifiOnly", PodcastDownloads.wifiOnly(c)).put("autoDelete", PodcastDownloads.autoDelete(c)));
+                .put("dl", new JSONObject().put("wifiOnly", PodcastDownloads.wifiOnly(c)).put("autoDelete", PodcastDownloads.autoDelete(c))
+                        .put("periode", PodcastDownloads.periode(c)).put("periodeWelke", PodcastDownloads.periodeAlle(c) ? "alle" : "gekozen")
+                        .put("periodeDagen", PodcastDownloads.periodeDagen(c)).put("bewaarDagen", PodcastDownloads.bewaarDagen(c)).put("maxMb", PodcastDownloads.maxMb(c)));
         String last = prefs(c).getString("last", null);
         if (last != null) o.put("last", last);
         if (PodcastOverslaan.bestand(c).isFile()) o.put("overslaan", PodcastOverslaan.lees(c)); // reclame, begin en einde overslaan
@@ -861,6 +863,7 @@ final class Podcasts {
                 subscribe(c, new JSONObject().put("feed", s.optString("feed")).put("title", s.optString("title")).put("author", s.optString("author"))
                         .put("image", httpUrl(s.optString("image")) ? s.optString("image") : ""));
                 if (s.optBoolean("dl")) try { PodcastDownloads.setAuto(c, podId(s.optString("feed")), true); } catch (Exception ignored) { } // vanzelf downloaden
+                else if (s.optBoolean("dlUit")) try { PodcastDownloads.setAuto(c, podId(s.optString("feed")), false); } catch (Exception ignored) { } // bewust niet
                 n++;
             }
         }
@@ -900,6 +903,7 @@ final class Podcasts {
             SharedPreferences.Editor de = dp.edit();
             if (dl.has("wifiOnly") && !dp.contains("wifiOnly")) de.putBoolean("wifiOnly", dl.optBoolean("wifiOnly", true));
             if (dl.has("autoDelete") && !dp.contains("autoDelete")) de.putBoolean("autoDelete", dl.optBoolean("autoDelete", true));
+            if (dl.has("periode") && !dp.contains("periode")) PodcastDownloads.zetPeriode(de, dl);
             de.apply();
         }
         // Overslaan (reclame, begin en einde): alleen als hier nog niets ingesteld is

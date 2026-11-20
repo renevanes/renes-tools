@@ -34,6 +34,73 @@ final class PodcastDownloads {
     static boolean wifiOnly(Context c) { return prefs(c).getBoolean("wifiOnly", true); }
     static boolean autoDelete(Context c) { return prefs(c).getBoolean("autoDelete", true); }
 
+    // Vanzelf downloaden over een periode (alle gevolgde podcasts), en vanzelf gedownloade afleveringen weer verwijderen
+    static final int[] PERIODE_DAGEN = {3, 7, 14, 21, 30}, BEWAAR_DAGEN = {0, 7, 14, 21, 30}, MAX_MB = {0, 1000, 2000, 5000, 10000};
+    static final int STD_DAGEN = 14, STD_BEWAAR = 14, STD_MB = 2000, MAX_PER_KEER = 40;
+    static final long DAG = 24 * 3_600_000L, SCHAT_PER_SEC = 16_000, SCHAT_ONBEKEND = 50L * 1024 * 1024; // 128 kbit/s
+    static boolean periode(Context c) { return prefs(c).getBoolean("periode", true); }
+    static boolean periodeAlle(Context c) { return !"gekozen".equals(prefs(c).getString("periodeWelke", "alle")); }
+    static int periodeDagen(Context c) { return kies(prefs(c).getInt("periodeDagen", STD_DAGEN), PERIODE_DAGEN, STD_DAGEN); }
+    static int bewaarDagen(Context c) { return kies(prefs(c).getInt("bewaarDagen", STD_BEWAAR), BEWAAR_DAGEN, STD_BEWAAR); }
+    static int maxMb(Context c) { return kies(prefs(c).getInt("maxMb", STD_MB), MAX_MB, STD_MB); }
+    static int kies(int v, int[] mag, int std) { for (int m : mag) if (m == v) return v; return std; }
+
+    /** Instellingen voor de periode uit {periode, periodeWelke, periodeDagen, bewaarDagen, maxMb} (alleen geldige waarden). */
+    static void zetPeriode(SharedPreferences.Editor e, JSONObject o) {
+        if (o.has("periode")) e.putBoolean("periode", o.optBoolean("periode", true));
+        if (o.has("periodeWelke")) e.putString("periodeWelke", "gekozen".equals(o.optString("periodeWelke")) ? "gekozen" : "alle");
+        if (o.has("periodeDagen")) e.putInt("periodeDagen", kies(o.optInt("periodeDagen"), PERIODE_DAGEN, STD_DAGEN));
+        if (o.has("bewaarDagen")) e.putInt("bewaarDagen", kies(o.optInt("bewaarDagen", -1), BEWAAR_DAGEN, STD_BEWAAR));
+        if (o.has("maxMb")) e.putInt("maxMb", kies(o.optInt("maxMb", -1), MAX_MB, STD_MB));
+    }
+
+    /** Doet deze gevolgde podcast mee met vanzelf downloaden? Periode met "alle": tenzij uitgezet; anders als aangezet. */
+    static boolean doetMee(Context c, JSONObject s) {
+        if (s == null) return false;
+        return periode(c) && periodeAlle(c) ? !s.optBoolean("dlUit") : s.optBoolean("dl");
+    }
+
+    /** Geschatte grootte van een aflevering: de opgegeven grootte, anders uit de lengte (128 kbit/s), anders 50 MB. */
+    static long schat(long size, long durSec) { return size > 0 ? size : durSec > 0 ? durSec * SCHAT_PER_SEC : SCHAT_ONBEKEND; }
+
+    /**
+     * Welke afleveringen over de periode (zuiver, getest): nieuwste eerst, alleen wat nog in de ruimte past
+     * ({@code ruimte} &lt; 0 = geen grens), hooguit {@code max}. Geeft de plekken in de lijst.
+     */
+    static List<Integer> kiesPeriode(long[] dates, long[] sizes, long ruimte, int max) {
+        Integer[] volg = new Integer[dates.length];
+        for (int i = 0; i < volg.length; i++) volg[i] = i;
+        java.util.Arrays.sort(volg, (x, y) -> Long.compare(dates[y], dates[x]));
+        List<Integer> uit = new ArrayList<>();
+        long over = ruimte;
+        for (Integer i : volg) {
+            if (uit.size() >= max) break;
+            if (ruimte >= 0) { if (sizes[i] > over) continue; over -= sizes[i]; }
+            uit.add(i);
+        }
+        return uit;
+    }
+
+    /** Is een vanzelf gedownloade aflevering (gedownload op {@code t}) oud genoeg om weg te gaan? bewaar 0 = nooit. Zuiver. */
+    static boolean teOud(long t, long nu, int bewaarDagen) { return bewaarDagen > 0 && t > 0 && t < nu - bewaarDagen * DAG; }
+
+    /** Vanzelf gedownloade afleveringen die langer dan de bewaartijd staan: weg (niet wat nu speelt, niet wat je zelf downloadde). */
+    static synchronized int opruimen(Context c) {
+        int dagen = bewaarDagen(c);
+        if (dagen <= 0) return 0;
+        long nu = System.currentTimeMillis();
+        String speelt = PodcastService.playingKey();
+        JSONObject idx = index(c);
+        List<String> weg = new ArrayList<>();
+        for (Iterator<String> k = idx.keys(); k.hasNext(); ) {
+            String key = k.next(); JSONObject it = idx.optJSONObject(key);
+            if (it != null && it.optBoolean("auto") && teOud(it.optLong("t"), nu, dagen) && !key.equals(speelt)) weg.add(key);
+        }
+        for (String key : weg) remove(c, key); // remove zet hem ook bij "weggehaald": niet nog eens vanzelf
+        if (!weg.isEmpty()) App.log(c, "PODCAST", "vanzelf verwijderd: " + weg.size());
+        return weg.size();
+    }
+
     static File indexFile(Context c) { return new File(Podcasts.dir(c), "downloads.json"); }
 
     /** Welke afleveringen in de lijst staan (null = nog niet gelezen): afspelen weet zo meteen dat er niets is. */
@@ -68,6 +135,7 @@ final class PodcastDownloads {
                     File f = it == null ? null : fileIn(d, it.optString("file"));
                     if (f != null && it.optBoolean("done") && f.isFile() && f.length() > 0) READY.put(key, f.getAbsolutePath());
                 }
+                opruimen(app);
             } catch (Throwable ignored) { }
         });
     }
@@ -121,7 +189,7 @@ final class PodcastDownloads {
             long id = m.enqueue(r);
             JSONObject slimEp = new JSONObject().put("key", key).put("title", ep.optString("title")).put("url", url).put("type", ep.optString("type"))
                     .put("date", ep.optLong("date")).put("dur", ep.optLong("dur")).put("image", ep.optString("image")).put("guid", ep.optString("guid"))
-                    .put("desc", Podcasts.FeedText.clip(ep.optString("desc"), 600)).put("ch", ep.optString("ch"));
+                    .put("desc", Podcasts.FeedText.clip(ep.optString("desc"), 600)).put("ch", ep.optString("ch")).put("size", ep.optLong("size"));
             JSONObject slimPod = pod == null ? new JSONObject() : new JSONObject().put("id", pod.optString("id")).put("feed", pod.optString("feed"))
                     .put("title", pod.optString("title")).put("author", pod.optString("author")).put("image", pod.optString("image")).put("link", pod.optString("link"));
             idx.put(key, new JSONObject().put("id", id).put("file", name).put("t", System.currentTimeMillis()).put("auto", auto).put("ep", slimEp).put("pod", slimPod));
@@ -323,7 +391,9 @@ final class PodcastDownloads {
 
     static boolean anyAuto(Context c) {
         JSONArray s = Podcasts.subs(c);
-        for (int i = 0; i < s.length(); i++) if (s.optJSONObject(i) != null && s.optJSONObject(i).optBoolean("dl")) return true;
+        for (int i = 0; i < s.length(); i++) if (doetMee(c, s.optJSONObject(i))) return true;
+        // Ook zonder: zolang er vanzelf gedownloade afleveringen zijn die nog weg moeten
+        if (bewaarDagen(c) > 0) { JSONObject idx = index(c); for (Iterator<String> k = idx.keys(); k.hasNext(); ) { JSONObject it = idx.optJSONObject(k.next()); if (it != null && it.optBoolean("auto")) return true; } }
         return false;
     }
 
@@ -346,6 +416,8 @@ final class PodcastDownloads {
 
     /** Voor podcasts met "vanzelf downloaden": de nieuwste, nog niet beluisterde afleveringen. Geeft het aantal nieuwe. */
     static int autoQueue(Context c) {
+        opruimen(c);
+        if (periode(c)) return periodeQueue(c);
         int n = 0;
         JSONArray subs = Podcasts.subs(c);
         JSONObject prog = Podcasts.progress(c);
@@ -374,6 +446,48 @@ final class PodcastDownloads {
         return n;
     }
 
+    /** Periode: van elke podcast die meedoet de nog niet beluisterde afleveringen van de afgelopen dagen, binnen de ruimte. */
+    static int periodeQueue(Context c) {
+        long nu = System.currentTimeMillis(), van = nu - periodeDagen(c) * DAG;
+        int mb = maxMb(c);
+        JSONArray subs = Podcasts.subs(c);
+        JSONObject prog = Podcasts.progress(c), idx = index(c);
+        // Wat vanzelf gedownload is, telt mee voor de ruimte
+        long inGebruik = 0;
+        File d = dir(c);
+        for (Iterator<String> k = idx.keys(); k.hasNext(); ) {
+            JSONObject it = idx.optJSONObject(k.next());
+            if (it == null || !it.optBoolean("auto")) continue;
+            File f = fileIn(d, it.optString("file"));
+            JSONObject e = it.optJSONObject("ep");
+            inGebruik += f != null && f.isFile() && f.length() > 0 ? f.length() : schat(e == null ? 0 : e.optLong("size"), e == null ? 0 : e.optLong("dur"));
+        }
+        List<JSONObject> eps = new ArrayList<>(), pods = new ArrayList<>();
+        for (int i = 0; i < subs.length(); i++) {
+            JSONObject s = subs.optJSONObject(i);
+            if (!doetMee(c, s)) continue;
+            JSONObject feed = Podcasts.readJson(Podcasts.cacheFile(c, s.optString("id")));
+            JSONArray items = feed == null ? null : feed.optJSONArray("items");
+            if (items == null) continue;
+            for (int k = 0; k < Math.min(items.length(), 100); k++) {
+                JSONObject e = items.optJSONObject(k);
+                if (e == null) continue;
+                String key = e.optString("key");
+                if (!Podcasts.validKey(key) || e.optLong("date") < van || idx.has(key) || isGone(c, key)) continue;
+                JSONObject p = prog.optJSONObject(key);
+                if (p != null && p.optBoolean("done")) continue;
+                eps.add(e); pods.add(s);
+            }
+        }
+        long[] dates = new long[eps.size()], sizes = new long[eps.size()];
+        for (int i = 0; i < dates.length; i++) { dates[i] = eps.get(i).optLong("date"); sizes[i] = schat(eps.get(i).optLong("size"), eps.get(i).optLong("dur")); }
+        long ruimte = mb <= 0 ? -1 : Math.max(0, mb * 1024L * 1024L - inGebruik);
+        int n = 0;
+        for (int i : kiesPeriode(dates, sizes, ruimte, MAX_PER_KEER)) if ("".equals(start(c, eps.get(i), pods.get(i), true))) n++;
+        if (n > 0) App.log(c, "PODCAST", "vanzelf downloaden (periode): " + n);
+        return n;
+    }
+
     /** Vanzelf downloaden voor één podcast aan of uit. */
     static void setAuto(Context c, String podId, boolean on) throws Exception {
         synchronized (Podcasts.class) {
@@ -382,6 +496,7 @@ final class PodcastDownloads {
                 JSONObject s = a.getJSONObject(i);
                 if (!s.optString("id").equals(podId)) continue;
                 s.put("dl", on);
+                if (on) s.remove("dlUit"); else s.put("dlUit", true); // bij "alle podcasts": deze niet
                 if (on) {
                     JSONObject feed = Podcasts.readJson(Podcasts.cacheFile(c, podId));
                     JSONArray items = feed == null ? null : feed.optJSONArray("items");

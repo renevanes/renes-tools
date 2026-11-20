@@ -8,8 +8,8 @@ import android.content.ComponentName;
 import android.content.Context;
 
 /**
- * Vanzelf downloaden van nieuwe podcast-afleveringen: een paar keer per dag de gevolgde podcasts met "vanzelf
- * downloaden" bijwerken en de nieuwste afleveringen downloaden (met "alleen via wifi" alleen op wifi).
+ * Vanzelf downloaden van podcast-afleveringen: een paar keer per dag de gevolgde podcasts bijwerken, wat te oud is weer
+ * verwijderen en de afleveringen van de gekozen periode downloaden (met "alleen via wifi" alleen op wifi).
  */
 public class PodcastDownloadJob extends JobService {
 

@@ -52,7 +52,7 @@ const { chromium } = require('playwright');
     ok((await pg.getAttribute('#pd-sub', 'aria-pressed')) === 'true' && (await pg.textContent('#pd-sub')).trim() === 'Volgen' && await pg.isVisible('#pd-dl'), 'volgen via het menu: Volgen ingedrukt en Vanzelf downloaden');
     await pg.click('#pd-menu'); await pg.waitForTimeout(100);
     acts = await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent));
-    ok(acts.includes('Niet meer volgen…') && acts.includes('Nieuwe afleveringen vanzelf downloaden'), 'gevolgd: ontvolgen en vanzelf downloaden in het menu');
+    ok(acts.includes('Niet meer volgen…') && acts.some(a => /^(✓ )?Nieuwe afleveringen vanzelf downloaden$/.test(a)), 'gevolgd: ontvolgen en vanzelf downloaden in het menu');
     await pg.evaluate(() => closeSheet());
 
     // ---- Verder luisteren bij deze podcast: bovenaan, gemarkeerd ----

@@ -31,7 +31,8 @@ const { chromium } = require('playwright');
     await pg.click('#pd-eps .pcep[data-i="2"] .pcmore'); await pg.waitForTimeout(100);
     await pg.click('#sheet-acts button:has-text("Markeren als beluisterd")'); await pg.waitForTimeout(200);
     ok(await pg.evaluate(() => Android._dl.list.length === 1) && !(await pg.$$eval('#pd-eps .pcep small', x => x.map(e => e.textContent))).some(t => t.includes('✓ beluisterd') && t.includes('Offline')), 'beluisterd: download weg');
-    // Volgen en vanzelf downloaden
+    // Volgen en vanzelf downloaden (hier met "alleen waar je het aanzet"; "alle podcasts" staat in podcast-periode.test.js)
+    await pg.evaluate(() => Android.podDlPeriode(JSON.stringify({ periodeWelke: 'gekozen' })));
     await pg.click('#pd-sub'); await pg.waitForTimeout(150);
     ok(await pg.isVisible('#pd-dl') && (await pg.getAttribute('#pd-dl', 'aria-checked')) === 'false', 'gevolgd: "vanzelf downloaden" zichtbaar, nog uit');
     await pg.click('#pd-dl'); await pg.waitForTimeout(100);

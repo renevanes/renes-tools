@@ -93,7 +93,9 @@ function pcDlSettings(){ jumpTo('podset'); } // de instellingen voor downloaden 
 function pcDlClearAsk(){ askConfirm('Alle downloads verwijderen?', 'De afleveringen blijven gewoon te beluisteren via internet. Podcasts met "nieuwe afleveringen downloaden" halen de nieuwste later opnieuw op.', 'Verwijderen', () => { Android.podDlClear(); pcDlRefresh(); toast('Downloads verwijderd'); }); }
 
 /* Eén podcast: nieuwe afleveringen vanzelf downloaden (knop naast Volgend, en in het menu ⋯) */
-function pdDlOn(){ const s = rdJson(Android.podSubs(), []).find(x => pdPod && x.id === pdPod.id); return !!(s && s.dl); }
+function pdDlOn(){ const s = rdJson(Android.podSubs(), []).find(x => pdPod && x.id === pdPod.id); return psDoetMee(s, rdJson(Android.podDlPrefs(), {})); }
+/** Doet een gevolgde podcast mee met vanzelf downloaden? Bij "alle podcasts" tenzij uitgezet, anders als aangezet (zoals PodcastDownloads.doetMee). */
+function psDoetMee(s, pr){ if (!s) return false; return pr.periode !== false && pr.periodeWelke !== 'gekozen' ? !s.dlUit : !!s.dl; }
 function pdDlRow(subscribed){
   const b = $('#pd-dl'); if (!b) return;
   b.hidden = !subscribed;
@@ -108,7 +110,9 @@ function pdDlToggle(){
   if (e) { toast(e); return; }
   pdDlRow(true);
   const pr = rdJson(Android.podDlPrefs(), {});
-  toast(on ? t(pr.wifiOnly ? '↓ De nieuwste 3 die je nog niet beluisterde, worden gedownload (via wifi)' : '↓ De nieuwste 3 die je nog niet beluisterde, worden gedownload') : t('Niet meer vanzelf downloaden'));
+  if (!on) { toast(t('Niet meer vanzelf downloaden')); return; }
+  if (pr.periode !== false) toast(t(pr.wifiOnly ? '↓ Wat je nog niet beluisterde van {periode}, wordt gedownload (via wifi)' : '↓ Wat je nog niet beluisterde van {periode}, wordt gedownload', { periode: psPeriodeTxt(pr.periodeDagen) }));
+  else toast(t(pr.wifiOnly ? '↓ De nieuwste 3 die je nog niet beluisterde, worden gedownload (via wifi)' : '↓ De nieuwste 3 die je nog niet beluisterde, worden gedownload'));
 }
 
 /* ---------- Instellingen van Podcasts (scherm podset): na een aflevering, en downloaden ---------- */
@@ -130,6 +134,37 @@ function psRender(){
   $('#ps-next').textContent = psNextTxt(n);
   fvRender('ps');
   psOvRender();
+  psPeriodeRender(pr);
+}
+/* Vanzelf downloaden over een periode (PodcastDownloads.periodeQueue) en weer verwijderen (opruimen) */
+function psPeriodeTxt(d){
+  d = +d || 14;
+  return d === 7 ? t('de afgelopen week') : d === 30 ? t('de afgelopen maand') : d % 7 === 0 ? t('de afgelopen {n} weken', { n: d / 7 }) : t('de afgelopen {n} dagen', { n: d });
+}
+function psPeriodeRender(pr){
+  pr = pr || rdJson(Android.podDlPrefs(), {});
+  const on = pr.periode !== false, b = $('#ps-periode');
+  b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+  $('#ps-periode-k').hidden = !on;
+  $('#ps-welke').value = pr.periodeWelke === 'gekozen' ? 'gekozen' : 'alle';
+  $('#ps-dagen').value = String(pr.periodeDagen || 14);
+  $('#ps-bewaar').value = String(pr.bewaarDagen == null ? 14 : pr.bewaarDagen);
+  $('#ps-maxmb').value = String(pr.maxMb == null ? 2000 : pr.maxMb);
+  const subs = rdJson(Android.podSubs(), []), n = subs.filter(s => psDoetMee(s, pr)).length;
+  $('#ps-periode-u').textContent = !on ? '' : !subs.length ? t('Je volgt nog geen podcasts.')
+    : !n ? t('Nog geen podcast doet mee: zet Vanzelf downloaden aan bij een podcast.')
+    : t('{podcasts}: wat je nog niet beluisterde van {periode}, de nieuwste eerst.', { podcasts: tn(n, 'Eén podcast doet mee', '{n} podcasts doen mee'), periode: psPeriodeTxt(pr.periodeDagen) })
+      + (pr.wifiOnly ? ' ' + t('Alleen via wifi.') : '');
+}
+function psPeriodeZet(o){
+  const e = Android.podDlPeriode(JSON.stringify(o));
+  if (e) toast(t(e));
+  psPeriodeRender();
+  if (typeof pdDlRow === 'function' && pdPod) pdDlRow(!!rdJson(Android.podSubs(), []).find(x => x.id === pdPod.id));
+}
+function psPeriodeAan(){ psPeriodeZet({ periode: rdJson(Android.podDlPrefs(), {}).periode === false }); }
+function psPeriode(){
+  psPeriodeZet({ periodeWelke: $('#ps-welke').value, periodeDagen: +$('#ps-dagen').value, bewaarDagen: +$('#ps-bewaar').value, maxMb: +$('#ps-maxmb').value });
 }
 /** "Daarna: <titel> (<podcast>)" of waarom er niets komt. Zuiver. */
 function psNextTxt(n){
