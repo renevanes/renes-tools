@@ -524,6 +524,7 @@ const SET_EXCLUDE = [
   ['#pd-dl, #pd-sort, #pd-hide', 'Hoort bij één podcast, of is een filter'],
   ['#s-podspotify input, #s-podspotify select', 'Keuzes bij het overzetten van podcasts, voor één keer'],
   ['#sln-filter', 'Filter bij één nacht van Slaappraat'],
+  ['#cp-periode, #cp-meting', 'Tijdelijke weergavekeuzes in het CPAP-logboek'],
   ['#s-checkined .tg, #s-checkined [role=radiogroup], #s-checkined [role=group], #s-checkined .chips, #s-checkined select, #s-checkined input', 'Hoort bij één vraag van Check-in (de editor)'],
   ['#ciq-view, #s-checkincmp select, #s-checkincmp [role=radiogroup], #s-checkincmp .chips', 'Weergave van de grafieken van Check-in'],
   ['#car-months', 'Maandkeuze in de rittenlijst'],
