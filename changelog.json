@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.238",
+    "date": "2026-11-20",
+    "changes": [
+      "CPAP-analyse kan je myAir-ZIP importeren en toont je gebruiksduur en AHI per periode."
+    ]
+  },
+  {
     "version": "1.237",
     "date": "2026-11-20",
     "changes": [
