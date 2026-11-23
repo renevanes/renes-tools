@@ -1,5 +1,18 @@
 [
   {
+    "version": "1.246",
+    "date": "2026-11-23",
+    "changes": [
+      "Backups veel kleiner: grote bestanden (gespreksopnames, documenten, foto's) staan nog maar één keer, versleuteld, in Versleuteld/Grote bestanden; elke nachtelijke backup verwijst ernaar in plaats van alles opnieuw te bewaren",
+      "Alles back-uppen laat per onderdeel zien hoe groot het is en hoeveel er nieuw bij kwam, en hoeveel grote bestanden nieuw zijn of al bewaard waren",
+      "Grote bestanden die geen backup meer gebruikt worden vanzelf opgeruimd, en elke nacht wordt een deel helemaal nagelezen",
+      "Oude, volledige backups weghalen met één knop (Automatisch en versleutelen → Oude backups opruimen); de nieuwste blijft als vangnet staan",
+      "ontsleutelen.html leest ook de grote bestanden: kies op de computer naast het .rtb-bestand ook de bestanden uit de map Grote bestanden",
+      "Backup-map opruimen (dubbele mappen, zoals de WhatsApp-mappen, samenvoegen) loopt nu binnen de nachtelijke taak en gaat door als het scherm uitgaat, zodat het afkomt; één map die niet te lezen is houdt de rest niet meer tegen",
+      "Ontbreekt een groot bestand of is het beschadigd, dan zetten terugzetten, uitpakken en ontsleutelen.html de rest toch terug en zeggen ze welke ontbraken"
+    ]
+  },
+  {
     "version": "1.245",
     "date": "2026-11-23",
     "changes": [

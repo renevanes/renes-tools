@@ -1,15 +1,28 @@
 {
   "app": "Tools",
-  "versionName": "1.245",
-  "versionCode": 246,
-  "nativeLevel": 211,
+  "versionName": "1.246",
+  "versionCode": 247,
+  "nativeLevel": 212,
   "web": "index.html",
-  "webSha256": "f72b85b9a52378e2f1350b9b00cafa8feb273adc8ddbc99fea6eeb566748e307",
+  "webSha256": "318f8b11d55127e12aa59fc4c26b8eda73e17611b63ed8cfd1bc71589e296632",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "f4a0b8891b5d1dbf614d3982667bc3cea08c9dcbb2b82de876ae277b6ea80617",
+  "apkSha256": "2ca6e32b80e887e6f48f25d138a56369dfbe1926d668c16373460b2724631d4d",
   "changelog": [
+    {
+      "version": "1.246",
+      "date": "2026-11-23",
+      "changes": [
+        "Backups veel kleiner: grote bestanden (gespreksopnames, documenten, foto's) staan nog maar één keer, versleuteld, in Versleuteld/Grote bestanden; elke nachtelijke backup verwijst ernaar in plaats van alles opnieuw te bewaren",
+        "Alles back-uppen laat per onderdeel zien hoe groot het is en hoeveel er nieuw bij kwam, en hoeveel grote bestanden nieuw zijn of al bewaard waren",
+        "Grote bestanden die geen backup meer gebruikt worden vanzelf opgeruimd, en elke nacht wordt een deel helemaal nagelezen",
+        "Oude, volledige backups weghalen met één knop (Automatisch en versleutelen → Oude backups opruimen); de nieuwste blijft als vangnet staan",
+        "ontsleutelen.html leest ook de grote bestanden: kies op de computer naast het .rtb-bestand ook de bestanden uit de map Grote bestanden",
+        "Backup-map opruimen (dubbele mappen, zoals de WhatsApp-mappen, samenvoegen) loopt nu binnen de nachtelijke taak en gaat door als het scherm uitgaat, zodat het afkomt; één map die niet te lezen is houdt de rest niet meer tegen",
+        "Ontbreekt een groot bestand of is het beschadigd, dan zetten terugzetten, uitpakken en ontsleutelen.html de rest toch terug en zeggen ze welke ontbraken"
+      ]
+    },
     {
       "version": "1.245",
       "date": "2026-11-23",
@@ -175,15 +188,7 @@
         "Nieuws: een video in een artikel dat je in Tools leest (zoals bij AI Report) onthoudt waar je was. De volgende keer gaat hij daar verder, met \"Vanaf het begin\" om toch opnieuw te beginnen. Werkt na het installeren van de nieuwe APK.",
         "Nieuws: een video in een artikel dat je in Tools leest (zoals bij AI Report) kan nu op volledig scherm, en draait mee als je je telefoon kantelt. Terug sluit het volle scherm. Werkt na het installeren van de nieuwe APK."
       ]
-    },
-    {
-      "version": "1.226",
-      "date": "2026-11-18",
-      "changes": [
-        "Nieuws: bij een bron waarvan je artikelen in Tools leest, staat nu ook \"Openen in de browser\" (onder het artikel, in het menu ⋯ en als knop bovenin het leesvenster), zodat je de pagina ook buiten de app kunt openen. Voor de knop in het leesvenster is de nieuwe APK nodig.",
-        "Grote speler: de slaaptimer staat nu rechts. Tik op de titel van de aflevering om hem in het overzicht van de podcast te zien, op de naam van de podcast voor alle afleveringen, of op \"Podcast\"/\"Radio\" bovenaan voor het hele overzicht."
-      ]
     }
   ],
-  "webSig2": "n6pF2fJ2fVTmCii5BxHSUJURBjlJ6IcgzrLVx1rP03TeQ2XwMFksZ+eaeKy5ZIHtG7tANawjm+hRVSkijFME7sLKwSGN9h4UwxKnNLi0ebthHuPSEYNKYVsqljcAggpw9G+l60BKkK+QYb9DMVPTiUdkXYEwZaW6cFi+/qLrJUX6YbTafEf0JmXp2tEk0USMTlkgBWqvJbjgL0+BA9Mcusn9aSyoxzHCTNQ9pB+kGX5wRe3mF3r12NWRnDA9Wss2wMSpCceK2xdZaUOlBikkMFmMdKoSj8KlTZzDjSbldfG6QluP2O40CcBBjci+mt8k4FeV36tm/5wj9mmd2PXokc/MYSRy2EON5raiywz1j6OC+nFvfW48YjIALGW3nwK/M5MYsYLB1iRm7dOKrJLruNwqD1iENWRWFAmkiaN1awuZHbJbzqJJHsrYmrIcY7zHLNUN1jy0Ex/ja1XzPFrDx9YWjfEbVhlf0BtbtEqqxG39O9FyUSeTzz0gS9tt8iF4"
+  "webSig2": "X98cByINyTzRyJtA1cENINXMS7E0HmY+BRCHBoYBvLWqm/gPZOiQggMHr2sJtUUctKutiAEa7Ka1o+LNVJB2HzT08eG7vwU1KczFlLkRI1gN/734AOHgUBc5+QcF4eQZm2Oifd9bKPLbt9Vx4dy2nMp4HC6dhFsWrPorQrmR2b/aU+uvx1ytZdVAWYCi+A9qlrvyK9WneUikzmmvqnQP2AQdkaQl6EZDKUzcSH/P0hHw7WtEEtpML71IXEFbqr9Zt9E89Q4Z7VyuC77xV9X6+/X75hVxT0PpAJqehA738p3IIKqZt+eqPe2/2vtrjUKFN9FKc/XA25wpiaIe7sECk6/umZdUlJ/ZdQtAmU96xK5X2XHVsKKJLG9GZFHRIfzP35iJ2JcRWbbVd1Am8o37bzRRDOsK5OXFa8dr+NyHYEhBJDFagsdWxaWAUWmvSpvFaic5RHpK8pZv4L43RSr+HeN2El1GENIcQW9fp/zeCtAZ0gAcTdl47tqHvsZN6QyW"
 }
