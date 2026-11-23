@@ -52,13 +52,14 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>Android._cm.records.filter(r=>r.type==='identiteit').length),2,'na ontgrendelen bewaard');
   assert.equal(await p.evaluate(()=>$('#modal').classList.contains('on')),false,'geen foutmelding');
   // 5. Beide zijden, maar niets herkend: toch de twee zijden om na te kijken (met uitleg), daarna bewaard zonder gegevens.
-  await p.evaluate(()=>{Android._cm.herkend=null;cm.dirty=false;cmCancelEdit();});
+  await p.evaluate(()=>{Android._cm.herkend=null;Android._cm.pairPagina=true;cm.dirty=false;cmCancelEdit();});
   await p.waitForFunction(()=>!cm.navigating&&!cm.mutating&&cmOpen());
   await T.kaart(kid);await p.click('#cmc-doc-add');await p.waitForSelector('#sheet.on');
   await p.getByRole('button',{name:'Identiteitskaart',exact:true}).click();
   await p.getByRole('button',{name:'Document met beide zijden kiezen',exact:true}).click();
   await p.waitForSelector('#cmh-pair-preview img');
   assert.match(await p.textContent('#modal-text'),/geen gegevens herkend/,'uitleg: zelf invullen');
+  assert.match(await p.textContent('#cmh-pair-pagina'),/halve\) pagina/,'waarschuwing: (halve) pagina\'s, er kan meer op staan');
   await p.click('#modal-ok');
   await p.waitForFunction(()=>Android._cm.records.filter(r=>r.type==='identiteit').length===3);
   await p.close();

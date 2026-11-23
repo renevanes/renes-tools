@@ -73,6 +73,10 @@ public final class MasterDocumentTest {
         List<int[]> l = MasterDocumentImages.helften(1414, 1000);
         check(l.get(0)[2] + l.get(1)[2] == 1414 && l.get(1)[0] == 707, "liggend: links en rechts");
 
+        // Een gescande pagina (A-vorm, groot) is geen kaartfoto
+        check(MasterDocumentImages.paginaVorm(2480, 3508) && MasterDocumentImages.paginaVorm(3508, 2480), "A4 staand en liggend");
+        check(!MasterDocumentImages.paginaVorm(1600, 1009) && !MasterDocumentImages.paginaVorm(800, 1131), "kaart, of klein");
+
         // Google-document: liefst Word (foto's op volle grootte), anders PDF; iets anders niet.
         check(MasterPhotos.DOCX.equals(MasterPhotos.exportType(new String[]{"application/pdf", MasterPhotos.DOCX, "text/plain"})), "Word eerst");
         check(MasterPhotos.PDF.equals(MasterPhotos.exportType(new String[]{"text/plain", "application/pdf"})), "anders PDF");
