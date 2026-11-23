@@ -129,7 +129,6 @@ function klDanOnKluis(r){
 
 /* ---------- Menu van een kluisdocument ---------- */
 function klIsPdf(d){ return /pdf/.test(d.mime || '') || /\.pdf$/i.test(d.name || ''); }
-/** Opent in de eigen viewer van de app: een PDF of een afbeelding (geen kopie buiten de kluis). Anders met een andere app. */
 function klDocSheet(id){
   const x = (klRender.docs || []).find(d => d.id === id); if (!x) return;
   const pdf = klIsPdf(x), nv = (x.versions || []).length;

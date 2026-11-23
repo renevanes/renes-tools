@@ -31,11 +31,13 @@ public class DiagnoseTest {
 
         String zl = Diagnose.zonderLinks("Betaal via https://tikkie.me/pay/AbC123 of www.betaal.nl/x?id=9\nanders tikkie.me/pay/Q1 binnen 14 dagen (12.03.2026), bedrag 12,50 aan Jansen B.V.");
         check(!zl.contains("tikkie") && !zl.contains("betaal.nl") && zl.contains("[link]") && zl.contains("12.03.2026") && zl.contains("12,50") && zl.contains("Jansen B.V."), "betaallinks worden [link], gewone tekst blijft (" + zl + ")");
-        StringBuilder punten = new StringBuilder();
-        for (int i = 0; i < 100_000; i++) punten.append("a.");
+        String json = Diagnose.zonderLinks("Herkend: {\"kenmerk\":\"https:\\/\\/tikkie.me\\/pay\\/Z9\"} en https://tikkie. me/pay/AbC123 of x\u0085https://a.nl/b");
+        check(!json.contains("tikkie") && !json.contains("pay") && !json.contains("a.nl"), "ook een link in JSON, een gesplitste link en een link met een vreemd scheidingsteken (" + json + ")");
+        StringBuilder lang2 = new StringBuilder();
+        for (int i = 0; i < 1000; i++) { for (int k = 0; k < 1000; k++) lang2.append(k % 2 == 0 ? "www" : ".\u0085"); lang2.append(' '); }
         long t0 = System.nanoTime();
-        Diagnose.zonderLinks(punten.toString());
-        check(System.nanoTime() - t0 < 2_000_000_000L, "links weghalen blijft snel bij lange tekst zonder schuine streep");
+        Diagnose.zonderLinks(lang2.toString());
+        check(System.nanoTime() - t0 < 3_000_000_000L, "links weghalen blijft snel bij veel lange woorden");
 
         JSONArray v = Diagnose.erbij(new JSONArray(), 5L, "betalen", 1234);
         for (int i = 0; i < 40; i++) v = Diagnose.erbij(v, 10L + i, "Betalen", i);

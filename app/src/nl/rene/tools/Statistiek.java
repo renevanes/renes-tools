@@ -281,7 +281,12 @@ final class Statistiek {
         try {
             String token = open(sealed);
             // Diagnose bevat inhoud: alleen naar een repository waarvan GitHub zegt dat hij privé is
-            if (!prive(lees(repo, token))) return "Alleen naar een privé repository: GitHub meldt deze niet als privé";
+            String[] antwoord = lees(repo, token);
+            int status = Integer.parseInt(antwoord[0]);
+            if (status == 301) return "Repository hernoemd of verplaatst? Vul de nieuwe naam in";
+            if (status != 200) return status == 401 || status == 403 ? "De sleutel werkt niet (meer), of mag niet in deze repository schrijven"
+                    : status == 404 ? "Repository niet gevonden (of de sleutel mag er niet bij)" : "Versturen lukte niet (HTTP " + status + ")";
+            if (!prive(antwoord[1])) return "Alleen naar een privé repository: GitHub meldt deze niet als privé";
             int code = put(repo, token, path, tekst, bericht);
             return code == 200 || code == 201 ? "" : code == 401 || code == 403 ? "De sleutel werkt niet (meer), of mag niet in deze repository schrijven"
                     : code == 404 ? "Repository niet gevonden (of de sleutel mag er niet bij)" : "Versturen lukte niet (HTTP " + code + ")";
@@ -316,8 +321,8 @@ final class Statistiek {
         try { return Boolean.TRUE.equals(new JSONObject(json).opt("private")); } catch (Exception e) { return false; }
     }
 
-    /** GET /repos/{repo} (vaste host, alleen https, begrensd); null als het geen 200 is. */
-    private static String lees(String repo, String token) throws Exception {
+    /** GET /repos/{repo} (vaste host, alleen https, begrensd): {status, inhoud}; inhoud null als het geen 200 is. */
+    private static String[] lees(String repo, String token) throws Exception {
         URL u = new URL("https://api.github.com/repos/" + repo);
         HttpURLConnection h = (HttpURLConnection) u.openConnection();
         try {
@@ -328,14 +333,15 @@ final class Statistiek {
             h.setRequestProperty("Accept", "application/vnd.github+json");
             h.setRequestProperty("X-GitHub-Api-Version", "2022-11-28");
             h.setRequestProperty("User-Agent", "Renes-Tools/" + Version.NAME);
-            if (h.getResponseCode() != 200) return null;
+            int code = h.getResponseCode();
+            if (code != 200) return new String[]{String.valueOf(code), null};
             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
             try (InputStream in = h.getInputStream()) {
                 byte[] b = new byte[4096];
                 int n;
                 while (out.size() < 262_144 && (n = in.read(b)) > 0) out.write(b, 0, n);
             }
-            return out.size() >= 262_144 ? null : new String(out.toByteArray(), StandardCharsets.UTF_8);
+            return new String[]{"200", out.size() >= 262_144 ? null : new String(out.toByteArray(), StandardCharsets.UTF_8)};
         } finally { h.disconnect(); }
     }
 

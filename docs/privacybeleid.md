@@ -120,7 +120,7 @@ een rekening las en wat daaruit herkend is. Dat bevat inhoud (namen, adressen, n
 geheugen van de app, hooguit een uur, en is weg zodra de app stopt; het komt niet in een bestand of backup. Het verlaat de telefoon
 alleen als je bij Instellingen → Foutrapport en statistieken → Diagnose zelf een stuk kopieert of verstuurt (na een
 vraag), of als je daar "Vanzelf sturen" aanzet (staat uit; aanzetten vraagt eerst). Versturen gaat naar dezelfde eigen
-(privé) GitHub-repository als de statistieken, in de map `diagnose`; Tools verstuurt alleen als GitHub die repository als privé meldt. Een betaallink die als tekst op een rekening staat, legt Betalen niet vast. Op hetzelfde scherm staat wat er verstuurd is
+(privé) GitHub-repository als de statistieken, in de map `diagnose`; Tools verstuurt alleen als GitHub die repository als privé meldt. Webadressen in de gelezen tekst van een rekening (zoals een betaallink) laat Betalen zo veel mogelijk weg. Op hetzelfde scherm staat wat er verstuurd is
 (tijd, tool en omvang). De Play-versie verstuurt geen diagnose.
 
 ## Backups
