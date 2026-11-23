@@ -35,7 +35,7 @@ public final class MasterDocumentTest {
         check(MasterDocumentImages.tegels(max, 3000, max).size() >= 3, "smal en lang: tegels onder elkaar");
 
         // Volgorde: eerst overal de snelle strook (ook op de tegels), dan rijbewijs op de hele pagina's, dan op de tegels.
-        List<int[]> v = MasterDocumentImages.volgorde(new int[]{4, 0, 4});
+        List<int[]> v = MasterDocumentImages.volgorde(new int[]{4, 0, 4}, false);
         check(v.size() == (5 + 1 + 5) + 3 + (4 + 4), "elk stuk één keer per ronde: " + v.size());
         int last = 0;
         for (int[] x : v) { check(x[0] >= last, "rondes op volgorde"); last = x[0]; }
@@ -43,7 +43,9 @@ public final class MasterDocumentTest {
         check(v.get(10)[0] == 0 && v.get(10)[1] == 2 && v.get(10)[2] == 4, "strook ook op de laatste tegel van pagina 3");
         check(v.get(11)[0] == 1 && v.get(11)[2] == 0 && v.get(13)[1] == 2, "rijbewijs eerst op de hele pagina's");
         for (int[] x : v) if (x[0] == 2) check(x[2] > 0 && x[1] != 1, "ronde 2 alleen tegels, niet van een pagina zonder tegels");
-        check(MasterDocumentImages.volgorde(new int[0]).isEmpty(), "geen pagina's");
+        check(MasterDocumentImages.volgorde(new int[0], false).isEmpty(), "geen pagina's");
+        List<int[]> rb = MasterDocumentImages.volgorde(new int[]{4, 0, 4}, true);
+        check(rb.size() == v.size() && rb.get(0)[0] == 1 && rb.get(rb.size() - 1)[0] == 0, "rijbewijs gekozen: eerst rijbewijs, de strook als laatste");
 
         // Google-document: liefst Word (foto's op volle grootte), anders PDF; iets anders niet.
         check(MasterPhotos.DOCX.equals(MasterPhotos.exportType(new String[]{"application/pdf", MasterPhotos.DOCX, "text/plain"})), "Word eerst");

@@ -113,7 +113,7 @@ final class MasterDocumentImages {
         return bytes.length >= 4 && bytes[0] == 'P' && bytes[1] == 'K' && bytes[2] == 3 && bytes[3] == 4;
     }
 
-    static Match find(Context context, byte[] bytes, String today, BooleanSupplier active) throws Exception { return find(context, bytes, today, active, null); }
+    static Match find(Context context, byte[] bytes, String today, BooleanSupplier active) throws Exception { return find(context, bytes, today, active, null, false); }
 
     /**
      * Zoek het ID-bewijs. Een PDF-pagina is vaak een A4 met de kaart klein erop (een scan of kopie): dan zijn de tekens van
@@ -122,7 +122,7 @@ final class MasterDocumentImages {
      * paspoort), daarna met de tijd die over is de tekst van een rijbewijs (langzaam). stats (mag null): alleen aantallen
      * en ja/nee, voor de foutmelding en het logboek.
      */
-    static Match find(Context context, byte[] bytes, String today, BooleanSupplier active, JSONObject stats) throws Exception {
+    static Match find(Context context, byte[] bytes, String today, BooleanSupplier active, JSONObject stats, boolean rijbewijs) throws Exception {
         long deadline = SystemClock.elapsedRealtime() + SEARCH_MS;
         BooleanSupplier searching = () -> active.getAsBoolean() && SystemClock.elapsedRealtime() < deadline;
         if (!pdf(bytes)) return word(context, bytes, today, searching);
@@ -140,7 +140,7 @@ final class MasterDocumentImages {
                         Math.max(1, (int) ((long) p.getHeight() * RENDER_SIDE / side))).size() - 1);
                 }
             }
-            List<int[]> plan = volgorde(tiles);
+            List<int[]> plan = volgorde(tiles, rijbewijs);
             int cachedPage = -1;
             boolean cachedTiles = false;
             List<byte[]> cache = null;
@@ -171,13 +171,15 @@ final class MasterDocumentImages {
     /**
      * Volgorde van zoeken over de pagina's ({ronde, pagina, stuk}; stuk 0 = de hele pagina, daarna de tegels). Ronde 0: de
      * strook op elk stuk van elke pagina (snel). Ronde 1: rijbewijs op de hele pagina's. Ronde 2: rijbewijs op de tegels.
-     * Zuiver, getest.
+     * Koos Rene zelf "rijbewijs", dan de strook pas als laatste. Zuiver, getest.
      */
-    static List<int[]> volgorde(int[] tilesPerPage) {
-        List<int[]> l = new ArrayList<>();
-        for (int p = 0; p < tilesPerPage.length; p++) for (int s = 0; s <= tilesPerPage[p]; s++) l.add(new int[]{0, p, s});
+    static List<int[]> volgorde(int[] tilesPerPage, boolean rijbewijs) {
+        List<int[]> strook = new ArrayList<>(), l = new ArrayList<>();
+        for (int p = 0; p < tilesPerPage.length; p++) for (int s = 0; s <= tilesPerPage[p]; s++) strook.add(new int[]{0, p, s});
+        if (!rijbewijs) l.addAll(strook);
         for (int p = 0; p < tilesPerPage.length; p++) l.add(new int[]{1, p, 0});
         for (int p = 0; p < tilesPerPage.length; p++) for (int s = 1; s <= tilesPerPage[p]; s++) l.add(new int[]{2, p, s});
+        if (rijbewijs) l.addAll(strook);
         return l;
     }
 

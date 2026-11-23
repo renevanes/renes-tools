@@ -37,6 +37,8 @@ final class MasterPhotos {
         final String id,side,request,view,soort;final long revision,dataset;Uri uri;
         /** Een Google-document en dergelijke: geen eigen bestand, alleen als PDF of Word-bestand op te halen (exportType). */
         boolean virtual;
+        /** Na het lezen van een Google-document: de tijdslimiet op het lezen weer weghalen. */
+        Runnable exportKlaar;
         String reviewId,reviewToken;JSONObject images,found;
         Pending(String id,long revision,String side,String request,String view,String soort){this.id=id;this.revision=revision;this.side=side;this.request=request;this.view=view;this.soort=soort;this.dataset=MasterSession.datasetEpoch();}
     }
@@ -139,8 +141,12 @@ final class MasterPhotos {
         try{
             String type=exportType(cr.getStreamTypes(job.uri,"*/*"));
             if(type==null||!active.getAsBoolean())throw new MasterError(fout);
-            android.content.res.AssetFileDescriptor fd=cr.openTypedAssetFileDescriptor(job.uri,type,null,stop);
+            final android.content.res.AssetFileDescriptor fd=cr.openTypedAssetFileDescriptor(job.uri,type,null,stop);
             if(fd==null)throw new MasterError(fout);
+            // Ook het lezen begrenzen: blijft de app die het levert hangen, dan breekt sluiten het lezen af.
+            Runnable sluit=()->{try{fd.close();}catch(Throwable ignored){ }};
+            h.postDelayed(sluit,EXPORT_MS);
+            job.exportKlaar=()->h.removeCallbacks(sluit);
             return v.lees(fd.createInputStream(),Math.max(0,fd.getLength()));
         }catch(MasterError e){throw e;}
         catch(java.io.IOException|SecurityException|IllegalArgumentException|IllegalStateException|android.os.OperationCanceledException e){
@@ -175,7 +181,13 @@ final class MasterPhotos {
             if(job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kies de kaartfoto opnieuw vanuit Stamgegevens"));
             java.util.function.BooleanSupplier active=()->session.accepts(token)&&activity.masterForeground
                 &&activity.masterWanted&&job.dataset==MasterSession.datasetEpoch();
-            session.require(token);byte[] bytes=read(open(v,job,active));
+            session.require(token);byte[] bytes;
+            try{bytes=read(open(v,job,active));}
+            catch(java.io.IOException e){
+                if(!job.virtual)throw e;
+                App.log(activity,"STAMGEGEVENS","document (google): lezen mislukt, "+e.getClass().getSimpleName());
+                throw new MasterError(Taal.T("Dit document kan niet als PDF of Word-bestand worden geopend. Download het eerst als PDF en kies dat bestand."));
+            }finally{Runnable k=job.exportKlaar;job.exportKlaar=null;if(k!=null)k.run();}
             JSONObject diag=new JSONObject();
             String today=Regio.dayKey(activity,System.currentTimeMillis());
             if("pair".equals(job.side)){
@@ -195,7 +207,7 @@ final class MasterPhotos {
                 MasterDocumentImages.Match match;
                 JSONObject stats=new JSONObject();
                 String soortBestand=MasterDocumentImages.pdf(bytes)?"pdf":"word";
-                try{match=MasterDocumentImages.find(activity,bytes,today,active,stats);}
+                try{match=MasterDocumentImages.find(activity,bytes,today,active,stats,"rijbewijs".equals(job.soort));}
                 catch(java.io.IOException|IllegalArgumentException|SecurityException e){
                     App.log(activity,"STAMGEGEVENS","document ("+soortBestand+(job.virtual?", google":"")+"): niet te openen, "+e.getClass().getSimpleName());
                     throw new MasterError(Taal.T("Dit document kan niet worden geopend. Kies een leesbare PDF of een Word-document (.docx)."));
