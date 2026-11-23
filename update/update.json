@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.244",
-  "versionCode": 245,
-  "nativeLevel": 210,
+  "versionName": "1.245",
+  "versionCode": 246,
+  "nativeLevel": 211,
   "web": "index.html",
-  "webSha256": "ef22f279691b95e98b065fc94907a76f6a85a5a4fd8f5451a3fc620cf5b19fdb",
+  "webSha256": "f72b85b9a52378e2f1350b9b00cafa8feb273adc8ddbc99fea6eeb566748e307",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "fc89109b701c4ee0b6192c5f48ac599f925235e53adcb713f551c05aab984081",
+  "apkSha256": "f4a0b8891b5d1dbf614d3982667bc3cea08c9dcbb2b82de876ae277b6ea80617",
   "changelog": [
+    {
+      "version": "1.245",
+      "date": "2026-11-23",
+      "changes": [
+        "Stamgegevens: een document met beide zijden lukt nu ook als het een scan is (beide zijden op één pagina of op twee pagina's), als er een logo of ander klein plaatje in staat, of als de foto's geen JPEG zijn.",
+        "Stamgegevens: wordt er bij beide zijden niets herkend, dan kun je de twee zijden toch nakijken en bewaren en vul je de gegevens zelf in; en lukt het niet, dan zegt de melding waarom."
+      ]
+    },
     {
       "version": "1.244",
       "date": "2026-11-23",
@@ -175,14 +183,7 @@
         "Nieuws: bij een bron waarvan je artikelen in Tools leest, staat nu ook \"Openen in de browser\" (onder het artikel, in het menu ⋯ en als knop bovenin het leesvenster), zodat je de pagina ook buiten de app kunt openen. Voor de knop in het leesvenster is de nieuwe APK nodig.",
         "Grote speler: de slaaptimer staat nu rechts. Tik op de titel van de aflevering om hem in het overzicht van de podcast te zien, op de naam van de podcast voor alle afleveringen, of op \"Podcast\"/\"Radio\" bovenaan voor het hele overzicht."
       ]
-    },
-    {
-      "version": "1.225",
-      "date": "2026-11-18",
-      "changes": [
-        "Speler en radio: geen emoji meer als pictogram. Naast de volumeschuif, bij \"Welk nummer is dit?\" en in de menu's (waar het speelt, Hierna, je zenders) staan nu strakke lijniconen, net als in de rest van de app."
-      ]
     }
   ],
-  "webSig2": "gEHM9BwROJ4Boa6An6i9G8ogRrj7vIIb5H0+zfjgHJ0kwn1usL/HTr+np/MhlluFxWTJKS/kcoWBY8b0rsZWwgSiPyX8EDvzfimr3mMs5cxZprd7rhWobqqTX+8vM5hHWlJR+DA/4Lp5K+3WKYv/U9pT6XfWW8jo0YHPac14Z0lwuPZnVxalieqVr1UaJZVhUOUxAxqwpfnyvaeQR9OCHiCYf6juR9BUoj7L/f5Tf9JkRalu0eMa6NN2gslK8I5KER7RCZinAbA25uKQveEmG8QI0pQKVGrG7IlqZP/pr7DnQSLJsgGNBJG399mxM/kVahFz41NcJtRQStatmrGOcS8a/BIGasHRQf2UuygTMMp56NWPUJDyxkWmXBiV+vwhgBqd6q00/DJpb4HqlOwV79jePKGv8LRVYEQ6vnaV0fNJmjvA6/JUXVXQSoKViQiCYFp8PtECEbTVaYu0ctvGbwMIXrj0M9WEiz+QuoofLjdcmvIsDCRFBN139XUqdMGY"
+  "webSig2": "n6pF2fJ2fVTmCii5BxHSUJURBjlJ6IcgzrLVx1rP03TeQ2XwMFksZ+eaeKy5ZIHtG7tANawjm+hRVSkijFME7sLKwSGN9h4UwxKnNLi0ebthHuPSEYNKYVsqljcAggpw9G+l60BKkK+QYb9DMVPTiUdkXYEwZaW6cFi+/qLrJUX6YbTafEf0JmXp2tEk0USMTlkgBWqvJbjgL0+BA9Mcusn9aSyoxzHCTNQ9pB+kGX5wRe3mF3r12NWRnDA9Wss2wMSpCceK2xdZaUOlBikkMFmMdKoSj8KlTZzDjSbldfG6QluP2O40CcBBjci+mt8k4FeV36tm/5wj9mmd2PXokc/MYSRy2EON5raiywz1j6OC+nFvfW48YjIALGW3nwK/M5MYsYLB1iRm7dOKrJLruNwqD1iENWRWFAmkiaN1awuZHbJbzqJJHsrYmrIcY7zHLNUN1jy0Ex/ja1XzPFrDx9YWjfEbVhlf0BtbtEqqxG39O9FyUSeTzz0gS9tt8iF4"
 }
