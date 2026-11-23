@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.241",
-  "versionCode": 242,
-  "nativeLevel": 207,
+  "versionName": "1.242",
+  "versionCode": 243,
+  "nativeLevel": 208,
   "web": "index.html",
-  "webSha256": "cf01c0c90eae493b1266d23a3c745868035dcc322d2612f3d3740ef309b0ea18",
+  "webSha256": "f0f19985b18ca1af7b631cfda9fda4e0fe1065a1a423457e193cf2faa99cda5b",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "142dbb02222d7d89696d2b607b3da8aef04103afc8e3f3a3a64d0bdc67276cbb",
+  "apkSha256": "b99745de7e45799f984abeb1a94bb1ba7a10ab532e87f17687a568bee60d11cd",
   "changelog": [
+    {
+      "version": "1.242",
+      "date": "2026-11-23",
+      "changes": [
+        "Diagnose: versturen gaat alleen naar een repository die GitHub als privé meldt, en een betaallink van een rekening komt er niet in",
+        "Alle appgegevens terugzetten gaat door als het CPAP-logboek in de backup niet te lezen is",
+        "Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"
+      ]
+    },
     {
       "version": "1.241",
       "date": "2026-11-20",
@@ -170,17 +179,7 @@
       "changes": [
         "Podcasts, radio en voorlezen: de volumeknoppen van je telefoon gaan nu in kleinere stappen (standaard 3 keer zo fijn). Aan of uit en hoe fijn bij Podcasts → Instellingen of Spraak → Volumeknoppen."
       ]
-    },
-    {
-      "version": "1.222",
-      "date": "2026-11-18",
-      "changes": [
-        "Alles back-uppen: oude backups worden nu standaard vanzelf opgeruimd na elke gelukte backup; van elke soort blijven de laatste 7 volledige backups staan, plus altijd de nieuwste met alle appgegevens. Let op: bij de eerstvolgende backup gaan oudere backups (ook die van eerdere maanden) weg. Wil je dat niet, kies dan bij Instellingen van Alles back-uppen → Bewaren \"14 dagen + per maand\" of zet opruimen uit; je kunt ook 3, 14 of 30 kiezen. Had je opruimen zelf uitgezet of al aangezet, dan verandert er niets.",
-        "Startscherm: een ingeklapte groep laat in de kop zien hoeveel tools erin staan, en de kop is nu een echte knop (beter voor schermlezers).",
-        "Startscherm: lange tegelnamen (zoals Automatiseringen en Documentenkluis) worden niet meer midden in een woord afgebroken; zo nodig wordt alleen die naam iets kleiner.",
-        "Documentenkluis: een document waarvan de tekst drie keer niet te lezen was, heeft in het menu ⋯ de keuze \"Tekst opnieuw lezen\"."
-      ]
     }
   ],
-  "webSig2": "USQ6rYhFuH5PSfOgOGlw4yd054DOf4lzst2BtZZQUaKK6r4OmbwucDY5c7MmnDOcuf8Ku8bJA5CpF6AhUil2h8pLUJipwSYLEJwjGd7pfHb8sOjiBxx5MxrmZEkPDYypwzIMioXmnWKu4IgtmogHjdoBKTv9hobs0X0o8DAAsVZCeT/naB1nVSpUtArTaDBBnUhZokiCSpRv9xPHpFsYJfXzbtNjjA61JkmuREmpvDIgiBIn2QKI0MPd1F0rb+9T0NFqQ3k2pp0qALp+8wdHEA43kQ9j8tCmiSPO+z51u3lBik0OxwpwfNhoRBikS2LnmTNqkoyOhCsYmx3V+sdao9g0cXVRHkD8QXvhdLSG9QfRpzXIs4KqKIt1WvWXeXJduXOsEu75pIprE7tT18JinIlsym2Xw0F4GYMMlCtemnDOifZsN0rcA+ACtKPLJeEIX7zcij/mdR81ux/gUdvvlm7y6uE+PGu2HrXbVwNSPf11EBwzJ4JHU7JJRDVrA4Z3"
+  "webSig2": "JazP2GJ0vEzB4Pw3o7zvHttDXnQESnpmb4MEh5SQZaQ7XUt2BsiVVeQJ43XlXcGvr2kXpJ+5LQsQ7wx235T1pKPVFnMnZa67l2zavhVZFoPnJAeLhdnfoDDn9S6EOmFjIiX6xRRt7afgcWBxhSqXrPTi7El+7KD3K6BMD/QtbXKLf/P3BkUyDoOk4VqCbKQ7bbO6AAC/VT1hMhpvApjZtBsPI/FR4uppMfrvXrVQ2de9qXB9E9ZOXHPxEBbu+y0HlJMOcTpNWOsuvjGfM3dn3c3p90NvT9ylcJLaTXyAwnXNUI5UyNravIdkui1qpfDOCFxhPF1QBmBdY/lLpEp/Qp0hQNNF3ZAgY6Ar8/MMAZDR6z5OkxEwN8yW6/dIVcetTwEEsedPn3ctmzY7MbW2ZfD0mnf2RGbiAZSaliP/Z4eFWgcRJasrrloYcnHA/V+KHbsfoFdcUJsloftpuGRe4sJ/KRCPZiszN2fL9DAPGwoaAiV8kH9AWLjW7U1mt6X6"
 }

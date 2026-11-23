@@ -1,3 +1,0 @@
-Diagnose: versturen gaat alleen naar een repository die GitHub als privé meldt, en een betaallink van een rekening komt er niet in
-Alle appgegevens terugzetten gaat door als het CPAP-logboek in de backup niet te lezen is
-Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van
