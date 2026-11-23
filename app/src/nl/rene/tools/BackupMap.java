@@ -209,7 +209,7 @@ final class BackupMap {
                     } else if (!keep.dir && !x.dir) {
                         r.dupFiles++;
                         if (repair) {
-                            if (same(dest, keep, x)) { delete(dest, x); r.removed++; }
+                            if (blokGelijk(name, keep, x) || same(dest, keep, x)) { delete(dest, x); r.removed++; }
                             else { renameAside(dest, d, x, name); r.renamed++; }
                             changed = true;
                         }
@@ -305,7 +305,7 @@ final class BackupMap {
             WaBackup.Child there = into.kids.get(name);
             String p = join(path, name);
             if (x.dir && there != null && there.dir) { if (mergeDir(dest, sub(dest, there, p), x, p, r, deadline)) done++; continue; }
-            if (!x.dir && there != null && !there.dir && same(dest, there, x)) { delete(dest, x); r.removed++; done++; continue; }
+            if (!x.dir && there != null && !there.dir && (blokGelijk(name, there, x) || same(dest, there, x))) { delete(dest, x); r.removed++; done++; continue; }
             String to = there == null ? name : WaBackup.versionName(name, into); // botst: als oude versie erbij
             Uri u = move(dest, x, src, into, to, p, r, deadline);
             if (u != null) { into.kids.put(to, new WaBackup.Child(DocumentsContract.getDocumentId(u), x.size, x.mod, x.dir)); done++; }
@@ -379,6 +379,14 @@ final class BackupMap {
         d.kids.put(to, x);
     }
 
+    /**
+     * Twee keer hetzelfde grote bestand van de versleutelde backup (Versleuteld/Grote bestanden): de naam hangt af van de
+     * inhoud, dus zelfde naam en zelfde grootte = dezelfde inhoud (de versleutelde bytes verschillen wel: eigen nonce).
+     */
+    static boolean blokGelijk(String name, WaBackup.Child a, WaBackup.Child b) {
+        return Blokken.kid(name) != null && !a.dir && !b.dir && a.size > 0 && a.size == b.size;
+    }
+
     /** Zelfde inhoud? Alleen bij gelijke grootte, en tot 32 MB echt nagelezen (anders voor de zekerheid: verschillend). */
     static boolean same(WaBackup.Dest dest, WaBackup.Child a, WaBackup.Child b) {
         if (a.dir || b.dir || a.size < 0 || a.size != b.size || a.size > HASH_MAX) return false;
@@ -447,10 +455,7 @@ final class BackupMap {
                 Thread.sleep(90_000); // het opstarten niet ophouden
                 if (prefs(app).getInt("doneVersion", 0) >= VERSION) return;
                 if (!auto(app) || WaBackup.destUri(app) == null || Herstel.blocked(app) != null || busy() != null) return;
-                // Doorwerken: ook als de app uit beeld gaat (anders legt Android hem stil en komt het nooit af)
-                Doorwerken.door("backupmap", () -> {
-                    try { run(app, true, true); } catch (Throwable t) { App.log(app, "BACKUP", "backup-map eerste keer: " + AppData.safeMsg(t, "mislukt")); }
-                }).run();
+                run(app, true, true); // gaat 's nachts verder binnen de nachtelijke taak (AllBackupJob)
             } catch (Throwable t) { App.log(app, "BACKUP", "backup-map eerste keer: " + AppData.safeMsg(t, "mislukt")); }
         }, "backupmap-once").start();
     }

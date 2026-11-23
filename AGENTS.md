@@ -183,9 +183,14 @@ interface gaat mee via `store.set` (`webstore`, in Alle appgegevens en in het on
    het aanvinkt, en dan versleuteld; in Alle appgegevens (altijd versleuteld) wel, in Toolgegevens nooit (`FILES_OWN`,
    `PREFS_NEVER`). Een nieuwe privé-categorie volgt dat model (`AllBackup.PRIVATE`) en Rene beslist.
 8. **Grote bestanden gaan apart** (`Blokken`, `BlokOpslag`): alles wat via `Secure.Zip.stream()`/`stored()` in het
-   archief gaat en minstens `Blokken.MIN` groot is, komt één keer in `Versleuteld/Grote bestanden/`. Lees een archief
-   daarom altijd met `Blokken.Lezer` (`Secure.lezer(c)`), nooit met een kale `ZipInputStream`: anders mis je die bestanden.
-   Een fout bij het opslaan (`Blokken.OpslagFout`) nooit stil inslikken, maar doorgeven.
+   archief gaat, minstens `Blokken.MIN` groot is en niet in `Blokken.IN_ARCHIEF` staat (manifest, instellingen,
+   geheimen, kluisindex: wat terugzetten altijd nodig heeft), komt één keer in `Versleuteld/Grote bestanden/`. Lees een
+   archief daarom altijd met `Blokken.Lezer` (`Secure.lezer(c)`), nooit met een kale `ZipInputStream`: anders mis je die
+   bestanden. Lukt apart opslaan niet, dan gaat het bestand in het archief zelf (`zip.blokFout`, de uitkomst meldt het);
+   het archief blijft compleet. Een groot bestand dat bij lezen ontbreekt of beschadigd is, geeft `Blokken.LeesFout`:
+   terugzetten en uitpakken slaan alleen dat bestand over en melden het; vang die fout dus apart, niet als elke `IOException`.
+   Opruimen (`BlokOpslag.opruimen`) haalt alleen weg wat geen enkel archief gebruikt, met het merkteken `sinds-…` en een
+   wachttijd; verander dat alleen met een test erbij in `BlokkenTest`.
 9. **Getest:** `AppDataTest` zoekt in de code elke `getSharedPreferences("…")`, elke `PREFS`-constante en elke map in
    `getFilesDir()` (ook via een constante uit hetzelfde bestand, zoals `getFilesDir(), DIR`) en faalt als die niet in `PREFS_KNOWN`/`FILE_KNOWN` of bij de
    uitzonderingen staat, of als de naam niet mee kan (een instellingenbestand met hoofdletters of een punt). Een naam die je anders opbouwt, ziet de test

@@ -160,15 +160,19 @@ public class BlokkenTest {
         try (RandomAccessFile f = new RandomAccessFile(doelwit, "rw")) { f.seek(goed.length / 2); int b = f.read(); f.seek(goed.length / 2); f.write(b ^ 1); }
         String e1 = null;
         try { lees(arc, k, o); } catch (IOException e) { e1 = e.getMessage(); }
-        check(e1 != null && Blokken.beschadigd(new IOException(e1)), "beschadigd groot bestand: gemeld (" + e1 + ")");
+        check(e1 != null && Blokken.schade(new IOException(e1)), "beschadigd groot bestand: gemeld als schade (" + e1 + ")");
+        IOException soort = null;
+        try { lees(arc, k, o); } catch (IOException e) { soort = e; }
+        check(soort instanceof Blokken.LeesFout, "fout bij lezen van een groot bestand: LeesFout (terugzetten slaat alleen dat bestand over)");
         Files.write(doelwit.toPath(), Arrays.copyOf(goed, goed.length - 30));
         e1 = null;
         try { lees(arc, k, o); } catch (IOException e) { e1 = e.getMessage(); }
-        check(e1 != null && Blokken.beschadigd(new IOException(e1)), "afgekapt groot bestand: gemeld (" + e1 + ")");
+        check("Groot bestand onvolledig gelezen".equals(e1), "afgekapt groot bestand: gemeld (" + e1 + ")");
+        check(!Blokken.schade(new IOException("Groot bestand onvolledig gelezen")) && !Blokken.schade(new IOException("Connection reset")), "te vroeg afgelopen of geen verbinding: geen zekere schade");
         doelwit.delete();
-        e1 = null;
-        try { lees(arc, k, o); } catch (IOException e) { e1 = e.getMessage(); }
-        check(e1 != null && e1.contains("ontbreekt"), "ontbrekend groot bestand: gemeld (" + e1 + ")");
+        e1 = null; soort = null;
+        try { lees(arc, k, o); } catch (IOException e) { e1 = e.getMessage(); soort = e; }
+        check(e1 != null && e1.contains("ontbreekt") && soort instanceof Blokken.LeesFout, "ontbrekend groot bestand: gemeld (" + e1 + ")");
         // Opnieuw back-uppen herstelt het (zelfde inhoud = zelfde naam): ook het oude archief klopt dan weer
         archief(k, o, files, null);
         check(doelwit.isFile() && lees(arc, k, o).size() == files.size() + 1, "na een nieuwe backup is het oude archief weer compleet");
@@ -200,22 +204,29 @@ public class BlokkenTest {
         for (File f : dir.listFiles()) if (f.getName().endsWith(".x") || f.getName().endsWith(".part")) geenX = false;
         check(e2 != null && geenX, "teruglezen klopt niet: niet bewaard, tijdelijk bestand weg (" + e2 + ")");
 
-        // Mislukt opslaan: het archief weet het (wordt onvolledig), en volgende grote bestanden proberen het niet steeds opnieuw
+        // Mislukt apart opslaan: het bestand gaat dan gewoon in het archief (dat blijft compleet), de fout wordt onthouden
+        // en volgende grote bestanden proberen het niet steeds opnieuw
         ByteArrayOutputStream raw3 = new ByteArrayOutputStream();
         Secure.Zip z3 = new Secure.Zip(null, null, null, "x.rtb", raw3, k);
         z3.blok = new Blokken.Schrijver(stuk, k);
         z3.tmpDir = Files.createTempDirectory("blok").toFile();
         String e3 = null;
-        try (OutputStream out = z3.stream("A", "groot.bin")) { out.write(ruis(50_000, 8)); } catch (Blokken.OpslagFout e) { e3 = e.getMessage(); }
+        try (OutputStream out = z3.stream("A", "groot.bin")) { out.write(ruis(50_000, 8)); } catch (IOException e) { e3 = e.getMessage(); }
+        try (OutputStream out = z3.stream("A", "groot2.bin")) { out.write(ruis(60_000, 9)); }
         try (OutputStream out = z3.stream("A", "klein.txt")) { out.write("hoi".getBytes(StandardCharsets.UTF_8)); }
-        check(e3 != null && z3.blokFout != null && z3.blok.items.isEmpty(), "opslaan mislukt: gemeld en onthouden");
+        z3.lijst();
+        z3.z.close();
+        check(e3 == null && z3.blokFout != null && z3.blok.items.isEmpty(), "apart opslaan mislukt: onthouden, geen fout voor het archief");
+        Map<String, byte[]> l3 = lees(raw3.toByteArray(), k, stuk);
+        check(Arrays.equals(l3.get("A/groot.bin"), ruis(50_000, 8)) && Arrays.equals(l3.get("A/groot2.bin"), ruis(60_000, 9)), "apart opslaan mislukt: de bestanden staan in het archief zelf");
         check(z3.tmpDir.list().length == 0, "geen tijdelijke bestanden achtergebleven");
 
         // ---------- de lijst uit een archief is niet te vertrouwen ----------
         String goedJson = Blokken.json(ids.kid, s[0].items);
         check(Blokken.parse(goedJson).size() == 4, "lijst terug te lezen");
+        check(Blokken.parse(goedJson.replace("Kluis\\/brief.pdf", "..\\/brief.pdf")).size() == 3, "onveilige naam in de lijst: alleen die overgeslagen");
+        check(Blokken.apart("Kluis/brief.pdf") && !Blokken.apart("../x") && !Blokken.apart(AppData.MANIFEST) && !Blokken.apart("/x"), "apart: alleen veilige namen, nooit wat altijd in het archief hoort");
         String[] slecht = {
-                goedJson.replace("Kluis\\/brief.pdf", "..\\/brief.pdf"),
                 goedJson.replace("\"format\":\"" + Blokken.FORMAT + "\"", "\"format\":\"iets\""),
                 goedJson.replace("\"kid\":\"" + ids.kid + "\"", "\"kid\":\"00000000\""),
                 goedJson.replace("\"version\":1", "\"version\":99"),
@@ -232,6 +243,15 @@ public class BlokkenTest {
         check(weg.equals(Arrays.asList(ids.naam(sha, true), new Blokken.Ids(anders).naam(sha, false)).stream().sorted().collect(java.util.stream.Collectors.toList())),
                 "opruimen: alleen eigen namen die niemand gebruikt " + weg);
         check(Blokken.overbodig(er, gebruikt, ids.kid, true).equals(Arrays.asList(ids.naam(sha, true))), "archief met een ander wachtwoord: die bestanden blijven");
+
+        // ---------- merkteken en opzij gezet ----------
+        String m1 = Blokken.sindsNaam(1_700_000_000_000L);
+        check(Blokken.SINDS_NAAM.matcher(m1).matches() && Math.abs(Blokken.sindsTijd(m1) - 1_700_000_000_000L) < 60_000, "merkteken: tijd in de naam (" + m1 + ")");
+        check(Blokken.sinds(Arrays.asList("leesmij.txt", Blokken.sindsNaam(2_000_000_000_000L), m1)) == Blokken.sindsTijd(m1), "het vroegste merkteken telt");
+        check(Blokken.sinds(Arrays.asList("leesmij.txt", ids.naam(sha, true))) == -1 && Blokken.kid(m1) == null, "geen merkteken: -1; een merkteken is geen groot bestand");
+        String kp = Blokken.kapotNaam(ids.naam(sha, true), 1_700_000_000_000L);
+        check(Blokken.kid(kp) == null && Blokken.KAPOT.matcher(kp).matches() && Math.abs(Blokken.kapotTijd(kp) - 1_700_000_000_000L) < 2 * 86_400_000L, "opzij gezet: eigen naam met datum (" + kp + ")");
+        check(!Blokken.overbodig(Arrays.asList(kp, m1), new HashSet<>(), ids.kid, false).contains(kp), "opzij gezet en merkteken: nooit als ongebruikt weggehaald");
 
         // ---------- voor ontsleutelen.html (sec.test.js / herstel.test.js): een archief met grote bestanden apart ----------
         File uit = new File(System.getProperty("java.io.tmpdir"), "rt-groot-test");

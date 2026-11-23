@@ -146,8 +146,8 @@ final class Secure {
         Blokken.Schrijver blok;
         /** Voor grote bestanden die nog geschreven worden (in de cache van de app). */
         java.io.File tmpDir;
-        /** Een groot bestand kon niet worden opgeslagen: dan is dit archief onvolledig (…_deels) en volgt er geen opruimen. */
-        volatile IOException blokFout;
+        /** Apart opslaan lukte niet (map, verbinding): de rest van deze ronde gaan grote bestanden in het archief zelf. */
+        volatile Exception blokFout;
         /** Hoeveel inhoud er in totaal door dit archief ging (ook de grote bestanden), en hoeveel er het archief zelf in ging. */
         long ruw = 0;
         final Blokken.Teller uit;
@@ -213,6 +213,23 @@ final class Secure {
             z.putNextEntry(e);
             z.write(b, 0, len);
             z.closeEntry();
+            record(path, len, sha);
+        }
+
+        /** Een groot bestand toch in het archief zelf (uit het tijdelijke bestand). */
+        void inlineFile(String path, java.io.File f, long len, int level, String sha) throws IOException {
+            ZipEntry e = new ZipEntry(path);
+            e.setTime(System.currentTimeMillis());
+            z.setLevel(level);
+            z.putNextEntry(e);
+            long done = 0;
+            try (InputStream in = new java.io.BufferedInputStream(new java.io.FileInputStream(f), 1 << 16)) {
+                byte[] b = new byte[1 << 16];
+                int r;
+                while ((r = in.read(b)) > 0) { z.write(b, 0, r); done += r; }
+            }
+            z.closeEntry();
+            if (done != len) throw new IOException("Tijdelijk bestand onvolledig");
             record(path, len, sha);
         }
 
@@ -310,11 +327,13 @@ final class Secure {
                 if (fo == null) { byte[] b = mem.toByteArray(); zip.inline(path, b, b.length, level, sha); return; }
                 fo.close();
                 fo = null;
-                // Lukte dat eerder deze ronde niet (map weg, geen verbinding), dan niet steeds opnieuw proberen
-                if (zip.blokFout != null) throw new Blokken.OpslagFout(zip.blokFout.getMessage(), zip.blokFout);
-                try { zip.blok.bewaar(path, f, n, sha); }
-                catch (IOException e) { if (zip.blokFout == null) zip.blokFout = e; throw e instanceof Blokken.OpslagFout ? e : new Blokken.OpslagFout(e.getMessage(), e); }
-                zip.record(path, n, sha);
+                // Apart, behalve wat altijd in het archief hoort; lukte apart opslaan eerder deze ronde niet, dan niet steeds
+                // opnieuw proberen: dan gaat het in het archief zelf (groter, maar compleet)
+                if (Blokken.apart(path) && zip.blokFout == null) {
+                    try { zip.blok.bewaar(path, f, n, sha); zip.record(path, n, sha); return; }
+                    catch (Exception e) { zip.blokFout = e; }
+                }
+                zip.inlineFile(path, f, n, level, sha);
             } finally {
                 if (fo != null) try { fo.close(); } catch (IOException ignored) { }
                 if (f != null) f.delete();
@@ -355,6 +374,14 @@ final class Secure {
             try { DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, e.getValue().docId)); dir.kids.remove(e.getKey()); }
             catch (Exception ignored) { }
         }
+        // Grote bestanden apart: eerst het merkteken (sinds-…), en pas daarna de naam van het archief (zie Blokken.SINDS)
+        BlokOpslag blokken = null;
+        if (AllBackup.blokken(c)) {
+            blokken = new BlokOpslag(WaBackup.Dest.echt(c.getContentResolver(), dest.tree));
+            // Lukt het merkteken niet (map niet bereikbaar), dan deze keer alles in het archief zelf: zonder merkteken
+            // weet opruimen later niet welke archieven ouder zijn
+            try { blokken.merkteken(); } catch (Exception e) { App.log(c, "BACKUP", "grote bestanden: " + AppData.safeMsg(e, "merkteken mislukt")); blokken = null; }
+        }
         String name = "backup-" + new SimpleDateFormat("yyyy-MM-dd_HHmm", Locale.US).format(new Date()) + ".rtb";
         // Eerst onder een tijdelijke naam schrijven; pas als het archief compleet is krijgt het de echte naam.
         Uri u = WaBackup.create(dest, dir.uri, "application/octet-stream", name + ".part");
@@ -365,10 +392,10 @@ final class Secure {
             if (o == null) throw new Exception("Archief schrijven lukt niet");
             Zip zip = new Zip(dest, dir, u, name, new java.io.BufferedOutputStream(o, 1 << 16), k);
             // Grote bestanden één keer, apart in Versleuteld/Grote bestanden (in de echte map, niet in het archief)
-            if (AllBackup.blokken(c)) {
-                zip.tmpDir = new java.io.File(c.getCacheDir(), "backup-groot");
-                AppBackup.wipe(zip.tmpDir); // achtergebleven van een afgebroken backup
-                zip.blok = new Blokken.Schrijver(new BlokOpslag(WaBackup.Dest.echt(c.getContentResolver(), dest.tree)), k);
+            if (blokken != null) {
+                zip.tmpDir = AppBackup.grootTmp(c);
+                zip.blok = new Blokken.Schrijver(blokken, k);
+                zip.blok.bekend.putAll(BlokOpslag.bekend(c));
             }
             return zip;
         } catch (Exception e) {
@@ -400,8 +427,7 @@ final class Secure {
         // Compleet. Bestaat er al een archief met deze naam (zelfde minuut), dan een eigen naam met seconden:
         // nooit een bestaand, compleet archief weggooien.
         // Gestopt halverwege: een eigen naam (…_deels.rtb), zodat opruimen hem nooit als volledige backup telt
-        // Een groot bestand ontbreekt (opslaan lukte niet): ook onvolledig
-        String suffix = res.optBoolean("stopped") || zip.blokFout != null ? Rotate.PARTIAL + ".rtb" : ".rtb";
+        String suffix = res.optBoolean("stopped") ? Rotate.PARTIAL + ".rtb" : ".rtb";
         String name = zip.name.replaceAll("\\.rtb$", "") + suffix;
         if (zip.dir.kids.containsKey(name))
             name = "backup-" + new SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.US).format(new Date()) + suffix;
@@ -682,7 +708,7 @@ final class Secure {
                         Long have = er.get(z.item().b);
                         if (have == null) throw new Exception("groot bestand ontbreekt in " + Blokken.DIR);
                         if (have >= 0 && z.item().e > 0 && have != z.item().e) throw new Exception("groot bestand heeft een andere grootte");
-                        continue;
+                        if (!z.naam().equals(Notes.DIR + "/notities.json")) continue; // de notities ook als groot bestand echt inlezen
                     }
                     InputStream in = z.inhoud();
                     if (z.naam().equals(Notes.DIR + "/notities.json")) {
@@ -720,8 +746,12 @@ final class Secure {
         throw new Exception("Niet gevonden in de backup: " + name);
     }
 
-    /** Pakt het geopende archief uit naar backup-map/Uitgepakt/&lt;naam&gt;/. Geeft het aantal bestanden. */
+    /** Bij het laatste uitpakken: zoveel grote bestanden ontbraken of waren beschadigd. */
+    static volatile int ontbrak = 0;
+
+    /** Pakt het geopende archief uit naar backup-map/Uitgepakt/&lt;naam&gt;/. Geeft het aantal bestanden (zie ook ontbrak). */
     static int unpack(Context c) throws Exception {
+        ontbrak = 0;
         Uri tree = WaBackup.destUri(c);
         if (tree == null) throw new Exception("Kies eerst een backup-map");
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
@@ -748,6 +778,11 @@ final class Secure {
                     int r;
                     InputStream in = z.inhoud();
                     while ((r = in.read(buf)) > 0) o.write(buf, 0, r);
+                } catch (Blokken.LeesFout e) {
+                    // Een groot bestand ontbreekt of is beschadigd: dat ene bestand niet, de rest wel
+                    try { DocumentsContract.deleteDocument(dest.cr, u); } catch (Exception ignored) { }
+                    ontbrak++;
+                    continue;
                 }
                 dir.kids.put(file, new WaBackup.Child(DocumentsContract.getDocumentId(u), 0, 0, false));
                 n++;

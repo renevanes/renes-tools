@@ -254,12 +254,21 @@ const { chromium } = require('playwright');
       ok(/2 grote bestanden erbij gezet/.test(z.msg) && /2 bestanden met wachtwoorden en sleutels weggelaten/.test(z.msg), 'melding: ' + z.msg);
       const all = await uitpak(true);
       ok(all.bad === null && Object.keys(verwacht).every(n => all.sha[n] === verwacht[n]), 'aangevinkt: alles, ook het grote geheime bestand');
-      // Een beschadigd groot bestand: gemeld, geen download
+      // Beschadigde grote bestanden: de rest komt er toch uit, met een duidelijke melding
       const kapot = path.join(os.tmpdir(), 'rt-groot-kapot'); fs.mkdirSync(kapot, { recursive: true });
       const kopie = blokken.map(f => { const d = path.join(kapot, path.basename(f)); const buf = fs.readFileSync(f); buf[buf.length >> 1] ^= 1; fs.writeFileSync(d, buf); return d; });
-      await pg.setInputFiles('#f', rtb); await pg.setInputFiles('#g', kopie); await pg.uncheck('#geheim');
-      await pg.click('#go'); await pg.waitForTimeout(2000);
-      ok(/beschadigd/.test(await pg.textContent('#msg')), 'beschadigd groot bestand gemeld (' + await pg.textContent('#msg') + ')');
+      const stuk = await (async () => {
+        await pg.setInputFiles('#f', rtb); await pg.setInputFiles('#g', kopie); await pg.uncheck('#geheim');
+        const [dl] = await Promise.all([pg.waitForEvent('download', { timeout: 120000 }), pg.click('#go')]);
+        const r = JSON.parse(cp.execFileSync('python3', ['-I', '-c', 'import zipfile,sys,json\nz=zipfile.ZipFile(sys.argv[1])\nprint(json.dumps({"bad":z.testzip(),"names":z.namelist()}))', await dl.path()]).toString());
+        return { ...r, msg: await pg.textContent('#msg') };
+      })();
+      ok(stuk.bad === null && stuk.names.includes('Notities/notities.json') && !stuk.names.includes('Kluis/groot.pdf'), 'beschadigd: de rest wel, het grote bestand niet');
+      ok(/beschadigd/.test(stuk.msg) && /Let op/.test(stuk.msg), 'beschadigd groot bestand gemeld (' + stuk.msg + ')');
+      // Eén van de twee gekozen: de rest toch, het ontbrekende gemeld
+      await pg.setInputFiles('#f', rtb); await pg.setInputFiles('#g', blokken.slice(0, 1)); await pg.check('#geheim');
+      const [dl1] = await Promise.all([pg.waitForEvent('download', { timeout: 120000 }), pg.click('#go')]);
+      ok(!!(await dl1.path()) && /1 groot bestand erbij gezet.*Let op: \d+ grote? bestand(en)? ontbr/.test(await pg.textContent('#msg')), 'een deel gekozen: de rest toch, het ontbrekende gemeld (' + await pg.textContent('#msg') + ')');
       await pg.close();
     }
     console.log('grote bestanden', 'errors', errs);

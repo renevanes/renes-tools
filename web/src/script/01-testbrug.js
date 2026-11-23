@@ -1551,7 +1551,7 @@ if (!window.Android) window.Android = (function(){
     toolSlotScherm(on){ this._tslot.scherm=!!on; },
     _sec:{on:false,since:0,rotate:true,keep:7,space:null,blokken:true,oud:null},
     backupSetBlokken(on){ this._sec.blokken=!!on; },
-    backupOudeOpruimen(dry){ setTimeout(()=>{ const o=this._sec.oud||{count:0,bytes:0}; const r=Object.assign({dry,keep:'backup-2026-11-23_0330.rtb'},o); if(!dry){ this._sec.oudWeg=o.count; this._sec.oud={count:0,bytes:0}; } onOudeBackups(r); },100); },
+    backupOudeOpruimen(dry){ setTimeout(()=>{ const o=this._sec.oud||{count:0,bytes:0}; const r=Object.assign({dry,keep:'backup-2026-11-23_0330.rtb'},o.count?{van:'backup-2026-03-31_0330.rtb',tot:'backup-2026-11-22_0330.rtb'}:{},o); if(!dry){ this._sec.oudWeg=o.count; this._sec.oud={count:0,bytes:0}; } onOudeBackups(r); },100); },
     backupSetPassword(pw){ setTimeout(()=>{ this._sec.on=true; this._sec.since=Date.now(); this._sec.pw=pw; onSecure(''); },200); },
     backupEncryptOff(){ this._sec.on=false; this._bk.parts.ai=false; this._bk.parts.sleep=false; this._bk.parts.checkin=false; this._bk.plain={}; }, backupSetRotate(on){ this._sec.rotate=on; }, backupSetKeep(n){ this._sec.keep=[0,3,7,14,30].includes(n)?n:7; },
     backupRotate(dry){ setTimeout(()=>{ if(!dry) this._sec.rotated=true; onRotate({count:6,bytes:48e6,dry}); },100); },

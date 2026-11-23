@@ -142,19 +142,22 @@ final class AppBackup {
                 ByteArrayOutputStream plain = new ByteArrayOutputStream();
                 try (InputStream in = new java.io.BufferedInputStream(new FileInputStream(f))) { Kluis.decrypt(in, plain); }
                 putBytes(zip, m, AppData.GEBRUIK_FOTO_DIR + "/" + name, plain.toByteArray());
-            } catch (Blokken.OpslagFout e) { throw e; }
-            catch (Exception e) { m.skipped.add(new String[]{"gebruik-foto/" + name, "foto niet te lezen"}); }
+            } catch (Exception e) { m.skipped.add(new String[]{"gebruik-foto/" + name, "foto niet te lezen"}); }
         }
     }
 
     /** Android stopt de nachtelijke taak: tussen twee bestanden netjes stoppen (het archief wordt dan …_deels.rtb). */
     static void stopCheck() throws Exception { if (AllBackup.stop) throw new Exception(AllBackup.STOPPED); }
 
-    /** Tijdelijke ontsleutelde kluisbestanden in de cache van een afgebroken backup: weg. */
+    /** Tijdelijke ontsleutelde kluisbestanden in de cache van een afgebroken backup: weg. Ook de opgevangen grote bestanden. */
     static void clearTemp(Context c) {
         File[] fs = c.getCacheDir().listFiles();
         if (fs != null) for (File f : fs) if (f.getName().startsWith("kluis-") && f.getName().endsWith(".tmp")) f.delete();
+        wipe(grootTmp(c));
     }
+
+    /** Waar grote bestanden even staan terwijl ze in het archief gaan (leesbaar: altijd leeg na een backup, en bij de start ervan). */
+    static File grootTmp(Context c) { return new File(c.getCacheDir(), "backup-groot"); }
 
     /** Alle instellingen die meegaan, met hun soort: {bestand: {sleutel: {t, v}}}. */
     static JSONObject prefsSnapshot(Context c, JSONObject secrets, AppData.Manifest m) throws Exception {
@@ -266,7 +269,6 @@ final class AppBackup {
         } catch (IOException e) {
             if (raw != null) try { raw.close(); } catch (Exception ignored) { }
             if (written == null) throw e; // het archief zelf: dan ook niet verder
-            if (e instanceof Blokken.OpslagFout) throw e; // grote bestanden lukken niet: duidelijk mislukt, niet stil overslaan
             m.broken.add(written);
             w.zip.bad.add(written);
             m.skipped.add(new String[]{rel, "niet te lezen"});
@@ -370,7 +372,7 @@ final class AppBackup {
             return true;
         } catch (Exception e) {
             if (written != null) { m.broken.add(written); zip.bad.add(written); }
-            if (AllBackup.stop || e instanceof Blokken.OpslagFout) throw e;
+            if (AllBackup.stop) throw e;
             m.skipped.add(new String[]{"kluis:" + blob, "kluisdocument niet te lezen"});
             App.log(c, "BACKUP", "appgegevens kluis " + blob + ": " + e.getClass().getSimpleName());
             return false;
@@ -570,8 +572,11 @@ final class AppBackup {
         Vault.In[] vault = new Vault.In[1];
         try {
             // ---- 1. alles lezen: appgegevens klaarzetten, van de andere onderdelen alleen grootte en SHA-256 ----
-            // Grote bestanden staan apart (Versleuteld/Grote bestanden): de lezer haalt ze op na de rest van het archief
+            // Grote bestanden staan apart (Versleuteld/Grote bestanden): de lezer haalt ze op na de rest van het archief.
+            // Ontbreekt er een of is hij beschadigd, dan alleen dat bestand niet (zoals een bestand dat bij het maken niet
+            // af kwam); alleen zonder de instellingen of de kluisindex kan terugzetten niet.
             Blokken.Bron bron = Blokken.bron(BlokOpslag.voor(c), k);
+            Set<String> grootWeg = new HashSet<>();
             try (Blokken.Lezer z = new Blokken.Lezer(openZip(c, u, k, counter, vault), vault[0], bron)) {
                 byte[] buf = new byte[1 << 16];
                 while (z.volgende()) {
@@ -587,7 +592,14 @@ final class AppBackup {
                     String t = AppData.target(name);
                     if (t == null) continue; // van een nieuwere versie, of niet meer bekend: overslaan
                     if (seen.containsKey(name)) throw new Exception("Dubbele naam in de backup: " + AppData.cut(name));
-                    AppData.Entry en = stageEntry(x, z.inhoud(), name, t, buf);
+                    AppData.Entry en;
+                    try { en = stageEntry(x, z.inhoud(), name, t, buf); }
+                    catch (Blokken.LeesFout ex) {
+                        if (!t.startsWith("f:") && !t.startsWith("kluis:") && !t.startsWith("gfoto:") && !"history".equals(t)) throw ex;
+                        weg(x, name, t);
+                        grootWeg.add(name);
+                        continue;
+                    }
                     seen.put(name, en);
                 }
                 // het slot van het archief is gelezen zodra de lijst klaar was (afgekapt = fout); de grote bestanden zijn
@@ -596,6 +608,12 @@ final class AppBackup {
             if (manifest == null && !seen.isEmpty()) throw new Exception("De appgegevens in deze backup zijn onvolledig (afgebroken backup); kies een andere backup");
             if (manifest == null) throw new NoAppData();
             AppData.Manifest m = AppData.parse(manifest);
+            for (String g : grootWeg) {
+                AppData.Entry e = m.find(g);
+                if (e != null) m.entries.remove(e);
+                m.broken.add(g);
+                m.skipped.add(new String[]{"groot:" + g, "groot bestand ontbrak of was beschadigd"});
+            }
             String bad = AppData.verify(m, seen, others);
             if (bad != null) throw new Exception(bad);
 
@@ -628,7 +646,15 @@ final class AppBackup {
                         List<AppData.Ref> l = want.remove(z.naam());
                         if (l == null) continue;
                         AppData.Ref first = l.get(0);
-                        AppData.Entry got = stageEntry(x, z.inhoud(), first.target, AppData.target(first.target), buf);
+                        AppData.Entry got;
+                        try { got = stageEntry(x, z.inhoud(), first.target, AppData.target(first.target), buf); }
+                        catch (Blokken.LeesFout ex) {
+                            // De bron is een groot bestand dat ontbreekt: deze verwijzingen dan niet (de rest wel)
+                            weg(x, first.target, AppData.target(first.target));
+                            for (AppData.Ref rr : l) { m.refs.remove(rr); m.skipped.add(new String[]{"groot:" + rr.target, "groot bestand ontbrak of was beschadigd"}); }
+                            if (first.target.startsWith(AppData.KLUIS_DIR + "/")) m.broken.add(first.target);
+                            continue;
+                        }
                         if (got.size != first.size || !got.sha.equals(first.sha)) throw new Exception("Beschadigd in de backup: " + AppData.cut(first.source));
                         File src = x.stagedFiles.get(first.target);
                         for (int i = 1; i < l.size(); i++) copyAs(x, src, l.get(i));
@@ -690,6 +716,19 @@ final class AppBackup {
         }
     }
 
+    /** Een half klaargezet bestand (groot bestand dat halverwege niet te lezen bleek) weer weg. */
+    static void weg(Ctx x, String name, String t) {
+        x.stagedFiles.remove(name);
+        x.kinds.remove(name);
+        try {
+            if (t == null) return;
+            if (t.startsWith("f:")) { File f = new File(x.stFiles, t.substring(2)); if (f.getCanonicalPath().startsWith(x.stFilesPath)) f.delete(); }
+            else if (t.startsWith("kluis:")) new File(x.stKluis, t.substring(6) + ".bin").delete();
+            else if (t.startsWith("gfoto:")) new File(x.stFiles, "gebruik/foto/" + t.substring(6)).delete();
+            else if ("history".equals(t)) new File(x.st, "meldingen.jsonl").delete();
+        } catch (Exception ignored) { }
+    }
+
     static boolean hasKluisBroken(AppData.Manifest m) {
         for (String b : m.broken) if (b.startsWith(AppData.KLUIS_DIR + "/")) return true;
         return false;
@@ -698,10 +737,11 @@ final class AppBackup {
     /** Wat er niet (helemaal) in de backup zit, in gewone woorden. */
     static void missing(Staged s, AppData.Manifest m) {
         Set<String> seen = new HashSet<>();
-        int photos = 0;
+        int photos = 0, groot = 0;
         for (String[] sk : m.skipped) {
             String k = sk[0], text;
             if (k.startsWith("gebruik-foto/")) { photos++; continue; } // samen geteld, hieronder
+            if (k.startsWith("groot:")) { groot++; continue; }
             if ("kluis".equals(k)) text = "de kluis (niet te lezen bij het maken): je huidige kluis blijft";
             else if (k.startsWith("kluis:")) text = "een deel van de kluis (niet te lezen bij het maken): je huidige documenten blijven erbij";
             else if ("meldingen".equals(k)) text = "de meldingsgeschiedenis (" + sk[1].toLowerCase(java.util.Locale.ROOT) + "): de huidige blijft";
@@ -715,6 +755,7 @@ final class AppBackup {
             if (seen.add(text)) s.missing.add(text);
         }
         if (photos > 0) s.missing.add(photos == 1 ? "1 foto bij ontgrendelen (niet te lezen bij het maken)" : photos + " foto's bij ontgrendelen (niet te lezen bij het maken)");
+        if (groot > 0) s.missing.add(groot == 1 ? "1 groot bestand (ontbrak of was beschadigd in Versleuteld/Grote bestanden)" : groot + " grote bestanden (ontbraken of waren beschadigd in Versleuteld/Grote bestanden)");
         if (s.broken > 0 && seen.add("broken")) s.missing.add(s.broken + (s.broken == 1 ? " bestand dat" : " bestanden die") + " bij het maken niet af kwam");
     }
 

@@ -32,11 +32,21 @@ const { chromium } = require('playwright');
     await pg.waitForTimeout(100);
     const res2 = await pg.$$eval('#bk-parts-res .bkres .bad', x => x.map(e => e.innerText));
     ok(res2.some(r => /beschadigd; de volgende backup bewaart het opnieuw/.test(r)), 'beschadigd groot bestand zichtbaar als fout ' + JSON.stringify(res2));
+    // Apart bewaren mislukt (staat dan in het archief zelf) en opruimen dat moet wachten: zichtbaar
+    await pg.evaluate(() => { Object.assign(Android._bk.last.blok, { fout: 'x', opgeruimd: { count: 0, bytes: 0, later: 'onleesbaar' } }); bkRenderLast(bkState(true)); });
+    await pg.waitForTimeout(100);
+    const res3 = await pg.$$eval('#bk-parts-res .bkres', x => x.map(e => e.innerText.replace(/\s+/g, ' ')));
+    ok(res3.some(r => /in het archief zelf/.test(r)), 'apart bewaren mislukt: gemeld ' + JSON.stringify(res3));
+    ok(res3.some(r => /Ongebruikt opgeruimd.*niet te lezen; er gaat niets weg/.test(r)), 'opruimen wacht: gemeld');
+    await pg.evaluate(() => { Android._bk.last.blok.opgeruimd = { count: 0, bytes: 0, later: true }; bkRenderLast(bkState(true)); });
+    await pg.waitForTimeout(100);
+    ok((await pg.$$eval('#bk-parts-res .bkres', x => x.map(e => e.innerText))).some(r => /Volgende nacht verder/.test(r)), 'opruimen gaat de volgende nacht verder');
 
     // ---------- instellingen: schakelaar en oude backups ----------
     await pg.click('#bk-row-set'); await pg.waitForTimeout(200);
     ok(await pg.isChecked('#bk-blok'), 'grote bestanden apart: standaard aan');
     ok(/één keer in Versleuteld\/Grote bestanden/.test(await pg.textContent('#bk-blok-txt')), 'uitleg onder de schakelaar');
+    ok(await pg.isVisible('#bk-blok-let') && /neem die map mee/.test(await pg.textContent('#bk-blok-let')), 'zichtbaar: een backup heeft ook de map Grote bestanden nodig');
     ok(!(await pg.isVisible('#bk-oud')), 'geen oude backups: geen knop');
     // Uitzetten vraagt eerst; Annuleren laat hem aan
     await pg.click('#bk-blok'); await pg.waitForTimeout(150);
@@ -45,7 +55,7 @@ const { chromium } = require('playwright');
     ok(await pg.isChecked('#bk-blok') && await pg.evaluate(() => Android._sec.blokken) === true, 'annuleren: blijft aan');
     await pg.click('#bk-blok'); await pg.waitForTimeout(150); await pg.click('#modal-ok'); await pg.waitForTimeout(150);
     ok(!(await pg.isChecked('#bk-blok')) && await pg.evaluate(() => Android._sec.blokken) === false, 'bevestigd: uit');
-    ok(/alles opnieuw/.test(await pg.textContent('#bk-blok-txt')), 'uit: uitleg');
+    ok(/alles opnieuw/.test(await pg.textContent('#bk-blok-txt')) && !(await pg.isVisible('#bk-blok-let')), 'uit: uitleg, geen opmerking over de map');
     await pg.click('#bk-blok'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._sec.blokken) === true && !(await pg.isVisible('#modal.on')), 'weer aan zonder vraag');
 
@@ -56,6 +66,7 @@ const { chromium } = require('playwright');
     ok(await pg.isVisible('#modal') && /14 oude backups weghalen/.test(await pg.textContent('#modal-title')), 'eerst tellen, dan vragen');
     const tekst = await pg.textContent('#modal-text');
     ok(/vangnet/.test(tekst) && /prullenbak/.test(tekst) && /30 dagen/.test(tekst), 'vraag noemt het vangnet en de prullenbak');
+    ok(/Van .*2026.* tot en met .*2026/.test(tekst), 'vraag noemt van wanneer tot wanneer (' + tekst + ')');
     await pg.screenshot({ path: __dirname + '/shots/grote-bestanden-' + scheme + '.png' });
     await pg.click('#modal-ok'); await pg.waitForTimeout(400);
     ok(await pg.evaluate(() => Android._sec.oudWeg) === 14, 'weggehaald');
@@ -65,6 +76,10 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._sec.oud = { count: 0, bytes: 0 }; bkOudOpruimen(); });
     await pg.waitForTimeout(300);
     ok(!(await pg.isVisible('#modal.on')) && /geen oude backups/.test(await pg.textContent('#toast')), 'niets weg te halen: alleen een melding');
+    // Nog niet zeker: de nieuwste backup mist grote bestanden
+    await pg.evaluate(() => { Android._sec.oud = { count: 0, bytes: 0, onvolledig: true }; bkOudOpruimen(); });
+    await pg.waitForTimeout(300);
+    ok(!(await pg.isVisible('#modal.on')) && /mist grote bestanden/.test(await pg.textContent('#toast')), 'nieuwste backup onvolledig: niets weg, uitleg');
 
     console.log(scheme, 'errors', errs);
     await pg.close();

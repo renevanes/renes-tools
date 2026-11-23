@@ -2874,7 +2874,7 @@ public class MainActivity extends Activity {
 
         /** Opruimen (dry = alleen tellen); uitkomst via onRotate({count, bytes} of {error}). */
         @JavascriptInterface public void backupRotate(boolean dry) {
-            new Thread(App.veilig(() -> {
+            new Thread(Doorwerken.door("rotate", () -> {
                 String r;
                 try {
                     org.json.JSONObject o = Secure.rotate(ctx, dry).put("dry", dry);
@@ -2961,7 +2961,10 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void archiveUnpack() {
             new Thread(Doorwerken.door("archive-unpack", App.veilig(() -> {
                 String r;
-                try { r = "ok:" + Secure.unpack(ctx); }
+                try {
+                    int n = Secure.unpack(ctx);
+                    r = Secure.ontbrak == 0 ? "ok:" + n : Taal.fill(Taal.t(ctx, "{n} bestanden uitgepakt naar Uitgepakt/; {m} grote bestanden ontbraken of waren beschadigd"), "n", n, "m", Secure.ontbrak);
+                }
                 catch (Exception e) { r = e.getMessage() != null ? e.getMessage() : "Uitpakken mislukt"; App.log(ctx, "SECURE", "uitpakken: " + e); }
                 finally { Secure.forget(); a.pendingArchive = null; }
                 a.js("onArchiveUnpacked", JSONObject.quote(r));

@@ -32,17 +32,22 @@ public class AllBackupJob extends JobService {
             return false;
         }
         new Thread(App.veilig(() -> {
-            JSONObject r = AllBackup.run(ctx, true);
-            if (r.optBoolean("stopped")) return; // Android stopte de taak; die herhaalt hem later zelf
-            AllBackup.prefs(ctx).edit().putLong("lastAutoDay", System.currentTimeMillis()).apply();
-            notifyIfFailed(ctx, r);
-            schedule(ctx, 0);
-            // Daarna, nog binnen de tijd van de taak, de backup-map netjes houden: dubbele mappen en bestanden,
-            // achtergebleven tijdelijke bestanden. Buiten de taak legde Android de app stil en kwam het nooit af; nu gaat
-            // het tot Android de taak stopt, en de volgende nacht verder waar het bleef.
-            opruimen = true;
-            try { if (!gestopt) BackupMap.nightly(ctx); } catch (Throwable ignored) { }
-            finally { opruimen = false; jobFinished(params, false); }
+            JSONObject r = null;
+            try {
+                r = AllBackup.run(ctx, true);
+                if (r.optBoolean("stopped")) return; // Android stopte de taak; die herhaalt hem later zelf
+                AllBackup.prefs(ctx).edit().putLong("lastAutoDay", System.currentTimeMillis()).apply();
+                notifyIfFailed(ctx, r);
+                // Daarna, nog binnen de tijd van de taak, de backup-map netjes houden: dubbele mappen en bestanden,
+                // achtergebleven tijdelijke bestanden. Buiten de taak legde Android de app stil en kwam het nooit af; nu
+                // gaat het tot Android de taak stopt, en de volgende nacht verder waar het bleef.
+                opruimen = true;
+                try { if (!gestopt) BackupMap.nightly(ctx); } catch (Throwable ignored) { }
+            } finally {
+                opruimen = false;
+                // Eerst afmelden, dan pas de volgende plannen: plannen met hetzelfde id stopt een taak die nog loopt
+                if (r == null || !r.optBoolean("stopped")) { jobFinished(params, false); schedule(ctx, 0); }
+            }
         }), "allbackup-auto").start();
         return true;
     }

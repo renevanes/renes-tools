@@ -64,9 +64,26 @@ final class Blokken {
     static final int MAX_ITEMS = 500_000;
     static final long MAX_LIST = 64L * 1024 * 1024;
 
-    /** Kon een groot bestand niet worden opgeslagen (map, netwerk): dan is het hele archief onvolledig. */
+    /** Kon een groot bestand niet worden opgeslagen (map, netwerk). */
     static final class OpslagFout extends IOException {
         OpslagFout(String m, Throwable c) { super(m, c); }
+    }
+
+    /**
+     * Een groot bestand uit de map was niet te lezen (ontbreekt, beschadigd, geen verbinding). Apart van andere fouten,
+     * zodat terugzetten dat ene bestand kan overslaan, en een fout bij het wegschrijven (telefoon vol) niet.
+     */
+    static final class LeesFout extends IOException {
+        LeesFout(IOException c) { super(c.getMessage(), c); }
+    }
+
+    /** Elke leesfout van een groot bestand als LeesFout. */
+    static final class LeesStroom extends FilterInputStream {
+        LeesStroom(InputStream in) { super(in); }
+        @Override public int read() throws IOException { try { return in.read(); } catch (LeesFout e) { throw e; } catch (IOException e) { throw new LeesFout(e); } }
+        @Override public int read(byte[] b, int o, int l) throws IOException { try { return in.read(b, o, l); } catch (LeesFout e) { throw e; } catch (IOException e) { throw new LeesFout(e); } }
+        @Override public long skip(long n) throws IOException { try { return in.skip(n); } catch (LeesFout e) { throw e; } catch (IOException e) { throw new LeesFout(e); } }
+        @Override public void close() { }
     }
 
     // ---------- namen ----------
@@ -92,11 +109,61 @@ final class Blokken {
 
     static String kid(String naam) { Matcher m = NAME.matcher(naam == null ? "" : naam); return m.matches() ? m.group(1) : null; }
 
+    /** Klein maar belangrijk voor terugzetten: altijd in het archief zelf (dan hangt terugzetten nooit van één los bestand af). */
+    static final Set<String> IN_ARCHIEF = new HashSet<>(java.util.Arrays.asList(AppData.MANIFEST, AppData.PREFS, AppData.SECRETS,
+            AppData.KLUIS_INDEX, AppData.MODELS, AppData.STATE, AppData.SIGNATURE, AppData.CPAP));
+
+    /** Mag dit bestand apart (als het groot genoeg is)? Niet bovenin het archief, niet de onderdelen hierboven, en alleen een veilige naam. */
+    static boolean apart(String pad) { return pad != null && pad.indexOf('/') > 0 && AppData.safeRel(pad) != null && !IN_ARCHIEF.contains(pad); }
+
     /** Inpakken (gzip) loont: niet bij al samengeperste bestanden (geluid, foto's, PDF's, zip). */
     static boolean inpakken(String pad) { return !AppData.compressed(pad); }
 
     /** Grootte van een versleuteld bestand van n bytes (zonder gzip): kop + per blok van 64 kB lengte en tag. */
     static long versleuteld(long n) { return Vault.HEADER + (n / Vault.CHUNK + 1) * (4L + Vault.TAG) + n; }
+
+    // ---------- sinds wanneer (merkteken) en opzij gezette bestanden ----------
+
+    /**
+     * Merkteken in DIR, gemaakt vóór het eerste grote bestand en vóór de naam van dat archief: sinds-JJJJ-MM-DD_UUMM.
+     * Een archief met een (naam)tijd van ruim daarvoor kan geen grote bestanden gebruiken. De tijd staat in de naam,
+     * niet in de wijzigingstijd van het bestand (die verandert bij kopiëren of verplaatsen).
+     */
+    static final String SINDS = "sinds-";
+    static final Pattern SINDS_NAAM = Pattern.compile("sinds-(\\d{4})-(\\d{2})-(\\d{2})_(\\d{2})(\\d{2})");
+    /** Marge rond het merkteken (klok, tijdzone). */
+    static final long MARGE = 2L * 86_400_000L;
+
+    static String sindsNaam(long t) { return SINDS + new java.text.SimpleDateFormat("yyyy-MM-dd_HHmm", java.util.Locale.US).format(new java.util.Date(t)); }
+
+    /** Tijd uit een merkteken (wandklok van de telefoon, zoals de namen van de archieven); -1 als het er geen is. */
+    static long sindsTijd(String naam) {
+        Matcher m = SINDS_NAAM.matcher(naam == null ? "" : naam);
+        if (!m.matches()) return -1;
+        java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd_HHmm", java.util.Locale.US);
+        f.setLenient(false);
+        try { return f.parse(naam.substring(SINDS.length())).getTime(); } catch (java.text.ParseException e) { return -1; }
+    }
+
+    /** Het vroegste merkteken in de map (-1 = geen: dan is niet zeker te zeggen welke archieven oud zijn). */
+    static long sinds(Collection<String> namen) {
+        long t = -1;
+        for (String n : namen) { long x = sindsTijd(n); if (x > 0 && (t < 0 || x < t)) t = x; }
+        return t;
+    }
+
+    /** Opzij gezet na twee nachten beschadigd: naam.kapot-JJJJMMDD (datum in de naam, niet de wijzigingstijd). */
+    static final Pattern KAPOT = Pattern.compile("(.+\\.blok)\\.kapot-(\\d{8})");
+
+    /** Wanneer een groot bestand opzij gezet is (uit de naam), of -1. */
+    static long kapotTijd(String naam) {
+        Matcher m = KAPOT.matcher(naam == null ? "" : naam);
+        if (!m.matches()) return -1;
+        String d = m.group(2);
+        return sindsTijd(SINDS + d.substring(0, 4) + "-" + d.substring(4, 6) + "-" + d.substring(6, 8) + "_0000");
+    }
+
+    static String kapotNaam(String naam, long t) { return naam + ".kapot-" + new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(new java.util.Date(t)); }
 
     // ---------- de lijst in het archief ----------
 
@@ -129,8 +196,10 @@ final class Blokken {
                 JSONObject x = a.getJSONObject(i);
                 String n = x.getString("n"), h = x.getString("h"), b = x.getString("b");
                 long s = x.getLong("s"), e = x.optLong("e", 0);
-                if (AppData.safeRel(n) == null || n.equals(LIST) || s < 0 || s > AppBackup.MAX_ENTRY || e < 0 || !h.matches("[0-9a-f]{64}")
-                        || !kid.equals(kid(b)) || !seen.add(n)) throw new IOException("De lijst met grote bestanden is beschadigd");
+                if (n.equals(LIST) || s < 0 || s > AppBackup.MAX_ENTRY || e < 0 || !h.matches("[0-9a-f]{64}") || !kid.equals(kid(b)))
+                    throw new IOException("De lijst met grote bestanden is beschadigd");
+                // Een vreemde naam (schrijft deze versie nooit apart): alleen dat ene bestand overslaan, niet de hele backup
+                if (AppData.safeRel(n) == null || !seen.add(n)) continue;
                 out.add(new Item(n, s, h, b, x.getBoolean("z"), e));
             }
             return out;
@@ -160,7 +229,7 @@ final class Blokken {
     static InputStream lees(InputStream raw, Vault.Key k, boolean z, long size, String sha) throws IOException {
         byte[] h;
         try { h = Vault.readHeader(raw); }
-        catch (IOException e) { raw.close(); throw new IOException("Groot bestand beschadigd"); }
+        catch (IOException e) { raw.close(); throw new IOException("Groot bestand onvolledig gelezen"); }
         if (!Vault.matches(k, h)) { raw.close(); throw new IOException("Groot bestand hoort bij een ander wachtwoord"); }
         Vault.In v = new Vault.In(raw, h, k);
         InputStream in = v;
@@ -183,6 +252,7 @@ final class Blokken {
             int r;
             try { r = in.read(b, off, len); }
             catch (java.util.zip.ZipException e) { throw new IOException("Groot bestand beschadigd"); }
+            catch (IOException e) { throw vertaal(e); }
             if (r > 0) {
                 md.update(b, off, r);
                 n += r;
@@ -191,7 +261,8 @@ final class Blokken {
             }
             if (r < 0) {
                 byte[] buf = new byte[1 << 14];
-                while (vault.read(buf, 0, buf.length) >= 0) { /* het slot van de versleuteling ook lezen */ }
+                try { while (vault.read(buf, 0, buf.length) >= 0) { /* het slot van de versleuteling ook lezen */ } }
+                catch (IOException e) { throw vertaal(e); }
                 done = true;
                 if (n != size || !AppData.hex(md.digest()).equals(sha)) throw new IOException("Groot bestand beschadigd");
             }
@@ -204,12 +275,25 @@ final class Blokken {
             return k - left;
         }
         @Override public boolean markSupported() { return false; }
+
+        /** De meldingen van de versleuteling over het archief gaan hier over het grote bestand (schade blijft schade). */
+        static IOException vertaal(IOException e) {
+            String m = String.valueOf(e.getMessage());
+            if (m.startsWith("Het archief is beschadigd")) return new IOException("Groot bestand beschadigd", e);
+            if (m.startsWith("Het archief is onvolledig")) return new IOException("Groot bestand onvolledig gelezen", e);
+            return e;
+        }
     }
 
-    /** Is dit een fout in de inhoud (beschadigd, afgekapt, ander wachtwoord) en niet bijv. een verbinding die wegviel? */
-    static boolean beschadigd(IOException e) {
+    /**
+     * Is dit zeker schade aan de inhoud, en niet bijv. een verbinding die halverwege wegviel? Alleen een versleuteld blok
+     * dat niet klopt (GCM-tag), een kop die niet bij de sleutel past, of na het volledig lezen een andere grootte of
+     * SHA-256. Te vroeg afgelopen ("onvolledig") telt niet: dat kan ook de verbinding zijn.
+     */
+    static boolean schade(IOException e) {
         String m = String.valueOf(e.getMessage());
-        return m.startsWith("Groot bestand beschadigd") || m.startsWith("Het archief is") || m.equals("Verkeerd wachtwoord");
+        return m.equals("Groot bestand beschadigd") || m.equals("Het archief is beschadigd") || m.equals("Verkeerd wachtwoord")
+                || m.equals("Groot bestand hoort bij een ander wachtwoord");
     }
 
     /** Leest alles en gooit bij een fout (controle van een groot bestand). */
@@ -238,6 +322,9 @@ final class Blokken {
         int nieuw, hergebruikt;
         long nieuwBytes, hergebruiktBytes, opgeslagen;
 
+        /** Bekende versleutelde grootte per naam (van eerder schrijven): een afwijkend bestand wordt dan opnieuw geschreven. */
+        final Map<String, Long> bekend = new HashMap<>();
+
         Schrijver(Opslag o, Vault.Key k) { opslag = o; key = k; ids = new Ids(k); }
 
         Map<String, Long> er() throws IOException { if (er == null) er = new HashMap<>(opslag.lijst()); return er; }
@@ -248,8 +335,8 @@ final class Blokken {
             String naam = ids.naam(sha, z);
             Long have;
             try { have = er().get(naam); } catch (IOException e) { throw new OpslagFout("De map " + DIR + " is niet te lezen", e); }
-            long verwacht = z ? -1 : versleuteld(n);
-            if (have != null && have > Vault.HEADER && (verwacht < 0 || have < 0 || have == verwacht)) {
+            long verwacht = z ? (bekend.containsKey(naam) ? bekend.get(naam) : -1) : versleuteld(n);
+            if (have != null && (have < 0 || have > Vault.HEADER) && (verwacht < 0 || have < 0 || have == verwacht)) {
                 hergebruikt++; hergebruiktBytes += n;
                 Item it = new Item(pad, n, sha, naam, z, Math.max(0, have));
                 items.add(it);
@@ -270,7 +357,7 @@ final class Blokken {
                     } finally { w.close(); }
                 }
                 enc = t.n;
-                if (verwacht >= 0 && enc != verwacht) throw new IOException("Groot bestand onvolledig geschreven");
+                if (!z && enc != verwacht) throw new IOException("Groot bestand onvolledig geschreven");
                 // Pas na een volledige controle (teruglezen, ontsleutelen, SHA-256) krijgt het zijn echte naam
                 leesHelemaal(lees(s.terug(), key, z, n, sha));
                 s.klaar();
@@ -279,6 +366,7 @@ final class Blokken {
                 throw new OpslagFout("Een groot bestand opslaan lukt niet: " + e.getMessage(), e);
             }
             er.put(naam, enc);
+            bekend.put(naam, enc);
             nieuw++; nieuwBytes += n; opgeslagen += enc;
             Item it = new Item(pad, n, sha, naam, z, enc);
             items.add(it);
@@ -353,8 +441,10 @@ final class Blokken {
         InputStream inhoud() throws IOException {
             if (cur == null) return new Houd(z);
             sluitOpen();
-            open = bron.open(cur);
-            return new Houd(open);
+            try { open = bron.open(cur); }
+            catch (LeesFout e) { throw e; }
+            catch (IOException e) { throw new LeesFout(e); }
+            return new LeesStroom(open);
         }
 
         private void sluitOpen() { if (open != null) { try { open.close(); } catch (IOException ignored) { } open = null; } }

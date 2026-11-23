@@ -81,6 +81,7 @@ function bkBlokRender(st){
   const on = st.blokken !== false, c = $('#bk-blok'), s = $('#bk-blok-txt');
   if (c) c.checked = on;
   if (s) s.textContent = on ? t('Opnames, documenten en foto’s staan één keer in Versleuteld/Grote bestanden; elke backup verwijst ernaar') : t('Uit: elke backup bevat alles opnieuw');
+  const let_op = $('#bk-blok-let'); if (let_op) let_op.hidden = !on;
   const o = st.oud || {}, box = $('#bk-oud');
   if (!box) return;
   box.hidden = !(o.count > 0);
@@ -100,8 +101,16 @@ function bkOudOpruimen(){ uiBezig(t('Bezig met tellen…'), 'onOudeBackups'); An
 window.onOudeBackups = function(r){
   if (r.error) { toast(r.error); return; }
   if (r.dry) {
-    if (!r.count) { toast(t('Er zijn geen oude backups om weg te halen')); if (bkOn()) bkBlokRender(bkState(true)); return; }
+    if (!r.count) {
+      toast(r.onvolledig ? t('Nog niet: de nieuwste backup mist grote bestanden. Maak eerst een nieuwe backup.')
+        : r.geenNieuw || r.onbekend ? t('Nog niet: er is nog geen nieuwe backup met de grote bestanden apart.')
+        : t('Er zijn geen oude backups om weg te halen'));
+      if (bkOn()) bkBlokRender(bkState(true));
+      return;
+    }
+    const dag = n => { const m = /(\d{4}-\d{2}-\d{2})/.exec(n || ''); return m ? fmtDate(m[1]) : '?'; };
     askConfirm(tn(r.count, 'Eén oude backup weghalen?', '{n} oude backups weghalen?'),
+      (r.van ? (r.van === r.tot ? t('Van {datum}.', { datum: dag(r.van) }) : t('Van {van} tot en met {tot}.', { van: dag(r.van), tot: dag(r.tot) })) + ' ' : '') +
       t('Samen {grootte}. De nieuwste oude backup blijft als vangnet staan; je nieuwe backups zijn compleet zonder deze.', { grootte: fmtB(r.bytes || 0) }) + '\n\n' +
       t('Ze gaan naar de prullenbak van je opslag. Bij Google Drive tellen ze daar nog mee tot je de prullenbak leegt (of na 30 dagen).'),
       t('Weghalen'), () => { uiBezig(t('Oude backups weghalen…'), 'onOudeBackups'); Android.backupOudeOpruimen(false); });

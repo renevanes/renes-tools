@@ -171,8 +171,6 @@ final class AllBackup {
                 }
             }
             Secure.CAPTURE.remove();
-            // Een groot bestand kon niet worden opgeslagen: dit archief is niet compleet (wordt …_deels, geen opruimen)
-            if (zip != null && zip.blokFout != null) put(res, "all", false, 0, "Grote bestanden opslaan lukt niet: " + AppData.safeMsg(zip.blokFout, "fout"));
             if (zip != null) {
                 boolean any = false;
                 for (String p : PARTS) { JSONObject r = res.optJSONObject(p); if (r != null && r.optBoolean("ok") && r.optInt("count") > 0) any = true; }
@@ -185,13 +183,19 @@ final class AllBackup {
                         res.put("archive", name); done = true;
                         BlokOpslag.vastleggen(c, name, zip.blok);
                         if (zip.blok != null) {
-                            res.put("blok", new JSONObject().put("nieuw", zip.blok.nieuw).put("nieuwBytes", zip.blok.nieuwBytes)
+                            JSONObject g = new JSONObject().put("nieuw", zip.blok.nieuw).put("nieuwBytes", zip.blok.nieuwBytes)
                                     .put("hergebruikt", zip.blok.hergebruikt).put("hergebruiktBytes", zip.blok.hergebruiktBytes)
-                                    .put("archief", zip.archiefBytes()));
+                                    .put("archief", zip.archiefBytes());
+                            // Apart opslaan lukte niet: de rest zit in het archief zelf (compleet, alleen groter)
+                            if (zip.blokFout != null) {
+                                g.put("fout", AppData.safeMsg(zip.blokFout, "mislukt"));
+                                App.log(c, "BACKUP", "grote bestanden apart: " + AppData.safeMsg(zip.blokFout, "mislukt"));
+                            }
+                            res.put("blok", g);
                         }
                         // Laatste complete backup voor herinstallatie (alle appgegevens erin, archief niet afgebroken)
                         JSONObject ap = res.optJSONObject("app");
-                        if (ap != null && ap.optBoolean("ok") && ap.optInt("count") > 0 && !res.optBoolean("stopped") && zip.blokFout == null) {
+                        if (ap != null && ap.optBoolean("ok") && ap.optInt("count") > 0 && !res.optBoolean("stopped")) {
                             prefs(c).edit().putLong("appLast", System.currentTimeMillis()).putString("appLastName", name).putLong("appBytes", AppBackup.lastBytes).apply();
                             Herstel.markArchive(c, zip, name);
                         }
@@ -240,7 +244,7 @@ final class AllBackup {
             JSONObject g = res.optJSONObject("blok");
             if (rotateOn(c)) {
                 JSONObject r = BlokOpslag.opruimen(c, k);
-                if (r.optInt("count") > 0 && g != null) g.put("opgeruimd", r);
+                if (g != null && (r.optInt("count") > 0 || r.has("later"))) g.put("opgeruimd", r);
             }
             JSONObject ch = BlokOpslag.controleren(c, k, BlokOpslag.CONTROLE_BYTES);
             if (g != null && (ch.optInt("count") > 0 || ch.optInt("kapot") > 0)) g.put("controle", ch);

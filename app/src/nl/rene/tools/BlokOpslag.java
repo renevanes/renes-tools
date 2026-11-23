@@ -108,8 +108,8 @@ final class BlokOpslag implements Blokken.Opslag {
 
     /** Eén nieuw groot bestand: eerst als naam.part, na de controle hernoemd (of gekopieerd als hernoemen niet kan). */
     static final class SafSchrijf implements Blokken.Schrijf {
-        final BlokOpslag o; final WaBackup.DestDir d; final Uri part; final String naam; final OutputStream out;
-        SafSchrijf(BlokOpslag o, WaBackup.DestDir d, Uri part, String naam, OutputStream out) { this.o = o; this.d = d; this.part = part; this.naam = naam; this.out = new java.io.BufferedOutputStream(out, 1 << 16); }
+        final BlokOpslag o; final WaBackup.DestDir d; final Uri part; final String naam; final Blokken.Teller out;
+        SafSchrijf(BlokOpslag o, WaBackup.DestDir d, Uri part, String naam, OutputStream out) { this.o = o; this.d = d; this.part = part; this.naam = naam; this.out = new Blokken.Teller(new java.io.BufferedOutputStream(out, 1 << 16)); }
 
         @Override public OutputStream uit() { return out; }
 
@@ -122,25 +122,30 @@ final class BlokOpslag implements Blokken.Opslag {
 
         @Override public void klaar() throws IOException {
             try {
-                // Staat er (van een vorige keer, of op een andere telefoon) al een met deze naam: die is gelijk, de nieuwe weg
                 WaBackup.Child had = o.alle().get(naam);
-                Uri done = null;
-                if (had == null) {
-                    try { done = WaBackup.rename(o.dest, part, naam); } catch (Exception ignored) { }
-                    if (done == null) {
-                        Uri u = WaBackup.create(o.dest, d.uri, "application/octet-stream", naam);
-                        if (u == null) throw new IOException("Hernoemen lukt niet");
-                        try { DocumentWrite.copy(() -> o.dest.cr.openInputStream(part), () -> o.dest.cr.openOutputStream(u, "w")); }
-                        catch (Exception e) { try { DocumentsContract.deleteDocument(o.dest.cr, u); } catch (Exception ignored) { } throw e; }
-                        try { DocumentsContract.deleteDocument(o.dest.cr, part); } catch (Exception ignored) { }
-                        done = u;
-                    }
-                } else try { DocumentsContract.deleteDocument(o.dest.cr, part); } catch (Exception ignored) { }
-                if (done != null) {
-                    WaBackup.Child ch = new WaBackup.Child(DocumentsContract.getDocumentId(done), -1, System.currentTimeMillis(), false);
-                    o.alle().put(naam, ch);
-                    d.kids.put(naam, ch);
+                // Staat er al een met deze naam en precies deze grootte (een andere telefoon was ons net voor): die is
+                // gelijk, de nieuwe weg. Met een andere grootte (afgebroken kopie): die gaat opzij, de nieuwe komt ervoor.
+                if (had != null && had.size == out.n) { try { DocumentsContract.deleteDocument(o.dest.cr, part); } catch (Exception ignored) { } return; }
+                if (had != null) {
+                    Uri aside = WaBackup.rename(o.dest, DocumentsContract.buildDocumentUriUsingTree(o.dest.tree, had.docId), Blokken.kapotNaam(naam, System.currentTimeMillis()));
+                    if (aside == null) throw new IOException("Oud bestand opzij zetten lukt niet");
+                    o.alle().remove(naam);
                 }
+                Uri done = null;
+                try { done = WaBackup.rename(o.dest, part, naam); } catch (Exception ignored) { }
+                if (done == null) {
+                    Uri u = WaBackup.create(o.dest, d.uri, "application/octet-stream", naam);
+                    if (u == null) throw new IOException("Hernoemen lukt niet");
+                    Blokken.Teller[] t = new Blokken.Teller[1];
+                    try { DocumentWrite.copy(() -> o.dest.cr.openInputStream(part), () -> t[0] = new Blokken.Teller(o.dest.cr.openOutputStream(u, "w"))); }
+                    catch (Exception e) { try { DocumentsContract.deleteDocument(o.dest.cr, u); } catch (Exception ignored) { } throw e; }
+                    if (t[0] == null || t[0].n != out.n) { try { DocumentsContract.deleteDocument(o.dest.cr, u); } catch (Exception ignored) { } throw new IOException("Kopie onvolledig"); }
+                    try { DocumentsContract.deleteDocument(o.dest.cr, part); } catch (Exception ignored) { }
+                    done = u;
+                }
+                WaBackup.Child ch = new WaBackup.Child(DocumentsContract.getDocumentId(done), out.n, System.currentTimeMillis(), false);
+                o.alle().put(naam, ch);
+                d.kids.put(naam, ch);
             } catch (IOException e) { throw e; }
             catch (Exception e) { throw new IOException(AppData.safeMsg(e, "Hernoemen lukt niet"), e); }
         }
@@ -150,6 +155,28 @@ final class BlokOpslag implements Blokken.Opslag {
             try { DocumentsContract.deleteDocument(o.dest.cr, part); } catch (Exception ignored) { }
         }
     }
+
+    /**
+     * Merkteken (sinds-…) vóór het eerste grote bestand: alleen in een map zonder grote bestanden. Staan er al grote
+     * bestanden zonder merkteken (weggehaald, gekopieerd), dan komt er bewust geen: dan weet niemand meer sinds wanneer,
+     * en leest opruimen liever de archieven.
+     */
+    void merkteken() throws Exception {
+        Map<String, WaBackup.Child> m = alle();
+        if (Blokken.sinds(m.keySet()) > 0) return;
+        for (String n : m.keySet()) if (Blokken.kid(n) != null || Blokken.KAPOT.matcher(n).matches()) return;
+        WaBackup.DestDir d = hoofd();
+        String n = Blokken.sindsNaam(System.currentTimeMillis());
+        Uri u = WaBackup.create(dest, d.uri, "application/octet-stream", n);
+        if (u == null) throw new IOException("Merkteken maken lukt niet");
+        try (OutputStream o = dest.cr.openOutputStream(u, "w")) { if (o != null) o.write('\n'); }
+        WaBackup.Child ch = new WaBackup.Child(DocumentsContract.getDocumentId(u), 1, System.currentTimeMillis(), false);
+        m.put(n, ch);
+        d.kids.put(n, ch);
+    }
+
+    /** Sinds wanneer er grote bestanden apart zijn (het vroegste merkteken), of -1. */
+    long sinds() throws IOException { return Blokken.sinds(alle().keySet()); }
 
     @Override public InputStream open(String naam) throws IOException {
         WaBackup.Child ch = alle().get(naam);
@@ -206,15 +233,36 @@ final class BlokOpslag implements Blokken.Opslag {
             if (s != null) for (String n : s.namen()) a.put(n);
             st.getJSONObject("archieven").put(archief, a);
             JSONObject info = st.getJSONObject("info");
-            if (s != null) for (Blokken.Item i : s.items) info.put(i.b, new JSONArray().put(i.s).put(i.h).put(i.z));
-            if (!st.has("sinds")) st.put("sinds", System.currentTimeMillis());
+            if (s != null) for (Blokken.Item i : s.items) info.put(i.b, new JSONArray().put(i.s).put(i.h).put(i.z).put(i.e));
+            JSONObject gemist = st.optJSONObject("gemist");
+            if (gemist != null) gemist.remove(archief);
             bewaarStaat(c, st);
         } catch (Exception e) { App.log(c, "BACKUP", "grote bestanden vastleggen: " + AppData.safeMsg(e, "mislukt")); }
     }
 
+    /** Bekende versleutelde grootte per groot bestand (voor de controle bij hergebruiken). */
+    static Map<String, Long> bekend(Context c) {
+        Map<String, Long> m = new HashMap<>();
+        try {
+            JSONObject info = staat(c, WaBackup.destUri(c)).getJSONObject("info");
+            for (Iterator<String> it = info.keys(); it.hasNext(); ) {
+                String n = it.next();
+                JSONArray x = info.optJSONArray(n);
+                if (x != null && x.length() > 3 && x.optLong(3) > 0) m.put(n, x.optLong(3));
+            }
+        } catch (Exception ignored) { }
+        return m;
+    }
+
     static final long DAG = 86_400_000L;
-    /** Zoveel onbekende archieven leest opruimen per keer; meer = een andere keer (nooit iets weghalen zonder te weten). */
+    /** Zoveel onbekende archieven leest opruimen per keer (wat al gelezen is, blijft bewaard); meer = de volgende keer verder. */
     static final int MAX_LEZEN = 8;
+    /** Een groot bestand gaat pas weg als het bij twee rondes, minstens zo ver uit elkaar, door niemand gebruikt werd. */
+    static final long WACHT = 36L * 3_600_000L;
+    /** Een archief dat deze telefoon kent maar dat zo vaak achter elkaar niet in de map stond, telt niet meer mee. */
+    static final int GEMIST = 3;
+    /** In de lijst van een archief: gemaakt met een ander wachtwoord (de grote bestanden van die sleutel blijven). */
+    static final String VREEMD = "*";
 
     /** De lijst met grote bestanden uit een archief; null als het met een ander wachtwoord gemaakt is. */
     static List<Blokken.Item> leesLijst(Context c, Uri u, Vault.Key k) throws Exception {
@@ -233,63 +281,104 @@ final class BlokOpslag implements Blokken.Opslag {
     }
 
     /**
-     * Grote bestanden weghalen die geen enkel archief in Versleuteld meer gebruikt (na opruimen van oude archieven).
-     * Alleen als alles bekend is: kan een archief niet gelezen worden, dan blijft alles staan. Moet onder het slot van
-     * AllBackup lopen (een backup die bezig is, gebruikt nieuwe bestanden die nog in geen enkel archief staan).
+     * Grote bestanden weghalen die geen enkel archief meer gebruikt. Veilig boven alles:
+     * - elk archief dat deze telefoon kent telt mee, ook als de lijst van de map het even mist (pas na GEMIST rondes niet meer);
+     * - elk ander bestand dat op .rtb eindigt in Versleuteld wordt gelezen (of is van vóór het merkteken, dan gebruikt het niets);
+     *   lukt lezen niet, dan blijft alles staan;
+     * - twee mappen Versleuteld: niets doen;
+     * - een groot bestand gaat pas weg als het in twee rondes met WACHT ertussen ongebruikt was (een andere telefoon die
+     *   net schrijft, een trage map);
+     * - archieven van een ander wachtwoord: hun grote bestanden blijven.
+     * Moet onder het slot van AllBackup lopen (een backup die bezig is, gebruikt nieuwe bestanden die nog in geen archief staan).
      */
     static JSONObject opruimen(Context c, Vault.Key k) throws Exception {
         JSONObject r = new JSONObject().put("count", 0).put("bytes", 0L);
         Uri tree = WaBackup.destUri(c);
         if (tree == null || k == null) return r;
         WaBackup.Dest dest = WaBackup.Dest.echt(c.getContentResolver(), tree);
+        WaBackup.DestDir root = dest.root();
+        List<WaBackup.Child> vd = root.dups.get(Secure.DIR);
+        if (vd != null && vd.size() > 1) return r.put("later", "dubbel");
         WaBackup.DestDir v = dest.dir(Secure.DIR, false);
         if (v == null) return r;
         BlokOpslag o = new BlokOpslag(dest);
         Map<String, WaBackup.Child> er = o.alle();
         if (er.isEmpty()) return r;
         JSONObject st = staat(c, tree), arch = st.getJSONObject("archieven"), info = st.getJSONObject("info");
-        long eerste = Long.MAX_VALUE;
-        for (Map.Entry<String, WaBackup.Child> e : er.entrySet())
-            if (Blokken.kid(e.getKey()) != null) eerste = Math.min(eerste, e.getValue().mod > 0 ? e.getValue().mod : 0);
-        Set<String> gebruikt = new HashSet<>();
-        Set<String> nu = new HashSet<>();
-        boolean vreemd = false;
+        JSONObject gemist = st.optJSONObject("gemist"), kand = st.optJSONObject("kandidaten");
+        if (gemist == null) { gemist = new JSONObject(); st.put("gemist", gemist); }
+        if (kand == null) { kand = new JSONObject(); st.put("kandidaten", kand); }
+        long sinds = Blokken.sinds(er.keySet()), now = System.currentTimeMillis();
+
+        // 1. Archieven in de map die deze telefoon nog niet kent: lezen (of ouder dan het merkteken: gebruiken niets)
+        Set<String> inMap = new HashSet<>();
         int gelezen = 0;
         for (Map.Entry<String, WaBackup.Child> e : v.kids.entrySet()) {
             String n = e.getKey();
-            if (e.getValue().dir || !n.startsWith("backup-") || !n.endsWith(".rtb")) continue;
-            nu.add(n);
-            JSONArray a = arch.optJSONArray(n);
-            if (a == null) {
-                Rotate.F f = Rotate.parse(n);
-                // Gemaakt vóór het eerste grote bestand (een oud, volledig archief): verwijst nergens naar
-                if (f != null && eerste != Long.MAX_VALUE && eerste > 0 && f.when < eerste - DAG) continue;
-                if (gelezen >= MAX_LEZEN) return r.put("later", true);
-                gelezen++;
-                List<Blokken.Item> items = leesLijst(c, DocumentsContract.buildDocumentUriUsingTree(tree, e.getValue().docId), k);
-                if (items == null) { vreemd = true; continue; }
-                a = new JSONArray();
-                for (Blokken.Item i : items) { a.put(i.b); info.put(i.b, new JSONArray().put(i.s).put(i.h).put(i.z)); }
-                arch.put(n, a);
+            if (e.getValue().dir || !n.endsWith(".rtb")) continue;
+            inMap.add(n);
+            if (arch.has(n)) continue;
+            Rotate.F f = Rotate.parse(n);
+            if (f != null && sinds > 0 && f.when < sinds - Blokken.MARGE) { arch.put(n, new JSONArray()); continue; }
+            List<WaBackup.Child> zelfde = v.dups.get(n);
+            if (zelfde != null && zelfde.size() > 1) { bewaarStaat(c, st); return r.put("later", "dubbel"); }
+            if (AllBackup.stop || gelezen >= MAX_LEZEN) { bewaarStaat(c, st); return r.put("later", true); }
+            gelezen++;
+            List<Blokken.Item> items;
+            try { items = leesLijst(c, DocumentsContract.buildDocumentUriUsingTree(tree, e.getValue().docId), k); }
+            catch (Exception ex) {
+                App.log(c, "BACKUP", "grote bestanden opruimen: een archief is niet te lezen");
+                bewaarStaat(c, st);
+                return r.put("later", "onleesbaar");
             }
-            for (int i = 0; i < a.length(); i++) gebruikt.add(a.getString(i));
+            JSONArray a = new JSONArray();
+            if (items == null) a.put(VREEMD);
+            else for (Blokken.Item i : items) { a.put(i.b); info.put(i.b, new JSONArray().put(i.s).put(i.h).put(i.z).put(i.e)); }
+            arch.put(n, a);
+            bewaarStaat(c, st); // wat gelezen is, blijft gelezen
         }
-        // Wat niet meer in de map staat, hoeft deze telefoon ook niet meer te onthouden
-        for (Iterator<String> it = arch.keys(); it.hasNext(); ) if (!nu.contains(it.next())) it.remove();
+
+        // 2. Wat gebruikt wordt: elk bekend archief, ook als de map het deze keer niet liet zien (tot GEMIST keer achter elkaar)
+        Set<String> gebruikt = new HashSet<>();
+        boolean vreemd = false;
+        for (Iterator<String> it = arch.keys(); it.hasNext(); ) {
+            String n = it.next();
+            if (inMap.contains(n)) gemist.remove(n);
+            else {
+                int g = gemist.optInt(n, 0) + 1;
+                if (g >= GEMIST) { it.remove(); gemist.remove(n); continue; }
+                gemist.put(n, g);
+            }
+            JSONArray a = arch.getJSONArray(n);
+            for (int i = 0; i < a.length(); i++) { String b = a.getString(i); if (VREEMD.equals(b)) vreemd = true; else gebruikt.add(b); }
+        }
+
+        // 3. Ongebruikt: eerst onthouden, pas bij een latere ronde (WACHT verder) en nog steeds ongebruikt weghalen
         int count = 0;
         long bytes = 0;
-        for (String n : Blokken.overbodig(er.keySet(), gebruikt, new Blokken.Ids(k).kid, vreemd)) {
+        Set<String> nu = new HashSet<>(Blokken.overbodig(er.keySet(), gebruikt, new Blokken.Ids(k).kid, vreemd));
+        for (Iterator<String> it = kand.keys(); it.hasNext(); ) if (!nu.contains(it.next())) it.remove();
+        for (String n : nu) {
+            if (!kand.has(n)) { kand.put(n, now); continue; }
+            if (now - kand.getLong(n) < WACHT) continue;
             long size = Math.max(0, er.get(n).size);
-            try { o.weg(n); count++; bytes += size; info.remove(n); }
+            try { o.weg(n); count++; bytes += size; info.remove(n); kand.remove(n); }
             catch (Exception e) { App.log(c, "BACKUP", "groot bestand opruimen: " + AppData.safeMsg(e, "mislukt")); }
         }
-        // Achtergebleven tijdelijke bestanden van een afgebroken backup (ouder dan twee dagen), en wat bij de controle
-        // beschadigd bleek (na 30 dagen: de backup heeft het dan al lang opnieuw geschreven)
-        long now = System.currentTimeMillis();
+
+        // 4. Achtergebleven tijdelijke bestanden (ouder dan twee dagen), en opzij gezette (.kapot-datum, na 30 dagen;
+        //    alleen als er weer een goede staat of niemand hem nog gebruikt)
         for (Map.Entry<String, WaBackup.Child> e : new ArrayList<>(er.entrySet())) {
             String n = e.getKey();
-            long mod = e.getValue().mod;
-            boolean weg = mod > 0 && (n.endsWith(Blokken.PART) && mod < now - 2 * DAG || n.endsWith(KAPOT) && mod < now - 30 * DAG);
+            boolean weg = false;
+            if (n.endsWith(Blokken.PART)) weg = e.getValue().mod > 0 && e.getValue().mod < now - 2 * DAG;
+            else {
+                java.util.regex.Matcher m = Blokken.KAPOT.matcher(n);
+                if (m.matches()) {
+                    long t = Blokken.kapotTijd(n);
+                    weg = t > 0 && t < now - 30 * DAG && (er.containsKey(m.group(1)) || !gebruikt.contains(m.group(1)));
+                }
+            }
             if (!weg) continue;
             try { o.weg(n); count++; bytes += Math.max(0, e.getValue().size); } catch (Exception ignored) { }
         }
@@ -299,13 +388,13 @@ final class BlokOpslag implements Blokken.Opslag {
 
     /** Hoeveel er nachtelijks ten hoogste gecontroleerd wordt (helemaal lezen en ontsleutelen). */
     static final long CONTROLE_BYTES = 64L * 1024 * 1024;
-    static final String KAPOT = ".kapot";
 
     /**
      * Grote bestanden een voor een helemaal lezen en controleren (elke nacht een stuk, op volgorde, daarna weer vooraan).
-     * Twee keer achter elkaar beschadigd: het bestand gaat opzij (naam.kapot, na 30 dagen weg) en de volgende backup
-     * schrijft het opnieuw als het nog op de telefoon staat; dan kloppen ook de oudere archieven weer (zelfde inhoud =
-     * zelfde naam). Alleen bestanden van het huidige wachtwoord.
+     * Alleen zekere schade telt (Blokken.schade, of een andere grootte dan bij het schrijven), en pas als het twee nachten
+     * achter elkaar zo is: dan gaat het opzij (naam.kapot-JJJJMMDD) en schrijft de volgende backup het opnieuw als het nog
+     * op de telefoon staat; dan kloppen ook de oudere archieven weer (zelfde inhoud = zelfde naam). Een verbinding die
+     * wegvalt telt niet: dan de volgende keer verder. Alleen bestanden van het huidige wachtwoord.
      */
     static JSONObject controleren(Context c, Vault.Key k, long max) throws Exception {
         JSONObject r = new JSONObject().put("count", 0).put("kapot", 0);
@@ -314,6 +403,8 @@ final class BlokOpslag implements Blokken.Opslag {
         WaBackup.Dest dest = WaBackup.Dest.echt(c.getContentResolver(), tree);
         BlokOpslag o = new BlokOpslag(dest);
         JSONObject st = staat(c, tree), info = st.getJSONObject("info");
+        JSONObject verdacht = st.optJSONObject("verdacht");
+        if (verdacht == null) { verdacht = new JSONObject(); st.put("verdacht", verdacht); }
         String kid = new Blokken.Ids(k).kid;
         List<String> namen = new ArrayList<>();
         for (String n : o.alle().keySet()) if (kid.equals(Blokken.kid(n)) && info.has(n)) namen.add(n);
@@ -322,27 +413,35 @@ final class BlokOpslag implements Blokken.Opslag {
         String vanaf = st.optString("controle", "");
         int start = 0;
         while (start < namen.size() && namen.get(start).compareTo(vanaf) <= 0) start++;
-        long gelezen = 0;
+        long gelezen = 0, now = System.currentTimeMillis();
         int count = 0, kapot = 0;
         for (int i = 0; i < namen.size() && gelezen < max; i++) {
             String n = namen.get((start + i) % namen.size());
             if (AllBackup.stop) break;
             JSONArray x = info.getJSONArray(n);
-            long size = x.getLong(0);
-            IOException fout = null;
-            for (int poging = 0; poging < 2; poging++) {
-                try { Blokken.leesHelemaal(Blokken.lees(new java.io.BufferedInputStream(o.open(n), 1 << 16), k, x.getBoolean(2), size, x.getString(1))); fout = null; break; }
-                catch (IOException e) { fout = e; if (!Blokken.beschadigd(e)) break; }
+            long size = x.getLong(0), enc = x.length() > 3 ? x.optLong(3) : 0;
+            WaBackup.Child ch = o.alle().get(n);
+            boolean schade;
+            if (enc > 0 && ch != null && ch.size >= 0 && ch.size != enc) schade = true; // andere grootte dan geschreven
+            else {
+                try { Blokken.leesHelemaal(Blokken.lees(new java.io.BufferedInputStream(o.open(n), 1 << 16), k, x.getBoolean(2), size, x.getString(1))); schade = false; }
+                catch (IOException e) {
+                    if (!Blokken.schade(e)) break; // geen verbinding of iets dergelijks: de volgende keer verder (vanaf hier)
+                    schade = true;
+                }
             }
-            if (fout != null && !Blokken.beschadigd(fout)) break; // geen verbinding of iets dergelijks: een andere keer verder
-            if (fout != null) {
+            if (!schade) { verdacht.remove(n); count++; }
+            else if (!verdacht.has(n) || now - verdacht.getLong(n) < 20L * 3_600_000L) {
+                if (!verdacht.has(n)) verdacht.put(n, now); // eerste keer: de volgende nacht opnieuw kijken
+            } else {
                 kapot++;
                 App.log(c, "BACKUP", "groot bestand beschadigd: opzij gezet");
                 try {
-                    WaBackup.Child ch = o.alle().get(n);
-                    if (WaBackup.rename(dest, DocumentsContract.buildDocumentUriUsingTree(tree, ch.docId), n + KAPOT) != null) { o.alle().remove(n); info.remove(n); }
+                    if (WaBackup.rename(dest, DocumentsContract.buildDocumentUriUsingTree(tree, ch.docId), Blokken.kapotNaam(n, now)) != null) {
+                        o.alle().remove(n); info.remove(n); verdacht.remove(n);
+                    }
                 } catch (Exception ignored) { }
-            } else count++;
+            }
             gelezen += size;
             st.put("controle", n);
         }
@@ -351,9 +450,10 @@ final class BlokOpslag implements Blokken.Opslag {
     }
 
     /**
-     * De oude, volledige archieven die nog staan: gemaakt vóór het eerste grote bestand (dus zonder lijst; zelfde regel
-     * als bij opruimen). Alleen als er daarna al een volledig nieuw archief is; de nieuwste oude blijft altijd als vangnet
-     * staan, net als de nieuwste backup met alle appgegevens. dry = alleen tellen. Geeft {count, bytes, keep}.
+     * De oude, volledige archieven die nog staan: gemaakt ruim vóór het merkteken (dus zonder lijst; zelfde regel als bij
+     * opruimen). Alleen als de nieuwste nieuwe backup compleet is (al zijn grote bestanden staan er); de nieuwste oude
+     * blijft altijd als vangnet staan, net als de nieuwste backup met alle appgegevens. dry = alleen tellen.
+     * Geeft {count, bytes, keep, van, tot} (of {onbekend} / {onvolledig} als het niet zeker kan).
      */
     static JSONObject oudeArchieven(Context c, boolean dry) throws Exception {
         JSONObject r = new JSONObject().put("count", 0).put("bytes", 0L);
@@ -362,30 +462,37 @@ final class BlokOpslag implements Blokken.Opslag {
         WaBackup.Dest dest = WaBackup.Dest.echt(c.getContentResolver(), tree);
         WaBackup.DestDir v = dest.dir(Secure.DIR, false);
         if (v == null) return r;
-        long eerste = Long.MAX_VALUE;
-        for (Map.Entry<String, WaBackup.Child> e : new BlokOpslag(dest).alle().entrySet()) {
-            if (Blokken.kid(e.getKey()) == null) continue;
-            if (e.getValue().mod <= 0) return r; // tijd onbekend: niet zeker te weten welke archieven oud zijn
-            eerste = Math.min(eerste, e.getValue().mod);
-        }
-        if (eerste == Long.MAX_VALUE) return r;
+        BlokOpslag o = new BlokOpslag(dest);
+        long sinds = o.sinds();
+        if (sinds <= 0) return r.put("onbekend", true);
         JSONObject arch = staat(c, tree).getJSONObject("archieven");
-        boolean nieuw = false;
+        // De nieuwste nieuwe, volledige backup die deze telefoon kent: staat alles wat hij gebruikt er echt?
+        String nieuwste = null;
+        for (Map.Entry<String, WaBackup.Child> e : v.kids.entrySet()) {
+            Rotate.F f = Rotate.parse(e.getKey());
+            if (f == null || f.partial || e.getValue().dir || !arch.has(e.getKey()) || f.when < sinds) continue;
+            if (nieuwste == null || e.getKey().compareTo(nieuwste) > 0) nieuwste = e.getKey();
+        }
+        if (nieuwste == null) return r.put("geenNieuw", true);
+        JSONArray a = arch.getJSONArray(nieuwste);
+        for (int i = 0; i < a.length(); i++) {
+            WaBackup.Child ch = o.alle().get(a.getString(i));
+            if (ch == null || ch.size == 0) return r.put("onvolledig", true);
+        }
         List<String> oud = new ArrayList<>();
         String keep = null;
         for (Map.Entry<String, WaBackup.Child> e : v.kids.entrySet()) {
             String n = e.getKey();
             Rotate.F f = Rotate.parse(n);
-            if (e.getValue().dir || f == null || !n.startsWith("backup-") || !n.endsWith(".rtb")) continue;
-            if (arch.has(n) && !f.partial && f.when >= eerste - DAG) nieuw = true;
-            if (arch.has(n) || f.when >= eerste - DAG) continue;
+            if (e.getValue().dir || f == null || !n.startsWith("backup-") || !n.endsWith(".rtb") || f.when >= sinds - Blokken.MARGE) continue;
             oud.add(n);
             if (!f.partial && (keep == null || n.compareTo(keep) > 0)) keep = n;
         }
-        if (!nieuw) return r.put("geenNieuw", true);
         List<String> blijft = Secure.appBlijft(c, dest, v);
         int count = 0;
         long bytes = 0;
+        String van = null, tot = null;
+        Collections.sort(oud);
         for (String n : oud) {
             if (n.equals(keep) || blijft.contains(n)) continue;
             WaBackup.Child ch = v.kids.get(n);
@@ -393,11 +500,14 @@ final class BlokOpslag implements Blokken.Opslag {
                 try { if (!DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(tree, ch.docId))) continue; }
                 catch (Exception e) { App.log(c, "BACKUP", "oud archief weghalen: " + AppData.safeMsg(e, "mislukt")); continue; }
             }
+            if (van == null) van = n;
+            tot = n;
             count++;
             bytes += Math.max(0, ch.size);
         }
         r.put("count", count).put("bytes", bytes);
         if (keep != null) r.put("keep", keep);
+        if (van != null) r.put("van", van).put("tot", tot);
         return r;
     }
 }

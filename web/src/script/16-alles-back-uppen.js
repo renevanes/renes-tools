@@ -145,7 +145,10 @@ function bkBlokRegels(g){
   const rij = (kop, tekst, cls) => '<div class=bkres><b>' + esc(kop) + '</b><span' + (cls ? ' class=' + cls : '') + '>' + esc(tekst) + '</span></div>';
   let h = rij(t('Grote bestanden'), t('{n} nieuw ({grootte}), {m} al bewaard ({grootte2})', { n: fmtNum(g.nieuw || 0), grootte: fmtB(g.nieuwBytes || 0), m: fmtNum(g.hergebruikt || 0), grootte2: fmtB(g.hergebruiktBytes || 0) }));
   if (typeof g.archief === 'number') h += rij(t('Archief zelf'), fmtB(g.archief));
+  if (g.fout) h += rij(t('Grote bestanden'), t('Apart bewaren lukte deze keer niet; ze staan in het archief zelf'), 'bad');
   if (g.opgeruimd && g.opgeruimd.count) h += rij(t('Ongebruikt opgeruimd'), t('{n} grote bestanden ({grootte})', { n: fmtNum(g.opgeruimd.count), grootte: fmtB(g.opgeruimd.bytes || 0) }));
+  else if (g.opgeruimd && g.opgeruimd.later) h += rij(t('Ongebruikt opgeruimd'), g.opgeruimd.later === 'dubbel' ? t('Wacht: er staan twee mappen met dezelfde naam; die worden eerst samengevoegd')
+    : g.opgeruimd.later === 'onleesbaar' ? t('Wacht: een backup in de map was niet te lezen; er gaat niets weg') : t('Volgende nacht verder'));
   if (g.controle && g.controle.kapot) h += rij(t('Controle'), tn(g.controle.kapot, 'Eén groot bestand was beschadigd; de volgende backup bewaart het opnieuw', '{n} grote bestanden waren beschadigd; de volgende backup bewaart ze opnieuw'), 'bad');
   else if (g.controle && g.controle.count) h += rij(t('Controle'), tn(g.controle.count, '✓ Eén groot bestand nagelezen', '✓ {n} grote bestanden nagelezen'), 'good');
   return h;

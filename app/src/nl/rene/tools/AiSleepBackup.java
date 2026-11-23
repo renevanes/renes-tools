@@ -526,7 +526,7 @@ final class AiSleepBackup {
                                 if (n > size) break;
                                 o.write(buf, 0, r);
                             }
-                        }
+                        } catch (Blokken.LeesFout e) { n = -1; } // groot bestand ontbreekt: dit stukje zonder geluid
                         if (n == size && audioOk(head, (int) Math.min(n, 44), ext(p[1]))) got.put(key, size); else f.delete();
                     }
                 }

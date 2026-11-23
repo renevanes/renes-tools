@@ -4,3 +4,4 @@ Grote bestanden die geen backup meer gebruikt worden vanzelf opgeruimd, en elke 
 Oude, volledige backups weghalen met één knop (Automatisch en versleutelen → Oude backups opruimen); de nieuwste blijft als vangnet staan
 ontsleutelen.html leest ook de grote bestanden: kies op de computer naast het .rtb-bestand ook de bestanden uit de map Grote bestanden
 Backup-map opruimen (dubbele mappen, zoals de WhatsApp-mappen, samenvoegen) loopt nu binnen de nachtelijke taak en gaat door als het scherm uitgaat, zodat het afkomt; één map die niet te lezen is houdt de rest niet meer tegen
+Ontbreekt een groot bestand of is het beschadigd, dan zetten terugzetten, uitpakken en ontsleutelen.html de rest toch terug en zeggen ze welke ontbraken

@@ -87,13 +87,14 @@ async function run(){
   keys.clear();
   try {
     const parts = await decrypt(file, null);
-    let blob = new Blob(parts, {type: 'application/zip'}), removed = 0, extra = 0;
+    let blob = new Blob(parts, {type: 'application/zip'}), removed = 0, extra = 0, mis = 0, stuk = 0, geenLijst = false;
     const geheim = $('#geheim').checked;
     let cd = null;
     try { cd = await central(blob); } catch (e) { cd = null; }
     if (!cd) {
       // Geen gewone zip te lezen: alleen doorgeven als er zeker geen geheimen in staan
       if (!geheim && await mentions(parts, 'Appgegevens/')) throw new Error('Wachtwoorden en sleutels weglaten lukt bij dit bestand niet. Vink "Ook wachtwoorden en sleutels uitpakken" aan als je ze toch wilt.');
+      geenLijst = await mentions(parts, LIST);
     } else {
       // Grote bestanden die apart staan (Versleuteld/Grote bestanden): ophalen, controleren en erbij zetten
       const le = cd.ents.find(e => e.name === LIST);
@@ -104,11 +105,14 @@ async function run(){
       if (want.length) {
         const have = new Map(Array.from($('#g').files || []).map(f => [f.name, f]));
         const missing = want.filter(i => !have.has(i.b));
-        if (missing.length) throw new Error(missing.length === 1 ? 'Eén groot bestand ontbreekt. Kies bij Grote bestanden alle bestanden uit de map Grote bestanden (naast het .rtb-bestand).'
+        // Niets gekozen (of de verkeerde map): eerst kiezen. Ontbreken er een paar of zijn ze beschadigd: de rest toch.
+        if (missing.length === want.length) throw new Error(missing.length === 1 ? 'Eén groot bestand ontbreekt. Kies bij Grote bestanden alle bestanden uit de map Grote bestanden (naast het .rtb-bestand).'
           : missing.length + ' grote bestanden ontbreken. Kies bij Grote bestanden alle bestanden uit de map Grote bestanden (naast het .rtb-bestand).');
+        mis = missing.length;
         for (let i = 0; i < want.length; i++) {
+          if (!have.has(want[i].b)) continue;
           msg('Grote bestanden… ' + (i + 1) + '/' + want.length);
-          extras.push(await groot(have.get(want[i].b), want[i]));
+          try { extras.push(await groot(have.get(want[i].b), want[i])); } catch (e) { stuk++; }
         }
       }
       removed += cd.ents.filter(e => e.name !== LIST && !geheim && SECRET(e.name)).length;
@@ -119,7 +123,10 @@ async function run(){
     a.href = URL.createObjectURL(blob);
     a.download = file.name.replace(/\.rtb$/i, '') + '.zip';
     document.body.appendChild(a); a.click(); a.remove();
-    msg('Klaar: ' + a.download + ' staat in je downloads.' + (extra ? ' ' + extra + (extra === 1 ? ' groot bestand' : ' grote bestanden') + ' erbij gezet.' : '') + (removed ? ' ' + removed + (removed === 1 ? ' bestand' : ' bestanden') + ' met wachtwoorden en sleutels weggelaten.' : ''), 'ok');
+    const let_op = (mis ? ' Let op: ' + mis + (mis === 1 ? ' groot bestand ontbrak' : ' grote bestanden ontbraken') + ' (niet gekozen); die staan er niet in.' : '')
+      + (stuk ? ' Let op: ' + stuk + (stuk === 1 ? ' groot bestand was beschadigd' : ' grote bestanden waren beschadigd') + ' (of van een ander wachtwoord); die staan er niet in.' : '')
+      + (geenLijst ? ' Let op: dit archief verwijst naar grote bestanden, maar is zelf beschadigd: die staan er niet in.' : '');
+    msg('Klaar: ' + a.download + ' staat in je downloads.' + (extra ? ' ' + extra + (extra === 1 ? ' groot bestand' : ' grote bestanden') + ' erbij gezet.' : '') + (removed ? ' ' + removed + (removed === 1 ? ' bestand' : ' bestanden') + ' met wachtwoorden en sleutels weggelaten.' : '') + let_op, let_op ? 'bad' : 'ok');
   } catch (e) { msg(e.message || 'Ontsleutelen mislukt', 'bad'); }
   finally { $('#go').disabled = false; }
 }
