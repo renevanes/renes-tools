@@ -194,16 +194,19 @@ final class BlokOpslag implements Blokken.Opslag {
         try { Contacts.writeText(staatFile(c), o.toString(), false); } catch (Exception e) { App.log(c, "BACKUP", "grote bestanden: " + AppData.safeMsg(e, "bewaren mislukt")); }
     }
 
-    /** Na een archief: welke grote bestanden het gebruikt (ook als het er nul zijn: dan is het een archief van na de omzetting). */
+    /**
+     * Na een archief: welke grote bestanden het gebruikt (ook als het er nul zijn, of als grote bestanden apart uit staat
+     * (s == null): dan weet opruimen dat dit archief nergens naar verwijst en hoeft het hem nooit te lezen).
+     */
     static void vastleggen(Context c, String archief, Blokken.Schrijver s) {
         try {
             Uri tree = WaBackup.destUri(c);
             JSONObject st = staat(c, tree);
             JSONArray a = new JSONArray();
-            for (String n : s.namen()) a.put(n);
+            if (s != null) for (String n : s.namen()) a.put(n);
             st.getJSONObject("archieven").put(archief, a);
             JSONObject info = st.getJSONObject("info");
-            for (Blokken.Item i : s.items) info.put(i.b, new JSONArray().put(i.s).put(i.h).put(i.z));
+            if (s != null) for (Blokken.Item i : s.items) info.put(i.b, new JSONArray().put(i.s).put(i.h).put(i.z));
             if (!st.has("sinds")) st.put("sinds", System.currentTimeMillis());
             bewaarStaat(c, st);
         } catch (Exception e) { App.log(c, "BACKUP", "grote bestanden vastleggen: " + AppData.safeMsg(e, "mislukt")); }
@@ -211,7 +214,7 @@ final class BlokOpslag implements Blokken.Opslag {
 
     static final long DAG = 86_400_000L;
     /** Zoveel onbekende archieven leest opruimen per keer; meer = een andere keer (nooit iets weghalen zonder te weten). */
-    static final int MAX_LEZEN = 3;
+    static final int MAX_LEZEN = 8;
 
     /** De lijst met grote bestanden uit een archief; null als het met een ander wachtwoord gemaakt is. */
     static List<Blokken.Item> leesLijst(Context c, Uri u, Vault.Key k) throws Exception {

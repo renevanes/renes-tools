@@ -183,8 +183,8 @@ final class AllBackup {
                     try {
                         String name = Secure.finish(zip, res);
                         res.put("archive", name); done = true;
+                        BlokOpslag.vastleggen(c, name, zip.blok);
                         if (zip.blok != null) {
-                            BlokOpslag.vastleggen(c, name, zip.blok);
                             res.put("blok", new JSONObject().put("nieuw", zip.blok.nieuw).put("nieuwBytes", zip.blok.nieuwBytes)
                                     .put("hergebruikt", zip.blok.hergebruikt).put("hergebruiktBytes", zip.blok.hergebruiktBytes)
                                     .put("archief", zip.archiefBytes()));
