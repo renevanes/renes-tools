@@ -117,38 +117,68 @@ final class MasterDocumentImages {
 
     /**
      * Zoek het ID-bewijs. Een PDF-pagina is vaak een A4 met de kaart klein erop (een scan of kopie): dan zijn de tekens van
-     * de strook op een verkleinde pagina te klein. Daarom eerst de hele pagina, daarna stukken van de pagina op hogere
-     * resolutie (tegels, zie {@link #tegels}). stats (mag null): alleen aantallen en ja/nee, voor de foutmelding en Diagnose.
+     * de strook op een verkleinde pagina te klein. Daarom naast de hele pagina ook stukken van de pagina op hogere resolutie
+     * (tegels, zie {@link #tegels}), in de volgorde van {@link #volgorde}: eerst overal de snelle strook (ID-kaart,
+     * paspoort), daarna met de tijd die over is de tekst van een rijbewijs (langzaam). stats (mag null): alleen aantallen
+     * en ja/nee, voor de foutmelding en het logboek.
      */
     static Match find(Context context, byte[] bytes, String today, BooleanSupplier active, JSONObject stats) throws Exception {
         long deadline = SystemClock.elapsedRealtime() + SEARCH_MS;
         BooleanSupplier searching = () -> active.getAsBoolean() && SystemClock.elapsedRealtime() < deadline;
-        if (pdf(bytes)) {
-            int pages = 0, pieces = 0;
-            try (ParcelFileDescriptor fd = pdfDescriptor(context, bytes);
-                 PdfRenderer renderer = new PdfRenderer(fd)) {
-                int count = Math.min(renderer.getPageCount(), MAX_CANDIDATES);
-                if (stats != null) stats.put("paginas", renderer.getPageCount());
-                for (int i = 0; i < count && searching.getAsBoolean(); i++) {
-                    Bitmap page;
-                    try (PdfRenderer.Page p = renderer.openPage(i)) { page = renderPage(p); }
-                    pages++;
-                    try {
-                        for (int[] r : stukken(page.getWidth(), page.getHeight())) {
-                            if (!searching.getAsBoolean()) break;
-                            pieces++;
-                            Match match = recognize(context, jpeg(page, r), today, searching);
-                            // Een PDF-pagina kan meer bevatten dan de kaart en hoort daarom niet in ID-kopie.
-                            if (match != null) { put(stats, pages, pieces, false); return new Match(null, match.fields); }
-                        }
-                    } finally { page.recycle(); }
+        if (!pdf(bytes)) return word(context, bytes, today, searching);
+        int pages = 0, pieces = 0;
+        boolean all = false;
+        try (ParcelFileDescriptor fd = pdfDescriptor(context, bytes);
+             PdfRenderer renderer = new PdfRenderer(fd)) {
+            int count = Math.min(renderer.getPageCount(), MAX_CANDIDATES);
+            if (stats != null) stats.put("paginas", renderer.getPageCount());
+            int[] tiles = new int[count];
+            for (int i = 0; i < count; i++) {
+                try (PdfRenderer.Page p = renderer.openPage(i)) {
+                    int side = Math.max(p.getWidth(), p.getHeight());
+                    tiles[i] = Math.max(0, stukken(Math.max(1, (int) ((long) p.getWidth() * RENDER_SIDE / side)),
+                        Math.max(1, (int) ((long) p.getHeight() * RENDER_SIDE / side))).size() - 1);
                 }
             }
-            put(stats, pages, pieces, SystemClock.elapsedRealtime() >= deadline);
-        } else {
-            return word(context, bytes, today, searching);
+            List<int[]> plan = volgorde(tiles);
+            int cachedPage = -1;
+            boolean cachedTiles = false;
+            List<byte[]> cache = null;
+            int k = 0;
+            for (; k < plan.size() && searching.getAsBoolean(); k++) {
+                int round = plan.get(k)[0], page = plan.get(k)[1], piece = plan.get(k)[2];
+                boolean needTiles = piece > 0 || round == 0;
+                if (cache == null || cachedPage != page || needTiles && !cachedTiles) {
+                    cache = null; // eerst loslaten: hooguit één pagina in het geheugen
+                    try (PdfRenderer.Page p = renderer.openPage(page)) { cache = pieces(p, needTiles); }
+                    cachedPage = page; cachedTiles = needTiles;
+                    pages = Math.max(pages, page + 1);
+                }
+                if (piece >= cache.size()) continue; // te weinig geheugen voor de tegels: alleen de pagina
+                pieces++;
+                byte[] image = cache.get(piece);
+                JSONObject fields = round == 0 ? MasterPhotos.recognize(image, today)
+                    : RijbewijsOcr.read(context, image, today, searching, false, null);
+                // Een PDF-pagina kan meer bevatten dan de kaart en hoort daarom niet in ID-kopie.
+                if (fields != null) { put(stats, pages, pieces, false); return new Match(null, fields); }
+            }
+            all = k >= plan.size();
         }
+        put(stats, pages, pieces, !all && active.getAsBoolean());
         return null;
+    }
+
+    /**
+     * Volgorde van zoeken over de pagina's ({ronde, pagina, stuk}; stuk 0 = de hele pagina, daarna de tegels). Ronde 0: de
+     * strook op elk stuk van elke pagina (snel). Ronde 1: rijbewijs op de hele pagina's. Ronde 2: rijbewijs op de tegels.
+     * Zuiver, getest.
+     */
+    static List<int[]> volgorde(int[] tilesPerPage) {
+        List<int[]> l = new ArrayList<>();
+        for (int p = 0; p < tilesPerPage.length; p++) for (int s = 0; s <= tilesPerPage[p]; s++) l.add(new int[]{0, p, s});
+        for (int p = 0; p < tilesPerPage.length; p++) l.add(new int[]{1, p, 0});
+        for (int p = 0; p < tilesPerPage.length; p++) for (int s = 1; s <= tilesPerPage[p]; s++) l.add(new int[]{2, p, s});
+        return l;
     }
 
     private static void put(JSONObject stats, int pages, int pieces, boolean late) {
@@ -158,13 +188,39 @@ final class MasterDocumentImages {
 
     /**
      * Anderhalf keer zo groot renderen: een ID-kaart op een A4 is dan ruim 750 pixels breed (de tekens van de strook goed
-     * leesbaar) en past nog op één tegel van een halve overlap (vier tegels per pagina). Te weinig geheugen: zoals vroeger.
+     * leesbaar) en past nog op één tegel van een halve overlap (vier tegels per pagina).
      */
     static final int RENDER_SIDE = MrzOcr.MAX_SIDE * 3 / 2;
 
-    private static Bitmap renderPage(PdfRenderer.Page page) {
-        try { return renderBitmap(page, RENDER_SIDE); }
-        catch (OutOfMemoryError e) { return renderBitmap(page, MrzOcr.MAX_SIDE); }
+    /**
+     * Een pagina als JPEG's: eerst de hele pagina op de werkmaat van de herkenning, met tiles ook de tegels op de hogere
+     * resolutie. De grote bitmap staat alleen kort in het geheugen. Te weinig geheugen voor de tegels: alleen de pagina.
+     */
+    private static List<byte[]> pieces(PdfRenderer.Page page, boolean tiles) {
+        List<byte[]> out = new ArrayList<>();
+        if (tiles) {
+            Bitmap big = null;
+            try {
+                big = renderBitmap(page, RENDER_SIDE);
+                List<int[]> parts = stukken(big.getWidth(), big.getHeight());
+                Bitmap small = Bitmap.createScaledBitmap(big, Math.max(1, big.getWidth() * MrzOcr.MAX_SIDE / RENDER_SIDE),
+                    Math.max(1, big.getHeight() * MrzOcr.MAX_SIDE / RENDER_SIDE), true);
+                try { out.add(jpeg(small)); } finally { if (small != big) small.recycle(); }
+                for (int i = 1; i < parts.size(); i++) {
+                    int[] r = parts.get(i);
+                    Bitmap part = Bitmap.createBitmap(big, r[0], r[1], r[2], r[3]);
+                    try { out.add(jpeg(part)); } finally { if (part != big) part.recycle(); }
+                }
+                return out;
+            } catch (OutOfMemoryError e) {
+                out.clear();
+            } finally {
+                if (big != null) big.recycle();
+            }
+        }
+        Bitmap bitmap = renderBitmap(page, MrzOcr.MAX_SIDE);
+        try { out.add(jpeg(bitmap)); } finally { bitmap.recycle(); }
+        return out;
     }
 
     private static Bitmap renderBitmap(PdfRenderer.Page page, int max) {
@@ -172,23 +228,22 @@ final class MasterDocumentImages {
         int width = Math.max(1, (int) ((long) page.getWidth() * max / side));
         int height = Math.max(1, (int) ((long) page.getHeight() * max / side));
         Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        bitmap.eraseColor(Color.WHITE);
-        Matrix scale = new Matrix();
-        scale.setScale((float) width / page.getWidth(), (float) height / page.getHeight());
-        page.render(bitmap, null, scale, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-        return bitmap;
+        try {
+            bitmap.eraseColor(Color.WHITE);
+            Matrix scale = new Matrix();
+            scale.setScale((float) width / page.getWidth(), (float) height / page.getHeight());
+            page.render(bitmap, null, scale, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+            return bitmap;
+        } catch (RuntimeException | Error e) {
+            bitmap.recycle();
+            throw e;
+        }
     }
 
-    /** Een stuk van de pagina als JPEG ({x, y, breedte, hoogte}; de hele pagina = het eerste stuk). */
-    private static byte[] jpeg(Bitmap page, int[] r) {
-        Bitmap part = r[0] == 0 && r[1] == 0 && r[2] == page.getWidth() && r[3] == page.getHeight() ? page : Bitmap.createBitmap(page, r[0], r[1], r[2], r[3]);
-        try {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            part.compress(Bitmap.CompressFormat.JPEG, 92, out);
-            return out.toByteArray();
-        } finally {
-            if (part != page) part.recycle();
-        }
+    private static byte[] jpeg(Bitmap bitmap) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out);
+        return out.toByteArray();
     }
 
     /** De hele pagina en daarna de tegels (zuiver, getest). */

@@ -26,13 +26,11 @@ window.onMasterPhotoDone=function(r){
   if(r.photo.reviewId){cmhPhotoReady();cmhPairPreview(r.photo);return;}
   if(r.photo.error)cmhPhotoReady();
   cmiPhotoAfterUnlock(r.photo);if(!r.photo.error)cmListLoad(undefined,cmhPhotoReady);
-  // Een document zoeken duurt even; een fout alleen in de statusregel bovenaan valt dan niet op.
-  if(scan&&r.photo.error&&cmOpen())cmhFout(t(r.photo.error));
 };
 /* Melding met alleen OK: niet herkend of niet te openen. De gekozen soort en persoon blijven staan; opnieuw kiezen kan meteen. */
 function cmhFout(text){
   openModal(t('Document niet toegevoegd'),text,null,'OK',()=>{});
-  $('#modal-cancel').style.display='none';
+  $('#modal-cancel').style.display='none';dialogFocus.sync($('#modal-ok'));
 }
 function cmhPhotoReady(){cmh.photoBusy=false;cmBusy(false);}
 const cmhCancel=cmiPhotoCancel;cmiPhotoCancel=function(){
@@ -69,6 +67,8 @@ function cmhPairPreview(photo){
 }
 const cmhAfterUnlock=cmiPhotoAfterUnlock;cmiPhotoAfterUnlock=function(photo){
   if(photo?.reviewId){cmhPairPreview(photo);return;}
+  // Een document zoeken duurt even; een fout alleen in de statusregel bovenaan valt dan niet op (ook na opnieuw ontgrendelen).
+  const scanFout=cmh.scanning&&photo?.error;
   cmh.data=null;cmh.back=null;cmh.hulp=null;
   if(photo&&!photo.error&&photo.saved){
     if(photo.herkend)cmh.data={doc:photo.id,fields:cmhLanden(photo.herkend)};
@@ -79,6 +79,7 @@ const cmhAfterUnlock=cmiPhotoAfterUnlock;cmiPhotoAfterUnlock=function(photo){
     if(photo.scan)cmh.back={id:photo.person,photoSaved:photo.photoSaved!==false,bothSides:photo.bothSides===true};
   }
   cmhAfterUnlock(photo);
+  if(scanFout&&cmOpen())cmhFout(t(photo.error));
 };
 const cmhAfterList=cmiAfterList;cmiAfterList=function(){
   const id=cmi.reopen,b=cmh.back;

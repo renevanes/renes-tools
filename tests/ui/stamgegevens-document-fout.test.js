@@ -32,6 +32,15 @@ for(const colorScheme of ['light','dark']){
   await scan('Identiteitskaart');
   await p.waitForFunction(()=>current==='cmedit'&&cm.edit&&cm.edit.type==='identiteit'&&cm.edit.id&&!$('#cmh-panel').hidden);
   assert.equal(await p.evaluate(()=>$('#modal').classList.contains('on')),false,'geen melding als het lukt');
+  // 3. Pas na opnieuw ontgrendelen verwerkt (lang weg uit de app): ook dan het venster.
+  await p.evaluate(()=>{Android._cm.scanError='Dit document kan niet worden geopend. Kies een leesbare PDF of een Word-document (.docx).';Android._cm.slowPick=true;cm.dirty=false;cmCancelEdit();});
+  await p.waitForFunction(()=>!cm.navigating&&cmOpen());
+  await scan('Paspoort');await p.waitForFunction(()=>!$('#cmi-photo-pending').hidden&&tsZichtbaar());await p.click('#ts-open');
+  await p.waitForFunction(()=>$('#modal').classList.contains('on')&&$('#modal-title').textContent==='Document niet toegevoegd');
+  assert.match(await p.textContent('#modal-text'),/kan niet worden geopend/);
+  assert.equal(await p.evaluate(()=>document.activeElement?.id),'modal-ok','focus op OK');
+  await p.click('#modal-ok');await p.waitForFunction(()=>!$('#modal').classList.contains('on'));
+  assert.equal(await p.evaluate(()=>Android._cm.records.filter(r=>r.type==='identiteit').length),1,'alleen het eerste document');
   await p.close();
 }
 console.log('errors',errors);await b.close();assert.deepEqual(errors,[]);})().catch(e=>{console.error(e);process.exit(1);});
