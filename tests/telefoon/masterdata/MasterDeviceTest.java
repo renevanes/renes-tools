@@ -196,14 +196,17 @@ public final class MasterDeviceTest extends Instrumentation {
         JSONObject otherCard=new JSONObject(td1.toString());
         otherCard.getJSONObject("document").put("document","ID2345678");
         check(call(images,null,"pair",pairSignature,back.toByteArray(),td1,front.toByteArray(),otherCard,"identiteitskaart")==null,"two different documents are never paired");
-        Class<?>[] signature={Context.class,byte[].class,String.class,String.class,java.util.function.BooleanSupplier.class};
+        Class<?>[] signature={Context.class,byte[].class,String.class,String.class,java.util.function.BooleanSupplier.class,JSONObject.class};
         for(byte[] bytes:new byte[][]{word.toByteArray(),pdf.toByteArray()}){
-            Object pair=call(type("MasterDocumentImages"),null,"findPair",signature,context,bytes,"2026-11-08","rijbewijs",(java.util.function.BooleanSupplier)()->true);
-            check(pair!=null,"both sides recognized");
+            JSONObject st=new JSONObject();String wat=bytes[0]=='%'?"pdf":"word";
+            Object pair=call(type("MasterDocumentImages"),null,"findPair",signature,context,bytes,"2026-11-08","rijbewijs",(java.util.function.BooleanSupplier)()->true,st);
+            check(pair!=null,"both sides recognized ("+wat+" "+st+")");
             java.lang.reflect.Field frontField=pair.getClass().getDeclaredField("front");frontField.setAccessible(true);
             java.lang.reflect.Field backField=pair.getClass().getDeclaredField("back");backField.setAccessible(true);
-            check(Arrays.equals((byte[])frontField.get(pair),front.toByteArray()),"recognized licence classified as front");
-            check(Arrays.equals((byte[])backField.get(pair),back.toByteArray()),"other photo classified as back");
+            java.lang.reflect.Field fieldsField=pair.getClass().getDeclaredField("fields");fieldsField.setAccessible(true);
+            check(fieldsField.get(pair)!=null,"licence recognized ("+wat+" "+st+")");
+            check(Arrays.equals((byte[])frontField.get(pair),front.toByteArray()),"recognized licence classified as front ("+wat+" "+st+")");
+            check(Arrays.equals((byte[])backField.get(pair),back.toByteArray()),"other photo classified as back ("+wat+" "+st+")");
         }
         // Een scan met beide zijden op één pagina: de pagina in tweeën, de herkende helft is de voorkant, met de vlag pagina.
         android.graphics.Bitmap fb=android.graphics.BitmapFactory.decodeByteArray(front.toByteArray(),0,front.size());
