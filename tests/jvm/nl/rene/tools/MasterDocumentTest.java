@@ -61,12 +61,12 @@ public final class MasterDocumentTest {
             MasterDocumentImages.Pair p3 = MasterDocumentImages.pair(x, null, y, null, "rijbewijs");
             check(p3 != null && p3.front == x && p3.back == y && p3.fields == null, "niets herkend: de twee beelden, zonder gegevens");
         } catch (org.json.JSONException e) { throw new AssertionError(e); }
-        // De twee grootste foto's (in hun volgorde), kleine plaatjes tellen niet.
-        byte[] logo = new byte[2000], a1 = new byte[40_000], a2 = new byte[90_000], a3 = new byte[60_000];
-        List<byte[]> k = MasterDocumentImages.kies2(java.util.Arrays.asList(logo, a1, a2, a3));
+        // De twee grootste foto's (in hun volgorde); een effen achterkant is klein in bytes maar telt wel.
+        byte[] klein = new byte[2000], a1 = new byte[40_000], a2 = new byte[90_000], a3 = new byte[60_000];
+        List<byte[]> k = MasterDocumentImages.kies2(java.util.Arrays.asList(klein, a1, a2, a3));
         check(k.size() == 2 && k.get(0) == a2 && k.get(1) == a3, "de twee grootste, in volgorde");
-        check(MasterDocumentImages.kies2(java.util.Arrays.asList(logo, a1)).isEmpty(), "maar één echte foto: niets");
-        check(MasterDocumentImages.kies2(java.util.Arrays.asList(a1, logo, a2)).size() == 2, "precies twee echte foto's");
+        check(MasterDocumentImages.kies2(java.util.Arrays.asList(klein, a1)).size() == 2, "twee foto's: allebei");
+        check(MasterDocumentImages.kies2(java.util.Arrays.asList(a1)).isEmpty(), "één foto: niets");
         // Een pagina in tweeën langs de lange kant.
         List<int[]> hf = MasterDocumentImages.helften(1000, 1414);
         check(hf.get(0)[3] + hf.get(1)[3] == 1414 && hf.get(1)[1] == 707 && hf.get(0)[2] == 1000, "staand: boven en onder");

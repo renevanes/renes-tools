@@ -103,7 +103,7 @@ final class MasterDocumentImages {
     }
 
     /** Kleinste foto die als zijde telt (een logo, pictogram of miniatuur niet). */
-    static final int MIN_ZIJDE = 300, MIN_BYTES = 15_000;
+    static final int MIN_ZIJDE = 300;
 
     /**
      * Twee beelden voor de zijden. PDF: twee ingesloten JPEG-foto's van een redelijke grootte; anders de pagina's zelf
@@ -131,10 +131,13 @@ final class MasterDocumentImages {
         return kies2(media);
     }
 
-    /** De twee grootste beelden (in hun volgorde in het document), zonder kleine plaatjes. Zuiver, getest. */
+    /**
+     * De twee grootste beelden (in hun volgorde in het bestand). Kleine plaatjes (logo's) zijn al weg via teOpenen (pixels);
+     * op bytes filteren niet: een effen achterkant comprimeert tot heel weinig. Zuiver, getest.
+     */
     static List<byte[]> kies2(List<byte[]> beelden) {
         List<byte[]> groot = new ArrayList<>();
-        for (byte[] b : beelden) if (b != null && b.length >= MIN_BYTES) groot.add(b);
+        for (byte[] b : beelden) if (b != null && b.length > 0) groot.add(b);
         if (groot.size() <= 2) return groot.size() == 2 ? groot : new ArrayList<>();
         List<byte[]> op = new ArrayList<>(groot);
         op.sort((x, y) -> Integer.compare(y.length, x.length));
