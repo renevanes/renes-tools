@@ -174,7 +174,8 @@ final class MasterDocumentImages {
         return result;
     }
 
-    private static int getal(Object o) { return o instanceof Number ? ((Number) o).intValue() : 0; }
+    /** Een getal uit een PDF (PdfSplit.Num); anders 0. Zuiver, getest. */
+    static int getal(Object o) { return o instanceof PdfSplit.Num ? ((PdfSplit.Num) o).i() : o instanceof Number ? ((Number) o).intValue() : 0; }
 
     /** Is dit een foto die Android kan openen, van minstens MIN_ZIJDE pixels? */
     private static boolean teOpenen(byte[] b) {

@@ -73,6 +73,8 @@ public final class MasterDocumentTest {
         List<int[]> l = MasterDocumentImages.helften(1414, 1000);
         check(l.get(0)[2] + l.get(1)[2] == 1414 && l.get(1)[0] == 707, "liggend: links en rechts");
 
+        // Breedte en hoogte uit een PDF zijn PdfSplit.Num
+        check(MasterDocumentImages.getal(new PdfSplit.Num("1500")) == 1500 && MasterDocumentImages.getal(null) == 0, "getal uit een PDF");
         // Een gescande pagina (A-vorm, groot) is geen kaartfoto
         check(MasterDocumentImages.paginaVorm(2480, 3508) && MasterDocumentImages.paginaVorm(3508, 2480), "A4 staand en liggend");
         check(MasterDocumentImages.paginaVorm(1275, 1650), "Letter op 150 dpi");
