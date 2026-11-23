@@ -368,18 +368,6 @@ final class Kluis {
         return null;
     }
 
-    /** Ontsleutelt naar de tijdelijke map om te bekijken. Geeft het bestand (wordt opgeruimd bij sluiten). */
-    static File view(Context c, String id) throws Exception {
-        JSONObject d = find(c, safeId(id));
-        if (d == null) throw new Exception(Taal.T("Document niet gevonden"));
-        clearViews(c);
-        File out = new File(viewDir(c), fileName(d));
-        try (InputStream in = new java.io.BufferedInputStream(new FileInputStream(new File(dir(c), id + ".bin")), 1 << 16);
-             OutputStream o = new FileOutputStream(out)) { decrypt(in, o); }
-        catch (Exception e) { out.delete(); throw e; }
-        return out;
-    }
-
     static synchronized void delete(Context c, String id) throws Exception {
         safeId(id);
         JSONArray l = list(c), out = new JSONArray();
