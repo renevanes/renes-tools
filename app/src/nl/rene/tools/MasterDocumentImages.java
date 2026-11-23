@@ -186,9 +186,9 @@ final class MasterDocumentImages {
     }
     /** Zuiver, getest. */
     static boolean paginaVorm(int w, int h) {
-        if (w < 1 || h < 1 || Math.max(w, h) < 1500) return false;
+        if (w < 1 || h < 1 || Math.max(w, h) < 1000) return false;
         double r = (double) Math.max(w, h) / Math.min(w, h);
-        return r > 1.30 && r < 1.50;
+        return r > 1.25 && r < 1.50; // A4/A5 (1,41) en Letter (1,29); een kaart is 1,58
     }
 
     /** De pagina's zelf: twee pagina's = elk een zijde; één pagina (een scan met beide zijden) = in tweeën. */

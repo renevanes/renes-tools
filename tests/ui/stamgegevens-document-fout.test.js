@@ -60,6 +60,7 @@ for(const colorScheme of ['light','dark']){
   await p.waitForSelector('#cmh-pair-preview img');
   assert.match(await p.textContent('#modal-text'),/geen gegevens herkend/,'uitleg: zelf invullen');
   assert.match(await p.textContent('#cmh-pair-pagina'),/halve\) pagina/,'waarschuwing: (halve) pagina\'s, er kan meer op staan');
+  assert.equal(await p.evaluate(()=>{const [a,b]=[...document.querySelectorAll('#cmh-pair-preview img')].map(i=>i.getBoundingClientRect().top);const w=$('#cmh-pair-pagina').getBoundingClientRect().width,v=$('#cmh-pair-preview').getBoundingClientRect().width;return Math.abs(a-b)<2&&w>v*0.9;}),true,'waarschuwing over de hele breedte, de zijden naast elkaar');
   await p.click('#modal-ok');
   await p.waitForFunction(()=>Android._cm.records.filter(r=>r.type==='identiteit').length===3);
   await p.close();

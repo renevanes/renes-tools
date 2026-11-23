@@ -75,7 +75,8 @@ public final class MasterDocumentTest {
 
         // Een gescande pagina (A-vorm, groot) is geen kaartfoto
         check(MasterDocumentImages.paginaVorm(2480, 3508) && MasterDocumentImages.paginaVorm(3508, 2480), "A4 staand en liggend");
-        check(!MasterDocumentImages.paginaVorm(1600, 1009) && !MasterDocumentImages.paginaVorm(800, 1131), "kaart, of klein");
+        check(MasterDocumentImages.paginaVorm(1275, 1650), "Letter op 150 dpi");
+        check(!MasterDocumentImages.paginaVorm(1600, 1009) && !MasterDocumentImages.paginaVorm(700, 990), "kaart, of klein");
 
         // Google-document: liefst Word (foto's op volle grootte), anders PDF; iets anders niet.
         check(MasterPhotos.DOCX.equals(MasterPhotos.exportType(new String[]{"application/pdf", MasterPhotos.DOCX, "text/plain"})), "Word eerst");
