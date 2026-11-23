@@ -579,6 +579,7 @@ final class AppBackup {
             // af kwam); alleen zonder de instellingen of de kluisindex kan terugzetten niet.
             Blokken.Bron bron = Blokken.bron(BlokOpslag.voor(c), k);
             Set<String> grootWeg = new HashSet<>();
+            int grootPoging = 0;
             try (Blokken.Lezer z = new Blokken.Lezer(openZip(c, u, k, counter, vault), vault[0], bron)) {
                 byte[] buf = new byte[1 << 16];
                 while (z.volgende()) {
@@ -595,6 +596,7 @@ final class AppBackup {
                     if (t == null) continue; // van een nieuwere versie, of niet meer bekend: overslaan
                     if (seen.containsKey(name)) throw new Exception("Dubbele naam in de backup: " + AppData.cut(name));
                     AppData.Entry en;
+                    if (z.extern()) grootPoging++;
                     try { en = stageEntry(x, z.inhoud(), name, t, buf); }
                     catch (Blokken.LeesFout ex) {
                         if (!t.startsWith("f:") && !t.startsWith("kluis:") && !t.startsWith("gfoto:") && !"history".equals(t)) throw ex;
@@ -607,6 +609,10 @@ final class AppBackup {
                 // het slot van het archief is gelezen zodra de lijst klaar was (afgekapt = fout); de grote bestanden zijn
                 // elk gecontroleerd (grootte en SHA-256)
             }
+            // Geen enkel groot bestand gevonden: eerder een map die nog niet helemaal binnen is (Drive op een nieuwe
+            // telefoon) dan echt alles kwijt. Dan liever stoppen dan alles overslaan.
+            if (grootPoging >= 2 && grootWeg.size() == grootPoging)
+                throw new Exception("Geen enkel groot bestand gevonden in Versleuteld/Grote bestanden. Is de backup-map helemaal gesynchroniseerd? Probeer het straks opnieuw.");
             if (manifest == null && !seen.isEmpty()) throw new Exception("De appgegevens in deze backup zijn onvolledig (afgebroken backup); kies een andere backup");
             if (manifest == null) throw new NoAppData();
             AppData.Manifest m = AppData.parse(manifest);
