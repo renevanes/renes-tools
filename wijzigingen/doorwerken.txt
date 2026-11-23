@@ -1,3 +1,0 @@
-Wat je start, maakt Tools nu af als het scherm uitgaat of je de app even verlaat: een document of kaartfoto herkennen, een afschrift inlezen, een backup, een export, een PDF maken of vergelijken. Duurt het langer, dan zie je een stille melding "Tools maakt iets af".
-Stamgegevens: gaat het scherm uit terwijl een document of kaartfoto herkend wordt, dan gaat het herkennen door en wordt het na ontgrendelen bewaard; je hoeft het niet opnieuw te kiezen.
-Bankzaken: een afschrift dat aan het inlezen was, wordt ook bewaard als Bankzaken intussen op slot gaat; de uitslag zie je na ontgrendelen.

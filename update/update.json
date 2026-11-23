@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.243",
-  "versionCode": 244,
-  "nativeLevel": 209,
+  "versionName": "1.244",
+  "versionCode": 245,
+  "nativeLevel": 210,
   "web": "index.html",
-  "webSha256": "fb830f9f621ffe94d42feba7a73212d092041f9c7b6b5a3a3e0892e11cf26c7a",
+  "webSha256": "ef22f279691b95e98b065fc94907a76f6a85a5a4fd8f5451a3fc620cf5b19fdb",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "0eee8eb4f3ed67bb22ecdc63924caaaa665cc499bee70428f5f5d57cb76a41dc",
+  "apkSha256": "fc89109b701c4ee0b6192c5f48ac599f925235e53adcb713f551c05aab984081",
   "changelog": [
+    {
+      "version": "1.244",
+      "date": "2026-11-23",
+      "changes": [
+        "Wat je start, maakt Tools nu af als het scherm uitgaat of je de app even verlaat: een document of kaartfoto herkennen, een afschrift inlezen, een backup, een export, een PDF maken of vergelijken. Duurt het langer, dan zie je een stille melding \"Tools maakt iets af\".",
+        "Stamgegevens: gaat het scherm uit terwijl een document of kaartfoto herkend wordt, dan gaat het herkennen door en wordt het na ontgrendelen bewaard; je hoeft het niet opnieuw te kiezen.",
+        "Bankzaken: een afschrift dat aan het inlezen was, wordt ook bewaard als Bankzaken intussen op slot gaat; de uitslag zie je na ontgrendelen."
+      ]
+    },
     {
       "version": "1.243",
       "date": "2026-11-23",
@@ -173,15 +182,7 @@
       "changes": [
         "Speler en radio: geen emoji meer als pictogram. Naast de volumeschuif, bij \"Welk nummer is dit?\" en in de menu's (waar het speelt, Hierna, je zenders) staan nu strakke lijniconen, net als in de rest van de app."
       ]
-    },
-    {
-      "version": "1.224",
-      "date": "2026-11-18",
-      "changes": [
-        "Fijner volume: vasthouden of snel drukken op de volumeknop gaat nu met hele stappen, dus van hard naar zacht gaat weer vlot; één keer drukken blijft een klein stapje. De knop reageert ook sneller.",
-        "Grote speler: een volumeschuif voor de telefoon (bij Fijner volume in dezelfde kleine stappen); de volumeknoppen zetten hem mee. Tijdens casten blijft het de schuif van de Chromecast."
-      ]
     }
   ],
-  "webSig2": "UWts5iL2S25ey6ZNMdbq20anloowBPD7f81TOw5LgeYFPezPdAVNwg7iO/lZtPAmHw+0N9TbOTfRiwRfOzx7g3OYJoLIInyLBfc5Mr2WWWCTmuPB/IwQ//T/BpIrClLP/pzUhf/2D4ozzrK9HPOwwtoHmdCwbw3164yzO7RswAQu358QO09ldfU+OqnMe4y9Lnt7VRyGsx+8eVz/rF9v00CCJHhjC640d/mzq/+ZtgDfWIBiq+8VMQYonzjYsglNJ4Andf1aFk0bVeNGTaFhQ99aNHXHxGoTpYRjAjyGPtXsH2q7b6wNT79s+0YhYvFRWmsHTETeaQpXAi+J3nBrHrMwQnSM09ltF19XyLrny76VqaktiU7r9LCb33E22L/ZvU2fDIqqk+XjQvKiD/e9W/HbXG7VnaeApYMmZHfmbdZ/FDKhdFwt7VZ0PxBV86BC2yR0Q4A3ji97m/cEn4lrhyjTHSIEER4MqzVyMmnyMnj26sKPMEhUrv2AgmP6bTw1"
+  "webSig2": "gEHM9BwROJ4Boa6An6i9G8ogRrj7vIIb5H0+zfjgHJ0kwn1usL/HTr+np/MhlluFxWTJKS/kcoWBY8b0rsZWwgSiPyX8EDvzfimr3mMs5cxZprd7rhWobqqTX+8vM5hHWlJR+DA/4Lp5K+3WKYv/U9pT6XfWW8jo0YHPac14Z0lwuPZnVxalieqVr1UaJZVhUOUxAxqwpfnyvaeQR9OCHiCYf6juR9BUoj7L/f5Tf9JkRalu0eMa6NN2gslK8I5KER7RCZinAbA25uKQveEmG8QI0pQKVGrG7IlqZP/pr7DnQSLJsgGNBJG399mxM/kVahFz41NcJtRQStatmrGOcS8a/BIGasHRQf2UuygTMMp56NWPUJDyxkWmXBiV+vwhgBqd6q00/DJpb4HqlOwV79jePKGv8LRVYEQ6vnaV0fNJmjvA6/JUXVXQSoKViQiCYFp8PtECEbTVaYu0ctvGbwMIXrj0M9WEiz+QuoofLjdcmvIsDCRFBN139XUqdMGY"
 }
