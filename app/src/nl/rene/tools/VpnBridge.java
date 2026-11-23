@@ -188,7 +188,7 @@ public class VpnBridge extends SpotifyBridge {
 
     /** Bestand gekozen (vanuit MainActivity.onActivityResult). */
     static void onFile(MainActivity a, Uri u) {
-        new Thread(App.veilig(() -> {
+        new Thread(Doorwerken.door("vpn-file", App.veilig(() -> {
             JSONObject r = new JSONObject();
             try (InputStream in = a.getContentResolver().openInputStream(u)) {
                 if (in == null) throw new Exception("Bestand niet te lezen");
@@ -204,7 +204,7 @@ public class VpnBridge extends SpotifyBridge {
                 try { r.put("error", e.getMessage() == null ? "Bestand niet te lezen" : e.getMessage()); } catch (Exception ignored) { }
             }
             a.js("onVpnImported", r.toString());
-        }), "vpn-file").start();
+        })), "vpn-file").start();
     }
 
     /** Afbeelding gekozen: verkleind als PNG naar de pagina, die zoekt de QR-code (jsQR). */

@@ -104,7 +104,7 @@ public class FeatureBridge {
         if (!a.idScreen) { a.idMasterClear(); a.js("onIdCopyPicked", "{\"cancelled\":true,\"session\":" + JSONObject.quote(a.idSession) + "}"); return; }
         final IdCopy store = a.idCopy; final String session = a.idSession;
         final java.util.List<byte[]> images = a.idMasterPop();
-        new Thread(() -> {
+        new Thread(Doorwerken.door("id-copy-master", () -> {
             String result;
             try {
                 if (images == null) throw new Exception(Taal.T("De foto's uit Stamgegevens zijn niet meer beschikbaar; probeer opnieuw"));
@@ -112,7 +112,7 @@ public class FeatureBridge {
             } catch (Throwable e) { result = PdfTools.err(e); }
             try { result = new JSONObject(result).put("session", session).put("master", true).toString(); } catch (Exception ignored) { }
             if (store == a.idCopy && a.idScreen) a.js("onIdCopyPicked", result);
-        }, "id-copy-master").start();
+        }), "id-copy-master").start();
     }
     @JavascriptInterface public void idCopySecure(boolean on, String session) {
         final long generation;
@@ -158,12 +158,12 @@ public class FeatureBridge {
         final IdCopy store = a.idCopy; final String session = a.idSession;
         final boolean masterBound=a.masterIdBound;final String masterToken=a.masterSession.consumerToken();final boolean masterFg=a.masterForeground;
         if (!a.idScreen) return;
-        new Thread(() -> {
+        new Thread(Doorwerken.door("id-copy-save", () -> {
             String result;
             try { File f; if(masterBound){masterVoor(masterFg);MasterExport.attempt(ctx,a.masterSession,masterToken,"idcopy");File staged=store.save(ctx,revision,plan,true);f=MasterExport.publish(ctx,a.masterSession,masterToken,"idcopy",staged,"ID-kopie afgeschermd");}else f=store.save(ctx,revision,plan); result = new JSONObject().put("revision", revision).put("name", f.getName()).toString(); }
             catch (Throwable e) { result = PdfTools.err(e); }
             if (store == a.idCopy && a.idScreen) a.js("onIdCopySaved", idAnswer(result, session, revision));
-        }, "id-copy-save").start();
+        }), "id-copy-save").start();
     }
 
     // ----- PDF -----
@@ -206,12 +206,12 @@ public class FeatureBridge {
     @JavascriptInterface public void pdfImageRemove(int i) { PdfTools.removeImage(i); }
     @JavascriptInterface public void pdfImagesClear() { PdfTools.clearImages(ctx); }
     @JavascriptInterface public void pdfMakeFromImages(boolean a4, String name) {
-        new Thread(() -> {
+        new Thread(Doorwerken.door("pdf-images", () -> {
             String r;
             try { File f = PdfTools.imagesToPdf(ctx, a4, name); r = new JSONObject().put("kind", "done").put("made", new org.json.JSONArray().put(f.getName())).toString(); }
             catch (Throwable e) { r = PdfTools.err(e); }
             a.js("onPdf", r);
-        }, "pdf-images").start();
+        }), "pdf-images").start();
     }
     @JavascriptInterface public String pdfInfo() {
         try { return PdfTools.inFile(ctx).isFile() ? new JSONObject().put("name", PdfTools.inName).put("pages", PdfTools.inPages).put("lossless", PdfTools.inLossless).put("revision", PdfTools.inRevision).put("kluis", PdfTools.inKluis).toString() : "{}"; }
@@ -230,12 +230,12 @@ public class FeatureBridge {
         }, "pdf-edit-preview").start();
     }
     @JavascriptInterface public void pdfEditSave(String revision, String layers, String name) {
-        new Thread(() -> {
+        new Thread(Doorwerken.door("pdf-edit-save", () -> {
             String result;
             try { File f = PdfEditor.save(ctx, revision, layers, name); result = new JSONObject().put("kind", "edited").put("revision", revision).put("made", new org.json.JSONArray().put(f.getName())).toString(); }
             catch (Throwable e) { result = PdfTools.err(e); }
             a.js("onPdf", result);
-        }, "pdf-edit-save").start();
+        }), "pdf-edit-save").start();
     }
     @JavascriptInterface public void pdfFormPreview(String id, int page, String request) {
         new Thread(() -> {
@@ -264,17 +264,17 @@ public class FeatureBridge {
     @JavascriptInterface public void pdfFormConceptDelete(String id) { FormConcept.delete(ctx, id); }
     @JavascriptInterface public void pdfFormMake(String id, String layers, String name, String request) {
         final boolean masterBound=a.masterFormBound;final String masterToken=a.masterSession.consumerToken();final boolean masterFg=a.masterForeground;
-        new Thread(() -> {
+        new Thread(Doorwerken.door("pdf-form-make", () -> {
             JSONObject result = new JSONObject();
             try { File f;if(masterBound){masterVoor(masterFg);MasterExport.attempt(ctx,a.masterSession,masterToken,"formulieren");File staged=PdfFormulier.make(ctx,id,layers,name,true);f=MasterExport.publish(ctx,a.masterSession,masterToken,"formulieren",staged,PdfTools.base(name));}else f=PdfFormulier.make(ctx,id,layers,name);result.put("name",f.getName()); }
             catch (Throwable e) { try { result.put("error", e instanceof MasterError ? Taal.t(ctx, e.getMessage()) : Taal.t(ctx, "De PDF kan niet worden gemaakt. Probeer opnieuw.")); } catch (Exception ignored) { } }
             try { result.put("id", id).put("request", request); } catch (Exception ignored) { }
             a.js("onPdfFormMade", result.toString());
-        }, "pdf-form-make").start();
+        }), "pdf-form-make").start();
     }
     /** mode: each (elke pagina apart), pick (gekozen pagina's samen), parts (elke groep in "1-3, 4-6" apart). */
     @JavascriptInterface public void pdfSplit(String mode, String ranges) {
-        new Thread(() -> {
+        new Thread(Doorwerken.door("pdf-split", () -> {
             String r;
             try {
                 int n = PdfTools.inPages;
@@ -294,15 +294,15 @@ public class FeatureBridge {
                 r = new JSONObject().put("kind", "done").put("made", PdfTools.split(ctx, groups)).put("lossless", PdfTools.inLossless).toString();
             } catch (Throwable e) { r = PdfTools.err(e); }
             a.js("onPdf", r);
-        }, "pdf-split").start();
+        }), "pdf-split").start();
     }
     @JavascriptInterface public void pdfFromText(String title, String text) {
-        new Thread(() -> {
+        new Thread(Doorwerken.door("pdf-text", () -> {
             String r;
             try { File f = PdfTools.textToPdf(ctx, title == null ? "" : title.trim(), "", text == null ? "" : text); r = new JSONObject().put("kind", "done").put("made", new org.json.JSONArray().put(f.getName())).toString(); }
             catch (Throwable e) { r = PdfTools.err(e); }
             a.js("onPdf", r);
-        }, "pdf-text").start();
+        }), "pdf-text").start();
     }
     @JavascriptInterface public String pdfOutputs() { return PdfTools.outputs(ctx); }
     @JavascriptInterface public String pdfPending() { String p = PdfShare.pending; PdfShare.pending = null; return p == null ? "" : p; }
@@ -388,7 +388,7 @@ public class FeatureBridge {
     }
     /** Alles in de map PDF van de backup-map. */
     @JavascriptInterface public void pdfSaveAll(String names) {
-        new Thread(() -> {
+        new Thread(Doorwerken.door("pdf-save", () -> {
             String r;
             try {
                 Uri tree = WaBackup.destUri(ctx);
@@ -413,7 +413,7 @@ public class FeatureBridge {
                 r = new JSONObject().put("kind", "savedAll").put("count", n).toString();
             } catch (Throwable e) { r = PdfTools.err(e); }
             a.js("onPdf", r);
-        }, "pdf-save").start();
+        }), "pdf-save").start();
     }
     @JavascriptInterface public void pdfDelete(String name) { try { PdfTools.output(ctx, name).delete(); } catch (Exception ignored) { } }
 
@@ -458,11 +458,11 @@ public class FeatureBridge {
         @JavascriptInterface public String carTripSet(String id, String type, String note) { return Car.setTrip(ctx, id, type, note); }
         @JavascriptInterface public String carTripDelete(String id) { return Car.deleteTrip(ctx, id); }
         @JavascriptInterface public void carExport(String month) {
-            new Thread(App.veilig(() -> {
+            new Thread(Doorwerken.door("car-export", App.veilig(() -> {
                 String r;
                 try { r = "ok:" + Car.exportMonth(ctx, month); } catch (Exception e) { r = e.getMessage() == null ? "Exporteren lukt niet" : e.getMessage(); }
                 a.js("onCarExport", JSONObject.quote(r));
-            }), "car-export").start();
+            })), "car-export").start();
         }
         @JavascriptInterface public void carTripStart() { Car.startTrip(ctx); }
         @JavascriptInterface public void carTripStop() { Car.stopTrip(ctx); }
@@ -530,7 +530,7 @@ public class FeatureBridge {
          */
         @JavascriptInterface public void kluisStore(String json) {
             if (!PlayPolicy.allows(ctx, "kluis")) { a.js("onKluisStored", PdfTools.err(new Exception(PlayPolicy.unavailable(ctx)))); return; }
-            new Thread(() -> {
+            new Thread(Doorwerken.door("kluis-bewaren", () -> {
                 String res;
                 try {
                     if (json == null || json.length() > 40000) throw new Exception(Taal.T("Ongeldige opdracht"));
@@ -558,7 +558,7 @@ public class FeatureBridge {
                     res = new JSONObject().put("stored", stored).put("failed", failed).toString();
                 } catch (Throwable e) { res = PdfTools.err(e); }
                 a.js("onKluisStored", res);
-            }, "kluis-bewaren").start();
+            }), "kluis-bewaren").start();
         }
         /** Een document (of een oudere versie) openen: een PDF of afbeelding in de eigen viewer (geen kopie buiten de kluis), anders met een andere app. */
         @JavascriptInterface public void kluisOpen(String id, int version) { kluisShow(id, version, true); }
@@ -593,7 +593,7 @@ public class FeatureBridge {
         /** Een PDF uit de kluis bewerken en ondertekenen; bewaren wordt een nieuwe versie (antwoord via onKluisEdit, zoals onPdf). */
         @JavascriptInterface public void kluisEdit(String id) {
             if (!a.kluisOk()) { a.js("onKluisEdit", PdfTools.err(new Exception(Taal.T("De kluis is weer op slot")))); return; }
-            new Thread(() -> {
+            new Thread(Doorwerken.door("kluis-bewerken", () -> {
                 String r;
                 try {
                     JSONObject d = Kluis.find(ctx, Kluis.safeId(id));
@@ -606,12 +606,12 @@ public class FeatureBridge {
                     r = j.toString();
                 } catch (Throwable e) { r = PdfTools.err(e); }
                 a.js("onKluisEdit", r);
-            }, "kluis-bewerken").start();
+            }), "kluis-bewerken").start();
         }
         /** Delen met een andere app (mail, WhatsApp): ontsleuteld in de kijkmap, die bij op slot gaan leeg gaat. */
         @JavascriptInterface public void kluisShare(String id, int version) {
             if (!a.kluisOk()) { a.js("onKluisChanged", JSONObject.quote(Taal.T("De kluis is weer op slot"))); return; }
-            new Thread(() -> {
+            new Thread(Doorwerken.door("kluis-delen", () -> {
                 try {
                     JSONObject d = Kluis.find(ctx, Kluis.safeId(id));
                     if (d == null) throw new Exception(Taal.T("Document niet gevonden"));
@@ -623,7 +623,7 @@ public class FeatureBridge {
                     final Intent ch = Intent.createChooser(s, Taal.t(ctx, "Delen")).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     a.runOnUiThread(() -> { try { a.startActivity(ch); } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote(Taal.T("Delen lukt niet"))); } });
                 } catch (Throwable e) { a.js("onKluisChanged", JSONObject.quote(e.getMessage() == null ? "Delen lukt niet" : e.getMessage())); }
-            }, "kluis-delen").start();
+            }), "kluis-delen").start();
         }
         /** Opslaan als… (een plek die Rene kiest): eerst de kiezer, daarna ontsleutelen en schrijven (MainActivity, REQ_KLUIS_SAVE). */
         @JavascriptInterface public void kluisSaveAs(String id, int version) {
@@ -640,12 +640,12 @@ public class FeatureBridge {
         /** Een oudere versie terugzetten (wat er nu staat blijft als versie bewaard). Antwoord via onKluisVersie. */
         @JavascriptInterface public void kluisRestore(String id, int version) {
             if (!a.kluisOk()) { a.js("onKluisVersie", PdfTools.err(new Exception(Taal.T("De kluis is op slot")))); return; }
-            new Thread(() -> {
+            new Thread(Doorwerken.door("kluis-versie", () -> {
                 String r;
                 try { Kluis.restoreVersion(ctx, Kluis.safeId(id), version); r = "{\"ok\":true}"; }
                 catch (Throwable e) { r = PdfTools.err(e); }
                 a.js("onKluisVersie", r);
-            }, "kluis-versie").start();
+            }), "kluis-versie").start();
         }
         /** De leesbare kopie van een kluisdocument dat in de bewerker openstond weghalen (weg uit de PDF-schermen zonder bewaren). */
         @JavascriptInterface public void pdfKluisSluit() { new Thread(() -> { try { PdfTools.dropKluisIn(ctx, null); } catch (Throwable ignored) { } }, "pdf-kluis-sluit").start(); }
@@ -703,7 +703,7 @@ public class FeatureBridge {
             if (slot < 0 || slot > 1) return;
             if (!a.kluisOk()) { a.js("onCmp", PdfTools.err(new Exception(Taal.T("De kluis is op slot")))); return; }
             final PdfCompare cmp = a.cmp;
-            new Thread(() -> {
+            new Thread(Doorwerken.door("vergelijken-kluis", () -> {
                 String r;
                 try {
                     JSONObject d = Kluis.find(ctx, Kluis.safeId(id));
@@ -714,13 +714,13 @@ public class FeatureBridge {
                     r = cmp.set(slot, f, name, id, version).put("slot", slot).toString();
                 } catch (Throwable e) { r = PdfTools.err(e); }
                 a.js("onCmp", r);
-            }, "vergelijken-kluis").start();
+            }), "vergelijken-kluis").start();
         }
         /** Een gemaakte PDF (Gemaakt) als A of B. */
         @JavascriptInterface public void cmpMade(int slot, String name) {
             if (slot < 0 || slot > 1) return;
             final PdfCompare cmp = a.cmp;
-            new Thread(() -> {
+            new Thread(Doorwerken.door("vergelijken-gemaakt", () -> {
                 String r;
                 try {
                     File src = PdfTools.output(ctx, name), f = cmp.work(ctx);
@@ -728,7 +728,7 @@ public class FeatureBridge {
                     r = cmp.set(slot, f, PdfTools.base(name), "", 0).put("slot", slot).toString();
                 } catch (Throwable e) { r = PdfTools.err(e); }
                 a.js("onCmp", r);
-            }, "vergelijken-gemaakt").start();
+            }), "vergelijken-gemaakt").start();
         }
         @JavascriptInterface public String cmpInfo() { try { return a.cmp.info().toString(); } catch (Exception e) { return "{}"; } }
         @JavascriptInterface public void cmpSwap() { a.cmp.swap(); }
@@ -736,33 +736,33 @@ public class FeatureBridge {
         /** Tekstverschillen; antwoord via onCmpText. */
         @JavascriptInterface public void cmpText() {
             final PdfCompare cmp = a.cmp;
-            new Thread(() -> {
+            new Thread(Doorwerken.door("vergelijken-tekst", () -> {
                 String r;
                 try (Voortgang v = Voortgang.van(a, "vergelijken", 1)) { r = cmp.text(ctx, () -> cmp == a.cmp && !a.isDestroyed(), v).toString(); }
                 catch (Throwable e) { r = PdfTools.err(e); }
                 if (cmp == a.cmp) a.js("onCmpText", r);
-            }, "vergelijken-tekst").start();
+            }), "vergelijken-tekst").start();
         }
         /** Pagina's met verschillen zoeken (grof); antwoord via onCmpScan. */
         @JavascriptInterface public void cmpScan() {
             final PdfCompare cmp = a.cmp;
-            new Thread(() -> {
+            new Thread(Doorwerken.door("vergelijken-beeld", () -> {
                 String r;
                 try (Voortgang v = Voortgang.van(a, "vergelijken", 1)) { r = cmp.scan(() -> cmp == a.cmp && !a.isDestroyed(), v).toString(); }
                 catch (Throwable e) { r = PdfTools.err(e); }
                 if (cmp == a.cmp) a.js("onCmpScan", r);
-            }, "vergelijken-beeld").start();
+            }), "vergelijken-beeld").start();
         }
         /** Eén pagina groot (mode verschil, a of b); antwoord via onCmpPage. */
         @JavascriptInterface public void cmpPage(int i, String mode) {
             final PdfCompare cmp = a.cmp; final String m = "a".equals(mode) || "b".equals(mode) ? mode : "verschil";
             final int vraag = cmp.vraag(); // alleen de laatste vraag telt: snel doortikken stapelt geen werk op
-            new Thread(() -> {
+            new Thread(Doorwerken.door("vergelijken-pagina", () -> {
                 String r;
                 try { if (vraag != cmp.laatste()) return; r = cmp.page(i, m).toString(); }
                 catch (Throwable e) { try { r = new JSONObject(PdfTools.err(e)).put("i", i).put("mode", m).toString(); } catch (Exception x) { r = "{}"; } }
                 if (cmp == a.cmp) a.js("onCmpPage", r);
-            }, "vergelijken-pagina").start();
+            }), "vergelijken-pagina").start();
         }
 
         @JavascriptInterface public String kluisDelete(String id) {

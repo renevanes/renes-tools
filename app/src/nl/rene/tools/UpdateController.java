@@ -23,7 +23,7 @@ final class UpdateController {
     }
 
     static void install(Context context) {
-        new Thread(() -> {
+        new Thread(Doorwerken.door("update-installatie", () -> {
             String problem;
             try { problem = Updater.downloadAndInstall(context, MainActivity.progressTo("apk")); }
             catch (OutOfMemoryError failure) { problem = "Te weinig geheugen voor de update"; }
@@ -36,7 +36,7 @@ final class UpdateController {
                     MainActivity.updateStatus("{\"state\":\"needs-permission\",\"kind\":\"apk\"}");
                 } else if (problem != null) MainActivity.updateStatus(error(problem).put("kind", "apk").toString());
             } catch (Throwable ignored) { }
-        }, "update-installatie").start();
+        }), "update-installatie").start();
     }
 
     private static JSONObject error(String message) {

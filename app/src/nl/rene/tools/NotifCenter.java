@@ -36,6 +36,7 @@ final class NotifCenter {
         {TracksService.CHANNEL, Taal.T("Route opnemen"), Taal.T("Toont de voortgang tijdens het opnemen van een route"), "2"},
         {TranscribeService.CHANNEL, Taal.T("Gesprekken uitschrijven"), Taal.T("Voortgang van het uitschrijven"), "2"},
         {ModelDownloadService.CHANNEL, Taal.T("Modellen downloaden"), Taal.T("Voortgang als de app zelf een AI-model downloadt"), "2"},
+        {Doorwerken.CHANNEL, Taal.T("Bezig op de achtergrond"), Taal.T("Zichtbaar zolang de app iets afmaakt wat je startte (een document herkennen, een backup, een export), ook met het scherm uit"), "2"},
         {Car.CHANNEL, Taal.T("Mijn auto"), Taal.T("Als een rit niet vanzelf kon starten"), "3"},
         {"auto-call-recording", Taal.T("Automatische gespreksopname"), Taal.T("Als een automatische opname niet kon starten"), "3"},
         {ApparatenJob.CHANNEL, Taal.T("Apparaten: onbekende tracker"), Taal.T("Als een onbekende tracker (AirTag, SmartTag, Tile …) een tijd met je meereist"), "4"},

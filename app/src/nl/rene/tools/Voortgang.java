@@ -30,8 +30,12 @@ final class Voortgang implements AutoCloseable {
         this.uit = uit; this.soort = soort; this.bestanden = Math.max(1, bestanden); this.klok = klok;
     }
     static Voortgang van(MainActivity a, String soort, int bestanden) {
-        return new Voortgang(json -> a.js("onVoortgang", json), soort, bestanden, android.os.SystemClock::elapsedRealtime);
+        Voortgang v = new Voortgang(json -> a.js("onVoortgang", json), soort, bestanden, android.os.SystemClock::elapsedRealtime);
+        v.wakker = Doorwerken.begin(soort); // gaat door met het scherm uit of de app uit beeld
+        return v;
     }
+    /** Zolang dit bestand verwerkt wordt: wakker blijven (Doorwerken); weg bij close(). */
+    private Doorwerken.Klaar wakker;
 
     /** Het hoeveelste bestand (vanaf 0) nu aan de beurt is. */
     synchronized void bestand(int i) { if (uit == null || i == bestand) return; bestand = Math.max(0, Math.min(i, bestanden - 1)); stap = ""; }
@@ -86,6 +90,7 @@ final class Voortgang implements AutoCloseable {
     }
 
     @Override public synchronized void close() {
+        if (wakker != null) { wakker.close(); wakker = null; }
         if (uit == null || klaar) return;
         klaar = true; stuur(new Bericht("", 0, 0, true));
     }

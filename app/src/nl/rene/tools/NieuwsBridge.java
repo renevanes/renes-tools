@@ -42,12 +42,12 @@ public class NieuwsBridge extends EreaderBridge {
      * ophalen). Antwoord via onNieuws({ok, totaal, nieuw} of {bezig} of {error}).
      */
     @JavascriptInterface public void nieuwsVerversen(boolean alles, boolean beelden) {
-        new Thread(() -> {
+        new Thread(Doorwerken.door("nieuws-bijwerken", () -> {
             String r;
             try { r = Nieuws.ververs(ctx, alles, beelden).toString(); }
             catch (Throwable e) { r = foutJson(e, Taal.T("Bijwerken lukt niet")); }
             a.js("onNieuws", r);
-        }, "nieuws-bijwerken").start();
+        }), "nieuws-bijwerken").start();
     }
 
     /** Een eigen bron (adres van een feed of van een nieuwssite). Antwoord via onNieuwsBron({bron} of {error}). */

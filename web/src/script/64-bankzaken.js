@@ -321,6 +321,7 @@ function bkLaad(){
   // Automatisch opgehaald terwijl het scherm weg was
   let u = ''; try { u = Android.bankKoppelUitkomst(); } catch (e) { }
   if (u) bkKoppelKlaar(u);
+  if (bk.importUit && !bk.stilLaden) { const r = bk.importUit; bk.importUit = null; setTimeout(() => onBankImport(r), 0); }
 }
 /** Alles uit het geheugen en van het scherm. */
 function bkVergeet(){
@@ -638,7 +639,8 @@ window.onBankImport = function(r){
   if (!r || r.cancelled) return;
   if (typeof r === 'string') { try { r = JSON.parse(r); } catch (e) { return; } }
   if (r.error) { toast(r.error); if (/op slot|Ontgrendel/i.test(r.error) && current === 'bank') bkToestand(); return; }
-  if (current !== 'bank' || !bkToestand()) return;
+  // Klaar terwijl Bankzaken op slot ging (scherm uit): de uitslag na het ontgrendelen tonen
+  if (current !== 'bank' || !bkToestand()) { bk.importUit = r; return; }
   bk.stilLaden = true; bkLaad(); bk.stilLaden = false;
   const fs = r.bestanden || [];
   let nieuw = 0, dubbel = 0; const fout = [];

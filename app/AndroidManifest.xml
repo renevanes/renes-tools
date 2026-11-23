@@ -477,6 +477,11 @@
             android:name=".ModelDownloadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <!-- Doorwerken: wat Rene startte (document herkennen, backup, export) gaat door met het scherm uit -->
+        <service
+            android:name=".DoorwerkDienst"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <service
             android:name=".Care"

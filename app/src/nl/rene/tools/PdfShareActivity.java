@@ -49,7 +49,7 @@ public class PdfShareActivity extends Activity {
         final String fText = text, fSubject = subject, fHtml = html, fType = type;
         // Kopiëren mag niet op de hoofdthread (kan groot zijn); daarna het PDF-scherm openen
         Toast.makeText(this, Taal.tx(this, "Bezig…"), Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
+        new Thread(Doorwerken.door("pdf-share", () -> {
             String r;
             try { r = PdfShare.take(getApplicationContext(), uris, fType, fSubject, fText, fHtml); }
             catch (Throwable e) { r = PdfTools.err(e); }
@@ -59,6 +59,6 @@ public class PdfShareActivity extends Activity {
                 startActivity(new Intent(this, MainActivity.class).putExtra("open", "pdf-share").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP));
                 finish();
             });
-        }, "pdf-share").start();
+        }), "pdf-share").start();
     }
 }

@@ -33,6 +33,16 @@ function cmhFout(text){
   $('#modal-cancel').style.display='none';dialogFocus.sync($('#modal-ok'));
 }
 function cmhPhotoReady(){cmh.photoBusy=false;cmBusy(false);}
+/* Op slot terwijl een gekozen foto of document nog verwerkt wordt (scherm uit, app uit beeld): het verwerken gaat in Java
+ * door en wordt na ontgrendelen bewaard. Hier alleen laten zien dat het wacht (de kaart; het slotscherm toont dezelfde tekst). */
+const cmhLocked=window.onMasterLocked;window.onMasterLocked=function(generation){
+  if(cmi.photoRequest&&cmh.photoBusy){
+    cmhPhotoReady();
+    $('#cmi-photo-pending-text').textContent=cmh.scanning?t('Het bestand wordt nog verwerkt, ook met het scherm uit. Na ontgrendelen worden de gegevens van het ID-bewijs bewaard.'):t('De kaartfoto wordt nog verwerkt, ook met het scherm uit. Na ontgrendelen wordt hij bij het document opgeslagen.');
+    $('#cmi-photo-pending').hidden=false;
+  }
+  cmhLocked(generation);
+};
 const cmhCancel=cmiPhotoCancel;cmiPhotoCancel=function(){
   const preview=$('#cmh-pair-preview');
   if(!preview.hidden){preview.hidden=true;preview.replaceChildren();if($('#modal').classList.contains('on'))closeModal(null);}

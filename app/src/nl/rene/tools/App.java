@@ -46,6 +46,7 @@ public class App extends Application {
         final Thread.UncaughtExceptionHandler prev = Thread.getDefaultUncaughtExceptionHandler();
         final Context c = getApplicationContext();
         logCtx = c;
+        Doorwerken.init(c);
         try { KluisTekst.ruimWerk(c); } catch (Throwable e) { /* cache; ook als alleen een dienst het proces start */ }
         BetalenBridge.ruimWerk(c); // een rekening die net gelezen werd toen de app stopte
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> {

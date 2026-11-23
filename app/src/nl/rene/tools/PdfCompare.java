@@ -90,6 +90,32 @@ final class PdfCompare {
      * Documenten uit de kluis weghalen (de app gaat uit beeld, of het venster sluit): ontsleuteld blijven ze alleen zolang je
      * aan het vergelijken bent. Geeft true als er iets weg ging.
      */
+    /** Hoeveel vergelijkingen (tekst of beeld) er nu lopen; die maken af als de app intussen uit beeld gaat. */
+    private int bezig;
+    /** Uit beeld gegaan tijdens een vergelijking: de kluisdocumenten weg zodra die klaar is (en dan dit melden). */
+    private Runnable dropNa;
+
+    /**
+     * Uit de app: ontsleutelde kluisdocumenten weg. Loopt er nog een vergelijking, dan pas daarna (die maakt het af, ook met
+     * het scherm uit); naLater meldt het dan. Geeft true als ze nu weg zijn.
+     */
+    synchronized boolean dropKluis(Runnable naLater) {
+        if (bezig > 0) { if (heeftKluis()) dropNa = naLater; return false; }
+        return dropKluis();
+    }
+    private boolean heeftKluis() { for (Slot s : slots) if (s != null && !s.kluis.isEmpty()) return true; return false; }
+    private synchronized void begin() { bezig++; }
+    private void klaar() {
+        Runnable na = null;
+        synchronized (this) {
+            if (bezig > 0) bezig--;
+            if (bezig == 0 && dropNa != null) { if (dropKluis()) na = dropNa; dropNa = null; }
+        }
+        if (na != null) try { na.run(); } catch (Throwable ignored) { }
+    }
+    /** Weer in beeld voordat de vergelijking klaar was: de documenten mogen blijven. */
+    synchronized void blijf() { dropNa = null; }
+
     synchronized boolean dropKluis() {
         boolean weg = false;
         for (int i = 0; i < 2; i++) if (slots[i] != null && !slots[i].kluis.isEmpty()) { slots[i].file.delete(); slots[i] = null; weg = true; }
@@ -125,6 +151,10 @@ final class PdfCompare {
 
     /** Verschillen in de tekst. {ops:[[type,tekst]…] (0 gelijk, -1 alleen in A, 1 alleen in B), weg, erbij, ocr, pagesA, pagesB}. */
     JSONObject text(Context c, BooleanSupplier active, Voortgang v) throws Exception {
+        begin();
+        try { return tekst(c, active, v); } finally { klaar(); }
+    }
+    private JSONObject tekst(Context c, BooleanSupplier active, Voortgang v) throws Exception {
         Slot[] s = both(); int g = gen;
         BooleanSupplier run = () -> active.getAsBoolean() && g == gen;
         int total = Math.min(s[0].pages, MAX_PAGES) + Math.min(s[1].pages, MAX_PAGES);
@@ -164,6 +194,10 @@ final class PdfCompare {
 
     /** Per pagina hoeveel er anders is (grof, snel), om de pagina's met verschillen te vinden. {pages:[{i,score}], a, b}. */
     JSONObject scan(BooleanSupplier active, Voortgang v) throws Exception {
+        begin();
+        try { return beeld(active, v); } finally { klaar(); }
+    }
+    private JSONObject beeld(BooleanSupplier active, Voortgang v) throws Exception {
         Slot[] s = both(); int g = gen;
         int n = Math.min(Math.min(s[0].pages, s[1].pages), MAX_PAGES);
         JSONArray pages = new JSONArray();

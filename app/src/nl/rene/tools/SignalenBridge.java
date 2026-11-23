@@ -74,7 +74,7 @@ public class SignalenBridge extends BetalenBridge {
     /** Nu nalopen (id leeg = alle bronnen die aan staan). Het antwoord komt via onSignalen({ok, nieuw, bronnen, fouten}). */
     @JavascriptInterface public boolean signalenScan(final String id) {
         if (SignalenScan.BEZIG.get()) return false;
-        new Thread(() -> {
+        new Thread(Doorwerken.door("signalen-nu", () -> {
             String r = "{\"ok\":false}";
             try {
                 JSONObject o = SignalenScan.scan(ctx, id == null ? "" : id, false, true, true);
@@ -83,7 +83,7 @@ public class SignalenBridge extends BetalenBridge {
             } catch (Throwable t) { App.log(ctx, "SIGNAAL", "nu nalopen: " + t.getClass().getSimpleName()); }
             a.js("onSignalen", r);
             plan();
-        }, "signalen-nu").start();
+        }), "signalen-nu").start();
         return true;
     }
 

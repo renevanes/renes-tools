@@ -41,6 +41,16 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>document.activeElement?.id),'modal-ok','focus op OK');
   await p.click('#modal-ok');await p.waitForFunction(()=>!$('#modal').classList.contains('on'));
   assert.equal(await p.evaluate(()=>Android._cm.records.filter(r=>r.type==='identiteit').length),1,'alleen het eerste document');
+  // 4. Scherm uit tijdens het herkennen: het gaat door en na ontgrendelen staat het document er (geen fout, niet opnieuw kiezen).
+  await p.evaluate(()=>{Android._cm.scanError=null;Android._cm.slowPick=false;Android._cm.lateLock=true;});
+  await p.waitForFunction(()=>!cm.navigating&&!cm.unlocking);await p.waitForFunction(()=>cmOpen());
+  await scan('Identiteitskaart');await p.waitForFunction(()=>!cmOpen());
+  await p.waitForFunction(()=>!$('#cmi-photo-pending').hidden&&/Het bestand wordt nog verwerkt/.test($('#cmi-photo-pending-text').textContent));
+  await p.evaluate(()=>{Android._cm.lateLock=false;});
+  await p.waitForFunction(()=>tsZichtbaar());await p.click('#ts-open');
+  await p.waitForFunction(()=>current==='cmedit'&&cm.edit&&cm.edit.type==='identiteit'&&cm.edit.id&&!$('#cmh-panel').hidden);
+  assert.equal(await p.evaluate(()=>Android._cm.records.filter(r=>r.type==='identiteit').length),2,'na ontgrendelen bewaard');
+  assert.equal(await p.evaluate(()=>$('#modal').classList.contains('on')),false,'geen foutmelding');
   await p.close();
 }
 console.log('errors',errors);await b.close();assert.deepEqual(errors,[]);})().catch(e=>{console.error(e);process.exit(1);});

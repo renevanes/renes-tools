@@ -152,8 +152,9 @@ public class BankBridge extends FacturenBridge {
     /** Na het kiezen (vanuit MainActivity.onActivityResult): inlezen, samenvoegen, versleuteld opslaan. */
     static void onPicked(MainActivity a, List<Uri> uris, boolean wis) {
         final android.content.Context ctx = a.getApplicationContext();
-        new Thread(() -> {
+        new Thread(Doorwerken.door("bank-import", () -> {
             JSONObject out = new JSONObject();
+            boolean door = Bank.inlezenBegin(); // op slot gaan tijdens het inlezen breekt het niet meer af
             try (Voortgang v = Voortgang.van(a, "bank", uris.size())) {
                 java.util.List<Bank.Bestand> lijst = new java.util.ArrayList<>();
                 java.util.List<String> fouten = new java.util.ArrayList<>();
@@ -175,9 +176,9 @@ public class BankBridge extends FacturenBridge {
                 out.put("gewist", weg);
             } catch (Throwable t) {
                 try { out.put("error", t instanceof OutOfMemoryError ? "Te veel gegevens" : Bank.why(t)); } catch (Exception ignored) { }
-            }
+            } finally { if (door) Bank.inlezenKlaar(); }
             a.js("onBankImport", out.toString());
-        }, "bank-import").start();
+        }), "bank-import").start();
     }
 
     static String name(MainActivity a, Uri u) {

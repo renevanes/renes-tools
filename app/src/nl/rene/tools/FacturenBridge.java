@@ -57,12 +57,12 @@ public class FacturenBridge extends GebruikBridge {
             long nuT = System.currentTimeMillis();
             boolean indelen = FacturenIndeling.nodig(ctx) && r == null && !FacturenIndeling.BEZIG.get() && nuT - indelenT > 600_000L; // het scherm vraagt elke seconde
             if (indelen) indelenT = nuT;
-            if (indelen) new Thread(() -> { // eenmalig: de facturen uit de mail per leverancier (meldt zich via onFacturenIngedeeld)
+            if (indelen) new Thread(Doorwerken.door("facturen-indelen", () -> { // eenmalig: de facturen uit de mail per leverancier (meldt zich via onFacturenIngedeeld)
                 try {
                     JSONObject u = FacturenIndeling.herindelen(ctx);
                     if (u.optInt("aantal") > 0) a.js("onFacturenIngedeeld", u.toString());
                 } catch (Throwable ignored) { }
-            }, "facturen-indelen").start();
+            }), "facturen-indelen").start();
             JSONObject eigen = FacturenHerken.eigen(ctx);
             return new JSONObject().put("leveranciers", out).put("onleesbaar", l == null)
                     .put("indelen", indelen || FacturenIndeling.BEZIG.get())
@@ -311,13 +311,13 @@ public class FacturenBridge extends GebruikBridge {
 
     @JavascriptInterface public void facturenDossierHerken() {
         if (!HERKEN.compareAndSet(false, true)) return; // loopt al: die meldt zich straks
-        new Thread(() -> {
+        new Thread(Doorwerken.door("facturen-herken", () -> {
             String r;
             try { r = new JSONObject().put("aantal", PdfDoc.canText() ? FacturenDossier.herkenAlle(ctx) : 0).put("pdfTekst", PdfDoc.canText()).toString(); }
             catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(Facturen.kort(e)) + "}"; }
             HERKEN.set(false);
             try { a.js("onFacturenHerkend", r); } catch (Throwable ignored) { }
-        }, "facturen-herken").start();
+        }), "facturen-herken").start();
     }
 
     /** De tekst uit de PDF van een factuur (om de herkenning te controleren): {tekst} of {error}. Blijft op de telefoon. */
@@ -344,13 +344,13 @@ public class FacturenBridge extends GebruikBridge {
 
     /** Echt alles weghalen, ook de opgeslagen kopieën; antwoord via onFacturenAllesWeg({aantal, weg, mislukt, mail} of {error}). */
     @JavascriptInterface public void facturenDossierAllesWeg() {
-        new Thread(() -> {
+        new Thread(Doorwerken.door("facturen-alles-weg", () -> {
             String r;
             try { r = FacturenDossier.allesWeg(ctx).toString(); }
             catch (Throwable e) { r = err(e instanceof Exception ? (Exception) e : new Exception(e), "Weghalen lukt niet"); }
             a.h.post(() -> { try { FacturenJob.schedule(ctx); } catch (Throwable ignored) { } });
             a.js("onFacturenAllesWeg", r);
-        }, "facturen-alles-weg").start();
+        }), "facturen-alles-weg").start();
     }
 
     /** Het hele dossier leegmaken (opnieuw beginnen). Geeft {aantal} of {error}. */
@@ -374,12 +374,12 @@ public class FacturenBridge extends GebruikBridge {
 
     /** Het dossier als CSV in de map op de telefoon of de backup-map; antwoord via onFacturenCsv({waar} of {error}). */
     @JavascriptInterface public void facturenDossierCsv() {
-        new Thread(() -> {
+        new Thread(Doorwerken.door("facturen-csv", () -> {
             String r;
             try { r = new JSONObject().put("waar", FacturenDossier.exporteer(ctx)).toString(); }
             catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(Facturen.kort(e)) + "}"; }
             a.js("onFacturenCsv", r);
-        }, "facturen-csv").start();
+        }), "facturen-csv").start();
     }
 
     // ================= aanleveren =================
@@ -414,13 +414,13 @@ public class FacturenBridge extends GebruikBridge {
     /** Nu aanleveren (of een proef naar jezelf). Antwoord via onFacturenAanlever({id, ok, msg, aantal}). */
     @JavascriptInterface public String facturenAanleveren(String id, boolean proef) {
         if (FacturenAanlever.BEZIG.get()) return "Er wordt al aangeleverd; even wachten";
-        new Thread(() -> {
+        new Thread(Doorwerken.door("facturen-aanleveren", () -> {
             try {
                 JSONObject r = FacturenAanlever.stuurNu(ctx, id, proef, false);
                 a.js("onFacturenAanlever", r.toString());
                 a.h.post(() -> { try { FacturenJob.schedule(ctx); } catch (Throwable ignored) { } });
             } catch (Throwable ignored) { }
-        }, "facturen-aanleveren").start();
+        }), "facturen-aanleveren").start();
         return "";
     }
 

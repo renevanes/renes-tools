@@ -685,7 +685,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         final PdfDoc d = doc;
         if (d == null) return;
         final int p = view.currentPage();
-        new Thread(App.veilig(() -> {
+        new Thread(Doorwerken.door("pdf-text", App.veilig(() -> {
             final String t = d.text(p);
             ui.post(() -> {
                 if (t.isEmpty()) { Toast.makeText(this, Taal.tx(this, "Op deze pagina staat geen tekst (misschien een scan)"), Toast.LENGTH_SHORT).show(); return; }
@@ -693,7 +693,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
                 if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("PDF pagina " + (p + 1), t));
                 if (Build.VERSION.SDK_INT < 33) Toast.makeText(this, Taal.tx(this, "Tekst van pagina " + (p + 1) + " gekopieerd"), Toast.LENGTH_SHORT).show();
             });
-        }), "pdf-text").start();
+        })), "pdf-text").start();
     }
 
     /**
@@ -739,7 +739,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         final Uri to = data.getData();
         final File f = file;
         final Context app = getApplicationContext();
-        new Thread(App.veilig(() -> {
+        new Thread(Doorwerken.door("pdf-save", App.veilig(() -> {
             String r = "✓ Opgeslagen";
             try (InputStream in = new FileInputStream(f); OutputStream o = app.getContentResolver().openOutputStream(to, "w")) {
                 if (o == null) throw new Exception();
@@ -747,7 +747,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
             } catch (Exception e) { r = "Opslaan lukt niet"; }
             final String rr = r;
             ui.post(() -> Toast.makeText(app, Taal.tx(app, rr), Toast.LENGTH_SHORT).show());
-        }), "pdf-save").start();
+        })), "pdf-save").start();
     }
 
     private void print() {
@@ -772,7 +772,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         /** Kopiëren op de achtergrond (een grote PDF zou het scherm laten hangen); antwoorden op de hoofdthread. */
         @Override public void onWrite(PageRange[] range, ParcelFileDescriptor dest, CancellationSignal cs, WriteResultCallback cb) {
             final Handler h = new Handler(Looper.getMainLooper());
-            new Thread(App.veilig(() -> {
+            new Thread(Doorwerken.door("pdf-print", App.veilig(() -> {
                 int res = 0; // 0 klaar, 1 geannuleerd, 2 fout
                 try (InputStream in = new FileInputStream(f); OutputStream o = new FileOutputStream(dest.getFileDescriptor())) {
                     byte[] b = new byte[1 << 16]; int r;
@@ -780,7 +780,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
                 } catch (Exception e) { res = 2; }
                 final int fr = res;
                 h.post(() -> { if (fr == 0) cb.onWriteFinished(new PageRange[]{PageRange.ALL_PAGES}); else if (fr == 1) cb.onWriteCancelled(); else cb.onWriteFailed("Afdrukken lukt niet"); });
-            }), "pdf-print").start();
+            })), "pdf-print").start();
         }
     }
 
@@ -790,7 +790,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         final File f = file; final String nm = name; final String kluis = edit ? kluisId : "";
         final Context app = getApplicationContext();
         Toast.makeText(this, Taal.tx(this, "Bezig…"), Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
+        new Thread(Doorwerken.door("pdf-tools", () -> {
             String r;
             try {
                 File tmp = new File(PdfTools.dir(app, "pdf-in"), "kopie.pdf");
@@ -805,7 +805,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
                 PdfShare.pending = res;
                 startActivity(new Intent(app, MainActivity.class).putExtra("open", "pdf-share").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP));
             });
-        }, "pdf-tools").start();
+        }), "pdf-tools").start();
     }
 
     // ---------- standaard PDF-app ----------

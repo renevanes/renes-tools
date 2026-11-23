@@ -68,13 +68,18 @@ for(const colorScheme of ['light','dark']){
   const emptyDoc=await p.evaluate(()=>cm.edit.id);await p.click('#cm-save');
   await p.waitForFunction(id=>{const r=Android._cm.records.find(r=>r.id===id);return r.fields.document==='NW3RP8K25'&&r.label==='Paspoort Zoë <b>'&&current==='cmkaart'&&cmc.rec?.id===id;},emptyDoc);
   assert.ok(await p.evaluate(()=>Android._cm.events.some(e=>e.action==='photo_scan')),'herkennen vanaf foto in het logboek');
-  // Tijdens het verwerken op slot gegaan: de foto vervalt met een melding, en de fotoknoppen blijven werken.
+  // Tijdens het verwerken op slot gegaan (scherm uit): het verwerken gaat door en na ontgrendelen wordt de foto alsnog bewaard.
   const doc2=await p.evaluate(()=>Android._cm.records.filter(r=>r.type==='identiteit').pop().id);
   const openDoc2=async()=>{await p.evaluate(()=>{cm.dirty=false;cmCancelEdit();});await p.waitForFunction(()=>cm.recordsReady&&cmOpen()&&!cm.mutating);await p.evaluate(id=>cmEdit(id,'fotos'),doc2);await p.waitForFunction(id=>cm.edit&&cm.edit.id===id&&cm.tab==='fotos',doc2);};
   await openDoc2();await p.evaluate(()=>{Android._cm.slowPick=false;Android._cm.lateLock=true;});
+  await p.evaluate(id=>{const r=Android._cm.records.find(r=>r.id===id);if(r.images)delete r.images.back;},doc2);
   await p.evaluate(()=>cmiPhotoPick('back'));await p.waitForFunction(()=>!cmOpen());
-  await p.waitForFunction(()=>!cmi.photoRequest);await p.evaluate(()=>Android._cm.lateLock=false);
-  await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);assert.equal(await p.isVisible('#cmi-photo-pending'),false,'geen hangende fotokeuze');
+  await p.waitForFunction(()=>!$('#cmi-photo-pending').hidden&&/nog verwerkt/.test($('#cmi-photo-pending-text').textContent)&&!!cmi.photoRequest);
+  assert.equal(await p.evaluate(()=>cm.mutating||cmh.photoBusy),false,'niet blijven hangen op bezig');
+  await p.evaluate(()=>Android._cm.lateLock=false);
+  await p.waitForFunction(()=>tsZichtbaar());assert.match(await p.textContent('#ts-msg'),/nog verwerkt/,'het slotscherm zegt dat het wacht');
+  await p.click('#ts-open');await p.waitForFunction(id=>cmOpen()&&cm.recordsReady&&!!Android._cm.records.find(r=>r.id===id).images?.back&&!cmi.photoRequest,doc2);
+  assert.equal(await p.isVisible('#cmi-photo-pending'),false,'geen hangende fotokeuze');
   await openDoc2();await p.evaluate(()=>cmiPhotoPick('back'));await p.waitForFunction(()=>cm.edit?.images?.back&&!$('#cmh-panel').hidden);
   // 4. Vergrendelen wist voorstellen.
   await p.evaluate(()=>{Android._cm.herkend={document:{document:'X1'},persoon:{},zeker:true};});

@@ -258,7 +258,7 @@ public class BankLinkActivity extends Activity {
         try { BankImport.parse(b, n); } catch (Throwable t) { zet("Dit was geen afschrift; de app wacht op het juiste bestand"); return; }
         synchronized (this) { if (klaar || bezig) return; bezig = true; }
         zet("Afschrift ontvangen, versleuteld opslaan…");
-        new Thread(() -> {
+        new Thread(Doorwerken.door("bank-link-import", () -> {
             java.util.List<Bank.Bestand> l = new java.util.ArrayList<>();
             l.add(new Bank.Bestand(n, b));
             String uit;
@@ -276,7 +276,7 @@ public class BankLinkActivity extends Activity {
             }
             Bank.laatsteKoppeling = uit;
             App.log(getApplicationContext(), "BANK", "automatisch");
-        }, "bank-link-import").start();
+        }), "bank-link-import").start();
     }
 
     void einde(String tekst, boolean ok) {

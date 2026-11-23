@@ -60,6 +60,16 @@ final class Bank {
     /** Bestanden kiezen telt hooguit 2 minuten als "binnen de app" (daarna gewoon op slot als de app uit beeld gaat). */
     static volatile long pickingAt = 0;
     static boolean kiest() { return picking && System.currentTimeMillis() - pickingAt < 120_000L; }
+    /**
+     * Een inlezen dat begon terwijl Bankzaken open was, mag afmaken als Bankzaken intussen op slot ging (scherm uit, app uit
+     * beeld): het bewaart alleen versleuteld en toont niets. De sleutel zelf werkt alleen kort na het ontgrendelen van de
+     * telefoon; is die verlopen, dan mislukt het alsnog.
+     */
+    private static final ThreadLocal<Boolean> DOOR = new ThreadLocal<>();
+    /** Alleen voor de draad die inleest (niet voor het scherm of iets anders dat intussen iets vraagt). */
+    static boolean inlezenBegin() { if (!isOpen()) return false; DOOR.set(Boolean.TRUE); return true; }
+    static void inlezenKlaar() { DOOR.remove(); }
+    private static boolean magInlezen() { return isOpen() || Boolean.TRUE.equals(DOOR.get()); }
     /** Versie van de opgeslagen gegevens: een opslag vanuit het scherm met een oudere versie wordt geweigerd (geen import kwijt). */
     static volatile long rev = 0;
     /** De sleutel bestaat nog, maar is door de telefoon ongeldig gemaakt (schermvergrendeling gewijzigd). */
@@ -215,7 +225,7 @@ final class Bank {
     /** De ontsleutelde gegevens als JSON-tekst; "" als er nog niets is. */
     static String load(Context c) throws Exception {
         synchronized (LOCK) {
-            if (!isOpen()) throw new Exception("Bankzaken is op slot");
+            if (!magInlezen()) throw new Exception("Bankzaken is op slot");
             if (!hasData(c)) return "";
             File f = data(c);
             if (f.length() > 200L * 1024 * 1024) throw new Exception("Bankgegevens zijn te groot");
@@ -253,7 +263,7 @@ final class Bank {
     /** Versleuteld opslaan: eerst volledig schrijven en teruglezen, pas dan het oude bestand vervangen. */
     private static void save(Context c, String json) throws Exception {
         synchronized (LOCK) {
-            if (!isOpen()) throw new Exception("Bankzaken is op slot");
+            if (!magInlezen()) throw new Exception("Bankzaken is op slot");
             byte[] plain = json.getBytes(StandardCharsets.UTF_8);
             SecretKey k = key(c);
             byte[] blob = BankCrypt.encrypt(plain, k);
@@ -330,7 +340,7 @@ final class Bank {
     /** Inlezen, samenvoegen met wat er is en versleuteld opslaan. fouten (mag null) = per bestand al een leesfout. */
     static JSONObject importeer(Context c, java.util.List<Bestand> lijst, java.util.List<String> fouten) throws Exception {
         synchronized (LOCK) {
-            if (!isOpen()) throw new Exception("Bankzaken ging op slot; ontgrendel en probeer opnieuw");
+            if (!magInlezen()) throw new Exception("Bankzaken ging op slot; ontgrendel en probeer opnieuw");
             String cur = load(c);
             JSONObject store = cur.isEmpty() ? new JSONObject().put("v", 1) : new JSONObject(cur);
             org.json.JSONArray files = new org.json.JSONArray();

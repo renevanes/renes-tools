@@ -326,7 +326,7 @@ public class MainActivity extends Activity {
         // Net teruggezet na een herinstallatie: alles opnieuw inplannen en de modellen weer downloaden
         if (!isSolo() && !Updater.viaPlay(this)) {
             final Context app = getApplicationContext();
-            new Thread(() -> { try { Herstel.afterRestart(app); Herstel.resumeModels(app); } catch (Throwable t) { App.log(app, "HERSTEL", "na start: " + t); } }, "herstel-start").start();
+            new Thread(Doorwerken.door("herstel-start", () -> { try { Herstel.afterRestart(app); Herstel.resumeModels(app); } catch (Throwable t) { App.log(app, "HERSTEL", "na start: " + t); } }), "herstel-start").start();
         }
 
         LinearLayout root = new LinearLayout(this);
@@ -557,6 +557,7 @@ public class MainActivity extends Activity {
         // Losse kluis zonder app-slot: niet meeliften op een kluis die in de app (of eerder) is geopend.
         if (isSoloKluis() && Kluis.isOpen() && !kluisMine()) Kluis.close(this);
         applySecure();
+        if (cmp != null) cmp.blijf(); // terug vóór een lopende vergelijking klaar was: de kluisdocumenten mogen blijven
         if (web == null) return;
         boolean slot = slotCover;
         if (ToolSlot.teLang(wegIntern, wegOp, android.os.SystemClock.elapsedRealtime())) {
@@ -586,7 +587,10 @@ public class MainActivity extends Activity {
         if (!wegIntern && toolScreen && web != null) { themeChanged(); coverOn(); slotCover = true; } // bij terugkomen geen flits van de tool
         if (!wegIntern) {
             // Uit de app: ontsleutelde kluisdocumenten bij Vergelijken en klaargezette kaartfoto's niet laten liggen
-            if (cmp.dropKluis()) { try { js("onCmp", cmp.info().put("kluisWeg", true).toString()); } catch (Exception ignored) { } }
+            // (loopt er een vergelijking, dan maakt die het eerst af, ook met het scherm uit; daarna gaan ze alsnog weg)
+            final PdfCompare c = cmp;
+            Runnable meld = () -> { try { if (c == cmp) js("onCmp", c.info().put("kluisWeg", true).toString()); } catch (Exception ignored) { } };
+            if (c.dropKluis(meld)) meld.run();
             idMasterClear();
             bronWacht = null; Bron.vergeetKluis(); // klaargezette kluisdocumenten niet meer te lezen
             if (!PdfTools.inKluis.isEmpty()) { // een kluisdocument in de PDF-bewerker: de leesbare kopie ook weg
@@ -1064,7 +1068,7 @@ public class MainActivity extends Activity {
                 js("onCpapImport", "{\"cancelled\":true}");
                 return;
             }
-            new Thread(() -> {
+            new Thread(Doorwerken.door("myair-import", () -> {
                 try {
                     java.io.InputStream input = getContentResolver().openInputStream(uri);
                     if (input == null) throw new java.io.IOException();
@@ -1073,7 +1077,7 @@ public class MainActivity extends Activity {
                 } catch (Throwable e) {
                     js("onCpapImport", "{\"error\":true}");
                 }
-            }, "myair-import").start();
+            }), "myair-import").start();
             return;
         }
         if (req == REQ_SIG_IMG) {
@@ -1081,12 +1085,12 @@ public class MainActivity extends Activity {
             if ("sig".equals(masterPickKind)) masterPickReturned = masterPickUntil != 0;
             final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
             if (u == null) { js("onSignatureImage", "{\"cancelled\":true}"); return; }
-            new Thread(() -> {
+            new Thread(Doorwerken.door("sig-image", () -> {
                 String r;
                 try (Voortgang v = Voortgang.van(this, "handtekening", 1)) { r = new JSONObject().put("image", PdfSignatureImage.load(this, u, v)).toString(); }
                 catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(e instanceof PdfSignatureImage.Fout ? e.getMessage() : "Deze afbeelding kan niet worden geopend") + "}"; }
                 js("onSignatureImage", r);
-            }, "sig-image").start();
+            }), "sig-image").start();
             return;
         }
         if (req == BetalenBridge.REQ_BESTAND) { BetalenBridge.opBestand(this, res == RESULT_OK && data != null ? data.getData() : null); return; }
@@ -1094,7 +1098,7 @@ public class MainActivity extends Activity {
             final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
             if (u == null) { js("onFacturenToegevoegd", "{\"error\":\"\"}"); return; }
             final String levId = factLevId, levNaam = factLevNaam;
-            new Thread(() -> {
+            new Thread(Doorwerken.door("facturen-toevoegen", () -> {
                 String r;
                 try {
                     String naam = "";
@@ -1110,7 +1114,7 @@ public class MainActivity extends Activity {
                     }
                 } catch (Throwable e) { r = "{\"error\":" + org.json.JSONObject.quote(Facturen.kort(e)) + "}"; }
                 js("onFacturenToegevoegd", r);
-            }, "facturen-toevoegen").start();
+            }), "facturen-toevoegen").start();
             return;
         }
         if (req == REQ_GOOGLE_ACC) {
@@ -1198,12 +1202,12 @@ public class MainActivity extends Activity {
             // het venster is tijdens het kiezen opnieuw gemaakt: niet stil blijven
             if (soort == null || (!lezen && klaar == null)) { js("onOpml", OpmlWerk.antwoord(soort, lezen, 0, 0, 0, Taal.tx(c, Taal.T("Dat lukte niet. Probeer het nog een keer.")))); return; }
             if (lezen) js("onOpmlBezig", JSONObject.quote(soort));
-            new Thread(() -> {
+            new Thread(Doorwerken.door("opml", () -> {
                 String r;
                 try { r = lezen ? OpmlWerk.lees(c, soort, u) : OpmlWerk.bewaar(c, soort, u, klaar); }
                 catch (Throwable e) { r = OpmlWerk.antwoord(soort, lezen, 0, 0, 0, Taal.tx(c, OpmlWerk.melding(e, lezen ? Taal.T("Het bestand is niet te lezen") : Taal.T("Opslaan lukt niet")))); }
                 js("onOpml", r);
-            }, "opml").start();
+            }), "opml").start();
             return;
         }
         if (req == REQ_IMPORT) {
@@ -1211,7 +1215,7 @@ public class MainActivity extends Activity {
             if (res != RESULT_OK || data == null || data.getData() == null || kind == null) return;
             final Uri u = data.getData();
             if ("archive".equals(kind)) { pendingArchive = u; Secure.forget(); js("onArchivePicked", ""); return; }
-            new Thread(() -> {
+            new Thread(Doorwerken.door("restore-preview", () -> {
                 String r;
                 try (Voortgang v = Voortgang.van(this, "terugzetten", 1)) {
                     if (HerstelLos.BUSY.get()) throw new Exception("Er wordt al teruggezet; even geduld");
@@ -1223,7 +1227,7 @@ public class MainActivity extends Activity {
                     catch (Exception e2) { r = "{\"error\":\"Bestand niet te lezen\"}"; }
                 }
                 js("onRestorePreview", r);
-            }, "restore-preview").start();
+            }), "restore-preview").start();
             return;
         }
         if (req == REQ_PDF_VIEW) {
@@ -1235,7 +1239,7 @@ public class MainActivity extends Activity {
             final String id = kluisSaveId; final int version = kluisSaveVersion; kluisSaveId = "";
             if (res != RESULT_OK || data == null || data.getData() == null || id.isEmpty()) return;
             final Uri to = data.getData();
-            new Thread(() -> {
+            new Thread(Doorwerken.door("kluis-opslaan", () -> {
                 String r = "✓ Opgeslagen";
                 java.io.File tmp = new java.io.File(getCacheDir(), "kluistmp-" + Kluis.newId() + ".tmp"); // niet in de kijkmap (die kan intussen leeg)
                 try {
@@ -1248,13 +1252,13 @@ public class MainActivity extends Activity {
                 } catch (Throwable e) { r = e.getMessage() == null ? "Opslaan lukt niet" : e.getMessage(); }
                 finally { tmp.delete(); }
                 js("onKluisChanged", org.json.JSONObject.quote(r));
-            }, "kluis-opslaan").start();
+            }), "kluis-opslaan").start();
             return;
         }
         if (req == REQ_CMP) {
             if (res != RESULT_OK || data == null || data.getData() == null) return;
             final Uri u = data.getData(); final int slot = cmpPickSlot; final PdfCompare store = cmp;
-            new Thread(() -> {
+            new Thread(Doorwerken.door("vergelijken-kiezen", () -> {
                 String r;
                 try (Voortgang v = Voortgang.van(this, "vergelijken", 1)) {
                     java.io.File f = store.work(getApplicationContext());
@@ -1263,7 +1267,7 @@ public class MainActivity extends Activity {
                     r = store.set(slot, f, PdfTools.base(PdfTools.displayName(getApplicationContext(), u)), "", 0).put("slot", slot).toString();
                 } catch (Throwable e) { r = PdfTools.err(e); }
                 if (store == cmp) js("onCmp", r);
-            }, "vergelijken-kiezen").start();
+            }), "vergelijken-kiezen").start();
             return;
         }
         if (req == REQ_ID_COPY) {
@@ -1274,13 +1278,13 @@ public class MainActivity extends Activity {
                 if (data.getClipData() != null) for (int i = 0; i < data.getClipData().getItemCount() && i <= IdCopy.MAX_PAGES; i++) uris.add(data.getClipData().getItemAt(i).getUri());
                 else if (data.getData() != null) uris.add(data.getData());
             }
-            new Thread(() -> {
+            new Thread(Doorwerken.door("id-copy-pick", () -> {
                 String result;
                 try (Voortgang v = Voortgang.van(this, "idkopie", uris.size())) { result = store.add(getApplicationContext(), uris, v).put("session", session).toString(); }
                 catch (Throwable e) { result = PdfTools.err(e); }
                 try { result = new org.json.JSONObject(result).put("session", session).toString(); } catch (Exception ignored) { }
                 if (store == idCopy && idScreen) js("onIdCopyPicked", result);
-            }, "id-copy-pick").start();
+            }), "id-copy-pick").start();
             return;
         }
         if (req == REQ_PDF_IMG || req == REQ_PDF_FILE || req == REQ_PDF_SAVE || req == REQ_PDF_DOC) {
@@ -1291,11 +1295,11 @@ public class MainActivity extends Activity {
             if (us.isEmpty()) return;
             final Context app = getApplicationContext();
             final String saveName = pdfSaveName != null ? pdfSaveName : getSharedPreferences("pdf", MODE_PRIVATE).getString("saveName", null);
-            new Thread(() -> {
+            new Thread(Doorwerken.door("pdf-pick", () -> {
                 // Opslaan als schrijft alleen weg; bij toevoegen de balk onderin (bestand 2 van 5 …).
                 try (Voortgang v = req == REQ_PDF_SAVE ? Voortgang.GEEN : Voortgang.van(this, "pdf", us.size())) { js("onPdf", FeatureBridge.pdfResult(app, req, us, saveName, v)); }
                 catch (Throwable e) { js("onPdf", PdfTools.err(e)); }
-            }, "pdf-pick").start();
+            }), "pdf-pick").start();
             return;
         }
         if (req == EreaderBridge.REQ_BOOK) {
@@ -1317,12 +1321,12 @@ public class MainActivity extends Activity {
         if (req == REQ_KLUIS) {
             if (res != RESULT_OK || data == null || data.getData() == null) return;
             final Uri u = data.getData();
-            new Thread(() -> {
+            new Thread(Doorwerken.door("kluis-add", () -> {
                 String r;
                 try (Voortgang v = Voortgang.van(this, "kluis", 1)) { if (!kluisOk()) throw new Exception("De kluis is weer op slot"); Kluis.add(getApplicationContext(), u, v); r = "ok"; }
                 catch (Throwable e) { r = e instanceof OutOfMemoryError ? "Bestand is te groot" : e.getMessage() == null ? "Toevoegen lukt niet" : e.getMessage(); }
                 js("onKluisChanged", JSONObject.quote(r));
-            }, "kluis-add").start();
+            }), "kluis-add").start();
             return;
         }
         if (req == REQ_RECTREE) {
@@ -1870,7 +1874,7 @@ public class MainActivity extends Activity {
             if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map (bij WhatsApp backup)";
             smsBusy = true;
             Sms.prefs(ctx).edit().putString("status", "{\"running\":true,\"done\":0,\"total\":0}").apply();
-            new Thread(() -> {
+            new Thread(Doorwerken.door("sms-export", () -> {
                 String err = null; int n = 0;
                 try {
                     n = Sms.export(ctx, (done, total) -> {
@@ -1887,7 +1891,7 @@ public class MainActivity extends Activity {
                     } catch (Exception ignored) { }
                     smsBusy = false;
                 }
-            }, "sms-export").start();
+            }), "sms-export").start();
             return "";
         }
 
@@ -1928,7 +1932,7 @@ public class MainActivity extends Activity {
             if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map (bij WhatsApp backup)";
             callsBusy = true;
             Calls.prefs(ctx).edit().putString("status", "{\"running\":true,\"done\":0,\"total\":0}").apply();
-            new Thread(() -> {
+            new Thread(Doorwerken.door("calls-export", () -> {
                 String err = null; int n = 0;
                 try {
                     n = Calls.export(ctx, filterJson, (done, total) -> {
@@ -1945,7 +1949,7 @@ public class MainActivity extends Activity {
                     } catch (Exception ignored) { }
                     callsBusy = false;
                 }
-            }, "calls-export").start();
+            }), "calls-export").start();
             return "";
         }
 
@@ -2007,12 +2011,12 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String historyExport() {
             if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map";
             if (NotificationHistory.exporting.get()) return "Er loopt al een meldingen-export";
-            new Thread(App.veilig(() -> {
+            new Thread(Doorwerken.door("history-export", App.veilig(() -> {
                 String result;
                 try { int n = NotificationHistory.export(ctx); result = n < 0 ? "Nog geen meldingen om te exporteren" : "✓ " + n + " meldingen geëxporteerd naar Meldingen backup"; }
                 catch (Exception e) { result = e.getMessage() == null ? "Meldingen exporteren mislukt" : e.getMessage(); }
                 a.js("onHistoryExport", JSONObject.quote(result));
-            }), "history-export").start();
+            })), "history-export").start();
             return "";
         }
 
@@ -2240,12 +2244,12 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String recorderExport(String id) {
             try { CallRecordings.resolve(ctx, id); } catch (Exception e) { return "Opname niet gevonden"; }
             if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map";
-            new Thread(App.veilig(() -> {
+            new Thread(Doorwerken.door("recording-export", App.veilig(() -> {
                 String result;
                 try { CallRecordings.export(ctx, id); result = "✓ Opname geëxporteerd naar Gespreksopnames"; }
                 catch (Exception e) { result = "Opname exporteren mislukt; controleer de backup-map"; }
                 a.js("onRecorderMessage", JSONObject.quote(result));
-            }), "recording-export").start();
+            })), "recording-export").start();
             return "";
         }
 
@@ -2784,7 +2788,7 @@ public class MainActivity extends Activity {
         /** Lijst als OPML bewaren op een plek die Rene kiest. soort = podcasts of nieuws. Antwoord via onOpml. */
         @JavascriptInterface public void opmlExport(String soort) {
             if (!OpmlWerk.soortGoed(soort)) return;
-            new Thread(() -> {
+            new Thread(Doorwerken.door("opml-maak", () -> {
                 try {
                     final byte[] xml = OpmlWerk.maak(ctx, soort);
                     final Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("text/x-opml").putExtra(Intent.EXTRA_TITLE, OpmlWerk.bestandsnaam(soort));
@@ -2794,7 +2798,7 @@ public class MainActivity extends Activity {
                         catch (Exception e) { a.opmlKlaar = null; a.js("onOpml", OpmlWerk.antwoord(soort, false, 0, 0, 0, Taal.tx(ctx, Taal.T("Bestandskiezer niet beschikbaar")))); }
                     });
                 } catch (Throwable e) { a.js("onOpml", OpmlWerk.antwoord(soort, false, 0, 0, 0, Taal.tx(ctx, OpmlWerk.melding(e, Taal.T("Exporteren lukt niet"))))); }
-            }, "opml-maak").start();
+            }), "opml-maak").start();
         }
         /** Een OPML-bestand kiezen en de feeds eruit toevoegen. Antwoord via onOpml. */
         @JavascriptInterface public void opmlImport(String soort) {
@@ -2809,7 +2813,7 @@ public class MainActivity extends Activity {
 
         /** Check-in als leesbaar CSV-bestand bewaren op een plek die Rene kiest (de interface waarschuwt vooraf). Antwoord via onCheckinExport: {n} of {error}. */
         @JavascriptInterface public void checkinExport() {
-            new Thread(() -> {
+            new Thread(Doorwerken.door("checkin-csv-maak", () -> {
                 try {
                     org.json.JSONArray qs, as, rs;
                     synchronized (CheckinStore.class) { qs = CheckinStore.questions(ctx); as = CheckinStore.answers(ctx); rs = CheckinStore.remarks(ctx); }
@@ -2824,7 +2828,7 @@ public class MainActivity extends Activity {
                         catch (Exception e) { a.checkinKlaar = null; a.js("onCheckinExport", CheckinStore.err(Taal.tx(ctx, Taal.T("Bestandskiezer niet beschikbaar"))).toString()); }
                     });
                 } catch (Throwable e) { App.log(ctx, "CHECKIN", "csv maken: " + e.getClass().getSimpleName()); a.js("onCheckinExport", CheckinStore.err(Taal.tx(ctx, Taal.T("Exporteren lukt niet"))).toString()); }
-            }, "checkin-csv-maak").start();
+            }), "checkin-csv-maak").start();
         }
 
         // ----- Alles back-uppen en terugzetten -----
@@ -2898,18 +2902,18 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void archiveOpen(String pw) {
             final Uri u = a.pendingArchive;
-            new Thread(App.veilig(() -> {
+            new Thread(Doorwerken.door("archive", App.veilig(() -> {
                 String r;
                 try { r = Secure.open(ctx, u, pw).toString(); }
                 catch (Exception e) { r = errJson(e); }
                 a.js("onArchive", r);
-            }), "archive").start();
+            })), "archive").start();
         }
 
         /** Contacten of notities uit het geopende archief: daarna hetzelfde overzicht als bij gewoon terugzetten. */
         @JavascriptInterface public void archiveRestore(String kind, String entry) {
             if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "tooldata", "transcripts", "music", "ai", "sleep", "checkin").contains(kind)) return;
-            new Thread(() -> {
+            new Thread(Doorwerken.door("archive-restore", () -> {
                 String r;
                 try {
                     if (HerstelLos.BUSY.get()) throw new Exception("Er wordt al teruggezet; even geduld");
@@ -2922,17 +2926,17 @@ public class MainActivity extends Activity {
                 catch (Throwable e) { r = "{\"error\":\"Terugzetten mislukt\"}"; }
                 finally { Secure.forget(); a.pendingArchive = null; } // sleutel niet langer in het geheugen dan nodig
                 a.js("onRestorePreview", r);
-            }, "archive-restore").start();
+            }), "archive-restore").start();
         }
 
         @JavascriptInterface public void archiveUnpack() {
-            new Thread(App.veilig(() -> {
+            new Thread(Doorwerken.door("archive-unpack", App.veilig(() -> {
                 String r;
                 try { r = "ok:" + Secure.unpack(ctx); }
                 catch (Exception e) { r = e.getMessage() != null ? e.getMessage() : "Uitpakken mislukt"; App.log(ctx, "SECURE", "uitpakken: " + e); }
                 finally { Secure.forget(); a.pendingArchive = null; }
                 a.js("onArchiveUnpacked", JSONObject.quote(r));
-            }), "archive-unpack").start();
+            })), "archive-unpack").start();
         }
 
         @JavascriptInterface public void archiveClose() {
@@ -2970,11 +2974,11 @@ public class MainActivity extends Activity {
 
         /** Versleutelde backups in de backup-map; uitkomst via onHerstelScan. */
         @JavascriptInterface public void herstelScan() {
-            new Thread(() -> {
+            new Thread(Doorwerken.door("herstel-scan", () -> {
                 String r;
                 try { r = Herstel.scan(ctx).toString(); } catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(WaBackup.folderMsg(ctx, e instanceof Exception ? (Exception) e : new Exception("Map niet te lezen"))) + "}"; }
                 a.js("onHerstelScan", r);
-            }, "herstel-scan").start();
+            }), "herstel-scan").start();
         }
 
         // ----- Backup-map controleren en opruimen -----
@@ -3007,19 +3011,19 @@ public class MainActivity extends Activity {
 
         /** Alles uit de gewone onderdelen terugzetten (alleen wat ontbreekt); voortgang via onHerstelLosStep, uitkomst via onHerstelLosDone. */
         @JavascriptInterface public void herstelLosApply() {
-            new Thread(() -> {
+            new Thread(Doorwerken.door("herstel-los", () -> {
                 String r;
                 try {
                     r = HerstelLos.apply(ctx, (kind, done, total) -> a.js("onHerstelLosStep", JSONObject.quote(kind + "," + done + "," + total))).toString();
                 }
                 catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(AppData.safeMsg(e, "Terugzetten mislukt")) + "}"; }
                 a.js("onHerstelLosDone", r);
-            }, "herstel-los").start();
+            }), "herstel-los").start();
         }
 
         /** Backup openen, helemaal controleren en klaarzetten (er verandert nog niets); voortgang via onHerstelProgress, uitkomst via onHerstelOpened. */
         @JavascriptInterface public void herstelOpen(String name, String pw) {
-            new Thread(() -> {
+            new Thread(Doorwerken.door("herstel-open", () -> {
                 String r;
                 try {
                     final long[] last = {0};
@@ -3033,7 +3037,7 @@ public class MainActivity extends Activity {
                 catch (OutOfMemoryError e) { r = "{\"error\":\"Te weinig geheugen om deze backup te openen\"}"; }
                 catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(AppData.safeMsg(e, "Openen mislukt: de backup is niet te lezen")) + "}"; }
                 a.js("onHerstelOpened", r);
-            }, "herstel-open").start();
+            }), "herstel-open").start();
         }
 
         /** Losse onderdelen uit een backup zonder appgegevens (de bestaande manier, alleen toevoegen). */
@@ -3048,7 +3052,7 @@ public class MainActivity extends Activity {
 
         /** Alles terugzetten (vervangt wat er staat) en de app opnieuw starten; bij een fout onHerstelDone(melding). */
         @JavascriptInterface public void herstelApply() {
-            new Thread(() -> {
+            new Thread(Doorwerken.door("herstel-apply", () -> {
                 String r = Herstel.busyReason();
                 boolean restart = false;
                 if (r != null) { a.js("onHerstelDone", JSONObject.quote(r)); return; }
@@ -3059,7 +3063,7 @@ public class MainActivity extends Activity {
                 finally { AllBackup.running.set(false); AllBackup.busy = false; } // (hoort bij de try: alleen na een gelukte tryBegin)
                 a.js("onHerstelDone", JSONObject.quote(r));
                 if (restart) a.h.postDelayed(() -> Herstel.restart(a), 1200);
-            }, "herstel-apply").start();
+            }), "herstel-apply").start();
         }
 
         @JavascriptInterface public void herstelCancel() {
@@ -3108,10 +3112,10 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String backupStart(boolean withWa) {
             if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map";
             if (!AllBackup.tryBegin()) return "Er loopt al een backup";
-            new Thread(App.veilig(() -> {
+            new Thread(Doorwerken.door("allbackup", App.veilig(() -> {
                 org.json.JSONObject r = AllBackup.run(ctx, false);
                 a.js("onBackupDone", r.toString());
-            }), "allbackup").start();
+            })), "allbackup").start();
             if (withWa) {
                 String w = waStart("all", WaBackup.ALL);
                 if (!w.isEmpty()) return "WhatsApp: " + w;
@@ -3145,12 +3149,12 @@ public class MainActivity extends Activity {
             if (HerstelLos.BUSY.get()) return "Er wordt al teruggezet; even geduld";
             if ("contacts".equals(Restore.pendingKind) && ctx.checkSelfPermission(Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED)
                 return "Geef eerst toestemming om contacten te wijzigen";
-            new Thread(() -> {
+            new Thread(Doorwerken.door("restore", () -> {
                 String r;
                 try { r = "ok:" + Restore.apply(ctx); }
                 catch (Throwable e) { r = e instanceof OutOfMemoryError ? "Bestand is te groot voor deze telefoon" : e.getMessage() != null ? e.getMessage() : "Terugzetten mislukt"; }
                 a.js("onRestoreDone", JSONObject.quote(r));
-            }, "restore").start();
+            }), "restore").start();
             return "";
         }
 

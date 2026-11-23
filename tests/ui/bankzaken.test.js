@@ -181,9 +181,16 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._bank.open = false; onToolSlotWeg(''); onResumeApp(); }); await pg.waitForTimeout(100);
     ok(await pg.evaluate(() => tsZichtbaar() && ts.tool === 'bank' && current === 'bank') && !(await pg.isVisible('#bk-los')), 'terug in de app: op slot (het slotscherm)');
 
+    // Een afschrift dat aan het inlezen was toen Bankzaken op slot ging (scherm uit): Java maakt het af, de uitslag pas na ontgrendelen
+    await pg.evaluate(() => onBankImport({ bestanden: [{ naam: 'afschrift.csv', ok: true, sum: { bank: 'ING', nieuw: 3, dubbel: 0 } }] }));
+    await pg.waitForTimeout(100);
+    ok(!(await pg.isVisible('#modal.on')) && await pg.evaluate(() => !!bk.importUit), 'op slot: de uitslag wacht');
     // Weg uit Bankzaken: op slot en schermbeveiliging uit
     await pg.click('#ts-open'); await pg.waitForTimeout(250);
     ok(await pg.isVisible('#bk-los'), 'weer open');
+    await pg.waitForSelector('#modal.on', { timeout: 3000 }).catch(() => {});
+    ok((await tekst('#modal')).includes('3 nieuwe boekingen') && await pg.evaluate(() => !bk.importUit), 'na ontgrendelen: de uitslag van het inlezen');
+    await pg.click('#modal button:has-text("OK")'); await pg.waitForTimeout(200);
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => current) === 'home' && await pg.evaluate(() => !Android._bank.open && !Android._bank.secure && bk.store === null), 'weg uit Bankzaken: op slot, beveiliging uit, geheugen leeg');
 

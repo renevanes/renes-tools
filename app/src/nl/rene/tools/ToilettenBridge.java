@@ -135,7 +135,7 @@ public class ToilettenBridge extends MasterBridge {
     /** Nu scannen (id leeg = alle bronnen die aan staan); resultaat via onWcScan. */
     @JavascriptInterface public String wcScan(String id) {
         if (ToilettenScan.BEZIG.get()) return Taal.t(ctx, "Er loopt al een scan");
-        new Thread(() -> {
+        new Thread(Doorwerken.door("toiletten-scan", () -> {
             String r;
             try {
                 JSONArray l = ToilettenScan.scan(ctx, id == null ? "" : id, false);
@@ -144,7 +144,7 @@ public class ToilettenBridge extends MasterBridge {
             } catch (Throwable e) { r = fout(e, Taal.T("Scannen lukt niet")); }
             a.js("onWcScan", r);
             plan();
-        }, "toiletten-scan").start();
+        }), "toiletten-scan").start();
         return "";
     }
 

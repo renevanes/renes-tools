@@ -56,11 +56,11 @@ public class SpotifyBridge extends PlayerBridge {
     /** Nu een backup maken; antwoord via onSpotifyDone({…} of {error}). */
     /** plainOk: ook leesbaar in de backup-map als versleutelen aan staat (net bevestigd). */
     @JavascriptInterface public void spotifyBackup(boolean plainOk) {
-        new Thread(() -> {
+        new Thread(Doorwerken.door("spotify-backup", () -> {
             JSONObject r;
             try { r = Spotify.backup(ctx, plainOk); } catch (Throwable e) { r = new JSONObject(); try { r.put("error", msg(e, "Backup mislukt")); } catch (Exception ignored) { } }
             a.js("onSpotifyDone", r.toString());
-        }, "spotify-backup").start();
+        }), "spotify-backup").start();
     }
 
     /** De playlists uit de laatste backup (met aantallen). */
@@ -124,12 +124,12 @@ public class SpotifyBridge extends PlayerBridge {
 
     /** Terugzetten; mode "new" of "replace". Antwoord via onSpotifyRestored({…} of {error}). */
     @JavascriptInterface public void spotifyRestore(String id, String snap, String mode) {
-        new Thread(() -> {
+        new Thread(Doorwerken.door("spotify-restore", () -> {
             JSONObject r;
             try { r = Spotify.restore(ctx, id, snap, "replace".equals(mode) ? "replace" : "new"); }
             catch (Throwable e) { r = new JSONObject(); try { r.put("error", msg(e, "Terugzetten lukt niet")); } catch (Exception ignored) { } }
             a.js("onSpotifyRestored", r.toString());
-        }, "spotify-restore").start();
+        }), "spotify-restore").start();
     }
 
     /** Bibliotheek: per soort het aantal en hoeveel er uit Spotify verdween. */
@@ -167,12 +167,12 @@ public class SpotifyBridge extends PlayerBridge {
 
     /** Terug naar je Spotify-bibliotheek; mode "gone" of "all". Antwoord via onSpotifyLibRestored. */
     @JavascriptInterface public void spotifyLibRestore(String kind, String mode) {
-        new Thread(() -> {
+        new Thread(Doorwerken.door("spotify-lib-restore", () -> {
             JSONObject r;
             try { r = SpotifyLib.restore(ctx, kind, "all".equals(mode) ? "all" : "gone"); }
             catch (Throwable e) { r = new JSONObject(); try { r.put("error", msg(e, "Terugzetten lukt niet")); } catch (Exception ignored) { } }
             a.js("onSpotifyLibRestored", r.toString());
-        }, "spotify-lib-restore").start();
+        }), "spotify-lib-restore").start();
     }
 
     /** Het logboek van wijzigingen (nieuwste boven). */
@@ -182,11 +182,11 @@ public class SpotifyBridge extends PlayerBridge {
 
     /** Laatste backup uit de backup-map overnemen (nieuwe telefoon). Antwoord via onSpotifyImported. */
     @JavascriptInterface public void spotifyImport() {
-        new Thread(App.veilig(() -> {
+        new Thread(Doorwerken.door("spotify-import", App.veilig(() -> {
             JSONObject r = new JSONObject();
             try { r.put("count", Spotify.importFolder(ctx)); } catch (Exception e) { try { r.put("error", msg(e, "Overnemen lukt niet")); } catch (Exception ignored) { } }
             a.js("onSpotifyImported", r.toString());
-        }), "spotify-import").start();
+        })), "spotify-import").start();
     }
 
     /** Het adres om bij de developer app in te vullen, naar het klembord. */

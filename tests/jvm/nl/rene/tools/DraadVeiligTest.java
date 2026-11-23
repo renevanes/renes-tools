@@ -91,6 +91,7 @@ public class DraadVeiligTest {
     static boolean beschermd(String cls, String arg) {
         String a = arg.trim();
         if (a.startsWith("App.veilig(")) return true;
+        if (a.startsWith("Doorwerken.door(")) return true; // wikkelt het werk zelf in App.veilig
         if (a.matches("(?s)^\\(\\)\\s*->\\s*\\{.*")) return vangt(a);
         Matcher m = CALL.matcher(a);
         if (!m.find()) { m = REF.matcher(a); if (!m.find()) return false; }

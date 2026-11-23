@@ -131,7 +131,7 @@ public class BetalenBridge extends FeatureBridge {
     @JavascriptInterface public void betalenFoto(String dataUrl) {
         if (!mag() || dataUrl == null || dataUrl.length() > MAX_FOTO * 4 / 3 + 100 || !dataUrl.startsWith("data:image/jpeg;base64,")) { meld("{\"error\":" + JSONObject.quote(Taal.tx(ctx, Taal.T("Deze foto is niet te lezen"))) + "}"); return; }
         if (!BEZIG.compareAndSet(false, true)) { meld("{\"error\":" + JSONObject.quote(Taal.tx(ctx, Taal.T("Tools leest al een rekening"))) + "}"); return; }
-        new Thread(() -> {
+        new Thread(Doorwerken.door("betalen-foto", () -> {
             String r;
             File f = null;
             try (Voortgang v = Voortgang.van(a, "betalen", 1)) {
@@ -142,7 +142,7 @@ public class BetalenBridge extends FeatureBridge {
             } catch (Throwable t) { r = foutLezen(ctx, t); }
             finally { if (f != null) f.delete(); BEZIG.set(false); }
             meld(r);
-        }, "betalen-foto").start();
+        }), "betalen-foto").start();
     }
 
     /** Een PDF of afbeelding kiezen (of krijgen van Bron: kluis, Gemaakt, facturendossier). Antwoord via onBetalenHerkend. */
@@ -161,7 +161,7 @@ public class BetalenBridge extends FeatureBridge {
         if (u == null) { a.js("onBetalenHerkend", "{\"error\":\"\"}"); return; }
         final android.content.Context ctx = a.getApplicationContext();
         if (!BEZIG.compareAndSet(false, true)) { a.js("onBetalenHerkend", "{\"error\":" + JSONObject.quote(Taal.tx(ctx, Taal.T("Tools leest al een rekening"))) + "}"); return; }
-        new Thread(() -> {
+        new Thread(Doorwerken.door("betalen-bestand", () -> {
             String r;
             File f = null;
             try (Voortgang v = Voortgang.van(a, "betalen", 1)) {
@@ -174,7 +174,7 @@ public class BetalenBridge extends FeatureBridge {
             } catch (Throwable t) { r = foutLezen(ctx, t); }
             finally { if (f != null) f.delete(); BEZIG.set(false); }
             a.js("onBetalenHerkend", r);
-        }, "betalen-bestand").start();
+        }), "betalen-bestand").start();
     }
 
     private void meld(String json) { a.js("onBetalenHerkend", json); }
