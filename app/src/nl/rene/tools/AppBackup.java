@@ -656,8 +656,10 @@ final class AppBackup {
                 } catch (Exception ex) { App.log(c, "HERSTEL", "handtekening overgeslagen"); }
             }
             if (x.cpap != null) {
-                JSONObject cpap = CpapLog.normalize(new String(x.cpap, StandardCharsets.UTF_8));
-                Kluis.writeEncrypted(new File(st, CpapLog.FILE), cpap.toString().getBytes(StandardCharsets.UTF_8));
+                try { // een onleesbaar CPAP-logboek laat de rest van het terugzetten doorgaan, zoals de handtekening
+                    JSONObject cpap = CpapLog.normalize(new String(x.cpap, StandardCharsets.UTF_8));
+                    Kluis.writeEncrypted(new File(st, CpapLog.FILE), cpap.toString().getBytes(StandardCharsets.UTF_8));
+                } catch (Exception ex) { App.log(c, "HERSTEL", "cpap overgeslagen"); }
             }
             if (x.models != null) Contacts.writeText(new File(st, "modellen.json"), new String(x.models, StandardCharsets.UTF_8), false);
             if (x.state != null) Contacts.writeText(new File(st, "toestand.json"), new String(x.state, StandardCharsets.UTF_8), false);

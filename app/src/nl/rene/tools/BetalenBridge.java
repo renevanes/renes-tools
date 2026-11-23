@@ -300,8 +300,8 @@ public class BetalenBridge extends FeatureBridge {
         try { // om na te zoeken waarom een veld niet goed kwam; alleen in het geheugen (Diagnose)
             JSONObject kort = new JSONObject(uit.toString());
             kort.remove("beeld");
-            Diagnose.leg(c, "betalen", "Rekening gelezen", "Bron: " + bron + (pdf ? " (pdf, " + blz + " blz)" : " (afbeelding)") + "\nHerkend: " + kort
-                    + "\n\n--- Tekst ---\n" + tekst + "\n--- Woorden met hun plek (pagina regel x0 y0 x1 y1 woord) ---\n" + ruw);
+            Diagnose.leg(c, "betalen", "Rekening gelezen", Diagnose.zonderLinks("Bron: " + bron + (pdf ? " (pdf, " + blz + " blz)" : " (afbeelding)") + "\nHerkend: " + kort
+                    + "\n\n--- Tekst ---\n" + tekst + "\n--- Woorden met hun plek (pagina regel x0 y0 x1 y1 woord) ---\n" + ruw)); // geen betaallinks
         } catch (Throwable ignored) { }
         return uit;
     }

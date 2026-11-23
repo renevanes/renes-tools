@@ -51,6 +51,25 @@ final class Diagnose {
         return id;
     }
 
+    /** Webadressen (met of zonder https://, zoals een betaallink op een rekening) worden [link]: een betaallink hoort
+     *  niet in Diagnose. Per woord (tussen witruimte), dus lineair in de lengte van de tekst. */
+    private static final java.util.regex.Pattern LINK = java.util.regex.Pattern.compile(
+            "(?i)(?:.*?(?:https?://|www\\.).*|[^/]*?[\\w-]\\.[\\w-]+/.*)");
+    static String zonderLinks(String tekst) {
+        if (tekst == null) return "";
+        StringBuilder uit = new StringBuilder(tekst.length());
+        int n = tekst.length(), i = 0;
+        while (i < n) {
+            int b = i;
+            if (Character.isWhitespace(tekst.charAt(i))) { while (i < n && Character.isWhitespace(tekst.charAt(i))) i++; uit.append(tekst, b, i); continue; }
+            while (i < n && !Character.isWhitespace(tekst.charAt(i))) i++;
+            String w = tekst.substring(b, i);
+            boolean link = w.length() <= 4000 ? LINK.matcher(w).matches() : w.indexOf('/') >= 0 || w.contains("www.");
+            uit.append(link ? "[link]" : w);
+        }
+        return uit.toString();
+    }
+
     static String legAlleen(String tool, String titel, String tekst, long nu) {
         String t = tekst == null ? "" : tekst.length() > MAX_TEKENS ? tekst.substring(0, MAX_TEKENS) + "\n[afgekapt]" : tekst;
         String kop = titel == null ? "" : titel.replaceAll("[\\r\\n\\t]+", " ").trim();
