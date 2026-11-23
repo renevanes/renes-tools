@@ -99,7 +99,7 @@ final class MasterPhotos {
                 job.images=images;
                 job.found=found;
                 job.uri=null;
-                return new JSONObject().put("reviewId",job.reviewId).put("images",images);
+                return new JSONObject().put("reviewId",job.reviewId).put("images",images).put("herkend",found!=null);
             }
         }
     }
@@ -260,10 +260,20 @@ final class MasterPhotos {
             if("pair".equals(job.side)){
                 v.tijd("herkennen",MasterDocumentImages.SEARCH_MS);
                 MasterDocumentImages.Pair pair=null;
-                try{pair=MasterDocumentImages.findPair(activity,bytes,today,job.soort,active);}
-                catch(java.io.IOException|IllegalArgumentException|SecurityException ignored){ }
-                if(pair==null)throw new MasterError(Taal.T("De twee zijden konden niet worden ingedeeld. Kies een bestand met twee losse kaartfoto’s of voeg de zijden apart toe."));
+                JSONObject stats=new JSONObject();
+                try{pair=MasterDocumentImages.findPair(activity,bytes,today,job.soort,active,stats);}
+                catch(java.io.IOException|IllegalArgumentException|SecurityException e){stats.put("reden","niet te openen");}
+                catch(Throwable e){stats.put("reden","fout "+e.getClass().getSimpleName());} // (OutOfMemoryError e.d.: ook in het logboek)
+                // Alleen vaste woorden, aantallen en ja/nee: nooit namen, nummers of tekst uit het document.
+                App.log(activity,"STAMGEGEVENS","beide zijden ("+stats.optString("bron","?")+(job.virtual?", google":"")+"): "
+                    +(pair==null?"niet gelukt":pair.fields==null?"zonder herkenning":"herkend")+", reden "+stats.optString("reden","-")
+                    +", foto's "+stats.optInt("fotos")+(stats.optBoolean("pagina")?", pagina's als zijde":"")+(stats.has("paginas")?", pagina's "+stats.optInt("paginas"):"")+(stats.optBoolean("gesplitst")?", in tweeën":"")
+                    +", herkend "+(stats.optBoolean("herkendA")?"ja":"nee")+"/"+(stats.optBoolean("herkendB")?"ja":"nee"));
+                if(pair==null&&"verschillend".equals(stats.optString("reden")))throw new MasterError(Taal.T("De twee zijden lijken van verschillende ID-bewijzen te zijn. Kies een bestand met de voor- en achterkant van hetzelfde ID-bewijs."));
+                if(pair==null&&("niet te openen".equals(stats.optString("reden"))||stats.optString("reden").startsWith("fout ")))throw new MasterError(Taal.T("Dit document kan niet worden geopend. Kies een leesbare PDF of een Word-document (.docx)."));
+                if(pair==null)throw new MasterError(Taal.T("Geen twee zijden gevonden. Kies een PDF met beide zijden (op één of twee pagina's) of een Word-bestand of Google-document met twee foto's, of voeg de zijden apart toe."));
                 u.images=new JSONObject().put("front",normalize(pair.front)).put("back",normalize(pair.back));u.found=pair.fields;
+                u.diag=new JSONObject().put("herkend",pair.fields!=null).put("pagina",pair.pagina);
                 return u;
             }
             boolean document="scan".equals(job.side)&&(MasterDocumentImages.pdf(bytes)||MasterDocumentImages.zip(bytes));
@@ -301,7 +311,7 @@ final class MasterPhotos {
         if(u.error!=null)throw new MasterError(u.error);
         if(job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kies de kaartfoto opnieuw vanuit Stamgegevens"));
         session.require(token);
-        if("pair".equals(job.side))return review(job,token,u.images,u.found);
+        if("pair".equals(job.side))return review(job,token,u.images,u.found).put("pagina",u.diag!=null&&u.diag.optBoolean("pagina"));
         // Herkennen uit foto (bij een persoon): een nieuw document met deze foto als bijlage, daarna voorstellen.
         if("scan".equals(job.side)){
             String type=u.found==null?job.soort:u.found.getJSONObject("document").optString("documentsoort",job.soort);

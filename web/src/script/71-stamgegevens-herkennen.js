@@ -64,9 +64,14 @@ function cmhPairPreview(photo){
   const redraw=()=>pictures.forEach((image,i)=>image.src=images[sides[swapped?1-i:i]]);
   const swap=document.createElement('button');swap.className='big ghost';swap.type='button';
   swap.textContent=t('Wissel voor- en achterkant');swap.onclick=()=>{swapped=!swapped;redraw();};
-  preview.append(swap);preview.hidden=false;redraw();
+  preview.append(swap);
+  // Uit (halve) pagina's: daarop kan meer staan dan het ID-bewijs (zichtbaar, want het gaat om een veilige keuze)
+  if(photo.pagina===true){const w=document.createElement('p');w.className='hint';w.id='cmh-pair-pagina';w.textContent=t('Dit zijn (halve) pagina’s uit het document. Staat er meer op dan het ID-bewijs, zoals gegevens van iemand anders? Bewaar dan niet en voeg de zijden apart toe als foto.');preview.prepend(w);}
+  preview.hidden=false;redraw();
   const clear=()=>{preview.hidden=true;preview.replaceChildren();};
-  askConfirm('Controleer beide zijden','Controleer of de foto’s van hetzelfde ID-bewijs zijn en bij de juiste zijde staan.','Beide zijden bewaren',()=>{
+  askConfirm('Controleer beide zijden',photo.herkend===false
+    ?t('Er zijn geen gegevens herkend; die vul je daarna zelf in. Controleer of de foto’s van hetzelfde ID-bewijs zijn en bij de juiste zijde staan.')
+    :'Controleer of de foto’s van hetzelfde ID-bewijs zijn en bij de juiste zijde staan.','Beide zijden bewaren',()=>{
     clear();
     if(!cmOpen()){cmiPhotoCancel();return;}
     cmBusy(true);

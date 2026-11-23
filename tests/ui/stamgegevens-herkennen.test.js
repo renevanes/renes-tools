@@ -70,7 +70,9 @@ for(const colorScheme of ['light','dark']){
   assert.ok(await p.evaluate(()=>Android._cm.events.some(e=>e.action==='photo_scan')),'herkennen vanaf foto in het logboek');
   // Tijdens het verwerken op slot gegaan (scherm uit): het verwerken gaat door en na ontgrendelen wordt de foto alsnog bewaard.
   const doc2=await p.evaluate(()=>Android._cm.records.filter(r=>r.type==='identiteit').pop().id);
-  const openDoc2=async()=>{await p.evaluate(()=>{cm.dirty=false;cmCancelEdit();});await p.waitForFunction(()=>cm.recordsReady&&cmOpen()&&!cm.mutating);await p.evaluate(id=>cmEdit(id,'fotos'),doc2);await p.waitForFunction(id=>cm.edit&&cm.edit.id===id&&cm.tab==='fotos',doc2);};
+  const openDoc2=async()=>{await p.evaluate(()=>{cm.dirty=false;cmCancelEdit();});await p.waitForFunction(()=>cm.recordsReady&&cmOpen()&&!cm.mutating&&!cm.navigating);
+    // (een openen dat nog afrondt kan cmEdit inhalen: opnieuw tot het document op Foto's staat)
+    await p.waitForFunction(id=>{if(cm.edit&&cm.edit.id===id&&cm.tab==='fotos')return true;if(!cm.navigating&&!cm.mutating)cmEdit(id,'fotos');return false;},doc2,{polling:300});};
   await openDoc2();await p.evaluate(()=>{Android._cm.slowPick=false;Android._cm.lateLock=true;});
   await p.evaluate(id=>{const r=Android._cm.records.find(r=>r.id===id);if(r.images)delete r.images.back;},doc2);
   await p.evaluate(()=>cmiPhotoPick('back'));await p.waitForFunction(()=>!cmOpen());
@@ -79,6 +81,8 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>Android._cm.lateLock=false);
   await p.waitForFunction(()=>tsZichtbaar());assert.match(await p.textContent('#ts-msg'),/nog verwerkt/,'het slotscherm zegt dat het wacht');
   await p.click('#ts-open');await p.waitForFunction(id=>cmOpen()&&cm.recordsReady&&!!Android._cm.records.find(r=>r.id===id).images?.back&&!cmi.photoRequest,doc2);
+  // het bewaren opent daarna het document met de voorstellen: eerst dat afwachten
+  await p.waitForFunction(id=>current==='cmedit'&&cm.edit?.id===id&&!$('#cmh-panel').hidden&&!cm.navigating&&!cm.mutating,doc2);
   assert.equal(await p.isVisible('#cmi-photo-pending'),false,'geen hangende fotokeuze');
   await openDoc2();await p.evaluate(()=>cmiPhotoPick('back'));await p.waitForFunction(()=>cm.edit?.images?.back&&!$('#cmh-panel').hidden);
   // 4. Vergrendelen wist voorstellen.
@@ -102,6 +106,7 @@ for(const colorScheme of ['light','dark']){
   await p.getByRole('button',{name:'Document met beide zijden kiezen',exact:true}).click();
   await p.waitForSelector('#cmh-pair-preview img');
   assert.equal(await p.evaluate(()=>Android._cm.records.length),count,'preview does not save a document');
+  assert.doesNotMatch(await p.textContent('#modal-text'),/geen gegevens herkend/,'herkend: geen uitleg over zelf invullen');
   const back=await p.locator('#cmh-pair-preview img').last().getAttribute('src');
   await p.getByRole('button',{name:'Wissel voor- en achterkant'}).click();
   assert.equal(await p.locator('#cmh-pair-preview img').first().getAttribute('src'),back);

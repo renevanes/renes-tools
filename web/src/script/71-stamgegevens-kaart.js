@@ -280,7 +280,7 @@ function cmcDocHow(person,soort){
   const title=t(CMC_SOORTEN.find(x=>x[0]===soort)[1]);
   const actions=[[t('Foto of document kiezen'),()=>cmhScanPick(person,soort),'camera']];
   if(soort!=='paspoort'&&typeof Android.masterScanPairPick==='function'){
-    bestanden=t('Voor beide zijden kies je een Word-bestand met twee losse foto’s of een PDF met twee ingesloten JPEG-foto’s.');
+    bestanden=t('Voor beide zijden kies je een PDF (beide zijden op één of twee pagina’s) of een Word-bestand of Google-document met twee foto’s.');
     actions.push([t('Document met beide zijden kiezen'),()=>cmhScanPick(person,soort,true),'document']);
   }
   actions.push([t('Zelf invullen'),()=>cmiDocNew(person,soort),'edit']);
