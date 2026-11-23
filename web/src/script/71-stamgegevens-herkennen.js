@@ -259,4 +259,7 @@ function cmhDismiss(){if(cm.mutating)return;cmh.data=null;cmh.epoch++;$('#cmh-pa
 const cmhAfterEdit=cmAfterEdit;cmAfterEdit=function(saved,savedId){cmh.data=null;cmh.hulp=null;cmh.epoch++;$('#cmh-panel').hidden=true;$('#cmh-list').replaceChildren();cmhReviewState();cmhAfterEdit(saved,savedId);};
 const cmhClear=cmClearCentral;cmClearCentral=function(){cmh.data=null;cmh.hulp=null;$('#cmh-hulp').hidden=true;cmh.current=null;cmh.reveal=false;cmh.photoBusy=false;cmh.back=null;cmh.epoch++;cmh.scanEpoch++;cmh.scanBusy=false;$('#cmh-list').replaceChildren();$('#cmh-panel').hidden=true;cmhReviewState();cmhClear();};
 // Herkennen kan even duren na het ontgrendelen: zeg dat.
-const cmhUnlock=cmUnlock;cmUnlock=function(){cmhUnlock();if(cmi.photoRequest&&cm.unlocking&&!$('#cmi-photo-pending').hidden)cmNote(t('De foto wordt verwerkt zodra Stamgegevens open is; dat kan een paar seconden duren.'));};
+const cmhUnlock=cmUnlock;cmUnlock=function(){cmhUnlock();if(cmi.photoRequest&&cm.unlocking&&!$('#cmi-photo-pending').hidden)cmNote(t('Bezig met verwerken; daarna wordt het bewaard. Dat kan even duren.'));};
+/* Zelf vergrendelen of Stamgegevens verlaten breekt het verwerken af (Java: cancel); dan ook geen kaart "wordt nog verwerkt". */
+const cmhHandLock=cmLock;cmLock=function(){if(cmi.photoRequest){cmhPhotoReady();cmiPhotoCancel();}cmhHandLock();};
+const cmhLeave=cmLeave;cmLeave=function(){if(cmi.photoRequest){cmhPhotoReady();cmiPhotoCancel();}cmhLeave();};

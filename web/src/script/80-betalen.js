@@ -213,8 +213,12 @@ function btVoorstel(r, qrTekst){
   if (!res.ok) res = rdJson(Android.betalenBewaar(JSON.stringify({ bron: b.bron, naam: b.naam, link: b.link || '' })), {}); // iets klopte niet: dan alleen wat zeker kan
   if (!res.ok) { toast(res.fout || t('Opslaan lukte niet.')); if (current === 'betalen') { btLaad(); btRender(); } return; }
   bt.ibans[res.id] = (r.ibans || []).filter(x => typeof x === 'string').slice(0, 5);
-  if (r.stuk) btStukBewaren(r.stuk, res.id);
   bt.anders[res.id] = anders;
+  // Klaar terwijl Betalen op slot ging (het lezen loopt door met het scherm uit): tonen en de kluis vragen pas na ontgrendelen
+  tsDaarna('betalen', () => btVoorstelToon(r, q, b, res, eigenQr));
+}
+function btVoorstelToon(r, q, b, res, eigenQr){
+  if (r.stuk) btStukBewaren(r.stuk, res.id);
   const gevonden = !!(b.iban || b.bedrag || b.link), uitQr = !!(q && q.soort === 'epc' && !eigenQr && (btVindNu(res.id) || {}).iban === q.iban);
   toast(q && q.soort === 'link' ? t('Betaallink gevonden in de QR-code. Kijk de gegevens na.')
     : eigenQr ? t('In de QR-code staat je eigen rekeningnummer. Tools heeft die code niet gebruikt.')

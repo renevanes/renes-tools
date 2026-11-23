@@ -1856,6 +1856,7 @@ if (!window.Android) window.Android = (function(){
       o.rev = (o.rev || 0) + 1; b.data = o; b.saves++; return ''; },
     bankTouch(){ return this._bank.open ? '290000' : '0'; },
     bankLock(){ this._bank.open = false; this._bank.calls.push(['lock']); },
+    bankLockHand(){ this._bank.open = false; this._bank.calls.push(['lock', 'hand']); },
     bankWipe(){ const b = this._bank; if (!b.open) return 'Ontgrendel Bankzaken eerst'; b.data = null; b.open = false; b.calls.push(['wipe']); return ''; },
     bankSecure(on){ this._bank.secure = !!on; },
     bankImport(wis){ const b = this._bank; b.calls.push(['import', !!wis]); setTimeout(() => {

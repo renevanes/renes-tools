@@ -43,6 +43,8 @@ final class MasterPhotos {
         boolean bezig;
         /** Wat lezen en herkennen opleverde, nog niet bewaard: bewaren kan pas met een open sessie (zie resume). */
         Uitkomst klaar;
+        /** Wanneer klaar kwam: na BEWAAR_MS zonder ontgrendelen gaat het uit het geheugen. */
+        long klaarOp;
         String reviewId,reviewToken;JSONObject images,found;
         Pending(String id,long revision,String side,String request,String view,String soort){this.id=id;this.revision=revision;this.side=side;this.request=request;this.view=view;this.soort=soort;this.dataset=MasterSession.datasetEpoch();}
     }
@@ -81,6 +83,8 @@ final class MasterPhotos {
     static final class Uitkomst {
         String image,error;JSONObject images,found,diag;
     }
+    /** Hoe lang een herkende foto of document in het geheugen wacht op ontgrendelen; daarna opnieuw kiezen. */
+    static final long BEWAAR_MS=15*60_000L;
     /** Hoe lang ontgrendelen hooguit wacht op herkennen dat nog loopt (lezen, een Google-document ophalen, zoeken). */
     static final long WACHT_MS=60_000L*2+MasterDocumentImages.SEARCH_MS+30_000; // twee keer EXPORT_MS (ophalen en lezen), zoeken en marge
     private JSONObject review(Pending job,String token,JSONObject images,JSONObject found)throws Exception{
@@ -212,7 +216,9 @@ final class MasterPhotos {
             return opslaan(key,session,token,job,u);
         }catch(Throwable e){
             // Weer op slot tijdens het bewaren (niet door Rene zelf): de uitkomst blijft voor de volgende keer ontgrendelen.
-            synchronized(this){if(pending==job&&job.klaar!=null&&job.reviewId==null&&(!session.accepts(token)||!activity.masterForeground)){bewaren=false;return null;}}
+            // (eerst de sessie vragen, dan pas deze monitor: elders gaat het altijd sessie → MasterPhotos)
+            boolean dicht=!session.accepts(token)||!activity.masterForeground;
+            synchronized(this){if(dicht&&pending==job&&job.klaar!=null&&job.reviewId==null){bewaren=false;return null;}}
             try{result.put("error",e instanceof MasterError?e.getMessage():Taal.T("De kaartfoto kan niet worden opgeslagen. Kies een duidelijke afbeelding."));}catch(Exception ignored){ }
         }
         finally{if(bewaren)synchronized(this){if(job.reviewId==null)clear(job);}}
@@ -224,6 +230,7 @@ final class MasterPhotos {
             long tot=android.os.SystemClock.elapsedRealtime()+WACHT_MS;
             while(job.bezig&&pending==job){long left=tot-android.os.SystemClock.elapsedRealtime();if(left<=0)break;wait(left);}
             if(pending!=job)return null;
+            if(job.klaar!=null&&android.os.SystemClock.elapsedRealtime()-job.klaarOp>BEWAAR_MS){pending=null;notifyAll();throw new MasterError(Taal.T("Kies het bestand opnieuw."));}
             if(job.klaar!=null)return job.klaar;
             if(job.bezig)throw new MasterError(Taal.T("Het herkennen duurt te lang. Kies het bestand opnieuw."));
             if(job.uri==null)return null;
@@ -231,7 +238,7 @@ final class MasterPhotos {
         }
         Uitkomst u=null;
         try{u=analyse(job);}
-        finally{synchronized(this){job.bezig=false;job.klaar=u;job.uri=null;notifyAll();}}
+        finally{synchronized(this){job.bezig=false;job.klaar=u;job.klaarOp=android.os.SystemClock.elapsedRealtime();job.uri=null;notifyAll();}}
         return u;
     }
     /** Lezen en herkennen; alleen in het geheugen. Stopt alleen als de keuze vervalt (annuleren, vergrendelen met de hand). */

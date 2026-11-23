@@ -336,7 +336,7 @@ function bkVergeet(){
   const k = $('#bk-ai-uit-kaart'); if (k) k.hidden = true;
   clearInterval(bk.tmr); bk.tmr = null;
 }
-function bkSluit(){ Android.bankLock(); bkToestand(); bkVanzelf(); }
+function bkSluit(){ bk.importUit = null; Android.bankLockHand(); bkToestand(); bkVanzelf(); }
 function bkSave(){
   if (!bk.store) return false;
   const r = Android.bankSave(JSON.stringify(bk.store));
@@ -639,8 +639,22 @@ window.onBankImport = function(r){
   if (!r || r.cancelled) return;
   if (typeof r === 'string') { try { r = JSON.parse(r); } catch (e) { return; } }
   if (r.error) { toast(r.error); if (/op slot|Ontgrendel/i.test(r.error) && current === 'bank') bkToestand(); return; }
-  // Klaar terwijl Bankzaken op slot ging (scherm uit): de uitslag na het ontgrendelen tonen
-  if (current !== 'bank' || !bkToestand()) { bk.importUit = r; return; }
+  // Klaar terwijl Bankzaken op slot ging (scherm uit): de uitslag na het ontgrendelen tonen. Op slot alleen de aantallen
+  // bewaren (geen bestandsnamen, rekeningen of periodes in het geheugen van de interface).
+  if (current !== 'bank' || !bkToestand()) {
+    const fs = r.bestanden || [];
+    bk.importUit = { telling: true, gewist: r.gewist || 0, nieuw: fs.reduce((n, f) => n + (f.ok && f.sum ? f.sum.nieuw || 0 : 0), 0),
+      dubbel: fs.reduce((n, f) => n + (f.ok && f.sum ? f.sum.dubbel || 0 : 0), 0), fout: fs.filter(f => !f.ok).length };
+    return;
+  }
+  if (r.telling) { // na ontgrendelen: de aantallen van een inlezen dat op slot afliep
+    const tekst = t('{n} nieuwe boekingen', { n: r.nieuw }) + (r.dubbel ? ', ' + t('{n} stonden er al', { n: r.dubbel }) : '')
+      + (r.gewist ? '. ' + tn(r.gewist, '{n} bestand van de telefoon verwijderd', '{n} bestanden van de telefoon verwijderd') : '')
+      + (r.fout ? '. ' + tn(r.fout, '{n} bestand lukte niet', '{n} bestanden lukten niet') : '');
+    bk.venster = true;
+    askConfirm('Afschrift geïmporteerd', tekst, 'OK', () => setTimeout(bkNieuweRekeningen, 50), () => setTimeout(bkNieuweRekeningen, 50));
+    return;
+  }
   bk.stilLaden = true; bkLaad(); bk.stilLaden = false;
   const fs = r.bestanden || [];
   let nieuw = 0, dubbel = 0; const fout = [];

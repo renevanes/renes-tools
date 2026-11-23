@@ -53,15 +53,16 @@ final class Doorwerken {
         Context c = app;
         synchronized (LOCK) {
             bezig++;
+            // Elk nieuw werk verlengt de wakelock (niet geteld: één wakelock, de teller staat hierboven)
+            if (c != null) try {
+                if (wl == null) {
+                    PowerManager pm = (PowerManager) c.getSystemService(Context.POWER_SERVICE);
+                    wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "renestools:doorwerken");
+                    wl.setReferenceCounted(false);
+                }
+                wl.acquire(MAX_MS);
+            } catch (Throwable ignored) { }
             if (c != null && bezig == 1) {
-                try {
-                    if (wl == null) {
-                        PowerManager pm = (PowerManager) c.getSystemService(Context.POWER_SERVICE);
-                        wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "renestools:doorwerken");
-                        wl.setReferenceCounted(false);
-                    }
-                    wl.acquire(MAX_MS);
-                } catch (Throwable ignored) { }
                 try {
                     if (h == null) h = new Handler(Looper.getMainLooper());
                     h.removeCallbacks(DIENST);
@@ -72,7 +73,7 @@ final class Doorwerken {
         return new Klaar();
     }
 
-    /** Na DIENST_NA_MS nog bezig: de voorgronddienst (Android houdt de app dan actief, ook uit beeld). */
+    /** Na DIENST_NA_MS nog bezig: de voorgronddienst (Android houdt de app dan actief, ook uit beeld). Altijd op de hoofddraad. */
     private static final Runnable DIENST = Doorwerken::startDienst;
 
     private static void startDienst() {
@@ -93,9 +94,12 @@ final class Doorwerken {
             if (bezig > 0) return;
             try { if (h != null) h.removeCallbacks(DIENST); } catch (Throwable ignored) { }
             try { if (wl != null && wl.isHeld()) wl.release(); } catch (Throwable ignored) { }
+            // Stoppen via de hoofddraad, in dezelfde volgorde als het starten (DIENST): nooit een stop die een start inhaalt
+            try { if (h != null) h.post(DoorwerkDienst::klaar); else DoorwerkDienst.klaar(); } catch (Throwable ignored) { }
         }
-        DoorwerkDienst.klaar();
     }
+    /** Hoofddraad: de handler voor DoorwerkDienst (stoppen, vangnet). */
+    static Handler handler() { synchronized (LOCK) { if (h == null) h = new Handler(Looper.getMainLooper()); return h; } }
 
     /** Hoort bij één begin(); sluiten mag vaker (telt één keer). */
     static final class Klaar implements AutoCloseable {

@@ -65,11 +65,14 @@ final class Bank {
      * beeld): het bewaart alleen versleuteld en toont niets. De sleutel zelf werkt alleen kort na het ontgrendelen van de
      * telefoon; is die verlopen, dan mislukt het alsnog.
      */
-    private static final ThreadLocal<Boolean> DOOR = new ThreadLocal<>();
+    private static final ThreadLocal<Long> DOOR = new ThreadLocal<>();
+    /** Telt elke keer dat Rene Bankzaken zelf op slot zet (of Extra ontgrendelen aanzet): dat breekt inlezen wel af. */
+    private static volatile long handDicht;
+    static synchronized void handDicht() { handDicht++; close(); }
     /** Alleen voor de draad die inleest (niet voor het scherm of iets anders dat intussen iets vraagt). */
-    static boolean inlezenBegin() { if (!isOpen()) return false; DOOR.set(Boolean.TRUE); return true; }
+    static boolean inlezenBegin() { if (!isOpen()) return false; DOOR.set(handDicht); return true; }
     static void inlezenKlaar() { DOOR.remove(); }
-    private static boolean magInlezen() { return isOpen() || Boolean.TRUE.equals(DOOR.get()); }
+    private static boolean magInlezen() { Long d = DOOR.get(); return isOpen() || d != null && d == handDicht; }
     /** Versie van de opgeslagen gegevens: een opslag vanuit het scherm met een oudere versie wordt geweigerd (geen import kwijt). */
     static volatile long rev = 0;
     /** De sleutel bestaat nog, maar is door de telefoon ongeldig gemaakt (schermvergrendeling gewijzigd). */

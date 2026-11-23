@@ -121,6 +121,8 @@ public class BankBridge extends FacturenBridge {
     @JavascriptInterface public String bankTouch() { if (!a.bankOk()) return "0"; Bank.touch(); return String.valueOf(Bank.remaining()); }
 
     @JavascriptInterface public void bankLock() { synchronized (a.bankAuth) { a.bankAuth.cancel(); Bank.close(); } }
+    /** Rene zet Bankzaken zelf op slot (de knop): dat breekt ook een inlezen af dat nog loopt. */
+    @JavascriptInterface public void bankLockHand() { synchronized (a.bankAuth) { a.bankAuth.cancel(); Bank.handDicht(); } }
 
     /** Alles wissen, ook de sleutel. Alleen als Bankzaken open is (dus na vingerafdruk of pincode). */
     @JavascriptInterface public String bankWipe() {

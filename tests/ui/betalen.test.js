@@ -245,6 +245,20 @@ const QR_EPC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0AQAAAAAVtj
     await page.click('#modal-ok'); await wacht(100);
     ok(await page.evaluate(n => current === 'betalen' && Android._bt.lijst.length === n - 1, n3), 'verwijderd');
 
+    // ---- Klaar met lezen terwijl Betalen op slot ging (scherm uit, Extra ontgrendelen aan): pas na ontgrendelen tonen
+    await page.evaluate(() => { Android._tslot.aan.push('betalen'); tsLaad(); show('betalen'); });
+    await page.waitForFunction(() => current === 'betalen' || tsZichtbaar());
+    await page.evaluate(() => { if (!tsZichtbaar()) onToolSlotWeg(''); });
+    await page.waitForFunction(() => tsZichtbaar() && ts.tool === 'betalen');
+    const n4 = await page.evaluate(() => Android._bt.lijst.length);
+    await page.evaluate(() => onBetalenHerkend(Android._btHerkend('bestand')));
+    await page.waitForFunction(n => Android._bt.lijst.length === n + 1, n4);
+    ok(await page.evaluate(() => tsZichtbaar() && current !== 'betaling'), 'op slot: de betaling is bewaard, maar niet getoond');
+    await page.click('#ts-open'); await page.waitForFunction(() => current === 'betaling' && !tsZichtbaar());
+    ok(true, 'na ontgrendelen: de nieuwe betaling open');
+    await page.evaluate(() => { Android._tslot.aan = Android._tslot.aan.filter(t => t !== 'betalen'); tsLaad(); goBack(); });
+    await page.waitForFunction(() => current === 'betalen');
+
     // ---- Een oudere app zonder Betalen
     await page.evaluate(() => { for (const k of Object.keys(Android)) if (/^betalen/.test(k)) Android['oud_' + k] = Android[k]; Android.betalenStaat = undefined; show('home'); show('betalen'); }); await wacht(80);
     ok(await page.isVisible('#bt-oud') && await page.isHidden('#bt-nieuw'), 'oudere app: uitleg in plaats van een knop die niets doet');

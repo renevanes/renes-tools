@@ -212,6 +212,10 @@ final class PdfCompare {
 
     /** Eén pagina groot: mode verschil (B lichtgrijs, rood = alleen in A, groen = alleen in B), a of b (de pagina zelf). */
     JSONObject page(int i, String mode) throws Exception {
+        begin();
+        try { return pagina(i, mode); } finally { klaar(); }
+    }
+    private JSONObject pagina(int i, String mode) throws Exception {
         Slot[] s = both();
         if (i < 0 || i >= Math.max(s[0].pages, s[1].pages)) throw new Exception(Taal.T("Ongeldige pagina"));
         Bitmap[] out = new Bitmap[1];

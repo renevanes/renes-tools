@@ -326,7 +326,7 @@ public class MainActivity extends Activity {
         // Net teruggezet na een herinstallatie: alles opnieuw inplannen en de modellen weer downloaden
         if (!isSolo() && !Updater.viaPlay(this)) {
             final Context app = getApplicationContext();
-            new Thread(Doorwerken.door("herstel-start", () -> { try { Herstel.afterRestart(app); Herstel.resumeModels(app); } catch (Throwable t) { App.log(app, "HERSTEL", "na start: " + t); } }), "herstel-start").start();
+            new Thread(() -> { try { Herstel.afterRestart(app); Herstel.resumeModels(app); } catch (Throwable t) { App.log(app, "HERSTEL", "na start: " + t); } }, "herstel-start").start();
         }
 
         LinearLayout root = new LinearLayout(this);
@@ -614,6 +614,7 @@ public class MainActivity extends Activity {
         if (isFinishing() && !isSolo()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
         bankAuth.cancel();toolSlotVergeet();
         masterSession.close();masterAfterAuth=null;masterAuthSerial.incrementAndGet();h.removeCallbacks(masterExpiry);
+        masterPhotos.cancel(); // een herkende foto die op ontgrendelen wachtte: weg met het venster
         final IdCopy closingId = idCopy; final PdfCompare closingCmp = cmp;
         idMasterClear();
         new Thread(() -> { try { closingId.clear(); } catch (Throwable ignored) { } try { closingCmp.clear(); } catch (Throwable ignored) { } }, "id-copy-close").start();
@@ -2743,7 +2744,7 @@ public class MainActivity extends Activity {
                 ToolSlot.zet(ctx, id, true);
                 // Wat zonder vraag open was, gaat nu op slot (in alle vensters): de volgende keer vraagt hij het weer
                 if ("kluis".equals(id)) Kluis.close(ctx);
-                if ("bank".equals(id)) { synchronized (ALL) { for (MainActivity m : ALL) synchronized (m.bankAuth) { m.bankAuth.cancel(); } } Bank.close(); }
+                if ("bank".equals(id)) { synchronized (ALL) { for (MainActivity m : ALL) synchronized (m.bankAuth) { m.bankAuth.cancel(); } } Bank.handDicht(); }
                 if ("masterdata".equals(id)) synchronized (ALL) { for (MainActivity m : ALL) m.h.post(() -> m.suspendMaster(false)); }
                 toolSlotAntwoord(id, "aan", true, null);
                 return;
