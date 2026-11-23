@@ -66,7 +66,9 @@ function cmhPairPreview(photo){
   swap.textContent=t('Wissel voor- en achterkant');swap.onclick=()=>{swapped=!swapped;redraw();};
   preview.append(swap);preview.hidden=false;redraw();
   const clear=()=>{preview.hidden=true;preview.replaceChildren();};
-  askConfirm('Controleer beide zijden','Controleer of de foto’s van hetzelfde ID-bewijs zijn en bij de juiste zijde staan.','Beide zijden bewaren',()=>{
+  askConfirm('Controleer beide zijden',photo.herkend===false
+    ?t('Er zijn geen gegevens herkend; die vul je daarna zelf in. Controleer of de foto’s van hetzelfde ID-bewijs zijn en bij de juiste zijde staan.')
+    :'Controleer of de foto’s van hetzelfde ID-bewijs zijn en bij de juiste zijde staan.','Beide zijden bewaren',()=>{
     clear();
     if(!cmOpen()){cmiPhotoCancel();return;}
     cmBusy(true);

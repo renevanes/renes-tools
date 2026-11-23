@@ -46,39 +46,89 @@ final class MasterDocumentImages {
         }
     }
 
-    /** De gebruiker heeft bevestigd dat het document twee losse foto's van hetzelfde bewijs bevat. */
-    static Pair findPair(Context context, byte[] bytes, String today, String type, BooleanSupplier active) throws Exception {
+    /**
+     * Een document met beide zijden. Eerst twee beelden zoeken ({@link #kandidaten}), dan herkennen: eerst overal de snelle
+     * strook (ook op stukken van het beeld), alleen als die nergens staat de tekst van een rijbewijs. stats (mag null):
+     * alleen aantallen, ja/nee en een vaste reden, voor de foutmelding en het logboek.
+     */
+    static Pair findPair(Context context, byte[] bytes, String today, String type, BooleanSupplier active, JSONObject stats) throws Exception {
         long deadline = SystemClock.elapsedRealtime() + SEARCH_MS;
         BooleanSupplier searching = () -> active.getAsBoolean() && SystemClock.elapsedRealtime() < deadline;
-        List<byte[]> images = pdf(bytes) ? pdfImages(bytes, searching) : wordPairImages(bytes, searching);
-        if (images.size() != 2 || Arrays.equals(images.get(0), images.get(1))) return null;
-
-        Match first = recognize(context, images.get(0), today, searching);
-        if (!searching.getAsBoolean()) return null;
-        Match second = recognize(context, images.get(1), today, searching);
-        return searching.getAsBoolean() ? pair(images.get(0), fields(first), images.get(1), fields(second), type) : null;
+        List<byte[]> images = kandidaten(context, bytes, searching, stats);
+        if (images.size() != 2 || Arrays.equals(images.get(0), images.get(1))) { reden(stats, "beelden"); return null; }
+        JSONObject a = herken(context, images.get(0), today, searching, false);
+        JSONObject b = herken(context, images.get(1), today, searching, false);
+        if (a == null && b == null && searching.getAsBoolean()) {
+            a = herken(context, images.get(0), today, searching, true);
+            if (a == null) b = herken(context, images.get(1), today, searching, true);
+        }
+        if (stats != null) stats.put("herkendA", a != null).put("herkendB", b != null);
+        if (!active.getAsBoolean()) { reden(stats, "gestopt"); return null; }
+        Pair p = pair(images.get(0), a, images.get(1), b, type);
+        if (p == null) reden(stats, a != null && b != null ? "verschillend" : "onduidelijk");
+        else if (p.fields == null) reden(stats, SystemClock.elapsedRealtime() >= deadline ? "tijd op" : "niets herkend");
+        return p;
     }
 
-    private static JSONObject fields(Match match) { return match == null ? null : match.fields; }
+    private static void reden(JSONObject stats, String r) { if (stats != null) try { stats.put("reden", r); } catch (Exception ignored) { } }
 
+    /**
+     * Voor- en achterkant bij elkaar zoeken (zuiver, getest). Wat herkend is gaat voor de soort die Rene koos (een
+     * verblijfsdocument of identiteitskaart wordt vaak verkeerd gekozen). Twee herkende zijden moeten hetzelfde nummer hebben.
+     * Niets herkend: toch de twee beelden (Rene kijkt ze na en kan ze wisselen), zonder gegevens.
+     */
     static Pair pair(byte[] first, JSONObject a, byte[] second, JSONObject b, String type) {
-        if (a == null && b == null) return null;
+        if (a == null && b == null) return new Pair(first, second, null); // volgorde zoals in het document
         JSONObject recognized = a == null ? b : a;
         JSONObject document = recognized.optJSONObject("document");
-        if (document == null || !type.equals(document.optString("documentsoort"))) return null;
+        if (document == null) return null;
+        String soort = document.optString("documentsoort", "");
+        if (soort.isEmpty()) soort = type;
         String number = document.optString("document");
-        if (number.isEmpty()) return null;
         if (a != null && b != null) {
             JSONObject other = b.optJSONObject("document");
-            if (other == null || !type.equals(other.optString("documentsoort")) ||
-                !number.equals(other.optString("document"))) return null;
+            String n2 = other == null ? "" : other.optString("document");
+            if (!number.isEmpty() && !n2.isEmpty() && !number.equals(n2)) return null;
         }
-        boolean firstIsFront = "front".equals(MasterSchema.scanSide(type, recognized)) == (a != null);
+        boolean firstIsFront = "front".equals(MasterSchema.scanSide(soort, recognized)) == (a != null);
         return new Pair(firstIsFront ? first : second, firstIsFront ? second : first, recognized);
     }
 
-    /** Haal alleen losse JPEG-objecten op. Een hele PDF-pagina kan ook andere gegevens bevatten. */
-    private static List<byte[]> pdfImages(byte[] bytes, BooleanSupplier active) throws IOException {
+    /** Kleinste foto die als zijde telt (een logo, pictogram of miniatuur niet). */
+    static final int MIN_ZIJDE = 300, MIN_BYTES = 15_000;
+
+    /**
+     * Twee beelden voor de zijden. PDF: twee ingesloten JPEG-foto's van een redelijke grootte; anders de pagina's zelf
+     * (twee pagina's: elk een zijde; één pagina: in tweeën, langs de lange kant). Word (ook een Google-document): de twee
+     * grootste foto's.
+     */
+    private static List<byte[]> kandidaten(Context context, byte[] bytes, BooleanSupplier active, JSONObject stats) throws Exception {
+        if (pdf(bytes)) {
+            List<byte[]> jpg = new ArrayList<>();
+            try { jpg = pdfJpegs(bytes, active); } catch (IOException | RuntimeException ignored) { }
+            if (stats != null) stats.put("bron", "pdf").put("fotos", jpg.size());
+            if (jpg.size() == 2) return jpg;
+            return pdfPaginas(context, bytes, active, stats);
+        }
+        List<byte[]> media = wordPairImages(bytes, active);
+        if (stats != null) stats.put("bron", "word").put("fotos", media.size());
+        return kies2(media);
+    }
+
+    /** De twee grootste beelden (in hun volgorde in het document), zonder kleine plaatjes. Zuiver, getest. */
+    static List<byte[]> kies2(List<byte[]> beelden) {
+        List<byte[]> groot = new ArrayList<>();
+        for (byte[] b : beelden) if (b != null && b.length >= MIN_BYTES) groot.add(b);
+        if (groot.size() <= 2) return groot.size() == 2 ? groot : new ArrayList<>();
+        List<byte[]> op = new ArrayList<>(groot);
+        op.sort((x, y) -> Integer.compare(y.length, x.length));
+        List<byte[]> uit = new ArrayList<>();
+        for (byte[] b : groot) if (b == op.get(0) || b == op.get(1)) uit.add(b);
+        return uit;
+    }
+
+    /** Ingesloten JPEG-foto's (geen logo's of kleine plaatjes). Een hele PDF-pagina kan ook andere gegevens bevatten. */
+    private static List<byte[]> pdfJpegs(byte[] bytes, BooleanSupplier active) throws IOException {
         PdfSplit pdf = new PdfSplit(bytes);
         List<PdfSplit.Stream> images = new ArrayList<>();
         if (pdf.pageCount() > MAX_CANDIDATES) return new ArrayList<>();
@@ -93,15 +143,115 @@ final class MasterDocumentImages {
                 if (!(resolved instanceof PdfSplit.Stream)) continue;
                 PdfSplit.Stream image = (PdfSplit.Stream) resolved;
                 if (!new PdfSplit.Name("Image").equals(image.dict.get("Subtype")) || images.contains(image)) continue;
-                if (!new PdfSplit.Name("DCTDecode").equals(pdf.resolve(image.dict.get("Filter"))) || images.size() == 2) {
-                    return new ArrayList<>();
-                }
+                if (!new PdfSplit.Name("DCTDecode").equals(pdf.resolve(image.dict.get("Filter")))) continue;
+                if (getal(pdf.resolve(image.dict.get("Width"))) < MIN_ZIJDE && getal(pdf.resolve(image.dict.get("Height"))) < MIN_ZIJDE) continue;
                 images.add(image);
+                if (images.size() > 2) return new ArrayList<>();
             }
         }
         List<byte[]> result = new ArrayList<>();
         for (PdfSplit.Stream image : images) result.add(image.raw());
         return result;
+    }
+
+    private static int getal(Object o) { return o instanceof Number ? ((Number) o).intValue() : 0; }
+
+    /** De pagina's zelf: twee pagina's = elk een zijde; één pagina (een scan met beide zijden) = in tweeën. */
+    private static List<byte[]> pdfPaginas(Context context, byte[] bytes, BooleanSupplier active, JSONObject stats) throws Exception {
+        List<byte[]> out = new ArrayList<>();
+        try (ParcelFileDescriptor fd = pdfDescriptor(context, bytes); PdfRenderer renderer = new PdfRenderer(fd)) {
+            int n = renderer.getPageCount();
+            if (stats != null) stats.put("paginas", n);
+            if (n < 1 || n > 2 || !active.getAsBoolean()) return out;
+            if (n == 2) {
+                for (int i = 0; i < 2; i++) {
+                    Bitmap b;
+                    try (PdfRenderer.Page p = renderer.openPage(i)) { b = renderPage(p); }
+                    try { out.add(jpeg(b)); } finally { b.recycle(); }
+                }
+                return out;
+            }
+            Bitmap b;
+            try (PdfRenderer.Page p = renderer.openPage(0)) { b = renderPage(p); }
+            try {
+                for (int[] r : helften(b.getWidth(), b.getHeight())) {
+                    Bitmap part = Bitmap.createBitmap(b, r[0], r[1], r[2], r[3]);
+                    try { out.add(jpeg(part)); } finally { if (part != b) part.recycle(); }
+                }
+            } finally { b.recycle(); }
+            if (stats != null) stats.put("gesplitst", true);
+        }
+        return out;
+    }
+
+    /** Een pagina in tweeën langs de lange kant (boven en onder, of links en rechts). Zuiver, getest. */
+    static List<int[]> helften(int w, int h) {
+        List<int[]> l = new ArrayList<>();
+        if (h >= w) { int half = h / 2; l.add(new int[]{0, 0, w, half}); l.add(new int[]{0, half, w, h - half}); }
+        else { int half = w / 2; l.add(new int[]{0, 0, half, h}); l.add(new int[]{half, 0, w - half, h}); }
+        return l;
+    }
+
+    private static Bitmap renderPage(PdfRenderer.Page p) {
+        try { return renderBitmap(p, RENDER_SIDE); } catch (OutOfMemoryError e) { return renderBitmap(p, MrzOcr.MAX_SIDE); }
+    }
+
+    /**
+     * Eén zijde herkennen, ook als de kaart klein op een grote foto of pagina staat: het hele beeld en stukken ervan
+     * (zoals bij een PDF-pagina). rijbewijs = de tekst van een rijbewijs (langzaam), anders alleen de strook (snel).
+     */
+    private static JSONObject herken(Context context, byte[] image, String today, BooleanSupplier active, boolean rijbewijs) {
+        if (!active.getAsBoolean()) return null;
+        List<byte[]> stukken;
+        try { stukken = stukkenVan(image); } catch (Throwable e) { stukken = new ArrayList<>(); stukken.add(image); }
+        for (byte[] stuk : stukken) {
+            if (!active.getAsBoolean()) return null;
+            JSONObject f = rijbewijs ? RijbewijsOcr.read(context, stuk, today, active, false, null) : MasterPhotos.recognize(stuk, today);
+            if (f != null) return f;
+        }
+        return null;
+    }
+
+    /** Een beeld als JPEG's: het hele beeld (op de werkmaat) en, als het groot is, de tegels op hogere resolutie. */
+    private static List<byte[]> stukkenVan(byte[] image) {
+        List<byte[]> out = new ArrayList<>();
+        android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
+        o.inJustDecodeBounds = true;
+        android.graphics.BitmapFactory.decodeByteArray(image, 0, image.length, o);
+        if (o.outWidth < 1 || o.outHeight < 1 || o.outWidth > 16000 || o.outHeight > 16000) { out.add(image); return out; }
+        if (Math.max(o.outWidth, o.outHeight) <= MrzOcr.MAX_SIDE) { out.add(image); return out; }
+        int sample = 1;
+        while (Math.max(o.outWidth, o.outHeight) / (sample * 2) >= RENDER_SIDE) sample *= 2;
+        o = new android.graphics.BitmapFactory.Options(); o.inSampleSize = sample;
+        Bitmap big = android.graphics.BitmapFactory.decodeByteArray(image, 0, image.length, o);
+        if (big == null) { out.add(image); return out; }
+        try {
+            int side = Math.max(big.getWidth(), big.getHeight());
+            if (side > RENDER_SIDE) {
+                Bitmap s = Bitmap.createScaledBitmap(big, Math.max(1, big.getWidth() * RENDER_SIDE / side), Math.max(1, big.getHeight() * RENDER_SIDE / side), true);
+                if (s != big) { big.recycle(); big = s; }
+            }
+            out.addAll(stukkenVanBitmap(big));
+        } catch (OutOfMemoryError e) {
+            out.clear(); out.add(image);
+        } finally { big.recycle(); }
+        return out;
+    }
+
+    /** Het hele beeld verkleind tot de werkmaat, daarna de tegels (de bitmap blijft van de aanroeper). */
+    private static List<byte[]> stukkenVanBitmap(Bitmap big) {
+        List<byte[]> out = new ArrayList<>();
+        int side = Math.max(big.getWidth(), big.getHeight());
+        if (side <= MrzOcr.MAX_SIDE) { out.add(jpeg(big)); return out; }
+        Bitmap small = Bitmap.createScaledBitmap(big, Math.max(1, big.getWidth() * MrzOcr.MAX_SIDE / side), Math.max(1, big.getHeight() * MrzOcr.MAX_SIDE / side), true);
+        try { out.add(jpeg(small)); } finally { if (small != big) small.recycle(); }
+        List<int[]> parts = stukken(big.getWidth(), big.getHeight());
+        for (int i = 1; i < parts.size(); i++) {
+            int[] r = parts.get(i);
+            Bitmap part = Bitmap.createBitmap(big, r[0], r[1], r[2], r[3]);
+            try { out.add(jpeg(part)); } finally { if (part != big) part.recycle(); }
+        }
+        return out;
     }
 
     static boolean pdf(byte[] bytes) {
@@ -204,15 +354,7 @@ final class MasterDocumentImages {
             Bitmap big = null;
             try {
                 big = renderBitmap(page, RENDER_SIDE);
-                List<int[]> parts = stukken(big.getWidth(), big.getHeight());
-                Bitmap small = Bitmap.createScaledBitmap(big, Math.max(1, big.getWidth() * MrzOcr.MAX_SIDE / RENDER_SIDE),
-                    Math.max(1, big.getHeight() * MrzOcr.MAX_SIDE / RENDER_SIDE), true);
-                try { out.add(jpeg(small)); } finally { if (small != big) small.recycle(); }
-                for (int i = 1; i < parts.size(); i++) {
-                    int[] r = parts.get(i);
-                    Bitmap part = Bitmap.createBitmap(big, r[0], r[1], r[2], r[3]);
-                    try { out.add(jpeg(part)); } finally { if (part != big) part.recycle(); }
-                }
+                out.addAll(stukkenVanBitmap(big));
                 return out;
             } catch (OutOfMemoryError e) {
                 out.clear();
@@ -333,8 +475,9 @@ final class MasterDocumentImages {
                 if (++entries > 512) return new ArrayList<>();
                 String name = entry.getName();
                 if ("word/document.xml".equals(name)) document = true;
-                boolean media = !entry.isDirectory() && name.startsWith("word/media/");
-                if (media && images.size() == 2) return new ArrayList<>();
+                // Alleen foto's (geen tekeningen zoals EMF/WMF/SVG); hooguit een handvol
+                boolean media = !entry.isDirectory() && name.startsWith("word/media/") && name.toLowerCase(java.util.Locale.ROOT).matches(".*\\.(jpe?g|png|webp|gif|bmp|tiff?)$");
+                if (media && images.size() == MAX_CANDIDATES) return new ArrayList<>();
                 ByteArrayOutputStream out = media ? new ByteArrayOutputStream() : null;
                 int n;
                 while ((n = zip.read(buffer)) != -1) {

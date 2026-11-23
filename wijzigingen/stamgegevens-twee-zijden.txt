@@ -1,0 +1,2 @@
+Stamgegevens: een document met beide zijden lukt nu ook als het een scan is (beide zijden op één pagina of op twee pagina's), als er een logo of ander klein plaatje in staat, of als de foto's geen JPEG zijn.
+Stamgegevens: wordt er bij beide zijden niets herkend, dan kun je de twee zijden toch nakijken en bewaren en vul je de gegevens zelf in; en lukt het niet, dan zegt de melding waarom.
