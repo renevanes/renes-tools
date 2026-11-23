@@ -35,6 +35,8 @@ final class BlokOpslag implements Blokken.Opslag {
     final WaBackup.Dest dest;
     private WaBackup.DestDir hoofd;
     private Map<String, WaBackup.Child> alle;
+    /** Stond er minstens één map Versleuteld/Grote bestanden (anders is "ontbreekt" niet zeker: verkeerde map, Drive nog bezig). */
+    private boolean gevonden;
 
     /** dest moet de echte map zijn (WaBackup.Dest.echt), niet die van een archief in wording. */
     BlokOpslag(WaBackup.Dest d) { dest = d; }
@@ -60,6 +62,7 @@ final class BlokOpslag implements Blokken.Opslag {
                 else if (v.kids.get(Blokken.DIR) != null) dirs.add(v.kids.get(Blokken.DIR));
                 for (WaBackup.Child ch : dirs) {
                     if (!ch.dir) continue;
+                    gevonden = true;
                     WaBackup.DestDir d = new WaBackup.DestDir();
                     d.uri = DocumentsContract.buildDocumentUriUsingTree(dest.tree, ch.docId);
                     dest.list(d);
@@ -180,6 +183,7 @@ final class BlokOpslag implements Blokken.Opslag {
 
     @Override public InputStream open(String naam) throws IOException {
         WaBackup.Child ch = alle().get(naam);
+        if (!gevonden) throw new IOException("De map " + PAD + " is niet gevonden; staat de backup-map goed (en is hij helemaal gesynchroniseerd)?");
         if (ch == null || ch.dir) throw new Blokken.Ontbreekt(naam); // de map is gelezen en het staat er niet in
         try {
             InputStream in = dest.cr.openInputStream(DocumentsContract.buildDocumentUriUsingTree(dest.tree, ch.docId));
@@ -306,10 +310,18 @@ final class BlokOpslag implements Blokken.Opslag {
 
         // 1. Archieven in de map die deze telefoon nog niet kent: lezen (of ouder dan het merkteken: gebruiken niets)
         // Een archief dat nog geschreven wordt (deze of een andere telefoon) of waarvan hernoemen mislukte: dan nog niets
+        //   (zonder tijd van de map: gerekend vanaf wanneer deze telefoon hem voor het eerst zag)
+        JSONObject delen = st.optJSONObject("delen"), nuDelen = new JSONObject();
+        boolean bezig = false;
         for (Map.Entry<String, WaBackup.Child> e : v.kids.entrySet()) {
             WaBackup.Child ch = e.getValue();
-            if (!ch.dir && e.getKey().endsWith(".rtb.part") && (ch.mod <= 0 || now - ch.mod < 2 * DAG)) return r.put("later", "bezig");
+            if (ch.dir || !e.getKey().endsWith(".rtb.part")) continue;
+            long t = ch.mod > 0 ? ch.mod : (delen != null && delen.optLong(e.getKey(), 0) > 0 ? delen.optLong(e.getKey()) : now);
+            if (ch.mod <= 0) nuDelen.put(e.getKey(), t);
+            if (now - t < 2 * DAG) bezig = true;
         }
+        st.put("delen", nuDelen);
+        if (bezig) { bewaarStaat(c, st); return r.put("later", "bezig"); }
         Set<String> inMap = new HashSet<>();
         int gelezen = 0;
         for (Map.Entry<String, WaBackup.Child> e : v.kids.entrySet()) {
@@ -391,43 +403,61 @@ final class BlokOpslag implements Blokken.Opslag {
         WaBackup.Dest dest = WaBackup.Dest.echt(c.getContentResolver(), tree);
         BlokOpslag o = new BlokOpslag(dest);
         JSONObject st = staat(c, tree), info = st.getJSONObject("info");
-        JSONObject verdacht = st.optJSONObject("verdacht");
+        JSONObject verdacht = st.optJSONObject("verdacht"), opnieuw = st.optJSONObject("opnieuw");
         if (verdacht == null) { verdacht = new JSONObject(); st.put("verdacht", verdacht); }
+        if (opnieuw == null) { opnieuw = new JSONObject(); st.put("opnieuw", opnieuw); }
         String kid = new Blokken.Ids(k).kid;
         List<String> namen = new ArrayList<>();
         for (String n : o.alle().keySet()) if (kid.equals(Blokken.kid(n)) && info.has(n)) namen.add(n);
-        // verdacht van bestanden die er niet meer zijn (opgeruimd): vergeten
-        List<String> vd = new ArrayList<>();
-        for (Iterator<String> it = verdacht.keys(); it.hasNext(); ) vd.add(it.next());
-        for (String n : vd) if (!namen.contains(n)) verdacht.remove(n);
+        // verdacht of opnieuw van bestanden die er niet meer zijn (opgeruimd): vergeten
+        Set<String> hier = new HashSet<>(namen);
+        for (JSONObject lijst : new JSONObject[]{verdacht, opnieuw}) {
+            List<String> vd = new ArrayList<>();
+            for (Iterator<String> it = lijst.keys(); it.hasNext(); ) vd.add(it.next());
+            for (String n : vd) if (!hier.contains(n)) lijst.remove(n);
+        }
         if (namen.isEmpty()) { bewaarStaat(c, st); return r; }
         Collections.sort(namen);
-        // Volgorde: eerst wat verdacht is (de tweede nacht), dan verder waar de vorige keer gestopt is
+        // Volgorde: eerst wat verdacht is (de tweede nacht) of de vorige keer niet te lezen was (verbinding), dan verder
+        // waar de vorige keer gestopt is
         List<String> volgorde = new ArrayList<>();
-        for (String n : namen) if (verdacht.has(n)) volgorde.add(n);
+        for (String n : namen) if (verdacht.has(n) || opnieuw.has(n)) volgorde.add(n);
         String vanaf = st.optString("controle", "");
         int start = 0;
         while (start < namen.size() && namen.get(start).compareTo(vanaf) <= 0) start++;
-        for (int i = 0; i < namen.size(); i++) { String n = namen.get((start + i) % namen.size()); if (!verdacht.has(n)) volgorde.add(n); }
+        for (int i = 0; i < namen.size(); i++) { String n = namen.get((start + i) % namen.size()); if (!verdacht.has(n) && !opnieuw.has(n)) volgorde.add(n); }
         long gelezen = 0, now = System.currentTimeMillis();
         int count = 0, kapot = 0, fouten = 0;
         for (String n : volgorde) {
             if (gelezen >= max || AllBackup.stop || fouten >= 3) break; // drie keer geen verbinding: de volgende keer verder
-            boolean rondje = !verdacht.has(n);
+            boolean rondje = !verdacht.has(n) && !opnieuw.has(n);
             JSONArray x = info.getJSONArray(n);
             long size = x.getLong(0), enc = x.length() > 3 ? x.optLong(3) : 0;
+            boolean z = x.getBoolean(2);
+            String sha = x.getString(1);
             WaBackup.Child ch = o.alle().get(n);
-            boolean kort = enc > 0 && ch != null && ch.size >= 0 && ch.size < enc;
+            long listed = ch == null ? -1 : ch.size;
             boolean schade = false, gelukt = false;
             try {
-                Blokken.leesHelemaal(Blokken.lees(new java.io.BufferedInputStream(o.open(n), 1 << 16), k, x.getBoolean(2), size, x.getString(1)));
+                Blokken.leesHelemaal(Blokken.lees(new java.io.BufferedInputStream(o.open(n), 1 << 16), k, z, size, sha));
                 gelukt = true;
             } catch (IOException e) {
-                schade = Blokken.schade(e) || (kort && Blokken.ONVOLLEDIG.equals(e.getMessage()));
+                schade = Blokken.schade(e);
+                // Te vroeg afgelopen: zeker schade als het korter is dan geschreven, of als het nog een keer precies zo gaat
+                if (!schade && Blokken.ONVOLLEDIG.equals(e.getMessage()))
+                    schade = (enc > 0 && listed >= 0 && listed < enc) || Blokken.vastKapot(o, n, k, z, size, sha, listed);
                 if (!schade) fouten++;
             }
             gelezen += Math.max(size, 1);
-            if (rondje) st.put("controle", n);
+            // Alleen verder schuiven als er echt gekeken is; niet te lezen (verbinding) = de volgende keer eerst
+            if (rondje && (gelukt || schade)) st.put("controle", n);
+            if (gelukt || schade) opnieuw.remove(n);
+            else {
+                // Hooguit drie nachten vooraan; daarna weer gewoon in de rij (anders houdt één lastig bestand alles op)
+                int keer = opnieuw.optInt(n, 0) + 1;
+                if (keer >= 3) opnieuw.remove(n); else opnieuw.put(n, keer);
+                if (rondje) st.put("controle", n);
+            }
             if (gelukt) { verdacht.remove(n); count++; fouten = 0; continue; }
             if (!schade) continue;
             if (!verdacht.has(n)) { verdacht.put(n, now); continue; } // eerste keer: de volgende nacht opnieuw kijken

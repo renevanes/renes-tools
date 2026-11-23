@@ -96,13 +96,50 @@ final class Blokken {
         @Override public void close() { }
     }
 
-    /** Afgekapt (korter in de map dan geschreven): "onvolledig gelezen" is dan zeker schade, geen verbinding. */
-    static final class Kort extends FilterInputStream {
-        Kort(InputStream in) { super(in); }
-        static IOException fout(IOException e) { return String.valueOf(e.getMessage()).equals(ONVOLLEDIG) ? new IOException(AFGEKAPT, e) : e; }
+    /**
+     * "Onvolledig gelezen" kan de verbinding zijn, of schade die er net zo uitziet. Zeker schade (AFGEKAPT) als het
+     * bestand in de map korter is dan geschreven, of als een tweede keer lezen het hele bestand ophaalt (zo groot als de
+     * map zegt) en het toch weer te vroeg ophoudt. Anders blijft het een gewone fout (opnieuw proberen).
+     */
+    static final class Nalees extends FilterInputStream {
+        final Opslag o; final Vault.Key k; final String naam; final boolean z; final long size, listed, enc; final String sha;
+        Nalees(InputStream in, Opslag o, Vault.Key k, String naam, boolean z, long size, String sha, long listed, long enc) {
+            super(in); this.o = o; this.k = k; this.naam = naam; this.z = z; this.size = size; this.sha = sha; this.listed = listed; this.enc = enc;
+        }
+        IOException fout(IOException e) {
+            if (!ONVOLLEDIG.equals(e.getMessage())) return e;
+            if (listed >= 0 && enc > 0 && listed < enc) return new IOException(AFGEKAPT, e);
+            return vastKapot(o, naam, k, z, size, sha, listed) ? new IOException(AFGEKAPT, e) : e;
+        }
         @Override public int read() throws IOException { try { return in.read(); } catch (IOException e) { throw fout(e); } }
-        @Override public int read(byte[] b, int o, int l) throws IOException { try { return in.read(b, o, l); } catch (IOException e) { throw fout(e); } }
+        @Override public int read(byte[] b, int off, int l) throws IOException { try { return in.read(b, off, l); } catch (IOException e) { throw fout(e); } }
         @Override public long skip(long n) throws IOException { try { return in.skip(n); } catch (IOException e) { throw fout(e); } }
+    }
+
+    /** Telt wat er gelezen wordt. */
+    static final class TelIn extends FilterInputStream {
+        long n;
+        TelIn(InputStream in) { super(in); }
+        @Override public int read() throws IOException { int r = in.read(); if (r >= 0) n++; return r; }
+        @Override public int read(byte[] b, int off, int l) throws IOException { int r = in.read(b, off, l); if (r > 0) n += r; return r; }
+    }
+
+    /**
+     * Nog een keer helemaal lezen: houdt het weer te vroeg op terwijl het hele bestand (zo groot als de map zegt) gelezen
+     * is, of klopt de versleuteling niet, dan is het zeker schade. Lukt het nu wel, of valt de verbinding weg: geen schade.
+     */
+    static boolean vastKapot(Opslag o, String naam, Vault.Key k, boolean z, long size, String sha, long listed) {
+        TelIn in = null;
+        try {
+            InputStream raw = o.open(naam);
+            if (raw == null) return false;
+            in = new TelIn(raw);
+            leesHelemaal(lees(new java.io.BufferedInputStream(in, 1 << 16), k, z, size, sha));
+            return false;
+        } catch (IOException e) {
+            if (schade(e)) return true;
+            return in != null && ONVOLLEDIG.equals(e.getMessage()) && listed > 0 && in.n >= listed;
+        }
     }
 
     static final String ONVOLLEDIG = "Groot bestand onvolledig gelezen", AFGEKAPT = "Groot bestand afgekapt";
@@ -423,6 +460,8 @@ final class Blokken {
 
     /** Bron uit een opslag met de sleutel van het archief. */
     static Bron bron(final Opslag o, final Vault.Key k) {
+        // De lijst van de map één keer (niet per groot bestand: dat zou bij duizenden bestanden traag worden)
+        final java.util.concurrent.atomic.AtomicReference<Map<String, Long>> lijst = new java.util.concurrent.atomic.AtomicReference<>();
         return it -> {
             if (o == null) throw new IOException("De map " + DIR + " ontbreekt; kies de backup-map waar deze backup in staat");
             InputStream raw;
@@ -430,14 +469,19 @@ final class Blokken {
             catch (Ontbreekt e) { throw new Ontbreekt("Groot bestand ontbreekt in " + DIR + ": " + AppData.cut(it.n)); }
             catch (java.io.FileNotFoundException e) { throw new IOException("Groot bestand niet te openen (geen verbinding?): " + AppData.cut(it.n), e); }
             if (raw == null) throw new IOException("Groot bestand niet te openen: " + AppData.cut(it.n));
-            // Korter in de map dan geschreven: afgekapt (zeker), anders kan "onvolledig" ook de verbinding zijn
+            // "Onvolledig gelezen": afgekapt of zeker kapot (zie Nalees), of de verbinding (dan gewoon een fout)
             Long in = null;
-            try { in = o.lijst().get(it.b); } catch (IOException ignored) { }
-            boolean kort = in != null && in >= 0 && it.e > 0 && in < it.e;
+            try {
+                Map<String, Long> m = lijst.get();
+                if (m == null) { m = o.lijst(); lijst.set(m); }
+                in = m.get(it.b);
+            } catch (IOException ignored) { }
+            long listed = in == null ? -1 : in;
             InputStream b;
+            Nalees na = new Nalees(null, o, k, it.b, it.z, it.s, it.h, listed, it.e);
             try { b = lees(new java.io.BufferedInputStream(raw, 1 << 16), k, it.z, it.s, it.h); }
-            catch (IOException e) { throw kort ? Kort.fout(e) : e; }
-            return kort ? new Kort(b) : b;
+            catch (IOException e) { throw na.fout(e); }
+            return new Nalees(b, o, k, it.b, it.z, it.s, it.h, listed, it.e);
         };
     }
 

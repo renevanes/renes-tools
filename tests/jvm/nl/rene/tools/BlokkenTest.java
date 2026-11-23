@@ -201,6 +201,22 @@ public class BlokkenTest {
         IOException wf = null;
         try { lees(arc, k, wankel2); } catch (IOException e) { wf = e; }
         check(wf != null && !(wf instanceof Blokken.LeesFout) && Blokken.ONVOLLEDIG.equals(wf.getMessage()), "onvolledig gelezen bij de volle grootte: geen LeesFout (" + wf + ")");
+        // Kapot op een manier die op een weggevallen verbinding lijkt (lengte van het laatste blok), maar het hele bestand
+        // is gelezen en nog een keer lezen gaat precies zo: zeker schade (anders zou terugzetten er altijd op stoppen)
+        {
+            byte[] g = goed.clone();
+            int pos = Vault.HEADER, laatste = -1;
+            while (pos + 4 <= g.length) { laatste = pos; pos += 4 + java.nio.ByteBuffer.wrap(g, pos, 4).getInt(); }
+            java.nio.ByteBuffer.wrap(g, laatste, 4).putInt(Vault.CHUNK + Vault.TAG);
+            Files.write(doelwit.toPath(), g);
+            IOException vk = null;
+            try { lees(arc, k, o); } catch (IOException e) { vk = e; }
+            check(vk instanceof Blokken.LeesFout && Blokken.AFGEKAPT.equals(vk.getMessage()), "vast kapot bij de volle grootte: zeker schade (" + vk + ")");
+            check(Blokken.vastKapot(o, doelwit.getName(), k, s[0].items.get(0).z, s[0].items.get(0).s, s[0].items.get(0).h, g.length), "vastKapot: ja");
+            Files.write(doelwit.toPath(), goed);
+            check(!Blokken.vastKapot(o, doelwit.getName(), k, s[0].items.get(0).z, s[0].items.get(0).s, s[0].items.get(0).h, goed.length), "vastKapot: een goed bestand niet");
+            Files.write(doelwit.toPath(), Arrays.copyOf(goed, goed.length - 30));
+        }
         // Map niet te lezen of geen verbinding bij openen: geen LeesFout
         Blokken.Opslag offline = new Blokken.Opslag() {
             public Map<String, Long> lijst() throws IOException { throw new IOException("Geen verbinding"); }
