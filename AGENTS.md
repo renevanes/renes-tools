@@ -60,8 +60,10 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   `JobScheduler` (die hebben hun eigen tijd) of iets wat alleen met de app open hoort (inspreken, de camera).
   Een tool met een eigen slot (Stamgegevens, Bankzaken) breekt lopend werk niet af als hij vanzelf op slot gaat: het werk
   gaat door, laat niets zien en bewaart pas na het ontgrendelen (Stamgegevens: `MasterPhotos.uitkomst`/`opslaan`, de
-  uitkomst alleen in het geheugen; Bankzaken: `Bank.inlezenBegin`, alleen voor de draad die inleest). Vergrendelen met
-  de hand of annuleren breekt het wel af. Kluisdocumenten bij Vergelijken gaan weg zodra een lopende vergelijking klaar is
+  uitkomst alleen in het geheugen, hooguit `BEWAAR_MS`; Bankzaken: `Bank.inlezenBegin`, alleen voor de draad die inleest;
+  Betalen: tonen pas na ontgrendelen via `tsDaarna`). Vergrendelen met de hand (de slotknop: `cmLock`, `bankLockHand`,
+  Extra ontgrendelen aanzetten) of annuleren breekt het wel af; de tool verlaten niet. Play-versie:
+  `DoorwerkDienst` staat (nog) niet in `play/basis.json` (daar alleen de wakelock; een dataSync-verklaring beslist Rene). Kluisdocumenten bij Vergelijken gaan weg zodra een lopende vergelijking klaar is
   (`PdfCompare.dropKluis(naLater)`). Test: `DoorwerkenTest`, `tests/ui/stamgegevens-document-fout.test.js`.
 - **Nieuwe brugfunctie** (`@JavascriptInterface`) = ook een nabootsing in `01-testbrug.js`; `python3 tools/check-bridge.py` controleert dat.
 - **Privacy**: backups en exports bevatten alleen Rene's eigen gegevens en gaan naar plekken die hij zelf kiest.

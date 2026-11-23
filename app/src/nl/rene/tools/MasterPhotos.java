@@ -239,6 +239,8 @@ final class MasterPhotos {
         Uitkomst u=null;
         try{u=analyse(job);}
         finally{synchronized(this){job.bezig=false;job.klaar=u;job.klaarOp=android.os.SystemClock.elapsedRealtime();job.uri=null;notifyAll();}}
+        // Niet ontgrendeld binnen BEWAAR_MS: de uitkomst uit het geheugen (ook als niemand meer iets vraagt)
+        activity.h.postDelayed(()->{synchronized(MasterPhotos.this){if(pending==job&&job.klaar!=null&&job.reviewId==null){pending=null;notifyAll();}}},BEWAAR_MS+1000);
         return u;
     }
     /** Lezen en herkennen; alleen in het geheugen. Stopt alleen als de keuze vervalt (annuleren, vergrendelen met de hand). */
