@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.242",
-  "versionCode": 243,
-  "nativeLevel": 208,
+  "versionName": "1.243",
+  "versionCode": 244,
+  "nativeLevel": 209,
   "web": "index.html",
-  "webSha256": "f0f19985b18ca1af7b631cfda9fda4e0fe1065a1a423457e193cf2faa99cda5b",
+  "webSha256": "fb830f9f621ffe94d42feba7a73212d092041f9c7b6b5a3a3e0892e11cf26c7a",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "b99745de7e45799f984abeb1a94bb1ba7a10ab532e87f17687a568bee60d11cd",
+  "apkSha256": "0eee8eb4f3ed67bb22ecdc63924caaaa665cc499bee70428f5f5d57cb76a41dc",
   "changelog": [
+    {
+      "version": "1.243",
+      "date": "2026-11-23",
+      "changes": [
+        "Stamgegevens: bij Document toevoegen kun je nu ook een Google-document kiezen; Tools haalt het als Word-bestand of PDF op.",
+        "Stamgegevens: een ID-bewijs dat klein op een PDF-pagina staat (een scan of kopie op A4) wordt nu beter herkend.",
+        "Stamgegevens: lukt het toevoegen van een document niet, dan zie je nu een melding met de reden in plaats van niets."
+      ]
+    },
     {
       "version": "1.242",
       "date": "2026-11-23",
@@ -172,14 +181,7 @@
         "Fijner volume: vasthouden of snel drukken op de volumeknop gaat nu met hele stappen, dus van hard naar zacht gaat weer vlot; één keer drukken blijft een klein stapje. De knop reageert ook sneller.",
         "Grote speler: een volumeschuif voor de telefoon (bij Fijner volume in dezelfde kleine stappen); de volumeknoppen zetten hem mee. Tijdens casten blijft het de schuif van de Chromecast."
       ]
-    },
-    {
-      "version": "1.223",
-      "date": "2026-11-18",
-      "changes": [
-        "Podcasts, radio en voorlezen: de volumeknoppen van je telefoon gaan nu in kleinere stappen (standaard 3 keer zo fijn). Aan of uit en hoe fijn bij Podcasts → Instellingen of Spraak → Volumeknoppen."
-      ]
     }
   ],
-  "webSig2": "JazP2GJ0vEzB4Pw3o7zvHttDXnQESnpmb4MEh5SQZaQ7XUt2BsiVVeQJ43XlXcGvr2kXpJ+5LQsQ7wx235T1pKPVFnMnZa67l2zavhVZFoPnJAeLhdnfoDDn9S6EOmFjIiX6xRRt7afgcWBxhSqXrPTi7El+7KD3K6BMD/QtbXKLf/P3BkUyDoOk4VqCbKQ7bbO6AAC/VT1hMhpvApjZtBsPI/FR4uppMfrvXrVQ2de9qXB9E9ZOXHPxEBbu+y0HlJMOcTpNWOsuvjGfM3dn3c3p90NvT9ylcJLaTXyAwnXNUI5UyNravIdkui1qpfDOCFxhPF1QBmBdY/lLpEp/Qp0hQNNF3ZAgY6Ar8/MMAZDR6z5OkxEwN8yW6/dIVcetTwEEsedPn3ctmzY7MbW2ZfD0mnf2RGbiAZSaliP/Z4eFWgcRJasrrloYcnHA/V+KHbsfoFdcUJsloftpuGRe4sJ/KRCPZiszN2fL9DAPGwoaAiV8kH9AWLjW7U1mt6X6"
+  "webSig2": "UWts5iL2S25ey6ZNMdbq20anloowBPD7f81TOw5LgeYFPezPdAVNwg7iO/lZtPAmHw+0N9TbOTfRiwRfOzx7g3OYJoLIInyLBfc5Mr2WWWCTmuPB/IwQ//T/BpIrClLP/pzUhf/2D4ozzrK9HPOwwtoHmdCwbw3164yzO7RswAQu358QO09ldfU+OqnMe4y9Lnt7VRyGsx+8eVz/rF9v00CCJHhjC640d/mzq/+ZtgDfWIBiq+8VMQYonzjYsglNJ4Andf1aFk0bVeNGTaFhQ99aNHXHxGoTpYRjAjyGPtXsH2q7b6wNT79s+0YhYvFRWmsHTETeaQpXAi+J3nBrHrMwQnSM09ltF19XyLrny76VqaktiU7r9LCb33E22L/ZvU2fDIqqk+XjQvKiD/e9W/HbXG7VnaeApYMmZHfmbdZ/FDKhdFwt7VZ0PxBV86BC2yR0Q4A3ji97m/cEn4lrhyjTHSIEER4MqzVyMmnyMnj26sKPMEhUrv2AgmP6bTw1"
 }

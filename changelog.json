@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.243",
+    "date": "2026-11-23",
+    "changes": [
+      "Stamgegevens: bij Document toevoegen kun je nu ook een Google-document kiezen; Tools haalt het als Word-bestand of PDF op.",
+      "Stamgegevens: een ID-bewijs dat klein op een PDF-pagina staat (een scan of kopie op A4) wordt nu beter herkend.",
+      "Stamgegevens: lukt het toevoegen van een document niet, dan zie je nu een melding met de reden in plaats van niets."
+    ]
+  },
+  {
     "version": "1.242",
     "date": "2026-11-23",
     "changes": [
