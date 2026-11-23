@@ -53,6 +53,10 @@ final class MasterDocumentImages {
      * strook (ook op stukken van het beeld), alleen als die nergens staat de tekst van een rijbewijs. stats (mag null):
      * alleen aantallen, ja/nee en een vaste reden, voor de foutmelding en het logboek.
      */
+    static Pair findPair(Context context, byte[] bytes, String today, String type, BooleanSupplier active) throws Exception {
+        return findPair(context, bytes, today, type, active, null);
+    }
+
     static Pair findPair(Context context, byte[] bytes, String today, String type, BooleanSupplier active, JSONObject stats) throws Exception {
         long deadline = SystemClock.elapsedRealtime() + SEARCH_MS;
         BooleanSupplier searching = () -> active.getAsBoolean() && SystemClock.elapsedRealtime() < deadline;

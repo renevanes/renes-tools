@@ -205,6 +205,26 @@ public final class MasterDeviceTest extends Instrumentation {
             check(Arrays.equals((byte[])frontField.get(pair),front.toByteArray()),"recognized licence classified as front");
             check(Arrays.equals((byte[])backField.get(pair),back.toByteArray()),"other photo classified as back");
         }
+        // Een scan met beide zijden op één pagina: de pagina in tweeën, de herkende helft is de voorkant, met de vlag pagina.
+        android.graphics.Bitmap fb=android.graphics.BitmapFactory.decodeByteArray(front.toByteArray(),0,front.size());
+        android.graphics.Bitmap scan=android.graphics.Bitmap.createBitmap(1500,1900,android.graphics.Bitmap.Config.ARGB_8888);
+        scan.eraseColor(android.graphics.Color.WHITE);
+        android.graphics.Canvas cv=new android.graphics.Canvas(scan);
+        android.graphics.Paint grey=new android.graphics.Paint();grey.setColor(android.graphics.Color.LTGRAY);
+        cv.drawRect(0,0,900,560,grey); // achterkant boven
+        cv.drawBitmap(fb,0,950,null); // voorkant onder
+        fb.recycle();
+        java.io.ByteArrayOutputStream scanJpeg=new java.io.ByteArrayOutputStream(),scanPdf=new java.io.ByteArrayOutputStream();
+        scan.compress(android.graphics.Bitmap.CompressFormat.JPEG,95,scanJpeg);scan.recycle();
+        Object scanPage=call(writer,null,"layout",layout,scanJpeg.toByteArray(),1500,1900,false,true,28f);
+        call(writer,null,"write",new Class<?>[]{java.io.OutputStream.class,java.util.List.class,String.class},scanPdf,Arrays.asList(scanPage),"Test");
+        JSONObject stats=new JSONObject();
+        Object een=call(type("MasterDocumentImages"),null,"findPair",new Class<?>[]{Context.class,byte[].class,String.class,String.class,java.util.function.BooleanSupplier.class,JSONObject.class},
+            context,scanPdf.toByteArray(),"2026-11-08","rijbewijs",(java.util.function.BooleanSupplier)()->true,stats);
+        check(een!=null,"both sides from one scanned page ("+stats+")");
+        java.lang.reflect.Field fields=een.getClass().getDeclaredField("fields");fields.setAccessible(true);
+        java.lang.reflect.Field pagina=een.getClass().getDeclaredField("pagina");pagina.setAccessible(true);
+        check(fields.get(een)!=null&&stats.optBoolean("gesplitst")&&pagina.getBoolean(een),"licence recognized in the lower half of a split page ("+stats+")");
     }
     void runChecks()throws Exception {
         store=type("MasterStore");sessionType=type("MasterSession");keys=type("MasterKeys");
