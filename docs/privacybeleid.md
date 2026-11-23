@@ -1,6 +1,6 @@
 # Privacybeleid van Rene's Tools
 
-*Laatst bijgewerkt: 13 november 2026*
+*Laatst bijgewerkt: 23 november 2026*
 
 Rene's Tools (in de app: "Tools") is een Android-app van Rene van Es (Rotterdam) met hulpmiddelen zoals notities,
 PDF's, radio, podcasts, routes, backups, VPN, facturen, bankzaken en een lokale assistent. De app is vrije software:
@@ -46,6 +46,7 @@ Alles in deze tabel blijft op de telefoon, behalve wat onder "Wanneer er iets de
 | Toegankelijkheid | Automatiseringen die in andere apps tikken, en herkennen hoe je ontgrendelt (Gebruik) |
 | VPN | Je eigen VPN-verbindingen |
 | Meldingen tonen | Voortgang, herinneringen en de bediening van de speler |
+| Nachtmetingen van je CPAP (geen toestemming nodig) | CPAP-analyse: metingen uit een myAir-export die je zelf kiest. Versleuteld op de telefoon; niet in de Google-backup, wel in de versleutelde backup van alle appgegevens. Er gaat niets naar ResMed of een andere dienst |
 
 ### Alleen in de GitHub-versie
 
@@ -71,7 +72,7 @@ bij elke internetverbinding zo. Daarnaast:
 | Hugging Face | Een onderbroken download van een AI-model gaat vanzelf verder | Niets persoonlijks |
 
 **Taken op de achtergrond:** podcasts ophalen en vanzelf downloaden (staat standaard aan voor de podcasts die je volgt, alleen via wifi tenzij je dat uitzet; uit te zetten bij Instellingen van Podcasts), en wat je zelf hebt aangezet: de Spotify-backup, facturen ophalen en
-aanleveren, de gegevens van Toiletten en douches bijwerken, en de wekelijkse statistieken (zie hieronder). Ze gebruiken de diensten uit de volgende tabel.
+aanleveren, de gegevens van Toiletten en douches bijwerken, de bronnen die je volgt in Signalen (zo vaak als je per bron kiest), de wekelijkse statistieken en, als je Vanzelf sturen aanzet, Diagnose (zie hieronder). Ze gebruiken de diensten uit de volgende tabel.
 
 **Als je een tool gebruikt of iets instelt:**
 
@@ -119,7 +120,7 @@ een rekening las en wat daaruit herkend is. Dat bevat inhoud (namen, adressen, n
 geheugen van de app, hooguit een uur, en is weg zodra de app stopt; het komt niet in een bestand of backup. Het verlaat de telefoon
 alleen als je bij Instellingen → Foutrapport en statistieken → Diagnose zelf een stuk kopieert of verstuurt (na een
 vraag), of als je daar "Vanzelf sturen" aanzet (staat uit; aanzetten vraagt eerst). Versturen gaat naar dezelfde eigen
-(privé) GitHub-repository als de statistieken, in de map `diagnose`. Op hetzelfde scherm staat wat er verstuurd is
+(privé) GitHub-repository als de statistieken, in de map `diagnose`; Tools verstuurt alleen als GitHub die repository als privé meldt. Webadressen in de gelezen tekst van een rekening (zoals een betaallink) laat Betalen zo veel mogelijk weg. Op hetzelfde scherm staat wat er verstuurd is
 (tijd, tool en omvang). De Play-versie verstuurt geen diagnose.
 
 ## Backups
@@ -169,10 +170,10 @@ optional silent front-camera photo on (failed) unlock). Data leaves the phone on
 audio clip), Spotify, Google (read-only Gmail search for invoices, Drive, sending invoices), your own mail server or
 cloud, supplier and bank websites, news sites and feeds you choose (optionally with your own login on the real
 site), OpenStreetMap (map tiles and, only when you choose to share a toilet location, a public anonymous note), Apple's podcast search, radio-browser.info, radio streams and podcast
-feeds, Chromecast in your network, Hugging Face (model downloads) and your VPN. Automatically: weather (approximate
+feeds, Chromecast in your network, Hugging Face (model downloads), your VPN, websites you follow in Signalen, your bank's website when you pre-fill a payment in Betalen (you sign it yourself), payment links from a bill's QR code and a DuckDuckGo search, both only after you confirm, video player services in news articles, and podcast chapter files. Automatically: weather (approximate
 location to Open-Meteo), resuming model downloads and, in the GitHub version, update checks. Optional weekly
 statistics (counts, crash type and location in the code, app version, device make/model, Android version, random
-install id) go only to your own private GitHub repository. The assistant and transcription run on the device. Android's
+install id) go only to your own private GitHub repository; Diagnose (content such as text read from a bill) only when you copy or send it yourself or turn on automatic sending, and only to that repository when GitHub reports it as private. CPAP measurements you import stay encrypted on the phone. The assistant and transcription run on the device. Android's
 Google backup may include notes, music history, parking/trips, saved places and settings, but never passwords, keys or
 bank data, your own Agenda appointments or news sources. Uninstalling removes the app's data from the phone. Questions: contact@esape.nl or an issue on
 [GitHub](https://github.com/renevanes/renes-tools/issues).

@@ -237,7 +237,7 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
  mee in Alle appgegevens).
 - **Bekijken: één viewer voor de hele app.** PDF's en afbeeldingen (JPEG, PNG, WebP, GIF, HEIC; herkend aan de inhoud,
   `PdfDoc.soort`) openen in de eigen viewer (`PdfViewActivity`, met `PdfDoc`; via `PdfProvider`, geen kopie buiten de app).
-  Een kluisdocument via `kluisOpen` (`klInViewer` kiest), een bestand onder Gemaakt via `pdfOpen`. Alleen wat de viewer niet
+  Een kluisdocument via `kluisOpen` (Java kiest aan de inhoud), een bestand onder Gemaakt via `pdfOpen`. Alleen wat de viewer niet
   kan tonen (bijv. Word) gaat naar een andere app. Nieuwe plek die een document toont = deze viewer, geen eigen weergave.
 - **Lege lijst**: `uiEmpty('mic', t('Nog geen opnames.'), t('Knoptekst'), 'actie()')`: pictogram, één regel en hooguit één (tonale) knop.
 - **Eenmalig instellen**: een kaart `class="card setup"` die weg gaat als het klaar is (`<div … hidden>`), of inklapt als er

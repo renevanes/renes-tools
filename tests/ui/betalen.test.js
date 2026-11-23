@@ -185,7 +185,6 @@ const QR_EPC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0AQAAAAAVtj
     ok(await page.isHidden('#btd-geenstuk'), 'met rekening: geen uitleg dat hij ontbreekt');
     await page.click('#btd-stuk'); await wacht(150);
     ok(await page.evaluate(() => Android._kl.opened && Android._kl.opened.id === btVind(bt.id).doc), 'Rekening bekijken opent het document in de viewer van de app');
-    ok(await page.evaluate(() => klInViewer({ mime: 'image/jpeg', name: 'x.jpg' }) && klInViewer({ mime: 'application/pdf' }) && !klInViewer({ mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', name: 'brief.docx' })), 'PDF en afbeeldingen in de eigen viewer, de rest met een andere app');
     await page.evaluate(() => { Android.betalenInst(JSON.stringify({ bank: 'rabobank', naKlaar: 'vragen', eigen: [], stuk: false })); Android._bt.calls = []; show('betalen'); });
     await page.click('#bt-nieuw'); await wacht(100); await sheet('Bestand op de telefoon'); await wacht(400);
     ok(await page.evaluate(() => !Android._bt.calls.some(c => c[0] === 'stuk') && !btVind(bt.id).doc && $('#btd-stuk').hidden), 'bewaren uit: de rekening gaat niet de kluis in');

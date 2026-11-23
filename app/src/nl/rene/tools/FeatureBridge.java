@@ -521,23 +521,6 @@ public class FeatureBridge {
                 try { a.startActivityForResult(i, MainActivity.REQ_KLUIS); } catch (ActivityNotFoundException e) { Toast.makeText(a, Taal.tx(a, "Bestandskiezer niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
             });
         }
-        @JavascriptInterface public void kluisView(String id) {
-            if (!a.kluisOk()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
-            new Thread(App.veilig(() -> {
-                try {
-                    File f = Kluis.view(ctx, id);
-                    JSONObject d = Kluis.find(ctx, id);
-                    String mime = d == null || d.optString("mime").isEmpty() ? ctx.getContentResolver().getType(Uri.fromFile(f)) : d.optString("mime");
-                    Uri u = new Uri.Builder().scheme("content").authority(KluisProvider.AUTH).appendPath(f.getName()).build();
-                    Intent v = new Intent(Intent.ACTION_VIEW).setDataAndType(u, mime == null ? "application/octet-stream" : mime)
-                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-                    // niet de eigen PDF-viewer aanbieden: die maakt een kopie, en die hoort niet buiten de kluis te bestaan
-                    final Intent ch = Intent.createChooser(v, "Openen met").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            .putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, new android.content.ComponentName[]{new android.content.ComponentName(ctx, PdfViewActivity.class)});
-                    a.runOnUiThread(() -> { try { a.startActivity(ch); } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote("Geen app om dit te openen")); } });
-                } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote(e.getMessage() == null ? "Openen lukt niet" : e.getMessage())); }
-            }), "kluis-view").start();
-        }
         // ----- Documentenkluis als centrale opslag: gemaakte PDF's erin, bekijken in de eigen viewer, bewerken als nieuwe versie -----
 
         /**
