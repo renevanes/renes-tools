@@ -223,5 +223,46 @@ const { chromium } = require('playwright');
     await pg.close();
     console.log(f, 'errors', errs);
   }
+  // ---------- ontsleutelen.html met grote bestanden apart (Versleuteld/Grote bestanden, BlokkenTest) ----------
+  {
+    const dir = path.join(os.tmpdir(), 'rt-groot-test'), errs = [];
+    const ok = (c, m) => { if (!c) errs.push('✗ ' + m); };
+    if (!fs.existsSync(path.join(dir, 'verwacht.txt'))) console.log('grote bestanden overgeslagen (eerst BlokkenTest)', 'errors', process.env.CI ? ['✗ rt-groot-test ontbreekt: eerst ./tests/run-jvm.sh'] : []);
+    else {
+      const rtb = path.join(dir, 'backup-2026-11-24_0330.rtb'), gdir = path.join(dir, 'Grote bestanden');
+      const blokken = fs.readdirSync(gdir).map(n => path.join(gdir, n));
+      const verwacht = Object.fromEntries(fs.readFileSync(path.join(dir, 'verwacht.txt'), 'utf8').trim().split('\n').map(l => l.split('\t')));
+      const pg = await b.newPage({ acceptDownloads: true }); pg.on('pageerror', e => errs.push(e.message));
+      await pg.goto('file://' + path.join(__dirname, '..', '..', 'web', 'ontsleutelen.html'));
+      // Zonder de grote bestanden: duidelijke melding, geen download
+      await pg.setInputFiles('#f', rtb); await pg.fill('#pw', 'geheim-wachtwoord'); await pg.uncheck('#geheim');
+      await pg.click('#go'); await pg.waitForTimeout(1500);
+      ok(/2 grote bestanden ontbreken/.test(await pg.textContent('#msg')), 'zonder de map: melding welke ontbreken (' + await pg.textContent('#msg') + ')');
+      const uitpak = async geheim => {
+        await pg.setInputFiles('#f', rtb); await pg.setInputFiles('#g', blokken); await pg.fill('#pw', 'geheim-wachtwoord');
+        if (geheim) await pg.check('#geheim'); else await pg.uncheck('#geheim');
+        const [dl] = await Promise.all([pg.waitForEvent('download', { timeout: 120000 }), pg.click('#go')]);
+        const out = await dl.path();
+        const r = JSON.parse(cp.execFileSync('python3', ['-I', '-c', 'import zipfile,sys,json,hashlib\nz=zipfile.ZipFile(sys.argv[1])\nprint(json.dumps({"bad":z.testzip(),"sha":{n:hashlib.sha256(z.read(n)).hexdigest() for n in z.namelist()}}))', out]).toString());
+        return { ...r, msg: await pg.textContent('#msg') };
+      };
+      const z = await uitpak(false);
+      ok(z.bad === null, 'geldige zip met grote bestanden');
+      for (const n of ['Notities/notities.json', 'Kluis/groot.pdf', 'Appgegevens/bestanden/nieuws/lijst.json']) ok(z.sha[n] === verwacht[n], 'groot en klein bestand precies terug: ' + n);
+      ok(!Object.keys(z.sha).some(n => n.startsWith('Appgegevens/geheim/') || n === 'Appgegevens/instellingen.json'), 'geen geheimen, ook niet uit de grote bestanden');
+      ok(!('grote-bestanden.json' in z.sha), 'de lijst zelf zit er niet in');
+      ok(/2 grote bestanden erbij gezet/.test(z.msg) && /2 bestanden met wachtwoorden en sleutels weggelaten/.test(z.msg), 'melding: ' + z.msg);
+      const all = await uitpak(true);
+      ok(all.bad === null && Object.keys(verwacht).every(n => all.sha[n] === verwacht[n]), 'aangevinkt: alles, ook het grote geheime bestand');
+      // Een beschadigd groot bestand: gemeld, geen download
+      const kapot = path.join(os.tmpdir(), 'rt-groot-kapot'); fs.mkdirSync(kapot, { recursive: true });
+      const kopie = blokken.map(f => { const d = path.join(kapot, path.basename(f)); const buf = fs.readFileSync(f); buf[buf.length >> 1] ^= 1; fs.writeFileSync(d, buf); return d; });
+      await pg.setInputFiles('#f', rtb); await pg.setInputFiles('#g', kopie); await pg.uncheck('#geheim');
+      await pg.click('#go'); await pg.waitForTimeout(2000);
+      ok(/beschadigd/.test(await pg.textContent('#msg')), 'beschadigd groot bestand gemeld (' + await pg.textContent('#msg') + ')');
+      await pg.close();
+    }
+    console.log('grote bestanden', 'errors', errs);
+  }
   await b.close();
 })();

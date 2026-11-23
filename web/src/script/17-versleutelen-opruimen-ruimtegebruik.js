@@ -21,6 +21,7 @@ function bkRenderSecure(st){
   $('#bk-enc-off').style.display = on ? 'block' : 'none';
   $('#bk-rotate').checked = !!st.rotate;
   bkKeepRender(st);
+  bkBlokRender(st);
   if (st.parts) bkPrivRender(st); // de waarschuwing bij Privé hangt af van versleutelen
   if (st.parts && bkOn() && $('#bk-app-note')) { const n = $('#bk-app-note'); n.className = 'note' + (on ? '' : ' warn'); n.innerHTML = bkAppNote(on); }
   if (st.herstel) bkRenderHerstel(st);
@@ -74,6 +75,40 @@ window.onRotate = function(r){
     if (!r.count) { toast('Er is niets op te ruimen'); return; }
     askConfirm(t('{n} oude bestanden verwijderen?', { n: r.count }), t('Samen {grootte}. {regel}.', { grootte: fmtB(r.bytes), regel: bkKeepTekst(bkKeep(bkState(true))) }), 'Verwijderen', () => { uiBezig(t('Oude bestanden verwijderen…'), 'onRotate'); Android.backupRotate(false); });
   } else { toast(t('✓ {n} oude bestanden verwijderd ({grootte})', { n: r.count, grootte: fmtB(r.bytes) })); }
+};
+/* Grote bestanden één keer bewaren (Versleuteld/Grote bestanden), en de oude backups waarin nog alles volledig zit */
+function bkBlokRender(st){
+  const on = st.blokken !== false, c = $('#bk-blok'), s = $('#bk-blok-txt');
+  if (c) c.checked = on;
+  if (s) s.textContent = on ? t('Opnames, documenten en foto’s staan één keer in Versleuteld/Grote bestanden; elke backup verwijst ernaar') : t('Uit: elke backup bevat alles opnieuw');
+  const o = st.oud || {}, box = $('#bk-oud');
+  if (!box) return;
+  box.hidden = !(o.count > 0);
+  if (o.count > 0) $('#bk-oud-txt').textContent = tn(o.count, 'Er staat nog één oude backup waarin alles volledig zit ({grootte}). De nieuwe backups hebben die niet meer nodig.',
+    'Er staan nog {n} oude backups waarin alles volledig zit (samen {grootte}). De nieuwe backups hebben die niet meer nodig.', { grootte: fmtB(o.bytes || 0) });
+}
+function bkBlokSet(on){
+  if (!on) {
+    askConfirm(t('Grote bestanden weer in elke backup?'), t('Dan zit alles weer in elke backup en wordt je backup-map elke nacht veel groter. De grote bestanden die al bewaard zijn blijven staan zolang een backup ze nodig heeft.'), t('Uitzetten'),
+      () => { Android.backupSetBlokken(false); bkBlokRender(bkState(true)); }, () => bkBlokRender(bkState(true)));
+    return;
+  }
+  Android.backupSetBlokken(true);
+  bkBlokRender(bkState(true));
+}
+function bkOudOpruimen(){ uiBezig(t('Bezig met tellen…'), 'onOudeBackups'); Android.backupOudeOpruimen(true); }
+window.onOudeBackups = function(r){
+  if (r.error) { toast(r.error); return; }
+  if (r.dry) {
+    if (!r.count) { toast(t('Er zijn geen oude backups om weg te halen')); if (bkOn()) bkBlokRender(bkState(true)); return; }
+    askConfirm(tn(r.count, 'Eén oude backup weghalen?', '{n} oude backups weghalen?'),
+      t('Samen {grootte}. De nieuwste oude backup blijft als vangnet staan; je nieuwe backups zijn compleet zonder deze.', { grootte: fmtB(r.bytes || 0) }) + '\n\n' +
+      t('Ze gaan naar de prullenbak van je opslag. Bij Google Drive tellen ze daar nog mee tot je de prullenbak leegt (of na 30 dagen).'),
+      t('Weghalen'), () => { uiBezig(t('Oude backups weghalen…'), 'onOudeBackups'); Android.backupOudeOpruimen(false); });
+  } else {
+    toast(tn(r.count, '✓ Eén oude backup weggehaald ({grootte})', '✓ {n} oude backups weggehaald ({grootte})', { grootte: fmtB(r.bytes || 0) }));
+    if (bkOn()) bkBlokRender(bkState(true));
+  }
 };
 function bkSpace(){ $('#bk-space-btn').disabled = true; $('#bk-space-btn').textContent = 'Bezig met tellen…'; Android.backupSpace(); }
 window.onSpace = function(r){

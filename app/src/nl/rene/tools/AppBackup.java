@@ -142,7 +142,8 @@ final class AppBackup {
                 ByteArrayOutputStream plain = new ByteArrayOutputStream();
                 try (InputStream in = new java.io.BufferedInputStream(new FileInputStream(f))) { Kluis.decrypt(in, plain); }
                 putBytes(zip, m, AppData.GEBRUIK_FOTO_DIR + "/" + name, plain.toByteArray());
-            } catch (Exception e) { m.skipped.add(new String[]{"gebruik-foto/" + name, "foto niet te lezen"}); }
+            } catch (Blokken.OpslagFout e) { throw e; }
+            catch (Exception e) { m.skipped.add(new String[]{"gebruik-foto/" + name, "foto niet te lezen"}); }
         }
     }
 
@@ -265,6 +266,7 @@ final class AppBackup {
         } catch (IOException e) {
             if (raw != null) try { raw.close(); } catch (Exception ignored) { }
             if (written == null) throw e; // het archief zelf: dan ook niet verder
+            if (e instanceof Blokken.OpslagFout) throw e; // grote bestanden lukken niet: duidelijk mislukt, niet stil overslaan
             m.broken.add(written);
             w.zip.bad.add(written);
             m.skipped.add(new String[]{rel, "niet te lezen"});
@@ -368,7 +370,7 @@ final class AppBackup {
             return true;
         } catch (Exception e) {
             if (written != null) { m.broken.add(written); zip.bad.add(written); }
-            if (AllBackup.stop) throw e;
+            if (AllBackup.stop || e instanceof Blokken.OpslagFout) throw e;
             m.skipped.add(new String[]{"kluis:" + blob, "kluisdocument niet te lezen"});
             App.log(c, "BACKUP", "appgegevens kluis " + blob + ": " + e.getClass().getSimpleName());
             return false;
@@ -568,23 +570,28 @@ final class AppBackup {
         Vault.In[] vault = new Vault.In[1];
         try {
             // ---- 1. alles lezen: appgegevens klaarzetten, van de andere onderdelen alleen grootte en SHA-256 ----
-            try (ZipInputStream z = openZip(c, u, k, counter, vault)) {
-                ZipEntry e;
+            // Grote bestanden staan apart (Versleuteld/Grote bestanden): de lezer haalt ze op na de rest van het archief
+            Blokken.Bron bron = Blokken.bron(BlokOpslag.voor(c), k);
+            try (Blokken.Lezer z = new Blokken.Lezer(openZip(c, u, k, counter, vault), vault[0], bron)) {
                 byte[] buf = new byte[1 << 16];
-                while ((e = z.getNextEntry()) != null) {
-                    String name = e.getName();
+                while (z.volgende()) {
+                    String name = z.naam();
                     if (pr != null) pr.at(counter[0].n, total, 1);
-                    if (e.isDirectory()) { drain(z, buf); continue; }
-                    if (!name.startsWith(AppData.DIR + "/")) { others.put(name, hashDrain(z, name, buf)); continue; }
-                    if (name.equals(AppData.MANIFEST)) { manifest = new String(small(z, buf, 16_000_000), StandardCharsets.UTF_8); continue; }
+                    if (!name.startsWith(AppData.DIR + "/")) {
+                        // Van een ander onderdeel alleen grootte en SHA-256 (voor de verwijzingen); bij een groot bestand uit de lijst
+                        others.put(name, z.extern() ? new AppData.Entry(name, z.item().s, z.item().h) : hashDrain(z.inhoud(), name, buf));
+                        continue;
+                    }
+                    if (name.equals(AppData.MANIFEST)) { manifest = new String(small(z.inhoud(), buf, 16_000_000), StandardCharsets.UTF_8); continue; }
                     if (AppData.safeRel(name) == null) throw new Exception("Onveilige naam in de backup");
                     String t = AppData.target(name);
-                    if (t == null) { drain(z, buf); continue; } // van een nieuwere versie, of niet meer bekend: overslaan
-                    AppData.Entry en = stageEntry(x, z, name, t, buf);
+                    if (t == null) continue; // van een nieuwere versie, of niet meer bekend: overslaan
                     if (seen.containsKey(name)) throw new Exception("Dubbele naam in de backup: " + AppData.cut(name));
+                    AppData.Entry en = stageEntry(x, z.inhoud(), name, t, buf);
                     seen.put(name, en);
                 }
-                drain(vault[0], buf); // ook het slot van het archief: pas dan is alles echt gecontroleerd (afgekapt = fout)
+                // het slot van het archief is gelezen zodra de lijst klaar was (afgekapt = fout); de grote bestanden zijn
+                // elk gecontroleerd (grootte en SHA-256)
             }
             if (manifest == null && !seen.isEmpty()) throw new Exception("De appgegevens in deze backup zijn onvolledig (afgebroken backup); kies een andere backup");
             if (manifest == null) throw new NoAppData();
@@ -614,15 +621,14 @@ final class AppBackup {
                 l.add(r);
             }
             if (!want.isEmpty()) {
-                try (ZipInputStream z = openZip(c, u, k, counter, vault)) {
-                    ZipEntry e;
+                try (Blokken.Lezer z = new Blokken.Lezer(openZip(c, u, k, counter, vault), null, bron)) {
                     byte[] buf = new byte[1 << 16];
-                    while (!want.isEmpty() && (e = z.getNextEntry()) != null) {
+                    while (!want.isEmpty() && z.volgende()) {
                         if (pr != null) pr.at(counter[0].n, total, 2);
-                        List<AppData.Ref> l = want.remove(e.getName());
-                        if (l == null) { drain(z, buf); continue; }
+                        List<AppData.Ref> l = want.remove(z.naam());
+                        if (l == null) continue;
                         AppData.Ref first = l.get(0);
-                        AppData.Entry got = stageEntry(x, z, first.target, AppData.target(first.target), buf);
+                        AppData.Entry got = stageEntry(x, z.inhoud(), first.target, AppData.target(first.target), buf);
                         if (got.size != first.size || !got.sha.equals(first.sha)) throw new Exception("Beschadigd in de backup: " + AppData.cut(first.source));
                         File src = x.stagedFiles.get(first.target);
                         for (int i = 1; i < l.size(); i++) copyAs(x, src, l.get(i));

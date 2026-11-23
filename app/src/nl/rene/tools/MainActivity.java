@@ -2876,10 +2876,38 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void backupRotate(boolean dry) {
             new Thread(App.veilig(() -> {
                 String r;
-                try { r = Secure.rotate(ctx, dry).put("dry", dry).toString(); }
+                try {
+                    org.json.JSONObject o = Secure.rotate(ctx, dry).put("dry", dry);
+                    // Daarna ook de grote bestanden die geen archief meer gebruikt (alleen als er geen backup loopt)
+                    if (!dry && Secure.on(ctx) && AllBackup.tryBegin()) {
+                        Vault.Key k = null;
+                        try { k = Secure.key(ctx); org.json.JSONObject g = BlokOpslag.opruimen(ctx, k); o.put("count", o.optInt("count") + g.optInt("count")).put("bytes", o.optLong("bytes") + g.optLong("bytes")); }
+                        catch (Exception e) { App.log(ctx, "BACKUP", "grote bestanden opruimen: " + AppData.safeMsg(e, "mislukt")); }
+                        finally { if (k != null) java.util.Arrays.fill(k.key, (byte) 0); AllBackup.end(); }
+                    }
+                    r = o.toString();
+                }
                 catch (Exception e) { r = errJson(e); }
                 a.js("onRotate", r);
             }), "rotate").start();
+        }
+
+        /** Grote bestanden één keer bewaren aan of uit (Versleuteld/Grote bestanden). */
+        @JavascriptInterface public void backupSetBlokken(boolean on) { AllBackup.prefs(ctx).edit().putBoolean("blokken", on).apply(); }
+
+        /** Oude, volledige backups (van vóór de grote bestanden apart) weghalen; dry = tellen. Uitkomst via onOudeBackups. */
+        @JavascriptInterface public void backupOudeOpruimen(boolean dry) {
+            new Thread(Doorwerken.door("oude-backups", App.veilig(() -> {
+                String r;
+                if (!AllBackup.tryBegin()) r = "{\"error\":" + JSONObject.quote(Taal.t(ctx, "Er loopt een backup; probeer het straks opnieuw")) + "}";
+                else try {
+                    org.json.JSONObject o = BlokOpslag.oudeArchieven(ctx, dry).put("dry", dry);
+                    if (!dry) AllBackup.prefs(ctx).edit().putString("oud", BlokOpslag.oudeArchieven(ctx, true).put("t", System.currentTimeMillis()).toString()).apply();
+                    r = o.toString();
+                } catch (Exception e) { r = errJson(e); }
+                finally { AllBackup.end(); }
+                a.js("onOudeBackups", r);
+            })), "oude-backups").start();
         }
 
         @JavascriptInterface public void backupSpace() {
@@ -2992,12 +3020,13 @@ public class MainActivity extends Activity {
 
         /** Controleren (repair false) of opruimen (true); uitkomst via onBackupMap. */
         @JavascriptInterface public void backupMapRun(boolean repair) {
-            new Thread(() -> {
+            // Doorwerken: ook met het scherm uit gaat het door (anders legt Android de app stil en stopt het halverwege)
+            new Thread(Doorwerken.door("backupmap", () -> {
                 String r;
                 try { r = BackupMap.run(ctx, repair, false).toString(); }
                 catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(e instanceof Exception && WaBackup.accessErr((Exception) e) ? WaBackup.folderMsg(ctx, (Exception) e) : AppData.safeMsg(e, "Controleren mislukt")) + "}"; }
                 a.js("onBackupMap", r);
-            }, "backupmap").start();
+            }), "backupmap").start();
         }
 
         /** Alle gewone onderdelen in de backup-map opzoeken en tellen wat er nieuw is (er verandert niets); uitkomst via onHerstelLosScan. */

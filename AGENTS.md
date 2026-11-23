@@ -182,7 +182,11 @@ interface gaat mee via `store.set` (`webstore`, in Alle appgegevens en in het on
 7. **Privé met eigen vinkje** (assistent, Slaappraat, Check-in): als eigen onderdeel van Alles back-uppen alleen als Rene
    het aanvinkt, en dan versleuteld; in Alle appgegevens (altijd versleuteld) wel, in Toolgegevens nooit (`FILES_OWN`,
    `PREFS_NEVER`). Een nieuwe privé-categorie volgt dat model (`AllBackup.PRIVATE`) en Rene beslist.
-8. **Getest:** `AppDataTest` zoekt in de code elke `getSharedPreferences("…")`, elke `PREFS`-constante en elke map in
+8. **Grote bestanden gaan apart** (`Blokken`, `BlokOpslag`): alles wat via `Secure.Zip.stream()`/`stored()` in het
+   archief gaat en minstens `Blokken.MIN` groot is, komt één keer in `Versleuteld/Grote bestanden/`. Lees een archief
+   daarom altijd met `Blokken.Lezer` (`Secure.lezer(c)`), nooit met een kale `ZipInputStream`: anders mis je die bestanden.
+   Een fout bij het opslaan (`Blokken.OpslagFout`) nooit stil inslikken, maar doorgeven.
+9. **Getest:** `AppDataTest` zoekt in de code elke `getSharedPreferences("…")`, elke `PREFS`-constante en elke map in
    `getFilesDir()` (ook via een constante uit hetzelfde bestand, zoals `getFilesDir(), DIR`) en faalt als die niet in `PREFS_KNOWN`/`FILE_KNOWN` of bij de
    uitzonderingen staat, of als de naam niet mee kan (een instellingenbestand met hoofdletters of een punt). Een naam die je anders opbouwt, ziet de test
    niet: houd het bij een vaste naam. Bij een tool met een eigen bestandsformaat: ook een test die maakt, terugzet en vergelijkt.

@@ -24,7 +24,8 @@ public class BackupMapTest {
             "Secure.java:d", "Secure.java:rel.toString()",                // Versleuteld/ en Uitgepakt/…
             "WaBackup.java:parent", "WaBackup.java:destRel",               // binnen WhatsApp backup/
             "Facturen.java:rel",                                           // Facturen/<leverancier>
-            "BackupMap.java:", "ToolData.java:DIR"};
+            "BackupMap.java:", "ToolData.java:DIR",
+            "BlokOpslag.java:PAD", "BlokOpslag.java:Secure.DIR"};             // Versleuteld/Grote bestanden
 
     public static void main(String[] a) throws Exception {
         File src = new File("app/src/nl/rene/tools");

@@ -25,29 +25,39 @@ public class AllBackupJob extends JobService {
     public boolean onStartJob(final JobParameters params) {
         final Context ctx = getApplicationContext();
         if (!wanted(ctx)) return false;
+        gestopt = false;
         if (!AllBackup.tryBegin()) {
             // Er loopt al een backup: over een uur opnieuw (pas plannen nadat deze taak is afgemeld).
             new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> schedule(ctx, 60 * 60 * 1000L));
             return false;
         }
-        new Thread(() -> {
+        new Thread(App.veilig(() -> {
             JSONObject r = AllBackup.run(ctx, true);
             if (r.optBoolean("stopped")) return; // Android stopte de taak; die herhaalt hem later zelf
             AllBackup.prefs(ctx).edit().putLong("lastAutoDay", System.currentTimeMillis()).apply();
             notifyIfFailed(ctx, r);
-            jobFinished(params, false);
             schedule(ctx, 0);
-            // Daarna (buiten de tijd van de taak) de backup-map netjes houden: dubbele mappen en bestanden, achtergebleven
-            // tijdelijke bestanden. Stopt Android de app intussen, dan gaat het de volgende nacht verder.
-            try { BackupMap.nightly(ctx); } catch (Throwable ignored) { }
-        }, "allbackup-auto").start();
+            // Daarna, nog binnen de tijd van de taak, de backup-map netjes houden: dubbele mappen en bestanden,
+            // achtergebleven tijdelijke bestanden. Buiten de taak legde Android de app stil en kwam het nooit af; nu gaat
+            // het tot Android de taak stopt, en de volgende nacht verder waar het bleef.
+            opruimen = true;
+            try { if (!gestopt) BackupMap.nightly(ctx); } catch (Throwable ignored) { }
+            finally { opruimen = false; jobFinished(params, false); }
+        }), "allbackup-auto").start();
         return true;
     }
 
+    /** De backup is klaar en de backup-map wordt opgeruimd (stoppen = niet opnieuw back-uppen). */
+    static volatile boolean opruimen = false;
+    /** Android stopte deze taak al (dan ook niet meer aan het opruimen beginnen). */
+    static volatile boolean gestopt = false;
+
     @Override
     public boolean onStopJob(JobParameters params) {
-        AllBackup.stop = true; // stopt na het lopende onderdeel
-        return true;
+        gestopt = true;
+        AllBackup.stop = true; // stopt na het lopende onderdeel (of bij het opruimen na het lopende bestand)
+        BackupMap.stop = true;
+        return !opruimen; // tijdens het opruimen was de backup al gelukt: niet opnieuw plannen
     }
 
     /** Alleen een melding als er iets misging; een geslaagde nachtelijke backup is stil. */

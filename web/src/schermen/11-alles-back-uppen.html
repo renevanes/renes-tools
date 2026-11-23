@@ -103,8 +103,15 @@
           <option value="0">14 dagen + per maand</option>
         </select></div>
       <button class="big ghost" id="bk-rotate-btn" onclick="bkRotate()">Nu opruimen</button>
+      <label class="sw"><span>Grote bestanden één keer bewaren<small id="bk-blok-txt"></small></span><input type="checkbox" class="switch" role="switch" id="bk-blok" onchange="bkBlokSet(this.checked)"></label>
+      <div id="bk-oud" hidden>
+        <p class="note" id="bk-oud-txt"></p>
+        <button class="big tonal" id="bk-oud-btn" onclick="bkOudOpruimen()">Oude, volledige backups weghalen</button>
+      </div>
       <details class="help in"><summary data-icon="info">Wat wordt er opgeruimd?</summary><div class="help-body">
         <p>De gedateerde sms-, oproepen- en contactbestanden en de versleutelde backups, per soort apart. Alleen na een backup die helemaal gelukt is; een backup die halverwege stopte telt niet mee. Elke gelukte backup telt, ook een die je met de hand maakte. De nieuwste blijft altijd staan, net als de nieuwste backup met alle appgegevens (voor een nieuwe telefoon), en met Nu opruimen zie je eerst hoeveel er weg gaat.</p>
+        <p>Grote bestanden (gespreksopnames, kluisdocumenten, foto’s, boeken) veranderen bijna nooit. Die staan daarom één keer, versleuteld, in Versleuteld/Grote bestanden, en elke backup verwijst ernaar. Zo is een nachtelijke backup maar een paar MB in plaats van alles opnieuw. Een groot bestand gaat pas weg als geen enkele backup het meer nodig heeft, en elke nacht wordt een deel helemaal nagelezen. Terugzetten en ontsleutelen.html gebruiken die map vanzelf: kies op de computer naast het .rtb-bestand ook de bestanden uit Grote bestanden.</p>
+        <p>Wat de app weghaalt, gaat naar de prullenbak van je opslag. Bij Google Drive telt dat daar nog mee tot je de prullenbak leegt (of na 30 dagen).</p>
       </div></details>
     </div>
     <div class="card">

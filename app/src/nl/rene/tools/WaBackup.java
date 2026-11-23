@@ -178,8 +178,11 @@ final class WaBackup {
         final Map<String, DestDir> cache = new HashMap<>();
         final Map<String, DocumentWrite.Session> documentWrites = new HashMap<>();
         /** Als er een versleuteld archief wordt gemaakt, gaan alle bestanden daarin in plaats van in de map. */
-        final Secure.Zip zip = Secure.CAPTURE.get();
-        Dest(ContentResolver r, Uri t) { cr = r; tree = t; }
+        final Secure.Zip zip;
+        Dest(ContentResolver r, Uri t) { this(r, t, Secure.CAPTURE.get()); }
+        private Dest(ContentResolver r, Uri t, Secure.Zip z) { cr = r; tree = t; zip = z; }
+        /** Altijd de echte map, ook terwijl er een archief gemaakt wordt (voor de grote bestanden naast het archief). */
+        static Dest echt(ContentResolver r, Uri t) { return new Dest(r, t, null); }
 
         DestDir root() throws Exception {
             DestDir d = cache.get("");
@@ -206,7 +209,8 @@ final class WaBackup {
                 android.os.Bundle ex = c.getExtras();
                 if (ex == null || !ex.getBoolean(DocumentsContract.EXTRA_LOADING, false)) break;
                 c.close();
-                if (i >= 20) throw new Exception("De backup-map is nog aan het laden; probeer het zo opnieuw");
+                // Een grote map (WhatsApp-media, grote bestanden) laadt bij Google Drive soms lang: tot een halve minuut wachten
+                if (i >= 60) throw new Exception("De backup-map is nog aan het laden; probeer het zo opnieuw");
                 try { Thread.sleep(500); } catch (InterruptedException e) { throw new Exception("Gestopt"); }
             }
             try {

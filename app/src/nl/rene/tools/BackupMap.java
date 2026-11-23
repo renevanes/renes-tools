@@ -242,11 +242,17 @@ final class BackupMap {
             } catch (Exception ex) { r.errors++; }
         }
         if (tmpChanged) dest.list(d);
-        // 3. Verder naar binnen (bovenin alleen de eigen mappen)
+        // 3. Verder naar binnen (bovenin alleen de eigen mappen). Lukt één map niet (Google Drive blijft laden), dan de
+        //    rest gewoon wel: anders kwam het opruimen nooit verder dan die ene map.
         for (Map.Entry<String, WaBackup.Child> e : new ArrayList<>(d.kids.entrySet())) {
             WaBackup.Child ch = e.getValue();
             if (!ours(path, e.getKey())) continue;
-            if (ch.dir) { r.dirs++; walk(dest, sub(dest, ch, join(path, e.getKey())), join(path, e.getKey()), depth + 1, r, repair, deadline); }
+            if (ch.dir) {
+                r.dirs++;
+                String p = join(path, e.getKey());
+                try { walk(dest, sub(dest, ch, p), p, depth + 1, r, repair, deadline); }
+                catch (Exception ex) { r.errors++; r.item(p, Taal.T("Map niet te lezen"), false); }
+            }
             else r.files++;
             if (r.stopped) return;
         }
@@ -441,7 +447,10 @@ final class BackupMap {
                 Thread.sleep(90_000); // het opstarten niet ophouden
                 if (prefs(app).getInt("doneVersion", 0) >= VERSION) return;
                 if (!auto(app) || WaBackup.destUri(app) == null || Herstel.blocked(app) != null || busy() != null) return;
-                run(app, true, true);
+                // Doorwerken: ook als de app uit beeld gaat (anders legt Android hem stil en komt het nooit af)
+                Doorwerken.door("backupmap", () -> {
+                    try { run(app, true, true); } catch (Throwable t) { App.log(app, "BACKUP", "backup-map eerste keer: " + AppData.safeMsg(t, "mislukt")); }
+                }).run();
             } catch (Throwable t) { App.log(app, "BACKUP", "backup-map eerste keer: " + AppData.safeMsg(t, "mislukt")); }
         }, "backupmap-once").start();
     }

@@ -19,8 +19,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 /**
  * Het geheugen en de gesprekken van de assistent en de nachten van Slaappraat als (gevoelige) onderdelen van
@@ -506,10 +504,9 @@ final class AiSleepBackup {
             else {
                 File st = stageDir(c);
                 byte[] buf = new byte[1 << 16];
-                try (ZipInputStream z = new ZipInputStream(Secure.stream(c))) {
-                    ZipEntry e;
-                    while ((e = z.getNextEntry()) != null) {
-                        String name = e.getName();
+                try (Blokken.Lezer z = Secure.lezer(c)) {
+                    while (z.volgende()) {
+                        String name = z.naam();
                         if (!name.startsWith(SLEEP_DIR + "/")) continue;
                         String key = name.substring(SLEEP_DIR.length() + 1);
                         Long size = want.get(key);
@@ -522,7 +519,8 @@ final class AiSleepBackup {
                         byte[] head = new byte[44];
                         try (OutputStream o = new FileOutputStream(f)) {
                             int r;
-                            while ((r = z.read(buf)) > 0) {
+                            InputStream in = z.inhoud();
+                            while ((r = in.read(buf)) > 0) {
                                 if (n < 44) System.arraycopy(buf, 0, head, (int) n, (int) Math.min(r, 44 - n));
                                 n += r;
                                 if (n > size) break;

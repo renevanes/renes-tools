@@ -63,6 +63,9 @@ final class AllBackup {
     /** Alle appgegevens (voor terugzetten na herinstallatie) gaan alleen mee in een versleutelde backup. */
     static final String APP_PLAIN = "Niet mee: alleen in een versleutelde backup (zet Versleutelen aan)";
 
+    /** Grote bestanden één keer bewaren in Versleuteld/Grote bestanden (standaard aan; uit = elk archief compleet, zoals vroeger). */
+    static boolean blokken(Context c) { return prefs(c).getBoolean("blokken", true); }
+
     /** Er kan maar één backup tegelijk lopen. */
     static final java.util.concurrent.atomic.AtomicBoolean running = new java.util.concurrent.atomic.AtomicBoolean(false);
     static volatile boolean busy = false;
@@ -76,6 +79,9 @@ final class AllBackup {
         stop = false;
         return true;
     }
+
+    /** Na tryBegin() buiten run() (opruimen met de hand): weer vrijgeven. */
+    static void end() { busy = false; running.set(false); }
 
     static final String STOPPED = "Gestopt: Android beëindigde de backup (volgende keer opnieuw)";
 
@@ -143,11 +149,17 @@ final class AllBackup {
                     continue;
                 }
                 current = part;
+                long ruw0 = zip == null ? 0 : zip.ruw, uit0 = zip == null ? 0 : zip.archiefBytes(), blok0 = zip == null || zip.blok == null ? 0 : zip.blok.opgeslagen;
                 try {
                     int n = runPart(c, part);
                     // Geheugen, gesprekken en Slaappraat zonder versleutelen: in de uitkomst laten zien dat het leesbaar is
                     boolean plain = n > 0 && zip == null && priv(part);
                     put(res, part, true, n, n < 0 ? "Niets te bewaren" : plain ? n + " (niet versleuteld)" : null);
+                    // Hoe groot dit onderdeel is, en hoeveel er deze keer echt bij kwam (archief plus nieuwe grote bestanden)
+                    if (zip != null && n > 0) {
+                        JSONObject r = res.optJSONObject(part);
+                        if (r != null) r.put("b", zip.ruw - ruw0).put("o", (zip.archiefBytes() - uit0) + (zip.blok == null ? 0 : zip.blok.opgeslagen - blok0));
+                    }
                     // Onthouden dat deze telefoon zelf een leesbare kopie schreef (alleen die mag later weg)
                     if (plain) Secure.prefs(c).edit().putBoolean("plain_written_" + part, true).apply();
                 } catch (Throwable e) {
@@ -159,6 +171,8 @@ final class AllBackup {
                 }
             }
             Secure.CAPTURE.remove();
+            // Een groot bestand kon niet worden opgeslagen: dit archief is niet compleet (wordt …_deels, geen opruimen)
+            if (zip != null && zip.blokFout != null) put(res, "all", false, 0, "Grote bestanden opslaan lukt niet: " + AppData.safeMsg(zip.blokFout, "fout"));
             if (zip != null) {
                 boolean any = false;
                 for (String p : PARTS) { JSONObject r = res.optJSONObject(p); if (r != null && r.optBoolean("ok") && r.optInt("count") > 0) any = true; }
@@ -169,9 +183,15 @@ final class AllBackup {
                     try {
                         String name = Secure.finish(zip, res);
                         res.put("archive", name); done = true;
+                        if (zip.blok != null) {
+                            BlokOpslag.vastleggen(c, name, zip.blok);
+                            res.put("blok", new JSONObject().put("nieuw", zip.blok.nieuw).put("nieuwBytes", zip.blok.nieuwBytes)
+                                    .put("hergebruikt", zip.blok.hergebruikt).put("hergebruiktBytes", zip.blok.hergebruiktBytes)
+                                    .put("archief", zip.archiefBytes()));
+                        }
                         // Laatste complete backup voor herinstallatie (alle appgegevens erin, archief niet afgebroken)
                         JSONObject ap = res.optJSONObject("app");
-                        if (ap != null && ap.optBoolean("ok") && ap.optInt("count") > 0 && !res.optBoolean("stopped")) {
+                        if (ap != null && ap.optBoolean("ok") && ap.optInt("count") > 0 && !res.optBoolean("stopped") && zip.blokFout == null) {
                             prefs(c).edit().putLong("appLast", System.currentTimeMillis()).putString("appLastName", name).putLong("appBytes", AppBackup.lastBytes).apply();
                             Herstel.markArchive(c, zip, name);
                         }
@@ -194,6 +214,9 @@ final class AllBackup {
                 try { JSONObject r = Secure.rotate(c, false); if (r.optInt("count") > 0) res.put("rotated", r); }
                 catch (Exception e) { App.log(c, "BACKUP", "opruimen: " + e.getMessage()); }
             }
+            // Grote bestanden: wat geen archief meer gebruikt weg, een stuk controleren, en kijken of er nog oude grote
+            // archieven staan (voor de knop bij Oude backups opruimen). Alleen na een volledig gelukte versleutelde backup.
+            if (!stop && allOk && Secure.on(c)) grote(c, res);
         } finally {
             Secure.CAPTURE.remove();
             if (zip != null) Secure.abort(zip);
@@ -207,6 +230,24 @@ final class AllBackup {
             running.set(false);
         }
         return res;
+    }
+
+    /** Na een gelukte backup (onder het slot): ongebruikte grote bestanden opruimen, een stuk controleren, oude archieven tellen. */
+    static void grote(Context c, JSONObject res) {
+        Vault.Key k = null;
+        try {
+            k = Secure.key(c);
+            JSONObject g = res.optJSONObject("blok");
+            if (rotateOn(c)) {
+                JSONObject r = BlokOpslag.opruimen(c, k);
+                if (r.optInt("count") > 0 && g != null) g.put("opgeruimd", r);
+            }
+            JSONObject ch = BlokOpslag.controleren(c, k, BlokOpslag.CONTROLE_BYTES);
+            if (g != null && (ch.optInt("count") > 0 || ch.optInt("kapot") > 0)) g.put("controle", ch);
+            JSONObject oud = BlokOpslag.oudeArchieven(c, true);
+            prefs(c).edit().putString("oud", oud.put("t", System.currentTimeMillis()).toString()).apply();
+        } catch (Throwable e) { App.log(c, "BACKUP", "grote bestanden: " + AppData.safeMsg(e, "mislukt")); }
+        finally { if (k != null) java.util.Arrays.fill(k.key, (byte) 0); }
     }
 
     private static void put(JSONObject r, String part, boolean ok, int n, String msg) {
@@ -299,9 +340,12 @@ final class AllBackup {
                     .put("dest", WaBackup.destUri(c) != null).put("destName", WaBackup.destName(c))
                     .put("next", prefs(c).getLong("next", 0))
                     .put("rotate", rotateOn(c)).put("keep", keep(c)).put("encrypted", Secure.on(c)).put("encBroken", Secure.broken(c))
+                    .put("blokken", blokken(c))
                     .put("encSince", Secure.prefs(c).getLong("since", 0));
             String space = Secure.prefs(c).getString("space", null);
             if (space != null) o.put("space", new JSONObject(space));
+            String oud = prefs(c).getString("oud", null);
+            if (oud != null) o.put("oud", new JSONObject(oud));
             JSONObject parts = new JSONObject();
             for (String p : PARTS) parts.put(p, effectivePart(c, p));
             JSONObject extra = AiSleepBackup.sizes(c);

@@ -142,6 +142,15 @@ final class Secure {
         final OutputStream raw;
         final WaBackup.DestDir dir;
         int files = 0;
+        /** Grote bestanden apart en één keer (Blokken); null = alles in het archief zelf (zoals vroeger, en in tests). */
+        Blokken.Schrijver blok;
+        /** Voor grote bestanden die nog geschreven worden (in de cache van de app). */
+        java.io.File tmpDir;
+        /** Een groot bestand kon niet worden opgeslagen: dan is dit archief onvolledig (…_deels) en volgt er geen opruimen. */
+        volatile IOException blokFout;
+        /** Hoeveel inhoud er in totaal door dit archief ging (ook de grote bestanden), en hoeveel er het archief zelf in ging. */
+        long ruw = 0;
+        final Blokken.Teller uit;
         /** Wat er al compleet in dit archief staat (naam → grootte en SHA-256), om dezelfde inhoud niet twee keer op te nemen. */
         final Map<String, AppData.Entry> done = new java.util.HashMap<>();
         final Map<Long, List<AppData.Entry>> bySize = new java.util.HashMap<>();
@@ -167,9 +176,13 @@ final class Secure {
 
         Zip(WaBackup.Dest d, WaBackup.DestDir dr, Uri u, String n, OutputStream r, Vault.Key k) throws IOException {
             dest = d; dir = dr; doc = u; name = n; raw = r;
-            z = new ZipOutputStream(new Vault.Out(raw, k));
+            uit = new Blokken.Teller(raw);
+            z = new ZipOutputStream(new Vault.Out(uit, k));
             z.setLevel(6);
         }
+
+        /** Bytes die al naar het archief gingen (versleuteld); de laatste paar kB kunnen nog in de buffers zitten. */
+        long archiefBytes() { return uit.n; }
 
         Writer writer(String dir, String file) throws IOException {
             // Tekst: altijd weer gewoon inpakken (level 6), ook na een licht ingepakt geluidsbestand
@@ -181,16 +194,53 @@ final class Secure {
 
         /** Zelfde, met een eigen mate van inpakken (1 = licht, voor al samengeperst geluid; 6 = gewoon). */
         OutputStream stream(String dir, String file, int level) throws IOException {
-            ZipEntry e = new ZipEntry(unique(dir, file));
+            String path = unique(dir, file);
+            files++;
+            // Met grote bestanden apart: eerst opvangen; bij sluiten klein → in het archief, groot → apart (of al aanwezig)
+            if (blok != null) return new Spool(this, path, level);
+            ZipEntry e = new ZipEntry(path);
             e.setTime(System.currentTimeMillis());
             z.setLevel(level); // geldt vanaf dit bestand; het volgende stream() of writer() zet het weer (writer: 6)
             z.putNextEntry(e);
-            files++;
             return new EntryStream(this, lastPath);
+        }
+
+        /** Een klein (opgevangen) bestand nu in het archief. */
+        void inline(String path, byte[] b, int len, int level, String sha) throws IOException {
+            ZipEntry e = new ZipEntry(path);
+            e.setTime(System.currentTimeMillis());
+            z.setLevel(level);
+            z.putNextEntry(e);
+            z.write(b, 0, len);
+            z.closeEntry();
+            record(path, len, sha);
+        }
+
+        /** De lijst met grote bestanden als laatste (vóór inhoud.txt), onverpakt; niets als er geen grote bestanden zijn. */
+        void lijst() throws Exception {
+            if (blok == null || blok.items.isEmpty()) return;
+            byte[] b = Blokken.json(blok.ids.kid, blok.items).getBytes(StandardCharsets.UTF_8);
+            if (!names.add(Blokken.LIST.toLowerCase(Locale.ROOT))) throw new IOException("Dubbele naam in het archief");
+            putStored(Blokken.LIST, b);
+        }
+
+        private void putStored(String path, byte[] b) throws IOException {
+            ZipEntry e = new ZipEntry(path);
+            java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+            crc.update(b, 0, b.length);
+            e.setMethod(ZipEntry.STORED);
+            e.setSize(b.length);
+            e.setCompressedSize(b.length);
+            e.setCrc(crc.getValue());
+            e.setTime(System.currentTimeMillis());
+            z.putNextEntry(e);
+            z.write(b, 0, b.length);
+            z.closeEntry();
         }
 
         /** Al samengeperst bestand (geluid): ongecomprimeerd in het archief, dat scheelt rekenwerk en tijd. */
         void stored(String dir, String file, byte[] b) throws IOException {
+            if (blok != null && b.length >= Blokken.MIN) { try (OutputStream o = stream(dir, file, 1)) { o.write(b, 0, b.length); } return; }
             ZipEntry e = new ZipEntry(unique(dir, file));
             java.util.zip.CRC32 crc = new java.util.zip.CRC32();
             crc.update(b, 0, b.length);
@@ -203,6 +253,7 @@ final class Secure {
             files++;
             z.write(b, 0, b.length);
             z.closeEntry();
+            ruw += b.length;
             java.security.MessageDigest md = AppData.sha256();
             md.update(b, 0, b.length);
             record(lastPath, b.length, AppData.hex(md.digest()));
@@ -216,6 +267,58 @@ final class Secure {
                 p = dot > path.lastIndexOf('/') ? path.substring(0, dot) + " (" + i + ")" + path.substring(dot) : path + " (" + i + ")";
             lastPath = p;
             return p;
+        }
+    }
+
+    /**
+     * Opvangen met grote bestanden apart: tot Blokken.MIN in het geheugen, daarboven in een tijdelijk bestand. Sluiten =
+     * klein: als gewoon bestand in het archief; groot: naar Versleuteld/Grote bestanden (of al aanwezig: hergebruiken).
+     */
+    static final class Spool extends OutputStream {
+        private final Zip zip; private final String path; private final int level;
+        private final java.security.MessageDigest md = AppData.sha256();
+        private long n = 0;
+        private ByteArrayOutputStream mem = new ByteArrayOutputStream();
+        private java.io.File f;
+        private OutputStream fo;
+        private boolean closed = false;
+        Spool(Zip zip, String path, int level) { this.zip = zip; this.path = path; this.level = level; }
+
+        @Override public void write(int b) throws IOException { write(new byte[]{(byte) b}, 0, 1); }
+
+        @Override public void write(byte[] b, int off, int len) throws IOException {
+            if (closed) throw new IOException("Al gesloten");
+            md.update(b, off, len);
+            n += len;
+            if (fo != null) { fo.write(b, off, len); return; }
+            mem.write(b, off, len);
+            if (mem.size() >= Blokken.MIN) {
+                if (zip.tmpDir != null) zip.tmpDir.mkdirs();
+                f = java.io.File.createTempFile("blok-", ".tmp", zip.tmpDir);
+                fo = new java.io.BufferedOutputStream(new java.io.FileOutputStream(f), 1 << 16);
+                mem.writeTo(fo);
+                mem = null;
+            }
+        }
+
+        @Override public void close() throws IOException {
+            if (closed) return;
+            closed = true;
+            zip.ruw += n;
+            String sha = AppData.hex(md.digest());
+            try {
+                if (fo == null) { byte[] b = mem.toByteArray(); zip.inline(path, b, b.length, level, sha); return; }
+                fo.close();
+                fo = null;
+                // Lukte dat eerder deze ronde niet (map weg, geen verbinding), dan niet steeds opnieuw proberen
+                if (zip.blokFout != null) throw new Blokken.OpslagFout(zip.blokFout.getMessage(), zip.blokFout);
+                try { zip.blok.bewaar(path, f, n, sha); }
+                catch (IOException e) { if (zip.blokFout == null) zip.blokFout = e; throw e instanceof Blokken.OpslagFout ? e : new Blokken.OpslagFout(e.getMessage(), e); }
+                zip.record(path, n, sha);
+            } finally {
+                if (fo != null) try { fo.close(); } catch (IOException ignored) { }
+                if (f != null) f.delete();
+            }
         }
     }
 
@@ -235,6 +338,7 @@ final class Secure {
             closed = true;
             flush();
             z.closeEntry();
+            zip.ruw += n;
             zip.record(path, n, AppData.hex(md.digest()));
         }
     }
@@ -259,7 +363,14 @@ final class Secure {
         try {
             o = dest.cr.openOutputStream(u, "w");
             if (o == null) throw new Exception("Archief schrijven lukt niet");
-            return new Zip(dest, dir, u, name, new java.io.BufferedOutputStream(o, 1 << 16), k);
+            Zip zip = new Zip(dest, dir, u, name, new java.io.BufferedOutputStream(o, 1 << 16), k);
+            // Grote bestanden één keer, apart in Versleuteld/Grote bestanden (in de echte map, niet in het archief)
+            if (AllBackup.blokken(c)) {
+                zip.tmpDir = new java.io.File(c.getCacheDir(), "backup-groot");
+                AppBackup.wipe(zip.tmpDir); // achtergebleven van een afgebroken backup
+                zip.blok = new Blokken.Schrijver(new BlokOpslag(WaBackup.Dest.echt(c.getContentResolver(), dest.tree)), k);
+            }
+            return zip;
         } catch (Exception e) {
             if (o != null) try { o.close(); } catch (Exception ignored) { }
             try { DocumentsContract.deleteDocument(dest.cr, u); } catch (Exception ignored) { }
@@ -272,6 +383,7 @@ final class Secure {
     static String finish(Zip zip, JSONObject res) throws Exception {
         try {
             if (!zip.bad.isEmpty()) try (Writer w = zip.writer("", "onvolledig.txt")) { for (String b : zip.bad) w.write(b + "\n"); }
+            zip.lijst(); // welke grote bestanden apart staan (Versleuteld/Grote bestanden)
             try (Writer w = zip.writer("", "inhoud.txt")) {
                 w.write("Versleutelde backup van Tools\r\nGemaakt: " + new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL")).format(new Date())
                         + "\r\nVersie app: " + Version.NAME + "\r\n\r\n");
@@ -288,7 +400,8 @@ final class Secure {
         // Compleet. Bestaat er al een archief met deze naam (zelfde minuut), dan een eigen naam met seconden:
         // nooit een bestaand, compleet archief weggooien.
         // Gestopt halverwege: een eigen naam (…_deels.rtb), zodat opruimen hem nooit als volledige backup telt
-        String suffix = res.optBoolean("stopped") ? Rotate.PARTIAL + ".rtb" : ".rtb";
+        // Een groot bestand ontbreekt (opslaan lukte niet): ook onvolledig
+        String suffix = res.optBoolean("stopped") || zip.blokFout != null ? Rotate.PARTIAL + ".rtb" : ".rtb";
         String name = zip.name.replaceAll("\\.rtb$", "") + suffix;
         if (zip.dir.kids.containsKey(name))
             name = "backup-" + new SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.US).format(new Date()) + suffix;
@@ -441,6 +554,13 @@ final class Secure {
         openUri = null; openHeader = null; openKey = null;
     }
 
+    /** Het geopende archief lezen, met de grote bestanden uit Versleuteld/Grote bestanden erbij (pas opgehaald als nodig). */
+    static Blokken.Lezer lezer(Context c) throws Exception {
+        Vault.Key k = openKey;
+        if (k == null) throw new Exception("Open de backup opnieuw");
+        return new Blokken.Lezer(new ZipInputStream(stream(c)), null, Blokken.bron(BlokOpslag.voor(c), k));
+    }
+
     static InputStream stream(Context c) throws Exception {
         Uri u = openUri;
         Vault.Key k = openKey;
@@ -474,19 +594,22 @@ final class Secure {
         JSONArray files = new JSONArray();
         String contacts = null, notes = null, launcher = null, settings = null, transcripts = null, music = null, ai = null, sleep = null, checkin = null;
         long total = 0;
-        try (ZipInputStream z = new ZipInputStream(stream(c))) {
-            ZipEntry e;
+        try (Blokken.Lezer z = lezer(c)) {
             byte[] buf = new byte[1 << 16];
             Set<String> bad = new HashSet<>();
-            while ((e = z.getNextEntry()) != null) {
+            while (z.volgende()) {
                 long size = 0;
                 int r;
-                boolean list = "onvolledig.txt".equals(e.getName());
-                ByteArrayOutputStream lb = list ? new ByteArrayOutputStream() : null;
-                while ((r = z.read(buf)) > 0) { size += r; if (lb != null && lb.size() < 65536) lb.write(buf, 0, r); }
-                if (lb != null) for (String l : lb.toString("UTF-8").split("\n")) if (!l.trim().isEmpty()) bad.add(l.trim());
+                boolean list = "onvolledig.txt".equals(z.naam());
+                if (z.extern()) size = z.item().s; // groot bestand apart: niet ophalen, alleen tellen
+                else {
+                    InputStream in = z.inhoud();
+                    ByteArrayOutputStream lb = list ? new ByteArrayOutputStream() : null;
+                    while ((r = in.read(buf)) > 0) { size += r; if (lb != null && lb.size() < 65536) lb.write(buf, 0, r); }
+                    if (lb != null) for (String l : lb.toString("UTF-8").split("\n")) if (!l.trim().isEmpty()) bad.add(l.trim());
+                }
                 total += size;
-                String n = e.getName();
+                String n = z.naam();
                 files.put(new JSONObject().put("n", n).put("s", size));
                 if (n.startsWith(Contacts.DIR + "/contacten-") && n.endsWith(".vcf")) contacts = n;
                 if (n.equals(Notes.DIR + "/notities.json")) notes = n;
@@ -546,17 +669,28 @@ final class Secure {
             InputStream raw = new java.io.BufferedInputStream(raw0, 1 << 16);
             byte[] hh;
             try { hh = Vault.readHeader(raw); } catch (Exception he) { try { raw.close(); } catch (Exception ignored) { } throw he; }
-            try (ZipInputStream z = new ZipInputStream(new Vault.In(raw, hh, k))) {
-                ZipEntry e;
+            Vault.In vin = new Vault.In(raw, hh, k);
+            BlokOpslag o = BlokOpslag.voor(c);
+            try (Blokken.Lezer z = new Blokken.Lezer(new ZipInputStream(vin), vin, Blokken.bron(o, k))) {
                 byte[] buf = new byte[1 << 16];
-                while ((e = z.getNextEntry()) != null) {
+                Map<String, Long> er = null;
+                while (z.volgende()) {
                     files++;
-                    if (e.getName().equals(Notes.DIR + "/notities.json")) {
+                    // Groot bestand apart: staat het er (met de verwachte grootte)? Helemaal lezen doet de nachtelijke controle.
+                    if (z.extern()) {
+                        if (er == null) er = o == null ? new java.util.HashMap<String, Long>() : o.lijst();
+                        Long have = er.get(z.item().b);
+                        if (have == null) throw new Exception("groot bestand ontbreekt in " + Blokken.DIR);
+                        if (have >= 0 && z.item().e > 0 && have != z.item().e) throw new Exception("groot bestand heeft een andere grootte");
+                        continue;
+                    }
+                    InputStream in = z.inhoud();
+                    if (z.naam().equals(Notes.DIR + "/notities.json")) {
                         ByteArrayOutputStream b = new ByteArrayOutputStream();
                         int r;
-                        while ((r = z.read(buf)) > 0) { b.write(buf, 0, r); if (b.size() > 20_000_000) throw new Exception("notities.json is te groot"); }
+                        while ((r = in.read(buf)) > 0) { b.write(buf, 0, r); if (b.size() > 20_000_000) throw new Exception("notities.json is te groot"); }
                         notes = new JSONArray(new String(b.toByteArray(), StandardCharsets.UTF_8)).length();
-                    } else while (z.read(buf) > 0) { /* alleen doorlezen: controleert de versleuteling */ }
+                    } else while (in.read(buf) > 0) { /* alleen doorlezen: controleert de versleuteling */ }
                 }
             }
         } finally { java.util.Arrays.fill(k.key, (byte) 0); }
@@ -572,14 +706,14 @@ final class Secure {
 
     /** Eén bestand uit het geopende archief als tekst. */
     static String readEntry(Context c, String name) throws Exception {
-        try (ZipInputStream z = new ZipInputStream(stream(c))) {
-            ZipEntry e;
-            while ((e = z.getNextEntry()) != null) {
-                if (!e.getName().equals(name)) continue;
+        try (Blokken.Lezer z = lezer(c)) {
+            while (z.volgende()) {
+                if (!z.naam().equals(name)) continue;
                 ByteArrayOutputStream b = new ByteArrayOutputStream();
                 byte[] buf = new byte[1 << 16];
                 int r;
-                while ((r = z.read(buf)) > 0) { b.write(buf, 0, r); if (b.size() > 30_000_000) throw new Exception("Bestand is te groot"); }
+                InputStream in = z.inhoud();
+                while ((r = in.read(buf)) > 0) { b.write(buf, 0, r); if (b.size() > 30_000_000) throw new Exception("Bestand is te groot"); }
                 return new String(b.toByteArray(), StandardCharsets.UTF_8);
             }
         }
@@ -593,12 +727,10 @@ final class Secure {
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
         String base = "Uitgepakt/" + WaBackup.safeName(openName.replaceAll("(?i)\\.rtb$", ""));
         int n = 0;
-        try (ZipInputStream z = new ZipInputStream(stream(c))) {
-            ZipEntry e;
+        try (Blokken.Lezer z = lezer(c)) {
             byte[] buf = new byte[1 << 16];
-            while ((e = z.getNextEntry()) != null) {
-                if (e.isDirectory()) continue;
-                String name = e.getName();
+            while (z.volgende()) {
+                String name = z.naam();
                 if (name.contains("..") || name.startsWith("/")) continue;
                 // Geheimen (VPN-sleutels, wachtwoorden, koppelingen) nooit leesbaar in de backup-map: alleen in het archief
                 if (name.startsWith(AppData.SECRET_DIR + "/") || name.equals(AppData.PREFS)) continue;
@@ -614,7 +746,8 @@ final class Secure {
                 try (OutputStream o = dest.cr.openOutputStream(u, "w")) {
                     if (o == null) throw new Exception("Schrijven lukt niet: " + file);
                     int r;
-                    while ((r = z.read(buf)) > 0) o.write(buf, 0, r);
+                    InputStream in = z.inhoud();
+                    while ((r = in.read(buf)) > 0) o.write(buf, 0, r);
                 }
                 dir.kids.put(file, new WaBackup.Child(DocumentsContract.getDocumentId(u), 0, 0, false));
                 n++;

@@ -127,11 +127,28 @@ function bkRenderLast(st){
   $('#bk-last').textContent = (l.auto ? t('Automatisch') + ', ' : '') + fmtDT(l.t, {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
   // Wat misging staat zichtbaar; wat lukte, staat ingeklapt (per onderdeel het aantal)
   const keys = Object.keys(BK_LABEL).filter(k => l[k]), bad = keys.filter(k => !l[k].ok), good = keys.filter(k => l[k].ok);
-  const row = k => { const r = l[k]; return '<div class=bkres><b>' + esc(t(BK_LABEL[k])) + '</b>' + (r.ok ? '<span class=good>✓ ' + (r.msg ? esc(r.msg) : fmtNum(r.count)) + '</span>' : '<span class=bad>✗ ' + esc(r.msg || t('mislukt')) + '</span>') + '</div>'; };
+  const row = k => { const r = l[k]; return '<div class=bkres><b>' + esc(t(BK_LABEL[k])) + '</b>' + (r.ok ? '<span class=good>✓ ' + (r.msg ? esc(r.msg) : fmtNum(r.count)) + bkGrootte(r) + '</span>' : '<span class=bad>✗ ' + esc(r.msg || t('mislukt')) + '</span>') + '</div>'; };
   const extra = (l.archive ? '<div class=bkres><b>' + uiIcon('lock') + ' ' + t('Versleuteld') + '</b><span class=good translate="no">' + esc(l.archive) + '</span></div>' : '') +
+    bkBlokRegels(l.blok) +
     (l.rotated ? '<div class=bkres><b>' + t('Opgeruimd') + '</b><span>' + t('{n} oude bestanden ({grootte})', { n: l.rotated.count, grootte: fmtB(l.rotated.bytes) }) + '</span></div>' : '');
   uiHtml($('#bk-parts-res'), bad.map(row).join('') + (l.all ? '<div class=bkres><span class=bad>' + esc(l.all.msg || '') + '</span></div>' : '') +
     (good.length || extra ? uiHelp(bad.length ? tn(good.length, '{n} onderdeel gelukt', '{n} onderdelen gelukt') : tn(good.length, '✓ {n} onderdeel gelukt', '✓ Alle {n} onderdelen gelukt'), good.map(row).join('') + extra, true, 'bk-res') : ''));
+}
+/* Grootte van een onderdeel in de versleutelde backup: alles samen, en wat er deze keer echt bij kwam (b, o in bytes) */
+function bkGrootte(r){
+  if (!r || typeof r.b !== 'number' || r.b <= 0) return '';
+  return ' · ' + (typeof r.o === 'number' ? t('{grootte} ({nieuw} nieuw)', { grootte: fmtB(r.b), nieuw: fmtB(Math.max(0, r.o)) }) : fmtB(r.b));
+}
+/* Grote bestanden (Versleuteld/Grote bestanden): nieuw bewaard, al aanwezig, opgeruimd, gecontroleerd */
+function bkBlokRegels(g){
+  if (!g) return '';
+  const rij = (kop, tekst, cls) => '<div class=bkres><b>' + esc(kop) + '</b><span' + (cls ? ' class=' + cls : '') + '>' + esc(tekst) + '</span></div>';
+  let h = rij(t('Grote bestanden'), t('{n} nieuw ({grootte}), {m} al bewaard ({grootte2})', { n: fmtNum(g.nieuw || 0), grootte: fmtB(g.nieuwBytes || 0), m: fmtNum(g.hergebruikt || 0), grootte2: fmtB(g.hergebruiktBytes || 0) }));
+  if (typeof g.archief === 'number') h += rij(t('Archief zelf'), fmtB(g.archief));
+  if (g.opgeruimd && g.opgeruimd.count) h += rij(t('Ongebruikt opgeruimd'), t('{n} grote bestanden ({grootte})', { n: fmtNum(g.opgeruimd.count), grootte: fmtB(g.opgeruimd.bytes || 0) }));
+  if (g.controle && g.controle.kapot) h += rij(t('Controle'), tn(g.controle.kapot, 'Eén groot bestand was beschadigd; de volgende backup bewaart het opnieuw', '{n} grote bestanden waren beschadigd; de volgende backup bewaart ze opnieuw'), 'bad');
+  else if (g.controle && g.controle.count) h += rij(t('Controle'), tn(g.controle.count, '✓ Eén groot bestand nagelezen', '✓ {n} grote bestanden nagelezen'), 'good');
+  return h;
 }
 function bkPollOnce(){ let st = bkState(); if (st.busy !== bkBusy && bkOn()) { st = bkState(true); bkRenderLast(st); bkRenderHerstel(st); bkSums(st); } else if (st.busy) bkRenderLast(st); const tt = $('#tile-backup-sub'); if (tt) tt.textContent = st.busy ? t('Bezig met back-uppen…') : (st.last && st.last.t ? t('Laatst: {wat}', { wat: fmtD(st.last.t) }) : t('Alles in één keer bewaren')); }
 function bkRun(){ const e = Android.backupStart($('#bk-wa').checked); if (e) toast(e); setTimeout(bkPollOnce, 200); }
