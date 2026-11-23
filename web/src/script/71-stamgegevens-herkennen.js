@@ -20,12 +20,20 @@ const cmhPicked=window.onMasterPhotoPicked;window.onMasterPhotoPicked=function(r
 };
 window.onMasterPhotoDone=function(r){
   if(!r||!r.photo||!cmi.photoRequest||r.request!==cmi.photoRequest)return;
+  const scan=cmh.scanning;
   // Intussen op slot of opnieuw ontgrendeld: de foto is weg; niet blijven wachten (anders reageren de fotoknoppen niet meer).
-  if(r.token!==cm.token||!cmOpen()){cmhPhotoReady();cmiPhotoCancel();if(cmOpen())cmNote(t('De foto is niet verwerkt. Kies hem opnieuw.'));return;}
+  if(r.token!==cm.token||!cmOpen()){cmhPhotoReady();cmiPhotoCancel();if(cmOpen()){const m=scan?t('Het bestand is niet verwerkt. Kies het opnieuw.'):t('De foto is niet verwerkt. Kies hem opnieuw.');cmNote(m);if(scan)cmhFout(m);}return;}
   if(r.photo.reviewId){cmhPhotoReady();cmhPairPreview(r.photo);return;}
   if(r.photo.error)cmhPhotoReady();
   cmiPhotoAfterUnlock(r.photo);if(!r.photo.error)cmListLoad(undefined,cmhPhotoReady);
+  // Een document zoeken duurt even; een fout alleen in de statusregel bovenaan valt dan niet op.
+  if(scan&&r.photo.error&&cmOpen())cmhFout(t(r.photo.error));
 };
+/* Melding met alleen OK: niet herkend of niet te openen. De gekozen soort en persoon blijven staan; opnieuw kiezen kan meteen. */
+function cmhFout(text){
+  openModal(t('Document niet toegevoegd'),text,null,'OK',()=>{});
+  $('#modal-cancel').style.display='none';
+}
 function cmhPhotoReady(){cmh.photoBusy=false;cmBusy(false);}
 const cmhCancel=cmiPhotoCancel;cmiPhotoCancel=function(){
   const preview=$('#cmh-pair-preview');
@@ -55,7 +63,7 @@ function cmhPairPreview(photo){
     if(!cmOpen()){cmiPhotoCancel();return;}
     cmBusy(true);
     cmRequest('masterScanPairSave',[photo.reviewId,swapped],out=>{
-      cmBusy(false);cmiPhotoAfterUnlock(out);cmListLoad();
+      cmBusy(false);cmiPhotoAfterUnlock(out);cmListLoad();if(out&&out.error)cmhFout(t(out.error));
     },false,()=>{cmBusy(false);cmiPhotoCancel();});
   },()=>{clear();cmiPhotoCancel();});
 }

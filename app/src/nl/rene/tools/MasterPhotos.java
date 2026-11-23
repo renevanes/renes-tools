@@ -24,9 +24,19 @@ final class MasterPhotos {
     final MainActivity activity;
     private Pending pending;
     MasterPhotos(MainActivity activity){this.activity=activity;}
+    static final String GOOGLE_DOC="application/vnd.google-apps.document",
+        DOCX="application/vnd.openxmlformats-officedocument.wordprocessingml.document",PDF="application/pdf";
+    /** In welk formaat een virtueel document (Google-document) op te halen is: liefst Word (de foto's blijven op volle grootte), anders PDF. Zuiver. */
+    static String exportType(String[] types){
+        if(types==null)return null;
+        for(String want:new String[]{DOCX,PDF})for(String t:types)if(want.equalsIgnoreCase(t))return want;
+        return null;
+    }
     static final java.util.List<String> SOORTEN=java.util.Arrays.asList("","paspoort","identiteitskaart","rijbewijs","verblijfsdocument");
     static final class Pending {
         final String id,side,request,view,soort;final long revision,dataset;Uri uri;
+        /** Een Google-document en dergelijke: geen eigen bestand, alleen als PDF of Word-bestand op te halen (exportType). */
+        boolean virtual;
         String reviewId,reviewToken;JSONObject images,found;
         Pending(String id,long revision,String side,String request,String view,String soort){this.id=id;this.revision=revision;this.side=side;this.request=request;this.view=view;this.soort=soort;this.dataset=MasterSession.datasetEpoch();}
     }
@@ -42,14 +52,16 @@ final class MasterPhotos {
             if(!activity.masterForeground||!activity.masterSession.accepts(token)||!job.view.equals(activity.masterView)){clear(job);notify(job,false,Taal.T("Ontgrendel de stamgegevens opnieuw"));return;}
             // Zolang de kiezer open is (hooguit 2 minuten) niet op slot: zie MainActivity.masterPickUntil.
             if(activity.masterSession.accepts(token)){activity.masterPickReturned=false;activity.masterPickKind="photo";activity.masterPickUntil=android.os.SystemClock.elapsedRealtime()+MainActivity.MASTER_PICK_MS;activity.h.postDelayed(activity::masterPickExpired,MainActivity.MASTER_PICK_MS+500);}
-            Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
-                .setType("image/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            // Een kaartfoto: alleen echte bestanden. Een document: ook een Google-document (een "virtueel" bestand zonder
+            // CATEGORY_OPENABLE); dat haalt resume() als Word-bestand of PDF op.
             if("scan".equals(job.side))intent.setType("*/*").putExtra(Intent.EXTRA_MIME_TYPES,new String[]{
-                "image/*","application/pdf","application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                "image/*","application/pdf","application/vnd.openxmlformats-officedocument.wordprocessingml.document",GOOGLE_DOC
             });
-            if("pair".equals(job.side))intent.setType("*/*").putExtra(Intent.EXTRA_MIME_TYPES,new String[]{
-                "application/pdf","application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            else if("pair".equals(job.side))intent.setType("*/*").putExtra(Intent.EXTRA_MIME_TYPES,new String[]{
+                "application/pdf","application/vnd.openxmlformats-officedocument.wordprocessingml.document",GOOGLE_DOC
             });
+            else intent.addCategory(Intent.CATEGORY_OPENABLE);
             try{activity.startActivityForResult(intent,REQUEST);}catch(Throwable e){activity.masterPickUntil=0;clear(job);notify(job,false,Taal.T("Bestandskiezer niet beschikbaar"));}
         });
     }
@@ -93,29 +105,55 @@ final class MasterPhotos {
         Uri uri=result==Activity.RESULT_OK&&data!=null?data.getData():null;
         if(uri==null){clear(job);notify(job,false,null);return;}
         try{if(!PdfTools.grantedBySender(data,java.util.Collections.singletonList(uri)))throw new Exception();PdfTools.checkUri(activity,uri);
-            synchronized(this){if(pending!=job)return;job.uri=uri;}notify(job,true,null);
+            boolean virtual=("scan".equals(job.side)||"pair".equals(job.side))&&virtual(uri);
+            synchronized(this){if(pending!=job)return;job.uri=uri;job.virtual=virtual;}notify(job,true,null);
         }catch(Throwable e){clear(job);notify(job,false,Taal.T("Deze kaartfoto kan niet worden geopend"));}
+    }
+    /** Een document zonder eigen bestand (zoals een Google-document): alleen te openen als een ander formaat. */
+    private boolean virtual(Uri uri){
+        try{
+            if(!android.provider.DocumentsContract.isDocumentUri(activity,uri))return false;
+            try(android.database.Cursor c=activity.getContentResolver().query(uri,new String[]{android.provider.DocumentsContract.Document.COLUMN_FLAGS},null,null,null)){
+                return c!=null&&c.moveToFirst()&&(c.getLong(0)&android.provider.DocumentsContract.Document.FLAG_VIRTUAL_DOCUMENT)!=0;
+            }
+        }catch(Throwable e){return false;}
+    }
+    /** Het gekozen bestand lezen; een Google-document als Word-bestand of PDF (zoals Drive het aanbiedt). */
+    private InputStream open(Voortgang v,Pending job)throws Exception{
+        if(!job.virtual)return v.open(activity,job.uri);
+        android.content.ContentResolver cr=activity.getContentResolver();
+        String type=exportType(cr.getStreamTypes(job.uri,"*/*"));
+        if(type==null)throw new MasterError(Taal.T("Dit document kan niet als PDF of Word-bestand worden geopend. Download het eerst als PDF en kies dat bestand."));
+        android.content.res.AssetFileDescriptor fd=cr.openTypedAssetFileDescriptor(job.uri,type,null);
+        if(fd==null)throw new MasterError(Taal.T("Dit document kan niet als PDF of Word-bestand worden geopend. Download het eerst als PDF en kies dat bestand."));
+        return v.lees(fd.createInputStream(),0);
     }
     /** Terug uit de kiezer binnen de tijd, nog ontgrendeld: de foto meteen verwerken (zelfde stappen als na ontgrendelen). */
     void continueAfterPick(){
-        final String token=activity.masterSession.consumerToken();if(token.isEmpty())return;
+        final String token=activity.masterSession.consumerToken();
         final String request;synchronized(this){if(pending==null||pending.uri==null)return;request=pending.request;}
+        // Nooit stil blijven hangen op "Bestand verwerken…": de interface krijgt altijd antwoord.
+        if(token.isEmpty()){cancel();gemist(request,"",Taal.T("Ontgrendel de stamgegevens opnieuw en kies het bestand nog een keer."));return;}
         new Thread(()->{
             JSONObject out=new JSONObject();try{out.put("request",request);}catch(Exception ignored){ }
             try{
                 SecretKey key=MasterKeys.authenticated(activity);JSONObject photo=resume(key,activity.masterSession,token);
-                if(photo==null)return;out.put("photo",photo).put("token",token);
+                if(photo==null){gemist(request,token,Taal.T("Kies het bestand opnieuw."));return;}
+                out.put("photo",photo).put("token",token);
                 activity.h.post(activity::scheduleMasterExpiry);
             }catch(Throwable e){try{out.put("photo",new JSONObject().put("error",MasterBridge.why(e))).put("token",token);}catch(Exception ignored){ }}
             activity.js("onMasterPhotoDone",out.toString());
         },"master-photo-direct").start();
+    }
+    private void gemist(String request,String token,String error){
+        try{activity.js("onMasterPhotoDone",new JSONObject().put("request",request).put("token",token).put("photo",new JSONObject().put("error",error)).toString());}catch(Exception ignored){ }
     }
     JSONObject resume(SecretKey key,MasterSession session,String token){
         Pending job;synchronized(this){job=pending;if(job==null||job.uri==null)return null;}
         JSONObject result=new JSONObject();
         try(Voortgang v=Voortgang.van(activity,"kaartfoto",1)){
             if(job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kies de kaartfoto opnieuw vanuit Stamgegevens"));
-            session.require(token);byte[] bytes=read(v.open(activity,job.uri));
+            session.require(token);byte[] bytes=read(open(v,job));
             JSONObject diag=new JSONObject();
             String today=Regio.dayKey(activity,System.currentTimeMillis());
             java.util.function.BooleanSupplier active=()->session.accepts(token)&&activity.masterForeground
@@ -135,12 +173,19 @@ final class MasterPhotos {
             if(document){
                 v.tijd("herkennen",MasterDocumentImages.SEARCH_MS);
                 MasterDocumentImages.Match match;
-                try{match=MasterDocumentImages.find(activity,bytes,today,active);}
+                JSONObject stats=new JSONObject();
+                String soortBestand=MasterDocumentImages.pdf(bytes)?"pdf":"word";
+                try{match=MasterDocumentImages.find(activity,bytes,today,active,stats);}
                 catch(java.io.IOException|IllegalArgumentException|SecurityException e){
+                    App.log(activity,"STAMGEGEVENS","document ("+soortBestand+(job.virtual?", google":"")+"): niet te openen, "+e.getClass().getSimpleName());
                     throw new MasterError(Taal.T("Dit document kan niet worden geopend. Kies een leesbare PDF of een Word-document (.docx)."));
                 }
+                // Alleen vaste woorden en aantallen: nooit namen, nummers of tekst uit het document.
+                App.log(activity,"STAMGEGEVENS","document ("+soortBestand+(job.virtual?", google":"")+"): "+(match!=null?"herkend":"niet herkend")
+                    +", "+stats.optInt("bekeken")+" van "+stats.optInt("paginas")+" pagina's, "+stats.optInt("stukken")+" stukken"+(stats.optBoolean("teLang")?", tijd op":""));
                 session.require(token);
-                if(match==null)throw new MasterError(Taal.T("Geen ID-bewijs herkend in dit document. Kies een document met een scherpe foto van het ID-bewijs."));
+                if(match==null&&stats.optBoolean("teLang"))throw new MasterError(Taal.T("Geen ID-bewijs herkend: het zoeken duurde te lang. Kies een PDF met alleen de pagina van het ID-bewijs, of een foto van de kaart."));
+                if(match==null)throw new MasterError(Taal.T("Geen ID-bewijs herkend in dit document. Kies een document met een scherpe foto van het ID-bewijs, of een foto van de kaart zelf."));
                 bytes=match.image;
                 found=match.fields;
             }else{
