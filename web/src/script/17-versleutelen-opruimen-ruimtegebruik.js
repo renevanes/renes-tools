@@ -74,8 +74,17 @@ window.onRotate = function(r){
   if (r.dry) {
     if (!r.count) { toast('Er is niets op te ruimen'); return; }
     askConfirm(t('{n} oude bestanden verwijderen?', { n: r.count }), t('Samen {grootte}. {regel}.', { grootte: fmtB(r.bytes), regel: bkKeepTekst(bkKeep(bkState(true))) }), 'Verwijderen', () => { uiBezig(t('Oude bestanden verwijderen…'), 'onRotate'); Android.backupRotate(false); });
-  } else { toast(t('✓ {n} oude bestanden verwijderd ({grootte})', { n: r.count, grootte: fmtB(r.bytes) })); }
+  } else {
+    toast(t('✓ {n} oude bestanden verwijderd ({grootte})', { n: r.count, grootte: fmtB(r.bytes) }) + (r.later ? ' · ' + bkLater(r.later) : ''));
+  }
 };
+/* Waarom ongebruikte grote bestanden (nog) blijven staan */
+function bkLater(l){
+  return l === 'dubbel' ? t('Wacht: er staan twee mappen met dezelfde naam; die worden eerst samengevoegd')
+    : l === 'onleesbaar' ? t('Wacht: een backup in de map was niet te lezen; er gaat niets weg')
+    : l === 'bezig' ? t('Wacht: er wordt nog een backup gemaakt')
+    : t('Volgende nacht verder');
+}
 /* Grote bestanden één keer bewaren (Versleuteld/Grote bestanden), en de oude backups waarin nog alles volledig zit */
 function bkBlokRender(st){
   const on = st.blokken !== false, c = $('#bk-blok'), s = $('#bk-blok-txt');

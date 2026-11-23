@@ -46,7 +46,8 @@ public class AllBackupJob extends JobService {
             } finally {
                 opruimen = false;
                 // Eerst afmelden, dan pas de volgende plannen: plannen met hetzelfde id stopt een taak die nog loopt
-                if (r == null || !r.optBoolean("stopped")) { jobFinished(params, false); schedule(ctx, 0); }
+                // Mislukt (uitzondering): niet meteen opnieuw, maar over een uur
+                if (r == null || !r.optBoolean("stopped")) { jobFinished(params, false); schedule(ctx, r == null ? 60 * 60 * 1000L : 0); }
             }
         }), "allbackup-auto").start();
         return true;

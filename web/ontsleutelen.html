@@ -112,7 +112,7 @@ async function run(){
         for (let i = 0; i < want.length; i++) {
           if (!have.has(want[i].b)) continue;
           msg('Grote bestanden… ' + (i + 1) + '/' + want.length);
-          try { extras.push(await groot(have.get(want[i].b), want[i])); } catch (e) { stuk++; }
+          try { extras.push(await groot(have.get(want[i].b), want[i])); } catch (e) { if (e.browser) throw e; stuk++; }
         }
       }
       removed += cd.ents.filter(e => e.name !== LIST && !geheim && SECRET(e.name)).length;
@@ -191,14 +191,15 @@ async function readList(blob, e){
   if (!o || o.format !== 'renes-tools-grote-bestanden' || !Array.isArray(o.items)) throw new Error('De lijst met grote bestanden is beschadigd');
   if (o.version > 1) throw new Error('Deze backup is gemaakt met een nieuwere versie van Tools; gebruik ontsleutelen.html uit dezelfde map');
   const ok = /^[0-9a-f]{8}-[0-9a-f]{32}\.blok$/;
-  for (const i of o.items) if (typeof i.n !== 'string' || !i.n || i.n.startsWith('/') || i.n.split('/').includes('..') || !ok.test(i.b) || !/^[0-9a-f]{64}$/.test(i.h) || !(i.s >= 0)) throw new Error('De lijst met grote bestanden is beschadigd');
-  return o.items;
+  for (const i of o.items) if (typeof i.n !== 'string' || !ok.test(i.b) || !/^[0-9a-f]{64}$/.test(i.h) || !(i.s >= 0)) throw new Error('De lijst met grote bestanden is beschadigd');
+  /* Een onveilige naam: alleen dat bestand niet (zoals de app) */
+  return o.items.filter(i => i.n && !i.n.startsWith('/') && !i.n.includes('\\') && !i.n.split('/').includes('..'));
 }
 /* Eén groot bestand: ontsleutelen, eventueel uitpakken (gzip), controleren (grootte en SHA-256) */
 async function groot(file, it){
   let data = new Blob(await decrypt(file, it.n));
   if (it.z) {
-    if (!window.DecompressionStream) throw new Error('Deze browser kan dit niet uitpakken. Gebruik een recente Chrome, Edge of Firefox.');
+    if (!window.DecompressionStream) throw Object.assign(new Error('Deze browser kan dit niet uitpakken. Gebruik een recente Chrome, Edge of Firefox.'), {browser: true});
     try { data = await new Response(data.stream().pipeThrough(new DecompressionStream('gzip'))).blob(); }
     catch (e) { throw new Error('Groot bestand beschadigd: ' + it.n); }
   }

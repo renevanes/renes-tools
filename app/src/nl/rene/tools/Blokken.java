@@ -70,21 +70,42 @@ final class Blokken {
     }
 
     /**
-     * Een groot bestand uit de map was niet te lezen (ontbreekt, beschadigd, geen verbinding). Apart van andere fouten,
-     * zodat terugzetten dat ene bestand kan overslaan, en een fout bij het wegschrijven (telefoon vol) niet.
+     * Een groot bestand ontbreekt zeker (de map is gelezen en het staat er niet in) of is zeker beschadigd. Apart van
+     * andere fouten, zodat terugzetten dat ene bestand kan overslaan. Geen verbinding, een map die niet te lezen is of
+     * een fout bij het wegschrijven (telefoon vol) is geen LeesFout: dan stopt terugzetten ("probeer het opnieuw").
      */
     static final class LeesFout extends IOException {
         LeesFout(IOException c) { super(c.getMessage(), c); }
     }
 
-    /** Elke leesfout van een groot bestand als LeesFout. */
+    /** Opslag.open: de map is gelezen en dit bestand staat er zeker niet in. */
+    static final class Ontbreekt extends java.io.FileNotFoundException {
+        Ontbreekt(String m) { super(m); }
+    }
+
+    /** Is dit een fout waarbij terugzetten alleen dit grote bestand overslaat (zeker weg of zeker beschadigd)? */
+    static boolean zeker(IOException e) { return e instanceof LeesFout || e instanceof Ontbreekt || schade(e); }
+
+    /** Zekere fouten bij het lezen van een groot bestand als LeesFout; de rest (verbinding) blijft wat het was. */
     static final class LeesStroom extends FilterInputStream {
         LeesStroom(InputStream in) { super(in); }
-        @Override public int read() throws IOException { try { return in.read(); } catch (LeesFout e) { throw e; } catch (IOException e) { throw new LeesFout(e); } }
-        @Override public int read(byte[] b, int o, int l) throws IOException { try { return in.read(b, o, l); } catch (LeesFout e) { throw e; } catch (IOException e) { throw new LeesFout(e); } }
-        @Override public long skip(long n) throws IOException { try { return in.skip(n); } catch (LeesFout e) { throw e; } catch (IOException e) { throw new LeesFout(e); } }
+        static IOException fout(IOException e) { return e instanceof LeesFout || !zeker(e) ? e : new LeesFout(e); }
+        @Override public int read() throws IOException { try { return in.read(); } catch (IOException e) { throw fout(e); } }
+        @Override public int read(byte[] b, int o, int l) throws IOException { try { return in.read(b, o, l); } catch (IOException e) { throw fout(e); } }
+        @Override public long skip(long n) throws IOException { try { return in.skip(n); } catch (IOException e) { throw fout(e); } }
         @Override public void close() { }
     }
+
+    /** Afgekapt (korter in de map dan geschreven): "onvolledig gelezen" is dan zeker schade, geen verbinding. */
+    static final class Kort extends FilterInputStream {
+        Kort(InputStream in) { super(in); }
+        static IOException fout(IOException e) { return String.valueOf(e.getMessage()).equals(ONVOLLEDIG) ? new IOException(AFGEKAPT, e) : e; }
+        @Override public int read() throws IOException { try { return in.read(); } catch (IOException e) { throw fout(e); } }
+        @Override public int read(byte[] b, int o, int l) throws IOException { try { return in.read(b, o, l); } catch (IOException e) { throw fout(e); } }
+        @Override public long skip(long n) throws IOException { try { return in.skip(n); } catch (IOException e) { throw fout(e); } }
+    }
+
+    static final String ONVOLLEDIG = "Groot bestand onvolledig gelezen", AFGEKAPT = "Groot bestand afgekapt";
 
     // ---------- namen ----------
 
@@ -227,9 +248,14 @@ final class Blokken {
 
     /** Leest een groot bestand en controleert alles: sleutel, versleuteling (ook afgekapt), grootte en SHA-256. */
     static InputStream lees(InputStream raw, Vault.Key k, boolean z, long size, String sha) throws IOException {
-        byte[] h;
-        try { h = Vault.readHeader(raw); }
-        catch (IOException e) { raw.close(); throw new IOException("Groot bestand onvolledig gelezen"); }
+        // De kop: te kort = onvolledig (kan de verbinding zijn), wel compleet maar fout = beschadigd
+        byte[] h = new byte[Vault.HEADER];
+        int got = 0;
+        try { while (got < h.length) { int r = raw.read(h, got, h.length - got); if (r < 0) break; got += r; } }
+        catch (IOException e) { raw.close(); throw e; }
+        if (got < h.length) { raw.close(); throw new IOException(ONVOLLEDIG); }
+        try { Vault.readHeader(new java.io.ByteArrayInputStream(h)); }
+        catch (IOException e) { raw.close(); throw new IOException("Groot bestand beschadigd"); }
         if (!Vault.matches(k, h)) { raw.close(); throw new IOException("Groot bestand hoort bij een ander wachtwoord"); }
         Vault.In v = new Vault.In(raw, h, k);
         InputStream in = v;
@@ -280,7 +306,7 @@ final class Blokken {
         static IOException vertaal(IOException e) {
             String m = String.valueOf(e.getMessage());
             if (m.startsWith("Het archief is beschadigd")) return new IOException("Groot bestand beschadigd", e);
-            if (m.startsWith("Het archief is onvolledig")) return new IOException("Groot bestand onvolledig gelezen", e);
+            if (m.startsWith("Het archief is onvolledig")) return new IOException(ONVOLLEDIG, e);
             return e;
         }
     }
@@ -292,7 +318,7 @@ final class Blokken {
      */
     static boolean schade(IOException e) {
         String m = String.valueOf(e.getMessage());
-        return m.equals("Groot bestand beschadigd") || m.equals("Het archief is beschadigd") || m.equals("Verkeerd wachtwoord")
+        return m.equals("Groot bestand beschadigd") || m.equals(AFGEKAPT) || m.equals("Het archief is beschadigd") || m.equals("Verkeerd wachtwoord")
                 || m.equals("Groot bestand hoort bij een ander wachtwoord");
     }
 
@@ -336,7 +362,11 @@ final class Blokken {
             Long have;
             try { have = er().get(naam); } catch (IOException e) { throw new OpslagFout("De map " + DIR + " is niet te lezen", e); }
             long verwacht = z ? (bekend.containsKey(naam) ? bekend.get(naam) : -1) : versleuteld(n);
-            if (have != null && (have < 0 || have > Vault.HEADER) && (verwacht < 0 || have < 0 || have == verwacht)) {
+            boolean goed = have != null && (have < 0 || have > Vault.HEADER) && (verwacht < 0 || have < 0 || have == verwacht);
+            // Andere grootte dan verwacht (een andere telefoon pakt anders in, of de map meldt een oude grootte): eerst
+            // helemaal nalezen; klopt de inhoud, dan gewoon hergebruiken (geen strijd tussen twee telefoons)
+            if (!goed && have != null && have > Vault.HEADER && klopt(naam, z, n, sha)) { goed = true; bekend.put(naam, have); }
+            if (goed) {
                 hergebruikt++; hergebruiktBytes += n;
                 Item it = new Item(pad, n, sha, naam, z, Math.max(0, have));
                 items.add(it);
@@ -373,6 +403,15 @@ final class Blokken {
             return it;
         }
 
+        private boolean klopt(String naam, boolean z, long n, String sha) {
+            try {
+                InputStream raw = opslag.open(naam);
+                if (raw == null) return false;
+                leesHelemaal(lees(new java.io.BufferedInputStream(raw, 1 << 16), key, z, n, sha));
+                return true;
+            } catch (IOException e) { return false; }
+        }
+
         /** Alle namen die dit archief gebruikt. */
         Set<String> namen() { Set<String> s = new HashSet<>(); for (Item i : items) s.add(i.b); return s; }
     }
@@ -388,9 +427,17 @@ final class Blokken {
             if (o == null) throw new IOException("De map " + DIR + " ontbreekt; kies de backup-map waar deze backup in staat");
             InputStream raw;
             try { raw = o.open(it.b); }
-            catch (java.io.FileNotFoundException e) { throw new IOException("Groot bestand ontbreekt in " + DIR + ": " + AppData.cut(it.n)); }
-            if (raw == null) throw new IOException("Groot bestand ontbreekt in " + DIR + ": " + AppData.cut(it.n));
-            return lees(new java.io.BufferedInputStream(raw, 1 << 16), k, it.z, it.s, it.h);
+            catch (Ontbreekt e) { throw new Ontbreekt("Groot bestand ontbreekt in " + DIR + ": " + AppData.cut(it.n)); }
+            catch (java.io.FileNotFoundException e) { throw new IOException("Groot bestand niet te openen (geen verbinding?): " + AppData.cut(it.n), e); }
+            if (raw == null) throw new IOException("Groot bestand niet te openen: " + AppData.cut(it.n));
+            // Korter in de map dan geschreven: afgekapt (zeker), anders kan "onvolledig" ook de verbinding zijn
+            Long in = null;
+            try { in = o.lijst().get(it.b); } catch (IOException ignored) { }
+            boolean kort = in != null && in >= 0 && it.e > 0 && in < it.e;
+            InputStream b;
+            try { b = lees(new java.io.BufferedInputStream(raw, 1 << 16), k, it.z, it.s, it.h); }
+            catch (IOException e) { throw kort ? Kort.fout(e) : e; }
+            return kort ? new Kort(b) : b;
         };
     }
 
@@ -442,8 +489,7 @@ final class Blokken {
             if (cur == null) return new Houd(z);
             sluitOpen();
             try { open = bron.open(cur); }
-            catch (LeesFout e) { throw e; }
-            catch (IOException e) { throw new LeesFout(e); }
+            catch (IOException e) { throw LeesStroom.fout(e); }
             return new LeesStroom(open);
         }
 
@@ -482,5 +528,62 @@ final class Blokken {
         }
         Collections.sort(out);
         return out;
+    }
+
+    /** Een groot bestand gaat pas weg als het bij twee rondes, minstens zo ver uit elkaar, door niemand gebruikt werd. */
+    static final long WACHT = 36L * 3_600_000L;
+    /** Een archief dat de telefoon kent maar dat zo vaak achter elkaar niet in de map stond, telt niet meer mee. */
+    static final int GEMIST = 3;
+    /** In de lijst van een archief: gemaakt met een ander wachtwoord (de grote bestanden van die sleutel blijven). */
+    static final String VREEMD = "*";
+
+    /** Uitkomst van één ronde opruimen: wat nu weg mag, en wat (nog) gebruikt wordt. */
+    static final class Ronde {
+        final List<String> weg = new ArrayList<>();
+        final Set<String> gebruikt = new HashSet<>();
+    }
+
+    /**
+     * Eén ronde opruimen op de toestand (zuiver): archieven = wat elk bekend archief gebruikt, gemist = hoe vaak een
+     * bekend archief achter elkaar niet in de map stond, kandidaten = sinds wanneer een groot bestand ongebruikt is.
+     * Werkt die drie bij en geeft wat nu weg mag: ongebruikt bij een eerdere ronde, minstens WACHT geleden, en nog steeds.
+     * Wie een bestand echt weghaalt, haalt het daarna zelf uit kandidaten (mislukt weghalen = de volgende keer opnieuw).
+     */
+    static Ronde ronde(JSONObject st, Set<String> inMap, Collection<String> er, String kid, long now) throws org.json.JSONException {
+        JSONObject arch = st.getJSONObject("archieven");
+        JSONObject gemist = st.optJSONObject("gemist"), kand = st.optJSONObject("kandidaten");
+        if (gemist == null) { gemist = new JSONObject(); st.put("gemist", gemist); }
+        if (kand == null) { kand = new JSONObject(); st.put("kandidaten", kand); }
+        Ronde r = new Ronde();
+        boolean vreemd = false;
+        List<String> namen = new ArrayList<>();
+        for (java.util.Iterator<String> it = arch.keys(); it.hasNext(); ) namen.add(it.next());
+        for (String n : namen) {
+            if (inMap.contains(n)) gemist.remove(n);
+            else {
+                int g = gemist.optInt(n, 0) + 1;
+                if (g >= GEMIST) { arch.remove(n); gemist.remove(n); continue; }
+                gemist.put(n, g);
+            }
+            JSONArray a = arch.getJSONArray(n);
+            for (int i = 0; i < a.length(); i++) { String b = a.getString(i); if (VREEMD.equals(b)) vreemd = true; else r.gebruikt.add(b); }
+        }
+        // gemist van archieven die er niet meer zijn opruimen
+        List<String> gm = new ArrayList<>();
+        for (java.util.Iterator<String> it = gemist.keys(); it.hasNext(); ) gm.add(it.next());
+        for (String n : gm) if (!arch.has(n)) gemist.remove(n);
+        Set<String> nu = new HashSet<>(overbodig(er, r.gebruikt, kid, vreemd));
+        List<String> km = new ArrayList<>();
+        for (java.util.Iterator<String> it = kand.keys(); it.hasNext(); ) km.add(it.next());
+        for (String n : km) if (!nu.contains(n)) kand.remove(n);
+        List<String> sorted = new ArrayList<>(nu);
+        Collections.sort(sorted);
+        for (String n : sorted) {
+            if (!kand.has(n)) { kand.put(n, now); continue; }
+            long t = kand.optLong(n, now);
+            if (t > now) { kand.put(n, now); continue; } // klok teruggezet: opnieuw beginnen met wachten
+            if (now - t >= WACHT) r.weg.add(n);
+        }
+        return r;
     }
 }

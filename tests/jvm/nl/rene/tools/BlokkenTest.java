@@ -40,7 +40,7 @@ public class BlokkenTest {
             gemaakt++;
             return new Schrijf(new File(dir, naam + ".part"), new File(dir, naam));
         }
-        public InputStream open(String naam) throws IOException { return new FileInputStream(new File(dir, naam)); }
+        public InputStream open(String naam) throws IOException { File f = new File(dir, naam); if (!f.isFile()) throw new Blokken.Ontbreekt(naam); return new FileInputStream(f); }
         public void weg(String naam) { new File(dir, naam).delete(); }
     }
 
@@ -154,6 +154,21 @@ public class BlokkenTest {
         check(arc2.length < 120_000, "tweede archief ook klein");
         check(lees(arc2, k, o).get("Appgegevens/bestanden/call-recordings/b.m4a").length == 200_000, "tweede archief leesbaar");
 
+        // Andere grootte bekend dan in de map (een andere telefoon pakte anders in): eerst nalezen, dan gewoon hergebruiken
+        {
+            Blokken.Item zi = null;
+            for (Blokken.Item it : s[0].items) if (it.z) zi = it;
+            check(zi != null, "er is een ingepakt groot bestand");
+            File tf = File.createTempFile("blok", ".tmp");
+            Files.write(tf.toPath(), files.get(zi.n));
+            Blokken.Schrijver sw0 = new Blokken.Schrijver(o, k);
+            sw0.bekend.put(zi.b, 12345L);
+            int gem = o.gemaakt;
+            sw0.bewaar(zi.n, tf, zi.s, zi.h);
+            check(o.gemaakt == gem && sw0.hergebruikt == 1 && sw0.bekend.get(zi.b) == new File(dir, zi.b).length(), "andere bekende grootte maar inhoud klopt: hergebruikt, niets opnieuw geschreven");
+            tf.delete();
+        }
+
         // ---------- controle bij lezen ----------
         File doelwit = new File(dir, s[0].items.get(0).b);
         byte[] goed = Files.readAllBytes(doelwit.toPath());
@@ -167,7 +182,35 @@ public class BlokkenTest {
         Files.write(doelwit.toPath(), Arrays.copyOf(goed, goed.length - 30));
         e1 = null;
         try { lees(arc, k, o); } catch (IOException e) { e1 = e.getMessage(); }
-        check("Groot bestand onvolledig gelezen".equals(e1), "afgekapt groot bestand: gemeld (" + e1 + ")");
+        check(Blokken.AFGEKAPT.equals(e1) && Blokken.schade(new IOException(e1)), "afgekapt groot bestand (korter in de map dan geschreven): zekere schade (" + e1 + ")");
+        // Zelfde afgekapte inhoud, maar de map meldt de volle grootte (verbinding viel weg): geen zekere schade, terugzetten stopt
+        final byte[] kortGelezen = Files.readAllBytes(doelwit.toPath());
+        Blokken.Opslag wankel = new Blokken.Opslag() {
+            public Map<String, Long> lijst() throws IOException { return o.lijst(); }
+            public Blokken.Schrijf maak(String naam) throws IOException { throw new IOException("nee"); }
+            public InputStream open(String naam) throws IOException { return naam.equals(doelwit.getName()) ? new java.io.ByteArrayInputStream(kortGelezen) : o.open(naam); }
+            public void weg(String naam) { }
+        };
+        Map<String, Long> volle = new HashMap<>(o.lijst()); volle.put(doelwit.getName(), (long) goed.length);
+        Blokken.Opslag wankel2 = new Blokken.Opslag() {
+            public Map<String, Long> lijst() { return volle; }
+            public Blokken.Schrijf maak(String naam) throws IOException { throw new IOException("nee"); }
+            public InputStream open(String naam) throws IOException { return wankel.open(naam); }
+            public void weg(String naam) { }
+        };
+        IOException wf = null;
+        try { lees(arc, k, wankel2); } catch (IOException e) { wf = e; }
+        check(wf != null && !(wf instanceof Blokken.LeesFout) && Blokken.ONVOLLEDIG.equals(wf.getMessage()), "onvolledig gelezen bij de volle grootte: geen LeesFout (" + wf + ")");
+        // Map niet te lezen of geen verbinding bij openen: geen LeesFout
+        Blokken.Opslag offline = new Blokken.Opslag() {
+            public Map<String, Long> lijst() throws IOException { throw new IOException("Geen verbinding"); }
+            public Blokken.Schrijf maak(String naam) throws IOException { throw new IOException("nee"); }
+            public InputStream open(String naam) throws IOException { throw new java.io.FileNotFoundException("offline"); }
+            public void weg(String naam) { }
+        };
+        wf = null;
+        try { lees(arc, k, offline); } catch (IOException e) { wf = e; }
+        check(wf != null && !(wf instanceof Blokken.LeesFout), "geen verbinding: geen LeesFout, terugzetten stopt (" + wf + ")");
         check(!Blokken.schade(new IOException("Groot bestand onvolledig gelezen")) && !Blokken.schade(new IOException("Connection reset")), "te vroeg afgelopen of geen verbinding: geen zekere schade");
         doelwit.delete();
         e1 = null; soort = null;
@@ -243,6 +286,44 @@ public class BlokkenTest {
         check(weg.equals(Arrays.asList(ids.naam(sha, true), new Blokken.Ids(anders).naam(sha, false)).stream().sorted().collect(java.util.stream.Collectors.toList())),
                 "opruimen: alleen eigen namen die niemand gebruikt " + weg);
         check(Blokken.overbodig(er, gebruikt, ids.kid, true).equals(Arrays.asList(ids.naam(sha, true))), "archief met een ander wachtwoord: die bestanden blijven");
+
+        // ---------- één ronde opruimen (merkteken, wachttijd, gemiste archieven) ----------
+        {
+            String b1 = ids.naam(sha, false), b2 = ids.naam(sha, true);
+            String sha3 = AppData.hex(AppData.sha256().digest("y".getBytes(StandardCharsets.UTF_8)));
+            String b3 = ids.naam(sha3, false), vr = new Blokken.Ids(anders).naam(sha, false);
+            org.json.JSONObject st = new org.json.JSONObject().put("archieven", new org.json.JSONObject()
+                    .put("backup-A.rtb", new org.json.JSONArray().put(b1).put(b2)).put("backup-B.rtb", new org.json.JSONArray().put(b2)));
+            List<String> map = Arrays.asList(b1, b2, b3, vr, "leesmij.txt", Blokken.sindsNaam(0));
+            Set<String> beide = new HashSet<>(Arrays.asList("backup-A.rtb", "backup-B.rtb"));
+            long t0 = 1_800_000_000_000L, uur = 3_600_000L;
+            Blokken.Ronde r1 = Blokken.ronde(st, beide, map, ids.kid, t0);
+            check(r1.weg.isEmpty() && st.getJSONObject("kandidaten").has(b3) && st.getJSONObject("kandidaten").has(vr), "eerste ronde: ongebruikt alleen onthouden, niets weg");
+            check(Blokken.ronde(st, beide, map, ids.kid, t0 + 10 * uur).weg.isEmpty(), "tien uur later: nog niets weg");
+            Blokken.Ronde r3 = Blokken.ronde(st, beide, map, ids.kid, t0 + 40 * uur);
+            check(r3.weg.equals(Arrays.asList(b3, vr).stream().sorted().collect(java.util.stream.Collectors.toList())), "na twee rondes en 36 uur: alleen wat niemand gebruikt " + r3.weg);
+            check(!r3.weg.contains(b1) && !r3.weg.contains(b2) && r3.gebruikt.contains(b1), "wat een archief gebruikt blijft");
+            // Een archief dat de map even niet laat zien telt mee (pas na drie keer niet meer)
+            Set<String> alleenB = new HashSet<>(Arrays.asList("backup-B.rtb"));
+            for (int i = 1; i <= 2; i++) check(Blokken.ronde(st, alleenB, map, ids.kid, t0 + (40 + i) * uur).gebruikt.contains(b1), "archief " + i + " keer gemist: telt nog mee");
+            Blokken.Ronde r6 = Blokken.ronde(st, alleenB, map, ids.kid, t0 + 43 * uur);
+            check(!r6.gebruikt.contains(b1) && !r6.weg.contains(b1) && st.getJSONObject("kandidaten").has(b1), "drie keer gemist: telt niet meer, maar pas na een volgende ronde en 36 uur weg");
+            check(Blokken.ronde(st, alleenB, map, ids.kid, t0 + 80 * uur).weg.contains(b1), "daarna wel weg");
+            // Weer gebruikt (een nieuw archief) = de wachttijd begint opnieuw
+            st.getJSONObject("archieven").put("backup-C.rtb", new org.json.JSONArray().put(b3));
+            Set<String> metC = new HashSet<>(Arrays.asList("backup-B.rtb", "backup-C.rtb"));
+            check(!Blokken.ronde(st, metC, map, ids.kid, t0 + 81 * uur).weg.contains(b3) && !st.getJSONObject("kandidaten").has(b3), "weer gebruikt: geen kandidaat meer");
+            st.getJSONObject("archieven").remove("backup-C.rtb");
+            check(Blokken.ronde(st, alleenB, map, ids.kid, t0 + 82 * uur).weg.stream().noneMatch(b3::equals), "opnieuw ongebruikt: eerst weer wachten");
+            // Klok teruggezet: niet sneller weg
+            st.getJSONObject("kandidaten").put(b3, t0 + 500 * uur);
+            check(!Blokken.ronde(st, alleenB, map, ids.kid, t0 + 83 * uur).weg.contains(b3) && st.getJSONObject("kandidaten").getLong(b3) == t0 + 83 * uur, "kandidaat uit de toekomst: opnieuw wachten");
+            // Een archief met een ander wachtwoord: grote bestanden van die sleutel blijven
+            st.getJSONObject("archieven").put("backup-X.rtb", new org.json.JSONArray().put(Blokken.VREEMD));
+            Set<String> metX = new HashSet<>(Arrays.asList("backup-B.rtb", "backup-X.rtb"));
+            Blokken.ronde(st, metX, map, ids.kid, t0 + 90 * uur);
+            check(!Blokken.ronde(st, metX, map, ids.kid, t0 + 200 * uur).weg.contains(vr) && !st.getJSONObject("kandidaten").has(vr), "ander wachtwoord in de map: die bestanden blijven");
+        }
 
         // ---------- merkteken en opzij gezet ----------
         String m1 = Blokken.sindsNaam(1_700_000_000_000L);

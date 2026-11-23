@@ -2881,7 +2881,12 @@ public class MainActivity extends Activity {
                     // Daarna ook de grote bestanden die geen archief meer gebruikt (alleen als er geen backup loopt)
                     if (!dry && Secure.on(ctx) && AllBackup.tryBegin()) {
                         Vault.Key k = null;
-                        try { k = Secure.key(ctx); org.json.JSONObject g = BlokOpslag.opruimen(ctx, k); o.put("count", o.optInt("count") + g.optInt("count")).put("bytes", o.optLong("bytes") + g.optLong("bytes")); }
+                        try {
+                            k = Secure.key(ctx);
+                            org.json.JSONObject g = BlokOpslag.opruimen(ctx, k);
+                            o.put("count", o.optInt("count") + g.optInt("count")).put("bytes", o.optLong("bytes") + g.optLong("bytes"));
+                            if (g.has("later")) o.put("later", g.get("later"));
+                        }
                         catch (Exception e) { App.log(ctx, "BACKUP", "grote bestanden opruimen: " + AppData.safeMsg(e, "mislukt")); }
                         finally { if (k != null) java.util.Arrays.fill(k.key, (byte) 0); AllBackup.end(); }
                     }

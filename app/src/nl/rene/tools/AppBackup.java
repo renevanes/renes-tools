@@ -399,6 +399,8 @@ final class AppBackup {
         int kluisMode = KLUIS_REPLACE;
         /** Wat niet in deze backup zit (of niet af kwam): voor de samenvatting. */
         final List<String> missing = new ArrayList<>();
+        /** Grote bestanden die ontbraken (pad onder files/): wat nu op de telefoon staat, blijft daar. */
+        final List<String> grootLokaal = new ArrayList<>();
     }
 
     static volatile Staged staged;
@@ -651,8 +653,13 @@ final class AppBackup {
                         catch (Blokken.LeesFout ex) {
                             // De bron is een groot bestand dat ontbreekt: deze verwijzingen dan niet (de rest wel)
                             weg(x, first.target, AppData.target(first.target));
-                            for (AppData.Ref rr : l) { m.refs.remove(rr); m.skipped.add(new String[]{"groot:" + rr.target, "groot bestand ontbrak of was beschadigd"}); }
-                            if (first.target.startsWith(AppData.KLUIS_DIR + "/")) m.broken.add(first.target);
+                            for (AppData.Ref rr : l) {
+                                m.refs.remove(rr);
+                                m.skipped.add(new String[]{"groot:" + rr.target, "groot bestand ontbrak of was beschadigd"});
+                                String rt = AppData.target(rr.target);
+                                if (rr != first && rt != null && rt.startsWith("f:")) x.s.grootLokaal.add(rt.substring(2));
+                                if (rr.target.startsWith(AppData.KLUIS_DIR + "/")) m.broken.add(rr.target);
+                            }
                             continue;
                         }
                         if (got.size != first.size || !got.sha.equals(first.sha)) throw new Exception("Beschadigd in de backup: " + AppData.cut(first.source));
@@ -720,6 +727,10 @@ final class AppBackup {
     static void weg(Ctx x, String name, String t) {
         x.stagedFiles.remove(name);
         x.kinds.remove(name);
+        // Wat nu op de telefoon staat blijft (zie applyLocked); de meldingsgeschiedenis blijft vanzelf
+        if (t != null && t.startsWith("f:")) x.s.grootLokaal.add(t.substring(2));
+        else if (t != null && t.startsWith("gfoto:")) x.s.grootLokaal.add("gebruik/foto/" + t.substring(6));
+        if ("history".equals(t)) x.s.history = false;
         try {
             if (t == null) return;
             if (t.startsWith("f:")) { File f = new File(x.stFiles, t.substring(2)); if (f.getCanonicalPath().startsWith(x.stFilesPath)) f.delete(); }
@@ -755,7 +766,7 @@ final class AppBackup {
             if (seen.add(text)) s.missing.add(text);
         }
         if (photos > 0) s.missing.add(photos == 1 ? "1 foto bij ontgrendelen (niet te lezen bij het maken)" : photos + " foto's bij ontgrendelen (niet te lezen bij het maken)");
-        if (groot > 0) s.missing.add(groot == 1 ? "1 groot bestand (ontbrak of was beschadigd in Versleuteld/Grote bestanden)" : groot + " grote bestanden (ontbraken of waren beschadigd in Versleuteld/Grote bestanden)");
+        if (groot > 0) s.missing.add("grote bestanden die ontbraken of beschadigd waren in Versleuteld/Grote bestanden (wat nu op de telefoon staat, blijft)");
         if (s.broken > 0 && seen.add("broken")) s.missing.add(s.broken + (s.broken == 1 ? " bestand dat" : " bestanden die") + " bij het maken niet af kwam");
     }
 
@@ -949,6 +960,13 @@ final class AppBackup {
                 File cur = new File(files, p), dst = new File(st, "files/" + p);
                 if (cur.isFile() && !dst.exists()) HerstelLog.move(jf, cur, dst);
             }
+            //    en grote bestanden die in de backup-map ontbraken: de versie op deze telefoon houden
+            String filesPath = files.getCanonicalPath() + File.separator, stPath = new File(st, "files").getCanonicalPath() + File.separator;
+            for (String p : s.grootLokaal) {
+                File cur = new File(files, p), dst = new File(st, "files/" + p);
+                if (!cur.getCanonicalPath().startsWith(filesPath) || !dst.getCanonicalPath().startsWith(stPath)) continue;
+                if (cur.isFile() && !dst.exists()) HerstelLog.move(jf, cur, dst);
+            }
             // 1. Mappen en bestanden: de huidige opzij, de klaargezette op hun plek
             java.util.List<String> local = new java.util.ArrayList<>(), inBackup = new java.util.ArrayList<>();
             String[] ln = files.list(), sn = new File(st, "files").list();
@@ -1130,7 +1148,7 @@ final class AppBackup {
 
     static synchronized void recover(Context c) {
         try {
-            clearTemp(c);
+            if (!AllBackup.busy) clearTemp(c); // niet onder een lopende backup vandaan (die gebruikt deze bestanden nog)
             File jf = journal(c);
             String log = readOr(jf);
             switch (HerstelLog.decide(log)) {

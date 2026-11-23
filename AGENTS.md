@@ -187,8 +187,10 @@ interface gaat mee via `store.set` (`webstore`, in Alle appgegevens en in het on
    geheimen, kluisindex: wat terugzetten altijd nodig heeft), komt één keer in `Versleuteld/Grote bestanden/`. Lees een
    archief daarom altijd met `Blokken.Lezer` (`Secure.lezer(c)`), nooit met een kale `ZipInputStream`: anders mis je die
    bestanden. Lukt apart opslaan niet, dan gaat het bestand in het archief zelf (`zip.blokFout`, de uitkomst meldt het);
-   het archief blijft compleet. Een groot bestand dat bij lezen ontbreekt of beschadigd is, geeft `Blokken.LeesFout`:
-   terugzetten en uitpakken slaan alleen dat bestand over en melden het; vang die fout dus apart, niet als elke `IOException`.
+   het archief blijft compleet. Een groot bestand dat bij lezen zeker ontbreekt of zeker beschadigd is, geeft
+   `Blokken.LeesFout` (geen verbinding of een map die niet te lezen is niet: dan stopt terugzetten): terugzetten en
+   uitpakken slaan alleen dat bestand over, houden wat er op de telefoon staat en melden het; vang die fout dus apart,
+   niet als elke `IOException`.
    Opruimen (`BlokOpslag.opruimen`) haalt alleen weg wat geen enkel archief gebruikt, met het merkteken `sinds-…` en een
    wachttijd; verander dat alleen met een test erbij in `BlokkenTest`.
 9. **Getest:** `AppDataTest` zoekt in de code elke `getSharedPreferences("…")`, elke `PREFS`-constante en elke map in

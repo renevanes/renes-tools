@@ -769,6 +769,9 @@ final class Secure {
                 if (slash > 0) for (String part : name.substring(0, slash).split("/")) rel.append('/').append(WaBackup.safeName(part));
                 WaBackup.DestDir dir = dest.dir(rel.toString(), true);
                 String file = WaBackup.safeName(name.substring(slash + 1));
+                // Eerst openen: ontbreekt een groot bestand, dan blijft een eerder uitgepakte versie staan
+                InputStream in;
+                try { in = z.inhoud(); } catch (Blokken.LeesFout e) { ontbrak++; continue; }
                 WaBackup.Child old = dir.kids.get(file);
                 if (old != null && !old.dir) DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, old.docId));
                 Uri u = WaBackup.create(dest, dir.uri, WaBackup.mime(file), file);
@@ -776,7 +779,6 @@ final class Secure {
                 try (OutputStream o = dest.cr.openOutputStream(u, "w")) {
                     if (o == null) throw new Exception("Schrijven lukt niet: " + file);
                     int r;
-                    InputStream in = z.inhoud();
                     while ((r = in.read(buf)) > 0) o.write(buf, 0, r);
                 } catch (Blokken.LeesFout e) {
                     // Een groot bestand ontbreekt of is beschadigd: dat ene bestand niet, de rest wel

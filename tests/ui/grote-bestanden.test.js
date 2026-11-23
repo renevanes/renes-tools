@@ -41,6 +41,9 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._bk.last.blok.opgeruimd = { count: 0, bytes: 0, later: true }; bkRenderLast(bkState(true)); });
     await pg.waitForTimeout(100);
     ok((await pg.$$eval('#bk-parts-res .bkres', x => x.map(e => e.innerText))).some(r => /Volgende nacht verder/.test(r)), 'opruimen gaat de volgende nacht verder');
+    await pg.evaluate(() => { Android._bk.last.blok.opgeruimd = { count: 0, bytes: 0, later: 'bezig' }; bkRenderLast(bkState(true)); });
+    await pg.waitForTimeout(100);
+    ok((await pg.$$eval('#bk-parts-res .bkres', x => x.map(e => e.innerText))).some(r => /nog een backup gemaakt/.test(r)), 'opruimen wacht op een backup die nog geschreven wordt');
 
     // ---------- instellingen: schakelaar en oude backups ----------
     await pg.click('#bk-row-set'); await pg.waitForTimeout(200);
