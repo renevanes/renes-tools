@@ -30,6 +30,9 @@ final class GithubStatus {
 
     private static JSONObject laatst;
     private static long laatstT;
+    /** Workflows zonder run op main (die alleen vanuit een andere workflow draaien): even niet opnieuw vragen. */
+    private static final Map<Long, Long> LEEG = new java.util.concurrent.ConcurrentHashMap<>();
+    static final long LEEG_BEWAAR = 30 * 60_000L;
 
     static final class Fout extends Exception {
         Fout(String m) { super(m); }
@@ -89,14 +92,22 @@ final class GithubStatus {
             JSONArray wf = json(haal("/actions/workflows?per_page=100")).optJSONArray("workflows");
             java.util.Set<String> gezien = new java.util.HashSet<>();
             JSONArray rs = runs.optJSONArray("workflow_runs");
-            for (int i = 0; rs != null && i < rs.length(); i++) if (rs.optJSONObject(i) != null && eigen(rs.optJSONObject(i))) gezien.add(rs.optJSONObject(i).optString("name"));
+            // Alleen een run op main telt als gezien: anders bepaalt een run op een andere tak de stand van die taak
+            for (int i = 0; rs != null && i < rs.length(); i++) {
+                JSONObject r = rs.optJSONObject(i);
+                if (r != null && "main".equals(r.optString("head_branch")) && eigen(r)) gezien.add(r.optString("name"));
+            }
             int los = 0;
             for (int i = 0; wf != null && i < wf.length() && los < MAX_LOS; i++) {
                 JSONObject w = wf.optJSONObject(i);
                 if (w == null || !"active".equals(w.optString("state")) || gezien.contains(w.optString("name")) || w.optLong("id") <= 0) continue;
+                if (w.optString("path").startsWith("dynamic/")) continue; // Dependabot e.d.: geen eigen workflow
+                Long leegT = LEEG.get(w.optLong("id"));
+                if (leegT != null && nu - leegT < LEEG_BEWAAR && nu >= leegT) continue; // had onlangs geen run op main
                 los++;
                 JSONArray een = json(haal("/actions/workflows/" + w.optLong("id") + "/runs?branch=main&per_page=1")).optJSONArray("workflow_runs");
                 if (een != null && een.length() > 0) extra.put(een.get(0));
+                else LEEG.put(w.optLong("id"), nu);
             }
         } catch (Exception ignored) { } // dan zonder: het scherm zegt welke periode de runs beslaan
         JSONArray punten;
@@ -111,7 +122,8 @@ final class GithubStatus {
 
     /** Voor Signalen: alleen de mislukte runs op main (klein antwoord: geen open punten, geen geslaagde runs). */
     static JSONArray mislukt() throws Fout {
-        JSONObject r = json(haal("/actions/runs?branch=main&status=failure&per_page=20"));
+        // status=completed (niet failure): ook een run die te lang duurde of niet kon starten telt als mislukt
+        JSONObject r = json(haal("/actions/runs?branch=main&status=completed&per_page=30"));
         try { return samenvatten(r, null, null, System.currentTimeMillis()).optJSONArray("runs"); }
         catch (JSONException e) { throw new Fout(Taal.T("Het antwoord van GitHub was niet te lezen")); }
     }
@@ -193,6 +205,7 @@ final class GithubStatus {
                     .put("nr", r.optInt("run_number")).put("start", start).put("eind", eind).put("url", url(r.optString("html_url")))
                     .put("aanleiding", kort(r.optString("event"), 30));
             if (i < gewoon) { runs.put(x); if (start > 0) sinds = sinds == 0 ? start : Math.min(sinds, start); }
+            if ("dynamic".equals(r.optString("event"))) continue; // Dependabot e.d.: wel bij de runs, geen eigen taak
             JSONObject[] p = perTaak.get(naam);
             if (p == null) { p = new JSONObject[2]; perTaak.put(naam, p); }
             if (p[0] == null) p[0] = x;                  // de runs komen nieuwste eerst

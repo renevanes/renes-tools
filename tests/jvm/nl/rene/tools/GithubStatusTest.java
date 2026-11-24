@@ -44,14 +44,15 @@ public class GithubStatusTest {
                 .put("head_repository", new JSONObject().put("full_name", "iemand/renes-tools")));
         // Een wekelijkse taak die niet bij de nieuwste runs zit: los opgehaald
         JSONArray extra = new JSONArray().put(run(77, "Onderhoud", "completed", "failure", "main", "Onderhoud", "2026-11-23T10:00:00Z", "2026-11-23T10:20:00Z", W + "actions/runs/77").put("event", "schedule"));
+        rs.put(run(6, "Dependabot Updates", "completed", "failure", "main", "Bump x", "2026-11-24T10:40:00Z", "2026-11-24T10:41:00Z", W + "actions/runs/6").put("event", "dynamic"));
         JSONObject s = GithubStatus.samenvatten(new JSONObject().put("workflow_runs", rs), extra, punten, 1L);
         JSONArray runs = s.getJSONArray("runs");
-        check(runs.length() == 6 && "bezig".equals(runs.getJSONObject(0).optString("soort")) && !runs.getJSONObject(0).optBoolean("main"), "runs nieuwste eerst; een run zonder naam telt niet; een losse run staat niet bij de recente runs");
+        check(runs.length() == 7 && "bezig".equals(runs.getJSONObject(0).optString("soort")) && !runs.getJSONObject(0).optBoolean("main"), "runs nieuwste eerst; een run zonder naam telt niet; een losse run staat niet bij de recente runs");
         check(!runs.getJSONObject(5).optBoolean("main"), "pull request uit een fork (tak main): geen run op main");
         check(s.optLong("sinds") == GithubStatus.tijd("2026-11-23T20:00:00Z"), "periode van de runs: de oudste start");
         check("Backups kleiner met details".equals(runs.getJSONObject(1).optString("titel")) && runs.getJSONObject(3).optString("url").isEmpty(), "titel op één regel; adres buiten de repository wordt leeg");
         JSONArray taken = s.getJSONArray("taken");
-        check(taken.length() == 4 && "Publiceren".equals(taken.getJSONObject(0).optString("naam")), "per taak, Publiceren bovenaan, ook de wekelijkse taak");
+        check(taken.length() == 4 && "Publiceren".equals(taken.getJSONObject(0).optString("naam")), "per taak, Publiceren bovenaan, ook de wekelijkse taak; Dependabot geen eigen taak");
         JSONObject ond = null;
         for (int i = 0; i < taken.length(); i++) if ("Onderhoud".equals(taken.getJSONObject(i).optString("naam"))) ond = taken.getJSONObject(i);
         check(ond != null && "mislukt".equals(ond.getJSONObject("stand").optString("soort")) && ond.getJSONObject("stand").optBoolean("main"), "wekelijkse taak: zijn laatste run op main telt mee");

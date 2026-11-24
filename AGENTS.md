@@ -1049,7 +1049,8 @@ Scherm `s-github` (Instellingen → Versie en updates; `28c-publiceren-en-tests.
 (de laatste run op main, met wat er op een andere tak loopt), recente runs en open punten van de openbare repository; een
 tik opent het op GitHub. Alleen lezen, zonder sleutel, alleen als het scherm opent of ververst (een minuut bewaard: GitHub staat
 zonder sleutel 60 vragen per uur toe; de nieuwste 100 runs, plus hooguit `MAX_LOS` losse vragen voor taken die daar niet bij
-zitten) en via de Signalen-bron `github` (`GithubStatus.mislukt`: alleen mislukte runs op main, klein antwoord). "Op main" =
+zitten, alleen als ze in die 100 geen run op main hebben; workflows zonder run op main een half uur niet opnieuw, Dependabot
+(`dynamic/`) nooit) en via de Signalen-bron `github` (`GithubStatus.mislukt`: de nieuwste afgeronde runs op main). "Op main" =
 een push, geplande of met de hand gestarte run uit deze repository (`GithubStatus.eigen`), nooit een pull request (ook niet uit
 een fork met een tak die main heet). Fouten zijn Nederlandse zinnen (`Fout`), de brug vertaalt ze met `Taal.tx`. Alleen adressen van deze repository
 (`GithubStatus.url`); titels, takken en labels zijn tekst van buiten (`esc`, `translate="no"`). Niet in de Play-versie en
