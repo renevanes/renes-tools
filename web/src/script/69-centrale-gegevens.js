@@ -145,12 +145,9 @@ function cmListOpen(){
   if(current!=='masterdata'){show('masterdata');return;}
   cmListLoad();
 }
-/* Duurt de lijst lang, dan een regel in het foutlogboek: alleen tijden en het aantal (geen namen). */
-function cmMeet(t0,t1,t2){if(t2-t0<2000||typeof Android.logJs!=='function')return;try{Android.logJs('stamgegevens traag: lijst '+(t1-t0)+' ms, tekenen '+(t2-t1)+' ms, '+(cm.records||[]).length+' gegevens');}catch(_){}} // taal-vast: logregel, niet in beeld
 function cmListLoad(after,fail=null){
   if(!cmOpen())return;cm.recordsReady=false;document.querySelectorAll('#cm-open button').forEach(b=>b.disabled=true);const epoch=++cm.editorEpoch;
-  const t0=Date.now();
-  cmRequest('masterList',['masterdata',''],r=>{const t1=Date.now();cm.records=r.records;cm.recordsReady=true;cmRenderList();document.querySelectorAll('#cm-open button').forEach(b=>b.disabled=false);cmMeet(t0,t1,Date.now());if(epoch!==cm.editorEpoch){cmNavDone();return;}if(after)after();else cmiAfterList();},false,r=>{cmNavDone();if(fail)fail(r);});
+  cmRequest('masterList',['masterdata',''],r=>{cm.records=r.records;cm.recordsReady=true;cmRenderList();document.querySelectorAll('#cm-open button').forEach(b=>b.disabled=false);if(epoch!==cm.editorEpoch){cmNavDone();return;}if(after)after();else cmiAfterList();},false,r=>{cmNavDone();if(fail)fail(r);});
 }
 /* Het beginscherm (Ik, Aandacht nodig, rijen) tekent 71-stamgegevens-ik.js; zoeken toont één lijst met alles. */
 function cmRenderList(){}
@@ -225,35 +222,50 @@ function cmEditorFields(){
 /* Woont op: een adres uit Adressen (Java houdt straat, postcode, plaats en land van de persoon gelijk met dat adres).
  * Nieuw adres: één regel ("Kade 12, 3011 AB Rotterdam"); bij bewaren zet Java het in Adressen, of koppelt aan hetzelfde adres. */
 const CM_NIEUW_ADRES='__nieuw';
+// Eén regel → straat, postcode, plaats en land. Nederlandse postcode herkend; verder: straat, plaats[, land] met komma's.
 function cmAdresUit(regel){
   const s=String(regel||'').replace(/\s+/g,' ').trim().slice(0,240);if(!s)return null;
-  const m=s.match(/^(.*?)[,\s]+(\d{4} ?[A-Za-z]{2})\b[,\s]*(.*)$/);
-  if(m)return {adres:m[1].replace(/,$/,'').trim(),postcode:m[2].toUpperCase().replace(/^(\d{4})([A-Z]{2})$/,'$1 $2'),plaats:m[3].trim()};
-  const k=s.split(',');return k.length>1?{adres:k[0].trim(),postcode:'',plaats:k.slice(1).join(',').trim()}:{adres:s,postcode:'',plaats:''};
+  const delen=s.split(',').map(x=>x.trim()).filter(Boolean);
+  const pcRe=/\b(\d{4}) ?([A-Za-z]{2})\b/;let adres='',postcode='',plaats='',land='';
+  const i=delen.findIndex(d=>pcRe.test(d));
+  if(i>=0){
+    const m=delen[i].match(pcRe);postcode=m[1]+' '+m[2].toUpperCase();
+    const voor=delen[i].slice(0,m.index).trim(),na=delen[i].slice(m.index+m[0].length).trim();
+    adres=[...delen.slice(0,i),voor].filter(Boolean).join(', ');plaats=na||delen[i+1]||'';
+    land=delen.slice(na?i+1:i+2).join(', ');
+  }else if(delen.length===1)adres=delen[0];
+  else{adres=delen[0];plaats=delen[1];land=delen.slice(2).join(', ');}
+  const uit={adres,postcode,plaats,land};for(const k of Object.keys(uit))if(!uit[k])delete uit[k];return uit;
 }
+// Straat, postcode en plaats als één regel (voor het kaartje en de hint); gegevens, dus tonen met translate="no".
+function cmAdresRegel(f){f=f||{};return [f.adres,[f.postcode,f.plaats].filter(Boolean).join(' '),f.land].filter(Boolean).join(', ');}
 function cmWoonadres(input,group){
-  const f=cm.edit.fields,nieuw=!f.woonadres&&(f.adres||f.postcode);
+  const f=cm.edit.fields,nieuw=()=>!cm.edit.fields.woonadres&&!!(cm.edit.fields.adres||cm.edit.fields.postcode||cm.edit.fields.plaats);
   const info=cmEl('p','','hint');info.id='cm-woon-info';
-  if(nieuw){input.value=CM_NIEUW_ADRES;info.append(cmEl('span',t('Nieuw adres, komt bij Adressen:')),' ',cmData(cmEl('span',[f.adres,[f.postcode,f.plaats].filter(Boolean).join(' ')].filter(Boolean).join(', '))));}
+  if(nieuw()){input.value=CM_NIEUW_ADRES;info.append(cmEl('span',t('Nieuw adres, komt bij Adressen:')),' ',cmData(cmEl('span',cmAdresRegel(f))));}
   else info.textContent=f.woonadres?t('Wijzig je het adres bij Adressen, dan verandert het hier mee.'):t('Kies het adres uit Adressen, of voeg een nieuw adres toe.');
   group.append(info);
   input.addEventListener('change',()=>{
     const leeg=()=>{for(const k of ['adres','postcode','plaats','land'])delete cm.edit.fields[k];};
     if(input.value===CM_NIEUW_ADRES){
-      input.value=cm.edit.fields.woonadres||'';
-      askInput(t('Nieuw adres'),t('Straat en huisnummer, postcode en plaats, bijvoorbeeld: Kade 12, 3011 AB Rotterdam'),'',t('OK'),v=>{
-        const a=cmAdresUit(v);if(!a||!cm.edit)return;leeg();cm.edit.fields.woonadres='';Object.assign(cm.edit.fields,Object.fromEntries(Object.entries(a).filter(([,x])=>x)));cmDirty();cmEditorFields();});
+      // Tot er een adres is ingevuld blijft de keuze staan zoals hij was (ook na Annuleren)
+      input.value=nieuw()?CM_NIEUW_ADRES:cm.edit.fields.woonadres||'';
+      askInput(t('Nieuw adres'),t('Straat en huisnummer, postcode en plaats, bijvoorbeeld: Kade 12, 3011 AB Rotterdam'),nieuw()?cmAdresRegel(cm.edit.fields):'',t('OK'),v=>{
+        const a=cmAdresUit(v);if(!a||!cm.edit)return;leeg();cm.edit.fields.woonadres='';Object.assign(cm.edit.fields,a);cmDirty();cmEditorFields();});
       return;
     }
     leeg();cm.edit.fields.woonadres=input.value;cmDirty();cmEditorFields(); // gekozen adres (of geen): Java vult de rest in bij bewaren
   });
 }
 /* Bij een adres: wie er woont (uit het overzicht; namen zijn gegevens). */
+function cmBewonersEl(id){
+  const wie=cm.records.filter(r=>r.type==='persoon'&&r.woonadres===id),p=cmEl('p','','hint');
+  if(wie.length)p.append(cmEl('span',t('Woont hier:')),' ',cmData(cmEl('span',wie.map(r=>r.label).sort((x,y)=>x.localeCompare(y)).join(', '))));
+  else p.textContent=t('Hier woont (nog) niemand uit je stamgegevens.');
+  return p;
+}
 function cmBewoners(){
-  const box=$('#cm-fields');if(!box)return;const wie=cm.records.filter(r=>r.type==='persoon'&&r.woonadres===cm.edit.id);
-  const p=cmEl('p','','hint');p.id='cm-bewoners';p.dataset.cmTab=(cmTabs(cm.edit)[0]||[''])[0];
-  if(wie.length)p.append(cmEl('span',t('Woont hier:')),' ',cmData(cmEl('span',wie.map(r=>r.label).sort((x,y)=>x.localeCompare(y)).join(', '))));else p.textContent=t('Hier woont (nog) niemand uit je stamgegevens.');
-  box.append(p);
+  const box=$('#cm-fields');if(!box)return;const p=cmBewonersEl(cm.edit.id);p.id='cm-bewoners';p.dataset.cmTab=(cmTabs(cm.edit)[0]||[''])[0];box.append(p);
 }
 function cmShowSecret(show){CM_MASK.forEach(key=>{const input=$('#cm-field-'+key);if(input)input.type=show?'text':'password';});cmTouch();}
 function cmBusy(busy){cm.mutating=busy;$('#cm-save').disabled=busy;$('#cm-edit-menu').disabled=busy;document.querySelectorAll('#cm-fields input,#cm-fields select,#cm-fields textarea,#cm-fields .cmi-cats button,#cm-fields .cmi-nat-meer,#cmh-panel button,#cmh-list input:not([data-same]),#cmi-photos button,#cm-kaart button,#cm-ai-set button,#cm-ai-mensen button').forEach(e=>e.disabled=busy);$('#cm-label').disabled=busy;}
@@ -330,7 +342,7 @@ function cmMenu(){const acts=[];if(cmOpen())acts.push([t('Activiteiten'),cmAudit
 function cmAuditOpen(){if(!cmOpen()||cm.mutating)return;cm.editorEpoch++;cm.events=[];cm.before=0;$('#cm-audit').replaceChildren();$('#cm-log-search').value='';$('#cm-more').hidden=true;if(current!=='cmlog')show('cmlog');cmAuditMore();}
 function cmAuditMore(){if(!cmOpen())return;cmRequest('masterAudit',[cm.before],r=>{cm.events.unshift(...r.events);cm.before=r.before;$('#cm-more').hidden=!r.more;cmRenderAudit();});}
 function cmRenderAudit(){
-  const names={unlock:t('Ontgrendeld'),list:t('Overzicht bekeken'),view:t('Gegevens bekeken'),create:t('Toegevoegd'),update:t('Gewijzigd'),delete:t('Verwijderd'),use:t('Velden overgenomen'),audit:t('Logboek bekeken'),export_release:t('Bestand vrijgegeven'),export_attempt:t('Bestand maken gestart'),export:t('Bestand gemaakt'),app_context:t('App-context vernieuwd'),photo_view:t('Kaartfoto bekeken'),photo_add:t('Kaartfoto toegevoegd'),photo_delete:t('Kaartfoto verwijderd'),relation_use:t('Relatie voor formulier bekeken'),expiry_check:t('Geldigheid gecontroleerd'),scan:t('Foto herkennen gestart'),photo_scan:t('Gegevens herkend uit kaartfoto'),contact_use:t('Bellen, bericht of Contacten geopend'),about_move:t('Bijgewerkt naar de nieuwe indeling: tekst over jou naar Over mij'),about_clear:t('Tekst over jou weggehaald')};
+  const names={unlock:t('Ontgrendeld'),list:t('Overzicht bekeken'),view:t('Gegevens bekeken'),create:t('Toegevoegd'),update:t('Gewijzigd'),delete:t('Verwijderd'),use:t('Velden overgenomen'),audit:t('Logboek bekeken'),export_release:t('Bestand vrijgegeven'),export_attempt:t('Bestand maken gestart'),export:t('Bestand gemaakt'),app_context:t('App-context vernieuwd'),address_link:t('Adres gekoppeld aan Adressen'),photo_view:t('Kaartfoto bekeken'),photo_add:t('Kaartfoto toegevoegd'),photo_delete:t('Kaartfoto verwijderd'),relation_use:t('Relatie voor formulier bekeken'),expiry_check:t('Geldigheid gecontroleerd'),scan:t('Foto herkennen gestart'),photo_scan:t('Gegevens herkend uit kaartfoto'),contact_use:t('Bellen, bericht of Contacten geopend'),about_move:t('Bijgewerkt naar de nieuwe indeling: tekst over jou naar Over mij'),about_clear:t('Tekst over jou weggehaald')};
   const roles={reis:t('Reis'),kind:tc('formulier','Kind'),begeleider1:t('Begeleider 1'),begeleider2:t('Begeleider 2'),gever1:t('Toestemminggever 1'),gever2:t('Toestemminggever 2'),bestemming:t('Bestemming'),ontvanger:t('Ontvanger'),vast:t('Vaste formuliergegevens')};
   const source={masterdata:t('Stamgegevens'),formulieren:t('Formulieren invullen'),idcopy:t('ID-kopie afschermen')};
   const box=$('#cm-audit');box.replaceChildren();if(!cmOpen())return;const q=$('#cm-log-search').value.toLowerCase();

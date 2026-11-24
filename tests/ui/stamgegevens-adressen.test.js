@@ -19,25 +19,45 @@ for(const colorScheme of ['light','dark']){
   assert.equal((await rec(bas)).fields.woonadres,huis.id,'gedeeld adres');assert.equal(await adressen(),1,'één adres voor het huishouden');
   assert.equal((await rec(bas)).fields.adres,'Kade 12','de schrijfwijze van Adressen');
 
+  // Eén regel lezen als adres
+  assert.deepEqual(await p.evaluate(()=>['Kade 12, 3011 AB Rotterdam','Kade 12 3011ab Rotterdam','3011 AB Rotterdam','Kade 12, 3011 AB Rotterdam, Nederland','Rue Haute 5, Bruxelles, België','Kade 12'].map(cmAdresUit)),[
+    {adres:'Kade 12',postcode:'3011 AB',plaats:'Rotterdam'},{adres:'Kade 12',postcode:'3011 AB',plaats:'Rotterdam'},{postcode:'3011 AB',plaats:'Rotterdam'},
+    {adres:'Kade 12',postcode:'3011 AB',plaats:'Rotterdam',land:'Nederland'},{adres:'Rue Haute 5',plaats:'Bruxelles',land:'België'},{adres:'Kade 12'}]);
+  // Alleen een plaats is ook een adres; 12-1 is een ander huis dan 121
+  const cas=await T.maak('persoon','Cas',{voornamen:'Cas',plaats:'Ede'});const ede=(await rec(cas)).fields.woonadres;assert.ok(ede,'plaats alleen gekoppeld');
+  const dirk=await T.maak('persoon','Dirk',{voornamen:'Dirk',adres:'Kade 1-21',postcode:'3011 AB'});
+  assert.notEqual((await rec(dirk)).fields.woonadres,huis.id,'Kade 1-21 is niet Kade 12');
+  const d2=await T.maak('persoon','Dirk 2',{voornamen:'Dirk',adres:'Kade 121',postcode:'3011 AB'});
+  assert.notEqual((await rec(d2)).fields.woonadres,(await rec(dirk)).fields.woonadres,'Kade 121 is niet Kade 1-21');
+  const start=await adressen();
+
   // 3. Bij de persoon: Woont op, een keuze uit Adressen (geen losse adresvelden meer)
   await T.blok(anna,'contact');
   assert.equal(await p.locator('#cm-field-adres').count(),0,'geen eigen adresveld');
   assert.equal(await p.$eval('#cm-field-woonadres',e=>e.value),huis.id);
-  assert.deepEqual(await p.$$eval('#cm-field-woonadres option',o=>o.map(x=>x.textContent)),['Geen adres','Kade 12, Rotterdam','Nieuw adres…']);
+  assert.deepEqual(await p.$$eval('#cm-field-woonadres option',o=>o.map(x=>x.textContent)),['Geen adres','Kade 12, Rotterdam','Ede','Kade 1-21','Kade 121','Nieuw adres…']);
   assert.match(await p.textContent('#cm-woon-info'),/Wijzig je het adres bij Adressen/);
   // Nieuw adres via één regel
   await p.selectOption('#cm-field-woonadres','__nieuw');await p.waitForSelector('#modal.on');
   assert.equal(await p.$eval('#cm-field-woonadres',e=>e.value),huis.id,'keuze blijft staan tot er een adres is');
+  await p.click('#modal-cancel');assert.equal(await p.$eval('#cm-field-woonadres',e=>e.value),huis.id,'na Annuleren nog steeds');
+  await p.selectOption('#cm-field-woonadres','__nieuw');await p.waitForSelector('#modal.on');
   await p.fill('#modal-input','Dorpsstraat 3, 1234 cd Ede');await p.click('#modal-ok');
   await p.waitForFunction(()=>cm.edit?.fields?.adres==='Dorpsstraat 3');
   assert.deepEqual(await p.evaluate(()=>[cm.edit.fields.postcode,cm.edit.fields.plaats,cm.edit.fields.woonadres]),['1234 CD','Ede','']);
   assert.match(await p.textContent('#cm-woon-info'),/Nieuw adres, komt bij Adressen:.*Dorpsstraat 3, 1234 CD Ede/);
+  // Nog een keer Nieuw adres… en dan Annuleren: het ingevulde nieuwe adres blijft staan
+  await p.selectOption('#cm-field-woonadres','__nieuw');await p.waitForSelector('#modal.on');
+  assert.equal(await p.inputValue('#modal-input'),'Dorpsstraat 3, 1234 CD Ede','vooraf ingevuld');await p.click('#modal-cancel');
+  assert.equal(await p.$eval('#cm-field-woonadres',e=>e.value),'__nieuw');assert.equal(await p.evaluate(()=>cm.edit.fields.adres),'Dorpsstraat 3');
   await T.opslaan();
-  const a2=await rec(anna);assert.notEqual(a2.fields.woonadres,huis.id);assert.equal(await adressen(),2,'nieuw adres bij Adressen');
+  const a2=await rec(anna);assert.notEqual(a2.fields.woonadres,huis.id);assert.equal(await adressen(),start+1,'nieuw adres bij Adressen');
   // Terug naar het gedeelde huis via de keuzelijst
   await T.blok(anna,'contact');await p.selectOption('#cm-field-woonadres',huis.id);await T.opslaan();
   assert.equal((await rec(anna)).fields.woonadres,huis.id);assert.equal((await rec(anna)).fields.plaats,'Rotterdam');
 
+  // Het kaartje van Anna toont straat, postcode en plaats
+  await T.kaart(anna);assert.match(await p.textContent('#cm-kaart'),/Kade 12, 3011 ?AB Rotterdam/);
   // 4. Het adres aanpassen: iedereen die er woont gaat mee
   await T.blok(huis.id);await T.fill('#cm-field-adres','Kade 14');await T.opslaan();
   for(const id of [anna,bas])assert.equal((await rec(id)).fields.adres,'Kade 14',id);
@@ -46,6 +66,8 @@ for(const colorScheme of ['light','dark']){
   assert.match(await p.textContent('#cm-bewoners'),/Woont hier:.*Anna de Vries.*Bas de Vries/);
   assert.equal(await p.$eval('#cm-bewoners span[translate=no]',e=>!!e),true);
   await p.evaluate(()=>goBack());await p.waitForFunction(()=>current!=='cmedit'&&!cm.navigating);
+  // Ook op het kaartje van het adres
+  await T.kaart(huis.id);assert.match(await p.textContent('#cm-kaart'),/Woont hier:.*Anna de Vries/);
 
   // 5. Verwijderen kan niet zolang er iemand woont
   const fout=await p.evaluate(id=>new Promise(ok=>{const r=Android._cm.records.find(x=>x.id===id);cmRequest('masterDelete',[id,r.revision],()=>ok(''),false,e=>ok(e.error));}),huis.id);

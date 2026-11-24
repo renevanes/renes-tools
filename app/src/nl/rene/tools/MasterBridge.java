@@ -74,6 +74,8 @@ public class MasterBridge extends BankBridge {
                     token=a.masterSession.open(max);
                 }
                 MasterStore.unlock(ctx,key,a.masterSession,token);a.masterSession.require(token);MasterKeys.markReady();
+                // Eén keer: eigen adressen van personen koppelen aan Adressen. Lukt het niet, dan gaat ontgrendelen gewoon door.
+                try{MasterStore.adressenKoppelen(ctx,key,a.masterSession,token);}catch(Throwable later){App.log(ctx,"STAMGEGEVENS","adressen koppelen lukt niet: "+later.getClass().getSimpleName());}
                 // Lukt het niet, dan blijft de tekst staan en biedt Aandacht nodig het aan; ontgrendelen gaat gewoon door.
                 // De Play-versie heeft geen assistent: daar blijft de tekst in Stamgegevens.
                 if(PlayPolicy.allows(ctx,"ai"))try{MasterStore.aboutMove(ctx,key,a.masterSession,token,"vanzelf");}catch(Throwable later){ }

@@ -37,6 +37,7 @@ function cmKaartRender(){
     const sec=cmcBlok(box,r,blok,cmcRows(r,blok[2]),{mask:blok[2].some(k=>CM_MASK.has(k))});
     if(r.type==='formulier'&&blok[0]==='ondertekenen'&&r.fields?.handtekening)sec.append(cmSigStand('cmc-sig-stand',true));
   }
+  if(r.type==='adres'){const c=cmEl('div',undefined,'card');c.append(cmBewonersEl(r.id));box.append(c);}
   if(r.type==='identiteit'&&!isPlay())cmcIdKopie(box,r);
 }
 /* ID-kopie bij een identiteitsdocument: een afgeschermde kopie maken vanaf de kaartfoto's, en welke kopieën er al in de
@@ -97,6 +98,7 @@ function cmcRows(r,keys){
 }
 function cmcValue(r,key,v){
   const ref=cmRefType(r.type,key);
+  if(key==='woonadres'){const x=cm.records.find(p=>p.id===v),regel=cmAdresRegel(r.fields);if(!x)return [t('Niet meer aanwezig')];return [regel||x.label,regel&&regel!==x.label?x.label:''];}
   if(ref){const x=cm.records.find(p=>p.id===v);return [x?x.label:t('Niet meer aanwezig')];}
   if(CM_MASK.has(key))return [cmc.reveal?v:'••••'+v.slice(-3)];
   if(key==='geboortedatum'){const n=cmiAge(v);return [fmtDate(v),n>=0?t('{n} jaar',{n}):''];}
