@@ -137,6 +137,14 @@ final class Diagnose {
         return uit;
     }
 
+    /** Noteert dat er iets de telefoon verliet (ook het foutlogboek, Logboek): onder hetzelfde slot, zodat er niets wegvalt. */
+    static void noteer(Context c, long t, String tool, int tekens) {
+        synchronized (LOCK) {
+            SharedPreferences p = Statistiek.prefs(c);
+            p.edit().putString("diagSent", erbij(verstuurd(p.getString("diagSent", "")), t, tool, tekens).toString()).apply();
+        }
+    }
+
     static JSONArray verstuurd(String bewaard) {
         try { return bewaard == null || bewaard.isEmpty() ? new JSONArray() : new JSONArray(bewaard); } catch (Exception e) { return new JSONArray(); }
     }
@@ -178,10 +186,7 @@ final class Diagnose {
         String r = Statistiek.zet(c, pad(nu, Statistiek.installId(c), i.tool, i.id), tekst, "Diagnose " + i.tool);
         if (r.isEmpty()) {
             i.verstuurd = nu;
-            synchronized (LOCK) {
-                SharedPreferences p = Statistiek.prefs(c);
-                p.edit().putString("diagSent", erbij(verstuurd(p.getString("diagSent", "")), nu, i.tool, tekst.length()).toString()).apply();
-            }
+            noteer(c, nu, i.tool, tekst.length());
             App.log(c, "DIAGNOSE", "verstuurd");
         }
         return r;

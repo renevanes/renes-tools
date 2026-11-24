@@ -74,10 +74,12 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   de plek in de eigen code. Nooit foutteksten, namen, nummers, berichten, bestandsnamen, adressen of locaties
   (`StatistiekTest` controleert dat). Iets toevoegen aan het rapport = eerst Rene vragen en de test uitbreiden.
   **Foutlogboek** (`Logboek.java`, schakelaar op de kaart Foutrapport; `LogboekTest`, `tests/ui/logboek.test.js`): wens
-  van Rene, zodat Claude kan meezoeken. Wat nieuw is in het logboek (`App.log`, crash.log) gaat een paar minuten later
-  (job 4312 via `Care`) opgeschoond (`Logboek.schoon`: e-mail, telefoon-, rekening- en lange nummers, sleutels, adressen,
-  paden) naar de map `logboek/` van dezelfde privé repository; standaard aan zodra repository en sleutel er zijn, niet in
-  de Play-versie. `schoon` is een vangnet, geen vrijbrief: een `App.log`-regel bevat nog steeds geen namen, nummers,
+  van Rene, zodat Claude kan meezoeken. Wat nieuw is in het logboek (`App.log`, crash.log) gaat een paar minuten later,
+  hooguit eens per uur (CRASH en DRAAD meteen; job 4312 via `Care`), opgeschoond (`Logboek.schoon`: e-mail, telefoon-,
+  rekening- en lange nummers, sleutels, adressen, paden, bestandsnamen, IP, postcodes, de inhoud achter een
+  JSONException, regels langer dan `MAX_REGEL`; lineair, getest op snelheid) naar de map `logboek/` van dezelfde privé
+  repository; standaard aan zodra repository en sleutel er zijn, niet in de Play-versie. Een fout in een logregel noteer
+  je met `AppData.safeMsg(e, …)` of de klassenaam, niet met `+ e` (Android zet de gelezen tekst in een JSONException). `schoon` is een vangnet, geen vrijbrief: een `App.log`-regel bevat nog steeds geen namen, nummers,
   berichten of bestandsnamen. Nieuw soort gegevens dat erdoorheen kan glippen = een patroon in `schoon` en in de test.
   **Diagnose** (`Diagnose.java`, kaart Diagnose op hetzelfde scherm; `DiagnoseTest`, `tests/ui/diagnose.test.js`) is
   de centrale plek voor wat wél inhoud bevat en nodig is om een probleem na te zoeken (bijv. de gelezen tekst van een

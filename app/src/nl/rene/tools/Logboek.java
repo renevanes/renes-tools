@@ -17,8 +17,8 @@ import java.util.regex.Pattern;
  * kan meekijken bij een probleem (wens van Rene). Alleen nieuwe meldingen sinds de vorige keer, opgeschoond
  * ({@link #schoon}: e-mailadressen, telefoonnummers, rekeningnummers, lange nummers, sleutels, webadressen en paden eruit),
  * en alleen als GitHub de repository als privé meldt (Statistiek.zet). Staat aan zolang de repository en sleutel van
- * Statistieken zijn ingesteld; uit te zetten bij Instellingen → Foutrapport en statistieken. Gaat ongeveer 5 minuten na
- * een nieuwe melding (of bij het starten van de app, bijv. na een vastloper), alleen met internet.
+ * Statistieken zijn ingesteld; uit te zetten bij Instellingen → Foutrapport en statistieken. Gaat een paar minuten na
+ * een nieuwe melding, hooguit eens per UUR (na een vastloper meteen), of bij het starten van de app; alleen met internet.
  * Logregels zelf horen al geen namen, nummers of berichten te bevatten (AGENTS.md); dit is een tweede vangnet.
  */
 final class Logboek {
@@ -36,21 +36,41 @@ final class Logboek {
 
     static void setAan(Context c, boolean on) { Statistiek.prefs(c).edit().putBoolean("logAuto", on).apply(); }
 
-    /** Na een nieuwe melding (App.log): over een paar minuten versturen, met internet. Eén taak tegelijk. */
-    /** Wanneer deze app de taak zelf plande: tot WACHT_MS daarna kan hij nog niet gelopen hebben, dus is opnieuw kijken overbodig. */
-    private static volatile long gepland;
+    /** Tussen twee keer versturen zit hooguit eens per UUR (een fout die steeds terugkomt geeft geen stroom bestanden), behalve na een vastloper. */
+    static final long UUR = 60 * 60_000L;
 
-    static void plan(Context c) {
+    /** Vroegste moment (elapsedRealtime) van de taak die deze app zelf plande; 0 = onbekend. Scheelt bij elke logregel een aanroep van JobScheduler. */
+    private static volatile long geplandOp;
+
+    static void plan(Context c) { plan(c, ""); }
+
+    /** Na een nieuwe melding (App.log, met de soort): over een paar minuten versturen, met internet. Eén taak tegelijk. */
+    static void plan(Context c, String soort) {
         try {
-            long nu = android.os.SystemClock.elapsedRealtime();
-            if (gepland != 0 && nu - gepland < WACHT_MS - 30_000) return; // bij elke logregel: geen aanroep van JobScheduler nodig
+            boolean dringend = "CRASH".equals(soort) || "DRAAD".equals(soort);
+            long nu = android.os.SystemClock.elapsedRealtime(), op = geplandOp;
+            if (op != 0 && nu < op - 30_000 && (!dringend || op <= nu + WACHT_MS + 60_000)) return; // er staat al een taak die op tijd is
             if (!PlayPolicy.allows(c, "statistiek") || !aan(c)) return;
             JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-            if (js == null || js.getPendingJob(JOB_ID) != null) return;
+            if (js == null) return;
+            if (!dringend && js.getPendingJob(JOB_ID) != null) { if (op == 0) geplandOp = nu + WACHT_MS; return; }
+            long wacht = dringend ? WACHT_MS : wachtTijd(Statistiek.prefs(c).getLong("logLast", 0), System.currentTimeMillis());
             JobInfo.Builder b = new JobInfo.Builder(JOB_ID, new ComponentName(c, Care.class))
-                    .setMinimumLatency(WACHT_MS).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true);
-            if (js.schedule(b.build()) == JobScheduler.RESULT_SUCCESS) gepland = nu;
+                    .setMinimumLatency(wacht).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true);
+            if (js.schedule(b.build()) == JobScheduler.RESULT_SUCCESS) geplandOp = nu + wacht;
         } catch (Throwable ignored) { }
+    }
+
+    /** Hoe lang wachten na een gewone melding: minstens WACHT_MS, en hooguit eens per UUR versturen. */
+    static long wachtTijd(long laatst, long nu) {
+        long w = laatst <= 0 || laatst > nu ? WACHT_MS : laatst + UUR - nu;
+        return Math.max(WACHT_MS, Math.min(UUR, w));
+    }
+
+    /** Na een geslaagde ronde: kwam er tijdens het versturen iets bij, dan opnieuw plannen (de lopende taak telt nog als gepland). */
+    static void naRonde(Context c) {
+        geplandOp = 0;
+        try { if (aan(c) && !voorbeeld(c).isEmpty()) plan(c); } catch (Throwable ignored) { }
     }
 
     /** Bij het starten: is er iets dat nog niet weg is (bijv. een vastloper vlak voor het stoppen)? */
@@ -67,22 +87,17 @@ final class Logboek {
         if (!aan(c)) return "Staat uit";
         SharedPreferences p = Statistiek.prefs(c);
         String log;
-        try { log = App.file(c).isFile() ? Contacts.readText(App.file(c), false) : ""; } catch (Exception e) { return "Lezen lukte niet"; }
+        try { log = lees(c); } catch (Exception e) { return "Lezen lukte niet"; }
         String[] n = nieuw(log, p.getString("logTot", ""));
         if (n[0].isEmpty()) { p.edit().putLong("logLast", System.currentTimeMillis()).apply(); return ""; }
         String tekst = kop(c) + schoon(n[0]);
         long nu = System.currentTimeMillis();
-        String naam = Statistiek.path(nu, Statistiek.installId(c));
-        String pad = "logboek/" + naam.substring(naam.lastIndexOf('/') + 1).replace(".json", ".txt");
+        String pad = pad(nu, Statistiek.installId(c));
         String r = Statistiek.zet(c, pad, tekst, "Logboek");
-        synchronized (Diagnose.class) {
-            SharedPreferences.Editor e = p.edit().putString("logResult", r.isEmpty() ? "ok" : r).putLong("logTry", nu);
-            if (r.isEmpty()) {
-                e.putString("logTot", n[1]).putLong("logLast", nu)
-                 .putString("diagSent", Diagnose.erbij(Diagnose.verstuurd(p.getString("diagSent", "")), nu, "logboek", tekst.length()).toString());
-            }
-            e.apply();
-        }
+        SharedPreferences.Editor e = p.edit().putString("logResult", r.isEmpty() ? "ok" : r).putLong("logTry", nu);
+        if (r.isEmpty()) e.putString("logTot", n[1]).putLong("logLast", nu);
+        e.apply();
+        if (r.isEmpty()) Diagnose.noteer(c, nu, "logboek", tekst.length()); // zichtbaar bij "Wat heeft de telefoon verlaten?"
         // Bewust geen App.log hier: dat zou een nieuwe melding zijn en weer een verzending plannen.
         return r;
     }
@@ -90,9 +105,20 @@ final class Logboek {
     /** Precies wat er de volgende keer gaat (opgeschoond), om te bekijken in de app. */
     static String voorbeeld(Context c) {
         String log;
-        try { log = App.file(c).isFile() ? Contacts.readText(App.file(c), false) : ""; } catch (Exception e) { log = ""; }
+        try { log = lees(c); } catch (Exception e) { log = ""; }
         String[] n = nieuw(log, Statistiek.prefs(c).getString("logTot", ""));
         return n[0].isEmpty() ? "" : kop(c) + schoon(n[0]);
+    }
+
+    /** Waar het in de repository komt: logboek/<tijd UTC>-<installatie>.txt (Statistiek.zet laat alleen zo'n pad toe). */
+    static String pad(long nu, String installId) {
+        String naam = Statistiek.path(nu, installId);
+        return "logboek/" + naam.substring(naam.lastIndexOf('/') + 1).replace(".json", ".txt");
+    }
+
+    /** Het logboek lezen terwijl niemand schrijft (App.log is synchronized op App.class): nooit een halve melding. */
+    private static String lees(Context c) throws Exception {
+        synchronized (App.class) { return App.file(c).isFile() ? Contacts.readText(App.file(c), false) : ""; }
     }
 
     private static String kop(Context c) {
@@ -125,6 +151,18 @@ final class Logboek {
         return (nl < 0 ? melding : melding.substring(0, nl)) + "|" + Integer.toHexString(melding.hashCode());
     }
 
+    /** Merktekens per melding; dezelfde melding twee keer in dezelfde seconde krijgt een volgnummer (#2), zodat de tweede niet als verstuurd telt. */
+    static List<String> merken(List<String> m) {
+        List<String> uit = new ArrayList<>();
+        java.util.Map<String, Integer> tel = new java.util.HashMap<>();
+        for (String x : m) {
+            String k = merk(x);
+            Integer n = tel.get(k); n = n == null ? 1 : n + 1; tel.put(k, n);
+            uit.add(n == 1 ? k : k + "#" + n);
+        }
+        return uit;
+    }
+
     /**
      * {wat nieuw is (meldingen achter elkaar), merkteken van de laatste}. Nieuw = na de laatst verstuurde melding; staat
      * die er niet meer (het logboek is ingekort), dan alles vanaf het tijdstip ervan. Hooguit MAX tekens (de nieuwste).
@@ -132,34 +170,77 @@ final class Logboek {
     static String[] nieuw(String log, String tot) {
         List<String> m = meldingen(log);
         if (m.isEmpty()) return new String[]{"", tot == null ? "" : tot};
+        List<String> mk = merken(m);
         int vanaf = 0;
         if (tot != null && !tot.isEmpty()) {
             int i = m.size() - 1;
-            while (i >= 0 && !merk(m.get(i)).equals(tot)) i--;
+            while (i >= 0 && !mk.get(i).equals(tot)) i--;
             if (i >= 0) vanaf = i + 1;
             else {
                 String tijd = tot.length() >= 19 ? tot.substring(0, 19) : "";
                 while (vanaf < m.size() && m.get(vanaf).substring(0, 19).compareTo(tijd) < 0) vanaf++;
             }
         }
-        if (vanaf >= m.size()) return new String[]{"", merk(m.get(m.size() - 1))};
-        StringBuilder b = new StringBuilder();
+        String laatste = mk.get(m.size() - 1);
+        if (vanaf >= m.size()) return new String[]{"", laatste};
+        List<String> stukken = new ArrayList<>();
+        int lengte = 0;
+        boolean afgekapt = false;
         for (int i = m.size() - 1; i >= vanaf; i--) { // van nieuw naar oud tot de grens, daarna weer op volgorde
-            if (b.length() + m.get(i).length() + 2 > MAX && b.length() > 0) { vanaf = i + 1; break; }
-            b.insert(0, m.get(i) + "\n\n");
+            String x = m.get(i);
+            if (x.length() > MAX) x = x.substring(0, MAX / 2) + "\n…(melding ingekort)";
+            if (lengte + x.length() + 2 > MAX && lengte > 0) { afgekapt = true; break; }
+            stukken.add(x); lengte += x.length() + 2;
         }
-        String tekst = b.toString();
-        if (vanaf > 0 && tot != null && tot.isEmpty() && tekst.length() >= MAX) tekst = "…(oudere meldingen weggelaten)\n\n" + tekst;
-        return new String[]{tekst, merk(m.get(m.size() - 1))};
+        StringBuilder b = new StringBuilder();
+        if (afgekapt) b.append("…(oudere meldingen weggelaten)\n\n");
+        for (int i = stukken.size() - 1; i >= 0; i--) b.append(stukken.get(i)).append("\n\n");
+        return new String[]{b.toString(), laatste};
     }
 
+    /** Het eigen adres van de interface (MainActivity): weg, zodat stapelregels van JavaScript hun regel en kolom houden. */
+    private static final String EIGEN_ADRES = "https://app.renes-tools.local/";
+    /** Android: JSONException noemt de hele gelezen tekst ("… at character 12 of {…}"): die inhoud eruit. */
+    private static final Pattern JSON_INHOUD = Pattern.compile("( at character \\d+ of )(?s:.*?)(?=\\n\\tat |\\nCaused by|\\n\\n|\\z)");
     private static final Pattern EMAIL = Pattern.compile("[\\w.+-]{1,64}@[\\w-]{1,63}(?:\\.[\\w-]{1,63}){1,8}");
-    private static final Pattern URI = Pattern.compile("(?i)\\b(?:content|file|https?)://\\S+");
-    private static final Pattern PAD = Pattern.compile("(?<![\\w.])/(?:storage|sdcard|data|mnt|Download|DCIM|Documents)/\\S+");
-    private static final Pattern IBAN = Pattern.compile("\\b[A-Z]{2}\\d{2} ?(?:[A-Z0-9]{4} ?){2,7}[A-Z0-9]{1,4}\\b");
+    private static final Pattern URI = Pattern.compile("(?i)\\b(?:content|file|https?|wss?|ftp|intent|market|blob|data):\\S+");
+    private static final Pattern WEB = Pattern.compile("\\b(?:www\\.\\S+|(?:[a-z0-9-]{1,63}\\.){1,6}(?:nl|com|org|net|eu|be|de|io|app|dev|co|uk|fm|info|online|cloud|me)(?:/\\S*)?(?![\\w.]))");
+    private static final Pattern PAD = Pattern.compile("(?<![\\w.])/(?:storage|sdcard|data|mnt|Download|DCIM|Documents)/[^\\n:()\"',;]+");
+    /** Een bestandsnaam van Rene (pdf, foto, document …): gezocht vanaf de extensie, daarna begrensd terug (lineair, ook bij lange tekst). */
+    private static final Pattern EXTENSIE = Pattern.compile("(?i)\\.(?:pdf|jpe?g|png|heic|heif|webp|gif|tiff?|docx?|odt|xlsx?|ods|pptx?|epub|mp3|m4a|aac|ogg|opus|wav|mp4|txt|csv|ics|vcf|zip|rtb|ovpn|conf)(?![\\w])");
+    private static final Pattern IBAN = Pattern.compile("(?i)\\b[A-Z]{2}\\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,4})?\\b");
+    private static final Pattern IP4 = Pattern.compile("(?<![\\w.])(?:\\d{1,3}\\.){3}\\d{1,3}(?![\\w.])");
+    private static final Pattern IP6 = Pattern.compile("(?i)(?<![\\w:])(?:(?:[0-9a-f]{1,4}:){3,7}[0-9a-f]{1,4}|(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,6})?::(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,6})?)(?![\\w:])");
+    private static final Pattern POSTCODE = Pattern.compile("\\b[1-9]\\d{3} ?[A-Z]{2}\\b");
     private static final Pattern TELEFOON = Pattern.compile("(?<![\\w.])(?:\\+|00|0)\\d(?:[ -]?\\d){7,13}(?!\\w)");
     private static final Pattern NUMMER = Pattern.compile("(?<![\\w.])\\d{7,}(?![\\w])");
     private static final Pattern GEHEIM = Pattern.compile("\\b(?:github_pat_\\w+|gh[opsu]_\\w{20,}|[A-Za-z0-9+/_=-]{40,})");
+    /** Een regel die geen stapelregel is, hooguit zo lang: een lange regel is meestal inhoud, geen foutmelding. */
+    static final int MAX_REGEL = 400;
+
+    private static boolean naamTeken(char ch) { return !Character.isWhitespace(ch) && "/:'\"()[]".indexOf(ch) < 0; }
+
+    /** Bestandsnamen (tot vijf woorden met spaties ervoor, elk hooguit 80 tekens) worden [bestand]. */
+    static String bestandenWeg(String t) {
+        Matcher m = EXTENSIE.matcher(t);
+        StringBuilder b = new StringBuilder(t.length());
+        int klaar = 0;
+        while (m.find()) {
+            int begin = m.start(), woorden = 0;
+            while (true) {
+                int w = begin;
+                while (w > klaar && begin - w < 80 && naamTeken(t.charAt(w - 1))) w--;
+                if (w == begin) break;
+                begin = w; woorden++;
+                if (woorden >= 5 || begin - 1 <= klaar || t.charAt(begin - 1) != ' ' || !naamTeken(t.charAt(begin - 2))) break;
+                begin--; // de spatie tussen twee woorden van de naam
+            }
+            if (woorden == 0) continue; // ".pdf" los: niets te verbergen
+            b.append(t, klaar, begin).append("[bestand]");
+            klaar = m.end();
+        }
+        return b.append(t, klaar, t.length()).toString();
+    }
 
     /**
      * Tweede vangnet vóór het versturen: wat op een persoonlijk gegeven lijkt eruit. Stapelregels van de code
@@ -167,14 +248,26 @@ final class Logboek {
      */
     static String schoon(String tekst) {
         if (tekst == null) return "";
-        String t = tekst;
+        String t = tekst.replace(EIGEN_ADRES, "");
+        t = JSON_INHOUD.matcher(t).replaceAll("$1[inhoud]");
         t = URI.matcher(t).replaceAll("[adres]");
         t = EMAIL.matcher(t).replaceAll("[e-mail]");
+        t = WEB.matcher(t).replaceAll("[adres]");
         t = PAD.matcher(t).replaceAll("[pad]");
+        t = bestandenWeg(t);
         t = GEHEIM.matcher(t).replaceAll("[geheim]");
         t = IBAN.matcher(t).replaceAll("[rekening]");
+        t = IP4.matcher(t).replaceAll("[ip]");
+        t = IP6.matcher(t).replaceAll("[ip]");
+        t = POSTCODE.matcher(t).replaceAll("[postcode]");
         t = TELEFOON.matcher(t).replaceAll("[nummer]");
         t = NUMMER.matcher(t).replaceAll("[nummer]");
-        return t;
+        StringBuilder b = new StringBuilder(t.length());
+        for (String regel : t.split("\n", -1)) {
+            boolean stapel = regel.startsWith("\tat ") || regel.startsWith("    at ");
+            if (b.length() > 0) b.append('\n');
+            b.append(!stapel && regel.length() > MAX_REGEL ? regel.substring(0, MAX_REGEL) + "…[ingekort]" : regel);
+        }
+        return b.toString();
     }
 }

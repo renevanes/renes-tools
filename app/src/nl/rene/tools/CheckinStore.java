@@ -70,20 +70,20 @@ final class CheckinStore {
         JSONArray a, r;
         try { d = qt == null ? new JSONObject() : new JSONObject(qt); }
         catch (org.json.JSONException e) {
-            App.log(c, "CHECKIN", "vragen kapot, apart gezet: " + e);
+            App.log(c, "CHECKIN", "vragen kapot, apart gezet: " + e.getClass().getSimpleName());
             qFile(c).renameTo(new File(dir(c), "questions.json.kapot-" + System.currentTimeMillis()));
             d = new JSONObject();
             try { d.put("seeded", true); } catch (Exception ignored) { } // geen voorstellen over een kapot bestand heen
         }
         try { a = at == null ? new JSONArray() : new JSONArray(at); }
         catch (org.json.JSONException e) {
-            App.log(c, "CHECKIN", "antwoorden kapot, apart gezet: " + e);
+            App.log(c, "CHECKIN", "antwoorden kapot, apart gezet: " + e.getClass().getSimpleName());
             aFile(c).renameTo(new File(dir(c), "answers.json.kapot-" + System.currentTimeMillis()));
             a = new JSONArray();
         }
         try { r = rt == null ? new JSONArray() : new JSONArray(rt); }
         catch (org.json.JSONException e) {
-            App.log(c, "CHECKIN", "opmerkingen kapot, apart gezet: " + e);
+            App.log(c, "CHECKIN", "opmerkingen kapot, apart gezet: " + e.getClass().getSimpleName());
             rFile(c).renameTo(new File(dir(c), "remarks.json.kapot-" + System.currentTimeMillis()));
             r = new JSONArray();
         }

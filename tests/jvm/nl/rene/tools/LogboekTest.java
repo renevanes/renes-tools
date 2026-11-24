@@ -6,6 +6,8 @@ import java.util.List;
 public final class LogboekTest {
     static void check(boolean ok, String message) { if (!ok) throw new AssertionError(message); }
 
+    static String rep(String s, int n) { StringBuilder b = new StringBuilder(); for (int i = 0; i < n; i++) b.append(s); return b.toString(); }
+
     static String melding(String tijd, String soort, String tekst) { return tijd + " [" + soort + "] v1.245 (1245)\n" + tekst + "\n\n"; }
 
     public static void main(String[] args) {
@@ -48,6 +50,50 @@ public final class LogboekTest {
             check(!schoon.contains(weg), "weg: " + weg + " in " + schoon);
         for (String blijft : new String[]{"2026-11-24 10:00:00", "1.245 (1245)", "Podcasts.java:72", "nl.rene.tools.Podcasts.open"})
             check(schoon.contains(blijft), "blijft: " + blijft + " in " + schoon);
+        // Inhoud uit een kapot JSON-bestand (Android zet de hele tekst in de foutmelding)
+        String json = melding("2026-11-24 12:00:00", "CHECKIN", "vragen kapot, apart gezet: org.json.JSONException: Unterminated string at character 31 of {\"vraag\":\"Hoe slaap je\",\"antwoord\":\"slecht door de buren\"}")
+                + melding("2026-11-24 12:00:01", "CRASH", "thread x\norg.json.JSONException: End of input at character 5 of {\"a\":\n\tat org.json.JSONTokener.syntaxError(JSONTokener.java:449)");
+        String js = Logboek.schoon(json);
+        check(!js.contains("buren") && !js.contains("Hoe slaap") && js.contains("at character 31 of [inhoud]") && js.contains("JSONTokener.java:449"), "JSON-inhoud weg, stapel blijft: " + js);
+        // Meer soorten: paden met spaties, losse bestandsnamen, kleine letters, IP, postcode, andere adressen
+        String meer = Logboek.schoon("open /storage/emulated/0/Documents/Paspoort Rene van Es.pdf (No such file)\n"
+                + "kon Huurcontract Jansen.pdf niet lezen\nnl91 abna 0417 1643 00\nvpn 192.168.1.20 en fe80::1c2b:3a4d en 2001:db8:85a3:0:0:8a2e:370:7334\n"
+                + "adres 3011 AB Rotterdam\nwww.mijnbank.nl/login en bank.nl/inloggen wss://x.y/z intent://scan#Intent;end\n"
+                + "Podcasts.java:72 toestand.json app.js:12 nl.rene.tools.App.log(App.java:150)");
+        for (String weg : new String[]{"Paspoort", "Rene van Es", "Huurcontract", "Jansen", "abna", "0417", "192.168", "fe80", "2001:db8", "3011 AB", "mijnbank", "bank.nl", "x.y", "intent://"})
+            check(!meer.contains(weg), "weg: " + weg + " in " + meer);
+        for (String blijft : new String[]{"(No such file)", "Podcasts.java:72", "toestand.json", "app.js:12", "nl.rene.tools.App.log(App.java:150)"})
+            check(meer.contains(blijft), "blijft: " + blijft + " in " + meer);
+        // Stapel van JavaScript: het eigen adres gaat eruit, regel en kolom blijven
+        String jsStapel = Logboek.schoon("belofte: TypeError: x is null\n    at f (https://app.renes-tools.local/:1234:56)");
+        check(jsStapel.contains("at f (:1234:56)"), "JS-stapel houdt regel en kolom: " + jsStapel);
+        // Een lange regel (geen stapelregel) wordt ingekort
+        StringBuilder lang = new StringBuilder("tekst ");
+        for (int i = 0; i < 100; i++) lang.append("woord ");
+        check(Logboek.schoon(lang.toString()).length() <= Logboek.MAX_REGEL + 20, "lange regel ingekort");
+
+        // Dezelfde melding twee keer in dezelfde seconde: de tweede gaat niet verloren
+        String dubbel = melding("2026-11-24 13:00:00", "JS", "zelfde");
+        String[] een = Logboek.nieuw(dubbel, "");
+        String[] twee = Logboek.nieuw(dubbel + dubbel, een[1]);
+        check(twee[0].contains("zelfde") && !twee[1].equals(een[1]), "tweede gelijke melding is nieuw: " + twee[1]);
+        check(Logboek.nieuw(dubbel + dubbel, twee[1])[0].isEmpty(), "daarna niets nieuws");
+        // Ingekort: de markering staat erboven, ook bij een achterstand na eerder versturen
+        String[] achter = Logboek.nieuw(groot.toString(), Logboek.merk(Logboek.meldingen(groot.toString()).get(0)));
+        check(veel[0].startsWith("…(oudere meldingen weggelaten)") && achter[0].startsWith("…(oudere meldingen weggelaten)"), "markering bij inkorten");
+
+        // Hooguit eens per uur (behalve na een vastloper, dat regelt plan)
+        long nu = 1_800_000_000_000L;
+        check(Logboek.wachtTijd(0, nu) == Logboek.WACHT_MS && Logboek.wachtTijd(nu - 2 * Logboek.UUR, nu) == Logboek.WACHT_MS, "lang geleden: na een paar minuten");
+        check(Logboek.wachtTijd(nu - 10 * 60_000L, nu) == Logboek.UUR - 10 * 60_000L && Logboek.wachtTijd(nu + 60_000L, nu) == Logboek.WACHT_MS, "net verstuurd: wacht tot het uur om is (klok terug: gewoon)");
+        // Het pad mag van Statistiek.zet
+        check(Logboek.pad(nu, "ab12cd34").matches("(?:diagnose|logboek)/[A-Za-z0-9T_-]{1,120}\\.txt"), "pad: " + Logboek.pad(nu, "ab12cd34"));
+        // Opschonen blijft lineair: ook lange, rare tekst gaat snel (Android kan een zoekopdracht niet afbreken)
+        for (String rare : new String[]{rep("a", 100_000), rep("a.", 50_000), rep("1.", 50_000), rep(". ", 50_000), rep(":", 100_000), rep("ab12 ", 20_000)}) {
+            long t0 = System.nanoTime();
+            Logboek.schoon(rare);
+            check((System.nanoTime() - t0) / 1_000_000 < 5_000, "opschonen te traag op rare tekst");
+        }
         System.out.println("LogboekTest ok");
     }
 }

@@ -464,7 +464,7 @@ final class Podcasts {
         for (int i = 0; i < a.length(); i++) {
             JSONObject s = a.optJSONObject(i);
             if (s == null) continue;
-            try { fetch(c, s.optString("feed")); } catch (Exception e) { App.log(c, "PODCAST", s.optString("title") + ": " + e.getMessage()); }
+            try { fetch(c, s.optString("feed")); } catch (Exception e) { App.log(c, "PODCAST", "bijwerken mislukt: " + AppData.safeMsg(e, e.getClass().getSimpleName())); }
         }
         JSONArray b = subs(c);
         for (int i = 0; i < b.length(); i++) fresh += b.optJSONObject(i).optInt("fresh");

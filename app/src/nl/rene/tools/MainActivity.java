@@ -2578,6 +2578,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void crashClear() {
             App.file(ctx).delete();
+            Statistiek.prefs(ctx).edit().remove("logTot").apply(); // het foutlogboek begint opnieuw: wat erna komt is allemaal nieuw
             ctx.getSharedPreferences("crash", Context.MODE_PRIVATE).edit().remove("new").apply();
         }
 

@@ -47,9 +47,10 @@ public class Care extends JobService {
         final Context ctx = getApplicationContext();
         if (params.getJobId() == Logboek.JOB_ID) { // het foutlogboek naar de privé repository (Logboek.plan)
             new Thread(() -> {
-                boolean opnieuw = false;
-                try { String r = Logboek.stuur(ctx); opnieuw = r.startsWith("Versturen lukte niet (geen verbinding"); } catch (Throwable ignored) { }
+                boolean opnieuw = false, gelukt = false;
+                try { String r = Logboek.stuur(ctx); gelukt = r.isEmpty(); opnieuw = r.startsWith("Versturen lukte niet (geen verbinding"); } catch (Throwable ignored) { }
                 jobFinished(params, opnieuw);
+                if (gelukt) Logboek.naRonde(ctx); // wat er tijdens het versturen bijkwam
             }, "logboek").start();
             return true;
         }

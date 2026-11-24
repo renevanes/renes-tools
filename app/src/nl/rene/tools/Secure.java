@@ -502,7 +502,7 @@ final class Secure {
                 WaBackup.Child ch = dir.kids.get(name);
                 if (!dry) {
                     try { DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, ch.docId)); }
-                    catch (Exception e) { App.log(c, "SECURE", "opruimen " + name + ": " + e.getMessage()); continue; }
+                    catch (Exception e) { App.log(c, "SECURE", "opruimen mislukt: " + AppData.safeMsg(e, e.getClass().getSimpleName())); continue; }
                 }
                 n++;
                 bytes += Math.max(0, ch.size);
