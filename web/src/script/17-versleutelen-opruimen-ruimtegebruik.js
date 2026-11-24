@@ -136,9 +136,17 @@ window.onSpace = function(r){
 };
 function bkRenderSpace(r){
   const d = (r.dirs || []).slice().sort((a, b) => b.bytes - a.bytes);
-  $('#bk-space').innerHTML = d.map(x => '<div class=spc><span>' + esc(x.name) + ' <small>' + t('{n} bestanden', { n: fmtNum(x.files) }) + '</small></span><span>' + fmtB(x.bytes) + '</span></div>').join('') +
-    '<div class="spc tot"><span>' + t('Totaal') + '</span><span>' + fmtB(r.total || 0) + '</span></div><p class=note>' + t('Berekend {wanneer}', { wanneer: fmtD(r.t) }) + '</p>';
+  $('#bk-space').innerHTML = d.map(x => '<div class=spc><span translate="no">' + esc(x.name) + ' <small>' + t('{n} bestanden', { n: fmtNum(x.files) }) + '</small></span><span>' + fmtB(x.bytes) + '</span></div>' + bkSpaceDelen(x.delen)).join('') +
+    '<div class="spc tot"><span>' + t('Totaal') + '</span><span>' + fmtB(r.total || 0) + '</span></div><p class=note>' + t('Berekend {wanneer}', { wanneer: fmtD(r.t) }) + ' ' +
+    t('Wat in de prullenbak van je opslag staat, telt hier niet mee.') + '</p>';
   $('#bk-space-btn').textContent = 'Opnieuw berekenen';
+}
+/* De map Versleuteld uitgesplitst: backups, grote bestanden (één keer bewaard) en oude volle backups */
+function bkSpaceDelen(v){
+  if (!v) return '';
+  const rij = (kop, x) => x && x.n ? '<div class="spc sub"><span>' + kop + ' <small>' + t('{n} bestanden', { n: fmtNum(x.n) }) + '</small></span><span>' + fmtB(x.bytes || 0) + '</span></div>' : '';
+  return rij(t('Backups'), v.backups) + rij(t('Grote bestanden (één keer bewaard)'), v.groot) + rij(t('Oude, volledige backups'), v.oud) +
+    (v.oud && v.oud.n ? '<p class="note sub">' + t('De oude, volledige backups haal je weg bij Automatisch en versleutelen.') + '</p>' : '');
 }
 /* versleutelde backup openen */
 window.onArchivePicked = function(){ uiBezig(t('Bezig met openen…'), 'onArchive'); Android.archiveOpen(''); };

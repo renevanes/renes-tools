@@ -2915,6 +2915,17 @@ public class MainActivity extends Activity {
             })), "oude-backups").start();
         }
 
+        /** Publiceren en tests: de stand op GitHub (alleen lezen, openbare gegevens); uitkomst via onGithub({…} of {error}). */
+        @JavascriptInterface public void githubStatus(boolean vers) {
+            new Thread(App.veilig(() -> {
+                String r;
+                try { r = GithubStatus.overzicht(ctx, vers).toString(); }
+                catch (GithubStatus.Fout e) { r = "{\"error\":" + JSONObject.quote(e.getMessage()) + "}"; }
+                catch (Exception e) { r = "{\"error\":" + JSONObject.quote(Taal.t(ctx, "Ophalen bij GitHub lukte niet")) + "}"; }
+                a.js("onGithub", r);
+            }), "github").start();
+        }
+
         @JavascriptInterface public void backupSpace() {
             new Thread(App.veilig(() -> {
                 String r;

@@ -1,6 +1,6 @@
 # Privacybeleid van Rene's Tools
 
-*Laatst bijgewerkt: 23 november 2026*
+*Laatst bijgewerkt: 24 november 2026*
 
 Rene's Tools (in de app: "Tools") is een Android-app van Rene van Es (Rotterdam) met hulpmiddelen zoals notities,
 PDF's, radio, podcasts, routes, backups, VPN, facturen, bankzaken en een lokale assistent. De app is vrije software:
@@ -88,6 +88,7 @@ aanleveren, de gegevens van Toiletten en douches bijwerken, de bronnen die je vo
 | DuckDuckGo (zoeken op internet), vanuit Betalen | Alleen als je bij een betaling op "Zoek het rekeningnummer op internet" tikt en dat bevestigt | Je browser zoekt naar het rekeningnummer van de ontvanger; verder gaat er niets van de rekening mee. Of een rekeningnummer van een bekende organisatie is (zoals het CJIB of de Belastingdienst), kijkt Tools zelf op de telefoon na met een lijst in de app |
 | OpenStreetMap | Bij het tonen van een kaart | Welke kaarttegels nodig zijn (het getoonde gebied) |
 | OpenStreetMap-notities (Toiletten en douches) | Alleen als je bij een plek zelf kiest om iets door te geven | Een anonieme, openbare notitie met precies de tekst die je op het scherm ziet, op die plek; OpenStreetMap ziet je IP-adres. Zolang zo'n notitie open staat, kijkt de app hooguit eens per dag bij het bijwerken of hij al is afgehandeld |
+| GitHub, vanuit Publiceren en tests (alleen de GitHub-versie) | Als je bij Versie en updates het scherm Publiceren en tests opent of ververst, en elk uur als je in Signalen de bron Publiceren en tests aanzet | Een vraag om de stand van de openbare repository (runs en open punten); niets persoonlijks, GitHub ziet je IP-adres |
 | GitHub en de gegevensbronnen die aan staan (Toiletten en douches; de standaardbronnen staan vanzelf aan, je kunt ze uitzetten) | Bij het ophalen van de gegevens | Niets persoonlijks: de bestanden worden in hun geheel gedownload en het zoeken gebeurt op de telefoon, dus je plek gaat niet mee |
 | Nieuwssites en feeds die je kiest | Bij het ophalen van nieuws | Een vraag om de feed, de sitemap of de kop van een artikelpagina (bij artikelpagina's met de talen van de telefoon, zoals een browser dat doet); afbeeldingen bij artikelen komen rechtstreeks van de site, tenzij je ze uitzet. Je plek, je gelezen artikelen en je bronnenlijst blijven op de telefoon |
 | Nieuwssites waar je inlogt | Als je bij een bron zelf inlogt of een cookiekeuze maakt | Je logt op de echte site zelf in (Tools bewaart geen wachtwoord); de cookies van die inlog gaan alleen mee naar de sites van die bron |
@@ -171,7 +172,7 @@ audio clip), Spotify, Google (read-only Gmail search for invoices, Drive, sendin
 cloud, supplier and bank websites, news sites and feeds you choose (optionally with your own login on the real
 site), OpenStreetMap (map tiles and, only when you choose to share a toilet location, a public anonymous note), Apple's podcast search, radio-browser.info, radio streams and podcast
 feeds, Chromecast in your network, Hugging Face (model downloads), your VPN, websites you follow in Signalen, your bank's website when you pre-fill a payment in Betalen (you sign it yourself), payment links from a bill's QR code and a DuckDuckGo search, both only after you confirm, video player services in news articles, and podcast chapter files. Automatically: weather (approximate
-location to Open-Meteo), resuming model downloads and, in the GitHub version, update checks. Optional weekly
+location to Open-Meteo), resuming model downloads and, in the GitHub version, update checks (and, when you open Publishing and tests or turn on that Signals source, the public status of the repository on GitHub). Optional weekly
 statistics (counts, crash type and location in the code, app version, device make/model, Android version, random
 install id) go only to your own private GitHub repository; Diagnose (content such as text read from a bill) only when you copy or send it yourself or turn on automatic sending, and only to that repository when GitHub reports it as private. CPAP measurements you import stay encrypted on the phone. The assistant and transcription run on the device. Android's
 Google backup may include notes, music history, parking/trips, saved places and settings, but never passwords, keys or

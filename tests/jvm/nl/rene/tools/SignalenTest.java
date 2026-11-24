@@ -218,6 +218,22 @@ public class SignalenTest {
                 && SignalenIntern.taken(null, new JSONObject(backup.toString()).put("stopped", true), null, null, null, null, tb, middag, tz).isEmpty() && "wc".equals(ti.get(2).optString("tool")), "taken: de reden erbij; ouder dan 3 dagen of zelf gestopt telt niet");
         check(ti.get(1).optString("id").equals(SignalenIntern.taken(null, null, levs, new JSONObject().put("kpn", new JSONObject().put("ok", false).put("lastTry", middag - 60_000L).put("msg", "x")), null, null, tb, middag, tz).get(0).optString("id")), "dezelfde taak die dezelfde dag weer mislukt: één bericht");
 
+        // ----- Publiceren en tests (GitHub): runs op main die mislukten
+        JSONObject gb = Signalen.normaal(new JSONObject().put("soort", "github").put("url", "https://x.nl").put("wifi", false)).put("id", "s6");
+        check("github".equals(gb.optString("soort")) && "Publiceren en tests".equals(gb.optString("naam")) && gb.optString("url").isEmpty() && gb.optInt("elke") == 1 && !gb.optBoolean("wifi")
+                && !Signalen.lokaal("github") && Signalen.eersteStil("github") && Signalen.tool("github").isEmpty(), "Publiceren en tests: elk uur, internet nodig, de eerste keer stil, ook zonder wifi als je dat kiest");
+        String W = GithubStatus.WEB;
+        JSONArray gr = new JSONArray()
+                .put(new JSONObject().put("id", 1).put("naam", "Publiceren").put("titel", "Backups kleiner").put("main", true).put("soort", "mislukt").put("eind", middag - 3_600_000L).put("url", W + "actions/runs/1"))
+                .put(new JSONObject().put("id", 2).put("naam", "Bouwen en testen").put("titel", "x").put("main", false).put("soort", "mislukt").put("eind", middag - 60_000L).put("url", W + "actions/runs/2"))
+                .put(new JSONObject().put("id", 3).put("naam", "Telefoontest").put("titel", "y").put("main", true).put("soort", "gelukt").put("eind", middag - 60_000L).put("url", W + "actions/runs/3"))
+                .put(new JSONObject().put("id", 4).put("naam", "Onderhoud").put("titel", "z").put("main", true).put("soort", "mislukt").put("eind", middag - 4 * SignalenIntern.DAG).put("url", W + "actions/runs/4"))
+                .put(new JSONObject().put("id", 5).put("naam", "Telefoontest").put("titel", "w").put("main", true).put("soort", "mislukt").put("eind", middag - 7_200_000L).put("url", "https://elders.example/runs/5"));
+        List<JSONObject> gi = SignalenIntern.github(null, gr, gb, middag);
+        check(gi.size() == 2 && "Publiceren mislukt".equals(gi.get(0).optString("titel")) && gi.get(0).optString("link").equals(W + "actions/runs/1") && "Backups kleiner".equals(gi.get(0).optString("tekst")),
+                "GitHub: alleen mislukte runs op main van de afgelopen 3 dagen, nieuwste eerst, met een link naar de run");
+        check(gi.get(1).optString("link").isEmpty() && !gi.get(0).optString("id").equals(gi.get(1).optString("id")), "GitHub: een adres buiten de repository wordt geen link; elke run een eigen bericht");
+
         // ----- logboek: alleen aantallen en vaste woorden
         java.io.File dir = new java.io.File("app/src/nl/rene/tools");
         boolean logOk = true; int regels = 0;

@@ -5,6 +5,8 @@ function renderInfo(){
   $('#i-ver').textContent = v.webName + ' (' + v.webCode + ')';
   $('#i-app').textContent = v.appName + ' (' + v.appCode + ')';
   $('#i-android').textContent = v.android;
+  // Publiceren en tests: alleen met een app die het kan ophalen, en niet in de Play-versie
+  const gk = $('#i-gh-kaart'); if (gk) gk.hidden = isPlay() || typeof Android.githubStatus !== 'function';
   let log = CHANGELOG;
   try { const m = JSON.parse(Android.lastManifest()); if (m && m.changelog && m.versionCode >= VERSION_CODE) log = infoLog(m.changelog, CHANGELOG); } catch(e){}
   // Alleen de laatste versies; de rest met "Alle versies" (anders is dit scherm tientallen schermen lang)

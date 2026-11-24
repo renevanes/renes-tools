@@ -56,7 +56,7 @@ final class Signalen {
     static boolean hm(String s) { return s != null && s.matches("([01]\\d|2[0-3]):[0-5]\\d"); }
 
     /** Soorten bronnen: een webpagina, of iets uit Tools zelf. Van elke soort uit Tools is er hooguit één. */
-    static final String[] SOORTEN = {"web", "agenda", "nieuws", "facturen", "notities", "taken"};
+    static final String[] SOORTEN = {"web", "agenda", "nieuws", "facturen", "notities", "taken", "github"};
     static final int[] VOORAF = {1, 3, 12, 24, 48}, DAGEN = {3, 7, 14, 30};
 
     static String soort(String s) {
@@ -65,7 +65,7 @@ final class Signalen {
     }
 
     /** Heeft deze soort geen internet nodig (de gegevens staan al op de telefoon)? */
-    static boolean lokaal(String soort) { return !"web".equals(soort) && !"nieuws".equals(soort); }
+    static boolean lokaal(String soort) { return !"web".equals(soort) && !"nieuws".equals(soort) && !"github".equals(soort); }
 
     /** Bij deze soorten is wat er de eerste keer al staat oud nieuws (geen melding); een afspraak of een mislukte taak is dat niet. */
     static boolean eersteStil(String soort) { return !"agenda".equals(soort) && !"taken".equals(soort); }
@@ -88,6 +88,7 @@ final class Signalen {
             case "facturen": return Taal.T("Facturen");
             case "notities": return Taal.T("Notities");
             case "taken": return Taal.T("Taken van Tools");
+            case "github": return Taal.T("Publiceren en tests");
             default: return "";
         }
     }
@@ -125,7 +126,7 @@ final class Signalen {
         if (!alleen.isEmpty() && (!NieuwsFeed.httpsOpenbaar(alleen) || !host(alleen).equals(host(url))))
             throw new Fout(Taal.T("\"Alleen links die beginnen met\" moet een https-adres op dezelfde site zijn."));
         b.put("alleen", alleen);
-        int standaard = "agenda".equals(soort) ? 1 : "nieuws".equals(soort) ? 3 : "notities".equals(soort) ? 24 : 6;
+        int standaard = "agenda".equals(soort) || "github".equals(soort) ? 1 : "nieuws".equals(soort) ? 3 : "notities".equals(soort) ? 24 : 6;
         // Agenda kijkt altijd elk uur: anders valt een afspraak tussen twee rondes door
         b.put("elke", "agenda".equals(soort) ? 1 : uit(ELKE, in.optInt("elke", standaard), standaard));
         b.put("wifi", !lokaal(soort) && in.optBoolean("wifi", true));

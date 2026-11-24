@@ -14,6 +14,9 @@
     <button class="big" id="chk-btn" onclick="checkUpdates()">Controleren op updates</button>
     <p class="hint">De app zoekt zelf naar updates als je hem opent.</p>
     <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>Kleine updates worden meteen toegepast; voor een nieuwe versie van de app zelf vraagt Android om te bevestigen.</p></div></details>
+    <div class="card stlist" id="i-gh-kaart">
+      <button class="strow" onclick="show('github')"><span class="stic"><span class="ui-icon" data-icon="refresh" aria-hidden="true"></span></span><span class="sttxt"><b>Publiceren en tests</b><small id="i-gh-sub">Wat er op GitHub loopt en wat mislukte</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
     <div class="card log">
       <h2>Wat is er nieuw</h2>
       <div id="log"></div>
@@ -30,3 +33,40 @@
   </main>
 </section>
 
+
+<!-- Publiceren en tests: de stand van de workflows en open punten op GitHub (alleen lezen) -->
+<section class="screen" id="s-github">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Publiceren en tests</h1>
+    <button class="icon-btn" id="gh-ververs" onclick="ghLaad(true)" aria-label="Verversen"><span class="ui-icon" data-icon="refresh" aria-hidden="true"></span></button>
+  </div>
+  <main>
+    <div class="card bkst" id="gh-st">
+      <div class="bkst-top">
+        <span class="stic"><span class="ui-icon" data-icon="refresh" aria-hidden="true"></span></span>
+        <span class="sttxt"><b id="gh-kop">GitHub</b><small id="gh-samen" role="status">Laden…</small></span>
+      </div>
+      <p class="note" id="gh-fout" hidden></p>
+    </div>
+    <div class="card stlist" id="gh-taken-kaart" hidden>
+      <h2>Per taak</h2>
+      <div id="gh-taken"></div>
+    </div>
+    <div class="card" id="gh-runs-kaart" hidden>
+      <h2>Recente runs</h2>
+      <div id="gh-runs"></div>
+      <div id="gh-runs-meer-w" hidden><button class="big ghost" id="gh-runs-meer" onclick="ghMeer()">Meer tonen</button></div>
+    </div>
+    <div class="card" id="gh-punten-kaart" hidden>
+      <h2>Open punten</h2>
+      <div id="gh-punten"></div>
+    </div>
+    <div class="card" id="gh-melding-kaart">
+      <h2>Melding als iets mislukt</h2>
+      <p class="note" id="gh-melding-txt" style="margin-top:0"></p>
+      <button class="big tonal" id="gh-melding" onclick="ghMelding()">Melding aanzetten</button>
+    </div>
+    <p class="hint">Tools haalt de stand op bij GitHub als je dit scherm opent: alleen openbare gegevens van de repository, er gaat niets van jou naartoe. Een tik opent de run of het punt op GitHub, met de logs.</p>
+  </main>
+</section>

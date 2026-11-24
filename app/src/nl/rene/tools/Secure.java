@@ -543,13 +543,49 @@ final class Secure {
             if (!ch.dir) { loose += Math.max(0, ch.size); looseN++; continue; }
             long[] s = new long[2];
             sum(dest, ch.docId, s, 0);
-            dirs.put(new JSONObject().put("name", e.getKey()).put("bytes", s[0]).put("files", s[1]));
+            JSONObject d = new JSONObject().put("name", e.getKey()).put("bytes", s[0]).put("files", s[1]);
+            // Versleuteld uitgesplitst: backups, grote bestanden en oude volle backups (van vóór de grote bestanden)
+            if (DIR.equals(e.getKey())) try { d.put("delen", versleuteldDelen(c, dest, ch)); } catch (Throwable ignored) { }
+            dirs.put(d);
             total += s[0];
         }
         if (looseN > 0) dirs.put(new JSONObject().put("name", "(losse bestanden)").put("bytes", loose).put("files", looseN));
         total += loose;
         JSONObject o = new JSONObject().put("dirs", dirs).put("total", total).put("t", System.currentTimeMillis());
         prefs(c).edit().putString("space", o.toString()).apply();
+        return o;
+    }
+
+    /**
+     * De map Versleuteld in delen: backups (nieuw), oude volle backups (ruim van vóór het merkteken, zie Blokken.SINDS),
+     * de map Grote bestanden en de rest. Elk {n, bytes}.
+     */
+    static JSONObject versleuteldDelen(Context c, WaBackup.Dest dest, WaBackup.Child ch) throws Exception {
+        WaBackup.DestDir v = new WaBackup.DestDir();
+        v.uri = DocumentsContract.buildDocumentUriUsingTree(dest.tree, ch.docId);
+        dest.list(v);
+        long sinds = -1;
+        try { sinds = new BlokOpslag(WaBackup.Dest.echt(c.getContentResolver(), dest.tree)).sinds(); } catch (Throwable ignored) { }
+        long[] nieuw = new long[2], oud = new long[2], groot = new long[2], rest = new long[2];
+        for (Map.Entry<String, WaBackup.Child> e : v.kids.entrySet()) {
+            WaBackup.Child k = e.getValue();
+            String n = e.getKey();
+            if (k.dir) {
+                long[] s = new long[2];
+                sum(dest, k.docId, s, 1);
+                long[] doel = Blokken.DIR.equals(n) ? groot : rest;
+                doel[0] += s[0]; doel[1] += s[1];
+                continue;
+            }
+            Rotate.F f = n.endsWith(".rtb") ? Rotate.parse(n) : null;
+            long[] doel = f == null ? rest : (sinds > 0 && f.when < sinds - Blokken.MARGE) ? oud : nieuw;
+            doel[0] += Math.max(0, k.size); doel[1]++;
+        }
+        JSONObject o = new JSONObject();
+        o.put("backups", new JSONObject().put("n", nieuw[1]).put("bytes", nieuw[0]));
+        o.put("oud", new JSONObject().put("n", oud[1]).put("bytes", oud[0]));
+        o.put("groot", new JSONObject().put("n", groot[1]).put("bytes", groot[0]));
+        o.put("rest", new JSONObject().put("n", rest[1]).put("bytes", rest[0]));
         return o;
     }
 

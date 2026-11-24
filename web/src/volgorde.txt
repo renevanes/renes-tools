@@ -116,6 +116,7 @@ script/26-app-slot.js
 script/26b-extra-ontgrendelen.js
 script/27-wat-is-er-nieuw-foutmelding-na-vastlopen.js
 script/28-versie-updates.js
+script/28c-publiceren-en-tests.js
 script/28-veilig-herladen.js
 script/36-meldingsgeschiedenis.js
 script/33-gesprekken-opnemen.js

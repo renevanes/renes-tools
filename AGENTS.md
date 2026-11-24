@@ -943,6 +943,8 @@ Wens van Rene: een centrale plek voor gebeurtenissen; taken uit de mail volgen n
   Alleen `web` en `nieuws` hebben internet nodig (`Signalen.lokaal`): de andere lopen mee in de taak zonder internet.
   De eerste keer melden Agenda en taken wel, de rest niet (`Signalen.eersteStil`). `gezien` bevat bij deze soorten de
   id's van de berichten.
+- **Publiceren en tests** (soort `github`): runs op main die de afgelopen 3 dagen mislukten (`SignalenIntern.github`, uit
+  `GithubStatus.overzicht`), met een link naar de run; internet nodig, standaard elk uur, ook via mobiele data als Rene dat kiest.
 - **Een tool op slot** (Extra ontgrendelen): een bericht heeft `tool` (`Signalen.tool`). Staat die tool of Signalen zelf
   op slot, dan staat er geen inhoud in de melding (`ToolSlot.aan`), geeft Proef alleen het aantal en toont de inbox het
   bericht zonder inhoud (`snDicht`, `tsVerborgen`). Een tik vraagt het slotscherm van die tool (`tsVraag`) en toont daarna
@@ -1041,6 +1043,14 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   `GONE_DAGEN`) zodat ze niet terugkomen. Een grootte uit de feed onder 1 MB telt als onbekend; er blijft `VRIJ_HOUDEN` vrij. Uit =
   het oude gedrag per podcast (de nieuwste 3). Tests: `PodcastPeriodeTest`, `tests/ui/podcast-periode.test.js`.
 - Herkennen aan het geluid (uitgeschreven tekst, terugkerende jingles) is een mogelijke volgende stap; vraag Rene eerst.
+
+## Publiceren en tests (stand op GitHub in de app)
+Scherm `s-github` (Instellingen → Versie en updates; `28c-publiceren-en-tests.js`, `GithubStatus.java`): per taak de stand
+(de laatste run op main, met wat er op een andere tak loopt), recente runs en open punten van de openbare repository; een
+tik opent het op GitHub. Alleen lezen, zonder sleutel, alleen als het scherm opent of ververst (een minuut bewaard: GitHub staat
+zonder sleutel 60 vragen per uur toe) en via de Signalen-bron `github`. Alleen adressen van deze repository
+(`GithubStatus.url`); titels, takken en labels zijn tekst van buiten (`esc`, `translate="no"`). Niet in de Play-versie en
+niet met een app die `githubStatus` nog niet kent. Tests: `GithubStatusTest`, `tests/ui/github.test.js`.
 
 ## Berichten aan Rene
 Kort en in het Nederlands: wat er nu anders is, waar hij het vindt en of hij iets moet doen (bijv. een nieuwe APK

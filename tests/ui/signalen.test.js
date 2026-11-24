@@ -203,7 +203,7 @@ const W = +process.env.UI_WACHT || 1;
     await page.click('#sns-tools');
     await wacht(100);
     const soorten = await page.evaluate(() => [...document.querySelectorAll('#sheet-acts button')].map(b => b.textContent));
-    ok(soorten.join('|') === 'Agenda|Nieuws|Facturen|Notities|Taken van Tools' && (await page.textContent('#sheet-sub')).includes('leest deze gegevens alleen'), 'keuze uit vijf bronnen, met de uitleg dat Signalen alleen leest (' + soorten.join('|') + ')');
+    ok(soorten.join('|') === 'Agenda|Nieuws|Facturen|Notities|Taken van Tools|Publiceren en tests' && (await page.textContent('#sheet-sub')).includes('leest deze gegevens alleen'), 'keuze uit zes bronnen, met de uitleg dat Signalen alleen leest (' + soorten.join('|') + ')');
     await page.click('#sheet-acts button:has-text("Agenda")');
     await wacht(120);
     ok(await page.evaluate(() => current === 'snbron' && $('#snb-naam').value === 'Agenda' && $('#snb-elke').value === '1' && $('#snb-vooraf').value === '24') && (await page.textContent('#snb-uitleg')).includes('Afspraken die eraan komen'), 'Agenda: naam, elk uur, een dag van tevoren en de uitleg');

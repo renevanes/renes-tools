@@ -20,6 +20,8 @@ const { chromium } = require('playwright');
       enterBackup();
     });
     await pg.waitForTimeout(300);
+    // De grootte staat zichtbaar, zonder uitklappen
+    ok(await pg.isVisible('#bk-grootte') && /Grootte: \d+ MB aan gegevens; deze backup nam \d+ MB extra ruimte in \(\d+ MB aan grote bestanden stond er al\)/.test(await pg.textContent('#bk-grootte')), 'grootte zichtbaar: ' + await pg.textContent('#bk-grootte'));
     await pg.click('#bk-parts-res details summary'); await pg.waitForTimeout(150);
     const res = await pg.$$eval('#bk-parts-res .bkres', x => x.map(e => e.innerText.replace(/\s+/g, ' ')));
     ok(res.some(r => /Alle appgegevens.*812 · \d+ MB \(2 MB nieuw\)/.test(r)), 'grootte per onderdeel, met wat er nieuw bij kwam ' + JSON.stringify(res));
@@ -44,6 +46,16 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._bk.last.blok.opgeruimd = { count: 0, bytes: 0, later: 'bezig' }; bkRenderLast(bkState(true)); });
     await pg.waitForTimeout(100);
     ok((await pg.$$eval('#bk-parts-res .bkres', x => x.map(e => e.innerText))).some(r => /nog een backup gemaakt/.test(r)), 'opruimen wacht op een backup die nog geschreven wordt');
+
+    // Een backup van vóór deze versie (geen grootte): dat staat er, in plaats van niets
+    await pg.evaluate(() => { const l = Android._bk.last; Android._bk.last = { t: l.t, auto: true, archive: l.archive, app: { ok: true, count: 812 }, sms: { ok: true, count: 3 } }; bkRenderLast(bkState(true)); });
+    await pg.waitForTimeout(100);
+    ok(await pg.isVisible('#bk-grootte') && /na de volgende backup/.test(await pg.textContent('#bk-grootte')), 'nog geen grootte: zegt wanneer die komt');
+    // Ruimtegebruik: Versleuteld uitgesplitst
+    await pg.evaluate(() => { Android.backupSpace(); }); await pg.waitForTimeout(400);
+    const spc = await pg.$$eval('#bk-space .spc', x => x.map(e => e.innerText.replace(/\s+/g, ' ')));
+    ok(spc.some(r => /^Backups 3 bestanden ?9 MB$/.test(r)) && spc.some(r => /^Grote bestanden \(één keer bewaard\) 812 bestanden ?\d+ MB$/.test(r)) && spc.some(r => /^Oude, volledige backups 4 bestanden ?\d+ MB$/.test(r)), 'Versleuteld uitgesplitst ' + JSON.stringify(spc));
+    ok(/oude, volledige backups haal je weg/.test(await pg.textContent('#bk-space')) && /prullenbak/.test(await pg.textContent('#bk-space')), 'verwijst naar weghalen en zegt dat de prullenbak niet meetelt');
 
     // ---------- instellingen: schakelaar en oude backups ----------
     await pg.click('#bk-row-set'); await pg.waitForTimeout(200);

@@ -1,0 +1,4 @@
+Alles back-uppen toont nu meteen hoe groot de laatste backup is en hoeveel ruimte hij erbij nam, zonder uitklappen
+Ruimtegebruik splitst de map Versleuteld op in backups, grote bestanden en oude, volledige backups
+Nieuw: Publiceren en tests (Instellingen → Versie en updates): wat er op GitHub loopt en wat mislukte, per taak, met recente runs en open punten; een tik opent het op GitHub
+Signalen: nieuwe bron Publiceren en tests, voor een melding als een run op main mislukt (aan te zetten op het scherm Publiceren en tests)

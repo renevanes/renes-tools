@@ -214,15 +214,18 @@ const SN_SOORTEN = {
   nieuws: [() => t('Nieuws'), () => t('Artikelen uit de bronnen van Nieuws waarvan de titel of het begin bij je trefwoorden past. Tools haalt het nieuws daarvoor ook op de achtergrond op.')],
   facturen: [() => t('Facturen'), () => t('Nieuwe facturen in het dossier van Facturen. Wat er nu al staat komt zonder melding in Signalen.')],
   notities: [() => t('Notities'), () => t('Lijsten met open punten die een tijd niet zijn aangeraakt. Wat er nu al ligt komt zonder melding in Signalen.')],
-  taken: [() => t('Taken van Tools'), () => t('Als de backup, facturen ophalen of het bijwerken van Toiletten en douches mislukt.')] };
-const SN_ELKE = { agenda: 1, nieuws: 3, facturen: 6, notities: 24, taken: 6 };
+  taken: [() => t('Taken van Tools'), () => t('Als de backup, facturen ophalen of het bijwerken van Toiletten en douches mislukt.')],
+  github: [() => t('Publiceren en tests'), () => t('Als op GitHub een run op main mislukt, zoals Publiceren of de telefoontest. Tools vraagt de stand op bij GitHub; er gaat niets van jou naartoe. Wat er nu al mislukt is, komt zonder melding in Signalen.')] };
+const SN_ELKE = { agenda: 1, nieuws: 3, facturen: 6, notities: 24, taken: 6, github: 1 };
+/* Een soort die deze app (nog) niet kent: niet aanbieden (de interface kan nieuwer zijn dan de app) */
+function snSoortKan(s){ return s !== 'github' || (typeof Android.githubStatus === 'function' && !isPlay()); }
 function snBronNieuw(soort){
   if (snOud()) { toast(t('Installeer de nieuwste versie van Tools om Signalen te gebruiken.')); return; }
   const s = SN_SOORTEN[soort] ? soort : 'web';
   sn.bron = { id: '', soort: s, naam: s === 'web' ? '' : SN_SOORTEN[s][0](), url: '', woorden: [], alleen: '', elke: SN_ELKE[s] || 6, wifi: s === 'web' || s === 'nieuws', melden: 'direct', belangrijk: false, aan: true, vooraf: 24, dagen: 7 };
   show('snbron');
 }
-function snSoortenVrij(){ const al = new Set(snBronnen().map(b => b.soort || 'web')); return Object.keys(SN_SOORTEN).filter(s => !al.has(s)); }
+function snSoortenVrij(){ const al = new Set(snBronnen().map(b => b.soort || 'web')); return Object.keys(SN_SOORTEN).filter(s => !al.has(s) && snSoortKan(s)); }
 function snBronTools(){
   const vrij = snSoortenVrij();
   if (!vrij.length) { toast(t('Alle bronnen uit Tools staan er al.')); return; }
@@ -242,7 +245,7 @@ function snbRender(){
   const soort = b.soort || 'web', web = soort === 'web';
   $('#snb-h1').textContent = !nieuw ? t('Bron') : web ? t('Website toevoegen') : t('Bron toevoegen');
   const uitleg = $('#snb-uitleg'); uitleg.hidden = web; uitleg.textContent = web ? '' : SN_SOORTEN[soort][1]();
-  $('#snb-r-url').hidden = !web; $('#snb-r-alleen').hidden = !web; $('#snb-r-woorden').hidden = !web && soort !== 'nieuws'; $('#snb-r-wifi').hidden = !web && soort !== 'nieuws';
+  $('#snb-r-url').hidden = !web; $('#snb-r-alleen').hidden = !web; $('#snb-r-woorden').hidden = !web && soort !== 'nieuws'; $('#snb-r-wifi').hidden = !web && soort !== 'nieuws' && soort !== 'github';
   $('#snb-r-vooraf').hidden = soort !== 'agenda'; $('#snb-r-dagen').hidden = soort !== 'notities'; $('#snb-r-elke').hidden = soort === 'agenda';
   $('#snb-woordenhint').textContent = web ? t('Met komma\'s ertussen. Eén woord dat in de titel of het adres van een nieuw bericht staat is genoeg. Leeg: elk nieuw bericht telt.') : t('Met komma\'s ertussen. Eén woord dat in de titel of het begin van een artikel staat is genoeg.');
   $('#snb-woorden').placeholder = web ? t('vrijlating, open dag') : t('Rotterdam, energie');

@@ -123,6 +123,7 @@ function bkRenderLast(st){
   $('#bk-run').disabled = bkBusy || !bkHasDest;
   bkBusyUi();
   $('#bk-run').textContent = bkBusy ? t('Bezig: {wat}', { wat: t(BK_LABEL[st.current] || '…') }) : t('Nu alles back-uppen');
+  bkGrootteRegel(l);
   if (!l || !l.t) { $('#bk-last').textContent = t('Nog niet gemaakt'); uiHtml($('#bk-parts-res'), ''); return; }
   $('#bk-last').textContent = (l.auto ? t('Automatisch') + ', ' : '') + fmtDT(l.t, {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
   // Wat misging staat zichtbaar; wat lukte, staat ingeklapt (per onderdeel het aantal)
@@ -133,6 +134,23 @@ function bkRenderLast(st){
     (l.rotated ? '<div class=bkres><b>' + t('Opgeruimd') + '</b><span>' + t('{n} oude bestanden ({grootte})', { n: l.rotated.count, grootte: fmtB(l.rotated.bytes) }) + '</span></div>' : '');
   uiHtml($('#bk-parts-res'), bad.map(row).join('') + (l.all ? '<div class=bkres><span class=bad>' + esc(l.all.msg || '') + '</span></div>' : '') +
     (good.length || extra ? uiHelp(bad.length ? tn(good.length, '{n} onderdeel gelukt', '{n} onderdelen gelukt') : tn(good.length, '✓ {n} onderdeel gelukt', '✓ Alle {n} onderdelen gelukt'), good.map(row).join('') + extra, true, 'bk-res') : ''));
+}
+/* Altijd zichtbaar (niet ingeklapt): hoeveel gegevens de laatste versleutelde backup bevat en hoeveel ruimte hij erbij nam */
+function bkGrootteRegel(l){
+  const el = $('#bk-grootte');
+  if (!el) return;
+  const delen = l && l.t ? Object.keys(BK_LABEL).filter(k => l[k] && l[k].ok && typeof l[k].b === 'number') : [];
+  if (!delen.length) {
+    // Versleuteld, maar nog zonder grootte: die komt pas bij de volgende backup met deze versie van de app
+    el.hidden = !(l && l.t && l.archive);
+    el.textContent = t('Grootte: zichtbaar na de volgende backup met deze versie van de app');
+    return;
+  }
+  const totaal = delen.reduce((s, k) => s + Math.max(0, l[k].b), 0), nieuw = delen.reduce((s, k) => s + Math.max(0, l[k].o || 0), 0);
+  el.hidden = false;
+  el.textContent = l.blok && l.blok.hergebruiktBytes
+    ? t('Grootte: {totaal} aan gegevens; deze backup nam {nieuw} extra ruimte in ({grootte} aan grote bestanden stond er al)', { totaal: fmtB(totaal), nieuw: fmtB(nieuw), grootte: fmtB(l.blok.hergebruiktBytes) })
+    : t('Grootte: {totaal} aan gegevens; deze backup nam {nieuw} ruimte in', { totaal: fmtB(totaal), nieuw: fmtB(nieuw) });
 }
 /* Grootte van een onderdeel in de versleutelde backup: alles samen, en wat er deze keer echt bij kwam (b, o in bytes) */
 function bkGrootte(r){

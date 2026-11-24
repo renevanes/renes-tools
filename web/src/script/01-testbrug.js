@@ -892,7 +892,7 @@ if (!window.Android) window.Android = (function(){
     signalenStaat(){ const st = this._snInit(), nu = Date.now();
       return JSON.stringify({ bronnen: st.bronnen.map(b => Object.assign({}, b, b.aan !== false ? { volgende: Math.max(nu, (b.lastOk || 0) + b.elke * 3600000) } : {})), inst: st.inst, items: st.items, onleesbaar: false, bezig: st.bezig, perm: st.perm, gedempt: st.gedempt,
         sjablonen: [{ sjabloon: 'aseal', naam: 'A Seal: vrijlatingen', url: 'https://www.aseal.nl/nieuws', woorden: ['vrijlating', 'vrijgelaten'], alleen: 'https://www.aseal.nl/nieuws/' }], elke: [1, 3, 6, 12, 24, 168] }); },
-    signalenBron(j){ const st = this._snInit(), b = JSON.parse(j || '{}'), soort = ['agenda', 'nieuws', 'facturen', 'notities', 'taken'].includes(b.soort) ? b.soort : 'web', web = soort === 'web';
+    signalenBron(j){ const st = this._snInit(), b = JSON.parse(j || '{}'), soort = ['agenda', 'nieuws', 'facturen', 'notities', 'taken', 'github'].includes(b.soort) ? b.soort : 'web', web = soort === 'web';
       let url = web ? String(b.url || '').trim() : ''; if (url && !url.includes('://')) url = 'https://' + url;
       if (web && !/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(url)) return JSON.stringify({ ok: false, fout: t('Vul een https-adres van een website in.') });
       const woorden = web || soort === 'nieuws' ? (b.woorden || []).slice(0, 20) : [];
@@ -1555,7 +1555,19 @@ if (!window.Android) window.Android = (function(){
     backupSetPassword(pw){ setTimeout(()=>{ this._sec.on=true; this._sec.since=Date.now(); this._sec.pw=pw; onSecure(''); },200); },
     backupEncryptOff(){ this._sec.on=false; this._bk.parts.ai=false; this._bk.parts.sleep=false; this._bk.parts.checkin=false; this._bk.plain={}; }, backupSetRotate(on){ this._sec.rotate=on; }, backupSetKeep(n){ this._sec.keep=[0,3,7,14,30].includes(n)?n:7; },
     backupRotate(dry){ setTimeout(()=>{ if(!dry) this._sec.rotated=true; onRotate({count:6,bytes:48e6,dry}); },100); },
-    backupSpace(){ setTimeout(()=>{ this._sec.space={t:Date.now(),total:5.4e9,dirs:[{name:'WhatsApp backup',bytes:4.9e9,files:8123},{name:'SMS backup',bytes:3.1e8,files:41},{name:'Versleuteld',bytes:1.9e8,files:9}]}; onSpace(this._sec.space); },200); },
+    /* Publiceren en tests: de stand op GitHub (zoals GithubStatus.samenvatten); _gh.fout = een fout, _gh.vragen telt */
+    _gh: { fout: '', vragen: 0 },
+    githubStatus(vers){ this._gh.vragen++; setTimeout(() => {
+      if (this._gh.fout) { onGithub({ error: this._gh.fout }); return; }
+      const nu = Date.now(), W = 'https://github.com/renevanes/renes-tools/', run = (id, naam, soort, tak, titel, min) => ({ id, naam, titel, tak, main: tak === 'main', soort, nr: id % 1000, start: nu - min * 60000, eind: nu - (min - 3) * 60000, url: W + 'actions/runs/' + id, aanleiding: 'push' });
+      const runs = [run(9105, 'Bouwen en testen', 'bezig', 'claude/iets', 'Iets nieuws', 2), run(9104, 'Publiceren', 'mislukt', 'main', 'Backups kleiner', 30), run(9103, 'Telefoontest', 'gelukt', 'main', 'Backups kleiner', 31),
+        run(9102, 'Bouwen en testen', 'gelukt', 'main', 'Backups kleiner', 40), run(9101, 'Publiceren', 'gelukt', 'main', 'Versie 1.245', 300)];
+      for (let i = 0; i < 14; i++) runs.push(run(9000 - i, 'Bouwen en testen', i % 3 ? 'gelukt' : 'overgeslagen', 'claude/oud-' + i, 'Ouder werk ' + i, 400 + i * 30));
+      const taken = [{ naam: 'Publiceren', stand: runs[1], laatste: runs[1] }, { naam: 'Bouwen en testen', stand: runs[3], laatste: runs[0] }, { naam: 'Telefoontest', stand: runs[2], laatste: runs[2] }];
+      onGithub({ t: nu, runs, taken, samen: { bezig: 1, mislukt: 1, gelukt: 2 }, prs: 1, puntenOk: true, repo: W,
+        punten: [{ nr: 32, titel: 'Facturen in de kluis', labels: ['openstaand'], url: W + 'issues/32', t: nu - 864e5 }, { nr: 40, titel: '<b>Voorstel</b>', labels: ['voorstel'], url: 'https://elders.example/x', t: nu }] });
+    }, 120); },
+    backupSpace(){ setTimeout(()=>{ this._sec.space={t:Date.now(),total:5.4e9,dirs:[{name:'WhatsApp backup',bytes:4.9e9,files:8123},{name:'SMS backup',bytes:3.1e8,files:41},{name:'Versleuteld',bytes:9.77e8,files:821,delen:{backups:{n:3,bytes:9e6},oud:{n:4,bytes:7.8e8},groot:{n:812,bytes:1.88e8},rest:{n:2,bytes:4e4}}}]}; onSpace(this._sec.space); },200); },
     archivePick(){ setTimeout(()=>onArchivePicked(),100); },
     archiveOpen(pw){ setTimeout(()=>onArchive(!pw ? {needPw:true} : pw!=='goedwachtwoord' ? {error:'Verkeerd wachtwoord'} : {name:'backup-2026-10-04_0330.rtb',bytes:1.2e7,files:[{n:'SMS backup/sms-2026-10-04.xml',s:1e6}],contacts:'Contacten backup/contacten-2026-10-04.vcf',notes:'Notities/notities.json',ai:'Assistent/assistent.json',sleep:'Slaappraat/slaappraat.json',checkin:'Check-in/checkin.json'}),150); },
     archiveRestore(k,e){ this._arcRestore=k+'|'+e; this._restoreKind=k; setTimeout(()=>onRestorePreview(k==='sleep'?{kind:k,total:4,fresh:2,dup:0,old:0,running:1,bad:0,keep:14,clips:9,audio:7,audioBytes:12e6,withAudio:true,fromArchive:true,sample:[Date.now()-864e5,Date.now()-2*864e5]}

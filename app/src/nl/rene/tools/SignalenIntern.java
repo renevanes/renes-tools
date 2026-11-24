@@ -160,6 +160,28 @@ final class SignalenIntern {
         return uit;
     }
 
+    // ---------------------------------------------------------------- Publiceren en tests: wat op GitHub mislukte
+
+    /**
+     * Runs op main die de afgelopen 3 dagen mislukten ({@code runs} zoals GithubStatus.samenvatten ze geeft), nieuwste
+     * eerst. Elk mislukte run is één bericht, met een link naar die run op GitHub.
+     */
+    static List<JSONObject> github(Context c, JSONArray runs, JSONObject bron, long nu) throws Exception {
+        List<JSONObject> uit = new ArrayList<>();
+        long sinds = nu - 3 * DAG;
+        for (int i = 0; runs != null && i < runs.length(); i++) {
+            JSONObject r = runs.optJSONObject(i);
+            if (r == null || !r.optBoolean("main") || !"mislukt".equals(r.optString("soort"))) continue;
+            long t = r.optLong("eind");
+            if (t <= sinds || t > nu + DAG) continue;
+            String tekst = r.optString("titel");
+            uit.add(item(bron, "run|" + r.optLong("id"), Taal.t(c, "{naam} mislukt", "naam", r.optString("naam")), tekst, t)
+                    .put("link", GithubStatus.url(r.optString("url"))));
+        }
+        java.util.Collections.sort(uit, (x, y) -> Long.compare(y.optLong("gevonden"), x.optLong("gevonden")));
+        return uit;
+    }
+
     // ---------------------------------------------------------------- de gegevens erbij halen (Android)
 
     /** Wat deze bron nu te melden heeft (nog niet gefilterd op wat al gezien is). */
@@ -187,6 +209,9 @@ final class SignalenIntern {
                 try { String last = AllBackup.prefs(c).getString("last", null); if (last != null) backup = new JSONObject(last); } catch (Exception ignored) { }
                 return taken(c, backup, Facturen.lijst(c), Facturen.toestand(c), Toiletten.bronnen(c), Toiletten.toestand(c), bron, nu, tz);
             }
+            case "github":
+                try { return github(c, GithubStatus.overzicht(c, false).optJSONArray("runs"), bron, nu); }
+                catch (GithubStatus.Fout e) { throw new Signalen.Fout(e.getMessage()); }
             default:
                 return new ArrayList<>();
         }
