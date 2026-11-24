@@ -246,7 +246,7 @@ final class AiMemory {
             // Kapot bestand: niet overschrijven (dan zou alles weg zijn), maar apart zetten
             File f = file(c);
             f.renameTo(new File(f.getPath() + ".kapot-" + System.currentTimeMillis()));
-            App.log(c, "AI", "geheugen niet te lezen, apart gezet: " + e);
+            App.log(c, "AI", "geheugen niet te lezen, apart gezet: " + e.getClass().getSimpleName());
         }
         cache = l;
         return l;

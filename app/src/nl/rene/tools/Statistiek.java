@@ -268,13 +268,14 @@ final class Statistiek {
     }
 
     /**
-     * Zet één tekstbestand in dezelfde privé repository (voor Diagnose, map diagnose/). Los van de weekrapporten en van de
-     * schakelaar daarvan: alleen aangeroepen als Rene dat stuk zelf verstuurt of vanzelf sturen heeft aangezet.
+     * Zet één tekstbestand in dezelfde privé repository: Diagnose (map diagnose/, als Rene dat stuk zelf verstuurt of vanzelf
+     * sturen aanzette) en het opgeschoonde foutlogboek (map logboek/, Logboek: standaard aan, eigen schakelaar). Los van
+     * de weekrapporten en van de schakelaar daarvan.
      * "" bij succes, anders de reden. Niet op de hoofdthread.
      */
     static String zet(Context c, String path, String tekst, String bericht) {
         if (!PlayPolicy.allows(c, "statistiek")) return PlayPolicy.unavailable(c);
-        if (path == null || !path.matches("diagnose/[A-Za-z0-9T_-]{1,120}\\.txt")) return "Versturen lukte niet";
+        if (path == null || !path.matches("(?:diagnose|logboek)/[A-Za-z0-9T_-]{1,120}\\.txt")) return "Versturen lukte niet";
         SharedPreferences p = prefs(c);
         String repo = p.getString("repo", ""), sealed = p.getString("token", "");
         if (!validRepo(repo) || sealed.isEmpty()) return "Stel eerst de repository en de sleutel in";

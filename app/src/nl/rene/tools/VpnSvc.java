@@ -149,7 +149,7 @@ public class VpnSvc extends VpnService {
     /** Poging mislukt meteen (fout in de instellingen, Android weigerde): volgende, of stoppen als niets werkt. */
     private void attemptFailed(int gen, String err) {
         synchronized (lock) { if (gen != generation) return; }
-        App.log(this, "VPN", "poging " + activeName + " mislukt: " + err);
+        App.log(this, "VPN", "poging mislukt: " + err); // geen profielnaam in het logboek (gaat opgeschoond naar de eigen repository)
         error = err;
         failedInRow++;
         if (chain.size() > 1 && failedInRow < chain.size()) {

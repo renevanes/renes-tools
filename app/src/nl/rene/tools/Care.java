@@ -45,6 +45,15 @@ public class Care extends JobService {
     @Override
     public boolean onStartJob(final JobParameters params) {
         final Context ctx = getApplicationContext();
+        if (params.getJobId() == Logboek.JOB_ID) { // het foutlogboek naar de privé repository (Logboek.plan)
+            new Thread(() -> {
+                boolean opnieuw = false, gelukt = false;
+                try { String r = Logboek.stuur(ctx); gelukt = r.isEmpty(); opnieuw = r.startsWith("Versturen lukte niet (geen verbinding"); } catch (Throwable ignored) { }
+                jobFinished(params, opnieuw);
+                if (gelukt) Logboek.naRonde(ctx); // wat er tijdens het versturen bijkwam
+            }, "logboek").start();
+            return true;
+        }
         new Thread(() -> {
             try { daily(ctx); } catch (Throwable t) { App.log(ctx, "ONDERHOUD", String.valueOf(t)); }
             jobFinished(params, false);
@@ -85,6 +94,7 @@ public class Care extends JobService {
         }
         // Elke week: de statistieken voor verbeteringen (alleen als je een bestemming hebt ingesteld)
         try { Statistiek.daily(c); } catch (Throwable t) { App.log(c, "STATISTIEK", t.getClass().getSimpleName()); }
+        Logboek.bijStart(c); // vangnet: wat nog niet weg is (bijv. als de geplande taak verviel)
     }
 
     // ---------- batterij ----------

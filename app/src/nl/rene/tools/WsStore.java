@@ -91,7 +91,7 @@ final class WsStore {
                 m.setGrid(cols, rowsAuto ? m.rows : rows);
                 return m;
             }
-        } catch (Exception e) { App.log(c, "START", "werkblad niet te lezen: " + e); m = new WsModel(); m.cols = cols; m.rows = rows; }
+        } catch (Exception e) { App.log(c, "START", "werkblad niet te lezen: " + AppData.safeMsg(e, e.getClass().getSimpleName())); m = new WsModel(); m.cols = cols; m.rows = rows; }
         // Overnemen uit de skin (start.html bewaarde pinned en dock in de launcher-instellingen)
         try {
             JSONObject cfg = new JSONObject(Launcher.prefs(c).getString("cfg", "{}"));

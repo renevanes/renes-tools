@@ -1517,6 +1517,11 @@ if (!window.Android) window.Android = (function(){
     diagnoseAuto(on){ this._diag.auto = !!on; },
     diagnoseKopieer(id){ this._diag.gekopieerd = id; },
     diagnoseStuur(id){ const s = this._stat; setTimeout(() => { if (!(s.repo && s.token)) { window.onDiagnose('Stel eerst de repository en de sleutel in'); return; } this._diagWeg(id); window.onDiagnose(''); }, 30); },
+    _log: { aan: true, laatst: 0, resultaat: '', voorbeeld: 'Logboek Tools test\n\n2026-11-24 10:00:00 [JS] vtest (1)\nfout @x.js:1\n\n', verstuurd: 0 },
+    logboekStaat(){ const l = this._log, s = this._stat; return JSON.stringify({ aan: l.aan, klaar: !!(s.repo && s.token), kan: true, laatst: l.laatst, resultaat: l.resultaat }); },
+    logboekAan(on){ this._log.aan = !!on; },
+    logboekVoorbeeld(){ return this._log.voorbeeld; },
+    logboekNu(){ const l = this._log, s = this._stat; setTimeout(() => { if (!(s.repo && s.token)) { window.onLogboek('Stel eerst de repository en de sleutel in'); return; } if (!l.voorbeeld) { window.onLogboek('Niets nieuws om te versturen'); return; } l.verstuurd++; l.laatst = Date.now(); l.resultaat = 'ok'; this._diag.sent.unshift({ t: l.laatst, tool: 'logboek', n: l.voorbeeld.length }); l.voorbeeld = ''; window.onLogboek(''); }, 30); },
     statState(){ const s = this._stat; return JSON.stringify({ on: s.on, repo: s.repo, token: s.token, since: s.since, lastSent: s.lastSent, lastResult: s.lastResult }); },
     statOn(on){ this._stat.on = !!on; if (!on) this._stat.tags = {}; },
     statDest(repo, token){ const s = this._stat; if (repo !== s.repo || token) this._diag.auto = false; if (!repo && !token) { s.repo = ''; s.token = false; return ''; }

@@ -43,12 +43,12 @@ final class ApparatenStore {
     private static JSONObject read(Context c, String name) {
         File f = new File(dir(c), name);
         try { return new JSONObject(JsonFileStore.read(f, JSON)); }
-        catch (Throwable e) { App.log(c, "APPARATEN", "lezen " + name + ": " + e); return new JSONObject(); }
+        catch (Throwable e) { App.log(c, "APPARATEN", "lezen " + name + ": " + AppData.safeMsg(e, e.getClass().getSimpleName())); return new JSONObject(); }
     }
 
     private static void write(Context c, String name, JSONObject o) {
         try { JsonFileStore.writeCurrent(new File(dir(c), name), o.toString(), JSON); }
-        catch (Throwable e) { App.log(c, "APPARATEN", "opslaan " + name + ": " + e); }
+        catch (Throwable e) { App.log(c, "APPARATEN", "opslaan " + name + ": " + AppData.safeMsg(e, e.getClass().getSimpleName())); }
     }
 
     // ---------- instellingen ----------

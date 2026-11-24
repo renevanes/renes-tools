@@ -47,6 +47,7 @@ public class App extends Application {
         final Context c = getApplicationContext();
         logCtx = c;
         Doorwerken.init(c);
+        Logboek.bijStart(c); // bijv. een vastloper vlak voor het stoppen: alsnog versturen
         try { KluisTekst.ruimWerk(c); } catch (Throwable e) { /* cache; ook als alleen een dienst het proces start */ }
         BetalenBridge.ruimWerk(c); // een rekening die net gelezen werd toen de app stopte
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
@@ -161,6 +162,7 @@ public class App extends Application {
             }
         } catch (Throwable ignored) { }
         Statistiek.count(c, kind); // alleen tellen per soort regel, nooit de tekst
+        Logboek.plan(c, kind); // als Rene het logboek laat meesturen: over een paar minuten (opgeschoond) naar zijn privé repository
     }
 
     /** Het rapport om te delen: toestel, versie en het logboek. */

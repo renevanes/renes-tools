@@ -72,7 +72,7 @@ bij elke internetverbinding zo. Daarnaast:
 | Hugging Face | Een onderbroken download van een AI-model gaat vanzelf verder | Niets persoonlijks |
 
 **Taken op de achtergrond:** podcasts ophalen en vanzelf downloaden (staat standaard aan voor de podcasts die je volgt, alleen via wifi tenzij je dat uitzet; uit te zetten bij Instellingen van Podcasts), en wat je zelf hebt aangezet: de Spotify-backup, facturen ophalen en
-aanleveren, de gegevens van Toiletten en douches bijwerken, de bronnen die je volgt in Signalen (zo vaak als je per bron kiest), de wekelijkse statistieken en, als je Vanzelf sturen aanzet, Diagnose (zie hieronder). Ze gebruiken de diensten uit de volgende tabel.
+aanleveren, de gegevens van Toiletten en douches bijwerken, de bronnen die je volgt in Signalen (zo vaak als je per bron kiest), de wekelijkse statistieken, het opgeschoonde foutlogboek en, als je Vanzelf sturen aanzet, Diagnose (zie hieronder). Ze gebruiken de diensten uit de volgende tabel.
 
 **Als je een tool gebruikt of iets instelt:**
 
@@ -113,6 +113,18 @@ een vastloper het soort fout en de plek in de code van de app, de versie van de 
 telefoon, de Android-versie, de periode, of de app op de achtergrond beperkt wordt, en een willekeurige code van 8
 tekens voor deze installatie. Nooit namen, berichten, telefoonnummers, bestandsnamen, adressen of locaties. Je zet het
 uit bij Instellingen → Foutrapport en statistieken.
+
+### Foutlogboek
+
+Het foutlogboek van de app (technische meldingen: welke actie, wat er misging en waar in de code) gaat, zodra je die
+repository en sleutel hebt ingesteld, een paar minuten na een nieuwe melding naar dezelfde eigen (privé) repository, in
+de map `logboek`, zodat je samen met Claude een probleem kunt nazoeken. Alleen wat nieuw is sinds de vorige keer, hooguit
+eens per uur (na een vastloper na een paar minuten). Vooraf zo goed mogelijk opgeschoond: e-mailadressen, telefoon- en
+rekeningnummers, lange nummers, sleutels, webadressen, paden, bestandsnamen, IP-adressen, postcodes en gelezen inhoud
+(zoals de tekst van een beschadigd bestand) gaan eruit; logregels van de app horen zulke gegevens bovendien niet te bevatten.
+Tools verstuurt alleen als GitHub die repository als privé meldt. Staat standaard aan; uit te zetten bij Instellingen →
+Foutrapport en statistieken (Vanzelf naar je repository). Daar zie je ook vooraf wat er de volgende keer meegaat en, bij
+Diagnose, wanneer er iets verstuurd is. De Play-versie verstuurt het foutlogboek niet.
 
 ### Diagnose
 
@@ -174,7 +186,7 @@ site), OpenStreetMap (map tiles and, only when you choose to share a toilet loca
 feeds, Chromecast in your network, Hugging Face (model downloads), your VPN, websites you follow in Signalen, your bank's website when you pre-fill a payment in Betalen (you sign it yourself), payment links from a bill's QR code and a DuckDuckGo search, both only after you confirm, video player services in news articles, and podcast chapter files. Automatically: weather (approximate
 location to Open-Meteo), resuming model downloads and, in the GitHub version, update checks (and, when you open Publishing and tests or turn on that Signals source, the public status of the repository on GitHub). Optional weekly
 statistics (counts, crash type and location in the code, app version, device make/model, Android version, random
-install id) go only to your own private GitHub repository; Diagnose (content such as text read from a bill) only when you copy or send it yourself or turn on automatic sending, and only to that repository when GitHub reports it as private. CPAP measurements you import stay encrypted on the phone. The assistant and transcription run on the device. Android's
+install id) and the error log (technical messages, at most hourly, cleaned up as well as possible first: email addresses, phone and account numbers, long numbers, keys, web addresses, paths, file names, IP addresses, postcodes and read content are removed; on by default once you set up the repository, can be turned off) go only to your own private GitHub repository; Diagnose (content such as text read from a bill) only when you copy or send it yourself or turn on automatic sending, and only to that repository when GitHub reports it as private. CPAP measurements you import stay encrypted on the phone. The assistant and transcription run on the device. Android's
 Google backup may include notes, music history, parking/trips, saved places and settings, but never passwords, keys or
 bank data, your own Agenda appointments or news sources. Uninstalling removes the app's data from the phone. Questions: contact@esape.nl or an issue on
 [GitHub](https://github.com/renevanes/renes-tools/issues).
