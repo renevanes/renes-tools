@@ -290,7 +290,7 @@ final class MasterPhotos {
                 }
                 // Alleen als het niet lukt, en alleen vaste woorden en aantallen: nooit namen, nummers of tekst uit het document.
                 if(match==null)App.log(activity,"STAMGEGEVENS","document ("+soortBestand+(job.virtual?", google":"")+"): niet herkend"
-                    +("pdf".equals(soortBestand)?", "+stats.optInt("bekeken")+" van "+stats.optInt("paginas")+" pagina's, "+stats.optInt("stukken")+" stukken":"")
+                    +("pdf".equals(soortBestand)?", foto's "+stats.optInt("fotos")+", "+stats.optInt("bekeken")+" van "+stats.optInt("paginas")+" pagina's, "+stats.optInt("stukken")+" stukken":"")
                     +(stats.optBoolean("teLang")?", tijd op":""));
                 if(match==null&&!active.getAsBoolean())throw new MasterError(Taal.T("Kies het bestand opnieuw."));
                 if(match==null&&stats.optBoolean("teLang"))throw new MasterError(Taal.T("Geen ID-bewijs herkend: het zoeken duurde te lang. Kies een PDF met alleen de pagina van het ID-bewijs, of een foto van de kaart."));

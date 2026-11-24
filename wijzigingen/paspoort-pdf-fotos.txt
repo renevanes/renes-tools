@@ -1,0 +1,1 @@
+Stamgegevens: een paspoort of ID-bewijs in een PDF (bijvoorbeeld een Google-document) wordt nu ook herkend als de foto klein op de pagina staat: Tools leest eerst de foto zelf op volle scherpte.

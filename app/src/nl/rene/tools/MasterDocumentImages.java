@@ -114,7 +114,7 @@ final class MasterDocumentImages {
         if (pdf(bytes)) {
             List<byte[]> jpg = new ArrayList<>();
             int[] aantal = {0};
-            try { jpg = pdfJpegs(bytes, active, aantal); } catch (IOException | RuntimeException ignored) { }
+            try { jpg = pdfJpegs(bytes, active, aantal, 2); } catch (IOException | RuntimeException ignored) { }
             if (stats != null) stats.put("bron", "pdf").put("fotos", aantal[0]);
             if (jpg.size() == 2) {
                 // Een scan met één foto per pagina: dat zijn hele pagina's (A-formaat), geen kaartfoto's
@@ -146,8 +146,11 @@ final class MasterDocumentImages {
         return uit;
     }
 
-    /** Ingesloten JPEG-foto's (geen logo's of kleine plaatjes). Een hele PDF-pagina kan ook andere gegevens bevatten. */
-    private static List<byte[]> pdfJpegs(byte[] bytes, BooleanSupplier active, int[] aantal) throws IOException {
+    /**
+     * Ingesloten JPEG-foto's (geen logo's of kleine plaatjes). Een hele PDF-pagina kan ook andere gegevens bevatten.
+     * Meer dan {@code max}: niets (twee zijden: dan is niet te zeggen welke twee het zijn).
+     */
+    private static List<byte[]> pdfJpegs(byte[] bytes, BooleanSupplier active, int[] aantal, int max) throws IOException {
         PdfSplit pdf = new PdfSplit(bytes);
         List<PdfSplit.Stream> images = new ArrayList<>();
         if (pdf.pageCount() > MAX_CANDIDATES) return new ArrayList<>();
@@ -166,12 +169,33 @@ final class MasterDocumentImages {
                 if (getal(pdf.resolve(image.dict.get("Width"))) < MIN_ZIJDE || getal(pdf.resolve(image.dict.get("Height"))) < MIN_ZIJDE) continue;
                 images.add(image);
                 aantal[0] = images.size();
-                if (images.size() > 2) return new ArrayList<>();
+                if (images.size() > max) return new ArrayList<>();
             }
         }
         List<byte[]> result = new ArrayList<>();
         for (PdfSplit.Stream image : images) result.add(image.raw());
         return result;
+    }
+
+    /**
+     * Herkennen op de ingesloten foto's zelf (hooguit MAX_CANDIDATES). Een foto in de vorm van een A-pagina is een scan van
+     * een hele pagina: die wordt geen kaartfoto (er kan meer op staan), de gegevens wel. stats: "fotos" (aantal) en
+     * "uitFoto" (herkend op een foto).
+     */
+    private static Match pdfFoto(Context context, byte[] bytes, String today, BooleanSupplier searching, JSONObject stats) {
+        List<byte[]> fotos = new ArrayList<>();
+        int[] aantal = {0};
+        try { fotos = pdfJpegs(bytes, searching, aantal, MAX_CANDIDATES); } catch (Throwable ignored) { } // dan alleen de pagina's
+        try { if (stats != null) stats.put("fotos", fotos.size()); } catch (Exception ignored) { }
+        for (byte[] foto : fotos) {
+            if (!searching.getAsBoolean()) return null;
+            if (!teOpenen(foto)) continue;
+            Match m = recognize(context, foto, today, searching);
+            if (m == null) continue;
+            try { if (stats != null) stats.put("uitFoto", true); } catch (Exception ignored) { }
+            return paginaVorm(foto) ? new Match(null, m.fields) : m;
+        }
+        return null;
     }
 
     /** Een getal uit een PDF (PdfSplit.Num); anders 0. Zuiver, getest. */
@@ -320,6 +344,10 @@ final class MasterDocumentImages {
         long deadline = SystemClock.elapsedRealtime() + SEARCH_MS;
         BooleanSupplier searching = () -> active.getAsBoolean() && SystemClock.elapsedRealtime() < deadline;
         if (!pdf(bytes)) return word(context, bytes, today, searching);
+        // Eerst de foto's in de PDF op hun eigen resolutie (zoals bij Word): een foto van het ID-bewijs in een document
+        // (Google Docs, Word als PDF) staat vaak klein op de pagina, en dan zijn de tekens op de getekende pagina te klein.
+        Match uitFoto = pdfFoto(context, bytes, today, searching, stats);
+        if (uitFoto != null) return uitFoto;
         int pages = 0, pieces = 0;
         boolean all = false;
         try (ParcelFileDescriptor fd = pdfDescriptor(context, bytes);

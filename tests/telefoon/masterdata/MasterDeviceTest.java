@@ -160,6 +160,19 @@ public final class MasterDeviceTest extends Instrumentation {
             check(((JSONObject)fields.get(match)).getJSONObject("document").getString("document").equals("0123456789"),"ID number from document photo");
             check(call(images,null,"find",signature,context,bytes,"2026-11-08",(java.util.function.BooleanSupplier)()->false)==null,"no recognition after cancellation");
         }
+        // Een foto van het ID-bewijs klein op een A4 (zoals in een Google-document als PDF): herkend op de foto zelf.
+        java.io.ByteArrayOutputStream foto=new java.io.ByteArrayOutputStream(),klein=new java.io.ByteArrayOutputStream();
+        licence.compress(android.graphics.Bitmap.CompressFormat.JPEG,95,foto);
+        Class<?> writer=type("PdfWriter"),pageType=type("PdfWriter$Page");
+        java.lang.reflect.Constructor<?> mk=pageType.getDeclaredConstructor(byte[].class,int.class,int.class,boolean.class,float.class,float.class,float.class,float.class,float.class,float.class);mk.setAccessible(true);
+        Object a4=mk.newInstance(foto.toByteArray(),1500,950,false,595.28f,841.89f,60f,600f,150f,95f);
+        call(writer,null,"write",new Class<?>[]{java.io.OutputStream.class,java.util.List.class,String.class},klein,Arrays.asList(a4),"Test");
+        JSONObject st=new JSONObject();
+        Object kleinMatch=call(images,null,"find",new Class<?>[]{Context.class,byte[].class,String.class,java.util.function.BooleanSupplier.class,JSONObject.class,boolean.class},
+            context,klein.toByteArray(),"2026-11-08",(java.util.function.BooleanSupplier)()->true,st,false);
+        check(kleinMatch!=null&&st.optBoolean("uitFoto")&&st.optInt("fotos")==1,"ID recognized on the photo inside a PDF ("+st+")");
+        java.lang.reflect.Field kleinImage=kleinMatch.getClass().getDeclaredField("image");kleinImage.setAccessible(true);
+        check(Arrays.equals((byte[])kleinImage.get(kleinMatch),foto.toByteArray()),"the embedded card photo becomes the card photo");
     }
     void documentSides(android.graphics.Bitmap licence)throws Exception {
         java.io.ByteArrayOutputStream front=new java.io.ByteArrayOutputStream(),back=new java.io.ByteArrayOutputStream();
