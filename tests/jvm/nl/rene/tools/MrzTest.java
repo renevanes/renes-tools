@@ -16,6 +16,12 @@ public class MrzTest {
         long t=System.nanoTime();Mrz.Result r=MrzOcr.read(p,w,h);System.out.println("  "+name+": "+(System.nanoTime()-t)/1_000_000+" ms"+(r==null?" (niets)":" "+r.format.name+" geldig "+r.valid()+"/4, afwijking "+String.format("%.1f",r.mean)));
         return r;
     }
+    /** Dunnere, blekere lijnen: per pixel deels het lichtste in een venster van r (zoals een gelaserde strook op een foto). */
+    static int[] dunner(int[] p,int w,int h,int r,int licht){
+        int[] q=new int[w*h];
+        for(int y=0;y<h;y++)for(int x=0;x<w;x++){int m=0;for(int dy=-r;dy<=r;dy++)for(int dx=-r;dx<=r;dx++){int yy=Math.min(h-1,Math.max(0,y+dy)),xx=Math.min(w-1,Math.max(0,x+dx));m=Math.max(m,p[yy*w+xx]);}q[y*w+x]=(p[y*w+x]*(100-licht)+m*licht)/100;}
+        return q;
+    }
     public static void main(String[] args)throws Exception{
         // ICAO 9303 deel 5 en 4: de voorbeelden uit de norm
         Mrz.Result td1=Mrz.parse("I<UTOD231458907<<<<<<<<<<<<<<<","7408122F1204159UTO<<<<<<<<<<<6","ERIKSSON<<ANNA<MARIA<<<<<<<<<<");
@@ -69,17 +75,38 @@ public class MrzTest {
         int[] bp=new int[bw*bh];for(int y=0;y<bh;y++)for(int x=0;x<bw;x++){int c=big.getRGB(x,y);bp[y*bw+x]=((c>>16&255)*30+(c>>8&255)*59+(c&255)*11)/100;}
         check(new MrzOcr.Gray(bp,bw,bh).shrink(MrzOcr.MAX_SIDE).w==MrzOcr.MAX_SIDE,"verkleinen naar precies de werkmaat");
         Mrz.Result groot=MrzOcr.read(bp,bw,bh);check(groot!=null&&groot.usable()&&groot.line(0).equals(want.get(0)),"grote foto gelezen");
+        // Dunne, bleke tekens (een gelaserde strook op een foto) vallen bij de strenge drempel in stukjes: de mildere tweede
+        // ronde maakt ze weer leesbaar.
+        java.util.List<String> sporen=new java.util.ArrayList<>();
+        for(int[] dun:new int[][]{{1,80},{1,100},{2,50},{2,70},{2,50,30}}){
+            BufferedImage ti=ImageIO.read(new File("tests/jvm/mrz/td3-paspoort.jpg"));int tw=ti.getWidth(),th=ti.getHeight();
+            int[] tp=new int[tw*th];for(int y=0;y<th;y++)for(int x=0;x<tw;x++){int c=ti.getRGB(x,y);tp[y*tw+x]=((c>>16&255)*30+(c>>8&255)*59+(c&255)*11)/100;}
+            int[] tq=dunner(tp,tw,th,dun[0],dun[1]);
+            if(dun.length>2)for(int i=0;i<tq.length;i++)tq[i]+=(255-tq[i])*dun[2]/100; // ook nog fletser (naar wit)
+            MrzOcr.Spoor ds=new MrzOcr.Spoor();MrzOcr.volg(ds);Mrz.Result dr;try{dr=MrzOcr.read(tq,tw,th);}finally{MrzOcr.volg(null);}
+            check(dr!=null&&dr.usable()&&dr.line(0).equals(want.get(4))&&dr.line(1).equals(want.get(5)),"dunne tekens ("+dun[0]+"/"+dun[1]+") gelezen: "+ds.tekst());
+            check(ds.mild>0&&ds.tekst().contains(", mild "),"de mildere ronde deed het: "+ds.tekst());
+            sporen.add(ds.tekst());
+        }
         Mrz.Result none=photo("zonder-strook.jpg");check(none==null||!none.usable(),"zonder strook niets bruikbaars");
+        // Een schoon paspoort: de strenge ronde leest het, de mildere ronde draait niet
+        MrzOcr.Spoor schoon=new MrzOcr.Spoor();MrzOcr.volg(schoon);try{photo("td3-paspoort.jpg");}finally{MrzOcr.volg(null);}
+        check(schoon.mild==0&&!schoon.tekst().contains("mild"),"geen mildere ronde als het al lukt: "+schoon.tekst());
         // Spoor voor het logboek: aantallen en ja/nee, nooit tekens uit de strook
         MrzOcr.Spoor sp=new MrzOcr.Spoor();MrzOcr.volg(sp);
         try{photo("td3-paspoort.jpg");}finally{MrzOcr.volg(null);}
         String st=sp.tekst();
         check(st.contains("beelden 1")&&st.matches(".*regels 4[34]x.*")&&st.contains("beste TD3")&&st.contains("controle nr/geb/verv ja/ja/ja"),"spoor: "+st);
         for(String regel:new String[]{want.get(4),want.get(5)})for(String stuk:regel.split("<+"))check(stuk.length()<3||!st.contains(stuk),"spoor zonder tekens uit de strook: "+stuk);
-        check(st.matches("strook: [a-z0-9 ,./x…]*(beste TD[123] [a-z0-9 ,./x]*)?"),"spoor alleen met vaste woorden en getallen: "+st);
-        check(Logboek.schoon(st).equals(st),"het logboek laat het spoor zoals het is");
         MrzOcr.Spoor leeg=new MrzOcr.Spoor();MrzOcr.volg(leeg);try{photo("zonder-strook.jpg");}finally{MrzOcr.volg(null);}
         check(leeg.tekst().startsWith("strook: beelden 1")&&!leeg.tekst().contains("ja/ja/ja"),"spoor zonder strook: "+leeg.tekst());
+        // Alle sporen (ook met de mildere ronde en zonder strook): alleen vaste woorden en getallen, en het logboek laat ze zoals ze zijn
+        sporen.add(st);sporen.add(leeg.tekst());sporen.add(schoon.tekst());
+        for(String t:sporen){
+            check(t.matches("strook: [a-z0-9 ,./x…()]*(beste TD[123] [a-z0-9 ,./x]*)?"),"spoor alleen met vaste woorden en getallen: "+t);
+            check(Logboek.schoon(t).equals(t),"het logboek laat het spoor zoals het is: "+t);
+            for(String regel:new String[]{want.get(4),want.get(5)})for(String stuk:regel.split("<+"))check(stuk.length()<3||!t.contains(stuk),"spoor zonder tekens uit de strook: "+stuk);
+        }
         photo("td1-recht.jpg");check(sp.beelden==1,"zonder volg telt niets mee");
         System.out.println("Strook lezen: controlecijfers, ontleden, verbeteren en herkennen in foto's gecontroleerd");
     }

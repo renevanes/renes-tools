@@ -45,14 +45,16 @@ final class MrzOcr {
     static final class Page {final Gray g;final boolean[] dark;final int[] label;Page(Gray g,boolean[] dark,int[] label){this.g=g;this.dark=dark;this.label=label;}}
 
     /** Zwart-wit met een aanpassende drempel (Bradley): donkerder dan 15% onder het gemiddelde in de buurt. */
-    static boolean[] binarize(Gray g){
+    static boolean[] binarize(Gray g){return binarize(g,85);}
+    /** donker = minder dan {@code drempel}% van het gemiddelde in de buurt (85 = streng, hoger = ook bleke lijnen). */
+    static boolean[] binarize(Gray g,int drempel){
         int w=g.w,h=g.h,r=Math.max(6,Math.min(w,h)/24);long[] in=new long[(w+1)*(h+1)];
         for(int y=0;y<h;y++){long row=0;for(int x=0;x<w;x++){row+=g.p[y*w+x];in[(y+1)*(w+1)+x+1]=in[y*(w+1)+x+1]+row;}}
         boolean[] d=new boolean[w*h];
         for(int y=0;y<h;y++){int y0=Math.max(0,y-r),y1=Math.min(h-1,y+r);
             for(int x=0;x<w;x++){int x0=Math.max(0,x-r),x1=Math.min(w-1,x+r);long area=(long)(x1-x0+1)*(y1-y0+1);
                 long sum=in[(y1+1)*(w+1)+x1+1]-in[y0*(w+1)+x1+1]-in[(y1+1)*(w+1)+x0]+in[y0*(w+1)+x0];
-                d[y*w+x]=(long)g.p[y*w+x]*area*100<sum*85;}}
+                d[y*w+x]=(long)g.p[y*w+x]*area*100<sum*drempel;}}
         return d;
     }
     static List<Box> components(boolean[] d,int w,int h,int[] label){
@@ -190,15 +192,19 @@ final class MrzOcr {
     /** Zoekt in één draairichting de beste strook. */
     /** Meer vlakken dan dit = ruis of een foto vol tekst: niet verder zoeken (tijd en geheugen op de telefoon). */
     static final int MAX_BOXES=20000;
+    /** De mildere drempel voor een tweede ronde (zie read). */
+    static final int MILD=96;
 
     /**
      * Wat het lezen van de strook zag, voor het logboek als het niet lukt: alleen aantallen en ja/nee, nooit tekens.
      * Per draad (een herkenning loopt op één draad): {@link #volg} zet hem aan en uit.
      */
     static final class Spoor {
-        int beelden, teDruk, maxVlakken, groepen;
-        /** Lengte van een regel (minstens 28 tekens) → hoe vaak. */
-        final java.util.TreeMap<Integer,Integer> regels=new java.util.TreeMap<>();
+        int beelden, teDruk, maxVlakken, groepen, mild, mildTeDruk, mildVlakken;
+        /** Lengte van een regel (minstens 28 tekens) → hoe vaak; bij de mildere drempel apart. */
+        final java.util.TreeMap<Integer,Integer> regels=new java.util.TreeMap<>(), mildRegels=new java.util.TreeMap<>();
+        /** Telt find nu voor de mildere ronde? (Dan apart, zodat de strenge cijfers zuiver blijven.) */
+        boolean bijMild;
         /** Van de beste lezing alleen het formaat, de afwijking en de controlecijfers (nooit de tekens zelf). */
         String besteFormaat; double besteAfwijking; boolean nrOk, gebOk, vervOk, bruikbaar; int geldig;
         /** Zoals {@link MrzOcr#better}, maar met alleen de bewaarde getallen. */
@@ -211,29 +217,39 @@ final class MrzOcr {
         String tekst(){
             StringBuilder b=new StringBuilder("strook: beelden ").append(beelden).append(", vlakken tot ").append(maxVlakken);
             if(teDruk>0)b.append(", te druk ").append(teDruk);
-            b.append(", regels ");
-            if(regels.isEmpty())b.append("geen");
-            else{int n=0;for(java.util.Map.Entry<Integer,Integer> e:regels.descendingMap().entrySet()){if(n++==6){b.append(" …");break;}b.append(n>1?" ":"").append(e.getKey()).append("x").append(e.getValue());}}
+            b.append(", regels ");regels(b,regels);
             b.append(", groepen ").append(groepen);
+            if(mild>0){b.append(", mild ").append(mild).append(" (vlakken tot ").append(mildVlakken);
+                if(mildTeDruk>0)b.append(", te druk ").append(mildTeDruk);
+                b.append(", regels ");regels(b,mildRegels);b.append(")");}
             if(besteFormaat!=null)b.append(", beste ").append(besteFormaat).append(" afwijking ").append(Math.round(besteAfwijking*10)/10.0)
                 .append(" controle nr/geb/verv ").append(nrOk?"ja":"nee").append("/").append(gebOk?"ja":"nee").append("/").append(vervOk?"ja":"nee");
             return b.toString();
+        }
+        private static void regels(StringBuilder b,java.util.TreeMap<Integer,Integer> m){
+            if(m.isEmpty()){b.append("geen");return;}
+            int n=0;for(java.util.Map.Entry<Integer,Integer> e:m.descendingMap().entrySet()){if(n++==6){b.append(" …");break;}b.append(n>1?" ":"").append(e.getKey()).append("x").append(e.getValue());}
         }
     }
     private static final ThreadLocal<Spoor> SPOOR=new ThreadLocal<>();
     /** Spoor bijhouden op deze draad (null = stoppen). */
     static void volg(Spoor s){if(s==null)SPOOR.remove();else SPOOR.set(s);}
-    static Mrz.Result find(Gray g){
-        boolean[] dark=binarize(g);int[] label=new int[g.w*g.h];List<Box> boxes=components(dark,g.w,g.h,label);
-        Spoor sp=SPOOR.get();
-        if(sp!=null)sp.maxVlakken=Math.max(sp.maxVlakken,boxes.size());
-        if(boxes.size()>MAX_BOXES){if(sp!=null)sp.teDruk++;return null;}
+    static Mrz.Result find(Gray g){return find(g,85,null);}
+    /** Zo lang moet een regel bij de strenge drempel minstens zijn voor een mildere ronde (een bleke strook valt half weg). */
+    static final int KANDIDAAT=20;
+    /** kandidaat (mag null): [0] wordt waar als er een regel van minstens {@link #KANDIDAAT} tekens is (iets als een strookregel). */
+    static Mrz.Result find(Gray g,int drempel,boolean[] kandidaat){
+        boolean[] dark=binarize(g,drempel);int[] label=new int[g.w*g.h];List<Box> boxes=components(dark,g.w,g.h,label);
+        Spoor sp=SPOOR.get();boolean mild=sp!=null&&sp.bijMild;
+        if(sp!=null){if(mild)sp.mildVlakken=Math.max(sp.mildVlakken,boxes.size());else sp.maxVlakken=Math.max(sp.maxVlakken,boxes.size());}
+        if(boxes.size()>MAX_BOXES){if(sp!=null){if(mild)sp.mildTeDruk++;else sp.teDruk++;}return null;}
         Page pg=new Page(g,dark,label);List<Line> ls=lines(boxes);
-        if(sp!=null)for(Line l:ls)if(l.length>=28)sp.regels.merge(l.length,1,Integer::sum);
+        for(Line l:ls){if(l.length>=KANDIDAAT&&kandidaat!=null)kandidaat[0]=true;if(l.length>=28&&sp!=null)(mild?sp.mildRegels:sp.regels).merge(l.length,1,Integer::sum);}
         ls.sort((a,b)->Double.compare(a.y(),b.y()));
         Mrz.Result best=null;
         for(Mrz.Format f:Mrz.FORMATS){
-            List<Line> fit=new ArrayList<>();for(Line l:ls)if(l.length>=f.length-1&&l.length<=f.length)fit.add(l);
+            List<Line> fit=new ArrayList<>();
+            for(Line l:ls)if(l.length>=f.length-1&&l.length<=f.length)fit.add(l);
             for(int i=0;i+f.lines<=fit.size();i++){
                 List<Line> group=fit.subList(i,i+f.lines);if(!together(group))continue;
                 if(sp!=null)sp.groepen++;
@@ -271,10 +287,25 @@ final class MrzOcr {
     static Mrz.Result read(int[] gray,int w,int h){
         Gray g=new Gray(gray,w,h).shrink(MAX_SIDE);Mrz.Result best=null;
         Spoor sp=SPOOR.get();if(sp!=null)sp.beelden++;
+        boolean[][] kandidaat=new boolean[4][1];
         for(int q=0;q<4;q++){
-            Mrz.Result r=find(g.rotate(q));if(r!=null&&better(r,best))best=r;
+            Mrz.Result r=find(g.rotate(q),85,kandidaat[q]);if(r!=null&&better(r,best))best=r;
             // Alleen eerder stoppen bij een overtuigende lezing (onzin uit een verkeerde draairichting zit rond 20).
-            if(best!=null&&best.sure()&&best.mean<Mrz.Result.LIMIT*0.6)break;
+            if(best!=null&&best.sure()&&best.mean<Mrz.Result.LIMIT*0.6)return best;
+        }
+        // Niets bruikbaars: nog eens met een mildere drempel. Bleke, dunne tekens (een gelaserde strook van een nieuwer
+        // paspoort, een flets licht) vallen bij de strenge drempel in stukjes; zo worden ze weer heel. Alleen in de
+        // draairichtingen waar al iets als een strookregel te zien was: een beeld zonder strook kost zo geen extra tijd.
+        if(best==null||!best.usable()){
+            try{
+                if(sp!=null)sp.bijMild=true;
+                for(int q=0;q<4;q++){
+                    if(!kandidaat[q][0]&&!kandidaat[(q+2)%4][0])continue; // rechtop en ondersteboven: dezelfde strook
+                    if(sp!=null)sp.mild++;
+                    Mrz.Result r=find(g.rotate(q),MILD,null);if(r!=null&&better(r,best))best=r;
+                    if(best!=null&&best.sure()&&best.mean<Mrz.Result.LIMIT*0.6)break;
+                }
+            }finally{if(sp!=null)sp.bijMild=false;}
         }
         return best;
     }
