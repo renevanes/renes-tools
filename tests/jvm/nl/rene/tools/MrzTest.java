@@ -16,6 +16,12 @@ public class MrzTest {
         long t=System.nanoTime();Mrz.Result r=MrzOcr.read(p,w,h);System.out.println("  "+name+": "+(System.nanoTime()-t)/1_000_000+" ms"+(r==null?" (niets)":" "+r.format.name+" geldig "+r.valid()+"/4, afwijking "+String.format("%.1f",r.mean)));
         return r;
     }
+    /** Dunnere, blekere lijnen: per pixel deels het lichtste in een venster van r (zoals een gelaserde strook op een foto). */
+    static int[] dunner(int[] p,int w,int h,int r,int licht){
+        int[] q=new int[w*h];
+        for(int y=0;y<h;y++)for(int x=0;x<w;x++){int m=0;for(int dy=-r;dy<=r;dy++)for(int dx=-r;dx<=r;dx++){int yy=Math.min(h-1,Math.max(0,y+dy)),xx=Math.min(w-1,Math.max(0,x+dx));m=Math.max(m,p[yy*w+xx]);}q[y*w+x]=(p[y*w+x]*(100-licht)+m*licht)/100;}
+        return q;
+    }
     public static void main(String[] args)throws Exception{
         // ICAO 9303 deel 5 en 4: de voorbeelden uit de norm
         Mrz.Result td1=Mrz.parse("I<UTOD231458907<<<<<<<<<<<<<<<","7408122F1204159UTO<<<<<<<<<<<6","ERIKSSON<<ANNA<MARIA<<<<<<<<<<");
@@ -69,6 +75,23 @@ public class MrzTest {
         int[] bp=new int[bw*bh];for(int y=0;y<bh;y++)for(int x=0;x<bw;x++){int c=big.getRGB(x,y);bp[y*bw+x]=((c>>16&255)*30+(c>>8&255)*59+(c&255)*11)/100;}
         check(new MrzOcr.Gray(bp,bw,bh).shrink(MrzOcr.MAX_SIDE).w==MrzOcr.MAX_SIDE,"verkleinen naar precies de werkmaat");
         Mrz.Result groot=MrzOcr.read(bp,bw,bh);check(groot!=null&&groot.usable()&&groot.line(0).equals(want.get(0)),"grote foto gelezen");
+        // Dunne, bleke tekens (een gelaserde strook op een foto) vallen in stukjes: de regels lijken te lang. Opnieuw meten
+        // over de hele breedte en een mildere drempel maken ze weer leesbaar.
+        for(int[] dun:new int[][]{{1,80},{1,100},{2,50},{2,70}}){
+            BufferedImage ti=ImageIO.read(new File("tests/jvm/mrz/td3-paspoort.jpg"));int tw=ti.getWidth(),th=ti.getHeight();
+            int[] tp=new int[tw*th];for(int y=0;y<th;y++)for(int x=0;x<tw;x++){int c=ti.getRGB(x,y);tp[y*tw+x]=((c>>16&255)*30+(c>>8&255)*59+(c&255)*11)/100;}
+            int[] tq=dunner(tp,tw,th,dun[0],dun[1]);
+            MrzOcr.Spoor ds=new MrzOcr.Spoor();MrzOcr.volg(ds);Mrz.Result dr;try{dr=MrzOcr.read(tq,tw,th);}finally{MrzOcr.volg(null);}
+            check(dr!=null&&dr.usable()&&dr.line(0).equals(want.get(4))&&dr.line(1).equals(want.get(5)),"dunne tekens ("+dun[0]+"/"+dun[1]+") gelezen: "+ds.tekst());
+        }
+        {   // Herschalen: een regel met te veel stukjes wordt een regel van precies n tekens over dezelfde breedte
+            java.util.List<MrzOcr.Box> bs=new java.util.ArrayList<>();
+            for(int i=0;i<66;i++){MrzOcr.Box b=new MrzOcr.Box();b.x0=100+i*10;b.x1=b.x0+5;b.y0=50;b.y1=66;b.n=40;bs.add(b);}
+            MrzOcr.Line lang=new MrzOcr.Line(bs,10,17,66,103);
+            MrzOcr.Line r44=MrzOcr.herschaal(lang,44);
+            check(r44!=null&&r44.length==44&&Math.abs(r44.pitch-(755-100+1)/44.0)<1e-9&&r44.boxes==bs,"herschaald naar 44");
+            check(MrzOcr.herschaal(lang,10)==null,"een onmogelijke tekenafstand (te breed voor de letterhoogte): niet");
+        }
         Mrz.Result none=photo("zonder-strook.jpg");check(none==null||!none.usable(),"zonder strook niets bruikbaars");
         // Spoor voor het logboek: aantallen en ja/nee, nooit tekens uit de strook
         MrzOcr.Spoor sp=new MrzOcr.Spoor();MrzOcr.volg(sp);

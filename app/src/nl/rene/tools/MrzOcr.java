@@ -45,14 +45,16 @@ final class MrzOcr {
     static final class Page {final Gray g;final boolean[] dark;final int[] label;Page(Gray g,boolean[] dark,int[] label){this.g=g;this.dark=dark;this.label=label;}}
 
     /** Zwart-wit met een aanpassende drempel (Bradley): donkerder dan 15% onder het gemiddelde in de buurt. */
-    static boolean[] binarize(Gray g){
+    static boolean[] binarize(Gray g){return binarize(g,85);}
+    /** donker = minder dan {@code drempel}% van het gemiddelde in de buurt (85 = streng, hoger = ook bleke lijnen). */
+    static boolean[] binarize(Gray g,int drempel){
         int w=g.w,h=g.h,r=Math.max(6,Math.min(w,h)/24);long[] in=new long[(w+1)*(h+1)];
         for(int y=0;y<h;y++){long row=0;for(int x=0;x<w;x++){row+=g.p[y*w+x];in[(y+1)*(w+1)+x+1]=in[y*(w+1)+x+1]+row;}}
         boolean[] d=new boolean[w*h];
         for(int y=0;y<h;y++){int y0=Math.max(0,y-r),y1=Math.min(h-1,y+r);
             for(int x=0;x<w;x++){int x0=Math.max(0,x-r),x1=Math.min(w-1,x+r);long area=(long)(x1-x0+1)*(y1-y0+1);
                 long sum=in[(y1+1)*(w+1)+x1+1]-in[y0*(w+1)+x1+1]-in[(y1+1)*(w+1)+x0]+in[y0*(w+1)+x0];
-                d[y*w+x]=(long)g.p[y*w+x]*area*100<sum*85;}}
+                d[y*w+x]=(long)g.p[y*w+x]*area*100<sum*drempel;}}
         return d;
     }
     static List<Box> components(boolean[] d,int w,int h,int[] label){
@@ -190,13 +192,15 @@ final class MrzOcr {
     /** Zoekt in één draairichting de beste strook. */
     /** Meer vlakken dan dit = ruis of een foto vol tekst: niet verder zoeken (tijd en geheugen op de telefoon). */
     static final int MAX_BOXES=20000;
+    /** De mildere drempel voor een tweede ronde (zie read). */
+    static final int MILD=96;
 
     /**
      * Wat het lezen van de strook zag, voor het logboek als het niet lukt: alleen aantallen en ja/nee, nooit tekens.
      * Per draad (een herkenning loopt op één draad): {@link #volg} zet hem aan en uit.
      */
     static final class Spoor {
-        int beelden, teDruk, maxVlakken, groepen;
+        int beelden, teDruk, maxVlakken, groepen, herschaald, mild;
         /** Lengte van een regel (minstens 28 tekens) → hoe vaak. */
         final java.util.TreeMap<Integer,Integer> regels=new java.util.TreeMap<>();
         /** Van de beste lezing alleen het formaat, de afwijking en de controlecijfers (nooit de tekens zelf). */
@@ -215,6 +219,8 @@ final class MrzOcr {
             if(regels.isEmpty())b.append("geen");
             else{int n=0;for(java.util.Map.Entry<Integer,Integer> e:regels.descendingMap().entrySet()){if(n++==6){b.append(" …");break;}b.append(n>1?" ":"").append(e.getKey()).append("x").append(e.getValue());}}
             b.append(", groepen ").append(groepen);
+            if(herschaald>0)b.append(", opnieuw gemeten ").append(herschaald);
+            if(mild>0)b.append(", mild ").append(mild);
             if(besteFormaat!=null)b.append(", beste ").append(besteFormaat).append(" afwijking ").append(Math.round(besteAfwijking*10)/10.0)
                 .append(" controle nr/geb/verv ").append(nrOk?"ja":"nee").append("/").append(gebOk?"ja":"nee").append("/").append(vervOk?"ja":"nee");
             return b.toString();
@@ -223,8 +229,9 @@ final class MrzOcr {
     private static final ThreadLocal<Spoor> SPOOR=new ThreadLocal<>();
     /** Spoor bijhouden op deze draad (null = stoppen). */
     static void volg(Spoor s){if(s==null)SPOOR.remove();else SPOOR.set(s);}
-    static Mrz.Result find(Gray g){
-        boolean[] dark=binarize(g);int[] label=new int[g.w*g.h];List<Box> boxes=components(dark,g.w,g.h,label);
+    static Mrz.Result find(Gray g){return find(g,85);}
+    static Mrz.Result find(Gray g,int drempel){
+        boolean[] dark=binarize(g,drempel);int[] label=new int[g.w*g.h];List<Box> boxes=components(dark,g.w,g.h,label);
         Spoor sp=SPOOR.get();
         if(sp!=null)sp.maxVlakken=Math.max(sp.maxVlakken,boxes.size());
         if(boxes.size()>MAX_BOXES){if(sp!=null)sp.teDruk++;return null;}
@@ -233,7 +240,13 @@ final class MrzOcr {
         ls.sort((a,b)->Double.compare(a.y(),b.y()));
         Mrz.Result best=null;
         for(Mrz.Format f:Mrz.FORMATS){
-            List<Line> fit=new ArrayList<>();for(Line l:ls)if(l.length>=f.length-1&&l.length<=f.length)fit.add(l);
+            List<Line> fit=new ArrayList<>();
+            for(Line l:ls){
+                if(l.length>=f.length-1&&l.length<=f.length)fit.add(l);
+                // Te lang: dunne of gebroken tekens vallen in stukjes, dan lijkt de tekenafstand kleiner. Opnieuw meten over de
+                // hele breedte, als een regel van precies dit formaat (de stukjes van één teken komen dan weer in één vakje).
+                else if(l.length>f.length&&l.length<=2*f.length){Line r=herschaal(l,f.length);if(r!=null){fit.add(r);if(sp!=null)sp.herschaald++;}}
+            }
             for(int i=0;i+f.lines<=fit.size();i++){
                 List<Line> group=fit.subList(i,i+f.lines);if(!together(group))continue;
                 if(sp!=null)sp.groepen++;
@@ -247,6 +260,15 @@ final class MrzOcr {
             }
         }
         return best;
+    }
+    /** Dezelfde vlakken als een regel van n tekens: tekenafstand = breedte / n. Null als dat geen OCR-B-verhouding geeft. */
+    static Line herschaal(Line l,int n){
+        double x0=Double.MAX_VALUE,x1=-Double.MAX_VALUE;
+        for(Box b:l.boxes){if(b.h()<0.5*l.height)continue;x0=Math.min(x0,b.x0);x1=Math.max(x1,b.x1);} // stipjes tellen niet voor de randen
+        if(x1<=x0)return null;
+        double pitch=(x1-x0+1)/n;
+        if(pitch<0.55*l.height||pitch>1.6*l.height)return null;
+        Line r=new Line(l.boxes,pitch,l.height,n,x0+pitch/2);r.extra.addAll(l.extra);return r;
     }
     static int[][] shifts(List<Line> group,int length){
         List<int[]> out=new ArrayList<>();out.add(new int[group.size()]);
@@ -275,6 +297,15 @@ final class MrzOcr {
             Mrz.Result r=find(g.rotate(q));if(r!=null&&better(r,best))best=r;
             // Alleen eerder stoppen bij een overtuigende lezing (onzin uit een verkeerde draairichting zit rond 20).
             if(best!=null&&best.sure()&&best.mean<Mrz.Result.LIMIT*0.6)break;
+        }
+        // Niets bruikbaars: nog eens met een mildere drempel. Bleke, dunne tekens (een gelaserde strook van een nieuwer
+        // paspoort, een flets licht) vallen bij de strenge drempel in stukjes; zo worden ze weer heel.
+        if(best==null||!best.usable()){
+            if(sp!=null)sp.mild++;
+            for(int q=0;q<4;q++){
+                Mrz.Result r=find(g.rotate(q),MILD);if(r!=null&&better(r,best))best=r;
+                if(best!=null&&best.sure()&&best.mean<Mrz.Result.LIMIT*0.6)break;
+            }
         }
         return best;
     }
