@@ -1,1 +1,0 @@
-Stamgegevens: de strook van een paspoort of ID-bewijs met dunne of bleke tekens (zoals de gelaserde strook van een nieuwer paspoort op een foto) wordt nu beter herkend.

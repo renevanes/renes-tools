@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.251",
+    "date": "2026-11-24",
+    "changes": [
+      "Stamgegevens: de strook van een paspoort of ID-bewijs met dunne of bleke tekens (zoals de gelaserde strook van een nieuwer paspoort op een foto) wordt nu beter herkend."
+    ]
+  },
+  {
     "version": "1.250",
     "date": "2026-11-24",
     "changes": [

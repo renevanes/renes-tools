@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.250",
-  "versionCode": 251,
-  "nativeLevel": 216,
+  "versionName": "1.251",
+  "versionCode": 252,
+  "nativeLevel": 217,
   "web": "index.html",
-  "webSha256": "bdd9cae58dd8c5d63e0616584de5bd3b8799b6f1146f10830129671bd001ace5",
+  "webSha256": "470477ae87ff6bbd9c4dc156a304b358e9b089b4b10be6e97555ff3c8d627779",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "0349977d2a821e3e2f0e0dbdef874d00c3854c9a1ec9030e8fdd023efadd745f",
+  "apkSha256": "d8740e23f153600e5d11ebded5f696baeec025a824b1544f5b8afb20f8c47ab3",
   "changelog": [
+    {
+      "version": "1.251",
+      "date": "2026-11-24",
+      "changes": [
+        "Stamgegevens: de strook van een paspoort of ID-bewijs met dunne of bleke tekens (zoals de gelaserde strook van een nieuwer paspoort op een foto) wordt nu beter herkend."
+      ]
+    },
     {
       "version": "1.250",
       "date": "2026-11-24",
@@ -177,14 +184,7 @@
         "Diagnose blijft op de telefoon tot jij op Kopiëren of Versturen tikt; Vanzelf sturen staat uit en je ziet altijd wat er verstuurd is.",
         "Betalen legt voor Diagnose vast welke tekst uit de rekening gelezen is en hoeveel QR-codes er gevonden zijn."
       ]
-    },
-    {
-      "version": "1.231",
-      "date": "2026-11-19",
-      "changes": [
-        "Betalen vindt de naam van de ontvanger op een brief met vakken nu ook als de tekstherkenning er een los teken voor zet of de namen van de velden en de waarden los van elkaar leest."
-      ]
     }
   ],
-  "webSig2": "lW2bC5JD+KIJtRRzEbJwBQDexjybY9q8U8PsmEqgokTsLcge8orCki64vyql//ZBzW0EzO/sHr5X9caJWLMZwXEf5FY3I52UEvVn/Duo7kVrQdVvkXsUru0lomICTP1/QzxD8ypzfToOk1C615O+Su9vwnMqB2lw0rlfVnYM9KzBgVIccOGORy/Wxp+MagyPn9q6k8L/4QehWGnE2UyTmSyIEe5fhafeSog2MZIkTWR2UFvIW+Z0Ei7pEuW6+dyxIDut6yGQvl81MnEm4PSEkUhg3dSbE7kCOWsL9ool2H5MiwfUFJWyGc0Oj2nhqlLlJRf9srIalGEEQ70JiW6soUAEa79CCNS+AHJu3WhTNdLhDi2wn5JYGibrwuPUbZ4n+qTaWE8CFQC/aFEfYrlZdtEyNlhMuuq0xM/u4vRQoZiRsdHKB8oUgRFRK4hRf6+XJjFIi9C1S19YJa4czJ5gimRGcQBpl7BeX//BL1ZR+3zWnMHYe7iPuEZSL4EHnLFU"
+  "webSig2": "q/PrW3Ttf5E5aI0V5LPrA4XUBXKClaFxQiizHVb25jOHGJhRQtQiOn9PKomNZ7hUmyJoF4t9Yy5CdBNcbjqal8VGNQRQGBEZLtBLbptCcj/QwwUL4gOdt0HbUOPoTf+t5QWlnJA8UKDiNfzFaFSLFuVTt+vw0y370TsnLmP7qfvih/hOP5yiWRnWvpsDDxkziysvW+Vld4lQEg1EL/EhR8HgLlInoyQJZ/lDBqkMvz8uEzG06h+bG4Qvs90plzhhn4w0qBDPiZxvjelPrVqPhzq+cnqK6CKtX34xwcEC4UZhmxkqTMExX1MQ1OLX0hwsjIVcAxG/O5bE58EnKgeDOY1LRTHdpahT+jPlZgdxWG7GZF5D2Ao4caPJNzapw2ujkBJyFCYNKywL2PAdfxjvyMI2gOB0bm+T+AywwKTaCxQRu/AZV0ct0yXYo8y8pXMAkHuF1BHs1EcofzSNGjAogrh2eb211qX6UW6mV/+7LXMbYeU+snx2HZsnGrYJEohG"
 }
