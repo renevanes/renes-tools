@@ -4,7 +4,7 @@
    van deze repository door), nooit uit het scherm. */
 const gh = { data: null, meer: false, laden: false };
 const GH_SOORT = {
-  bezig: ['⏳', 'wacht'], gelukt: ['✓', 'good'], mislukt: ['✗', 'bad'], gestopt: ['■', ''], overgeslagen: ['–', ''], wacht: ['⏸', 'wacht']
+  bezig: ['⏳', 'ghwarn'], gelukt: ['✓', 'good'], mislukt: ['✗', 'bad'], gestopt: ['■', ''], overgeslagen: ['–', ''], wacht: ['⏸', 'ghwarn']
 };
 function ghSoortTekst(s){
   return { bezig: t('bezig'), gelukt: t('gelukt'), mislukt: t('mislukt'), gestopt: t('gestopt'), overgeslagen: t('overgeslagen'), wacht: t('wacht op goedkeuring') }[s] || s;
@@ -56,6 +56,8 @@ function ghRender(){
   // Recente runs (eerst 12, met Meer tonen)
   const runs = d.runs || [], toon = gh.meer ? runs : runs.slice(0, 12);
   $('#gh-runs-kaart').hidden = !runs.length;
+  // Welke periode de runs beslaan (de nieuwste 100): een taak die zelden draait staat bij Per taak met zijn laatste run
+  $('#gh-sinds').textContent = d.sinds ? t('De nieuwste runs, sinds {wanneer}', { wanneer: ghWanneer(d.sinds) }) : '';
   $('#gh-runs').innerHTML = toon.map((x, i) => {
     const [teken, cls] = GH_SOORT[x.soort] || ['?', ''];
     return '<button class="ghrun" data-gh-run="' + i + '"><span class="ghteken ' + cls + '" aria-hidden="true">' + teken + '</span><span class="ghtxt"><b translate="no">' + esc(x.naam) + ' #' + esc(String(x.nr || '')) + '</b>' +

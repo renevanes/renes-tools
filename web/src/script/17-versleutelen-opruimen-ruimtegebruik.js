@@ -145,7 +145,7 @@ function bkRenderSpace(r){
 function bkSpaceDelen(v){
   if (!v) return '';
   const rij = (kop, x) => x && x.n ? '<div class="spc sub"><span>' + kop + ' <small>' + t('{n} bestanden', { n: fmtNum(x.n) }) + '</small></span><span>' + fmtB(x.bytes || 0) + '</span></div>' : '';
-  return rij(t('Backups'), v.backups) + rij(t('Grote bestanden (één keer bewaard)'), v.groot) + rij(t('Oude, volledige backups'), v.oud) +
+  return rij(t('Backups'), v.backups) + rij(t('Grote bestanden (één keer bewaard)'), v.groot) + rij(t('Oude, volledige backups'), v.oud) + rij(t('Overig'), v.rest) +
     (v.oud && v.oud.n ? '<p class="note sub">' + t('De oude, volledige backups haal je weg bij Automatisch en versleutelen.') + '</p>' : '');
 }
 /* versleutelde backup openen */

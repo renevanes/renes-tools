@@ -557,15 +557,13 @@ final class Secure {
     }
 
     /**
-     * De map Versleuteld in delen: backups (nieuw), oude volle backups (ruim van vóór het merkteken, zie Blokken.SINDS),
+     * De map Versleuteld in delen: backups, oude volle backups (wat "Oude, volledige backups weghalen" zou weghalen),
      * de map Grote bestanden en de rest. Elk {n, bytes}.
      */
     static JSONObject versleuteldDelen(Context c, WaBackup.Dest dest, WaBackup.Child ch) throws Exception {
         WaBackup.DestDir v = new WaBackup.DestDir();
         v.uri = DocumentsContract.buildDocumentUriUsingTree(dest.tree, ch.docId);
         dest.list(v);
-        long sinds = -1;
-        try { sinds = new BlokOpslag(WaBackup.Dest.echt(c.getContentResolver(), dest.tree)).sinds(); } catch (Throwable ignored) { }
         long[] nieuw = new long[2], oud = new long[2], groot = new long[2], rest = new long[2];
         for (Map.Entry<String, WaBackup.Child> e : v.kids.entrySet()) {
             WaBackup.Child k = e.getValue();
@@ -577,10 +575,15 @@ final class Secure {
                 doel[0] += s[0]; doel[1] += s[1];
                 continue;
             }
-            Rotate.F f = n.endsWith(".rtb") ? Rotate.parse(n) : null;
-            long[] doel = f == null ? rest : (sinds > 0 && f.when < sinds - Blokken.MARGE) ? oud : nieuw;
+            long[] doel = n.endsWith(".rtb") && Rotate.parse(n) != null ? nieuw : rest;
             doel[0] += Math.max(0, k.size); doel[1]++;
         }
+        // Oude, volledige backups: precies wat de knop "Oude, volledige backups weghalen" zou weghalen (zelfde regels)
+        try {
+            JSONObject w = BlokOpslag.oudeArchieven(c, true);
+            long n = w.optInt("count"), b = w.optLong("bytes");
+            if (n > 0 && n <= nieuw[1]) { oud[1] = n; oud[0] = b; nieuw[1] -= n; nieuw[0] = Math.max(0, nieuw[0] - b); }
+        } catch (Throwable ignored) { }
         JSONObject o = new JSONObject();
         o.put("backups", new JSONObject().put("n", nieuw[1]).put("bytes", nieuw[0]));
         o.put("oud", new JSONObject().put("n", oud[1]).put("bytes", oud[0]));

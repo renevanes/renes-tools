@@ -147,10 +147,12 @@ function bkGrootteRegel(l){
     return;
   }
   const totaal = delen.reduce((s, k) => s + Math.max(0, l[k].b), 0), nieuw = delen.reduce((s, k) => s + Math.max(0, l[k].o || 0), 0);
+  const mis = Object.keys(BK_LABEL).filter(k => l[k] && l[k].ok === false).length;
   el.hidden = false;
-  el.textContent = l.blok && l.blok.hergebruiktBytes
+  el.textContent = (l.blok && l.blok.hergebruiktBytes
     ? t('Grootte: {totaal} aan gegevens; deze backup nam {nieuw} extra ruimte in ({grootte} aan grote bestanden stond er al)', { totaal: fmtB(totaal), nieuw: fmtB(nieuw), grootte: fmtB(l.blok.hergebruiktBytes) })
-    : t('Grootte: {totaal} aan gegevens; deze backup nam {nieuw} ruimte in', { totaal: fmtB(totaal), nieuw: fmtB(nieuw) });
+    : t('Grootte: {totaal} aan gegevens; deze backup nam {nieuw} ruimte in', { totaal: fmtB(totaal), nieuw: fmtB(nieuw) }))
+    + (mis ? ' ' + tn(mis, 'Zonder het onderdeel dat mislukte.', 'Zonder de {n} onderdelen die mislukten.') : '');
 }
 /* Grootte van een onderdeel in de versleutelde backup: alles samen, en wat er deze keer echt bij kwam (b, o in bytes) */
 function bkGrootte(r){

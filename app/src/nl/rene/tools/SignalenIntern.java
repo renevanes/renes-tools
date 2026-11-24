@@ -210,7 +210,7 @@ final class SignalenIntern {
                 return taken(c, backup, Facturen.lijst(c), Facturen.toestand(c), Toiletten.bronnen(c), Toiletten.toestand(c), bron, nu, tz);
             }
             case "github":
-                try { return github(c, GithubStatus.overzicht(c, false).optJSONArray("runs"), bron, nu); }
+                try { return github(c, GithubStatus.mislukt(), bron, nu); }
                 catch (GithubStatus.Fout e) { throw new Signalen.Fout(e.getMessage()); }
             default:
                 return new ArrayList<>();

@@ -2919,11 +2919,10 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void githubStatus(boolean vers) {
             new Thread(App.veilig(() -> {
                 String r;
-                try { r = GithubStatus.overzicht(ctx, vers).toString(); }
-                catch (GithubStatus.Fout e) { r = "{\"error\":" + JSONObject.quote(e.getMessage()) + "}"; }
-                catch (Exception e) { r = "{\"error\":" + JSONObject.quote(Taal.t(ctx, "Ophalen bij GitHub lukte niet")) + "}"; }
+                try { r = GithubStatus.overzicht(vers).toString(); }
+                catch (GithubStatus.Fout e) { r = "{\"error\":" + JSONObject.quote(Taal.tx(ctx, e.getMessage())) + "}"; }
                 a.js("onGithub", r);
-            }), "github").start();
+            }, () -> a.js("onGithub", "{\"error\":" + JSONObject.quote(Taal.t(ctx, "Ophalen bij GitHub lukte niet")) + "}")), "github").start();
         }
 
         @JavascriptInterface public void backupSpace() {

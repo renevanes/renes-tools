@@ -222,7 +222,7 @@ function snSoortKan(s){ return s !== 'github' || (typeof Android.githubStatus ==
 function snBronNieuw(soort){
   if (snOud()) { toast(t('Installeer de nieuwste versie van Tools om Signalen te gebruiken.')); return; }
   const s = SN_SOORTEN[soort] ? soort : 'web';
-  sn.bron = { id: '', soort: s, naam: s === 'web' ? '' : SN_SOORTEN[s][0](), url: '', woorden: [], alleen: '', elke: SN_ELKE[s] || 6, wifi: s === 'web' || s === 'nieuws', melden: 'direct', belangrijk: false, aan: true, vooraf: 24, dagen: 7 };
+  sn.bron = { id: '', soort: s, naam: s === 'web' ? '' : SN_SOORTEN[s][0](), url: '', woorden: [], alleen: '', elke: SN_ELKE[s] || 6, wifi: s === 'web' || s === 'nieuws' || s === 'github', melden: 'direct', belangrijk: false, aan: true, vooraf: 24, dagen: 7 };
   show('snbron');
 }
 function snSoortenVrij(){ const al = new Set(snBronnen().map(b => b.soort || 'web')); return Object.keys(SN_SOORTEN).filter(s => !al.has(s) && snSoortKan(s)); }

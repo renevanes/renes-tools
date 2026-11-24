@@ -1448,4 +1448,4 @@ body.er-reading .speech-player,body.solo .speech-player{bottom:calc(12px + env(s
 /* Publiceren en tests (GitHub) */
 .ghrun{display:flex;gap:12px;align-items:flex-start;width:100%;min-height:44px;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:10px 0;color:inherit;font:inherit;cursor:pointer}
 .ghrun:first-child{border-top:0}.ghteken{width:22px;flex:none;text-align:center;font-weight:700}.ghtxt{display:flex;flex-direction:column;gap:2px;min-width:0}
-.ghtxt b,.ghtxt small{overflow-wrap:anywhere}.ghtxt small{color:var(--muted)}.ghteken.good,.stic.good{color:var(--ok)}.ghteken.bad,.stic.bad{color:var(--bad)}
+.ghtxt b,.ghtxt small{overflow-wrap:anywhere}.ghtxt small{color:var(--muted)}.ghteken.good,.stic.good{color:var(--ok)}.ghteken.bad,.stic.bad{color:var(--bad)}.ghteken.ghwarn,.stic.ghwarn{color:var(--warn)}

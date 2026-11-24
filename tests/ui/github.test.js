@@ -19,6 +19,8 @@ const { chromium } = require('playwright');
     ok(taken.length === 3 && /^✗ Publiceren mislukt/.test(taken[0]), 'per taak, Publiceren bovenaan en mislukt ' + JSON.stringify(taken));
     ok(taken.some(x => /Bouwen en testen gelukt .* nu op claude\/iets: bezig/.test(x)), 'de stand op main, met wat er nu op een andere tak loopt');
     ok((await pg.$$('#gh-runs .ghrun')).length === 12 && await pg.isVisible('#gh-runs-meer'), 'eerst 12 runs, met Meer tonen');
+    ok(/De nieuwste runs, sinds /.test(await pg.textContent('#gh-sinds')), 'zegt welke periode de runs beslaan');
+    ok(await pg.$eval('#gh-runs', el => !el.querySelector('.wacht')), 'een run die bezig is krijgt geen wachtbalk');
     await pg.click('#gh-runs-meer'); await pg.waitForTimeout(100);
     ok((await pg.$$('#gh-runs .ghrun')).length === 19 && !(await pg.isVisible('#gh-runs-meer')), 'Meer tonen: alle runs');
     // Doorklikken: een run en een taak openen op GitHub

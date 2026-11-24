@@ -1564,7 +1564,7 @@ if (!window.Android) window.Android = (function(){
         run(9102, 'Bouwen en testen', 'gelukt', 'main', 'Backups kleiner', 40), run(9101, 'Publiceren', 'gelukt', 'main', 'Versie 1.245', 300)];
       for (let i = 0; i < 14; i++) runs.push(run(9000 - i, 'Bouwen en testen', i % 3 ? 'gelukt' : 'overgeslagen', 'claude/oud-' + i, 'Ouder werk ' + i, 400 + i * 30));
       const taken = [{ naam: 'Publiceren', stand: runs[1], laatste: runs[1] }, { naam: 'Bouwen en testen', stand: runs[3], laatste: runs[0] }, { naam: 'Telefoontest', stand: runs[2], laatste: runs[2] }];
-      onGithub({ t: nu, runs, taken, samen: { bezig: 1, mislukt: 1, gelukt: 2 }, prs: 1, puntenOk: true, repo: W,
+      onGithub({ t: nu, runs, taken, sinds: runs[runs.length - 1].start, samen: { bezig: 1, mislukt: 1, gelukt: 2 }, prs: 1, puntenOk: true, repo: W,
         punten: [{ nr: 32, titel: 'Facturen in de kluis', labels: ['openstaand'], url: W + 'issues/32', t: nu - 864e5 }, { nr: 40, titel: '<b>Voorstel</b>', labels: ['voorstel'], url: 'https://elders.example/x', t: nu }] });
     }, 120); },
     backupSpace(){ setTimeout(()=>{ this._sec.space={t:Date.now(),total:5.4e9,dirs:[{name:'WhatsApp backup',bytes:4.9e9,files:8123},{name:'SMS backup',bytes:3.1e8,files:41},{name:'Versleuteld',bytes:9.77e8,files:821,delen:{backups:{n:3,bytes:9e6},oud:{n:4,bytes:7.8e8},groot:{n:812,bytes:1.88e8},rest:{n:2,bytes:4e4}}}]}; onSpace(this._sec.space); },200); },
