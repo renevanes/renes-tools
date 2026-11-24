@@ -98,7 +98,7 @@ function cmcRows(r,keys){
 }
 function cmcValue(r,key,v){
   const ref=cmRefType(r.type,key);
-  if(key==='woonadres'){const x=cm.records.find(p=>p.id===v),regel=cmAdresRegel(r.fields);if(!x)return [t('Niet meer aanwezig')];return [regel||x.label,regel&&regel!==x.label?x.label:''];}
+  if(key==='woonadres'){const x=cm.records.find(p=>p.id===v),regel=cmAdresRegel(r.fields,true);if(!x)return [t('Niet meer aanwezig')];return [regel||x.label,regel&&regel!==x.label?x.label:''];}
   if(ref){const x=cm.records.find(p=>p.id===v);return [x?x.label:t('Niet meer aanwezig')];}
   if(CM_MASK.has(key))return [cmc.reveal?v:'••••'+v.slice(-3)];
   if(key==='geboortedatum'){const n=cmiAge(v);return [fmtDate(v),n>=0?t('{n} jaar',{n}):''];}
@@ -142,6 +142,8 @@ function cmcPerson(box,r){
   cmcBlok(box,r,blok('geboorte'),cmcRows(r,blok('geboorte')[2]),{mask:true});
   // Telefoon en e-mail uit Contacten als het contact gevonden is
   const rows=cmcRows(r,blok('contact')[2]);
+  // Nog een los adres (bijv. alleen een land, of nog niet gekoppeld): wel laten zien
+  if(!r.fields?.woonadres&&cmAdresRegel(r.fields))rows.push([t(CM_FIELDS.adres),cmAdresRegel(r.fields,true),'woonadres']);
   if(live.gevonden)for(const k of ['email','telefoon']){if(!live[k])continue;const i=rows.findIndex(x=>x[2]===k),row=[t(CMC_KORT[k]),live[k],k,t('uit Contacten')];if(i>=0)rows[i]=row;else rows.unshift(row);}
   cmcBlok(box,r,blok('contact'),rows);
   // Documenten

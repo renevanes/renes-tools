@@ -239,7 +239,8 @@ function cmAdresUit(regel){
   const uit={adres,postcode,plaats,land};for(const k of Object.keys(uit))if(!uit[k])delete uit[k];return uit;
 }
 // Straat, postcode en plaats als één regel (voor het kaartje en de hint); gegevens, dus tonen met translate="no".
-function cmAdresRegel(f){f=f||{};return [f.adres,[f.postcode,f.plaats].filter(Boolean).join(' '),f.land].filter(Boolean).join(', ');}
+// toon: het land in de taal van de app (lnToon), zoals elders op het kaartje
+function cmAdresRegel(f,toon){f=f||{};return [f.adres,[f.postcode,f.plaats].filter(Boolean).join(' '),f.land&&toon?lnToon('land',f.land):f.land].filter(Boolean).join(', ');}
 function cmWoonadres(input,group){
   const f=cm.edit.fields,nieuw=()=>!cm.edit.fields.woonadres&&!!(cm.edit.fields.adres||cm.edit.fields.postcode||cm.edit.fields.plaats);
   const info=cmEl('p','','hint');info.id='cm-woon-info';

@@ -83,8 +83,9 @@ for(const colorScheme of ['light','dark']){
   await p.fill('#modal-input','Joegoslavië');await p.click('#modal-ok');
   await p.waitForFunction(()=>cm.edit.fields.uitgifteland==='Joegoslavië'&&$('#cm-field-uitgifteland').value==='Joegoslavië');
   await terug(p);
-  await T.blok('owner','contact');
-  assert.equal(await p.inputValue('#cm-field-land'),'','geen land ingevuld bij een bestaande persoon');
+  // Het land van een woonadres staat bij Adressen (een persoon woont op een adres)
+  const thuis=await T.maak('adres','Thuis',{adres:'Kade 1'});await T.blok(thuis,'adres');
+  assert.equal(await p.inputValue('#cm-field-land'),'','geen land ingevuld bij een bestaand adres');
   assert.ok((await opties(p,'#cm-field-land')).some(x=>x[0]==='Nederland'&&x[2]==='Jouw regio'));
   await terug(p);
   // Nieuw adres: land Nederland (in beeld); organisatie (land niet in het eerste blok) en reis: geen standaard.
