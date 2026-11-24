@@ -565,7 +565,7 @@ met leesrechten** en draait `python3 tools/logboek/analyse.py <map> --sinds <laa
 - **Wat eerst:** vastlopers (CRASH, DRAAD), dan nieuwe problemen, dan wat aanhoudt in de nieuwste versie. Wat al door een
   andere agent wordt opgelost (een recente commit, branch of open pull request over hetzelfde onderdeel) niet dubbel doen.
   Is een melding te vaag om op te lossen, maak de logregel dan eerst beter (de reden in vaste woorden) en publiceer dat.
-- **Openbaar alleen** soort, kenmerk en plek (`--openbaar`), aantallen, versies en de plek in de code. Nooit de tekst van
+- **Openbaar alleen** soort, kenmerk en plek in de code (`--openbaar`), aantallen en versies. Nooit de tekst van
   een melding, namen (ook niet van leveranciers of bronnen), installatie-id's of iets uit `diagnose/` in een issue,
   commit, test of wijzigingsregel.
 
@@ -596,7 +596,7 @@ Alles wat nog moet gebeuren staat als GitHub-issue, met een label (REST: `gh api
   een review iets liggen, zet het dan hier** (bestaand issue aanvullen of een nieuw), anders raakt het kwijt.
 - `wens` — een idee of verzoek van Rene. `voorstel` — een idee van een agent; pas bouwen als Rene het label `doen`
   geeft (of "doen" reageert). `doen` — mag gebouwd worden.
-- `logboek` — logboek van een geplande taak (Schermcheck, Prestaties, Beveiliging, Geplande taken, Logboek-analyse); geen werk, de Werklijst slaat het over.
+- `logboek` — logboek van een geplande taak (Schermcheck, Prestaties, Beveiliging, Geplande taken) of van Foutlogboek nalopen (Logboek-analyse); geen werk, de Werklijst slaat het over.
 - Klaar = vakje afvinken (issue bijwerken) en het issue sluiten als alles af is, met de versie erbij.
 - Werk op een branch altijd regelmatig pushen (`git push -u origin <branch>`, nooit main): de omgeving van een agent
   kan zomaar opnieuw beginnen, en wat alleen lokaal stond is dan weg. Behalve bij een gevonden kwetsbaarheid (zie "Beveiliging").
