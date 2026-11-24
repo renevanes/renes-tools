@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.249",
-  "versionCode": 250,
-  "nativeLevel": 215,
+  "versionName": "1.250",
+  "versionCode": 251,
+  "nativeLevel": 216,
   "web": "index.html",
-  "webSha256": "ad1aeae0596f9d6f17aa0c4b6debb69cc6814d9e656a503b58eb7fb4dc8d21db",
+  "webSha256": "bdd9cae58dd8c5d63e0616584de5bd3b8799b6f1146f10830129671bd001ace5",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "7cc76c3dfafc9c4a27015bf9d3c549308470db6da4e5e21ba1e7ec8655fe38c6",
+  "apkSha256": "0349977d2a821e3e2f0e0dbdef874d00c3854c9a1ec9030e8fdd023efadd745f",
   "changelog": [
+    {
+      "version": "1.250",
+      "date": "2026-11-24",
+      "changes": [
+        "Foutlogboek: gaat er iets mis, dan staat de melding binnen een kwartier in je eigen repository (was: hooguit eens per uur), zodat Claude het sneller kan nazoeken",
+        "Facturen: in het foutlogboek staat nu ook waarom het ophalen mislukte (bijv. inloggen of tijd om), zonder namen of tekst van de website",
+        "Stamgegevens: lukt het herkennen van een paspoort of ID-bewijs niet, dan staat in het foutlogboek nu (alleen met aantallen) waar het lezen van de strook bleef steken, ook bij een foto; zo kan het gericht verbeterd worden.",
+        "Facturen: moet je bij een leverancier zelf inloggen (bijvoorbeeld omdat er geen wachtwoord is ingevuld), dan probeert Tools het op de achtergrond niet meer elke paar uur, maar hooguit eens per dag (meteen weer zodra je de leverancier aanpast)."
+      ]
+    },
     {
       "version": "1.249",
       "date": "2026-11-24",
@@ -174,18 +184,7 @@
       "changes": [
         "Betalen vindt de naam van de ontvanger op een brief met vakken nu ook als de tekstherkenning er een los teken voor zet of de namen van de velden en de waarden los van elkaar leest."
       ]
-    },
-    {
-      "version": "1.230",
-      "date": "2026-11-19",
-      "changes": [
-        "Betalen leest brieven met vakken en kolommen (zoals een boete van het CJIB) nu goed: ontvanger, IBAN, bedrag, betalingskenmerk en de uiterste dag komen uit het juiste vak.",
-        "Betalen vindt de QR-code om mee te betalen ook als er meer QR-codes op de brief staan (bijvoorbeeld een adrescode bovenaan).",
-        "Betalen maakt met de camera een scherpere foto, zodat kleine letters en een kleine QR-code beter te lezen zijn.",
-        "Notities: met heel veel notities opent het overzicht weer vlot; eerst 100, met Meer tonen de rest.",
-        "Stabieler: een fout in een taak op de achtergrond laat de app niet meer stoppen, maar komt in het foutlogboek."
-      ]
     }
   ],
-  "webSig2": "eVqFgmn/DIaqrNFcx+QAMrTUhH0ZF/mk8HwSfUODHWPJz+CoRNbRjMXtmg9yKYUGuHt8m94j/LdtZb+McX+0TQOqod1jmicpGdID2y4q1lN4UXdRNUu+7D6Q72Lxh74bQtdMcOCXQ2MnQ6I6Tt8k/VAyU27+mGFxK2Nuc1/K4AePj1tqr+IGp918LrBuSe0KZyAyn5O4YgiiGnWv2p7kzhMy04rOi/l5HGOyqr30zve4OsQvLCZ9+nTRDp9AiYug2uKVnzDI2+TwIVlQQMRW5/l1qg6LpGRR7C30rAqi6rucGEvZIolUboFjNjkA5KGryHxz9VeQNuacXulS5JERCO0njGUAY8xcse0WSe2XWCtXNxGHLlwhy+a+DbviqdsWIIfQhX4BFgLACfAfmybLm3b1WQkQ2Opo8MGG1Uk13xHQbZpS5sNaFMPpio6U4iKDHhVWcMm2Bcr/IWu98MkW1s4Xc2ATIai0yNYY6K8387M20vf2FIJeIGNYC92ErDgF"
+  "webSig2": "lW2bC5JD+KIJtRRzEbJwBQDexjybY9q8U8PsmEqgokTsLcge8orCki64vyql//ZBzW0EzO/sHr5X9caJWLMZwXEf5FY3I52UEvVn/Duo7kVrQdVvkXsUru0lomICTP1/QzxD8ypzfToOk1C615O+Su9vwnMqB2lw0rlfVnYM9KzBgVIccOGORy/Wxp+MagyPn9q6k8L/4QehWGnE2UyTmSyIEe5fhafeSog2MZIkTWR2UFvIW+Z0Ei7pEuW6+dyxIDut6yGQvl81MnEm4PSEkUhg3dSbE7kCOWsL9ool2H5MiwfUFJWyGc0Oj2nhqlLlJRf9srIalGEEQ70JiW6soUAEa79CCNS+AHJu3WhTNdLhDi2wn5JYGibrwuPUbZ4n+qTaWE8CFQC/aFEfYrlZdtEyNlhMuuq0xM/u4vRQoZiRsdHKB8oUgRFRK4hRf6+XJjFIi9C1S19YJa4czJ5gimRGcQBpl7BeX//BL1ZR+3zWnMHYe7iPuEZSL4EHnLFU"
 }

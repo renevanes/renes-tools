@@ -1,2 +1,0 @@
-Stamgegevens: lukt het herkennen van een paspoort of ID-bewijs niet, dan staat in het foutlogboek nu (alleen met aantallen) waar het lezen van de strook bleef steken, ook bij een foto; zo kan het gericht verbeterd worden.
-Facturen: moet je bij een leverancier zelf inloggen (bijvoorbeeld omdat er geen wachtwoord is ingevuld), dan probeert Tools het op de achtergrond niet meer elke paar uur, maar hooguit eens per dag (meteen weer zodra je de leverancier aanpast).

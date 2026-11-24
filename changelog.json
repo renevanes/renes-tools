@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.250",
+    "date": "2026-11-24",
+    "changes": [
+      "Foutlogboek: gaat er iets mis, dan staat de melding binnen een kwartier in je eigen repository (was: hooguit eens per uur), zodat Claude het sneller kan nazoeken",
+      "Facturen: in het foutlogboek staat nu ook waarom het ophalen mislukte (bijv. inloggen of tijd om), zonder namen of tekst van de website",
+      "Stamgegevens: lukt het herkennen van een paspoort of ID-bewijs niet, dan staat in het foutlogboek nu (alleen met aantallen) waar het lezen van de strook bleef steken, ook bij een foto; zo kan het gericht verbeterd worden.",
+      "Facturen: moet je bij een leverancier zelf inloggen (bijvoorbeeld omdat er geen wachtwoord is ingevuld), dan probeert Tools het op de achtergrond niet meer elke paar uur, maar hooguit eens per dag (meteen weer zodra je de leverancier aanpast)."
+    ]
+  },
+  {
     "version": "1.249",
     "date": "2026-11-24",
     "changes": [
