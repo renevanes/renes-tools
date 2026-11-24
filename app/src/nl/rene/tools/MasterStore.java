@@ -308,9 +308,13 @@ final class MasterStore {
      * (bijv. het maximum aantal stamgegevens), dan blijft die persoon zoals hij was. Een andere fout zet alles terug en het
      * volgende ontgrendelen probeert het opnieuw; ontgrendelen zelf hangt er nooit van af (MasterBridge vangt alles).
      */
+    /** Al gekoppeld (gezien in deze uitvoering van de app): dan niet bij elk ontgrendelen een extra transactie. */
+    private static volatile boolean adressenKlaar;
     static JSONObject adressenKoppelen(Context c,SecretKey key,MasterSession session,String token)throws Exception{
-        return transaction(c,key,session,token,(db,k,h)->{
+        if(adressenKlaar)return new JSONObject().put("gekoppeld",0);
+        JSONObject uit=transaction(c,key,session,token,(db,k,h)->{
             if(h.optBoolean("adressenGekoppeld"))return new JSONObject().put("gekoppeld",0);
+            h.put("adressenGekoppeld",true); // vooraf: elke append hieronder bewaart het controlepunt mét de vlag
             java.util.Map<String,String> sleutels=adresSleutels(db,k);int n=0,overgeslagen=0;
             JSONArray alle=records(db,k);
             for(int i=0;i<alle.length();i++){JSONObject p=alle.getJSONObject(i);
@@ -322,10 +326,10 @@ final class MasterStore {
                 try{anders=woonadres(c,db,k,h,vol.getJSONObject("fields"),sleutels);}catch(MasterError niet){overgeslagen++;continue;}
                 rewrite(c,db,k,h,vol,"address_link",new JSONArray(anders));n++;
             }
-            h.put("adressenGekoppeld",true);
-            if(n==0)append(db,k,h,"address_link","masterdata","",null,null); // zo wordt de vlag bewaard
+            if(n==0)append(db,k,h,"address_link","masterdata","",null,null); // ook zonder koppeling de vlag bewaren
             return new JSONObject().put("gekoppeld",n).put("overgeslagen",overgeslagen);
         });
+        adressenKlaar=true;return uit;
     }
     /** Gekozen foto-velden van document en eigenaar worden samen bewaard of samen teruggedraaid. */
     static JSONObject scanSave(Context c,SecretKey key,MasterSession session,String token,JSONObject input)throws Exception{

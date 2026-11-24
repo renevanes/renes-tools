@@ -235,6 +235,7 @@ function cmAdresUit(regel){
     land=delen.slice(na?i+1:i+2).join(', ');
   }else if(delen.length===1)adres=delen[0];
   else{adres=delen[0];plaats=delen[1];land=delen.slice(2).join(', ');}
+  if(land){const w=lnWaarde(lnVind(land),'land');if(w)land=w;} // zoals bij Contacten: de naam uit de landenlijst
   const uit={adres,postcode,plaats,land};for(const k of Object.keys(uit))if(!uit[k])delete uit[k];return uit;
 }
 // Straat, postcode en plaats als één regel (voor het kaartje en de hint); gegevens, dus tonen met translate="no".

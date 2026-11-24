@@ -20,7 +20,7 @@ for(const colorScheme of ['light','dark']){
   assert.equal((await rec(bas)).fields.adres,'Kade 12','de schrijfwijze van Adressen');
 
   // Eén regel lezen als adres
-  assert.deepEqual(await p.evaluate(()=>['Kade 12, 3011 AB Rotterdam','Kade 12 3011ab Rotterdam','3011 AB Rotterdam','Kade 12, 3011 AB Rotterdam, Nederland','Rue Haute 5, Bruxelles, België','Kade 12'].map(cmAdresUit)),[
+  assert.deepEqual(await p.evaluate(()=>['Kade 12, 3011 AB Rotterdam','Kade 12 3011ab Rotterdam','3011 AB Rotterdam','Kade 12, 3011 AB Rotterdam, Nederland','Rue Haute 5, Bruxelles, belgie','Kade 12'].map(cmAdresUit)),[
     {adres:'Kade 12',postcode:'3011 AB',plaats:'Rotterdam'},{adres:'Kade 12',postcode:'3011 AB',plaats:'Rotterdam'},{postcode:'3011 AB',plaats:'Rotterdam'},
     {adres:'Kade 12',postcode:'3011 AB',plaats:'Rotterdam',land:'Nederland'},{adres:'Rue Haute 5',plaats:'Bruxelles',land:'België'},{adres:'Kade 12'}]);
   // Alleen een plaats is ook een adres; 12-1 is een ander huis dan 121
