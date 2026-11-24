@@ -3,7 +3,7 @@
 
 Leest alle logboekbestanden (<tijd UTC>-<installatie>.txt), haalt de meldingen eruit, voegt gelijke meldingen samen
 (cijfers tellen niet mee) en zet ze op een rij: wat nieuw is, wat in de nieuwste versie nog voorkomt en wat stil werd.
-Gebruikt door de dagelijkse taak Logboek-analyse en het wekelijkse onderhoud (AGENTS.md).
+Voor het wekelijkse onderhoud en Claude op verzoek van Rene (AGENTS.md, "Foutlogboek nalopen").
 
   python3 tools/logboek/analyse.py <map logboek/> [--sinds 2026-11-24T142715Z] [--openbaar] [--json]
 

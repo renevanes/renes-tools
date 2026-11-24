@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
  * Statistieken zijn ingesteld; uit te zetten bij Instellingen → Foutrapport en statistieken. Gaat een paar minuten na
  * een nieuwe melding: hooguit eens per UUR, na een melding over iets wat misging ({@link #probleem}) hooguit eens per
  * KWARTIER (na een vastloper na een paar minuten), of bij het starten van de app; alleen met internet. Zo staat een
- * probleem er snel genoeg voor de dagelijkse taak Logboek-analyse (AGENTS.md).
+ * probleem er snel als Claude het nazoekt (AGENTS.md, "Foutlogboek nalopen").
  * Logregels zelf horen al geen namen, nummers of berichten te bevatten (AGENTS.md); dit is een tweede vangnet.
  */
 final class Logboek {
@@ -81,7 +81,8 @@ final class Logboek {
             SharedPreferences p = Statistiek.prefs(c);
             long nu = System.currentTimeMillis(), tik = android.os.SystemClock.elapsedRealtime(), op = geplandOp;
             if (op < 0) geplandOp = op = p.getLong("logPlan", 0);
-            long wacht = dringend ? WACHT_MS : wachtTijd(p.getLong("logLast", 0), nu, mis);
+            if (op > nu + UUR + 60_000) op = 0; // klok teruggezet: het bewaarde moment klopt niet meer
+            long wacht = dringend ? WACHT_MS : wachtTijd(laatstGeprobeerd(p), nu, mis);
             boolean opTijd = op != 0 && op <= nu + wacht + 60_000;
             if (opTijd && nu < op - 30_000) return; // de taak die er staat komt nog, en op tijd: deze melding gaat mee
             if (!dringend && tik < gevraagdTot && (op == 0 || opTijd)) return; // net nagevraagd: er staat een taak (wacht op internet of loopt)
@@ -105,6 +106,9 @@ final class Logboek {
         if (op <= nu + wacht + 60_000) return -1;     // op tijd, al aan de beurt, wacht op internet of bezig
         return wacht;                                 // te laat (bijv. een gewone taak over een uur): vervroegen
     }
+
+    /** De laatste poging, gelukt of niet: een fout die blijft (sleutel verlopen) geeft geen poging om de paar minuten. */
+    private static long laatstGeprobeerd(SharedPreferences p) { return Math.max(p.getLong("logLast", 0), p.getLong("logTry", 0)); }
 
     private static JobInfo taak(Context c, long wacht) {
         return new JobInfo.Builder(JOB_ID, new ComponentName(c, Care.class)).setMinimumLatency(wacht)
@@ -133,7 +137,7 @@ final class Logboek {
             if (n.isEmpty()) return;
             JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
             if (js == null) return;
-            long wacht = wachtTijd(Statistiek.prefs(c).getLong("logLast", 0), System.currentTimeMillis(), probleemIn(n));
+            long wacht = wachtTijd(laatstGeprobeerd(Statistiek.prefs(c)), System.currentTimeMillis(), probleemIn(n));
             // Rechtstreeks: de taak die net klaar is kan nog als gepland tellen; dezelfde id vervangt hem
             if (js.schedule(taak(c, wacht)) == JobScheduler.RESULT_SUCCESS) zetPlan(c, System.currentTimeMillis() + wacht);
         } catch (Throwable ignored) { }

@@ -83,7 +83,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   je met `AppData.safeMsg(e, …)` of de klassenaam, niet met `+ e` (Android zet de gelezen tekst in een JSONException). `schoon` is een vangnet, geen vrijbrief: een `App.log`-regel bevat nog steeds geen namen, nummers,
   berichten of bestandsnamen. Nieuw soort gegevens dat erdoorheen kan glippen = een patroon in `schoon` en in de test.
   Zet in een melding over iets wat misging ook de reden, in vaste woorden uit de code (zoals `FacturenRun.reden`): anders
-  kan de taak Logboek-analyse er niets mee. Woorden die "misging" betekenen staan in `Logboek.MIS` en precies zo in
+  kan wie het logboek naloopt (zie "Foutlogboek nalopen") er niets mee. Woorden die "misging" betekenen staan in `Logboek.MIS` en precies zo in
   `tools/logboek/analyse.py` (`tests/logboek` vergelijkt ze).
   **Diagnose** (`Diagnose.java`, kaart Diagnose op hetzelfde scherm; `DiagnoseTest`, `tests/ui/diagnose.test.js`) is
   de centrale plek voor wat wél inhoud bevat en nodig is om een probleem na te zoeken (bijv. de gelezen tekst van een
@@ -542,8 +542,8 @@ Playwright, Node of Java van de CI.
 8. **Statistieken en foutlogboek:** staat de privé repository met de weekrapporten (Instellingen → Foutrapport en statistieken, map
    `statistiek/`) open voor de sessie, lees dan de rapporten sinds vorige week. Vastlopers (soort + plek) en logsoorten die
    opeens vaak voorkomen: oplossen, of met de reden in het issue zetten. Lees ook `logboek/` (het opgeschoonde foutlogboek
-   per installatie; `python3 tools/logboek/analyse.py <map logboek/>`) en zoek na wat daar misgaat; de dagelijkse taak
-   Logboek-analyse doet dat al, dus kijk eerst in haar issue "Logboek-analyse: logboek". Niet bereikbaar: zeg dat in de reactie.
+   per installatie) en zoek na wat daar misgaat, zoals "Foutlogboek nalopen" beschrijft (met `tools/logboek/analyse.py`
+   en het issue "Logboek-analyse: logboek"). Niet bereikbaar: zeg dat in de reactie.
 9. **Branches opruimen:** verwijder op GitHub branches die al helemaal in main zitten en ouder zijn dan 14 dagen
    (`git branch -r --merged origin/main`, datum met `git log -1 --format=%cs <branch>`; weghalen met
    `gh api -X DELETE repos/renevanes/renes-tools/git/refs/heads/<branch>`). Nooit `main`, `publiceren-slot`,
@@ -554,6 +554,20 @@ Playwright, Node of Java van de CI.
 Gaat er iets mis met updates, de sleutel of GitHub zelf: `docs/noodplan.md`.
 Nooit in het kader van onderhoud: de updatecontrole, de sleutel of `publiceren.yml`-beveiliging verzwakken, of
 pull requests van anderen (mensen of andere bots dan Dependabot) samenvoegen.
+
+## Foutlogboek nalopen (Logboek-analyse)
+Wens van Rene (24-11-2026: "Laat logs automatisch pushen en analyseren"). De telefoon zet het opgeschoonde foutlogboek
+vanzelf in `logboek/` van de privé repository (zie "Foutlogboek" bij Privacy). Wie het naloopt (het wekelijkse onderhoud,
+stap 8, of een agent op verzoek van Rene; een eigen dagelijkse taak wilde Rene nu niet) koppelt die repository **alleen
+met leesrechten** en draait `python3 tools/logboek/analyse.py <map> --sinds <laatst geanalyseerd>`.
+- **Waar het verder gaat:** het issue "Logboek-analyse: logboek" (label `logboek`) noemt per ronde het laatst
+  geanalyseerde bestand (alleen de tijd uit de naam, bijv. `2026-11-24T142715Z`).
+- **Wat eerst:** vastlopers (CRASH, DRAAD), dan nieuwe problemen, dan wat aanhoudt in de nieuwste versie. Wat al door een
+  andere agent wordt opgelost (een recente commit, branch of open pull request over hetzelfde onderdeel) niet dubbel doen.
+  Is een melding te vaag om op te lossen, maak de logregel dan eerst beter (de reden in vaste woorden) en publiceer dat.
+- **Openbaar alleen** soort, kenmerk en plek (`--openbaar`), aantallen, versies en de plek in de code. Nooit de tekst van
+  een melding, namen (ook niet van leveranciers of bronnen), installatie-id's of iets uit `diagnose/` in een issue,
+  commit, test of wijzigingsregel.
 
 ## Opruimen en versimpelen (bij elke scan, dus wekelijks)
 De scan (`python3 .github/scripts/opruim-scan.py`, ook lokaal te draaien) zoekt op naam naar dode code (JS-functies,
@@ -588,7 +602,7 @@ Alles wat nog moet gebeuren staat als GitHub-issue, met een label (REST: `gh api
   kan zomaar opnieuw beginnen, en wat alleen lokaal stond is dan weg. Behalve bij een gevonden kwetsbaarheid (zie "Beveiliging").
 
 **Geplande taken (Claude, in de cloud; tijden in Amsterdamse tijd).** Vaste opdracht van Rene: alle taken lopen
-wekelijks (behalve Logboek-analyse: dagelijks, zijn keuze van 24-11-2026) en sturen na afloop geen melding naar zijn telefoon. Ook deze taken publiceren zelf, na geslaagde tests en
+wekelijks en sturen na afloop geen melding naar zijn telefoon. Ook deze taken publiceren zelf, na geslaagde tests en
 een onafhankelijke review, en melden kort in hun eigen sessie wat er gepubliceerd is (en of er een nieuwe APK nodig is).
 
 | Taak | Wanneer | Wat |
@@ -600,25 +614,8 @@ een onafhankelijke review, en melden kort in hun eigen sessie wat er gepubliceer
 | Prestaties en stabiliteit | donderdag 11:17 | vastlopers, haperingen, opstarttijd, geheugen, accu en trage schermen meten en het grootste probleem oplossen; logboek in het issue "Prestaties en stabiliteit: logboek" |
 | Beveiliging | vrijdag 09:47 | elke week één gebied (of deel) uit "Beveiliging" grondig nalopen en oplossen met tests; vangnetten bouwen (kwaadaardige tekst op elk scherm, lijst van toestemmingen en geëxporteerde onderdelen, vaste adressen via https); logboek in het issue "Beveiliging: logboek" |
 | Betrouwbaarheid en schermcheck | vrijdag 13:23 | wankele tests, CI en telefoontest; één scherm kritisch nalopen (logboek in het issue "Schermcheck: logboek") |
-| Logboek-analyse | elke dag 19:47 | het foutlogboek van de telefoon (`logboek/` in de privé repository) nalopen en oplossen wat daar misgaat; zie hieronder |
 
 De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck houdt deze tabel en de taken gelijk.
-
-**Logboek-analyse** (wens van Rene, 24-11-2026: "Laat logs automatisch pushen en analyseren"). De telefoon zet het
-opgeschoonde foutlogboek vanzelf in `logboek/` van de privé repository (zie "Foutlogboek" bij Privacy); de taak koppelt
-die repository **alleen met leesrechten** en draait `python3 tools/logboek/analyse.py <map> --sinds <laatst geanalyseerd>`.
-- **Waar hij verder gaat:** het issue "Logboek-analyse: logboek" (label `logboek`) noemt per ronde het laatst
-  geanalyseerde bestand (alleen de tijd uit de naam, bijv. `2026-11-24T142715Z`). Geen nieuwe bestanden = klaar, zonder
-  reactie en zonder bericht van meer dan één regel.
-- **Wat eerst:** vastlopers (CRASH, DRAAD), dan nieuwe problemen, dan wat aanhoudt in de nieuwste versie. Wat al door een
-  andere agent wordt opgelost (een recente commit, branch of open pull request over hetzelfde onderdeel) niet dubbel doen.
-  Is een melding te vaag om op te lossen, maak de logregel dan eerst beter (de reden in vaste woorden) en publiceer dat.
-- **Openbaar alleen** soort, kenmerk (`--openbaar`), aantallen, versies en de plek in de code. Nooit de tekst van een
-  melding, namen (ook niet van leveranciers of bronnen), installatie-id's of iets uit `diagnose/` in een issue, commit,
-  test of wijzigingsregel.
-- Oplossen, testen, review en publiceren zoals altijd (werkwijze hieronder); een grote verbouwing wordt een
-  `openstaand`-issue. Kort bericht aan Rene: wat het logboek liet zien, wat opgelost is (versie, nieuwe APK?) en wat
-  open staat.
 
 **Werkwijze voor geplande taken** (bovenop de rest van dit bestand):
 1. **Eerst rondkijken.** Staat er een branch van een vorige run van deze taak (`<taak>/*`) die niet op main kwam (een
@@ -627,7 +624,7 @@ die repository **alleen met leesrechten** en draait `python3 tools/logboek/analy
    welke pull requests open staan (`gh api "repos/renevanes/renes-tools/pulls?state=open"`), en doe dat werk niet
    dubbel. Voeg zo'n pull request niet zelf samen; noem hem in je bericht als hij jouw onderwerp raakt.
 2. **Eigen branch `<taak>/JJJJ-MM-DD`:** `onderhoud/`, `opruimen/`, `werklijst/`, `prestaties/`, `betrouwbaarheid/`,
-   `takencheck/`, `beveiliging/`, `logboek-analyse/` (pushen buiten `claude/` werkt; lukt het toch niet, dan `claude/<taak>-JJJJ-MM-DD`). Push na elke
+   `takencheck/`, `beveiliging/` (pushen buiten `claude/` werkt; lukt het toch niet, dan `claude/<taak>-JJJJ-MM-DD`). Push na elke
    commit, zodat een volgende run verder kan; behalve bij een gevonden kwetsbaarheid (zie "Beveiliging").
 3. **Lokaal bouwen kan in een cloudsessie deels mislukken.** Weigert de proxy een download van
    `tools/voorlezen/deps.py`, dan stopt `./build.sh` al vóór javac en kan `run-jvm.sh` niet draaien; struikelt de

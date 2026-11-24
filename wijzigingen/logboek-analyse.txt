@@ -1,2 +1,2 @@
-Foutlogboek: gaat er iets mis, dan staat de melding binnen een kwartier in je eigen repository (was: hooguit eens per uur); elke dag zoekt Claude het logboek na en lost op wat kan
+Foutlogboek: gaat er iets mis, dan staat de melding binnen een kwartier in je eigen repository (was: hooguit eens per uur), zodat Claude het sneller kan nazoeken
 Facturen: in het foutlogboek staat nu ook waarom het ophalen mislukte (bijv. inloggen of tijd om), zonder namen of tekst van de website
