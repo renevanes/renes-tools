@@ -374,6 +374,16 @@ final class MasterDocumentImages {
      * en ja/nee, voor de foutmelding en het logboek.
      */
     static Match find(Context context, byte[] bytes, String today, BooleanSupplier active, JSONObject stats, boolean rijbewijs) throws Exception {
+        MrzOcr.Spoor spoor = new MrzOcr.Spoor();
+        MrzOcr.volg(spoor);
+        try { return zoek(context, bytes, today, active, stats, rijbewijs); }
+        finally {
+            MrzOcr.volg(null);
+            try { if (stats != null) stats.put("strook", spoor.tekst()); } catch (Exception ignored) { }
+        }
+    }
+
+    private static Match zoek(Context context, byte[] bytes, String today, BooleanSupplier active, JSONObject stats, boolean rijbewijs) throws Exception {
         long deadline = SystemClock.elapsedRealtime() + SEARCH_MS;
         BooleanSupplier searching = () -> active.getAsBoolean() && SystemClock.elapsedRealtime() < deadline;
         if (!pdf(bytes)) return word(context, bytes, today, searching);

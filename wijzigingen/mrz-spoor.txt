@@ -1,0 +1,1 @@
+Stamgegevens: lukt het herkennen van een paspoort of ID-bewijs niet, dan staat in het foutlogboek nu (alleen met aantallen) waar het lezen van de strook bleef steken, ook bij een foto; zo kan het gericht verbeterd worden.

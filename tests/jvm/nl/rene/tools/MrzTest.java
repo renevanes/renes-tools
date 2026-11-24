@@ -70,6 +70,15 @@ public class MrzTest {
         check(new MrzOcr.Gray(bp,bw,bh).shrink(MrzOcr.MAX_SIDE).w==MrzOcr.MAX_SIDE,"verkleinen naar precies de werkmaat");
         Mrz.Result groot=MrzOcr.read(bp,bw,bh);check(groot!=null&&groot.usable()&&groot.line(0).equals(want.get(0)),"grote foto gelezen");
         Mrz.Result none=photo("zonder-strook.jpg");check(none==null||!none.usable(),"zonder strook niets bruikbaars");
+        // Spoor voor het logboek: aantallen en ja/nee, nooit tekens uit de strook
+        MrzOcr.Spoor sp=new MrzOcr.Spoor();MrzOcr.volg(sp);
+        try{photo("td3-paspoort.jpg");}finally{MrzOcr.volg(null);}
+        String st=sp.tekst();
+        check(st.contains("beelden 1")&&st.matches(".*regels 4[34]x.*")&&st.contains("beste TD3")&&st.contains("controle nr/geb/verv ja/ja/ja"),"spoor: "+st);
+        for(String regel:new String[]{want.get(4),want.get(5)})for(String stuk:regel.split("<+"))check(stuk.length()<3||!st.contains(stuk),"spoor zonder tekens uit de strook: "+stuk);
+        MrzOcr.Spoor leeg=new MrzOcr.Spoor();MrzOcr.volg(leeg);try{photo("zonder-strook.jpg");}finally{MrzOcr.volg(null);}
+        check(leeg.tekst().startsWith("strook: beelden 1")&&!leeg.tekst().contains("ja/ja/ja"),"spoor zonder strook: "+leeg.tekst());
+        photo("td1-recht.jpg");check(sp.beelden==1,"zonder volg telt niets mee");
         System.out.println("Strook lezen: controlecijfers, ontleden, verbeteren en herkennen in foto's gecontroleerd");
     }
 }

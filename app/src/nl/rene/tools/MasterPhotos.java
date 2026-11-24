@@ -291,7 +291,7 @@ final class MasterPhotos {
                 // Alleen als het niet lukt, en alleen vaste woorden en aantallen: nooit namen, nummers of tekst uit het document.
                 if(match==null)App.log(activity,"STAMGEGEVENS","document ("+soortBestand+(job.virtual?", google":"")+"): niet herkend"
                     +("pdf".equals(soortBestand)?", foto's "+stats.optInt("fotos")+", "+stats.optInt("bekeken")+" van "+stats.optInt("paginas")+" pagina's, "+stats.optInt("stukken")+" stukken":"")
-                    +(stats.optBoolean("teLang")?", tijd op":""));
+                    +(stats.optBoolean("teLang")?", tijd op":"")+(stats.has("strook")?"; "+stats.optString("strook"):""));
                 if(match==null&&!active.getAsBoolean())throw new MasterError(Taal.T("Kies het bestand opnieuw."));
                 if(match==null&&stats.optBoolean("teLang"))throw new MasterError(Taal.T("Geen ID-bewijs herkend: het zoeken duurde te lang. Kies een PDF met alleen de pagina van het ID-bewijs, of een foto van de kaart."));
                 if(match==null)throw new MasterError(Taal.T("Geen ID-bewijs herkend in dit document. Kies een document met een scherpe foto van het ID-bewijs, of een foto van de kaart zelf."));
@@ -299,7 +299,10 @@ final class MasterPhotos {
                 found=match.fields;
             }else{
                 v.tijd("herkennen",HERKEN_MS);
-                found=recognize(activity,bytes,today,active,false,diag);
+                MrzOcr.Spoor spoor=new MrzOcr.Spoor();MrzOcr.volg(spoor);
+                try{found=recognize(activity,bytes,today,active,false,diag);}finally{MrzOcr.volg(null);}
+                // Alleen aantallen en ja/nee (zie MrzOcr.Spoor): waar het lezen van de strook bleef steken.
+                if(found==null&&"scan".equals(job.side)&&active.getAsBoolean())App.log(activity,"STAMGEGEVENS","foto: niet herkend; "+spoor.tekst());
             }
             v.stap("opslaan",0,0);
             u.image=bytes==null?null:normalize(bytes);u.found=found;u.diag=diag;

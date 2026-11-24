@@ -190,21 +190,52 @@ final class MrzOcr {
     /** Zoekt in één draairichting de beste strook. */
     /** Meer vlakken dan dit = ruis of een foto vol tekst: niet verder zoeken (tijd en geheugen op de telefoon). */
     static final int MAX_BOXES=20000;
+
+    /**
+     * Wat het lezen van de strook zag, voor het logboek als het niet lukt: alleen aantallen en ja/nee, nooit tekens.
+     * Per draad (een herkenning loopt op één draad): {@link #volg} zet hem aan en uit.
+     */
+    static final class Spoor {
+        int beelden, teDruk, maxVlakken, groepen;
+        /** Lengte van een regel (minstens 28 tekens) → hoe vaak. */
+        final java.util.TreeMap<Integer,Integer> regels=new java.util.TreeMap<>();
+        /** De beste lezing (alleen in het geheugen; in de tekst alleen afwijking en de controlecijfers). */
+        Mrz.Result beste;
+        String tekst(){
+            StringBuilder b=new StringBuilder("strook: beelden ").append(beelden).append(", vlakken tot ").append(maxVlakken);
+            if(teDruk>0)b.append(", te druk ").append(teDruk);
+            b.append(", regels ");
+            if(regels.isEmpty())b.append("geen");
+            else{int n=0;for(java.util.Map.Entry<Integer,Integer> e:regels.descendingMap().entrySet()){if(n++==6){b.append(" …");break;}b.append(n>1?" ":"").append(e.getKey()).append("x").append(e.getValue());}}
+            b.append(", groepen ").append(groepen);
+            if(beste!=null)b.append(", beste ").append(beste.format.name).append(" afwijking ").append(Math.round(beste.mean*10)/10.0)
+                .append(" controle nr/geb/verv ").append(beste.docOk?"ja":"nee").append("/").append(beste.birthOk?"ja":"nee").append("/").append(beste.expiryOk?"ja":"nee");
+            return b.toString();
+        }
+    }
+    private static final ThreadLocal<Spoor> SPOOR=new ThreadLocal<>();
+    /** Spoor bijhouden op deze draad (null = stoppen). */
+    static void volg(Spoor s){if(s==null)SPOOR.remove();else SPOOR.set(s);}
     static Mrz.Result find(Gray g){
         boolean[] dark=binarize(g);int[] label=new int[g.w*g.h];List<Box> boxes=components(dark,g.w,g.h,label);
-        if(boxes.size()>MAX_BOXES)return null;
+        Spoor sp=SPOOR.get();
+        if(sp!=null)sp.maxVlakken=Math.max(sp.maxVlakken,boxes.size());
+        if(boxes.size()>MAX_BOXES){if(sp!=null)sp.teDruk++;return null;}
         Page pg=new Page(g,dark,label);List<Line> ls=lines(boxes);
+        if(sp!=null)for(Line l:ls)if(l.length>=28)sp.regels.merge(l.length,1,Integer::sum);
         ls.sort((a,b)->Double.compare(a.y(),b.y()));
         Mrz.Result best=null;
         for(Mrz.Format f:Mrz.FORMATS){
             List<Line> fit=new ArrayList<>();for(Line l:ls)if(l.length>=f.length-1&&l.length<=f.length)fit.add(l);
             for(int i=0;i+f.lines<=fit.size();i++){
                 List<Line> group=fit.subList(i,i+f.lines);if(!together(group))continue;
+                if(sp!=null)sp.groepen++;
                 // Mist er één teken (vaag of afgesneden), probeer het dan aan het begin en aan het eind.
                 int[][] shifts=shifts(group,f.length);
                 for(int[] sh:shifts){
                     Mrz.Pos[][] p=new Mrz.Pos[f.lines][];for(int l=0;l<f.lines;l++)p[l]=read(pg,group.get(l),f.length,sh[l]);
                     Mrz.Result r=Mrz.decode(f,p);if(r!=null&&better(r,best))best=r;
+                    if(sp!=null&&r!=null&&better(r,sp.beste))sp.beste=r;
                 }
             }
         }
@@ -232,6 +263,7 @@ final class MrzOcr {
     /** Grijswaarden (0–255, rij voor rij) → beste lezing, of null als er geen strook te vinden is. */
     static Mrz.Result read(int[] gray,int w,int h){
         Gray g=new Gray(gray,w,h).shrink(MAX_SIDE);Mrz.Result best=null;
+        Spoor sp=SPOOR.get();if(sp!=null)sp.beelden++;
         for(int q=0;q<4;q++){
             Mrz.Result r=find(g.rotate(q));if(r!=null&&better(r,best))best=r;
             // Alleen eerder stoppen bij een overtuigende lezing (onzin uit een verkeerde draairichting zit rond 20).
