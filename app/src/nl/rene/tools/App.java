@@ -162,7 +162,7 @@ public class App extends Application {
             }
         } catch (Throwable ignored) { }
         Statistiek.count(c, kind); // alleen tellen per soort regel, nooit de tekst
-        Logboek.plan(c, kind); // als Rene het logboek laat meesturen: over een paar minuten (opgeschoond) naar zijn privé repository
+        Logboek.plan(c, kind, text); // als Rene het logboek laat meesturen: over een paar minuten (opgeschoond) naar zijn privé repository
     }
 
     /** Het rapport om te delen: toestel, versie en het logboek. */

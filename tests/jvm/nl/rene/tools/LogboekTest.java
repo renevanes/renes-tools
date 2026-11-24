@@ -84,8 +84,36 @@ public final class LogboekTest {
 
         // Hooguit eens per uur (behalve na een vastloper, dat regelt plan)
         long nu = 1_800_000_000_000L;
-        check(Logboek.wachtTijd(0, nu) == Logboek.WACHT_MS && Logboek.wachtTijd(nu - 2 * Logboek.UUR, nu) == Logboek.WACHT_MS, "lang geleden: na een paar minuten");
-        check(Logboek.wachtTijd(nu - 10 * 60_000L, nu) == Logboek.UUR - 10 * 60_000L && Logboek.wachtTijd(nu + 60_000L, nu) == Logboek.WACHT_MS, "net verstuurd: wacht tot het uur om is (klok terug: gewoon)");
+        check(Logboek.wachtTijd(0, nu, false) == Logboek.WACHT_MS && Logboek.wachtTijd(nu - 2 * Logboek.UUR, nu, false) == Logboek.WACHT_MS, "lang geleden: na een paar minuten");
+        check(Logboek.wachtTijd(nu - 10 * 60_000L, nu, false) == Logboek.UUR - 10 * 60_000L && Logboek.wachtTijd(nu + 60_000L, nu, false) == Logboek.WACHT_MS, "net verstuurd: wacht tot het uur om is (klok terug: gewoon)");
+        // Iets wat misging: hooguit eens per kwartier, nooit sneller dan een paar minuten
+        check(Logboek.wachtTijd(nu - 10 * 60_000L, nu, true) == Logboek.WACHT_MS && Logboek.wachtTijd(nu - 2 * 60_000L, nu, true) == Logboek.KWARTIER - 2 * 60_000L
+                && Logboek.wachtTijd(0, nu, true) == Logboek.WACHT_MS, "probleem: per kwartier");
+        // Plannen: nooit een wachtende of lopende verzending steeds verder vooruit schuiven (dan gaat er nooit iets weg)
+        long w5 = Logboek.WACHT_MS;
+        check(Logboek.besluit(nu, 0, false, w5, false) == w5 && Logboek.besluit(nu, nu - 60_000, false, w5, false) == w5, "niets gepland (of de vorige is klaar): plannen");
+        check(Logboek.besluit(nu, nu + 3 * 60_000, true, w5, false) == -1, "taak komt nog op tijd: niets doen");
+        check(Logboek.besluit(nu, nu - 10 * 60_000, true, w5, false) == -1 && Logboek.besluit(nu, nu - 10 * 60_000, true, w5, true) == -1,
+                "taak is aan de beurt, wacht op internet of loopt: niet opnieuw plannen (ook niet na een vastloper)");
+        check(Logboek.besluit(nu, nu + 50 * 60_000, true, w5, false) == w5, "taak pas over 50 minuten en er ging iets mis: vervroegen");
+        check(Logboek.besluit(nu, nu + 50 * 60_000, true, 50 * 60_000, false) == -1, "gewone melding: gaat met de taak van het uur mee");
+        check(Logboek.besluit(nu, 0, true, w5, false) == -1 && Logboek.besluit(nu, 0, true, w5, true) == w5, "onbekend wanneer: laten, behalve na een vastloper");
+        // Een stroom meldingen (elke 20 s) met een taak die steeds net te laat start: de taak blijft staan en gaat weg
+        long op = 0, t = nu;
+        boolean weg = false;
+        for (int i = 0; i < 360 && !weg; i++, t += 20_000) {
+            long bs = Logboek.besluit(t, op, op != 0, w5, false);
+            if (bs >= 0) op = t + bs;
+            if (op != 0 && t >= op + 40_000) weg = true; // de taak start 40 s na zijn tijd
+        }
+        check(weg && op <= nu + w5 + 60_000, "stroom van meldingen houdt het versturen niet tegen");
+        check(Logboek.probleem("STAMGEGEVENS", "document (pdf): niet herkend, 2 van 2 pagina's") && Logboek.probleem("FACTUREN", "ophalen mislukt (website)")
+                && Logboek.probleem("DRAAD", "") && Logboek.probleem("CRASH", null) && Logboek.probleem("TOILET", "scan mislukt: Exception")
+                && Logboek.probleem("PODCAST", "speler: opnieuw verbinden (vastgelopen)"), "probleem herkend");
+        check(!Logboek.probleem("NIEUWS", "bijgewerkt: 5 van 5 bronnen") && !Logboek.probleem("BACKUP", "backup-map gecontroleerd: 17 punten, 0 fouten")
+                && !Logboek.probleem("PODCAST", "vanzelf downloaden (periode): 1") && !Logboek.probleem("SIGNAAL", null), "gewone melding is geen probleem");
+        check(Logboek.probleemIn(melding("2026-11-24 13:00:00", "NIEUWS", "bijgewerkt: 5 van 5 bronnen") + melding("2026-11-24 13:01:00", "FACTUREN", "ophalen mislukt (website)"))
+                && !Logboek.probleemIn(melding("2026-11-24 13:00:00", "NIEUWS", "bijgewerkt: 5 van 5 bronnen")) && !Logboek.probleemIn(""), "probleem in een stuk logboek");
         // Het pad mag van Statistiek.zet
         check(Logboek.pad(nu, "ab12cd34").matches("(?:diagnose|logboek)/[A-Za-z0-9T_-]{1,120}\\.txt"), "pad: " + Logboek.pad(nu, "ab12cd34"));
         // Meer soorten foutmeldingen met inhoud; mooi opgemaakte JSON met een lege regel

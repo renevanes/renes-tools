@@ -119,7 +119,9 @@ uit bij Instellingen → Foutrapport en statistieken.
 Het foutlogboek van de app (technische meldingen: welke actie, wat er misging en waar in de code) gaat, zodra je die
 repository en sleutel hebt ingesteld, een paar minuten na een nieuwe melding naar dezelfde eigen (privé) repository, in
 de map `logboek`, zodat je samen met Claude een probleem kunt nazoeken. Alleen wat nieuw is sinds de vorige keer, hooguit
-eens per uur (na een vastloper na een paar minuten). Vooraf zo goed mogelijk opgeschoond: e-mailadressen, telefoon- en
+eens per uur (als er iets misging hooguit eens per kwartier, na een vastloper na een paar minuten). Claude leest de map
+alleen met leesrechten (bij het wekelijkse onderhoud of als je erom vraagt) en lost op wat er misgaat; in de openbare
+repository komen daaruit alleen soorten meldingen en aantallen, nooit de tekst. Vooraf zo goed mogelijk opgeschoond: e-mailadressen, telefoon- en
 rekeningnummers, lange nummers, sleutels, webadressen, paden, bestandsnamen, IP-adressen, postcodes en gelezen inhoud
 (zoals de tekst van een beschadigd bestand) gaan eruit; logregels van de app horen zulke gegevens bovendien niet te bevatten.
 Tools verstuurt alleen als GitHub die repository als privé meldt. Staat standaard aan; uit te zetten bij Instellingen →

@@ -75,12 +75,16 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   (`StatistiekTest` controleert dat). Iets toevoegen aan het rapport = eerst Rene vragen en de test uitbreiden.
   **Foutlogboek** (`Logboek.java`, schakelaar op de kaart Foutrapport; `LogboekTest`, `tests/ui/logboek.test.js`): wens
   van Rene, zodat Claude kan meezoeken. Wat nieuw is in het logboek (`App.log`, crash.log) gaat een paar minuten later,
-  hooguit eens per uur (CRASH altijd na een paar minuten; job 4312 via `Care`), opgeschoond (`Logboek.schoon`: e-mail, telefoon-,
+  hooguit eens per uur (na een melding over iets wat misging, `Logboek.probleem`, hooguit eens per kwartier; CRASH altijd
+  na een paar minuten; job 4312 via `Care`), opgeschoond (`Logboek.schoon`: e-mail, telefoon-,
   rekening- en lange nummers, sleutels, adressen, paden, bestandsnamen, IP, postcodes, de inhoud achter een
   JSONException, regels langer dan `MAX_REGEL`; lineair, getest op snelheid) naar de map `logboek/` van dezelfde privé
   repository; standaard aan zodra repository en sleutel er zijn, niet in de Play-versie. Een fout in een logregel noteer
   je met `AppData.safeMsg(e, …)` of de klassenaam, niet met `+ e` (Android zet de gelezen tekst in een JSONException). `schoon` is een vangnet, geen vrijbrief: een `App.log`-regel bevat nog steeds geen namen, nummers,
   berichten of bestandsnamen. Nieuw soort gegevens dat erdoorheen kan glippen = een patroon in `schoon` en in de test.
+  Zet in een melding over iets wat misging ook de reden, in vaste woorden uit de code (zoals `FacturenRun.reden`): anders
+  kan wie het logboek naloopt (zie "Foutlogboek nalopen") er niets mee. Woorden die "misging" betekenen staan in `Logboek.MIS` en precies zo in
+  `tools/logboek/analyse.py` (`tests/logboek` vergelijkt ze).
   **Diagnose** (`Diagnose.java`, kaart Diagnose op hetzelfde scherm; `DiagnoseTest`, `tests/ui/diagnose.test.js`) is
   de centrale plek voor wat wél inhoud bevat en nodig is om een probleem na te zoeken (bijv. de gelezen tekst van een
   rekening): een tool roept `Diagnose.leg(ctx, "tool", "Wat", tekst)` aan (interface: `Android.diagnoseLeg`). Alleen in
@@ -538,7 +542,8 @@ Playwright, Node of Java van de CI.
 8. **Statistieken en foutlogboek:** staat de privé repository met de weekrapporten (Instellingen → Foutrapport en statistieken, map
    `statistiek/`) open voor de sessie, lees dan de rapporten sinds vorige week. Vastlopers (soort + plek) en logsoorten die
    opeens vaak voorkomen: oplossen, of met de reden in het issue zetten. Lees ook `logboek/` (het opgeschoonde foutlogboek
-   per installatie) en zoek na wat daar misgaat. Niet bereikbaar: zeg dat in de reactie.
+   per installatie) en zoek na wat daar misgaat, zoals "Foutlogboek nalopen" beschrijft (met `tools/logboek/analyse.py`
+   en het issue "Logboek-analyse: logboek"). Niet bereikbaar: zeg dat in de reactie.
 9. **Branches opruimen:** verwijder op GitHub branches die al helemaal in main zitten en ouder zijn dan 14 dagen
    (`git branch -r --merged origin/main`, datum met `git log -1 --format=%cs <branch>`; weghalen met
    `gh api -X DELETE repos/renevanes/renes-tools/git/refs/heads/<branch>`). Nooit `main`, `publiceren-slot`,
@@ -549,6 +554,20 @@ Playwright, Node of Java van de CI.
 Gaat er iets mis met updates, de sleutel of GitHub zelf: `docs/noodplan.md`.
 Nooit in het kader van onderhoud: de updatecontrole, de sleutel of `publiceren.yml`-beveiliging verzwakken, of
 pull requests van anderen (mensen of andere bots dan Dependabot) samenvoegen.
+
+## Foutlogboek nalopen (Logboek-analyse)
+Wens van Rene (24-11-2026: "Laat logs automatisch pushen en analyseren"). De telefoon zet het opgeschoonde foutlogboek
+vanzelf in `logboek/` van de privé repository (zie "Foutlogboek" bij Privacy). Wie het naloopt (het wekelijkse onderhoud,
+stap 8, of een agent op verzoek van Rene; een eigen dagelijkse taak wilde Rene nu niet) koppelt die repository **alleen
+met leesrechten** en draait `python3 tools/logboek/analyse.py <map> --sinds <laatst geanalyseerd>`.
+- **Waar het verder gaat:** het issue "Logboek-analyse: logboek" (label `logboek`) noemt per ronde het laatst
+  geanalyseerde bestand (alleen de tijd uit de naam, bijv. `2026-11-24T142715Z`).
+- **Wat eerst:** vastlopers (CRASH, DRAAD), dan nieuwe problemen, dan wat aanhoudt in de nieuwste versie. Wat al door een
+  andere agent wordt opgelost (een recente commit, branch of open pull request over hetzelfde onderdeel) niet dubbel doen.
+  Is een melding te vaag om op te lossen, maak de logregel dan eerst beter (de reden in vaste woorden) en publiceer dat.
+- **Openbaar alleen** soort, kenmerk en plek in de code (`--openbaar`), aantallen en versies. Nooit de tekst van
+  een melding, namen (ook niet van leveranciers of bronnen), installatie-id's of iets uit `diagnose/` in een issue,
+  commit, test of wijzigingsregel.
 
 ## Opruimen en versimpelen (bij elke scan, dus wekelijks)
 De scan (`python3 .github/scripts/opruim-scan.py`, ook lokaal te draaien) zoekt op naam naar dode code (JS-functies,
@@ -577,7 +596,7 @@ Alles wat nog moet gebeuren staat als GitHub-issue, met een label (REST: `gh api
   een review iets liggen, zet het dan hier** (bestaand issue aanvullen of een nieuw), anders raakt het kwijt.
 - `wens` — een idee of verzoek van Rene. `voorstel` — een idee van een agent; pas bouwen als Rene het label `doen`
   geeft (of "doen" reageert). `doen` — mag gebouwd worden.
-- `logboek` — logboek van een geplande taak (Schermcheck, Prestaties, Beveiliging, Geplande taken); geen werk, de Werklijst slaat het over.
+- `logboek` — logboek van een geplande taak (Schermcheck, Prestaties, Beveiliging, Geplande taken) of van Foutlogboek nalopen (Logboek-analyse); geen werk, de Werklijst slaat het over.
 - Klaar = vakje afvinken (issue bijwerken) en het issue sluiten als alles af is, met de versie erbij.
 - Werk op een branch altijd regelmatig pushen (`git push -u origin <branch>`, nooit main): de omgeving van een agent
   kan zomaar opnieuw beginnen, en wat alleen lokaal stond is dan weg. Behalve bij een gevonden kwetsbaarheid (zie "Beveiliging").
