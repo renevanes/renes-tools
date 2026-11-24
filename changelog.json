@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.247",
+    "date": "2026-11-24",
+    "changes": [
+      "Foutlogboek gaat vanzelf (opgeschoond) naar je eigen privé GitHub-repository, zodat Claude kan meezoeken bij een probleem; uit te zetten bij Instellingen → Foutrapport en statistieken.",
+      "Fouten in de interface die nergens werden opgevangen, komen nu ook in het foutlogboek."
+    ]
+  },
+  {
     "version": "1.246",
     "date": "2026-11-23",
     "changes": [
