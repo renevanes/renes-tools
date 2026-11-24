@@ -15,4 +15,6 @@ function whatsNew(){
   return true;
 }
 window.addEventListener('error', e => { try { Android.logJs((e.message || 'fout') /* taal-vast: logregel, niet in beeld */ + ' @' + (e.filename || '').split('/').pop() + ':' + (e.lineno || 0)); } catch(x){} });
+// Ook een fout in een belofte die niemand opvangt (await zonder try): anders zie je daar niets van in het logboek
+window.addEventListener('unhandledrejection', e => { try { const r = e.reason; Android.logJs('belofte: ' /* taal-vast: logregel, niet in beeld */ + String(r && (r.stack || r.message) || r || 'fout').slice(0, 1500)); } catch(x){} });
 

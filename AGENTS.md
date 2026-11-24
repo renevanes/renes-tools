@@ -73,6 +73,12 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   tellingen en versies: per vaste logsoort (`App.log`-naam zoals BACKUP) een aantal, en bij een vastloper het soort fout en
   de plek in de eigen code. Nooit foutteksten, namen, nummers, berichten, bestandsnamen, adressen of locaties
   (`StatistiekTest` controleert dat). Iets toevoegen aan het rapport = eerst Rene vragen en de test uitbreiden.
+  **Foutlogboek** (`Logboek.java`, schakelaar op de kaart Foutrapport; `LogboekTest`, `tests/ui/logboek.test.js`): wens
+  van Rene, zodat Claude kan meezoeken. Wat nieuw is in het logboek (`App.log`, crash.log) gaat een paar minuten later
+  (job 4312 via `Care`) opgeschoond (`Logboek.schoon`: e-mail, telefoon-, rekening- en lange nummers, sleutels, adressen,
+  paden) naar de map `logboek/` van dezelfde privé repository; standaard aan zodra repository en sleutel er zijn, niet in
+  de Play-versie. `schoon` is een vangnet, geen vrijbrief: een `App.log`-regel bevat nog steeds geen namen, nummers,
+  berichten of bestandsnamen. Nieuw soort gegevens dat erdoorheen kan glippen = een patroon in `schoon` en in de test.
   **Diagnose** (`Diagnose.java`, kaart Diagnose op hetzelfde scherm; `DiagnoseTest`, `tests/ui/diagnose.test.js`) is
   de centrale plek voor wat wél inhoud bevat en nodig is om een probleem na te zoeken (bijv. de gelezen tekst van een
   rekening): een tool roept `Diagnose.leg(ctx, "tool", "Wat", tekst)` aan (interface: `Android.diagnoseLeg`). Alleen in
@@ -81,7 +87,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   aanzette (standaard uit, aanzetten vraagt eerst); versturen gaat via `Statistiek.zet` naar de map `diagnose/` van
   dezelfde privé repository, en het scherm toont wat er wegging (tijd, tool, omvang). Een stuk van een tool op slot is
   pas na dat slotscherm te bekijken (`dgDicht`). Geen geheimen vastleggen (wachtwoorden, sleutels, een betaallink).
-  Een agent leest de map `diagnose/` alleen als die repository aan de sessie gekoppeld is, en neemt er niets uit over
+  Een agent leest de mappen `diagnose/` en `logboek/` alleen als die repository aan de sessie gekoppeld is, en neemt er niets uit over
   in de openbare repository (geen echte brieven in tests, issues of commits).
   VPN-sleutels en wachtwoorden blijven versleuteld (`Secure.deviceKey`, AES-GCM) en buiten Android-backups.
   Alleen "Alle appgegevens" (`AppBackup`/`AppData`, terugzetten na herinstallatie) neemt ze mee, en alleen binnen het
@@ -527,9 +533,10 @@ Playwright, Node of Java van de CI.
    `tools/` of `build.sh` veranderde, anders eindigt de run met "Niets nieuws om te publiceren".) Is er niets veilig te doen, laat het dan staan en zet in het issue waarom.
 6. Meld Rene kort: wat bijgewerkt is, wat opgelost is, en wat bewust is blijven liggen.
 7. **Elke keer:** doe daarna ook de opruimronde hieronder, met het rapport van die week (eigen branch `opruimen/JJJJ-MM-DD`).
-8. **Statistieken:** staat de privé repository met de weekrapporten (Instellingen → Foutrapport en statistieken, map
+8. **Statistieken en foutlogboek:** staat de privé repository met de weekrapporten (Instellingen → Foutrapport en statistieken, map
    `statistiek/`) open voor de sessie, lees dan de rapporten sinds vorige week. Vastlopers (soort + plek) en logsoorten die
-   opeens vaak voorkomen: oplossen, of met de reden in het issue zetten. Niet bereikbaar: zeg dat in de reactie.
+   opeens vaak voorkomen: oplossen, of met de reden in het issue zetten. Lees ook `logboek/` (het opgeschoonde foutlogboek
+   per installatie) en zoek na wat daar misgaat. Niet bereikbaar: zeg dat in de reactie.
 9. **Branches opruimen:** verwijder op GitHub branches die al helemaal in main zitten en ouder zijn dan 14 dagen
    (`git branch -r --merged origin/main`, datum met `git log -1 --format=%cs <branch>`; weghalen met
    `gh api -X DELETE repos/renevanes/renes-tools/git/refs/heads/<branch>`). Nooit `main`, `publiceren-slot`,

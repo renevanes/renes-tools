@@ -274,7 +274,7 @@ final class Statistiek {
      */
     static String zet(Context c, String path, String tekst, String bericht) {
         if (!PlayPolicy.allows(c, "statistiek")) return PlayPolicy.unavailable(c);
-        if (path == null || !path.matches("diagnose/[A-Za-z0-9T_-]{1,120}\\.txt")) return "Versturen lukte niet";
+        if (path == null || !path.matches("(?:diagnose|logboek)/[A-Za-z0-9T_-]{1,120}\\.txt")) return "Versturen lukte niet";
         SharedPreferences p = prefs(c);
         String repo = p.getString("repo", ""), sealed = p.getString("token", "");
         if (!validRepo(repo) || sealed.isEmpty()) return "Stel eerst de repository en de sleutel in";

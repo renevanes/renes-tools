@@ -2552,6 +2552,30 @@ public class MainActivity extends Activity {
             new Thread(App.veilig(() -> a.js("onDiagnose", JSONObject.quote(Diagnose.stuur(ctx, id))), () -> a.js("onDiagnose", JSONObject.quote("Versturen lukte niet"))), "diagnose").start();
         }
 
+        // ----- Foutlogboek meesturen (Logboek): nieuwe meldingen, opgeschoond, naar dezelfde privé repository -----
+
+        /** {aan, klaar (repository en sleutel ingesteld), kan (niet in de Play-versie), laatst, resultaat} */
+        @JavascriptInterface public String logboekStaat() {
+            android.content.SharedPreferences p = Statistiek.prefs(ctx);
+            try {
+                return new JSONObject().put("aan", p.getBoolean("logAuto", true)).put("klaar", !p.getString("repo", "").isEmpty() && !p.getString("token", "").isEmpty())
+                        .put("kan", PlayPolicy.allows(ctx, "statistiek")).put("laatst", p.getLong("logLast", 0)).put("resultaat", p.getString("logResult", "")).toString();
+            } catch (Exception e) { return "{}"; }
+        }
+        /** Aan of uit (standaard aan). Niet vanuit een losse app: die slaat het app-slot over. */
+        @JavascriptInterface public void logboekAan(boolean on) { if (!a.isSolo()) { Logboek.setAan(ctx, on); if (on) Logboek.plan(ctx); } }
+        /** Precies wat er de volgende keer gaat (opgeschoond). */
+        @JavascriptInterface public String logboekVoorbeeld() { return a.isSolo() ? "" : Logboek.voorbeeld(ctx); }
+        /** Nu versturen; de uitkomst komt via onLogboek("" of de reden). */
+        @JavascriptInterface public void logboekNu() {
+            if (a.isSolo()) { a.js("onLogboek", JSONObject.quote("Kan alleen vanuit de gewone app")); return; }
+            new Thread(App.veilig(() -> {
+                boolean leeg = Logboek.aan(ctx) && Logboek.voorbeeld(ctx).isEmpty();
+                String r = Logboek.stuur(ctx);
+                a.js("onLogboek", JSONObject.quote(r.isEmpty() && leeg ? "Niets nieuws om te versturen" : r));
+            }, () -> a.js("onLogboek", JSONObject.quote("Versturen lukte niet"))), "logboek-nu").start();
+        }
+
         @JavascriptInterface public void crashClear() {
             App.file(ctx).delete();
             ctx.getSharedPreferences("crash", Context.MODE_PRIVATE).edit().remove("new").apply();

@@ -78,6 +78,7 @@ function enterSettings(){
     (p.ok ? '<span class=permok>✓ Aan</span>' : '<button class="mini" style="float:none" data-p="' + esc(p.id) + '" onclick="Android.permRequest(this.dataset.p)">Toestaan</button>') + '</div>').join('');
   $('#st-crash').textContent = i.crashes ? tn(i.crashes, '{n} fout vastgelegd.', '{n} fouten vastgelegd.') : t('Er zijn geen fouten vastgelegd. ✓');
   stStatRender();
+  stLogRender();
   dg.vrij = ''; dg.open = ''; dgRender(); // een vrijgave na het slotscherm geldt tot je dit scherm opnieuw opent
   stSummaries(i);
 }
@@ -141,7 +142,7 @@ function stStatSave(){
 function stStatSend(){ const b = $('#st-stat-send'); b.disabled = true; b.textContent = 'Versturen…'; Android.statSend(); }
 /* Diagnose: wat tools vastlegden om een probleem na te zoeken. Alleen in het geheugen; versturen of kopiëren per stuk. */
 const dg = { open: '', vrij: '', bezig: '' };
-function dgToolNaam(tool){ return TOOLS[tool] ? t(TOOLS[tool][0]) : tool; }
+function dgToolNaam(tool){ return tool === 'logboek' ? t('Foutlogboek') : TOOLS[tool] ? t(TOOLS[tool][0]) : tool; }
 function dgDicht(it){ return dg.vrij !== it.id && typeof tsVerborgen === 'function' && !!TOOLS[it.tool] && tsVerborgen(it.tool); }
 function dgRender(){
   const kaart = $('#st-diag');
@@ -199,6 +200,21 @@ function dgAuto(knop){
 }
 function dgWis(){ Android.diagnoseWis(); dg.open = ''; dg.vrij = ''; dgRender(); toast(t('Diagnose gewist')); }
 window.onStatSent = function(e){ const b = $('#st-stat-send'); if (b) b.textContent = 'Nu versturen'; toast(e || 'Verstuurd ✓'); if (current === 'setcrash') stStatRender(); };
+/* Foutlogboek vanzelf naar de eigen privé repository (Logboek.java): standaard aan zodra repository en sleutel er zijn */
+function stLogRender(){
+  const kaart = $('#st-log'); if (!kaart) return;
+  if (typeof Android.logboekStaat !== 'function') { for (const id of ['#st-log', '#st-log-uitleg', '#st-log-nu', '#st-log-wat']) $(id).style.display = 'none'; return; }
+  const s = stJson(Android.logboekStaat());
+  for (const id of ['#st-log', '#st-log-uitleg', '#st-log-nu', '#st-log-wat']) $(id).style.display = s.kan === false ? 'none' : '';
+  const knop = $('#st-log-aan'); knop.classList.toggle('on', !!s.aan); knop.setAttribute('aria-checked', s.aan ? 'true' : 'false');
+  $('#st-log-sub').textContent = !s.aan ? t('Uit: het logboek blijft op de telefoon') : !s.klaar ? t('Aan, maar nog geen repository en sleutel (hieronder bij Statistieken): er gaat niets weg')
+    : s.resultaat && s.resultaat !== 'ok' ? t('Laatste poging: {uitkomst}', { uitkomst: t(s.resultaat) }) : s.laatst ? t('Laatst bijgewerkt: {wanneer}', { wanneer: fmtD(s.laatst) }) : t('Aan: nieuwe meldingen gaan vanzelf mee');
+  $('#st-log-nu').disabled = !(s.aan && s.klaar);
+  $('#st-log-voorbeeld').textContent = Android.logboekVoorbeeld() || t('Niets nieuws sinds de vorige keer.');
+}
+function stLogAan(knop){ const aan = !knop.classList.contains('on'); Android.logboekAan(aan); stLogRender(); toast(aan ? t('Foutlogboek gaat vanzelf mee') : t('Foutlogboek blijft op de telefoon')); }
+function stLogNu(){ const b = $('#st-log-nu'); b.disabled = true; uiWachtTekst($('#st-log-sub'), t('Versturen…')); Android.logboekNu(); }
+window.onLogboek = function(e){ toast(e ? t(e) : t('Logboek verstuurd ✓')); if (current === 'setcrash') { stLogRender(); dgRender(); } };
 function stCrashClear(){ askConfirm('Foutrapport wissen?', 'De vastgelegde foutmeldingen worden verwijderd.', 'Wissen', () => { Android.crashClear(); enterSettings(); }); }
 
 
