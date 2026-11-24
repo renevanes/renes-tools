@@ -160,7 +160,8 @@ public final class MasterDeviceTest extends Instrumentation {
             check(((JSONObject)fields.get(match)).getJSONObject("document").getString("document").equals("0123456789"),"ID number from document photo");
             check(call(images,null,"find",signature,context,bytes,"2026-11-08",(java.util.function.BooleanSupplier)()->false)==null,"no recognition after cancellation");
         }
-        // Een foto van het ID-bewijs klein op een A4 (zoals in een Google-document als PDF): herkend op de foto zelf.
+        // Een foto van het ID-bewijs klein op een A4 (zoals in een Google-document als PDF): herkend op de foto zelf
+        // (rijbewijs gekozen: dan de tekst van de foto vóór de pagina's).
         java.io.ByteArrayOutputStream foto=new java.io.ByteArrayOutputStream(),klein=new java.io.ByteArrayOutputStream();
         licence.compress(android.graphics.Bitmap.CompressFormat.JPEG,95,foto);
         Class<?> writer=type("PdfWriter"),pageType=type("PdfWriter$Page");
@@ -169,7 +170,7 @@ public final class MasterDeviceTest extends Instrumentation {
         call(writer,null,"write",new Class<?>[]{java.io.OutputStream.class,java.util.List.class,String.class},klein,Arrays.asList(a4),"Test");
         JSONObject st=new JSONObject();
         Object kleinMatch=call(images,null,"find",new Class<?>[]{Context.class,byte[].class,String.class,java.util.function.BooleanSupplier.class,JSONObject.class,boolean.class},
-            context,klein.toByteArray(),"2026-11-08",(java.util.function.BooleanSupplier)()->true,st,false);
+            context,klein.toByteArray(),"2026-11-08",(java.util.function.BooleanSupplier)()->true,st,true);
         check(kleinMatch!=null&&st.optBoolean("uitFoto")&&st.optInt("fotos")==1,"ID recognized on the photo inside a PDF ("+st+")");
         java.lang.reflect.Field kleinImage=kleinMatch.getClass().getDeclaredField("image");kleinImage.setAccessible(true);
         check(Arrays.equals((byte[])kleinImage.get(kleinMatch),foto.toByteArray()),"the embedded card photo becomes the card photo");

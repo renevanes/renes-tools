@@ -146,14 +146,22 @@ final class MasterDocumentImages {
         return uit;
     }
 
-    /**
-     * Ingesloten JPEG-foto's (geen logo's of kleine plaatjes). Een hele PDF-pagina kan ook andere gegevens bevatten.
-     * Meer dan {@code max}: niets (twee zijden: dan is niet te zeggen welke twee het zijn).
-     */
+    /** Ingesloten JPEG-foto's (geen logo's of kleine plaatjes); meer dan {@code max}: niets. Voor de twee zijden. */
     private static List<byte[]> pdfJpegs(byte[] bytes, BooleanSupplier active, int[] aantal, int max) throws IOException {
-        PdfSplit pdf = new PdfSplit(bytes);
+        List<byte[]> result = new ArrayList<>();
+        for (PdfSplit.Stream image : pdfFotos(new PdfSplit(bytes), active, aantal, max)) result.add(image.raw());
+        return result;
+    }
+
+    /**
+     * Ingesloten JPEG-foto's (DCTDecode, geen logo's of kleine plaatjes), zonder ze te kopiëren; elk stuk data één keer.
+     * Een hele PDF-pagina kan ook andere gegevens bevatten. Meer dan {@code max}: niets. CMYK of een /Decode-reeks niet:
+     * die kleuren klopt Android niet zonder de PDF-regels, en dan is de strook onleesbaar (de pagina's lezen het wel).
+     */
+    private static List<PdfSplit.Stream> pdfFotos(PdfSplit pdf, BooleanSupplier active, int[] aantal, int max) throws IOException {
         List<PdfSplit.Stream> images = new ArrayList<>();
-        if (pdf.pageCount() > MAX_CANDIDATES) return new ArrayList<>();
+        java.util.Set<String> gezien = new java.util.HashSet<>();
+        if (pdf.pageCount() > MAX_CANDIDATES) return images;
         for (PdfSplit.Dict page : pdf.pages) {
             if (!active.getAsBoolean()) return new ArrayList<>();
             Object resources = pdf.resolve(page.get("Resources"));
@@ -164,36 +172,61 @@ final class MasterDocumentImages {
                 Object resolved = pdf.resolve(value);
                 if (!(resolved instanceof PdfSplit.Stream)) continue;
                 PdfSplit.Stream image = (PdfSplit.Stream) resolved;
-                if (!new PdfSplit.Name("Image").equals(image.dict.get("Subtype")) || images.contains(image)) continue;
-                if (!new PdfSplit.Name("DCTDecode").equals(pdf.resolve(image.dict.get("Filter")))) continue;
+                if (!new PdfSplit.Name("Image").equals(image.dict.get("Subtype"))) continue;
+                if (!jpeg(pdf.resolve(image.dict.get("Filter"))) || image.dict.get("Decode") != null || !kleurenOk(pdf, image)) continue;
                 if (getal(pdf.resolve(image.dict.get("Width"))) < MIN_ZIJDE || getal(pdf.resolve(image.dict.get("Height"))) < MIN_ZIJDE) continue;
+                if (!gezien.add(image.off + ":" + image.len)) continue;
                 images.add(image);
                 aantal[0] = images.size();
                 if (images.size() > max) return new ArrayList<>();
             }
         }
-        List<byte[]> result = new ArrayList<>();
-        for (PdfSplit.Stream image : images) result.add(image.raw());
-        return result;
+        return images;
+    }
+
+    /** /DCTDecode, ook als lijst van één. */
+    private static boolean jpeg(Object filter) {
+        PdfSplit.Name dct = new PdfSplit.Name("DCTDecode");
+        if (dct.equals(filter)) return true;
+        return filter instanceof List && ((List<?>) filter).size() == 1 && dct.equals(((List<?>) filter).get(0));
+    }
+
+    /** Grijs of RGB (ook ICCBased met 1 of 3 kanalen); geen CMYK. */
+    private static boolean kleurenOk(PdfSplit pdf, PdfSplit.Stream image) throws IOException {
+        Object cs = pdf.resolve(image.dict.get("ColorSpace"));
+        if (new PdfSplit.Name("DeviceRGB").equals(cs) || new PdfSplit.Name("DeviceGray").equals(cs)) return true;
+        if (cs instanceof List && ((List<?>) cs).size() == 2 && new PdfSplit.Name("ICCBased").equals(((List<?>) cs).get(0))) {
+            Object icc = pdf.resolve(((List<?>) cs).get(1));
+            int n = icc instanceof PdfSplit.Stream ? getal(pdf.resolve(((PdfSplit.Stream) icc).dict.get("N"))) : 0;
+            return n == 1 || n == 3;
+        }
+        return false;
+    }
+
+    /** De ingesloten foto's van een PDF (hooguit MAX_CANDIDATES); bij een fout: geen. stats "fotos": hoeveel. */
+    private static List<PdfSplit.Stream> pdfFotos(byte[] bytes, BooleanSupplier searching, JSONObject stats) {
+        int[] aantal = {0};
+        List<PdfSplit.Stream> fotos = new ArrayList<>();
+        try { fotos = pdfFotos(new PdfSplit(bytes), searching, aantal, MAX_CANDIDATES); } catch (Throwable ignored) { } // dan alleen de pagina's
+        try { if (stats != null) stats.put("fotos", aantal[0]); } catch (Exception ignored) { }
+        return fotos;
     }
 
     /**
-     * Herkennen op de ingesloten foto's zelf (hooguit MAX_CANDIDATES). Een foto in de vorm van een A-pagina is een scan van
-     * een hele pagina: die wordt geen kaartfoto (er kan meer op staan), de gegevens wel. stats: "fotos" (aantal) en
-     * "uitFoto" (herkend op een foto).
+     * Herkennen op de ingesloten foto's zelf, één tegelijk in het geheugen: rijbewijs = false de snelle strook (ook op tegels
+     * van een grote foto), true de tekst van een rijbewijs (langzaam). Een foto in de vorm van een A-pagina (een scan), of
+     * met een masker (de PDF toont er maar een deel van), wordt geen kaartfoto; de gegevens wel. stats "uitFoto": ja.
      */
-    private static Match pdfFoto(Context context, byte[] bytes, String today, BooleanSupplier searching, JSONObject stats) {
-        List<byte[]> fotos = new ArrayList<>();
-        int[] aantal = {0};
-        try { fotos = pdfJpegs(bytes, searching, aantal, MAX_CANDIDATES); } catch (Throwable ignored) { } // dan alleen de pagina's
-        try { if (stats != null) stats.put("fotos", fotos.size()); } catch (Exception ignored) { }
-        for (byte[] foto : fotos) {
+    private static Match opFotos(Context context, List<PdfSplit.Stream> fotos, String today, BooleanSupplier searching, JSONObject stats, boolean rijbewijs) {
+        for (PdfSplit.Stream stream : fotos) {
             if (!searching.getAsBoolean()) return null;
+            byte[] foto = stream.raw();
             if (!teOpenen(foto)) continue;
-            Match m = recognize(context, foto, today, searching);
-            if (m == null) continue;
+            JSONObject fields = herken(context, foto, today, searching, rijbewijs);
+            if (fields == null) continue;
             try { if (stats != null) stats.put("uitFoto", true); } catch (Exception ignored) { }
-            return paginaVorm(foto) ? new Match(null, m.fields) : m;
+            boolean masker = stream.dict.get("SMask") != null || stream.dict.get("Mask") != null;
+            return paginaVorm(foto) || masker ? new Match(null, fields) : new Match(foto, fields);
         }
         return null;
     }
@@ -346,7 +379,11 @@ final class MasterDocumentImages {
         if (!pdf(bytes)) return word(context, bytes, today, searching);
         // Eerst de foto's in de PDF op hun eigen resolutie (zoals bij Word): een foto van het ID-bewijs in een document
         // (Google Docs, Word als PDF) staat vaak klein op de pagina, en dan zijn de tekens op de getekende pagina te klein.
-        Match uitFoto = pdfFoto(context, bytes, today, searching, stats);
+        // Eerst alleen de snelle strook; de langzame tekst van een rijbewijs pas na de pagina's (zoals volgorde), of eerst
+        // als Rene zelf rijbewijs koos: anders gaat de tijd op aan foto's voordat de pagina's aan de beurt zijn.
+        List<PdfSplit.Stream> fotos = pdfFotos(bytes, searching, stats);
+        Match uitFoto = opFotos(context, fotos, today, searching, stats, false);
+        if (uitFoto == null && rijbewijs) uitFoto = opFotos(context, fotos, today, searching, stats, true);
         if (uitFoto != null) return uitFoto;
         int pages = 0, pieces = 0;
         boolean all = false;
@@ -385,6 +422,11 @@ final class MasterDocumentImages {
                 if (fields != null) { put(stats, pages, pieces, false); return new Match(null, fields); }
             }
             all = k >= plan.size();
+        }
+        if (!rijbewijs) {
+            Match laat = opFotos(context, fotos, today, searching, stats, true);
+            if (laat != null) { put(stats, pages, pieces, false); return laat; }
+            all = all && searching.getAsBoolean();
         }
         put(stats, pages, pieces, !all && active.getAsBoolean());
         return null;
