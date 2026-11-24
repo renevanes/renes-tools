@@ -88,8 +88,21 @@ public final class LogboekTest {
         check(Logboek.wachtTijd(nu - 10 * 60_000L, nu) == Logboek.UUR - 10 * 60_000L && Logboek.wachtTijd(nu + 60_000L, nu) == Logboek.WACHT_MS, "net verstuurd: wacht tot het uur om is (klok terug: gewoon)");
         // Het pad mag van Statistiek.zet
         check(Logboek.pad(nu, "ab12cd34").matches("(?:diagnose|logboek)/[A-Za-z0-9T_-]{1,120}\\.txt"), "pad: " + Logboek.pad(nu, "ab12cd34"));
+        // Meer soorten foutmeldingen met inhoud; mooi opgemaakte JSON met een lege regel
+        String waarde = Logboek.schoon("org.json.JSONException: Value {\"naam\":\"Jan Jansen\"} of type org.json.JSONObject cannot be converted to JSONArray\n"
+                + "java.lang.NumberFormatException: For input string: \"Jansen 12\"\n"
+                + "org.json.JSONException: Unterminated object at character 3 of {\n\n  \"naam\": \"Piet Pietersen\"\n}");
+        check(!waarde.contains("Jan Jansen") && !waarde.contains("Jansen 12") && !waarde.contains("Pietersen") && waarde.contains("of type org.json.JSONObject cannot be converted"), "inhoud uit Value/For input string/opgemaakte JSON weg: " + waarde);
+        check(Logboek.schoon(json + melding("2026-11-24 12:00:02", "BACKUP", "klaar")).contains("[BACKUP]"), "de volgende melding blijft staan");
+        // Geen valse treffers: eenheden, hashes en het woord erna blijven
+        String vals = Logboek.schoon("model 2048 MB vrij, cache 1024 KB, scherm 1080 HD, hash ab12cd34ef56ab78 en sha, BE68539007547034 test");
+        for (String blijft : new String[]{"2048 MB", "1024 KB", "1080 HD", "ab12cd34ef56ab78 en sha", " test"})
+            check(vals.contains(blijft), "blijft: " + blijft + " in " + vals);
+        check(!vals.contains("BE68539007547034") && Logboek.ibanOk("NL91 ABNA 0417 1643 00") && !Logboek.ibanOk("NL91 ABNA 0417 1643 01"), "IBAN met controlegetal: " + vals);
+        check(Logboek.schoon("open Mijnbank.nl/login en Api.GitHub.com").equals("open [adres] en [adres]") && Logboek.schoon("at nl.rene.tools.App$Visible.x(App.java:3)").contains("nl.rene.tools.App$Visible"), "domeinen in hoofdletters weg, klassennamen blijven");
+
         // Opschonen blijft lineair: ook lange, rare tekst gaat snel (Android kan een zoekopdracht niet afbreken)
-        for (String rare : new String[]{rep("a", 100_000), rep("a.", 50_000), rep("1.", 50_000), rep(". ", 50_000), rep(":", 100_000), rep("ab12 ", 20_000)}) {
+        for (String rare : new String[]{rep("a", 100_000), rep("a.", 50_000), rep("1.", 50_000), rep(". ", 50_000), rep(":", 100_000), rep("ab12 ", 20_000), rep("Value ", 20_000), rep("NL91 ", 20_000), rep(" of type org.json.JSONObject cannot be converted", 3_000)}) {
             long t0 = System.nanoTime();
             Logboek.schoon(rare);
             check((System.nanoTime() - t0) / 1_000_000 < 5_000, "opschonen te traag op rare tekst");

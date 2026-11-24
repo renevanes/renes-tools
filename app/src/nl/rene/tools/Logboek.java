@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  * ({@link #schoon}: e-mailadressen, telefoonnummers, rekeningnummers, lange nummers, sleutels, webadressen en paden eruit),
  * en alleen als GitHub de repository als privé meldt (Statistiek.zet). Staat aan zolang de repository en sleutel van
  * Statistieken zijn ingesteld; uit te zetten bij Instellingen → Foutrapport en statistieken. Gaat een paar minuten na
- * een nieuwe melding, hooguit eens per UUR (na een vastloper meteen), of bij het starten van de app; alleen met internet.
+ * een nieuwe melding, hooguit eens per UUR (na een vastloper na een paar minuten), of bij het starten van de app; alleen met internet.
  * Logregels zelf horen al geen namen, nummers of berichten te bevatten (AGENTS.md); dit is een tweede vangnet.
  */
 final class Logboek {
@@ -36,7 +36,7 @@ final class Logboek {
 
     static void setAan(Context c, boolean on) { Statistiek.prefs(c).edit().putBoolean("logAuto", on).apply(); }
 
-    /** Tussen twee keer versturen zit hooguit eens per UUR (een fout die steeds terugkomt geeft geen stroom bestanden), behalve na een vastloper. */
+    /** Hooguit eens per UUR versturen (een fout die steeds terugkomt geeft geen stroom bestanden), behalve na een vastloper. */
     static final long UUR = 60 * 60_000L;
 
     /** Vroegste moment (elapsedRealtime) van de taak die deze app zelf plande; 0 = onbekend. Scheelt bij elke logregel een aanroep van JobScheduler. */
@@ -47,13 +47,13 @@ final class Logboek {
     /** Na een nieuwe melding (App.log, met de soort): over een paar minuten versturen, met internet. Eén taak tegelijk. */
     static void plan(Context c, String soort) {
         try {
-            boolean dringend = "CRASH".equals(soort) || "DRAAD".equals(soort);
+            boolean dringend = "CRASH".equals(soort); // een vastloper stopt de app: zeldzaam; DRAAD kan zich herhalen en volgt het uur
             long nu = android.os.SystemClock.elapsedRealtime(), op = geplandOp;
             if (op != 0 && nu < op - 30_000 && (!dringend || op <= nu + WACHT_MS + 60_000)) return; // er staat al een taak die op tijd is
             if (!PlayPolicy.allows(c, "statistiek") || !aan(c)) return;
             JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
             if (js == null) return;
-            if (!dringend && js.getPendingJob(JOB_ID) != null) { if (op == 0) geplandOp = nu + WACHT_MS; return; }
+            if (!dringend && js.getPendingJob(JOB_ID) != null) { geplandOp = nu + 60_000; return; } // wacht nog (bijv. op internet): niet bij elke logregel opnieuw vragen
             long wacht = dringend ? WACHT_MS : wachtTijd(Statistiek.prefs(c).getLong("logLast", 0), System.currentTimeMillis());
             JobInfo.Builder b = new JobInfo.Builder(JOB_ID, new ComponentName(c, Care.class))
                     .setMinimumLatency(wacht).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true);
@@ -70,7 +70,16 @@ final class Logboek {
     /** Na een geslaagde ronde: kwam er tijdens het versturen iets bij, dan opnieuw plannen (de lopende taak telt nog als gepland). */
     static void naRonde(Context c) {
         geplandOp = 0;
-        try { if (aan(c) && !voorbeeld(c).isEmpty()) plan(c); } catch (Throwable ignored) { }
+        try {
+            if (!aan(c) || nieuw(lees(c), Statistiek.prefs(c).getString("logTot", ""))[0].isEmpty()) return;
+            JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+            if (js == null) return;
+            long wacht = wachtTijd(Statistiek.prefs(c).getLong("logLast", 0), System.currentTimeMillis());
+            // Rechtstreeks: de taak die net klaar is kan nog als gepland tellen; dezelfde id vervangt hem
+            if (js.schedule(new JobInfo.Builder(JOB_ID, new ComponentName(c, Care.class)).setMinimumLatency(wacht)
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true).build()) == JobScheduler.RESULT_SUCCESS)
+                geplandOp = android.os.SystemClock.elapsedRealtime() + wacht;
+        } catch (Throwable ignored) { }
     }
 
     /** Bij het starten: is er iets dat nog niet weg is (bijv. een vastloper vlak voor het stoppen)? */
@@ -201,26 +210,74 @@ final class Logboek {
     /** Het eigen adres van de interface (MainActivity): weg, zodat stapelregels van JavaScript hun regel en kolom houden. */
     private static final String EIGEN_ADRES = "https://app.renes-tools.local/";
     /** Android: JSONException noemt de hele gelezen tekst ("… at character 12 of {…}"): die inhoud eruit. */
-    private static final Pattern JSON_INHOUD = Pattern.compile("( at character \\d+ of )(?s:.*?)(?=\\n\\tat |\\nCaused by|\\n\\n|\\z)");
+    private static final Pattern JSON_INHOUD = Pattern.compile("( at character \\d+ of )(?s:.*?)(?=\\n\\tat |\\nCaused by|\\n\\n\\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d \\[|\\z)");
+    /** Android: "Value {…} of type org.json.JSONObject cannot be converted …" en "For input string: "…"": ook gelezen inhoud. */
+    private static final Pattern JSON_TYPE = Pattern.compile(" (?:at \\d+ )?of type org\\.json\\.\\w+ cannot be converted");
+    private static final Pattern INVOER = Pattern.compile("(For input string: )\"[^\"\\n]{0,400}\"");
     private static final Pattern EMAIL = Pattern.compile("[\\w.+-]{1,64}@[\\w-]{1,63}(?:\\.[\\w-]{1,63}){1,8}");
     private static final Pattern URI = Pattern.compile("(?i)\\b(?:content|file|https?|wss?|ftp|intent|market|blob|data):\\S+");
-    private static final Pattern WEB = Pattern.compile("\\b(?:www\\.\\S+|(?:[a-z0-9-]{1,63}\\.){1,6}(?:nl|com|org|net|eu|be|de|io|app|dev|co|uk|fm|info|online|cloud|me)(?:/\\S*)?(?![\\w.]))");
+    private static final Pattern WEB = Pattern.compile("(?i)\\b(?:www\\.\\S+|(?:[a-z0-9-]{1,63}\\.){1,6}(?:nl|com|org|net|eu|be|de|fr|io|ai|app|dev|co|uk|fm|info|online|cloud|me)(?:/\\S*)?(?![\\w.$]))");
     private static final Pattern PAD = Pattern.compile("(?<![\\w.])/(?:storage|sdcard|data|mnt|Download|DCIM|Documents)/[^\\n:()\"',;]+");
     /** Een bestandsnaam van Rene (pdf, foto, document …): gezocht vanaf de extensie, daarna begrensd terug (lineair, ook bij lange tekst). */
     private static final Pattern EXTENSIE = Pattern.compile("(?i)\\.(?:pdf|jpe?g|png|heic|heif|webp|gif|tiff?|docx?|odt|xlsx?|ods|pptx?|epub|mp3|m4a|aac|ogg|opus|wav|mp4|txt|csv|ics|vcf|zip|rtb|ovpn|conf)(?![\\w])");
+    /** Kandidaat; vervangen alleen als het controlegetal klopt (mod 97), dus geen hashes of woorden erachter. */
     private static final Pattern IBAN = Pattern.compile("(?i)\\b[A-Z]{2}\\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,4})?\\b");
     private static final Pattern IP4 = Pattern.compile("(?<![\\w.])(?:\\d{1,3}\\.){3}\\d{1,3}(?![\\w.])");
     private static final Pattern IP6 = Pattern.compile("(?i)(?<![\\w:])(?:(?:[0-9a-f]{1,4}:){3,7}[0-9a-f]{1,4}|(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,6})?::(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,6})?)(?![\\w:])");
-    private static final Pattern POSTCODE = Pattern.compile("\\b[1-9]\\d{3} ?[A-Z]{2}\\b");
+    private static final Pattern POSTCODE = Pattern.compile("\\b[1-9]\\d{3} ?(?!(?:KB|MB|GB|TB|HD|PX|HZ|MS|SA|SD|SS)\\b)[A-Z]{2}\\b");
     private static final Pattern TELEFOON = Pattern.compile("(?<![\\w.])(?:\\+|00|0)\\d(?:[ -]?\\d){7,13}(?!\\w)");
     private static final Pattern NUMMER = Pattern.compile("(?<![\\w.])\\d{7,}(?![\\w])");
     private static final Pattern GEHEIM = Pattern.compile("\\b(?:github_pat_\\w+|gh[opsu]_\\w{20,}|[A-Za-z0-9+/_=-]{40,})");
     /** Een regel die geen stapelregel is, hooguit zo lang: een lange regel is meestal inhoud, geen foutmelding. */
     static final int MAX_REGEL = 400;
 
+    /** "Value {…} of type org.json.X cannot be converted": de waarde ertussen eruit (vanaf het eind terugzoeken: lineair). */
+    static String jsonWaardeWeg(String t) {
+        Matcher m = JSON_TYPE.matcher(t);
+        StringBuilder b = new StringBuilder(t.length());
+        int klaar = 0;
+        while (m.find()) {
+            int v = -1, ondergrens = Math.max(klaar, m.start() - 20_000);
+            for (int k = m.start() - 6; k >= ondergrens; k--) if (t.startsWith("Value ", k)) { v = k; break; }
+            if (v < 0) continue;
+            b.append(t, klaar, v).append("Value [inhoud]");
+            klaar = m.start();
+        }
+        return b.append(t, klaar, t.length()).toString();
+    }
+
+    /** Klopt het controlegetal van dit IBAN (spaties en hoofdletters maken niet uit)? */
+    static boolean ibanOk(String iban) {
+        String s = iban.replace(" ", "").toUpperCase(java.util.Locale.ROOT);
+        if (s.length() < 15 || s.length() > 34) return false;
+        String r = s.substring(4) + s.substring(0, 4);
+        int rest = 0;
+        for (int i = 0; i < r.length(); i++) {
+            char ch = r.charAt(i);
+            int v = ch >= '0' && ch <= '9' ? ch - '0' : ch >= 'A' && ch <= 'Z' ? ch - 'A' + 10 : -1;
+            if (v < 0) return false;
+            rest = (v >= 10 ? rest * 100 + v : rest * 10 + v) % 97;
+        }
+        return rest == 1;
+    }
+
+    private static String rekeningenWeg(String t) {
+        Matcher m = IBAN.matcher(t);
+        StringBuilder b = new StringBuilder(t.length());
+        int klaar = 0;
+        while (m.find()) {
+            String kand = m.group(); // het langste stuk dat klopt (een woord erachter hoort er niet bij)
+            for (int eind = kand.length(); eind >= 15; eind--) {
+                if (eind < kand.length() && kand.charAt(eind) != ' ') continue;
+                if (ibanOk(kand.substring(0, eind))) { b.append(t, klaar, m.start()).append("[rekening]"); klaar = m.start() + eind; break; }
+            }
+        }
+        return b.append(t, klaar, t.length()).toString();
+    }
+
     private static boolean naamTeken(char ch) { return !Character.isWhitespace(ch) && "/:'\"()[]".indexOf(ch) < 0; }
 
-    /** Bestandsnamen (tot vijf woorden met spaties ervoor, elk hooguit 80 tekens) worden [bestand]. */
+    /** Bestandsnamen (tot drie woorden met spaties ervoor, elk hooguit 80 tekens) worden [bestand]. */
     static String bestandenWeg(String t) {
         Matcher m = EXTENSIE.matcher(t);
         StringBuilder b = new StringBuilder(t.length());
@@ -232,7 +289,7 @@ final class Logboek {
                 while (w > klaar && begin - w < 80 && naamTeken(t.charAt(w - 1))) w--;
                 if (w == begin) break;
                 begin = w; woorden++;
-                if (woorden >= 5 || begin - 1 <= klaar || t.charAt(begin - 1) != ' ' || !naamTeken(t.charAt(begin - 2))) break;
+                if (woorden >= 3 || begin - 1 <= klaar || t.charAt(begin - 1) != ' ' || !naamTeken(t.charAt(begin - 2))) break;
                 begin--; // de spatie tussen twee woorden van de naam
             }
             if (woorden == 0) continue; // ".pdf" los: niets te verbergen
@@ -250,13 +307,15 @@ final class Logboek {
         if (tekst == null) return "";
         String t = tekst.replace(EIGEN_ADRES, "");
         t = JSON_INHOUD.matcher(t).replaceAll("$1[inhoud]");
+        t = jsonWaardeWeg(t);
+        t = INVOER.matcher(t).replaceAll("$1\"[inhoud]\"");
         t = URI.matcher(t).replaceAll("[adres]");
         t = EMAIL.matcher(t).replaceAll("[e-mail]");
         t = WEB.matcher(t).replaceAll("[adres]");
         t = PAD.matcher(t).replaceAll("[pad]");
         t = bestandenWeg(t);
         t = GEHEIM.matcher(t).replaceAll("[geheim]");
-        t = IBAN.matcher(t).replaceAll("[rekening]");
+        t = rekeningenWeg(t);
         t = IP4.matcher(t).replaceAll("[ip]");
         t = IP6.matcher(t).replaceAll("[ip]");
         t = POSTCODE.matcher(t).replaceAll("[postcode]");

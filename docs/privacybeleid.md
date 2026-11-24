@@ -120,7 +120,7 @@ repository en sleutel hebt ingesteld, een paar minuten na een nieuwe melding naa
 de map `logboek`, zodat je samen met Claude een probleem kunt nazoeken. Alleen wat nieuw is sinds de vorige keer, hooguit
 eens per uur (na een vastloper na een paar minuten). Vooraf zo goed mogelijk opgeschoond: e-mailadressen, telefoon- en
 rekeningnummers, lange nummers, sleutels, webadressen, paden, bestandsnamen, IP-adressen, postcodes en gelezen inhoud
-(zoals de tekst van een beschadigd bestand) gaan eruit; logregels van de app bevatten zulke gegevens bovendien niet.
+(zoals de tekst van een beschadigd bestand) gaan eruit; logregels van de app horen zulke gegevens bovendien niet te bevatten.
 Tools verstuurt alleen als GitHub die repository als privé meldt. Staat standaard aan; uit te zetten bij Instellingen →
 Foutrapport en statistieken (Vanzelf naar je repository). Daar zie je ook vooraf wat er de volgende keer meegaat en, bij
 Diagnose, wanneer er iets verstuurd is. De Play-versie verstuurt het foutlogboek niet.

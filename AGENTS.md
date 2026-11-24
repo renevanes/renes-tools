@@ -75,7 +75,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   (`StatistiekTest` controleert dat). Iets toevoegen aan het rapport = eerst Rene vragen en de test uitbreiden.
   **Foutlogboek** (`Logboek.java`, schakelaar op de kaart Foutrapport; `LogboekTest`, `tests/ui/logboek.test.js`): wens
   van Rene, zodat Claude kan meezoeken. Wat nieuw is in het logboek (`App.log`, crash.log) gaat een paar minuten later,
-  hooguit eens per uur (CRASH en DRAAD meteen; job 4312 via `Care`), opgeschoond (`Logboek.schoon`: e-mail, telefoon-,
+  hooguit eens per uur (CRASH altijd na een paar minuten; job 4312 via `Care`), opgeschoond (`Logboek.schoon`: e-mail, telefoon-,
   rekening- en lange nummers, sleutels, adressen, paden, bestandsnamen, IP, postcodes, de inhoud achter een
   JSONException, regels langer dan `MAX_REGEL`; lineair, getest op snelheid) naar de map `logboek/` van dezelfde privé
   repository; standaard aan zodra repository en sleutel er zijn, niet in de Play-versie. Een fout in een logregel noteer
