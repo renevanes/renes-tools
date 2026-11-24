@@ -84,8 +84,18 @@ public final class LogboekTest {
 
         // Hooguit eens per uur (behalve na een vastloper, dat regelt plan)
         long nu = 1_800_000_000_000L;
-        check(Logboek.wachtTijd(0, nu) == Logboek.WACHT_MS && Logboek.wachtTijd(nu - 2 * Logboek.UUR, nu) == Logboek.WACHT_MS, "lang geleden: na een paar minuten");
-        check(Logboek.wachtTijd(nu - 10 * 60_000L, nu) == Logboek.UUR - 10 * 60_000L && Logboek.wachtTijd(nu + 60_000L, nu) == Logboek.WACHT_MS, "net verstuurd: wacht tot het uur om is (klok terug: gewoon)");
+        check(Logboek.wachtTijd(0, nu, false) == Logboek.WACHT_MS && Logboek.wachtTijd(nu - 2 * Logboek.UUR, nu, false) == Logboek.WACHT_MS, "lang geleden: na een paar minuten");
+        check(Logboek.wachtTijd(nu - 10 * 60_000L, nu, false) == Logboek.UUR - 10 * 60_000L && Logboek.wachtTijd(nu + 60_000L, nu, false) == Logboek.WACHT_MS, "net verstuurd: wacht tot het uur om is (klok terug: gewoon)");
+        // Iets wat misging: hooguit eens per kwartier, nooit sneller dan een paar minuten
+        check(Logboek.wachtTijd(nu - 10 * 60_000L, nu, true) == Logboek.WACHT_MS && Logboek.wachtTijd(nu - 2 * 60_000L, nu, true) == Logboek.KWARTIER - 2 * 60_000L
+                && Logboek.wachtTijd(0, nu, true) == Logboek.WACHT_MS, "probleem: per kwartier");
+        check(Logboek.probleem("STAMGEGEVENS", "document (pdf): niet herkend, 2 van 2 pagina's") && Logboek.probleem("FACTUREN", "ophalen mislukt (website)")
+                && Logboek.probleem("DRAAD", "") && Logboek.probleem("CRASH", null) && Logboek.probleem("TOILET", "scan mislukt: Exception")
+                && Logboek.probleem("PODCAST", "speler: opnieuw verbinden (vastgelopen)"), "probleem herkend");
+        check(!Logboek.probleem("NIEUWS", "bijgewerkt: 5 van 5 bronnen") && !Logboek.probleem("BACKUP", "backup-map gecontroleerd: 17 punten, 0 fouten")
+                && !Logboek.probleem("PODCAST", "vanzelf downloaden (periode): 1") && !Logboek.probleem("SIGNAAL", null), "gewone melding is geen probleem");
+        check(Logboek.probleemIn(melding("2026-11-24 13:00:00", "NIEUWS", "bijgewerkt: 5 van 5 bronnen") + melding("2026-11-24 13:01:00", "FACTUREN", "ophalen mislukt (website)"))
+                && !Logboek.probleemIn(melding("2026-11-24 13:00:00", "NIEUWS", "bijgewerkt: 5 van 5 bronnen")) && !Logboek.probleemIn(""), "probleem in een stuk logboek");
         // Het pad mag van Statistiek.zet
         check(Logboek.pad(nu, "ab12cd34").matches("(?:diagnose|logboek)/[A-Za-z0-9T_-]{1,120}\\.txt"), "pad: " + Logboek.pad(nu, "ab12cd34"));
         // Meer soorten foutmeldingen met inhoud; mooi opgemaakte JSON met een lege regel

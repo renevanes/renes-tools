@@ -75,12 +75,16 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   (`StatistiekTest` controleert dat). Iets toevoegen aan het rapport = eerst Rene vragen en de test uitbreiden.
   **Foutlogboek** (`Logboek.java`, schakelaar op de kaart Foutrapport; `LogboekTest`, `tests/ui/logboek.test.js`): wens
   van Rene, zodat Claude kan meezoeken. Wat nieuw is in het logboek (`App.log`, crash.log) gaat een paar minuten later,
-  hooguit eens per uur (CRASH altijd na een paar minuten; job 4312 via `Care`), opgeschoond (`Logboek.schoon`: e-mail, telefoon-,
+  hooguit eens per uur (na een melding over iets wat misging, `Logboek.probleem`, hooguit eens per kwartier; CRASH altijd
+  na een paar minuten; job 4312 via `Care`), opgeschoond (`Logboek.schoon`: e-mail, telefoon-,
   rekening- en lange nummers, sleutels, adressen, paden, bestandsnamen, IP, postcodes, de inhoud achter een
   JSONException, regels langer dan `MAX_REGEL`; lineair, getest op snelheid) naar de map `logboek/` van dezelfde privé
   repository; standaard aan zodra repository en sleutel er zijn, niet in de Play-versie. Een fout in een logregel noteer
   je met `AppData.safeMsg(e, …)` of de klassenaam, niet met `+ e` (Android zet de gelezen tekst in een JSONException). `schoon` is een vangnet, geen vrijbrief: een `App.log`-regel bevat nog steeds geen namen, nummers,
   berichten of bestandsnamen. Nieuw soort gegevens dat erdoorheen kan glippen = een patroon in `schoon` en in de test.
+  Zet in een melding over iets wat misging ook de reden, in vaste woorden uit de code (zoals `FacturenRun.reden`): anders
+  kan de taak Logboek-analyse er niets mee. Woorden die "misging" betekenen staan in `Logboek.MIS` en precies zo in
+  `tools/logboek/analyse.py` (`tests/logboek` vergelijkt ze).
   **Diagnose** (`Diagnose.java`, kaart Diagnose op hetzelfde scherm; `DiagnoseTest`, `tests/ui/diagnose.test.js`) is
   de centrale plek voor wat wél inhoud bevat en nodig is om een probleem na te zoeken (bijv. de gelezen tekst van een
   rekening): een tool roept `Diagnose.leg(ctx, "tool", "Wat", tekst)` aan (interface: `Android.diagnoseLeg`). Alleen in
@@ -538,7 +542,8 @@ Playwright, Node of Java van de CI.
 8. **Statistieken en foutlogboek:** staat de privé repository met de weekrapporten (Instellingen → Foutrapport en statistieken, map
    `statistiek/`) open voor de sessie, lees dan de rapporten sinds vorige week. Vastlopers (soort + plek) en logsoorten die
    opeens vaak voorkomen: oplossen, of met de reden in het issue zetten. Lees ook `logboek/` (het opgeschoonde foutlogboek
-   per installatie) en zoek na wat daar misgaat. Niet bereikbaar: zeg dat in de reactie.
+   per installatie; `python3 tools/logboek/analyse.py <map logboek/>`) en zoek na wat daar misgaat; de dagelijkse taak
+   Logboek-analyse doet dat al, dus kijk eerst in haar issue "Logboek-analyse: logboek". Niet bereikbaar: zeg dat in de reactie.
 9. **Branches opruimen:** verwijder op GitHub branches die al helemaal in main zitten en ouder zijn dan 14 dagen
    (`git branch -r --merged origin/main`, datum met `git log -1 --format=%cs <branch>`; weghalen met
    `gh api -X DELETE repos/renevanes/renes-tools/git/refs/heads/<branch>`). Nooit `main`, `publiceren-slot`,
@@ -583,7 +588,7 @@ Alles wat nog moet gebeuren staat als GitHub-issue, met een label (REST: `gh api
   kan zomaar opnieuw beginnen, en wat alleen lokaal stond is dan weg. Behalve bij een gevonden kwetsbaarheid (zie "Beveiliging").
 
 **Geplande taken (Claude, in de cloud; tijden in Amsterdamse tijd).** Vaste opdracht van Rene: alle taken lopen
-wekelijks en sturen na afloop geen melding naar zijn telefoon. Ook deze taken publiceren zelf, na geslaagde tests en
+wekelijks (behalve Logboek-analyse: dagelijks, zijn keuze van 24-11-2026) en sturen na afloop geen melding naar zijn telefoon. Ook deze taken publiceren zelf, na geslaagde tests en
 een onafhankelijke review, en melden kort in hun eigen sessie wat er gepubliceerd is (en of er een nieuwe APK nodig is).
 
 | Taak | Wanneer | Wat |
@@ -595,8 +600,25 @@ een onafhankelijke review, en melden kort in hun eigen sessie wat er gepubliceer
 | Prestaties en stabiliteit | donderdag 11:17 | vastlopers, haperingen, opstarttijd, geheugen, accu en trage schermen meten en het grootste probleem oplossen; logboek in het issue "Prestaties en stabiliteit: logboek" |
 | Beveiliging | vrijdag 09:47 | elke week één gebied (of deel) uit "Beveiliging" grondig nalopen en oplossen met tests; vangnetten bouwen (kwaadaardige tekst op elk scherm, lijst van toestemmingen en geëxporteerde onderdelen, vaste adressen via https); logboek in het issue "Beveiliging: logboek" |
 | Betrouwbaarheid en schermcheck | vrijdag 13:23 | wankele tests, CI en telefoontest; één scherm kritisch nalopen (logboek in het issue "Schermcheck: logboek") |
+| Logboek-analyse | elke dag 19:47 | het foutlogboek van de telefoon (`logboek/` in de privé repository) nalopen en oplossen wat daar misgaat; zie hieronder |
 
 De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck houdt deze tabel en de taken gelijk.
+
+**Logboek-analyse** (wens van Rene, 24-11-2026: "Laat logs automatisch pushen en analyseren"). De telefoon zet het
+opgeschoonde foutlogboek vanzelf in `logboek/` van de privé repository (zie "Foutlogboek" bij Privacy); de taak koppelt
+die repository **alleen met leesrechten** en draait `python3 tools/logboek/analyse.py <map> --sinds <laatst geanalyseerd>`.
+- **Waar hij verder gaat:** het issue "Logboek-analyse: logboek" (label `logboek`) noemt per ronde het laatst
+  geanalyseerde bestand (alleen de tijd uit de naam, bijv. `2026-11-24T142715Z`). Geen nieuwe bestanden = klaar, zonder
+  reactie en zonder bericht van meer dan één regel.
+- **Wat eerst:** vastlopers (CRASH, DRAAD), dan nieuwe problemen, dan wat aanhoudt in de nieuwste versie. Wat al door een
+  andere agent wordt opgelost (een recente commit, branch of open pull request over hetzelfde onderdeel) niet dubbel doen.
+  Is een melding te vaag om op te lossen, maak de logregel dan eerst beter (de reden in vaste woorden) en publiceer dat.
+- **Openbaar alleen** soort, kenmerk (`--openbaar`), aantallen, versies en de plek in de code. Nooit de tekst van een
+  melding, namen (ook niet van leveranciers of bronnen), installatie-id's of iets uit `diagnose/` in een issue, commit,
+  test of wijzigingsregel.
+- Oplossen, testen, review en publiceren zoals altijd (werkwijze hieronder); een grote verbouwing wordt een
+  `openstaand`-issue. Kort bericht aan Rene: wat het logboek liet zien, wat opgelost is (versie, nieuwe APK?) en wat
+  open staat.
 
 **Werkwijze voor geplande taken** (bovenop de rest van dit bestand):
 1. **Eerst rondkijken.** Staat er een branch van een vorige run van deze taak (`<taak>/*`) die niet op main kwam (een
@@ -605,7 +627,7 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
    welke pull requests open staan (`gh api "repos/renevanes/renes-tools/pulls?state=open"`), en doe dat werk niet
    dubbel. Voeg zo'n pull request niet zelf samen; noem hem in je bericht als hij jouw onderwerp raakt.
 2. **Eigen branch `<taak>/JJJJ-MM-DD`:** `onderhoud/`, `opruimen/`, `werklijst/`, `prestaties/`, `betrouwbaarheid/`,
-   `takencheck/`, `beveiliging/` (pushen buiten `claude/` werkt; lukt het toch niet, dan `claude/<taak>-JJJJ-MM-DD`). Push na elke
+   `takencheck/`, `beveiliging/`, `logboek-analyse/` (pushen buiten `claude/` werkt; lukt het toch niet, dan `claude/<taak>-JJJJ-MM-DD`). Push na elke
    commit, zodat een volgende run verder kan; behalve bij een gevonden kwetsbaarheid (zie "Beveiliging").
 3. **Lokaal bouwen kan in een cloudsessie deels mislukken.** Weigert de proxy een download van
    `tools/voorlezen/deps.py`, dan stopt `./build.sh` al vóór javac en kan `run-jvm.sh` niet draaien; struikelt de

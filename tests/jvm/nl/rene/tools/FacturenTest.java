@@ -16,6 +16,19 @@ public class FacturenTest {
     static String fout(JSONObject o) { try { Facturen.normaal(o); return ""; } catch (Exception e) { return e.getMessage(); } }
 
     public static void main(String[] a) throws Exception {
+        // Waarom ophalen mislukte: alleen vaste woorden in het foutlogboek, nooit tekst van de website
+        check(FacturenRun.reden("Er is geen wachtwoord ingevuld. Kijk één keer mee om zelf in te loggen.", true).equals("inloggen: geen wachtwoord")
+                && FacturenRun.reden("De website zegt: Beste Jan, uw account is geblokkeerd", true).equals("inloggen: geweigerd")
+                && FacturenRun.reden("De website vraagt een inlogcode. Kijk één keer mee om zelf in te loggen.", true).equals("inloggen: code")
+                && FacturenRun.reden("Inloggen duurde te lang", true).equals("inloggen: tijd om")
+                && FacturenRun.reden("Gestopt", false).equals("gestopt")
+                && FacturenRun.reden("Kan de facturenpagina niet vinden. Vul bij Geavanceerd het adres van de facturenpagina in.", false).equals("facturenpagina niet gevonden")
+                && FacturenRun.reden("Op de downloadknoppen kwam geen PDF terug", false).equals("geen pdf")
+                && FacturenRun.reden("De website heeft binnen 30 seconden geen factuurlijst geladen. De periode is nog niet volledig opgehaald.", false).equals("factuurlijst laadt niet")
+                && FacturenRun.reden("Het ophalen duurde te lang", false).equals("tijd om")
+                && FacturenRun.reden("De website liep vast", false).equals("website reageert niet")
+                && FacturenRun.reden("Onverwachte fout: Jan Jansen 0612345678", false).equals("onverwachte fout")
+                && FacturenRun.reden("Iets heel anders van Jan", false).equals("anders") && FacturenRun.reden(null, false).equals("onbekend"), "reden van mislukt ophalen in vaste woorden");
         // ---------- sjablonen ----------
         JSONObject sj = new JSONObject(new String(Files.readAllBytes(Paths.get("web/facturen-leveranciers.json")), StandardCharsets.UTF_8));
         JSONArray lijst = sj.getJSONArray("sjablonen");

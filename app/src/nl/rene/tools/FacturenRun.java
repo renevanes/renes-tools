@@ -579,6 +579,29 @@ final class FacturenRun {
 
     // ================= einde =================
 
+    /**
+     * Waarom het ophalen mislukte, in vaste woorden voor het foutlogboek (de melding zelf kan tekst van de website of een
+     * naam bevatten: "De website zegt: …"). Zuiver, getest in FacturenTest.
+     */
+    static String reden(String msg, boolean inlogNodig) {
+        String m = msg == null ? "" : msg;
+        if (m.startsWith("Gestopt")) return "gestopt";
+        if (inlogNodig) return m.startsWith("Er is geen wachtwoord") ? "inloggen: geen wachtwoord" : m.startsWith("Er is geen gebruikersnaam") ? "inloggen: geen gebruikersnaam"
+                : m.contains("inlogcode") || m.contains("de code") ? "inloggen: code" : m.startsWith("De pagina staat niet") || m.startsWith("De inlogpagina staat niet") ? "inloggen: ander domein"
+                : m.contains("duurde te lang") || m.contains("reageert niet") ? "inloggen: tijd om" : m.startsWith("De website zegt") ? "inloggen: geweigerd" : "inloggen";
+        if (m.startsWith("Onverwachte fout")) return "onverwachte fout";
+        if (m.startsWith("Bewaren mislukt")) return "bewaren";
+        if (m.startsWith("Kan de facturenpagina niet vinden")) return "facturenpagina niet gevonden";
+        if (m.startsWith("Op de downloadknoppen kwam geen PDF")) return "geen pdf";
+        if (m.startsWith("Niet alle downloadknoppen")) return "niet alle pdf's";
+        if (m.contains("geen factuurlijst geladen")) return "factuurlijst laadt niet";
+        if (m.contains("factuurlijst") || m.contains("maximum")) return "factuurlijst";
+        if (m.contains("reageert niet") || m.contains("liep vast")) return "website reageert niet";
+        if (m.contains("duurde te lang")) return "tijd om";
+        if (m.contains("Koppel") || m.contains("Gmail")) return "koppeling";
+        return m.isEmpty() ? "onbekend" : "anders";
+    }
+
     private JSONObject fout(String msg, boolean inlogNodig) {
         JSONObject r = new JSONObject();
         try { r.put("ok", false).put("msg", msg).put("inlogNodig", inlogNodig); } catch (Exception ignored) { }
@@ -637,7 +660,8 @@ final class FacturenRun {
                 Facturen.logRun(c, id, new JSONObject().put("t", nu).put("ok", uit.optBoolean("ok")).put("msg", uit.optString("msg"))
                         .put("nieuw", uit.optInt("nieuw")).put("namen", uit.optJSONArray("namen") == null ? new JSONArray() : uit.optJSONArray("namen"))
                         .put("auto", !zichtbaar && klaarAuto).put("diagnose", spoor.json()));
-                if (!uit.optBoolean("ok")) App.log(c, "FACTUREN", "ophalen mislukt (" + lev.optString("soort", "website") + ")"); // geen namen of websitetekst
+                if (!uit.optBoolean("ok")) App.log(c, "FACTUREN", "ophalen mislukt (" + lev.optString("soort", "website") + "): "
+                        + reden(uit.optString("msg"), uit.optBoolean("inlogNodig"))); // alleen vaste woorden: geen namen of websitetekst
             } catch (Throwable e) {
                 log(FacturenLog.Stap.FOUT, 0);
                 try { uit = fout("Bewaren mislukt: " + Facturen.kort(e), false).put("id", id).put("naam", lev.optString("naam")); } catch (Exception ignored) { }
