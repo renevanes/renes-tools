@@ -24,8 +24,12 @@ KOP = re.compile(r"^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d) \[([^\]\n]{1,40})\] v(\S+) 
 BESTAND = re.compile(r"^(\d{4}-\d\d-\d\dT\d{6}Z)-([A-Za-z0-9_-]{1,40})\.txt$")
 # Zelfde woorden als Logboek.MIS (Java): een melding over iets wat misging
 MIS = re.compile(r"(?i)mislukt|niet gelukt|lukt(?:e)? niet|niet herkend|niet te (?:openen|lezen)|niet op te halen"
-                 r"|(?<!\b0 )fout|exception|error|vastgelopen|liep vast|kapot|geweigerd|weigert|onleesbaar|beschadigd|ontbreekt|verlopen")
+                 r"|(?<!\b0 )fout|exception|error|vastgelopen|liep vast|kapot|geweigerd|weigert|onleesbaar|beschadigd|ontbreekt|verlopen|teruggedraaid")
 STAPEL = re.compile(r"^\s*at (nl\.rene\.tools\.[\w$.]+)\(([\w$]+\.java):(\d+)\)", re.M)
+SOORT_OK = re.compile(r"^[A-Z][A-Z0-9_]{0,23}$")
+PLEK_OK = re.compile(r"^\w{1,80} @ nl\.rene\.tools\.[\w$.]{1,160}\(\w{1,80}\.java\)$")
+VERSIE_OK = re.compile(r"^\d{1,4}(?:\.\d{1,5}){0,3}$")
+SINDS_OK = re.compile(r"^\d{4}-\d\d-\d\d(T\d{6}Z)?$")
 UITZONDERING = re.compile(r"\b((?:[a-z]\w*\.)+[A-Z]\w*(?:Exception|Error)|[A-Z]\w*(?:Exception|Error))\b")
 
 
@@ -66,13 +70,6 @@ def kenmerk(soort, s):
     return hashlib.sha256(("%s|%s" % (soort, s)).encode("utf-8")).hexdigest()[:8]
 
 
-def versie_nr(v):
-    try:
-        return tuple(int(x) for x in v.split("."))
-    except ValueError:
-        return (0,)
-
-
 def lees_bestand(pad):
     naam = os.path.basename(pad)
     m = BESTAND.match(naam)
@@ -92,7 +89,7 @@ def lees_bestand(pad):
 
 
 def analyseer(map_, sinds=""):
-    bestanden = sorted(f for f in os.listdir(map_) if BESTAND.match(f))
+    bestanden = sorted(f for f in os.listdir(map_) if BESTAND.match(f) and os.path.isfile(os.path.join(map_, f)))
     alle, gezien = [], set()
     for b in bestanden:
         r = lees_bestand(os.path.join(map_, b))
@@ -148,6 +145,27 @@ def analyseer(map_, sinds=""):
     }
 
 
+def openbaar_maken(r):
+    """Alleen wat in een openbaar issue mag (AGENTS.md): soort, kenmerk, aantallen, versies, datums en de plek in de code.
+    Geen meldingstekst, geen tijden op de minuut, en een soort die geen gewone logsoort is wordt ANDERS."""
+    def versie(v):
+        return v if VERSIE_OK.match(v or "") else "?"
+    r["van"], r["tot"] = r["van"][:10], r["tot"][:10]
+    r["nieuwsteVersie"] = versie(r["nieuwsteVersie"])
+    for g in r["groepen"]:
+        g["eersteVersie"], g["laatsteVersie"] = versie(g["eersteVersie"]), versie(g["laatsteVersie"])
+        if PLEK_OK.match(g["melding"]) and g["soort"] in ("CRASH", "DRAAD"):
+            g["plek"] = g["melding"]
+        if not SOORT_OK.match(g["soort"]):
+            g["soort"] = "ANDERS"
+        g["eerst"], g["laatst"] = g["eerst"][:10], g["laatst"][:10]
+        if g["stand"].startswith("stil sinds "):
+            g["stand"] = "stil sinds " + g["laatst"] + " (" + g["laatsteVersie"] + ")"
+        g.pop("melding", None)
+        g.pop("voorbeeld", None)
+    return r
+
+
 def md_cel(t):
     return t.replace("|", "\\|").replace("\n", " ")
 
@@ -167,10 +185,10 @@ def markdown(r, openbaar=False):
             regels.append("Geen.")
             continue
         if openbaar:
-            regels += ["| Stand | Soort | Kenmerk | Nieuw | Totaal | Dagen | Versies |", "|---|---|---|---|---|---|---|"]
+            regels += ["| Stand | Soort | Kenmerk | Plek | Nieuw | Totaal | Dagen | Versies |", "|---|---|---|---|---|---|---|---|"]
             for g in groep[:40]:
-                regels.append("| %s | %s | %s | %d | %d | %d | %s–%s |" % (g["stand"], md_cel(g["soort"]), g["kenmerk"], g["nieuw"], g["aantal"],
-                                                                     g["dagen"], g["eersteVersie"], g["laatsteVersie"]))
+                regels.append("| %s | %s | %s | %s | %d | %d | %d | %s–%s |" % (g["stand"], g["soort"], g["kenmerk"], g.get("plek", ""), g["nieuw"],
+                                                                          g["aantal"], g["dagen"], g["eersteVersie"], g["laatsteVersie"]))
         else:
             regels += ["| Stand | Soort | Melding | Nieuw | Totaal | Dagen | Eerst | Laatst | Versies |", "|---|---|---|---|---|---|---|---|---|"]
             for g in groep[:60]:
@@ -192,12 +210,13 @@ def main(argv=None):
     if not os.path.isdir(o.map):
         print("Map niet gevonden: " + o.map, file=sys.stderr)
         return 2
+    if o.sinds and not SINDS_OK.match(o.sinds):
+        print("--sinds: gebruik de tijd uit een bestandsnaam (2026-11-24T142715Z) of een datum (2026-11-24)", file=sys.stderr)
+        return 2
     r = analyseer(o.map, o.sinds)
+    if o.openbaar:
+        r = openbaar_maken(r)
     if o.json:
-        if o.openbaar:
-            for g in r["groepen"]:
-                g.pop("melding", None)
-                g.pop("voorbeeld", None)
         print(json.dumps(r, ensure_ascii=False, indent=1))
     else:
         sys.stdout.write(markdown(r, o.openbaar))

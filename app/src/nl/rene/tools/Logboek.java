@@ -45,7 +45,7 @@ final class Logboek {
 
     /** Woorden in een melding die zeggen dat iets misging (vaste woorden uit de eigen code, zie App.log). */
     private static final Pattern MIS = Pattern.compile("(?i)mislukt|niet gelukt|lukt(?:e)? niet|niet herkend|niet te (?:openen|lezen)|niet op te halen"
-            + "|(?<!\\b0 )fout|exception|error|vastgelopen|liep vast|kapot|geweigerd|weigert|onleesbaar|beschadigd|ontbreekt|verlopen");
+            + "|(?<!\\b0 )fout|exception|error|vastgelopen|liep vast|kapot|geweigerd|weigert|onleesbaar|beschadigd|ontbreekt|verlopen|teruggedraaid");
 
     /** Gaat deze melding over iets wat misging? Dan sneller versturen (KWARTIER in plaats van UUR). */
     static boolean probleem(String soort, String tekst) {
@@ -63,8 +63,13 @@ final class Logboek {
         return false;
     }
 
-    /** Vroegste moment (elapsedRealtime) van de taak die deze app zelf plande; 0 = onbekend. Scheelt bij elke logregel een aanroep van JobScheduler. */
-    private static volatile long geplandOp;
+    /**
+     * Wanneer de taak die deze app zelf plande begint (System.currentTimeMillis; 0 = onbekend, -1 = nog niet gelezen). Ook
+     * bewaard (logPlan), zodat het na een herstart van de app bekend blijft. Scheelt bij elke logregel een aanroep van JobScheduler.
+     */
+    private static volatile long geplandOp = -1;
+    /** Tot wanneer (elapsedRealtime) niet opnieuw aan JobScheduler vragen of de taak er nog is (die wacht op internet of loopt). */
+    private static volatile long gevraagdTot;
 
     static void plan(Context c) { plan(c, "", ""); }
 
@@ -73,18 +78,43 @@ final class Logboek {
         try {
             boolean dringend = "CRASH".equals(soort); // een vastloper stopt de app: zeldzaam; DRAAD kan zich herhalen en volgt het kwartier
             boolean mis = !dringend && probleem(soort, tekst);
-            long nu = android.os.SystemClock.elapsedRealtime(), op = geplandOp;
-            if (op != 0 && nu < op - 30_000 && !dringend && !mis) return; // er staat al een taak: een gewone melding gaat daarmee mee
-            long wacht = dringend ? WACHT_MS : wachtTijd(Statistiek.prefs(c).getLong("logLast", 0), System.currentTimeMillis(), mis);
-            if (op != 0 && nu < op - 30_000 && op <= nu + wacht + 60_000) return; // de taak die er staat is op tijd
+            SharedPreferences p = Statistiek.prefs(c);
+            long nu = System.currentTimeMillis(), tik = android.os.SystemClock.elapsedRealtime(), op = geplandOp;
+            if (op < 0) geplandOp = op = p.getLong("logPlan", 0);
+            long wacht = dringend ? WACHT_MS : wachtTijd(p.getLong("logLast", 0), nu, mis);
+            boolean opTijd = op != 0 && op <= nu + wacht + 60_000;
+            if (opTijd && nu < op - 30_000) return; // de taak die er staat komt nog, en op tijd: deze melding gaat mee
+            if (!dringend && tik < gevraagdTot && (op == 0 || opTijd)) return; // net nagevraagd: er staat een taak (wacht op internet of loopt)
             if (!PlayPolicy.allows(c, "statistiek") || !aan(c)) return;
             JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
             if (js == null) return;
-            if (!dringend && !mis && js.getPendingJob(JOB_ID) != null) { geplandOp = nu + 60_000; return; } // wacht nog (bijv. op internet): niet bij elke logregel opnieuw vragen
-            JobInfo.Builder b = new JobInfo.Builder(JOB_ID, new ComponentName(c, Care.class))
-                    .setMinimumLatency(wacht).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true);
-            if (js.schedule(b.build()) == JobScheduler.RESULT_SUCCESS) geplandOp = nu + wacht;
+            long w = besluit(nu, op, js.getPendingJob(JOB_ID) != null, wacht, dringend);
+            if (w < 0) { gevraagdTot = tik + 60_000; return; }
+            if (js.schedule(taak(c, w)) == JobScheduler.RESULT_SUCCESS) zetPlan(c, nu + w);
         } catch (Throwable ignored) { }
+    }
+
+    /**
+     * Wat plan() doet (zuiver, getest in LogboekTest): -1 = niets (de taak die er staat gaat op tijd, wacht op internet of
+     * loopt: nooit een lopende verzending afbreken of een wachtende steeds verder vooruit schuiven), anders de wachttijd
+     * voor een nieuwe taak (vervangt de oude). op = begin van de taak die er staat (0 = onbekend), staat = Android heeft hem nog.
+     */
+    static long besluit(long nu, long op, boolean staat, long wacht, boolean dringend) {
+        if (!staat) return wacht;                     // niets gepland (of de vorige is klaar): plannen
+        if (op == 0) return dringend ? wacht : -1;    // onbekend wanneer: laten, behalve na een vastloper
+        if (op <= nu + wacht + 60_000) return -1;     // op tijd, al aan de beurt, wacht op internet of bezig
+        return wacht;                                 // te laat (bijv. een gewone taak over een uur): vervroegen
+    }
+
+    private static JobInfo taak(Context c, long wacht) {
+        return new JobInfo.Builder(JOB_ID, new ComponentName(c, Care.class)).setMinimumLatency(wacht)
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true).build();
+    }
+
+    private static void zetPlan(Context c, long op) {
+        geplandOp = op;
+        gevraagdTot = 0;
+        Statistiek.prefs(c).edit().putLong("logPlan", op).apply();
     }
 
     /** Hoe lang wachten na een melding: minstens WACHT_MS, en hooguit eens per UUR versturen (iets wat misging: per KWARTIER). */
@@ -96,8 +126,8 @@ final class Logboek {
 
     /** Na een geslaagde ronde: kwam er tijdens het versturen iets bij, dan opnieuw plannen (de lopende taak telt nog als gepland). */
     static void naRonde(Context c) {
-        geplandOp = 0;
         try {
+            zetPlan(c, 0);
             if (!aan(c)) return;
             String n = nieuw(lees(c), Statistiek.prefs(c).getString("logTot", ""))[0];
             if (n.isEmpty()) return;
@@ -105,9 +135,7 @@ final class Logboek {
             if (js == null) return;
             long wacht = wachtTijd(Statistiek.prefs(c).getLong("logLast", 0), System.currentTimeMillis(), probleemIn(n));
             // Rechtstreeks: de taak die net klaar is kan nog als gepland tellen; dezelfde id vervangt hem
-            if (js.schedule(new JobInfo.Builder(JOB_ID, new ComponentName(c, Care.class)).setMinimumLatency(wacht)
-                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true).build()) == JobScheduler.RESULT_SUCCESS)
-                geplandOp = android.os.SystemClock.elapsedRealtime() + wacht;
+            if (js.schedule(taak(c, wacht)) == JobScheduler.RESULT_SUCCESS) zetPlan(c, System.currentTimeMillis() + wacht);
         } catch (Throwable ignored) { }
     }
 

@@ -18,7 +18,7 @@ python3 tools/check-bridge.py || exit 1
 # Manifest: elke toestemming en elk geëxporteerd onderdeel met een reden (tests/manifest/lijst.json)
 python3 tests/manifest/controle.py --zelftest && python3 tests/manifest/controle.py || exit 1
 # Analyse van het foutlogboek (tools/logboek/analyse.py, voor de taak Logboek-analyse)
-python3 -m unittest discover -s tests/logboek -q 2>&1 | tail -1 | grep -qx OK || { python3 -m unittest discover -s tests/logboek; exit 1; }
+python3 -m unittest discover -s tests/logboek -q || exit 1
 # Met de test-brug (de app zelf wordt zonder gebouwd)
 ./tests/ui-pagina.sh || exit 1
 CPUS=$(nproc 2>/dev/null || echo 2)

@@ -75,12 +75,36 @@ class AnalyseTest(unittest.TestCase):
         t = uit.getvalue()
         self.assertIn("FACTUREN", t)
         self.assertNotIn("ophalen mislukt", t)
-        self.assertNotIn("IllegalStateException", t)
+        self.assertNotIn("iets", t, "geen tekst uit een vastloper, alleen de plek")
+        self.assertNotIn("thread voorbeeld", t)
         uit = io.StringIO()
         with redirect_stdout(uit):
             analyse.main([self.map, "--openbaar", "--json"])
         j = json.loads(uit.getvalue())
         self.assertTrue(all("melding" not in g and "voorbeeld" not in g for g in j["groepen"]))
+
+    def test_openbaar_vreemde_kop_en_plek(self):
+        # Een regel in de tekst die op een kopregel lijkt: de soort mag niet openbaar worden
+        self.schrijf("2026-11-23T100000Z-ab12cd34.txt",
+                     melding("2026-11-23 09:00:00", "Jan Jansen woont hier", "geheim", 13, "iets mislukt"))
+        uit = io.StringIO()
+        with redirect_stdout(uit):
+            analyse.main([self.map, "--openbaar"])
+        t = uit.getvalue()
+        self.assertNotIn("Jan", t)
+        self.assertNotIn("geheim", t)
+        self.assertNotIn("09:00", t, "geen tijden op de minuut")
+        self.assertIn("ANDERS", t)
+        self.assertIn("IllegalStateException @ nl.rene.tools.Voorbeeld.doe(Voorbeeld.java)", t, "plek van een vastloper mag wel")
+        self.assertNotIn("ab12cd34", t, "geen installatie-id")
+
+    def test_sinds_controle_en_map(self):
+        os.mkdir(os.path.join(self.map, "2026-11-25T100000Z-map.txt"))
+        uit = io.StringIO()
+        with redirect_stdout(uit):
+            self.assertEqual(analyse.main([self.map]), 0, "een map met een bestandsnaam wordt overgeslagen")
+        self.assertEqual(analyse.main([self.map, "--sinds", "2026-11-24 14:27"]), 2)
+        self.assertEqual(analyse.main([os.path.join(self.map, "bestaat-niet")]), 2)
 
     def test_privé_overzicht_met_tekst(self):
         uit = io.StringIO()
@@ -97,7 +121,7 @@ class AnalyseTest(unittest.TestCase):
         self.assertIsNotNone(m, "Logboek.MIS gevonden")
         patroon = "".join(re.findall(r'"((?:[^"\\]|\\.)*)"', m.group(1))).replace("\\\\", "\\")
         self.assertEqual(patroon, analyse.MIS.pattern)
-        for woord in ("mislukt", "niet herkend", "vastgelopen", "liep vast", "geweigerd", "onleesbaar", "beschadigd", "ontbreekt", "verlopen", "exception"):
+        for woord in ("mislukt", "niet herkend", "vastgelopen", "liep vast", "geweigerd", "onleesbaar", "beschadigd", "ontbreekt", "verlopen", "teruggedraaid", "exception"):
             self.assertTrue(analyse.probleem("X", "iets " + woord))
         for gewoon in ("bijgewerkt: 5 van 5 bronnen", "17 punten, 0 fouten", "vanzelf downloaden (periode): 1"):
             self.assertFalse(analyse.probleem("X", gewoon))

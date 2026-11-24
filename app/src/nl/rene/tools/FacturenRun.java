@@ -145,7 +145,7 @@ final class FacturenRun {
     /** Facturen uit de mail: op een eigen thread (geen WebView). */
     private void startMail() {
         voortgang = "Mail doorzoeken…";
-        h.postDelayed(() -> einde(fout("Het zoeken in de mail duurde te lang", false)), maxDuur);
+        h.postDelayed(() -> einde(fout("Het zoeken in de mail duurde te lang", false, "mail: tijd om")), maxDuur);
         new Thread(() -> {
             JSONObject r;
             try {
@@ -163,7 +163,7 @@ final class FacturenRun {
                 r = new JSONObject().put("ok", true);
             } catch (Throwable e) {
                 String msg = Facturen.kort(e);
-                r = fout(msg, false);
+                r = fout(msg, false, msg.contains("Koppel") || msg.contains("toegang tot Gmail") ? "mail: koppeling" : "mail: " + e.getClass().getSimpleName());
                 try { if (msg.contains("Koppel") || msg.contains("toegang tot Gmail")) r.put("koppelNodig", true); } catch (Exception ignored) { }
             }
             final JSONObject uit = r;
@@ -211,7 +211,7 @@ final class FacturenRun {
         wv.loadUrl(lev.optString("startUrl"));
         h.postDelayed(this::tik, 3000);
         // Waakhond: ook als de website niet meer antwoordt (geen terugmelding van de robot), stopt het op tijd
-        h.postDelayed(() -> einde(fout("De website reageert niet meer", fase <= INLOG)), maxDuur + 60_000L);
+        h.postDelayed(() -> einde(fout("De website reageert niet meer", fase <= INLOG, fase <= INLOG ? "inloggen: website reageert niet" : "website reageert niet")), maxDuur + 60_000L);
     }
 
     // ================= de beslislus =================
@@ -220,19 +220,19 @@ final class FacturenRun {
         if (fase == KLAAR || wv == null) return;
         try {
             long nu = System.currentTimeMillis();
-            if (stop.get()) { einde(fout("Gestopt", false)); return; }
+            if (stop.get()) { einde(fout("Gestopt", false, "gestopt")); return; }
             paginaUrl = wv.getUrl() == null ? "" : wv.getUrl();
             if (logFase != fase) {
                 logFase = fase;
                 if (fase == INLOG) log(FacturenLog.Stap.INLOG, 0);
                 if (fase == NAAR) log(FacturenLog.Stap.FACTUREN, 0);
             }
-            if (nu - start > maxDuur) { einde(fout(fase <= INLOG ? "Inloggen duurde te lang" : "Het ophalen duurde te lang", fase <= INLOG)); return; }
+            if (nu - start > maxDuur) { einde(fout(fase <= INLOG ? "Inloggen duurde te lang" : "Het ophalen duurde te lang", fase <= INLOG, fase <= INLOG ? "inloggen: tijd om" : "tijd om")); return; }
             if (fase == DOWNLOAD) { volgendeKnop(); return; }
             if (fase == AFRONDEN) { afronden(); return; }
             if (nu < wachtTot || codeBezig) { verder(1000); return; }
             js("__fr.stand(" + cfgJs + ")", this::opStand);
-        } catch (Throwable e) { einde(fout("Onverwachte fout: " + Facturen.kort(e), false)); }
+        } catch (Throwable e) { einde(fout("Onverwachte fout: " + Facturen.kort(e), false, "onverwachte fout " + e.getClass().getSimpleName())); }
     }
 
     private void verder(long ms) { if (fase != KLAAR) h.postDelayed(this::tik, ms); }
@@ -253,7 +253,7 @@ final class FacturenRun {
                 default: break;
             }
             verder(2000);
-        } catch (Throwable e) { einde(fout("Onverwachte fout: " + Facturen.kort(e), false)); }
+        } catch (Throwable e) { einde(fout("Onverwachte fout: " + Facturen.kort(e), false, "onverwachte fout " + e.getClass().getSimpleName())); }
     }
 
     /**
@@ -264,7 +264,7 @@ final class FacturenRun {
         String u = null;
         try { u = wv == null ? null : wv.getUrl(); } catch (Throwable ignored) { }
         if (Facturen.eigenSite(u, domeinen)) return true;
-        handmatigOf("De pagina staat niet (meer) op " + android.text.TextUtils.join(" of ", domeinen) + " (" + Facturen.host(u == null ? "" : u) + "): daar vult de app niets in");
+        handmatigOf("De pagina staat niet (meer) op " + android.text.TextUtils.join(" of ", domeinen) + " (" + Facturen.host(u == null ? "" : u) + "): daar vult de app niets in", "inloggen: ander domein");
         return false;
     }
 
@@ -274,7 +274,7 @@ final class FacturenRun {
         if (veld && !handmatig && !Facturen.eigenSite(st.optString("url"), domeinen)) {
             // Nooit gegevens invullen op een andere website (of zonder https)
             handmatigOf("De inlogpagina staat niet op " + android.text.TextUtils.join(" of ", domeinen) + " (" + Facturen.host(st.optString("url"))
-                    + "). Hoort dat domein bij de leverancier, zet het dan bij Instellingen → Meer → Andere domeinen");
+                    + "). Hoort dat domein bij de leverancier, zet het dan bij Instellingen → Meer → Andere domeinen", "inloggen: ander domein");
             return;
         }
         boolean pw = st.optBoolean("pw"), user = st.optBoolean("user"), code = st.optBoolean("code");
@@ -282,9 +282,9 @@ final class FacturenRun {
         if (code && !pw) {
             stil = 0;
             if (handmatig) return;
-            if (codePogingen >= 2) { einde(fout(fout.isEmpty() ? "De inlogcode werd niet geaccepteerd" : "De website zegt: " + fout, true)); return; }
+            if (codePogingen >= 2) { einde(fout(fout.isEmpty() ? "De inlogcode werd niet geaccepteerd" : "De website zegt: " + fout, true, "inloggen: code geweigerd")); return; }
             String bron = lev.optJSONObject("code") == null ? "geen" : lev.optJSONObject("code").optString("bron", "geen");
-            if ("geen".equals(bron)) { handmatigOf("De website vraagt een inlogcode"); return; }
+            if ("geen".equals(bron)) { handmatigOf("De website vraagt een inlogcode", "inloggen: code nodig"); return; }
             codeBezig = true;
             voortgang = "sms".equals(bron) ? "Wachten op de inlogcode per sms…" : "Wachten op de inlogcode in Eigen Cloud…";
             final long sinds = codeSinds > 0 ? codeSinds : nu - 120_000L;
@@ -300,7 +300,7 @@ final class FacturenRun {
                         wachtTot = System.currentTimeMillis() + 5000;
                     });
                 } catch (Throwable e) {
-                    h.post(() -> { codeBezig = false; if (zichtbaar) { handmatig = true; voortgang = Facturen.kort(e) + ". Vul de code zelf in."; } else einde(fout(Facturen.kort(e), true)); });
+                    h.post(() -> { codeBezig = false; if (zichtbaar) { handmatig = true; voortgang = Facturen.kort(e) + ". Vul de code zelf in."; } else einde(fout(Facturen.kort(e), true, "inloggen: code ophalen")); });
                 }
             }, "facturen-code");
             t.start();
@@ -309,8 +309,8 @@ final class FacturenRun {
         if (pw) {
             stil = 0;
             if (handmatig) return;
-            if (wachtwoord == null || wachtwoord.isEmpty()) { handmatigOf("Er is geen wachtwoord ingevuld"); return; }
-            if (pwPogingen >= 2) { einde(fout(fout.isEmpty() ? "Inloggen lukt niet: controleer je gebruikersnaam en wachtwoord, of kijk mee wat de website vraagt" : "De website zegt: " + fout, true)); return; }
+            if (wachtwoord == null || wachtwoord.isEmpty()) { handmatigOf("Er is geen wachtwoord ingevuld", "inloggen: geen wachtwoord"); return; }
+            if (pwPogingen >= 2) { einde(fout(fout.isEmpty() ? "Inloggen lukt niet: controleer je gebruikersnaam en wachtwoord, of kijk mee wat de website vraagt" : "De website zegt: " + fout, true, "inloggen: geweigerd")); return; }
             if (!hierVeilig()) return;
             if (user && st.optBoolean("userLeeg") && !gebruiker.isEmpty()) js("__fr.vul('gebruiker'," + JSONObject.quote(gebruiker) + "," + cfgJs + ")", null);
             js("__fr.vul('wachtwoord'," + JSONObject.quote(wachtwoord) + "," + cfgJs + ")", r -> js("__fr.verstuur('wachtwoord'," + cfgJs + ")", null));
@@ -322,8 +322,8 @@ final class FacturenRun {
         if (user) {
             stil = 0;
             if (handmatig) return;
-            if (gebruiker.isEmpty()) { handmatigOf("Er is geen gebruikersnaam ingevuld"); return; }
-            if (userPogingen >= 3) { einde(fout(fout.isEmpty() ? "De website accepteert de gebruikersnaam niet" : "De website zegt: " + fout, true)); return; }
+            if (gebruiker.isEmpty()) { handmatigOf("Er is geen gebruikersnaam ingevuld", "inloggen: geen gebruikersnaam"); return; }
+            if (userPogingen >= 3) { einde(fout(fout.isEmpty() ? "De website accepteert de gebruikersnaam niet" : "De website zegt: " + fout, true, "inloggen: gebruikersnaam geweigerd")); return; }
             if (!hierVeilig()) return;
             if (st.optBoolean("userLeeg")) js("__fr.vul('gebruiker'," + JSONObject.quote(gebruiker) + "," + cfgJs + ")", r -> js("__fr.verstuur('gebruiker'," + cfgJs + ")", null));
             else js("__fr.verstuur('gebruiker'," + cfgJs + ")", null);
@@ -342,9 +342,9 @@ final class FacturenRun {
         } else voortgang = handmatig ? voortgang : "Even kijken…";
     }
 
-    private void handmatigOf(String reden) {
+    private void handmatigOf(String reden, String logReden) {
         if (zichtbaar) { handmatig = true; voortgang = reden + ": log zelf in, daarna gaat de app verder."; }
-        else einde(fout(reden + ". Kijk één keer mee om zelf in te loggen.", true));
+        else einde(fout(reden + ". Kijk één keer mee om zelf in te loggen.", true, logReden));
     }
 
     private void naar(JSONObject st) {
@@ -358,7 +358,7 @@ final class FacturenRun {
         js("__fr.menu(" + JSONObject.quote(lev.optString("menu", "facturen")) + ")", r -> {
             if (fase != NAAR) return;
             if (str(r).isEmpty()) {
-                if (++menuPogingen >= 5) einde(fout("Kan de facturenpagina niet vinden. Vul bij Geavanceerd het adres van de facturenpagina in.", false));
+                if (++menuPogingen >= 5) einde(fout("Kan de facturenpagina niet vinden. Vul bij Geavanceerd het adres van de facturenpagina in.", false, "facturenpagina niet gevonden"));
                 return;
             }
             voortgang = "Facturenpagina openen…";
@@ -399,7 +399,7 @@ final class FacturenRun {
                 lijstUrl = wv.getUrl(); knopSinds = 0;
                 log(FacturenLog.Stap.LIJST, lijst.knoppen.length());
                 fase = DOWNLOAD; verder(200);
-            } catch (Throwable e) { einde(fout("Onverwachte fout: " + Facturen.kort(e), false)); }
+            } catch (Throwable e) { einde(fout("Onverwachte fout: " + Facturen.kort(e), false, "onverwachte fout " + e.getClass().getSimpleName())); }
         });
     }
 
@@ -415,7 +415,7 @@ final class FacturenRun {
             case "gewijzigd": stap = FacturenLog.Stap.GEWIJZIGD; msg = "De factuurlijst veranderde tijdens het ophalen. De periode is nog niet volledig opgehaald."; break;
             default: stap = FacturenLog.Stap.LAADFOUT; msg = "De website heeft binnen 30 seconden geen factuurlijst geladen. De periode is nog niet volledig opgehaald."; break;
         }
-        log(stap, lijst.aantal); einde(fout(msg, false));
+        log(stap, lijst.aantal); einde(fout(msg, false, "factuurlijst: " + stap.name().toLowerCase(java.util.Locale.ROOT)));
     }
 
     private void volgendeKnop() {
@@ -457,8 +457,8 @@ final class FacturenRun {
         JSONObject r = new JSONObject();
         try {
             if (pdfs.isEmpty()) r = fout(geenPdf.get() > 0 ? "Op de downloadknoppen kwam geen PDF terug (wel een webpagina). Pas bij Geavanceerd het patroon of de facturenpagina aan."
-                    : "Op de downloadknoppen kwam geen PDF terug", false);
-            else if (downloadFouten.get() > 0 || geenPdf.get() > 0 || bezig.get() > 0) r = fout("Niet alle downloadknoppen leverden een PDF op. De periode is nog niet volledig opgehaald.", false);
+                    : "Op de downloadknoppen kwam geen PDF terug", false, "geen pdf");
+            else if (downloadFouten.get() > 0 || geenPdf.get() > 0 || bezig.get() > 0) r = fout("Niet alle downloadknoppen leverden een PDF op. De periode is nog niet volledig opgehaald.", false, "niet alle pdf's");
             else r.put("ok", true);
         } catch (Exception ignored) { }
         einde(r);
@@ -586,9 +586,10 @@ final class FacturenRun {
     static String reden(String msg, boolean inlogNodig) {
         String m = msg == null ? "" : msg;
         if (m.startsWith("Gestopt")) return "gestopt";
+        if (m.startsWith("De website zegt")) return inlogNodig ? "inloggen: geweigerd" : "anders"; // de rest is tekst van de website
         if (inlogNodig) return m.startsWith("Er is geen wachtwoord") ? "inloggen: geen wachtwoord" : m.startsWith("Er is geen gebruikersnaam") ? "inloggen: geen gebruikersnaam"
                 : m.contains("inlogcode") || m.contains("de code") ? "inloggen: code" : m.startsWith("De pagina staat niet") || m.startsWith("De inlogpagina staat niet") ? "inloggen: ander domein"
-                : m.contains("duurde te lang") || m.contains("reageert niet") ? "inloggen: tijd om" : m.startsWith("De website zegt") ? "inloggen: geweigerd" : "inloggen";
+                : m.contains("duurde te lang") || m.contains("reageert niet") ? "inloggen: tijd om" : "inloggen";
         if (m.startsWith("Onverwachte fout")) return "onverwachte fout";
         if (m.startsWith("Bewaren mislukt")) return "bewaren";
         if (m.startsWith("Kan de facturenpagina niet vinden")) return "facturenpagina niet gevonden";
@@ -602,9 +603,10 @@ final class FacturenRun {
         return m.isEmpty() ? "onbekend" : "anders";
     }
 
-    private JSONObject fout(String msg, boolean inlogNodig) {
+    /** Mislukt: de melding voor Rene en de reden in vaste woorden voor het foutlogboek (nooit tekst van de website of een naam). */
+    private JSONObject fout(String msg, boolean inlogNodig, String reden) {
         JSONObject r = new JSONObject();
-        try { r.put("ok", false).put("msg", msg).put("inlogNodig", inlogNodig); } catch (Exception ignored) { }
+        try { r.put("ok", false).put("msg", msg).put("inlogNodig", inlogNodig).put("reden", reden); } catch (Exception ignored) { }
         return r;
     }
 
@@ -661,10 +663,11 @@ final class FacturenRun {
                         .put("nieuw", uit.optInt("nieuw")).put("namen", uit.optJSONArray("namen") == null ? new JSONArray() : uit.optJSONArray("namen"))
                         .put("auto", !zichtbaar && klaarAuto).put("diagnose", spoor.json()));
                 if (!uit.optBoolean("ok")) App.log(c, "FACTUREN", "ophalen mislukt (" + lev.optString("soort", "website") + "): "
-                        + reden(uit.optString("msg"), uit.optBoolean("inlogNodig"))); // alleen vaste woorden: geen namen of websitetekst
+                        + (uit.has("reden") ? uit.optString("reden") : reden(uit.optString("msg"), uit.optBoolean("inlogNodig")))); // alleen vaste woorden: geen namen of websitetekst
             } catch (Throwable e) {
                 log(FacturenLog.Stap.FOUT, 0);
-                try { uit = fout("Bewaren mislukt: " + Facturen.kort(e), false).put("id", id).put("naam", lev.optString("naam")); } catch (Exception ignored) { }
+                try { uit = fout("Bewaren mislukt: " + Facturen.kort(e), false, "bewaren").put("id", id).put("naam", lev.optString("naam")); } catch (Exception ignored) { }
+                App.log(c, "FACTUREN", "ophalen mislukt (" + lev.optString("soort", "website") + "): bewaren " + e.getClass().getSimpleName());
                 Facturen.werkBij(c, id, uit);
             } finally {
                 net.shutdown();
@@ -711,7 +714,7 @@ final class FacturenRun {
             return !"https".equalsIgnoreCase(req.getUrl().getScheme());
         }
         @Override public boolean onRenderProcessGone(WebView v, RenderProcessGoneDetail d) {
-            r.einde(r.fout("De website liep vast", false));
+            r.einde(r.fout("De website liep vast", false, "website liep vast"));
             if (!r.eigenWv) { // meekijken: deze WebView is onbruikbaar en moet weg
                 try { android.view.ViewGroup p = (android.view.ViewGroup) v.getParent(); if (p != null) p.removeView(v); v.destroy(); } catch (Throwable ignored) { }
             }
