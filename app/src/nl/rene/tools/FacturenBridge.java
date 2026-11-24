@@ -94,6 +94,7 @@ public class FacturenBridge extends GebruikBridge {
             String pw = in.optString("wachtwoord", "");
             in.remove("wachtwoord");
             String id = Facturen.bewaar(ctx, in, pw);
+            Facturen.werkBij(ctx, id, new JSONObject().put("inlogNodig", false)); // Rene paste hem aan: de achtergrond mag het meteen weer proberen
             FacturenJob.schedule(ctx);
             return new JSONObject().put("id", id).toString();
         } catch (Exception e) { return err(e, "Bewaren lukt niet"); }

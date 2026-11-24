@@ -313,16 +313,21 @@ final class Facturen {
         return v < g - 86_400_000L; // ook "alles" (0) terwijl er maar een deel gedekt is
     }
 
-    /** Aan de beurt omdat de periode nog niet helemaal is opgehaald (hooguit om de "opnieuw" uur proberen). */
+    /** Na "inloggen nodig" op de achtergrond hooguit eens per dag opnieuw. */
+    static final long OPNIEUW_INLOG = 24 * 3_600_000L;
+
     /**
-     * Wacht op Rene: de laatste poging in deze periode liep vast op iets wat alleen hij kan doen (wachtwoord, inlogcode,
-     * meekijken). Dan niet elke paar uur opnieuw (dat mislukt toch, en kost accu en data), maar pas op het volgende vaste
-     * moment, of zodra hij de leverancier aanpast (bewaar wist de vlag) of zelf ophaalt. Zuiver, getest.
+     * Wacht op Rene: de laatste poging in deze periode liep vast op inloggen (geen wachtwoord, de inlogcode kwam niet,
+     * een melding van de website). Dan niet elke paar uur opnieuw (dat mislukt meestal weer, en kost accu en data), maar
+     * hooguit eens per {@link #OPNIEUW_INLOG}: iets tijdelijks (een late sms-code) komt zo toch nog goed. Past Rene de
+     * leverancier aan of haalt hij zelf op, dan vervalt het meteen. Zuiver, getest.
      */
     static boolean wachtOpRene(JSONObject lev, JSONObject t, long nu, java.util.TimeZone tz) {
-        return t != null && t.optBoolean("inlogNodig") && !t.optBoolean("ok") && t.optLong("lastTry") >= gepland(lev, nu, false, tz);
+        return t != null && t.optBoolean("inlogNodig") && !t.optBoolean("ok") && t.optLong("lastTry") >= gepland(lev, nu, false, tz)
+                && nu - t.optLong("lastTry") < OPNIEUW_INLOG;
     }
 
+    /** Aan de beurt omdat de periode nog niet helemaal is opgehaald (hooguit om de "opnieuw" uur proberen). */
     static boolean inhalen(JSONObject lev, JSONObject t, long nu, java.util.TimeZone tz) {
         if ("uit".equals(lev.optString("schema", "maand")) || !heelPeriode(lev, t, nu, tz)) return false;
         return nu - t.optLong("lastTry") >= lev.optInt("opnieuw", 3) * 3_600_000L;
@@ -517,7 +522,6 @@ final class Facturen {
                 if (t.remove(o.getString("id")) != null) bewaarToestand(c, t);
             }
             if (wachtwoord != null && !wachtwoord.isEmpty()) zetGeheim(c, "lev_" + o.getString("id"), wachtwoord);
-            if (vervangen) werkBij(c, o.getString("id"), new JSONObject().put("inlogNodig", false)); // aangepast: de achtergrond mag het weer proberen
             return o.getString("id");
         }
     }

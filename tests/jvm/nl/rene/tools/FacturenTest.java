@@ -188,12 +188,13 @@ public class FacturenTest {
         JSONObject m31 = Facturen.normaal(new JSONObject(m5.toString()).put("dag", 31));
         check(f.format(new java.util.Date(Facturen.gepland(m31, nu, true, ams))).equals("2026-11-30 08:00"), "laatste dag: 30 nov");
         check(f.format(new java.util.Date(Facturen.gepland(m31, f.parse("2027-02-01 09:00").getTime(), true, ams))).equals("2027-02-28 08:00"), "laatste dag in februari");
-        // Inloggen nodig: niet elke paar uur opnieuw, pas bij het volgende vaste moment (of na aanpassen: de vlag is dan weg)
+        // Inloggen nodig: niet elke paar uur opnieuw, hooguit eens per dag (of na aanpassen: de vlag is dan weg)
         long poging = f.parse("2026-10-06 10:00").getTime(), later = f.parse("2026-10-06 19:00").getTime();
         JSONObject vast = new JSONObject().put("lastTry", poging).put("ok", false).put("inlogNodig", true);
         check(Facturen.wachtOpRene(m5, vast, later, ams), "inloggen nodig: wacht op Rene binnen de periode");
         check(Facturen.aanDeBeurt(m5, 0, poging, later, ams), "zonder de vlag zou hij na drie uur opnieuw proberen");
         check(!Facturen.wachtOpRene(m5, vast, f.parse("2026-11-05 08:30").getTime(), ams), "volgende vaste moment: weer één poging");
+        check(!Facturen.wachtOpRene(m5, vast, f.parse("2026-10-07 10:30").getTime(), ams), "na een dag weer één poging (een late sms-code komt zo toch goed)");
         check(!Facturen.wachtOpRene(m5, new JSONObject(vast.toString()).put("inlogNodig", false), later, ams), "na aanpassen (vlag weg): gewoon opnieuw");
         check(!Facturen.wachtOpRene(m5, new JSONObject().put("lastTry", poging).put("ok", false), later, ams) && !Facturen.wachtOpRene(m5, null, later, ams), "een gewone fout: zoals voorheen");
         JSONObject w = Facturen.normaal(new JSONObject(basis.toString()).put("schema", "week").put("weekdag", 5).put("tijd", "7:15"));
