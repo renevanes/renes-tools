@@ -629,6 +629,9 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
    op), zet dat dan bovenaan je bericht en in het logboek (lukt dat niet: alleen in je bericht), met de naam van de
    branch: de volgende run maakt hem af of ruimt hem op (stap 1). (Les van 13 november: een run met groene tests bleef
    op zijn branch staan, zonder publicatie en zonder logboekregel.)
+   Een kloon in een cloudsessie is vaak ondiep: dan kan `merge-base --is-ancestor` ten onrechte zeggen dat een commit niet op main staat (les van 24 november:
+   een branch die al op main stond leek er niet op te staan). Controleer met `git rev-parse --is-shallow-repository`
+   en haal bij `true` eerst de hele geschiedenis op (`git fetch --unshallow origin`); dit geldt ook voor stap 1 en 6.
 9. **GitHub alleen via de REST-API** (`gh api repos/renevanes/renes-tools/…`): GraphQL (dus `gh issue …`, `gh pr …`) en
    de Security-API's werken in een cloudsessie niet.
 10. **De repository is openbaar.** Zet in issues en logboeken geen persoonlijke gegevens of geheimen; uit de privé
