@@ -114,6 +114,7 @@ public class FacturenJob extends JobService {
             if (lev == null || Facturen.uitMail(lev)) continue; // uit de mail: de mailbron haalt op
             if (lev.optBoolean("wifi") && betaald) continue; // wacht op wifi (de dagelijkse controle haalt het in)
             JSONObject t = Facturen.toestand(c, lev.optString("id"));
+            if (Facturen.wachtOpRene(lev, t, nu, Regio.zone(c))) continue; // inloggen nodig: niet elke paar uur opnieuw
             boolean verder = t.optBoolean("mailMeer") && nu - t.optLong("lastTry") >= 3_600_000L; // mail: nog meer op te halen
             if (verder || Facturen.inhalen(lev, t, nu, Regio.zone(c)) || Facturen.aanDeBeurt(lev, t.optLong("lastOk"), t.optLong("lastTry"), nu, Regio.zone(c))) out.add(lev.optString("id"));
         }
@@ -139,6 +140,7 @@ public class FacturenJob extends JobService {
             if (lev == null || "uit".equals(lev.optString("schema")) || Facturen.uitMail(lev)) continue;
             long m = Facturen.gepland(lev, nu, true, tz);
             JSONObject t = Facturen.toestand(c, lev.optString("id"));
+            if (Facturen.wachtOpRene(lev, t, nu, tz)) { if (lev.optBoolean("wifi")) wifi = Math.min(wifi, m); else any = Math.min(any, m); continue; } // pas het volgende vaste moment
             if (t.optBoolean("mailMeer")) m = Math.min(m, Math.max(nu + 60_000L, t.optLong("lastTry") + 3_600_000L)); // de rest van de mail over een uur
             if (Facturen.heelPeriode(lev, t, nu, tz)) m = Math.min(m, Math.max(nu + 60_000L, t.optLong("lastTry") + lev.optInt("opnieuw", 3) * 3_600_000L)); // hele periode nog inhalen
             if (t.optLong("lastOk") < Facturen.gepland(lev, nu, false, tz)) // nog open: opnieuw proberen
