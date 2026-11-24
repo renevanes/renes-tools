@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.247",
-  "versionCode": 248,
-  "nativeLevel": 213,
+  "versionName": "1.248",
+  "versionCode": 249,
+  "nativeLevel": 214,
   "web": "index.html",
-  "webSha256": "fae995e7c9b8bc5428d7a4573203679e411babf2a60684e51dcb2cef4e6e6441",
+  "webSha256": "2edbb8aef80a2c77ebb21fd91895bc51ef43aac3fa43139c0f49d1bf9544da6d",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "54426434ab867aff3fa1c6ca65d328a2ed4d15ecacb2be1c48a77c9b147bc277",
+  "apkSha256": "e7fb3cc95c762cf234b8382adf4536367874367b92ac55a4ae3f4a9e5c345f13",
   "changelog": [
+    {
+      "version": "1.248",
+      "date": "2026-11-24",
+      "changes": [
+        "Alles back-uppen toont nu meteen hoe groot de laatste backup is en hoeveel ruimte hij erbij nam, zonder uitklappen",
+        "Ruimtegebruik splitst de map Versleuteld op in backups, grote bestanden en oude, volledige backups",
+        "Nieuw: Publiceren en tests (Instellingen → Versie en updates): wat er op GitHub loopt en wat mislukte, per taak, met recente runs en open punten; een tik opent het op GitHub",
+        "Signalen: nieuwe bron Publiceren en tests, voor een melding als een run op main mislukt (aan te zetten op het scherm Publiceren en tests)"
+      ]
+    },
     {
       "version": "1.247",
       "date": "2026-11-24",
@@ -178,17 +188,7 @@
         "Betalen zet de overboeking klaar bij Rabobank: je logt zelf in met de Rabo App, Tools vult het formulier in, en jij controleert en ondertekent. Bij andere banken kopieer je de gegevens veld voor veld.",
         "Bouwen: een tweede adres voor een bouwbibliotheek van het voorlezen, zodat publiceren niet meer strandt als het eerste adres weigert; je merkt er niets van."
       ]
-    },
-    {
-      "version": "1.228",
-      "date": "2026-11-18",
-      "changes": [
-        "Startscherm aanpassen: overzichtelijker, in drie tabbladen: Tools (favorieten en groepen), Overzicht en Weergave, in plaats van één lange lijst.",
-        "Startscherm aanpassen → Overzicht: kies welke regels bovenaan staan (backup, wekker, herinneringen, Auto redial, radio, zelftest) en in welke volgorde; de backup-regel kan alleen bij een probleem verschijnen, met een eigen termijn voor \"al even geleden\".",
-        "Startscherm aanpassen → Overzicht: Sinds gisteravond kan uit, of per soort regel (backup, gemiste oproepen, automatiseringen, beperkingen door Android, backup-controle).",
-        "Startscherm aanpassen → Weergave: zet de onderdelen van het startscherm (Overzicht, Recent gebruikt, Vastgezette notities, Tools) in je eigen volgorde, zet vastgezette notities, de tip onderaan en de uitleg onder de tegels uit, en kies hoeveel tools Recent gebruikt toont."
-      ]
     }
   ],
-  "webSig2": "BmZQLwupPm8NBrwYk3aBM7d0bXVU3fmSFeCzM/pu1kRwhMpL5OdCt355z4ZEvx+1TZT3jlZ7MRTU4pfr/h15sqD4g6SEYLIus/opMcuGvKacn7+oUZlLeTvI/dCzRk9vqcP1zm0JvLzu4vLSloMsGsNSJo0MFoFjeaENLvHMD8KN5JvfRQFif2Nye/Yx6dRr9UTarm1yTYVNeQbqvVSkuxtxi3FDgELONubEs/O9do6EvBIG38p/XxRTa9aGnLPZZZTR3bhGymxHdAxtasZsfFQUeDga2wclulULLVsXpzaQ1SiIhIbD9tQnZvwR8qoT8tN8edCPFlfh8hkaAnFsVSnHP0jaXdbvcmWFH39KgG89YszkbEMREGMJ8OojqTSIEoOC7BXCVBOWGy45XaeEKO+zuvrutYsxgN54HIodOPz+W1F7La0gPcQSfOSafxQOC7u2B5uAaZxnOY34VKMiXLi+SvBmITbi80czbNJrh1wKyKYc6JHmLWLEaUOuLyOX"
+  "webSig2": "XYmVGuicZjgH/A/5y44tuCD2agnfgGzcxLcNEeMa3jnxONhr5khLY6fZUS1SQXHDAW6sgvgqvisJlR2Kw3oL17whhqK8N80vvU56xGiBeYm5JqBviS51IPrvJLwSwHhUuBaJEdK/F0QSNce3FwzXpzJyWB9/l+VX0atnpawZYyGAFsiCfzJjPydEpVLVBxLQOlPxxrbtHImajmRt9tHOG/ELV/mXoV6dxx11vtM7SFGpy7MVCWERHUEac2zVYAV8/r4MHWXCIRz+vFQrw7Dr4hqVHlT3NjD8+91OU1VGJ335oKazJUT7vVMZrAjguVZp+JWUvM2erzYKNkeMSIELo8TtfK7e7xYO5Vr0YL6Yo89Wx2p4OhKic5IxR8ISbulyTKUi+2Ms3OG0ipQMprmBp6sk2EDJVIw1Z5W77ZbP0+Jdd+MtONvnRJSzm9kHzkex1HseKgwWdOVB3YZSopiw4eROmP/V2lcU83uFpd+QJlhXNsLs/PBruX+7JgR+tkVL"
 }
