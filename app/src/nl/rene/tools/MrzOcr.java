@@ -199,8 +199,15 @@ final class MrzOcr {
         int beelden, teDruk, maxVlakken, groepen;
         /** Lengte van een regel (minstens 28 tekens) → hoe vaak. */
         final java.util.TreeMap<Integer,Integer> regels=new java.util.TreeMap<>();
-        /** De beste lezing (alleen in het geheugen; in de tekst alleen afwijking en de controlecijfers). */
-        Mrz.Result beste;
+        /** Van de beste lezing alleen het formaat, de afwijking en de controlecijfers (nooit de tekens zelf). */
+        String besteFormaat; double besteAfwijking; boolean nrOk, gebOk, vervOk, bruikbaar; int geldig;
+        /** Zoals {@link MrzOcr#better}, maar met alleen de bewaarde getallen. */
+        void neem(Mrz.Result r){
+            if(r==null)return;
+            boolean beter=besteFormaat==null||(r.usable()!=bruikbaar?r.usable():r.usable()&&r.valid()!=geldig?r.valid()>geldig:r.mean<besteAfwijking);
+            if(!beter)return;
+            besteFormaat=r.format.name;besteAfwijking=r.mean;nrOk=r.docOk;gebOk=r.birthOk;vervOk=r.expiryOk;bruikbaar=r.usable();geldig=r.valid();
+        }
         String tekst(){
             StringBuilder b=new StringBuilder("strook: beelden ").append(beelden).append(", vlakken tot ").append(maxVlakken);
             if(teDruk>0)b.append(", te druk ").append(teDruk);
@@ -208,8 +215,8 @@ final class MrzOcr {
             if(regels.isEmpty())b.append("geen");
             else{int n=0;for(java.util.Map.Entry<Integer,Integer> e:regels.descendingMap().entrySet()){if(n++==6){b.append(" …");break;}b.append(n>1?" ":"").append(e.getKey()).append("x").append(e.getValue());}}
             b.append(", groepen ").append(groepen);
-            if(beste!=null)b.append(", beste ").append(beste.format.name).append(" afwijking ").append(Math.round(beste.mean*10)/10.0)
-                .append(" controle nr/geb/verv ").append(beste.docOk?"ja":"nee").append("/").append(beste.birthOk?"ja":"nee").append("/").append(beste.expiryOk?"ja":"nee");
+            if(besteFormaat!=null)b.append(", beste ").append(besteFormaat).append(" afwijking ").append(Math.round(besteAfwijking*10)/10.0)
+                .append(" controle nr/geb/verv ").append(nrOk?"ja":"nee").append("/").append(gebOk?"ja":"nee").append("/").append(vervOk?"ja":"nee");
             return b.toString();
         }
     }
@@ -235,7 +242,7 @@ final class MrzOcr {
                 for(int[] sh:shifts){
                     Mrz.Pos[][] p=new Mrz.Pos[f.lines][];for(int l=0;l<f.lines;l++)p[l]=read(pg,group.get(l),f.length,sh[l]);
                     Mrz.Result r=Mrz.decode(f,p);if(r!=null&&better(r,best))best=r;
-                    if(sp!=null&&r!=null&&better(r,sp.beste))sp.beste=r;
+                    if(sp!=null)sp.neem(r);
                 }
             }
         }
