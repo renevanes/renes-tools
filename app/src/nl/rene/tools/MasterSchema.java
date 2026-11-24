@@ -10,7 +10,7 @@ import java.util.Set;
 final class MasterSchema {
     private MasterSchema(){ }
     /** contact = opzoeksleutel van een contact (telefoon en e-mail komen dan uit Contacten); delen = bekend bij de assistent. */
-    static final String[] PERSON={"naam","voornamen","roepnaam","initialen","geboortedatum","geboorteplaats","geslacht","nationaliteit","bsn","adres","postcode","plaats","land","telefoon","email","context","contact","delen"};
+    static final String[] PERSON={"naam","voornamen","roepnaam","initialen","geboortedatum","geboorteplaats","geslacht","nationaliteit","bsn","adres","postcode","plaats","land","telefoon","email","context","contact","delen","woonadres"};
     static final String[] ORGANISATION={"naam","registratienummer","adres","postcode","plaats","land","telefoon","email"};
     static final String[] ADDRESS={"naam","adres","postcode","plaats","land","telefoon"};
     static final String[] IDENTITY={"persoon","documentsoort","document","geldig","afgifte","afgifteplaats","uitgifteland","afgegevenDoor","categorieen"};
@@ -46,6 +46,7 @@ final class MasterSchema {
             if(("geboortedatum".equals(k)||"geldig".equals(k)||"afgifte".equals(k)||"van".equals(k)||"tot".equals(k))&&!s.isEmpty()&&!validDate(s))throw new MasterError(Taal.T("Vul een geldige datum in"));
             if(YES_NO.contains(k)&&!s.isEmpty()&&!s.equals("ja")&&!s.equals("nee"))throw new MasterError(Taal.T("Kies Ja of Nee"));
             if("contact".equals(k)&&!s.isEmpty()&&!MasterContacts.validKey(s))throw new MasterError(Taal.T("Kies het contact opnieuw"));
+            if("woonadres".equals(k)&&!s.isEmpty()&&!s.matches("[a-f0-9-]{36}"))throw new MasterError(Taal.T("Kies het adres opnieuw"));
             // Geslacht zoals op het Nederlandse identiteitsbewijs (M, V of X). Gaat alleen mee naar een formulier dat erom vraagt.
             if("geslacht".equals(k)&&!s.isEmpty()&&!s.equals("M")&&!s.equals("V")&&!s.equals("X"))throw new MasterError(Taal.T("Kies Man, Vrouw of X"));
             if("bsn".equals(k)&&!s.isEmpty()&&!s.matches("[0-9]{8,9}"))throw new MasterError(Taal.T("Vul een geldig BSN in"));

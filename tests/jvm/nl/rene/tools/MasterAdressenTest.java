@@ -1,0 +1,49 @@
+package nl.rene.tools;
+
+import org.json.JSONObject;
+
+/** Een persoon woont op een adres uit Adressen: wanneer twee adressen hetzelfde zijn en wat er naar de persoon gaat. */
+public final class MasterAdressenTest {
+    static void check(boolean ok, String message) { if (!ok) throw new AssertionError(message); }
+    static JSONObject f(String adres, String postcode, String plaats) throws Exception {
+        JSONObject o = new JSONObject();
+        if (adres != null) o.put("adres", adres);
+        if (postcode != null) o.put("postcode", postcode);
+        if (plaats != null) o.put("plaats", plaats);
+        return o;
+    }
+    public static void main(String[] args) throws Exception {
+        // Zelfde adres, anders geschreven
+        check(MasterAdressen.sleutel(f("Kade 12", "3011 AB", "Rotterdam")).equals(MasterAdressen.sleutel(f("kade  12", "3011ab", "ROTTERDAM"))), "hoofdletters en spaties tellen niet");
+        check(MasterAdressen.sleutel(f("Kade 12-a", "3011AB", null)).equals(MasterAdressen.sleutel(f("Kade 12a", "3011 ab", null))), "streepje in het huisnummer telt niet");
+        check(!MasterAdressen.sleutel(f("Kade 12", "3011 AB", null)).equals(MasterAdressen.sleutel(f("Kade 14", "3011 AB", null))), "ander huisnummer = ander adres");
+        check(!MasterAdressen.sleutel(f("Kade 12", "3011 AB", null)).equals(MasterAdressen.sleutel(f("Kade 12", "3012 AB", null))), "andere postcode = ander adres");
+        check(MasterAdressen.sleutel(f("Dorpsstraat 1", null, "Ede")).equals(MasterAdressen.sleutel(f("dorpsstraat 1", "", "ede"))), "zonder postcode telt de plaats");
+        check(!MasterAdressen.sleutel(f("Dorpsstraat 1", null, "Ede")).equals(MasterAdressen.sleutel(f("Dorpsstraat 1", null, "Epe"))), "andere plaats = ander adres");
+        check(MasterAdressen.sleutel(f(null, "3011 AB", "Rotterdam")).isEmpty() && MasterAdressen.sleutel(null).isEmpty(), "zonder straat geen sleutel");
+        // Heeft een adres
+        check(MasterAdressen.heeftAdres(f("Kade 12", null, null)) && MasterAdressen.heeftAdres(f(null, "3011 AB", null)), "straat of postcode is een adres");
+        check(!MasterAdressen.heeftAdres(f(null, null, "Rotterdam")) && !MasterAdressen.heeftAdres(f(" ", null, null)) && !MasterAdressen.heeftAdres(null), "alleen een plaats is geen adres");
+        // Naam in het overzicht
+        check("Kade 12, Rotterdam".equals(MasterAdressen.label(f("Kade 12", "3011 AB", "Rotterdam"))), "straat en plaats");
+        check("Kade 12".equals(MasterAdressen.label(f("Kade 12", null, null))), "alleen straat");
+        check("3011 AB".equals(MasterAdressen.label(f(null, "3011 AB", null))), "alleen postcode");
+        StringBuilder lang = new StringBuilder(); for (int i = 0; i < 50; i++) lang.append("abcde");
+        check(MasterAdressen.label(f(lang.toString(), null, "X")).length() == 120, "naam hooguit 120 tekens");
+        // Kopiëren naar de persoon
+        JSONObject adres = f("Kade 12", "3011 AB", "Rotterdam").put("land", "Nederland").put("telefoon", "010-1234567").put("naam", "Thuis");
+        JSONObject persoon = f("Oude straat 1", "1234 AB", "Ede").put("telefoon", "06-12345678").put("naam", "Es").put("land", "België");
+        check(MasterAdressen.kopieer(adres, persoon), "verandering gemeld");
+        check("Kade 12".equals(persoon.getString("adres")) && "3011 AB".equals(persoon.getString("postcode")) && "Rotterdam".equals(persoon.getString("plaats")) && "Nederland".equals(persoon.getString("land")), "straat, postcode, plaats en land over");
+        check("06-12345678".equals(persoon.getString("telefoon")) && "Es".equals(persoon.getString("naam")), "eigen telefoon en naam blijven");
+        check(!MasterAdressen.kopieer(adres, persoon), "geen verandering bij een tweede keer");
+        JSONObject zonderLand = f("Kade 12", "3011 AB", "Rotterdam");
+        check(MasterAdressen.kopieer(zonderLand, persoon) && !persoon.has("land"), "leeg veld bij het adres = weg bij de persoon");
+        // Nieuw adres uit een persoon
+        JSONObject p = f("Kade 12", "3011 AB", "Rotterdam").put("land", "Nederland").put("telefoon", "06-12345678").put("bsn", "123456782").put("naam", "Es");
+        JSONObject n = MasterAdressen.nieuwAdres(p);
+        check("Kade 12".equals(n.getString("adres")) && "Nederland".equals(n.getString("land")), "adresvelden mee");
+        check(!n.has("bsn") && !n.has("telefoon") && !n.has("naam"), "niets anders van de persoon mee naar het adres");
+        System.out.println("MasterAdressenTest ok");
+    }
+}

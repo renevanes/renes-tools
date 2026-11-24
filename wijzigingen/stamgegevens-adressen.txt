@@ -1,0 +1,2 @@
+Stamgegevens: een persoon woont nu op een adres uit Adressen (Woont op), in plaats van een eigen los adres. Gezinsleden delen hetzelfde adres; pas je het adres aan, dan verandert het bij iedereen die er woont. Bij een adres zie je wie er woont. Bestaande adressen bij personen worden eenmalig vanzelf gekoppeld, en gelijke adressen worden één adres.
+Stamgegevens: als het laden of bewaren traag gaat, komt de duur (zonder gegevens) in het foutlogboek, zodat het sneller gemaakt kan worden.

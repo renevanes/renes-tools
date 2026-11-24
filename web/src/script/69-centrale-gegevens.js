@@ -4,10 +4,10 @@ const cm={tab:'',back:null,keepNote:false,token:'',seq:0,pending:new Map(),recor
 // taal-vast: veldnamen worden bij het tekenen met t() vertaald
 const CM_TYPES={persoon:'Persoon',organisatie:'Organisatie',adres:'Adres',identiteit:'Identiteitsdocument',reis:'Reis',relatie:'Relatie',profiel:'App-profiel',formulier:'Vaste formuliergegevens'};
 // taal-vast: veldnamen worden bij het tekenen met t() vertaald
-const CM_FIELDS={categorieen:'Rijbewijscategorieën',geslacht:'Geslacht (zoals op het identiteitsbewijs)',roepnaam:'Roepnaam',context:'Notitie voor de assistent',contact:'Gekoppeld contact',tekenplaats:'Plaats van ondertekening (begeleiders)',handtekening:'Je bewaarde handtekening zetten bij',vanPersoon:'Eerste persoon',naarPersoon:'Tweede persoon',relatie:'Relatie van de tweede persoon',status:'Status van de relatie',toelichting:'Toelichting bij de relatie',delen:'Delen met app en lokale AI?',uitgifteland:'Land van afgifte',afgegevenDoor:'Afgegeven door',front:'Voorzijde',back:'Achterzijde',naam:'Achternaam of naam',voornamen:'Voornamen',initialen:'Initialen',geboortedatum:'Geboortedatum',geboorteplaats:'Geboorteplaats',nationaliteit:'Nationaliteit',bsn:'BSN',adres:'Straat en huisnummer',postcode:'Postcode',plaats:'Plaats',land:'Land',telefoon:'Telefoonnummer',email:'E-mailadres',registratienummer:'Registratienummer',persoon:'Gekoppelde persoon',documentsoort:'Documentsoort',document:'Documentnummer',geldig:'Geldig tot',afgifte:'Afgiftedatum',afgifteplaats:'Plaats van afgifte',ontvanger:'Ontvanger',instelling:'Instelling',accommodatie:'Naam familie of accommodatie',label:'Naam in het overzicht',van:'Eerste reisdag',tot:'Laatste reisdag',alleen:'Reist het kind alleen?',tweedeBegeleider:'Een tweede begeleider invullen?',tweedeGever:'Een tweede toestemminggever invullen?',reisgegevens:'Reisgegevens (bijvoorbeeld vluchtnummer)',formulier:'Formulier',kind:'Kind dat reist',kindDocument:'Reisdocument van het kind',begeleider1:'Begeleider 1 (reist mee)',begeleider1Document:'Reisdocument van begeleider 1',begeleider1Relatie:'Relatie van begeleider 1 tot het kind',begeleider2:'Begeleider 2 (optioneel)',begeleider2Document:'Reisdocument van begeleider 2',begeleider2Relatie:'Relatie van begeleider 2 tot het kind',gever1:'Toestemminggever 1 (reist niet mee)',gever1Document:'Identiteitsbewijs van toestemminggever 1',gever1Instelling:'Instelling van toestemminggever 1 (optioneel)',gever2:'Toestemminggever 2 (optioneel)',gever2Document:'Identiteitsbewijs van toestemminggever 2',gever2Instelling:'Instelling van toestemminggever 2 (optioneel)',bsnInvullen:'BSN op het formulier zetten?'};
-const CM_SCHEMA={persoon:['naam','voornamen','roepnaam','initialen','geboortedatum','geboorteplaats','geslacht','nationaliteit','bsn','adres','postcode','plaats','land','telefoon','email','context','contact','delen'],organisatie:['naam','registratienummer','adres','postcode','plaats','land','telefoon','email'],adres:['naam','adres','postcode','plaats','land','telefoon'],identiteit:['persoon','documentsoort','document','geldig','categorieen','afgifte','afgifteplaats','uitgifteland','afgegevenDoor'],profiel:['persoon','delen','context','aiStatus','aiGeboorte','aiDocumenten','aiWoonplaats','aiContact'],relatie:['vanPersoon','naarPersoon','relatie','status','toelichting','delen'],reis:['van','tot','alleen','tweedeBegeleider','tweedeGever','accommodatie','postcode','plaats','land','telefoon','reisgegevens'],formulier:['formulier','kind','kindDocument','alleen','begeleider1','begeleider1Document','begeleider1Relatie','begeleider2','begeleider2Document','begeleider2Relatie','gever1','gever1Document','gever1Instelling','gever2','gever2Document','gever2Instelling','bsnInvullen','tekenplaats','handtekening']};
+const CM_FIELDS={categorieen:'Rijbewijscategorieën',geslacht:'Geslacht (zoals op het identiteitsbewijs)',roepnaam:'Roepnaam',context:'Notitie voor de assistent',contact:'Gekoppeld contact',woonadres:'Woont op',tekenplaats:'Plaats van ondertekening (begeleiders)',handtekening:'Je bewaarde handtekening zetten bij',vanPersoon:'Eerste persoon',naarPersoon:'Tweede persoon',relatie:'Relatie van de tweede persoon',status:'Status van de relatie',toelichting:'Toelichting bij de relatie',delen:'Delen met app en lokale AI?',uitgifteland:'Land van afgifte',afgegevenDoor:'Afgegeven door',front:'Voorzijde',back:'Achterzijde',naam:'Achternaam of naam',voornamen:'Voornamen',initialen:'Initialen',geboortedatum:'Geboortedatum',geboorteplaats:'Geboorteplaats',nationaliteit:'Nationaliteit',bsn:'BSN',adres:'Straat en huisnummer',postcode:'Postcode',plaats:'Plaats',land:'Land',telefoon:'Telefoonnummer',email:'E-mailadres',registratienummer:'Registratienummer',persoon:'Gekoppelde persoon',documentsoort:'Documentsoort',document:'Documentnummer',geldig:'Geldig tot',afgifte:'Afgiftedatum',afgifteplaats:'Plaats van afgifte',ontvanger:'Ontvanger',instelling:'Instelling',accommodatie:'Naam familie of accommodatie',label:'Naam in het overzicht',van:'Eerste reisdag',tot:'Laatste reisdag',alleen:'Reist het kind alleen?',tweedeBegeleider:'Een tweede begeleider invullen?',tweedeGever:'Een tweede toestemminggever invullen?',reisgegevens:'Reisgegevens (bijvoorbeeld vluchtnummer)',formulier:'Formulier',kind:'Kind dat reist',kindDocument:'Reisdocument van het kind',begeleider1:'Begeleider 1 (reist mee)',begeleider1Document:'Reisdocument van begeleider 1',begeleider1Relatie:'Relatie van begeleider 1 tot het kind',begeleider2:'Begeleider 2 (optioneel)',begeleider2Document:'Reisdocument van begeleider 2',begeleider2Relatie:'Relatie van begeleider 2 tot het kind',gever1:'Toestemminggever 1 (reist niet mee)',gever1Document:'Identiteitsbewijs van toestemminggever 1',gever1Instelling:'Instelling van toestemminggever 1 (optioneel)',gever2:'Toestemminggever 2 (optioneel)',gever2Document:'Identiteitsbewijs van toestemminggever 2',gever2Instelling:'Instelling van toestemminggever 2 (optioneel)',bsnInvullen:'BSN op het formulier zetten?'};
+const CM_SCHEMA={persoon:['naam','voornamen','roepnaam','initialen','geboortedatum','geboorteplaats','geslacht','nationaliteit','bsn','adres','postcode','plaats','land','telefoon','email','context','contact','delen','woonadres'],organisatie:['naam','registratienummer','adres','postcode','plaats','land','telefoon','email'],adres:['naam','adres','postcode','plaats','land','telefoon'],identiteit:['persoon','documentsoort','document','geldig','categorieen','afgifte','afgifteplaats','uitgifteland','afgegevenDoor'],profiel:['persoon','delen','context','aiStatus','aiGeboorte','aiDocumenten','aiWoonplaats','aiContact'],relatie:['vanPersoon','naarPersoon','relatie','status','toelichting','delen'],reis:['van','tot','alleen','tweedeBegeleider','tweedeGever','accommodatie','postcode','plaats','land','telefoon','reisgegevens'],formulier:['formulier','kind','kindDocument','alleen','begeleider1','begeleider1Document','begeleider1Relatie','begeleider2','begeleider2Document','begeleider2Relatie','gever1','gever1Document','gever1Instelling','gever2','gever2Document','gever2Instelling','bsnInvullen','tekenplaats','handtekening']};
 // Verwijzingen in vaste formuliergegevens: veld → soort stamgegeven (zelfde regels als MasterFormProfile.reference).
-function cmRefType(type,key){if(['persoon','vanPersoon','naarPersoon'].includes(key))return 'persoon';if(type!=='formulier')return '';if(['kind','begeleider1','begeleider2','gever1','gever2'].includes(key))return 'persoon';if(/^(kind|begeleider[12]|gever[12])Document$/.test(key))return 'identiteit';if(/^gever[12]Instelling$/.test(key))return 'organisatie';return '';}
+function cmRefType(type,key){if(['persoon','vanPersoon','naarPersoon'].includes(key))return 'persoon';if(type==='persoon'&&key==='woonadres')return 'adres';if(type!=='formulier')return '';if(['kind','begeleider1','begeleider2','gever1','gever2'].includes(key))return 'persoon';if(/^(kind|begeleider[12]|gever[12])Document$/.test(key))return 'identiteit';if(/^gever[12]Instelling$/.test(key))return 'organisatie';return '';}
 // Extra toestemming nodig bij overnemen naar een onderdeel (zelfde lijst als MasterSchema.sensitive).
 const CM_SECRET=new Set(['bsn','document','geldig','afgifte']);
 // Afgeschermd op het scherm (wachtwoordveld, tonen met het vinkje): alleen de nummers. Datums zijn gewone datumvelden.
@@ -19,7 +19,7 @@ function cmZone(name){return CM_SCR.includes(name);}
 const CM_PRIVE=['cmedit','cmlog','cmlijst','cmkaart'];
 /* Een visitekaartje bestaat uit blokken; het potlood bij een blok opent alleen die velden. Elk blok past op één scherm.
  * taal-vast: bloknamen worden bij het tekenen met t() vertaald */
-const CM_BLOKKEN={persoon:[['persoon','Persoon',['roepnaam','voornamen','naam','initialen','geslacht']],['geboorte','Geboorte en nationaliteit',['geboortedatum','geboorteplaats','nationaliteit','bsn']],['contact','Contact',['telefoon','email','adres','postcode','plaats','land']],['over','Over {naam}',['context']]],
+const CM_BLOKKEN={persoon:[['persoon','Persoon',['roepnaam','voornamen','naam','initialen','geslacht']],['geboorte','Geboorte en nationaliteit',['geboortedatum','geboorteplaats','nationaliteit','bsn']],['contact','Contact',['telefoon','email','woonadres']],['over','Over {naam}',['context']]],
   relatie:[['relatie','Relatie',['vanPersoon','naarPersoon','relatie','status','toelichting']]],
   adres:[['adres','Adres',['naam','adres','postcode','plaats','land','telefoon']]],
   organisatie:[['gegevens','Organisatie',['naam','registratienummer']],['contact','Contact',['adres','postcode','plaats','land','telefoon','email']]],
@@ -145,9 +145,12 @@ function cmListOpen(){
   if(current!=='masterdata'){show('masterdata');return;}
   cmListLoad();
 }
+/* Duurt de lijst lang, dan een regel in het foutlogboek: alleen tijden en het aantal (geen namen). */
+function cmMeet(t0,t1,t2){if(t2-t0<2000||typeof Android.logJs!=='function')return;try{Android.logJs('stamgegevens traag: lijst '+(t1-t0)+' ms, tekenen '+(t2-t1)+' ms, '+(cm.records||[]).length+' gegevens');}catch(_){}} // taal-vast: logregel, niet in beeld
 function cmListLoad(after,fail=null){
   if(!cmOpen())return;cm.recordsReady=false;document.querySelectorAll('#cm-open button').forEach(b=>b.disabled=true);const epoch=++cm.editorEpoch;
-  cmRequest('masterList',['masterdata',''],r=>{cm.records=r.records;cm.recordsReady=true;cmRenderList();document.querySelectorAll('#cm-open button').forEach(b=>b.disabled=false);if(epoch!==cm.editorEpoch){cmNavDone();return;}if(after)after();else cmiAfterList();},false,r=>{cmNavDone();if(fail)fail(r);});
+  const t0=Date.now();
+  cmRequest('masterList',['masterdata',''],r=>{const t1=Date.now();cm.records=r.records;cm.recordsReady=true;cmRenderList();document.querySelectorAll('#cm-open button').forEach(b=>b.disabled=false);cmMeet(t0,t1,Date.now());if(epoch!==cm.editorEpoch){cmNavDone();return;}if(after)after();else cmiAfterList();},false,r=>{cmNavDone();if(fail)fail(r);});
 }
 /* Het beginscherm (Ik, Aandacht nodig, rijen) tekent 71-stamgegevens-ik.js; zoeken toont één lijst met alles. */
 function cmRenderList(){}
@@ -202,17 +205,55 @@ function cmEditorFields(){
       if(eigen){if(!group){group=cmEl('div',undefined,'cm-group');group.dataset.cmTab=blok[0];if(all&&tabs.length>1)group.append(cmEl('h3',cmBlokTitle(blok,cm.edit),'cm-blok-h'));box.append(group);}group.append(label,eigen);continue;}
       const input=cmData(cmEl(person||choices?'select':area?'textarea':'input',undefined,'search'));input.id=label.htmlFor;input.name=key;
       if(person){
-        const empty=cmEl('option',t(ref==='identiteit'?'Kies een document':ref==='organisatie'?'Geen instelling':'Kies een persoon'));empty.value='';input.append(empty);
+        const empty=cmEl('option',t(ref==='identiteit'?'Kies een document':ref==='organisatie'?'Geen instelling':ref==='adres'?'Geen adres':'Kies een persoon'));empty.value='';input.append(empty);
         const owner=ref==='identiteit'?cm.edit.fields[key.slice(0,-8)]||'':'';
         cm.records.filter(r=>r.type===ref&&(ref!=='identiteit'||!!owner&&r.person===owner)).forEach(r=>{const o=cmData(cmEl('option',r.label));o.value=r.id;input.append(o);});
+        if(ref==='adres'){const n=cmEl('option',t('Nieuw adres…'));n.value=CM_NIEUW_ADRES;input.append(n);}
       }else if(choices){
         cmiVulKeuzes(input,choices,cm.edit.fields[key],key);
       }else{input.autocomplete='off';input.maxLength=key==='bsn'?9:240;if(!area)input.type=CM_MASK.has(key)?'password':['geboortedatum','van','tot','geldig','afgifte'].includes(key)?'date':key==='email'?'email':key==='telefoon'?'tel':'text';else input.rows=key==='context'?4:3;if(key==='bsn')input.inputMode='numeric';}
-      input.value=cm.edit.fields[key]||'';input.addEventListener(person||choices?'change':'input',()=>{if(choices&&input.value===CMI_ANDERS){input.value=cm.edit.fields[key]||'';cmiAnders(key,v=>{cm.edit.fields[key]=v;cmDirty();cmEditorFields();$('#cm-field-'+key)?.focus();});return;}cm.edit.fields[key]=input.value;cmDirty();if(cm.edit.type==='formulier'&&ref==='persoon')cmiFormPerson(key);if(cm.edit.type==='relatie')cmiRelationChange(key);if(key==='documentsoort')cmEditorFields();});
+      input.value=cm.edit.fields[key]||'';input.addEventListener(person||choices?'change':'input',()=>{if(key==='woonadres')return; // eigen afhandeling: cmWoonadres
+        if(choices&&input.value===CMI_ANDERS){input.value=cm.edit.fields[key]||'';cmiAnders(key,v=>{cm.edit.fields[key]=v;cmDirty();cmEditorFields();$('#cm-field-'+key)?.focus();});return;}cm.edit.fields[key]=input.value;cmDirty();if(cm.edit.type==='formulier'&&ref==='persoon')cmiFormPerson(key);if(cm.edit.type==='relatie')cmiRelationChange(key);if(key==='documentsoort')cmEditorFields();});
       if(!group){group=cmEl('div',undefined,'cm-group');group.dataset.cmTab=blok[0];if(all&&tabs.length>1)group.append(cmEl('h3',cmBlokTitle(blok,cm.edit),'cm-blok-h'));box.append(group);}
       group.append(label,input);
+      if(key==='woonadres')cmWoonadres(input,group);
     }
-  }cmiEditor();cmTabRender();
+  }
+  if(cm.edit.type==='adres'&&cm.edit.id)cmBewoners();
+  cmiEditor();cmTabRender();
+}
+/* Woont op: een adres uit Adressen (Java houdt straat, postcode, plaats en land van de persoon gelijk met dat adres).
+ * Nieuw adres: één regel ("Kade 12, 3011 AB Rotterdam"); bij bewaren zet Java het in Adressen, of koppelt aan hetzelfde adres. */
+const CM_NIEUW_ADRES='__nieuw';
+function cmAdresUit(regel){
+  const s=String(regel||'').replace(/\s+/g,' ').trim().slice(0,240);if(!s)return null;
+  const m=s.match(/^(.*?)[,\s]+(\d{4} ?[A-Za-z]{2})\b[,\s]*(.*)$/);
+  if(m)return {adres:m[1].replace(/,$/,'').trim(),postcode:m[2].toUpperCase().replace(/^(\d{4})([A-Z]{2})$/,'$1 $2'),plaats:m[3].trim()};
+  const k=s.split(',');return k.length>1?{adres:k[0].trim(),postcode:'',plaats:k.slice(1).join(',').trim()}:{adres:s,postcode:'',plaats:''};
+}
+function cmWoonadres(input,group){
+  const f=cm.edit.fields,nieuw=!f.woonadres&&(f.adres||f.postcode);
+  const info=cmEl('p','','hint');info.id='cm-woon-info';
+  if(nieuw){input.value=CM_NIEUW_ADRES;info.append(cmEl('span',t('Nieuw adres, komt bij Adressen:')),' ',cmData(cmEl('span',[f.adres,[f.postcode,f.plaats].filter(Boolean).join(' ')].filter(Boolean).join(', '))));}
+  else info.textContent=f.woonadres?t('Wijzig je het adres bij Adressen, dan verandert het hier mee.'):t('Kies het adres uit Adressen, of voeg een nieuw adres toe.');
+  group.append(info);
+  input.addEventListener('change',()=>{
+    const leeg=()=>{for(const k of ['adres','postcode','plaats','land'])delete cm.edit.fields[k];};
+    if(input.value===CM_NIEUW_ADRES){
+      input.value=cm.edit.fields.woonadres||'';
+      askInput(t('Nieuw adres'),t('Straat en huisnummer, postcode en plaats, bijvoorbeeld: Kade 12, 3011 AB Rotterdam'),'',t('OK'),v=>{
+        const a=cmAdresUit(v);if(!a||!cm.edit)return;leeg();cm.edit.fields.woonadres='';Object.assign(cm.edit.fields,Object.fromEntries(Object.entries(a).filter(([,x])=>x)));cmDirty();cmEditorFields();});
+      return;
+    }
+    leeg();cm.edit.fields.woonadres=input.value;cmDirty();cmEditorFields(); // gekozen adres (of geen): Java vult de rest in bij bewaren
+  });
+}
+/* Bij een adres: wie er woont (uit het overzicht; namen zijn gegevens). */
+function cmBewoners(){
+  const box=$('#cm-fields');if(!box)return;const wie=cm.records.filter(r=>r.type==='persoon'&&r.woonadres===cm.edit.id);
+  const p=cmEl('p','','hint');p.id='cm-bewoners';p.dataset.cmTab=(cmTabs(cm.edit)[0]||[''])[0];
+  if(wie.length)p.append(cmEl('span',t('Woont hier:')),' ',cmData(cmEl('span',wie.map(r=>r.label).sort((x,y)=>x.localeCompare(y)).join(', '))));else p.textContent=t('Hier woont (nog) niemand uit je stamgegevens.');
+  box.append(p);
 }
 function cmShowSecret(show){CM_MASK.forEach(key=>{const input=$('#cm-field-'+key);if(input)input.type=show?'text':'password';});cmTouch();}
 function cmBusy(busy){cm.mutating=busy;$('#cm-save').disabled=busy;$('#cm-edit-menu').disabled=busy;document.querySelectorAll('#cm-fields input,#cm-fields select,#cm-fields textarea,#cm-fields .cmi-cats button,#cm-fields .cmi-nat-meer,#cmh-panel button,#cmh-list input:not([data-same]),#cmi-photos button,#cm-kaart button,#cm-ai-set button,#cm-ai-mensen button').forEach(e=>e.disabled=busy);$('#cm-label').disabled=busy;}

@@ -29,8 +29,33 @@ final class MasterStore {
     static JSONObject transaction(Context c,SecretKey key,MasterSession session,String token,Work work)throws Exception{
         return transaction(c,key,session,token,work,()->{});
     }
+    /** Welke actie de lopende transactie in het logboek zette (voor de meting van trage acties; alleen vaste woorden). */
+    private static final ThreadLocal<String> ACTIE=new ThreadLocal<>();
+    /** Duurt een actie langer dan dit, dan een regel in het foutlogboek met waar de tijd zat (alleen aantallen). */
+    static final long TRAAG_MS=1500;
+
     static JSONObject transaction(Context c,SecretKey key,MasterSession session,String token,Work work,Commit commit)throws Exception{
+        long[] tijd=new long[4];String meting=null;
+        try{return transactie(c,key,session,token,work,commit,tijd);}
+        finally{
+            long totaal=tijd[0]==0?0:android.os.SystemClock.elapsedRealtime()-tijd[0];
+            if(totaal>TRAAG_MS)meting=meting(c,ACTIE.get(),totaal,tijd);
+            ACTIE.remove();
+            if(meting!=null)App.log(c,"STAMGEGEVENS",meting);
+        }
+    }
+    /** "traag: list 3200 ms (controle 900+880, werk 1300), gegevens 23 (8.1 MB), logboekregels 5400": waar de tijd zat. */
+    private static String meting(Context c,String actie,long totaal,long[] t){
+        long n=0,bytes=0,ev=0;
+        try{SQLiteDatabase db=SQLiteDatabase.openDatabase(file(c).getPath(),null,SQLiteDatabase.OPEN_READONLY);
+            try{n=number(db,"SELECT COUNT(*) FROM records");bytes=number(db,"SELECT CAST(TOTAL(LENGTH(body)) AS INTEGER) FROM records");ev=number(db,"SELECT COUNT(*) FROM events");}finally{db.close();}
+        }catch(Throwable ignored){}
+        return "traag: "+(actie==null?"?":actie)+" "+totaal+" ms (controle "+(t[2]==0?"?":t[1]+"+"+t[3])+", werk "+(t[2]==0?"?":String.valueOf(t[2]))+"), gegevens "+n
+            +" ("+String.format(java.util.Locale.ROOT,"%.1f",bytes/1048576.0)+" MB), logboekregels "+ev;
+    }
+    private static JSONObject transactie(Context c,SecretKey key,MasterSession session,String token,Work work,Commit commit,long[] tijd)throws Exception{
         synchronized(LOCK){
+            tijd[0]=android.os.SystemClock.elapsedRealtime();
             session.require(token);File f=file(c);File parent=f.getParentFile();if(!parent.isDirectory()&&!parent.mkdirs())throw new MasterError(Taal.T("Stamgegevens opslaan lukt niet"));
             SQLiteDatabase db=SQLiteDatabase.openDatabase(f.getPath(),null,SQLiteDatabase.CREATE_IF_NECESSARY,new PreserveCorruption());
             try{
@@ -39,7 +64,10 @@ final class MasterStore {
                 db.execSQL("CREATE TABLE IF NOT EXISTS records(id TEXT PRIMARY KEY,rev INTEGER NOT NULL,body BLOB NOT NULL)");
                 db.execSQL("CREATE TABLE IF NOT EXISTS events(seq INTEGER PRIMARY KEY,body BLOB NOT NULL)");
                 db.execSQL("CREATE TABLE IF NOT EXISTS control(id INTEGER PRIMARY KEY CHECK(id=1),body BLOB NOT NULL)");
-                JSONObject head=verify(db,key);JSONObject result=work.run(db,key,head);verify(db,key);
+                long a=android.os.SystemClock.elapsedRealtime();
+                JSONObject head=verify(db,key);long b=android.os.SystemClock.elapsedRealtime();
+                JSONObject result=work.run(db,key,head);long d=android.os.SystemClock.elapsedRealtime();
+                verify(db,key);tijd[1]=b-a;tijd[2]=d-b;tijd[3]=android.os.SystemClock.elapsedRealtime()-d;
                 synchronized(session){session.touch(token);commit.run();db.setTransactionSuccessful();db.endTransaction();}
                 return result;
             }finally{try{if(db.inTransaction())db.endTransaction();}finally{db.close();}}
@@ -82,7 +110,7 @@ final class MasterStore {
     }
     static Exception integrity(){return new MasterError(Taal.T("Stamgegevens of logboek zijn beschadigd; er worden geen gegevens vervangen"));}
     static void append(SQLiteDatabase db,SecretKey key,JSONObject head,String action,String source,String role,JSONObject record,JSONArray fields)throws Exception{
-        MasterSchema.source(source);long seq=head.getLong("seq")+1;
+        MasterSchema.source(source);long seq=head.getLong("seq")+1;ACTIE.set(action);
         JSONObject event=new JSONObject().put("seq",seq).put("t",System.currentTimeMillis()).put("action",action).put("source",source).put("role",role)
                 .put("id",record==null?"":record.getString("id")).put("label",record==null?"":record.getString("label"))
                 .put("revision",record==null?0:record.getLong("revision")).put("fields",fields==null?new JSONArray():fields).put("prev",head.getString("hash"));
@@ -111,7 +139,7 @@ final class MasterStore {
         if(!"masterdata".equals(source))return out;
         if("relatie".equals(type))out.put("van",f.optString("vanPersoon")).put("naar",f.optString("naarPersoon")).put("relatie",f.optString("relatie")).put("status",f.optString("status"));
         if("identiteit".equals(type)){JSONObject images=r.optJSONObject("images");out.put("soort",f.optString("documentsoort")).put("geldig",f.optString("geldig")).put("fotos",images==null?0:images.length());}
-        if("persoon".equals(type))out.put("bekend",known!=null&&known.contains(r.getString("id"))).put("delen",f.optString("delen")).put("contact",!f.optString("contact").isEmpty()).put("roepnaam",f.optString("roepnaam")).put("tekst",!f.optString("context").isEmpty());
+        if("persoon".equals(type))out.put("bekend",known!=null&&known.contains(r.getString("id"))).put("delen",f.optString("delen")).put("contact",!f.optString("contact").isEmpty()).put("roepnaam",f.optString("roepnaam")).put("tekst",!f.optString("context").isEmpty()).put("woonadres",f.optString("woonadres"));
         if("reis".equals(type))out.put("van",f.optString("van")).put("tot",f.optString("tot"));
         if("formulier".equals(type)){
             JSONObject refs=new JSONObject();for(String k:MasterFormProfile.FIELDS)if(MasterFormProfile.reference(k)!=null&&!f.optString(k).isEmpty())refs.put(k,f.getString(k));
@@ -164,7 +192,7 @@ final class MasterStore {
     }
 
     static JSONObject unlock(Context c,SecretKey key,MasterSession session,String token)throws Exception{
-        return transaction(c,key,session,token,(db,k,h)->{append(db,k,h,"unlock","masterdata","",null,null);return new JSONObject().put("ok",true);});
+        return transaction(c,key,session,token,(db,k,h)->{adressenKoppelen(c,db,k,h);append(db,k,h,"unlock","masterdata","",null,null);return new JSONObject().put("ok",true);});
     }
     static JSONObject list(Context c,SecretKey key,MasterSession session,String token,String source,String role)throws Exception{
         return transaction(c,key,session,token,(db,k,h)->{
@@ -211,6 +239,7 @@ final class MasterStore {
         if(old!=null&&(old.getLong("revision")!=input.getLong("revision")||!old.getString("type").equals(clean.getString("type"))))throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
         if(fresh&&number(db,"SELECT COUNT(*) FROM records")>=2000)throw new MasterError(Taal.T("Maximaal 2000 stamgegevens"));
         JSONObject fields=clean.getJSONObject("fields");
+        if("persoon".equals(clean.getString("type")))woonadres(c,db,k,h,fields);
         person(db,k,fields.optString("persoon"));person(db,k,fields.optString("vanPersoon"));person(db,k,fields.optString("naarPersoon"));
         if("formulier".equals(clean.getString("type")))MasterFormProfile.validate(fields,ref->record(db,k,ref),MasterFormProfile.self(records(db,k)));
         if(clean.getString("type").equals("profiel")&&fresh){JSONArray all=records(db,k);for(int i=0;i<all.length();i++)if(all.getJSONObject(i).getString("type").equals("profiel"))throw new MasterError(Taal.T("Er mag maar één eigen app-profiel zijn"));}
@@ -222,7 +251,59 @@ final class MasterStore {
         if(fresh)db.insertOrThrow("records",null,values);else db.update("records",values,"id=?",new String[]{id});
         JSONArray changed=new JSONArray();for(String field:MasterSchema.fields(r.getString("type")))if(old==null||!old.getJSONObject("fields").optString(field).equals(r.getJSONObject("fields").optString(field)))changed.put(field);
         if(old==null||!old.getString("label").equals(r.getString("label")))changed.put("label");
-        append(db,k,h,fresh?"create":"update","masterdata","",r,changed);return new JSONObject().put("record",summary(r));
+        append(db,k,h,fresh?"create":"update","masterdata","",r,changed);
+        if(!fresh&&"adres".equals(r.getString("type")))bewonersBij(c,db,k,h,r);
+        return new JSONObject().put("record",summary(r));
+    }
+
+    /**
+     * Een persoon woont op een adres uit Adressen (MasterAdressen). Gekozen adres: straat, postcode, plaats en land komen
+     * daarvan. Geen adres gekozen maar wel iets ingevuld (uit Contacten, een oudere versie): dan hetzelfde adres uit
+     * Adressen, of een nieuw adres daar. Zo staat elk adres één keer in Adressen.
+     */
+    private static void woonadres(Context c,SQLiteDatabase db,SecretKey k,JSONObject h,JSONObject fields)throws Exception{
+        String id=fields.optString("woonadres");
+        if(!id.isEmpty()){
+            JSONObject a=record(db,k,id);
+            if(!"adres".equals(a.getString("type")))throw new MasterError(Taal.T("Kies het adres opnieuw"));
+            MasterAdressen.kopieer(a.getJSONObject("fields"),fields);return;
+        }
+        if(!MasterAdressen.heeftAdres(fields))return;
+        String sleutel=MasterAdressen.sleutel(fields);
+        JSONArray alle=sleutel.isEmpty()?new JSONArray():records(db,k);
+        for(int i=0;i<alle.length();i++){JSONObject r=alle.getJSONObject(i);
+            if("adres".equals(r.getString("type"))&&sleutel.equals(MasterAdressen.sleutel(r.getJSONObject("fields")))){fields.put("woonadres",r.getString("id"));MasterAdressen.kopieer(r.getJSONObject("fields"),fields);return;}}
+        JSONObject nieuw=MasterAdressen.nieuwAdres(fields);
+        JSONObject uit=saveRecord(c,db,k,h,new JSONObject().put("type","adres").put("label",MasterAdressen.label(nieuw)).put("fields",nieuw));
+        fields.put("woonadres",uit.getJSONObject("record").getString("id"));
+    }
+
+    /** Een adres is aangepast: wie er woont krijgt de nieuwe straat, postcode, plaats en land (in dezelfde transactie). */
+    private static void bewonersBij(Context c,SQLiteDatabase db,SecretKey k,JSONObject h,JSONObject adres)throws Exception{
+        String id=adres.getString("id");
+        JSONArray alle=records(db,k);
+        for(int i=0;i<alle.length();i++){JSONObject p=alle.getJSONObject(i);
+            if(!"persoon".equals(p.getString("type"))||!id.equals(p.getJSONObject("fields").optString("woonadres")))continue;
+            JSONObject vol=record(db,k,p.getString("id"));
+            if(MasterAdressen.kopieer(adres.getJSONObject("fields"),vol.getJSONObject("fields")))rewrite(c,db,k,h,vol,"update",new JSONArray(java.util.Arrays.asList(MasterAdressen.GEDEELD)));
+        }
+    }
+
+    /**
+     * Eén keer (vlag in het controlepunt): wie nog een eigen adres had, woont daarna op een adres uit Adressen; gelijke adressen
+     * worden één adres. Gaat het mis, dan blijft alles zoals het was (de hele transactie).
+     */
+    private static void adressenKoppelen(Context c,SQLiteDatabase db,SecretKey k,JSONObject h)throws Exception{
+        if(h.optBoolean("adressenGekoppeld"))return;
+        JSONArray alle=records(db,k);
+        for(int i=0;i<alle.length();i++){JSONObject p=alle.getJSONObject(i);
+            if(!"persoon".equals(p.getString("type")))continue;JSONObject f=p.getJSONObject("fields");
+            if(!f.optString("woonadres").isEmpty()||!MasterAdressen.heeftAdres(f))continue;
+            JSONObject vol=record(db,k,p.getString("id"));JSONObject vf=vol.getJSONObject("fields");
+            woonadres(c,db,k,h,vf);
+            rewrite(c,db,k,h,vol,"update",new JSONArray().put("woonadres"));
+        }
+        h.put("adressenGekoppeld",true);
     }
     /** Gekozen foto-velden van document en eigenaar worden samen bewaard of samen teruggedraaid. */
     static JSONObject scanSave(Context c,SecretKey key,MasterSession session,String token,JSONObject input)throws Exception{
@@ -250,6 +331,7 @@ final class MasterStore {
         return transaction(c,key,session,token,(db,k,h)->{
             JSONObject r=record(db,k,id);if(r.getLong("revision")!=revision)throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
             try(Cursor cur=db.rawQuery("SELECT id FROM records",null)){while(cur.moveToNext()){JSONObject other=record(db,k,cur.getString(0)),f=other.getJSONObject("fields");if(id.equals(f.optString("persoon"))||id.equals(f.optString("vanPersoon"))||id.equals(f.optString("naarPersoon")))throw new MasterError(Taal.T("Verwijder of ontkoppel eerst gekoppelde documenten, relaties of het app-profiel"));
+                if(id.equals(f.optString("woonadres")))throw new MasterError(Taal.T("Op dit adres woont nog iemand; kies bij die persoon eerst een ander adres"));
                 if("formulier".equals(other.getString("type")))for(String field:MasterFormProfile.FIELDS)if(MasterFormProfile.reference(field)!=null&&id.equals(f.optString(field)))throw new MasterError(Taal.T("Dit stamgegeven wordt gebruikt in vaste formuliergegevens; pas die eerst aan"));}}
             MasterAppContext.invalidate(c);
             db.delete("records","id=?",new String[]{id});append(db,k,h,"delete","masterdata","",r,null);return new JSONObject().put("ok",true);
