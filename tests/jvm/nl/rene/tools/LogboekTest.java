@@ -93,6 +93,11 @@ public final class LogboekTest {
                 + "java.lang.NumberFormatException: For input string: \"Jansen 12\"\n"
                 + "org.json.JSONException: Unterminated object at character 3 of {\n\n  \"naam\": \"Piet Pietersen\"\n}");
         check(!waarde.contains("Jan Jansen") && !waarde.contains("Jansen 12") && !waarde.contains("Pietersen") && waarde.contains("of type org.json.JSONObject cannot be converted"), "inhoud uit Value/For input string/opgemaakte JSON weg: " + waarde);
+        String tekstFout = Logboek.schoon("org.json.JSONException: Value Jan Jansen woont op de Kade of type java.lang.String cannot be converted to JSONObject\n"
+                + "org.json.JSONException: Value {\"a\":\"x Value y\",\"naam\":\"Klaas\"} at naam of type org.json.JSONObject cannot be converted to JSONArray\n"
+                + "ab12 NL91 ABNA 0417 1643 00 en ComponentInfo{nl.rene.tools/nl.rene.tools.App}");
+        check(!tekstFout.contains("Jansen") && !tekstFout.contains("Kade") && !tekstFout.contains("Klaas") && !tekstFout.contains("x Value") && !tekstFout.contains("ABNA")
+                && tekstFout.contains("of type java.lang.String cannot be converted") && tekstFout.contains("nl.rene.tools.App}"), "tekst als JSON, Value in de waarde, IBAN na een woord: " + tekstFout);
         check(Logboek.schoon(json + melding("2026-11-24 12:00:02", "BACKUP", "klaar")).contains("[BACKUP]"), "de volgende melding blijft staan");
         // Geen valse treffers: eenheden, hashes en het woord erna blijven
         String vals = Logboek.schoon("model 2048 MB vrij, cache 1024 KB, scherm 1080 HD, hash ab12cd34ef56ab78 en sha, BE68539007547034 test");
@@ -102,7 +107,7 @@ public final class LogboekTest {
         check(Logboek.schoon("open Mijnbank.nl/login en Api.GitHub.com").equals("open [adres] en [adres]") && Logboek.schoon("at nl.rene.tools.App$Visible.x(App.java:3)").contains("nl.rene.tools.App$Visible"), "domeinen in hoofdletters weg, klassennamen blijven");
 
         // Opschonen blijft lineair: ook lange, rare tekst gaat snel (Android kan een zoekopdracht niet afbreken)
-        for (String rare : new String[]{rep("a", 100_000), rep("a.", 50_000), rep("1.", 50_000), rep(". ", 50_000), rep(":", 100_000), rep("ab12 ", 20_000), rep("Value ", 20_000), rep("NL91 ", 20_000), rep(" of type org.json.JSONObject cannot be converted", 3_000)}) {
+        for (String rare : new String[]{rep("a", 100_000), rep("a.", 50_000), rep("1.", 50_000), rep(". ", 50_000), rep(":", 100_000), rep("ab12 ", 20_000), rep("Value ", 20_000), rep("NL91 ", 20_000), rep(" of type org.json.JSONObject cannot be converted", 3_000), rep("ab12 ", 20_000), rep("Value x at y of type z cannot be converted ", 2_000)}) {
             long t0 = System.nanoTime();
             Logboek.schoon(rare);
             check((System.nanoTime() - t0) / 1_000_000 < 5_000, "opschonen te traag op rare tekst");

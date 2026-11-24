@@ -212,11 +212,11 @@ final class Logboek {
     /** Android: JSONException noemt de hele gelezen tekst ("… at character 12 of {…}"): die inhoud eruit. */
     private static final Pattern JSON_INHOUD = Pattern.compile("( at character \\d+ of )(?s:.*?)(?=\\n\\tat |\\nCaused by|\\n\\n\\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d \\[|\\z)");
     /** Android: "Value {…} of type org.json.JSONObject cannot be converted …" en "For input string: "…"": ook gelezen inhoud. */
-    private static final Pattern JSON_TYPE = Pattern.compile(" (?:at \\d+ )?of type org\\.json\\.\\w+ cannot be converted");
+    private static final Pattern JSON_TYPE = Pattern.compile(" (?:at \\S{1,200} )?of type [\\w.$]{1,200} cannot be converted");
     private static final Pattern INVOER = Pattern.compile("(For input string: )\"[^\"\\n]{0,400}\"");
     private static final Pattern EMAIL = Pattern.compile("[\\w.+-]{1,64}@[\\w-]{1,63}(?:\\.[\\w-]{1,63}){1,8}");
     private static final Pattern URI = Pattern.compile("(?i)\\b(?:content|file|https?|wss?|ftp|intent|market|blob|data):\\S+");
-    private static final Pattern WEB = Pattern.compile("(?i)\\b(?:www\\.\\S+|(?:[a-z0-9-]{1,63}\\.){1,6}(?:nl|com|org|net|eu|be|de|fr|io|ai|app|dev|co|uk|fm|info|online|cloud|me)(?:/\\S*)?(?![\\w.$]))");
+    private static final Pattern WEB = Pattern.compile("(?i)\\b(?:www\\.\\S+|(?:[a-z0-9-]{1,63}\\.){1,6}(?:nl|com|org|net|eu|be|de|fr|io|ai|app|dev|co|uk|fm|info|online|cloud|me)(?:/\\S*)?(?![\\w.$})]))");
     private static final Pattern PAD = Pattern.compile("(?<![\\w.])/(?:storage|sdcard|data|mnt|Download|DCIM|Documents)/[^\\n:()\"',;]+");
     /** Een bestandsnaam van Rene (pdf, foto, document …): gezocht vanaf de extensie, daarna begrensd terug (lineair, ook bij lange tekst). */
     private static final Pattern EXTENSIE = Pattern.compile("(?i)\\.(?:pdf|jpe?g|png|heic|heif|webp|gif|tiff?|docx?|odt|xlsx?|ods|pptx?|epub|mp3|m4a|aac|ogg|opus|wav|mp4|txt|csv|ics|vcf|zip|rtb|ovpn|conf)(?![\\w])");
@@ -238,7 +238,9 @@ final class Logboek {
         int klaar = 0;
         while (m.find()) {
             int v = -1, ondergrens = Math.max(klaar, m.start() - 20_000);
-            for (int k = m.start() - 6; k >= ondergrens; k--) if (t.startsWith("Value ", k)) { v = k; break; }
+            // Eerst het begin van de foutmelding zelf ("JSONException: Value "): "Value " kan ook in de waarde staan
+            for (int k = m.start() - 21; k >= ondergrens; k--) if (t.startsWith("JSONException: Value ", k)) { v = k + 15; break; }
+            if (v < 0) for (int k = m.start() - 6; k >= ondergrens; k--) if (t.startsWith("Value ", k)) { v = k; break; }
             if (v < 0) continue;
             b.append(t, klaar, v).append("Value [inhoud]");
             klaar = m.start();
@@ -264,15 +266,24 @@ final class Logboek {
     private static String rekeningenWeg(String t) {
         Matcher m = IBAN.matcher(t);
         StringBuilder b = new StringBuilder(t.length());
-        int klaar = 0;
-        while (m.find()) {
+        int klaar = 0, vanaf = 0;
+        while (vanaf < t.length() && m.find(vanaf)) {
             String kand = m.group(); // het langste stuk dat klopt (een woord erachter hoort er niet bij)
+            boolean raak = false;
             for (int eind = kand.length(); eind >= 15; eind--) {
                 if (eind < kand.length() && kand.charAt(eind) != ' ') continue;
-                if (ibanOk(kand.substring(0, eind))) { b.append(t, klaar, m.start()).append("[rekening]"); klaar = m.start() + eind; break; }
+                if (ibanOk(kand.substring(0, eind))) { b.append(t, klaar, m.start()).append("[rekening]"); klaar = m.start() + eind; raak = true; break; }
             }
+            // Niets gevonden: één woord verder opnieuw (er kan een woord als "ab12" voor het IBAN staan)
+            vanaf = raak ? klaar : nextWoord(t, m.start());
         }
         return b.append(t, klaar, t.length()).toString();
+    }
+
+    private static int nextWoord(String t, int i) {
+        int k = i;
+        while (k < t.length() && t.charAt(k) != ' ' && t.charAt(k) != '\n') k++;
+        return k + 1;
     }
 
     private static boolean naamTeken(char ch) { return !Character.isWhitespace(ch) && "/:'\"()[]".indexOf(ch) < 0; }
