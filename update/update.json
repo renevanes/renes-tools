@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.248",
-  "versionCode": 249,
-  "nativeLevel": 214,
+  "versionName": "1.249",
+  "versionCode": 250,
+  "nativeLevel": 215,
   "web": "index.html",
-  "webSha256": "2edbb8aef80a2c77ebb21fd91895bc51ef43aac3fa43139c0f49d1bf9544da6d",
+  "webSha256": "ad1aeae0596f9d6f17aa0c4b6debb69cc6814d9e656a503b58eb7fb4dc8d21db",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "e7fb3cc95c762cf234b8382adf4536367874367b92ac55a4ae3f4a9e5c345f13",
+  "apkSha256": "7cc76c3dfafc9c4a27015bf9d3c549308470db6da4e5e21ba1e7ec8655fe38c6",
   "changelog": [
+    {
+      "version": "1.249",
+      "date": "2026-11-24",
+      "changes": [
+        "Stamgegevens: een paspoort of ID-bewijs in een PDF (bijvoorbeeld een Google-document) wordt nu ook herkend als de foto klein op de pagina staat: Tools leest eerst de foto zelf op volle scherpte."
+      ]
+    },
     {
       "version": "1.248",
       "date": "2026-11-24",
@@ -178,17 +185,7 @@
         "Notities: met heel veel notities opent het overzicht weer vlot; eerst 100, met Meer tonen de rest.",
         "Stabieler: een fout in een taak op de achtergrond laat de app niet meer stoppen, maar komt in het foutlogboek."
       ]
-    },
-    {
-      "version": "1.229",
-      "date": "2026-11-19",
-      "changes": [
-        "Nieuw: Betalen. Maak een foto van een rekening (of kies een PDF of afbeelding, ook uit de kluis of het facturendossier) en Tools leest op je telefoon de ontvanger, het IBAN, het bedrag, het kenmerk en de uiterste betaaldatum.",
-        "Betalen leest ook de QR-code op een rekening: een betaallink (bijvoorbeeld iDEAL) open je met één tik, een QR-code met betaalgegevens vult de velden in.",
-        "Betalen zet de overboeking klaar bij Rabobank: je logt zelf in met de Rabo App, Tools vult het formulier in, en jij controleert en ondertekent. Bij andere banken kopieer je de gegevens veld voor veld.",
-        "Bouwen: een tweede adres voor een bouwbibliotheek van het voorlezen, zodat publiceren niet meer strandt als het eerste adres weigert; je merkt er niets van."
-      ]
     }
   ],
-  "webSig2": "XYmVGuicZjgH/A/5y44tuCD2agnfgGzcxLcNEeMa3jnxONhr5khLY6fZUS1SQXHDAW6sgvgqvisJlR2Kw3oL17whhqK8N80vvU56xGiBeYm5JqBviS51IPrvJLwSwHhUuBaJEdK/F0QSNce3FwzXpzJyWB9/l+VX0atnpawZYyGAFsiCfzJjPydEpVLVBxLQOlPxxrbtHImajmRt9tHOG/ELV/mXoV6dxx11vtM7SFGpy7MVCWERHUEac2zVYAV8/r4MHWXCIRz+vFQrw7Dr4hqVHlT3NjD8+91OU1VGJ335oKazJUT7vVMZrAjguVZp+JWUvM2erzYKNkeMSIELo8TtfK7e7xYO5Vr0YL6Yo89Wx2p4OhKic5IxR8ISbulyTKUi+2Ms3OG0ipQMprmBp6sk2EDJVIw1Z5W77ZbP0+Jdd+MtONvnRJSzm9kHzkex1HseKgwWdOVB3YZSopiw4eROmP/V2lcU83uFpd+QJlhXNsLs/PBruX+7JgR+tkVL"
+  "webSig2": "eVqFgmn/DIaqrNFcx+QAMrTUhH0ZF/mk8HwSfUODHWPJz+CoRNbRjMXtmg9yKYUGuHt8m94j/LdtZb+McX+0TQOqod1jmicpGdID2y4q1lN4UXdRNUu+7D6Q72Lxh74bQtdMcOCXQ2MnQ6I6Tt8k/VAyU27+mGFxK2Nuc1/K4AePj1tqr+IGp918LrBuSe0KZyAyn5O4YgiiGnWv2p7kzhMy04rOi/l5HGOyqr30zve4OsQvLCZ9+nTRDp9AiYug2uKVnzDI2+TwIVlQQMRW5/l1qg6LpGRR7C30rAqi6rucGEvZIolUboFjNjkA5KGryHxz9VeQNuacXulS5JERCO0njGUAY8xcse0WSe2XWCtXNxGHLlwhy+a+DbviqdsWIIfQhX4BFgLACfAfmybLm3b1WQkQ2Opo8MGG1Uk13xHQbZpS5sNaFMPpio6U4iKDHhVWcMm2Bcr/IWu98MkW1s4Xc2ATIai0yNYY6K8387M20vf2FIJeIGNYC92ErDgF"
 }
