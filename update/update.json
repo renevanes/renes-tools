@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.246",
-  "versionCode": 247,
-  "nativeLevel": 212,
+  "versionName": "1.247",
+  "versionCode": 248,
+  "nativeLevel": 213,
   "web": "index.html",
-  "webSha256": "318f8b11d55127e12aa59fc4c26b8eda73e17611b63ed8cfd1bc71589e296632",
+  "webSha256": "fae995e7c9b8bc5428d7a4573203679e411babf2a60684e51dcb2cef4e6e6441",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "2ca6e32b80e887e6f48f25d138a56369dfbe1926d668c16373460b2724631d4d",
+  "apkSha256": "54426434ab867aff3fa1c6ca65d328a2ed4d15ecacb2be1c48a77c9b147bc277",
   "changelog": [
+    {
+      "version": "1.247",
+      "date": "2026-11-24",
+      "changes": [
+        "Foutlogboek gaat vanzelf (opgeschoond) naar je eigen privé GitHub-repository, zodat Claude kan meezoeken bij een probleem; uit te zetten bij Instellingen → Foutrapport en statistieken.",
+        "Fouten in de interface die nergens werden opgevangen, komen nu ook in het foutlogboek."
+      ]
+    },
     {
       "version": "1.246",
       "date": "2026-11-23",
@@ -180,15 +188,7 @@
         "Startscherm aanpassen → Overzicht: Sinds gisteravond kan uit, of per soort regel (backup, gemiste oproepen, automatiseringen, beperkingen door Android, backup-controle).",
         "Startscherm aanpassen → Weergave: zet de onderdelen van het startscherm (Overzicht, Recent gebruikt, Vastgezette notities, Tools) in je eigen volgorde, zet vastgezette notities, de tip onderaan en de uitleg onder de tegels uit, en kies hoeveel tools Recent gebruikt toont."
       ]
-    },
-    {
-      "version": "1.227",
-      "date": "2026-11-18",
-      "changes": [
-        "Nieuws: een video in een artikel dat je in Tools leest (zoals bij AI Report) onthoudt waar je was. De volgende keer gaat hij daar verder, met \"Vanaf het begin\" om toch opnieuw te beginnen. Werkt na het installeren van de nieuwe APK.",
-        "Nieuws: een video in een artikel dat je in Tools leest (zoals bij AI Report) kan nu op volledig scherm, en draait mee als je je telefoon kantelt. Terug sluit het volle scherm. Werkt na het installeren van de nieuwe APK."
-      ]
     }
   ],
-  "webSig2": "X98cByINyTzRyJtA1cENINXMS7E0HmY+BRCHBoYBvLWqm/gPZOiQggMHr2sJtUUctKutiAEa7Ka1o+LNVJB2HzT08eG7vwU1KczFlLkRI1gN/734AOHgUBc5+QcF4eQZm2Oifd9bKPLbt9Vx4dy2nMp4HC6dhFsWrPorQrmR2b/aU+uvx1ytZdVAWYCi+A9qlrvyK9WneUikzmmvqnQP2AQdkaQl6EZDKUzcSH/P0hHw7WtEEtpML71IXEFbqr9Zt9E89Q4Z7VyuC77xV9X6+/X75hVxT0PpAJqehA738p3IIKqZt+eqPe2/2vtrjUKFN9FKc/XA25wpiaIe7sECk6/umZdUlJ/ZdQtAmU96xK5X2XHVsKKJLG9GZFHRIfzP35iJ2JcRWbbVd1Am8o37bzRRDOsK5OXFa8dr+NyHYEhBJDFagsdWxaWAUWmvSpvFaic5RHpK8pZv4L43RSr+HeN2El1GENIcQW9fp/zeCtAZ0gAcTdl47tqHvsZN6QyW"
+  "webSig2": "BmZQLwupPm8NBrwYk3aBM7d0bXVU3fmSFeCzM/pu1kRwhMpL5OdCt355z4ZEvx+1TZT3jlZ7MRTU4pfr/h15sqD4g6SEYLIus/opMcuGvKacn7+oUZlLeTvI/dCzRk9vqcP1zm0JvLzu4vLSloMsGsNSJo0MFoFjeaENLvHMD8KN5JvfRQFif2Nye/Yx6dRr9UTarm1yTYVNeQbqvVSkuxtxi3FDgELONubEs/O9do6EvBIG38p/XxRTa9aGnLPZZZTR3bhGymxHdAxtasZsfFQUeDga2wclulULLVsXpzaQ1SiIhIbD9tQnZvwR8qoT8tN8edCPFlfh8hkaAnFsVSnHP0jaXdbvcmWFH39KgG89YszkbEMREGMJ8OojqTSIEoOC7BXCVBOWGy45XaeEKO+zuvrutYsxgN54HIodOPz+W1F7La0gPcQSfOSafxQOC7u2B5uAaZxnOY34VKMiXLi+SvBmITbi80czbNJrh1wKyKYc6JHmLWLEaUOuLyOX"
 }
