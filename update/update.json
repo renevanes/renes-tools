@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.251",
-  "versionCode": 252,
-  "nativeLevel": 217,
+  "versionName": "1.252",
+  "versionCode": 253,
+  "nativeLevel": 218,
   "web": "index.html",
-  "webSha256": "470477ae87ff6bbd9c4dc156a304b358e9b089b4b10be6e97555ff3c8d627779",
+  "webSha256": "a501e8de83902d517a692bc0eb965ae24edf19edcc7f1a383fd1da61b18345ca",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "d8740e23f153600e5d11ebded5f696baeec025a824b1544f5b8afb20f8c47ab3",
+  "apkSha256": "a709628260829e6a9c1f42f3df9f97804e0fb962dd8d8f5cc2eea58d8848fa38",
   "changelog": [
+    {
+      "version": "1.252",
+      "date": "2026-11-24",
+      "changes": [
+        "Stamgegevens: een persoon woont nu op een adres uit Adressen (Woont op), in plaats van een eigen los adres. Gezinsleden delen hetzelfde adres; pas je het adres aan, dan verandert het bij iedereen die er woont. Bij een adres zie je wie er woont. Bestaande adressen bij personen worden eenmalig vanzelf gekoppeld, en gelijke adressen worden één adres.",
+        "Stamgegevens: als het laden of bewaren traag gaat, komt de duur (zonder gegevens) in het foutlogboek, zodat het sneller gemaakt kan worden."
+      ]
+    },
     {
       "version": "1.251",
       "date": "2026-11-24",
@@ -175,16 +183,7 @@
       "changes": [
         "Betalen vindt de naam van de ontvanger nu ook als de tekstherkenning het woord \"ontvanger\" in stukken leest."
       ]
-    },
-    {
-      "version": "1.232",
-      "date": "2026-11-19",
-      "changes": [
-        "Nieuw bij Instellingen → Foutrapport en statistieken: Diagnose. Gaat er iets niet goed (een rekening wordt verkeerd gelezen), dan zie je daar wat de tool vastlegde en kun je het kopiëren of naar je eigen privé repository sturen.",
-        "Diagnose blijft op de telefoon tot jij op Kopiëren of Versturen tikt; Vanzelf sturen staat uit en je ziet altijd wat er verstuurd is.",
-        "Betalen legt voor Diagnose vast welke tekst uit de rekening gelezen is en hoeveel QR-codes er gevonden zijn."
-      ]
     }
   ],
-  "webSig2": "q/PrW3Ttf5E5aI0V5LPrA4XUBXKClaFxQiizHVb25jOHGJhRQtQiOn9PKomNZ7hUmyJoF4t9Yy5CdBNcbjqal8VGNQRQGBEZLtBLbptCcj/QwwUL4gOdt0HbUOPoTf+t5QWlnJA8UKDiNfzFaFSLFuVTt+vw0y370TsnLmP7qfvih/hOP5yiWRnWvpsDDxkziysvW+Vld4lQEg1EL/EhR8HgLlInoyQJZ/lDBqkMvz8uEzG06h+bG4Qvs90plzhhn4w0qBDPiZxvjelPrVqPhzq+cnqK6CKtX34xwcEC4UZhmxkqTMExX1MQ1OLX0hwsjIVcAxG/O5bE58EnKgeDOY1LRTHdpahT+jPlZgdxWG7GZF5D2Ao4caPJNzapw2ujkBJyFCYNKywL2PAdfxjvyMI2gOB0bm+T+AywwKTaCxQRu/AZV0ct0yXYo8y8pXMAkHuF1BHs1EcofzSNGjAogrh2eb211qX6UW6mV/+7LXMbYeU+snx2HZsnGrYJEohG"
+  "webSig2": "QbmN/6zLSS4I5JoUdeqnthEXTyL4viUSRmX/U97tAHk/8JzwM22VknCH8MurxGHMdUAfwIkjJFDhCAzR2J9CbkYh2KAV7x6MDsVh+3aKxHIpjue/Ph6I8MlYqdvj4FjrQ+vszHrCKc+d1VmYl3EY7sLWEmQSVin2V1UvuRa1OcfCmruun+xYie2nqSuei8xrK55S8oA9ys9UBO7jcgVfC6A9v38/p0+ed/5Xyg32Vz7u7gWm64nT/YRuMdeHvloGVIZJmWBnhzSyjlq2cDTnhNwI+S+G+otPYlUGe2aSgh3KBGJs7h7p1+kPqzAa4dliT75/+Nep8PKFByIZRV2BT332QsLqQ9zkffB5W0OIVK2ykroCU9XSNPFjCPJ2mHt6iyO3EilRoRpQtH5aaWQPT7zWcxuqI+JCgcR3ifIO7zfTcbNcBpFhN2CAGAtmb+6+YLjC1+fLNJlbEf0d8W5IvJdKOlyyBlfbg63K5mZ/g5s/7dECWNTzqLGQgdlUs6wD"
 }
