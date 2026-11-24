@@ -78,10 +78,11 @@ public class MrzTest {
         // Dunne, bleke tekens (een gelaserde strook op een foto) vallen bij de strenge drempel in stukjes: de mildere tweede
         // ronde maakt ze weer leesbaar.
         java.util.List<String> sporen=new java.util.ArrayList<>();
-        for(int[] dun:new int[][]{{1,80},{1,100},{2,50},{2,70}}){
+        for(int[] dun:new int[][]{{1,80},{1,100},{2,50},{2,70},{2,50,30}}){
             BufferedImage ti=ImageIO.read(new File("tests/jvm/mrz/td3-paspoort.jpg"));int tw=ti.getWidth(),th=ti.getHeight();
             int[] tp=new int[tw*th];for(int y=0;y<th;y++)for(int x=0;x<tw;x++){int c=ti.getRGB(x,y);tp[y*tw+x]=((c>>16&255)*30+(c>>8&255)*59+(c&255)*11)/100;}
             int[] tq=dunner(tp,tw,th,dun[0],dun[1]);
+            if(dun.length>2)for(int i=0;i<tq.length;i++)tq[i]+=(255-tq[i])*dun[2]/100; // ook nog fletser (naar wit)
             MrzOcr.Spoor ds=new MrzOcr.Spoor();MrzOcr.volg(ds);Mrz.Result dr;try{dr=MrzOcr.read(tq,tw,th);}finally{MrzOcr.volg(null);}
             check(dr!=null&&dr.usable()&&dr.line(0).equals(want.get(4))&&dr.line(1).equals(want.get(5)),"dunne tekens ("+dun[0]+"/"+dun[1]+") gelezen: "+ds.tekst());
             check(ds.mild>0&&ds.tekst().contains(", mild "),"de mildere ronde deed het: "+ds.tekst());

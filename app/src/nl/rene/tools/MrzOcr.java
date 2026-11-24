@@ -300,7 +300,7 @@ final class MrzOcr {
             try{
                 if(sp!=null)sp.bijMild=true;
                 for(int q=0;q<4;q++){
-                    if(!kandidaat[q][0])continue;
+                    if(!kandidaat[q][0]&&!kandidaat[(q+2)%4][0])continue; // rechtop en ondersteboven: dezelfde strook
                     if(sp!=null)sp.mild++;
                     Mrz.Result r=find(g.rotate(q),MILD,null);if(r!=null&&better(r,best))best=r;
                     if(best!=null&&best.sure()&&best.mean<Mrz.Result.LIMIT*0.6)break;
