@@ -7,6 +7,9 @@ for(const colorScheme of ['light','dark']){
   const p=await b.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));
   await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);const T=require('./_stamtabs')(p);
   await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+  // Tijden van openen gaan naar Java (die logt alleen als het traag was): openen, met de stappen als getallen
+  await p.waitForFunction(()=>(Android._cm.tijden||[]).length>0);
+  const tijd=await p.evaluate(()=>Android._cm.tijden[0]);assert.equal(tijd[0],'openen');assert.ok(tijd.slice(1).every(x=>Number.isFinite(x)&&x>=0),'alleen getallen');
   const rec=id=>p.evaluate(id=>Android._cm.records.find(r=>r.id===id),id);
   const adressen=()=>p.evaluate(()=>Android._cm.records.filter(r=>r.type==='adres').length);
 
@@ -69,6 +72,16 @@ for(const colorScheme of ['light','dark']){
   // Ook op het kaartje van het adres
   await T.kaart(huis.id);assert.match(await p.textContent('#cm-kaart'),/Woont hier:.*Anna de Vries/);
 
+  // Een adres is alleen een adres: geen naam en telefoon (een naam via Andere naam in het overzicht)
+  await T.blok(huis.id);
+  for(const veld of ['naam','telefoon'])assert.equal(await p.locator('#cm-field-'+veld).count(),0,'geen veld '+veld);
+  assert.deepEqual(await p.$$eval('#cm-fields input,#cm-fields select',x=>x.map(e=>e.name)),['adres','postcode','plaats','land']);
+  await p.evaluate(()=>goBack());await p.waitForFunction(()=>current!=='cmedit'&&!cm.navigating);
+  // Nieuw adres: de naam in het overzicht wordt straat en plaats; zonder adres niet te bewaren
+  await p.evaluate(()=>cmiNew('adres'));await p.waitForFunction(()=>cm.edit?.type==='adres');
+  await p.click('#cm-save');await p.waitForFunction(()=>/Vul een adres in/.test($('#cm-edit-status').textContent));
+  await T.fill('#cm-field-adres','Laan 5');await T.fill('#cm-field-plaats','Delft');await T.opslaan();
+  assert.ok(await p.evaluate(()=>Android._cm.records.some(r=>r.type==='adres'&&r.label==='Laan 5, Delft')),'naam: straat en plaats');
   // 5. Verwijderen kan niet zolang er iemand woont
   const fout=await p.evaluate(id=>new Promise(ok=>{const r=Android._cm.records.find(x=>x.id===id);cmRequest('masterDelete',[id,r.revision],()=>ok(''),false,e=>ok(e.error));}),huis.id);
   assert.match(fout,/woont nog iemand/);

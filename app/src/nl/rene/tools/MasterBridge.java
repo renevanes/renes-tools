@@ -59,6 +59,12 @@ public class MasterBridge extends BankBridge {
             }catch(Throwable t){vraag(request,"slot");}
         },"master-unlock").start();
     }
+    /** Tijden van het scherm (69-centrale-gegevens.js cmTijd): alleen bij traag in het foutlogboek, alleen vaste woorden en getallen. */
+    @JavascriptInterface public void masterTijd(String wat,long totaal,long ontgrendelen,long lijst,long tekenen){
+        if(!"openen".equals(wat)&&!"lijst".equals(wat))return;
+        if(totaal<MasterStore.TRAAG_MS||totaal>600_000L)return;
+        App.log(ctx,"STAMGEGEVENS","traag: scherm "+wat+" "+totaal+" ms ("+("openen".equals(wat)?"ontgrendelen "+Math.max(0,ontgrendelen)+", ":"")+"lijst "+Math.max(0,lijst)+", tekenen "+Math.max(0,tekenen)+")");
+    }
     private void vraag(String request,String soort){JSONObject r=new JSONObject();try{r.put("vraag",soort);}catch(Exception ignored){ }reply(request,"",r);}
     /** Na het slotscherm (of zonder vraag): de sessie openen, hooguit tot tot (elapsedRealtime: vóór de sleutel ophoudt). Loopt op een eigen thread. */
     private void open(String request,long auth,long dataset,String view,long tot){
@@ -66,20 +72,27 @@ public class MasterBridge extends BankBridge {
         try{
             synchronized(MasterStore.LOCK){
                 if(dataset!=MasterSession.datasetEpoch())throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
-                SecretKey key=MasterKeys.authenticated(ctx);
+                long[] tijd=new long[7];tijd[0]=SystemClock.elapsedRealtime();
+                SecretKey key=MasterKeys.authenticated(ctx);tijd[1]=SystemClock.elapsedRealtime();
                 synchronized(a.masterSession){
                     if(auth!=a.masterAuthSerial.get()||!view.equals(a.masterView)||!a.masterWanted||!a.masterForeground)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
                     long max=tot-SystemClock.elapsedRealtime();
                     if(max<60_000L)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
                     token=a.masterSession.open(max);
                 }
-                MasterStore.unlock(ctx,key,a.masterSession,token);a.masterSession.require(token);MasterKeys.markReady();
+                MasterStore.unlock(ctx,key,a.masterSession,token);a.masterSession.require(token);MasterKeys.markReady();tijd[2]=SystemClock.elapsedRealtime();
                 // Eén keer: eigen adressen van personen koppelen aan Adressen. Lukt het niet, dan gaat ontgrendelen gewoon door.
                 try{MasterStore.adressenKoppelen(ctx,key,a.masterSession,token);}catch(Throwable later){App.log(ctx,"STAMGEGEVENS","adressen koppelen lukt niet: "+later.getClass().getSimpleName());}
+                try{MasterStore.adresAlleen(ctx,key,a.masterSession,token);}catch(Throwable later){App.log(ctx,"STAMGEGEVENS","adressen aanpassen lukt niet: "+later.getClass().getSimpleName());}
+                tijd[3]=SystemClock.elapsedRealtime();
                 // Lukt het niet, dan blijft de tekst staan en biedt Aandacht nodig het aan; ontgrendelen gaat gewoon door.
                 // De Play-versie heeft geen assistent: daar blijft de tekst in Stamgegevens.
                 if(PlayPolicy.allows(ctx,"ai"))try{MasterStore.aboutMove(ctx,key,a.masterSession,token,"vanzelf");}catch(Throwable later){ }
-                MasterStore.refreshContext(ctx,key,a.masterSession,token);
+                tijd[4]=SystemClock.elapsedRealtime();
+                MasterStore.refreshContext(ctx,key,a.masterSession,token);tijd[5]=SystemClock.elapsedRealtime();
+                // Traag: per stap hoe lang (alleen tijden), voor het foutlogboek
+                long totaal=tijd[5]-tijd[0];
+                if(totaal>=MasterStore.TRAAG_MS)App.log(ctx,"STAMGEGEVENS","traag: ontgrendelen "+totaal+" ms (sleutel "+(tijd[1]-tijd[0])+", openen "+(tijd[2]-tijd[1])+", eenmalig "+(tijd[3]-tijd[2])+", over mij "+(tijd[4]-tijd[3])+", app-context "+(tijd[5]-tijd[4])+")");
             }
             a.masterSession.require(token);if(!a.masterForeground||auth!=a.masterAuthSerial.get())throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
             result.put("opened",true);a.h.post(a::scheduleMasterExpiry);

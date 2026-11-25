@@ -309,7 +309,42 @@ final class MasterStore {
      * volgende ontgrendelen probeert het opnieuw; ontgrendelen zelf hangt er nooit van af (MasterBridge vangt alles).
      */
     /** Al gekoppeld (gezien in deze uitvoering van de app): dan niet bij elk ontgrendelen een extra transactie. */
-    private static volatile boolean adressenKlaar;
+    private static volatile boolean adressenKlaar,adresAlleenKlaar;
+    /**
+     * Eén keer (vlag adresAlleen): een adres heeft geen naam en telefoon meer (MasterSchema.ADDRESS). De naam staat al als naam in
+     * het overzicht (label) en blijft daar; een telefoon gaat naar wie er woont en nog geen telefoon heeft. Na het ontgrendelen in
+     * een eigen transactie, net als adressenKoppelen; ontgrendelen hangt er nooit van af.
+     */
+    static JSONObject adresAlleen(Context c,SecretKey key,MasterSession session,String token)throws Exception{
+        if(adresAlleenKlaar)return new JSONObject().put("aangepast",0);
+        JSONObject uit=transaction(c,key,session,token,(db,k,h)->{
+            if(h.optBoolean("adresAlleen"))return new JSONObject().put("aangepast",0);
+            h.put("adresAlleen",true); // vooraf: elke append hieronder bewaart het controlepunt mét de vlag
+            JSONArray alle=records(db,k);int n=0,naarBewoner=0,zonderBewoner=0;java.util.Set<String> kregen=new java.util.HashSet<>();
+            for(int i=0;i<alle.length();i++){JSONObject a=alle.getJSONObject(i);
+                if(!"adres".equals(a.getString("type")))continue;JSONObject af=a.getJSONObject("fields");
+                if(!af.has("naam")&&!af.has("telefoon"))continue;
+                String tel=af.optString("telefoon").trim();
+                if(!tel.isEmpty()){
+                    boolean gezet=false;
+                    for(int j=0;j<alle.length();j++){JSONObject p=alle.getJSONObject(j);
+                        if(!"persoon".equals(p.getString("type"))||!a.getString("id").equals(p.getJSONObject("fields").optString("woonadres"))||!p.getJSONObject("fields").optString("telefoon").isEmpty()||!kregen.add(p.getString("id")))continue;
+                        JSONObject vol=record(db,k,p.getString("id"));vol.getJSONObject("fields").put("telefoon",tel);
+                        rewrite(c,db,k,h,vol,"update",new JSONArray().put("telefoon"));gezet=true;naarBewoner++;
+                    }
+                    if(!gezet)zonderBewoner++;
+                }
+                JSONObject vol=record(db,k,a.getString("id"));JSONObject vf=vol.getJSONObject("fields");JSONArray weg=new JSONArray();
+                for(String veld:new String[]{"naam","telefoon"})if(vf.has(veld)){vf.remove(veld);weg.put(veld);}
+                rewrite(c,db,k,h,vol,"update",weg);n++;
+            }
+            if(n==0)append(db,k,h,"address_link","masterdata","",null,null); // ook zonder aanpassing de vlag bewaren
+            // Alleen aantallen
+            if(n>0)App.log(c,"STAMGEGEVENS","adressen zonder naam en telefoon: "+n+", telefoon naar bewoner "+naarBewoner+", telefoon zonder bewoner "+zonderBewoner);
+            return new JSONObject().put("aangepast",n).put("telefoonZonderBewoner",zonderBewoner);
+        });
+        adresAlleenKlaar=true;return uit;
+    }
     static JSONObject adressenKoppelen(Context c,SecretKey key,MasterSession session,String token)throws Exception{
         if(adressenKlaar)return new JSONObject().put("gekoppeld",0);
         JSONObject uit=transaction(c,key,session,token,(db,k,h)->{

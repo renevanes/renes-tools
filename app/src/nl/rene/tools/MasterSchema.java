@@ -12,7 +12,8 @@ final class MasterSchema {
     /** contact = opzoeksleutel van een contact (telefoon en e-mail komen dan uit Contacten); delen = bekend bij de assistent. */
     static final String[] PERSON={"naam","voornamen","roepnaam","initialen","geboortedatum","geboorteplaats","geslacht","nationaliteit","bsn","adres","postcode","plaats","land","telefoon","email","context","contact","delen","woonadres"};
     static final String[] ORGANISATION={"naam","registratienummer","adres","postcode","plaats","land","telefoon","email"};
-    static final String[] ADDRESS={"naam","adres","postcode","plaats","land","telefoon"};
+    /** Een adres is alleen een adres (wens van Rene): een naam geef je in het overzicht, een telefoon hoort bij een persoon. */
+    static final String[] ADDRESS={"adres","postcode","plaats","land"};
     static final String[] IDENTITY={"persoon","documentsoort","document","geldig","afgifte","afgifteplaats","uitgifteland","afgegevenDoor","categorieen"};
     static final String[] TRIP={"van","tot","alleen","tweedeBegeleider","tweedeGever","accommodatie","postcode","plaats","land","telefoon","reisgegevens"};
     /** Wat de assistent weet (Wat weet de assistent?): leeg = de standaard uit MasterIdentity.ai (aan, behalve woonplaats). */
@@ -88,9 +89,10 @@ final class MasterSchema {
             if("persoon".equals(type)&&"kind".equals(role)){keys.remove("initialen");keys.add("voornamen");}
             if("persoon".equals(type)&&role.startsWith("gever"))keys.addAll(Arrays.asList("adres","postcode","plaats","telefoon"));
             if("identiteit".equals(type)&&!"bestemming".equals(role))keys.addAll(Arrays.asList("document","geldig"));
-            if(("organisatie".equals(type)||"adres".equals(type))&&(role.startsWith("gever")||"bestemming".equals(role)))keys.addAll(Arrays.asList("adres","postcode","plaats","land","telefoon"));
+            if("organisatie".equals(type)&&(role.startsWith("gever")||"bestemming".equals(role)))keys.addAll(Arrays.asList("adres","postcode","plaats","land","telefoon"));
+            if("adres".equals(type)&&(role.startsWith("gever")||"bestemming".equals(role)))keys.addAll(Arrays.asList(ADDRESS));
             if("organisatie".equals(type)&&role.startsWith("gever"))keys.add("instelling");
-            if(("organisatie".equals(type)||"adres".equals(type))&&"bestemming".equals(role))keys.add("accommodatie");
+            if("organisatie".equals(type)&&"bestemming".equals(role))keys.add("accommodatie");
             return keys;
         }
         throw new MasterError(Taal.T("Deze gegevens passen niet bij dit onderdeel"));
