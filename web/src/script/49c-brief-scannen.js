@@ -242,7 +242,7 @@ function ksTekenFoto(){
 const KS_NAMEN = () => [t('Hoek linksboven'), t('Hoek rechtsboven'), t('Hoek rechtsonder'), t('Hoek linksonder')];
 function ksTekenHoeken(){
   const svg = $('#ks-vlak'), f = ks.foto; if (!svg || !f) return;
-  svg.setAttribute('viewBox', '0 0 ' + f.width + ' ' + f.height);
+  svg.setAttribute('viewBox', '0 0 ' + f.width + ' ' + f.height); svg.setAttribute('aria-label', t('Hoeken van het papier'));
   const breed = svg.getBoundingClientRect().width || 340, s = f.width / breed, q = ks.hoeken;
   let html = '<polygon points="' + q.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ') + '" class="ks-poly" stroke-width="' + (2 * s).toFixed(2) + '"/>';
   q.forEach((p, i) => { html += '<g class="ks-hoek" data-i="' + i + '" tabindex="0" role="slider" aria-label="' + esc(KS_NAMEN()[i]) + '" aria-valuetext="' + esc(Math.round(p[0] / f.width * 100) + '%, ' + Math.round(p[1] / f.height * 100) + '%') + '">'
