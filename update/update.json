@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.253",
-  "versionCode": 254,
-  "nativeLevel": 219,
+  "versionName": "1.254",
+  "versionCode": 255,
+  "nativeLevel": 220,
   "web": "index.html",
-  "webSha256": "1f98cb1659e70e3448f3b638a5724bc30996b17583fbd28af998cc31d4a39138",
+  "webSha256": "2c1f2aca3ca59d9416c2d7ad4dea816d290d4821be2c186526af8b2f7400893d",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "067a345ea74bfdcea674b6c22e1cc5d165f68ce25ee5a4506c3323faf49a99c5",
+  "apkSha256": "bf3ce2567a5c86e23c8b2105217c7fe8815447e060b8b033be115829f80c8941",
   "changelog": [
+    {
+      "version": "1.254",
+      "date": "2026-11-25",
+      "changes": [
+        "Documentenkluis: Brief scannen. Fotografeer een of meer pagina's met de camera in de app; Tools zoekt de hoeken van het papier (bij te stellen), zet de pagina recht, maakt de achtergrond wit en de tekst scherp, en bewaart alles als één PDF versleuteld in de kluis, in de map waar je staat. Niets komt in je galerij.",
+        "Documentenkluis: een map hernoemen gaat nu in één keer, ook met veel documenten erin; foutmeldingen zeggen \"map\" in plaats van \"categorie\"."
+      ]
+    },
     {
       "version": "1.253",
       "date": "2026-11-25",
@@ -175,17 +183,7 @@
         "Betalen bewaart de rekening zelf versleuteld in je documentenkluis (map Betalen). Bij een betaling tik je op Rekening bekijken om het origineel te zien. Uit te zetten bij Betalen → Instellingen.",
         "De viewer van de app toont nu ook foto's en afbeeldingen (JPEG, PNG, WebP, GIF, HEIC), niet alleen PDF's. Een foto uit de documentenkluis opent daardoor ook in Tools zelf, in plaats van in een andere app."
       ]
-    },
-    {
-      "version": "1.234",
-      "date": "2026-11-20",
-      "changes": [
-        "Betalen kijkt na of de ontvanger klopt: of het een officieel rekeningnummer is van bijvoorbeeld het CJIB of de Belastingdienst, bij welke bank de rekening is en of je er eerder naartoe betaalde. Noemt een rekening het CJIB of de Belastingdienst met een ander rekeningnummer, dan zie je een duidelijke waarschuwing.",
-        "Betalen zet bij een officieel rekeningnummer de juiste naam (bijvoorbeeld CJIB), ook als de tekstherkenning de naam verkeerd las; anders de naam van je vorige betaling naar dat rekeningnummer.",
-        "Nieuw bij een betaling: Zoek het rekeningnummer op internet (na een vraag, in je browser).",
-        "CPAP-analyse: neem je nachtwaarden uit ResMed myAir over, volg maskerlekkage en vergelijk je maskers onder Dag & gezondheid."
-      ]
     }
   ],
-  "webSig2": "os3tcy7ghRN95S0n4VxfTqwcZA3W3AlF7uOP5+cBCVX0KMHTNiXlWct1IE02Kr7sGtTG1K1dSUXeqvmRvYVVmP8NTgen6ctV0/7QASscSsvhQoGqrGY2Zhf1a/4V2bp603v7brqIilx5iD6thZdnjKkYtgGzezp052y25HhJOz4g6Y2p5wT8jWuEjYT+2T0nhdu7ARqb8t+g9OsP4kmg4fRw/cHXH3UigyM+DtUkcIGuRgQfQ664zfofQaJLAQy9m54KKEv+3K1mIIoa7RrdMWv1l2dwZVb12meflZzyV0W5Rm9gSt+Qhcp1F8D/EIB1A12b5sworMFuRLpNi+L4na8SO6KkZbUW1NBXhMWzirnesLMe0wfgH1c0aG/1iJ2MUHBrhH7VtMJBUw/l2jVR64SapglAolAwcErI5bH45giNCDffO9up/fzmCgWOCVwHBw7bBQmWPQ5NrWzv6tHeHCg7mSqS7Ef+32rt0wbon8Vl93QMETg25Ejw2eewhhV1"
+  "webSig2": "Q0UydqkeOuTiNJDm9aGnL+HmRaC2Hc/yFgUzo7zPX8wRfCXJeot2HfuLcorFgPjDrtSlCVYSEii1Hp6WGmRMNwZAeyj29ZcVdzrHBIGv+G6GgT+YxD0L8D1/VnNBe0NanoektO4qLO2gpViGbDtvumzCszWYqAo1gXNg7VDtT4tFmwhdkWSIMX8VV7I0zTdpijSz1YMn/AcE8NNsnukm39RcjpA9XxGNmgVJflVrwvn5obNL+V0ELGseGxJE8ZITIsjUPWuYMoA4BriB6/09n0Ep2nWl+4Fe56cychI8hIxN2eKRplYoopvdUykHgdZ6z+BtGZoywsFQKMZIpSk8XjggPbnwBawt57l22QSouHQkJmVECZemcgOVDrMoUyLQ1Yhm0J04cWllzXwh2284bpYQoAyv1BnIRMaMNOYVMWvR1oyOWy3B9IuiJ0R+4qGvP111Yzq7EW/BTB6ybXQ0xjXj1WHZkdaIX5Vj8ItPH1yNmvlvPOeMtoxZL1kmxPgy"
 }

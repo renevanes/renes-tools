@@ -262,6 +262,23 @@ public class PodcastBridge extends AiBridge {
         PodcastService.send(ctx, PodcastService.TERUG, key + "|" + Math.max(0, van));
     }
 
+    /** Afgespeeld met de slaaptimer (PodcastSlaap): {wijze, plek, lijst} (lijst: oudste eerst). */
+    @JavascriptInterface public String podSlaap() {
+        try { return new JSONObject().put("wijze", PodcastSlaap.wijze(ctx)).put("plek", PodcastSlaap.plek(ctx)).put("lijst", PodcastSlaap.lijst(ctx)).toString(); }
+        catch (Throwable t) { return "{}"; }
+    }
+    /** Instellingen: wijze vragen/vanzelf/uit, plek wakker/begin. */
+    @JavascriptInterface public void podSlaapZet(String wijze, String plek) { PodcastSlaap.zet(ctx, wijze, plek); }
+    /** Oordeel over afleveringen uit de lijst: st = terug (niet beluisterd), gehoord of gezien. Geeft het aantal. */
+    @JavascriptInterface public int podSlaapOordeel(String keysJson, String st) {
+        try {
+            JSONArray a = new JSONArray(keysJson);
+            java.util.List<String> keys = new java.util.ArrayList<>();
+            for (int i = 0; i < a.length() && keys.size() < PodcastSlaap.MAX; i++) if (Podcasts.validKey(a.optString(i))) keys.add(a.optString(i));
+            return PodcastSlaap.oordeel(ctx, keys, st, false);
+        } catch (Throwable t) { return 0; }
+    }
+
     /** Deel de aflevering (titel + link naar de podcast of het audiobestand). */
     @JavascriptInterface public void podShare(String title, String link) {
         if (link == null || !Podcasts.httpUrl(link)) return;

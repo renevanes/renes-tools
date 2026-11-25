@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.254",
+    "date": "2026-11-25",
+    "changes": [
+      "Documentenkluis: Brief scannen. Fotografeer een of meer pagina's met de camera in de app; Tools zoekt de hoeken van het papier (bij te stellen), zet de pagina recht, maakt de achtergrond wit en de tekst scherp, en bewaart alles als één PDF versleuteld in de kluis, in de map waar je staat. Niets komt in je galerij.",
+      "Documentenkluis: een map hernoemen gaat nu in één keer, ook met veel documenten erin; foutmeldingen zeggen \"map\" in plaats van \"categorie\"."
+    ]
+  },
+  {
     "version": "1.253",
     "date": "2026-11-25",
     "changes": [
