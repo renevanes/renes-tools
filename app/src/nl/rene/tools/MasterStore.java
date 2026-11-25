@@ -320,28 +320,44 @@ final class MasterStore {
         JSONObject uit=transaction(c,key,session,token,(db,k,h)->{
             if(h.optBoolean("adresAlleen"))return new JSONObject().put("aangepast",0);
             h.put("adresAlleen",true); // vooraf: elke append hieronder bewaart het controlepunt mét de vlag
-            JSONArray alle=records(db,k);int n=0,naarBewoner=0,zonderBewoner=0;java.util.Set<String> kregen=new java.util.HashSet<>();
+            JSONArray alle=records(db,k);int n=0,naarBewoner=0,naarOrganisatie=0,inNaam=0;java.util.Set<String> kregen=new java.util.HashSet<>();
             for(int i=0;i<alle.length();i++){JSONObject a=alle.getJSONObject(i);
                 if(!"adres".equals(a.getString("type")))continue;JSONObject af=a.getJSONObject("fields");
                 if(!af.has("naam")&&!af.has("telefoon"))continue;
-                String tel=af.optString("telefoon").trim();
-                if(!tel.isEmpty()){
-                    boolean gezet=false;
-                    for(int j=0;j<alle.length();j++){JSONObject p=alle.getJSONObject(j);
-                        if(!"persoon".equals(p.getString("type"))||!a.getString("id").equals(p.getJSONObject("fields").optString("woonadres"))||!p.getJSONObject("fields").optString("telefoon").isEmpty()||!kregen.add(p.getString("id")))continue;
-                        JSONObject vol=record(db,k,p.getString("id"));vol.getJSONObject("fields").put("telefoon",tel);
-                        rewrite(c,db,k,h,vol,"update",new JSONArray().put("telefoon"));gezet=true;naarBewoner++;
-                    }
-                    if(!gezet)zonderBewoner++;
+                String id=a.getString("id"),tel=af.optString("telefoon").trim();
+                java.util.List<JSONObject> bewoners=new java.util.ArrayList<>();
+                for(int j=0;j<alle.length();j++){JSONObject p=alle.getJSONObject(j);if("persoon".equals(p.getString("type"))&&id.equals(p.getJSONObject("fields").optString("woonadres")))bewoners.add(p);}
+                JSONObject vol=record(db,k,id);JSONObject vf=vol.getJSONObject("fields");
+                if(!tel.isEmpty()&&bewoners.isEmpty()){
+                    // Niemand woont er: een bestemming (camping, hotel, familie). Dan een organisatie met naam, adres en telefoon,
+                    // zodat er niets verloren gaat (en de reistoestemming de accommodatie en telefoon nog vindt).
+                    String naam=vf.optString("naam").trim();if(naam.isEmpty())naam=vol.getString("label");
+                    vf.put("naam",naam.length()>240?naam.substring(0,240):naam);vol.put("type","organisatie");
+                    rewrite(c,db,k,h,vol,"address_only",new JSONArray().put("naam"));naarOrganisatie++;n++;continue;
                 }
-                JSONObject vol=record(db,k,a.getString("id"));JSONObject vf=vol.getJSONObject("fields");JSONArray weg=new JSONArray();
+                boolean bewaard=tel.isEmpty(),weg0=false;
+                for(JSONObject p:bewoners){JSONObject pf=p.getJSONObject("fields");
+                    if(tel.equals(pf.optString("telefoon").trim()))bewaard=true;
+                    // Wie aan een contact gekoppeld is, krijgt telefoon en e-mail al vers uit Contacten
+                    if(tel.isEmpty()||!pf.optString("telefoon").isEmpty()||!pf.optString("contact").isEmpty()||!kregen.add(p.getString("id")))continue;
+                    JSONObject pv=record(db,k,p.getString("id"));pv.getJSONObject("fields").put("telefoon",tel);
+                    rewrite(c,db,k,h,pv,"address_only",new JSONArray().put("telefoon"));bewaard=true;naarBewoner++;
+                }
+                if(!bewaard){
+                    // Iedereen die er woont heeft al een ander nummer: het nummer in de naam in het overzicht, zodat het niet weg is
+                    String l=vol.getString("label")+" · "+tel;
+                    if(l.length()<=120){vol.put("label",l);inNaam++;weg0=true;}
+                    else App.log(c,"STAMGEGEVENS","adressen: telefoon past niet in de naam");
+                }
+                JSONArray weg=new JSONArray();
                 for(String veld:new String[]{"naam","telefoon"})if(vf.has(veld)){vf.remove(veld);weg.put(veld);}
-                rewrite(c,db,k,h,vol,"update",weg);n++;
+                if(weg0)weg.put("label");
+                rewrite(c,db,k,h,vol,"address_only",weg);n++;
             }
-            if(n==0)append(db,k,h,"address_link","masterdata","",null,null); // ook zonder aanpassing de vlag bewaren
+            if(n==0)append(db,k,h,"address_only","masterdata","",null,null); // ook zonder aanpassing de vlag bewaren
             // Alleen aantallen
-            if(n>0)App.log(c,"STAMGEGEVENS","adressen zonder naam en telefoon: "+n+", telefoon naar bewoner "+naarBewoner+", telefoon zonder bewoner "+zonderBewoner);
-            return new JSONObject().put("aangepast",n).put("telefoonZonderBewoner",zonderBewoner);
+            if(n>0)App.log(c,"STAMGEGEVENS","adressen zonder naam en telefoon: "+n+", telefoon naar bewoner "+naarBewoner+", naar organisatie "+naarOrganisatie+", in de naam "+inNaam);
+            return new JSONObject().put("aangepast",n);
         });
         adresAlleenKlaar=true;return uit;
     }

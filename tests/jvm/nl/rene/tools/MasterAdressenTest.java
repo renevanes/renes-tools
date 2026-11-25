@@ -55,6 +55,23 @@ public final class MasterAdressenTest {
         JSONObject n = MasterAdressen.nieuwAdres(p);
         check("Kade 12".equals(n.getString("adres")) && "Nederland".equals(n.getString("land")), "adresvelden mee");
         check(!n.has("bsn") && !n.has("telefoon") && !n.has("naam"), "niets anders van de persoon mee naar het adres");
+        // Een adres is alleen een adres: geen naam of telefoon meer (MasterSchema)
+        JSONObject adresIn = new JSONObject().put("type", "adres").put("label", "Thuis").put("fields", f("Kade 12", "3011 AB", "Rotterdam"));
+        check(MasterSchema.clean(adresIn).getJSONObject("fields").length() == 3, "adresvelden mogen");
+        for (String veld : new String[]{"naam", "telefoon"}) {
+            boolean geweigerd = false;
+            try { MasterSchema.clean(new JSONObject(adresIn.toString()).put("fields", f("Kade 12", null, null).put(veld, "x"))); } catch (MasterError e) { geweigerd = true; }
+            check(geweigerd, veld + " bij een adres wordt geweigerd");
+        }
+        java.util.Set<String> bestemming = MasterSchema.permitted("formulieren", "bestemming", "adres");
+        check(bestemming.contains("adres") && bestemming.contains("plaats") && !bestemming.contains("telefoon"), "bestemming: adres zonder telefoon");
+        JSONObject eigen = new JSONObject().put("type", "adres").put("label", "Camping De Zon").put("fields", f("Duinweg 1", "1234 AB", "Ouddorp"));
+        check("Camping De Zon".equals(MasterSchema.projection(eigen, "formulieren", "bestemming").optString("accommodatie")), "eigen naam = accommodatie");
+        JSONObject auto = new JSONObject().put("type", "adres").put("label", "Duinweg 1, Ouddorp").put("fields", f("Duinweg 1", "1234 AB", "Ouddorp"));
+        check(!MasterSchema.projection(auto, "formulieren", "bestemming").has("accommodatie"), "automatische naam is geen accommodatie");
+        JSONObject org = new JSONObject().put("type", "organisatie").put("label", "Hotel").put("fields", new JSONObject().put("naam", "Hotel Zee").put("telefoon", "0101234567"));
+        JSONObject op = MasterSchema.projection(org, "formulieren", "bestemming");
+        check("Hotel Zee".equals(op.optString("accommodatie")) && "0101234567".equals(op.optString("telefoon")), "organisatie: naam en telefoon");
         System.out.println("MasterAdressenTest ok");
     }
 }

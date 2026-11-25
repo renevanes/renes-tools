@@ -92,7 +92,8 @@ final class MasterSchema {
             if("organisatie".equals(type)&&(role.startsWith("gever")||"bestemming".equals(role)))keys.addAll(Arrays.asList("adres","postcode","plaats","land","telefoon"));
             if("adres".equals(type)&&(role.startsWith("gever")||"bestemming".equals(role)))keys.addAll(Arrays.asList(ADDRESS));
             if("organisatie".equals(type)&&role.startsWith("gever"))keys.add("instelling");
-            if("organisatie".equals(type)&&"bestemming".equals(role))keys.add("accommodatie");
+            // Accommodatie: van een organisatie de naam; van een adres de eigen naam in het overzicht (zie projection)
+            if(("organisatie".equals(type)||"adres".equals(type))&&"bestemming".equals(role))keys.add("accommodatie");
             return keys;
         }
         throw new MasterError(Taal.T("Deze gegevens passen niet bij dit onderdeel"));
@@ -102,7 +103,12 @@ final class MasterSchema {
         if(allowed.contains("ontvanger")){
             String who=(fields.optString("voornamen")+" "+fields.optString("naam")).trim();out.put("ontvanger",who.isEmpty()?record.getString("label"):who);return out;
         }
-        for(String k:allowed){boolean alias=!"reis".equals(record.getString("type"))&&("instelling".equals(k)||"accommodatie".equals(k));String value=fields.optString(alias?"naam":k);if(!value.isEmpty())out.put(k,value);}
+        for(String k:allowed){
+            boolean alias=!"reis".equals(record.getString("type"))&&("instelling".equals(k)||"accommodatie".equals(k));String value=fields.optString(alias?"naam":k);
+            // Een adres heeft geen naam-veld: een eigen naam (Andere naam, bijv. "Camping De Zon") is de accommodatie, de automatische niet
+            if("adres".equals(record.getString("type"))&&"accommodatie".equals(k)){String l=record.optString("label").trim();value=l.equals(MasterAdressen.label(fields))?"":l;}
+            if(!value.isEmpty())out.put(k,value);
+        }
         return out;
     }
     static JSONObject selected(JSONObject record,String source,String role,JSONArray wanted)throws Exception{

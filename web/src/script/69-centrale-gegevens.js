@@ -100,7 +100,7 @@ function cmClearFormDOM(){
   document.querySelectorAll('#s-formulieren [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);
 }
 function cmLockedUI(){
-  cm.token='';cmClearCentral();for(const [id,p] of cm.pending)if(!p.publicRequest)cm.pending.delete(id);
+  cm.token='';cm.openT0=0;cmClearCentral();for(const [id,p] of cm.pending)if(!p.publicRequest)cm.pending.delete(id);
   if(cm.picker){cm.picker.record=null;cm.picker.fields={};}
   if(fm.masterSensitive){fm.busy=false;if(typeof fmConceptVanzelf==='function')fmConceptVanzelf();cmClearFormDOM();fm.exportToken='';fm.masterSensitive=false;fmInit(fm.id);if(typeof fmConceptLaad==='function')fmConceptLaad();if(current==='formulieren')fmRender();} // eigen invoer blijft als concept; gegevens uit Stamgegevens niet
   if(idc.masterSensitive){idc.masterSensitive=false;idc.busy=false;idc.loading=false;idCopyReset(current==='idcopy');idCopyControls();}
@@ -117,7 +117,9 @@ window.onMasterReset=function(){cm.unlocking=false;cm.resetting=false;cm.pending
 function cmUnlock(){
   if(cm.unlocking||cm.resetting)return;if(!cmState().secure){cmNote(t('Stel eerst een schermvergrendeling in op je telefoon'));return;}cm.unlocking=true;
   const t0=Date.now();
-  cmRequest('masterOpen',[],r=>{cm.unlocking=false;if(r.vraag){cmVraag(r.vraag);return;}if(!r.opened||!cmState().open)return;cm.token=r.token;cm.openT0=t0;cm.openMs=Date.now()-t0;cmRenderState();cmNote('');appIdentityRefresh();cmiPhotoAfterUnlock(r.photo);if(cm.picker)cmPickerLoad();else if(typeof fmq!=='undefined'&&fmq.open)fmqLoad();else cmListOpen();},true);
+  cmRequest('masterOpen',[],r=>{cm.unlocking=false;if(r.vraag){cmVraag(r.vraag);return;}if(!r.opened||!cmState().open)return;cm.token=r.token;
+    // Tijd van openen tot de lijst getekend is (cmTijd); alleen als daarna de lijst geladen wordt
+    if(!cm.picker&&!(typeof fmq!=='undefined'&&fmq.open)){cm.openT0=t0;cm.openMs=Date.now()-t0;}cmRenderState();cmNote('');appIdentityRefresh();cmiPhotoAfterUnlock(r.photo);if(cm.picker)cmPickerLoad();else if(typeof fmq!=='undefined'&&fmq.open)fmqLoad();else cmListOpen();},true);
 }
 /** Wil het scherm nu Stamgegevens open hebben? (Opnieuw beginnen werkt juist op slot.) */
 function cmWil(){return cmZone(current)&&current!=='cmwis'||!!cm.picker||typeof fmq!=='undefined'&&fmq.open;}
@@ -150,12 +152,12 @@ function cmListLoad(after,fail=null){
   if(!cmOpen())return;cm.recordsReady=false;document.querySelectorAll('#cm-open button').forEach(b=>b.disabled=true);const epoch=++cm.editorEpoch,t1=Date.now();
   cmRequest('masterList',['masterdata',''],r=>{const t2=Date.now();cm.records=r.records;cm.recordsReady=true;cmRenderList();cmTijd(t1,t2);document.querySelectorAll('#cm-open button').forEach(b=>b.disabled=false);if(epoch!==cm.editorEpoch){cmNavDone();return;}if(after)after();else cmiAfterList();},false,r=>{cmNavDone();if(fail)fail(r);});
 }
-/* Traag openen of laden: alleen de tijden naar het foutlogboek (MasterBridge.masterTijd; geen namen of aantallen van gegevens).
- * Na het ontgrendelen: de hele weg (ontgrendelen tot de lijst getekend is); anders alleen de lijst. */
+/* Traag openen: alleen de tijden naar het foutlogboek (MasterBridge.masterTijd; geen namen of aantallen van gegevens), één keer
+ * per ontgrendelen: de hele weg van ontgrendelen tot de lijst getekend is. Laden zelf meet Java al (MasterStore.transactie). */
 function cmTijd(t1,t2){
-  if(typeof Android.masterTijd!=='function')return;const nu=Date.now(),lijst=t2-t1,tekenen=nu-t2;
-  if(cm.openT0){const totaal=nu-cm.openT0;Android.masterTijd('openen',totaal,cm.openMs||0,lijst,tekenen);cm.openT0=0;return;}
-  Android.masterTijd('lijst',lijst+tekenen,0,lijst,tekenen);
+  const t0=cm.openT0;cm.openT0=0;
+  if(!t0||typeof Android.masterTijd!=='function')return;const nu=Date.now();
+  Android.masterTijd('openen',nu-t0,cm.openMs||0,t2-t1,nu-t2);
 }
 /* Het beginscherm (Ik, Aandacht nodig, rijen) tekent 71-stamgegevens-ik.js; zoeken toont één lijst met alles. */
 function cmRenderList(){}
@@ -355,7 +357,7 @@ function cmMenu(){const acts=[];if(cmOpen())acts.push([t('Activiteiten'),cmAudit
 function cmAuditOpen(){if(!cmOpen()||cm.mutating)return;cm.editorEpoch++;cm.events=[];cm.before=0;$('#cm-audit').replaceChildren();$('#cm-log-search').value='';$('#cm-more').hidden=true;if(current!=='cmlog')show('cmlog');cmAuditMore();}
 function cmAuditMore(){if(!cmOpen())return;cmRequest('masterAudit',[cm.before],r=>{cm.events.unshift(...r.events);cm.before=r.before;$('#cm-more').hidden=!r.more;cmRenderAudit();});}
 function cmRenderAudit(){
-  const names={unlock:t('Ontgrendeld'),list:t('Overzicht bekeken'),view:t('Gegevens bekeken'),create:t('Toegevoegd'),update:t('Gewijzigd'),delete:t('Verwijderd'),use:t('Velden overgenomen'),audit:t('Logboek bekeken'),export_release:t('Bestand vrijgegeven'),export_attempt:t('Bestand maken gestart'),export:t('Bestand gemaakt'),app_context:t('App-context vernieuwd'),address_link:t('Adres gekoppeld aan Adressen'),photo_view:t('Kaartfoto bekeken'),photo_add:t('Kaartfoto toegevoegd'),photo_delete:t('Kaartfoto verwijderd'),relation_use:t('Relatie voor formulier bekeken'),expiry_check:t('Geldigheid gecontroleerd'),scan:t('Foto herkennen gestart'),photo_scan:t('Gegevens herkend uit kaartfoto'),contact_use:t('Bellen, bericht of Contacten geopend'),about_move:t('Bijgewerkt naar de nieuwe indeling: tekst over jou naar Over mij'),about_clear:t('Tekst over jou weggehaald')};
+  const names={unlock:t('Ontgrendeld'),list:t('Overzicht bekeken'),view:t('Gegevens bekeken'),create:t('Toegevoegd'),update:t('Gewijzigd'),delete:t('Verwijderd'),use:t('Velden overgenomen'),audit:t('Logboek bekeken'),export_release:t('Bestand vrijgegeven'),export_attempt:t('Bestand maken gestart'),export:t('Bestand gemaakt'),app_context:t('App-context vernieuwd'),address_link:t('Adres gekoppeld aan Adressen'),address_only:t('Bijgewerkt naar de nieuwe indeling: adressen'),photo_view:t('Kaartfoto bekeken'),photo_add:t('Kaartfoto toegevoegd'),photo_delete:t('Kaartfoto verwijderd'),relation_use:t('Relatie voor formulier bekeken'),expiry_check:t('Geldigheid gecontroleerd'),scan:t('Foto herkennen gestart'),photo_scan:t('Gegevens herkend uit kaartfoto'),contact_use:t('Bellen, bericht of Contacten geopend'),about_move:t('Bijgewerkt naar de nieuwe indeling: tekst over jou naar Over mij'),about_clear:t('Tekst over jou weggehaald')};
   const roles={reis:t('Reis'),kind:tc('formulier','Kind'),begeleider1:t('Begeleider 1'),begeleider2:t('Begeleider 2'),gever1:t('Toestemminggever 1'),gever2:t('Toestemminggever 2'),bestemming:t('Bestemming'),ontvanger:t('Ontvanger'),vast:t('Vaste formuliergegevens')};
   const source={masterdata:t('Stamgegevens'),formulieren:t('Formulieren invullen'),idcopy:t('ID-kopie afschermen')};
   const box=$('#cm-audit');box.replaceChildren();if(!cmOpen())return;const q=$('#cm-log-search').value.toLowerCase();
