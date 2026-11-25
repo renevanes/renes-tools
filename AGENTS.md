@@ -1103,7 +1103,9 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   `wakker`/`begin` (`terugPlek`, nooit vlak bij het einde). Terugzetten verandert alleen een aflevering die nog als beluisterd
   staat; wakker uitgeluisterd (zonder timer, of in de laatste minuut nog wakker: `telt`) = gehoord (`wakkerAf`). Een
   download gaat alleen weg als de aflevering dan nog als beluisterd staat. De lijst (hooguit `MAX`, `BEWAAR_MS`; wat open bleef telt dan als gehoord) en de keuze staan op Instellingen van
-  Podcasts (`#ps-slp`, ook via ⋯). Op een Chromecast niet. Test: `tests/ui/podcast-slaap.test.js`.
+  Podcasts (`#ps-slp`, ook via ⋯); de keuze `slaapTerug` staat ook in het venster Slaaptimer (`#sl-slp`, `sleepSlpToon`, alleen bij
+  podcasts; tijdens casten weg, want op een Chromecast wordt niets bijgehouden). Kiest Rene `uit` terwijl er nog regels open
+  staan, dan vraagt `slpZet` eerst (die tellen dan als gehoord). Test: `tests/ui/podcast-slaap.test.js`.
 
 ## Publiceren en tests (stand op GitHub in de app)
 Scherm `s-github` (Instellingen → Versie en updates; `28c-publiceren-en-tests.js`, `GithubStatus.java`): per taak de stand

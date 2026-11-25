@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.257",
-  "versionCode": 258,
-  "nativeLevel": 223,
+  "versionName": "1.258",
+  "versionCode": 259,
+  "nativeLevel": 224,
   "web": "index.html",
-  "webSha256": "60b1df8918af9e57bd54ebad5858a137fa46723b117d2970c59a072b0fe5fc23",
+  "webSha256": "ec665b25405bd9ff9aa5837a24e0f2e65c4cb117d081844937a162c41afc606d",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "ec951a75231d3e4e731e8fe419c3b5fcebde164cbfb13df6616faebc0996e2a7",
+  "apkSha256": "8cc3a32aa9ef4e516e18b7f1d36bbbfcaa77368e79ad80c527cf933256e5f1c8",
   "changelog": [
+    {
+      "version": "1.258",
+      "date": "2026-11-25",
+      "changes": [
+        "Stamgegevens: bij de voorkant of achterkant van een ID-bewijs kun je nu ook een PDF of Word-document kiezen; Tools haalt de foto's eruit en jij kiest welke je bewaart.",
+        "Podcasts: in het venster Slaaptimer kies je nu ook wat er gebeurt met afleveringen die aflopen terwijl de timer loopt (daarna vragen, niet beluisterd of beluisterd)."
+      ]
+    },
     {
       "version": "1.257",
       "date": "2026-11-25",
@@ -179,14 +187,7 @@
         "Vanzelf gedownloade afleveringen gaan na 2 weken weer van je telefoon; wat je zelf downloadt blijft staan.",
         "Bij Instellingen van Podcasts kies je welke podcasts meedoen, hoe ver terug, wanneer ze weer weg gaan en hoeveel ruimte het mag gebruiken (standaard hooguit 2 GB, en met Alleen via wifi aan alleen op wifi)."
       ]
-    },
-    {
-      "version": "1.238",
-      "date": "2026-11-20",
-      "changes": [
-        "CPAP-analyse kan je myAir-ZIP importeren en toont je gebruiksduur en AHI per periode."
-      ]
     }
   ],
-  "webSig2": "GXrCn89N/WStPyUEGM0s8tYnTZL9Cjm672GKkePua2iqoS1ofxY8dhbegOkEgXSopoV/zYIzEeRpXiPf3jhPKmoWjhnVWNUZjrQqk/3usS0ZTi/zfHw2MMkLAM/9y1BEalCW9/WFPSr+BJSJ7SI5wSsqqU4+6L8X/yA/pom4Sv5t0zsVFmcmunA7oq1TYi7vDXZHJ0eJXmF15sFR8Pm9nj9owDe4sVAMYvQWUN43Z3pj20/Y/iYJvAkeWDkPkf1nUeT/Koyfg+SD7ez0mVsA23+pqJYzy7tOZz98H6sH955JwVWtkqyWQS2QZYOtQc8egu2O9jRRD6LM+LuDSfi76y2AEvX9nO5FkJ4Sb1T64i5pq/+HJhIxC0QIb/iG1+XRAMaVuIMbWdNly/PJFEIYeArrDBKKCYH0ovuIETKGleyiqSSm8a04huLRxvscDSewShvgvAThUaCEDq+F5oIjcjvB34hkprxIfl/xu1Jo9phbz5ry29g/7hX6aUWLAo5v"
+  "webSig2": "IhsOx7rrT+dDm6O8DjTmKL7JbWs7o/n8fKhkZs46L3O6pmxPE1L7i7umvI4SNsfPfpPwagPIvQ6nrGQr2JalRfz+yzA/rWkVNpXfbuH1oM6WVf9DMAg9yR6I6mqEzZnhu/Lo92Ulj18ABzmfppB6H2u7heeHJJqljGU0eZqDNX62D91aWEaQwjR5ogHh4cl8aBc3JnRhi0WQ6nwDo3thxSBm5smKS+svskKP8phE/Pi6Ch7lAXXJi6LxJbHHRUO9OLiNcn1gcGh2ych2q+JwbNLqnANmGWU/Ujm8NorTRHV5eFpa4lkXoDDsILlh4xKfV2nV//8oHI2B0cmdYh8rI4sazvbBRyIjUC4LIFVbg7ayC8IpbeviMQ/XdrGQWwqQoyv9goT+69yHFkiGfd9RP16JlPTqdFt/xqsNI6ES9hKy2CQs7th/xAvAKJgh5/YBy3ObRFgY9WhQOFoST+wSf6iO969Z+YtstzX+0CM70gBZdIniElHHhRFjeg7j06IG"
 }
