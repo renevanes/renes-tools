@@ -457,7 +457,14 @@ public class MainActivity extends Activity {
                 try { startActivity(confirm); } catch (Exception e) { js("onUpdateStatus", "{\"state\":\"error\",\"kind\":\"apk\",\"error\":\"Installeren kon niet starten\"}"); }
             } else if (st != PackageInstaller.STATUS_SUCCESS) {
                 String msg = i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
-                js("onUpdateStatus", jsonErr("Installatie afgebroken" + (msg != null ? ": " + msg : "")));
+                // De download blijft bewaard: Installeren hoeft alleen nog te installeren
+                JSONObject klaar = Updater.klaar(this);
+                try {
+                    JSONObject o = new JSONObject(jsonErr(st == PackageInstaller.STATUS_FAILURE_ABORTED ? "Installatie geannuleerd"
+                            : "Installatie afgebroken" + (msg != null ? ": " + msg : ""))).put("kind", "apk");
+                    if (klaar != null) o.put("klaar", klaar.optString("versionName"));
+                    js("onUpdateStatus", o.toString());
+                } catch (Exception e) { js("onUpdateStatus", jsonErr("Installatie afgebroken")); }
             }
             return;
         }
@@ -1426,6 +1433,8 @@ public class MainActivity extends Activity {
                 o.put("android", Build.VERSION.RELEASE);
                 o.put("sdk", Build.VERSION.SDK_INT);
                 o.put("play", Updater.viaPlay(ctx));
+                JSONObject klaar = Updater.klaar(ctx); // al gedownloade nieuwe app: alleen nog installeren
+                o.put("apkKlaar", klaar == null ? "" : klaar.optString("versionName"));
                 o.put("playTools", new JSONArray(java.util.Arrays.asList(PlayFeatures.TOOLS)));
                 return o.toString();
             } catch (Exception e) { return "{}"; }

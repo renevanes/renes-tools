@@ -28,11 +28,16 @@ function infoLog(nieuw, eigen){
 const INFO_RECENT = 3;
 let infoAllOn = false;
 function infoAll(){ infoAllOn = !infoAllOn; renderInfo(); if (!infoAllOn) $('#log').closest('.card').scrollIntoView({ block: 'start' }); }
+/* Bij het starten: staat er al een gedownloade nieuwe app klaar, dan meteen de balk met Installeren */
+function updKlaarStart(){ try { const k = ver().apkKlaar; if (k && !updKind) { updKlaar = k; updAvailShow(); } } catch(e){} }
+setTimeout(updKlaarStart, 0);
 function checkUpdates(){ $('#chk-btn').textContent = 'Bezig met controleren…'; Android.checkUpdates(); }
 
 /* Voortgang van een update: in de balk op Home en bij Versie en updates (downloaden, controleren, installeren) */
 let updAvail = '', updKind = '', updPhase = '', updDog = null, updDogMs = 90000;
 let updReady = '', updReloadingVersion = '';
+/** Versie van de nieuwe app die al gedownload is: Installeren hoeft dan alleen nog te installeren (Updater.klaar). */
+let updKlaar = '';
 const UPD_BUSY = ['start', 'download', 'check', 'install', 'committed']; // dan geen tweede keer starten
 function updMB(b){ return fmtMB(b, 1); }
 /** Tekst en percentage (-1 = onbekend) bij een stap. Zuiver. */
@@ -70,7 +75,8 @@ function updShow(text, pct, btn){
   });
 }
 function updAvailShow(){
-  if (updAvail) updShow(t('Nieuwe versie {n} is beschikbaar', { n: updAvail }), null, ['Installeren', false]);
+  if (updKlaar && (!updAvail || updAvail === updKlaar)) { updAvail = updKlaar; updShow(t('Versie {n} is gedownload; tik op Installeren', { n: updKlaar }), null, ['Installeren', false]); }
+  else if (updAvail) updShow(t('Nieuwe versie {n} is beschikbaar', { n: updAvail }), null, ['Installeren', false]);
   else if (updReady) updShow(t('Interface {n} staat klaar; bewaar eerst je werk', { n: updReady }), null, ['Toepassen', false]);
   else ['', '2'].forEach(n => { const b = $('#upd-banner' + n); if (b) b.classList.remove('on'); });
 }
@@ -82,8 +88,8 @@ function installUpdate(){
   if (updReady && !updAvail && updKind !== 'apk') { updTryReload(true); return; }
   if (updKind === 'apk' && UPD_BUSY.includes(updPhase)) { toast('De update wordt al gedownload'); return; }
   updKind = 'apk'; updPhase = 'start'; updWatch();
-  updShow('Nieuwe versie ophalen…', -1, ['Bezig…', true]);
-  updSay('De update wordt gedownload');
+  updShow(updKlaar ? t('Installeren…') : t('Nieuwe versie ophalen…'), -1, ['Bezig…', true]);
+  updSay(updKlaar ? t('De update wordt geïnstalleerd') : t('De update wordt gedownload'));
   Android.installUpdate();
 }
 window.onUpdateStatus = function(r){
@@ -112,7 +118,7 @@ window.onUpdateStatus = function(r){
   }
   // Uitkomst van een controle op de achtergrond terwijl de app gedownload wordt: de voortgang laten staan
   if (r.kind === 'web' && updKind === 'apk') {
-    if (r.state === 'apk') updAvail = r.versionName;
+    if (r.state === 'apk') { updAvail = r.versionName; if (r.klaar) updKlaar = r.versionName; }
     if ($('#chk-btn')) $('#chk-btn').textContent = 'Controleren op updates';
     if (r.state === 'uptodate' && r.manual) toast(t('Je hebt de nieuwste versie ({n}) ✓', { n: ver().webName }));
     else if (r.state === 'error' && r.manual) toast(r.error);
@@ -131,8 +137,14 @@ window.onUpdateStatus = function(r){
     toast('De update wordt al gedownload');
     return;
   }
+  // Installatie afgebroken of geannuleerd, maar de download is bewaard: alleen nog installeren
+  if (r.state === 'error' && r.kind === 'apk' && r.klaar) {
+    updAvail = r.klaar; updKlaar = r.klaar; updReset();
+    toast(t('Niet geïnstalleerd. De download blijft bewaard: tik op Installeren om het opnieuw te proberen.'));
+    return;
+  }
   const wasKind = updKind;
-  if (r.state === 'apk') updAvail = r.versionName;
+  if (r.state === 'apk') { updAvail = r.versionName; if (r.klaar) updKlaar = r.versionName; else if (updKlaar !== r.versionName) updKlaar = ''; }
   updReset();
   if (r.state === 'uptodate' && r.manual && r.overgeslagen) toast(t('De nieuwste versie startte niet op deze telefoon. Tools wacht op een nieuwere.'));
   else if (r.state === 'uptodate' && r.manual) toast(t('Je hebt de nieuwste versie ({n}) ✓', { n: ver().webName }));

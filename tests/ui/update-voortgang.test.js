@@ -32,11 +32,22 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => show('info')); await pg.waitForTimeout(150);
     ok((await pg.textContent('#upd-text2')).includes('Bevestig'), 'zelfde stand bij Versie en updates');
 
-    // Afgebroken: terug naar "beschikbaar", met een melding
+    // Geannuleerd: de download blijft bewaard; Installeren installeert alleen nog (geen tweede download)
     await pg.evaluate(() => { Android._updFail = true; Android._updMs = 20; });
     await pg.click('#upd-btn2');
-    ok(await until(() => document.querySelector('#upd-text2').textContent.includes('beschikbaar') && !Android._upd), 'na afbreken weer beschikbaar');
-    ok((await pg.textContent('#toast')).includes('afgebroken'), 'melding bij afbreken');
+    ok(await until(() => document.querySelector('#upd-text2').textContent.includes('is gedownload') && !Android._upd), 'na annuleren: download bewaard (' + (await pg.textContent('#upd-text2')) + ')');
+    ok((await pg.textContent('#toast')).includes('De download blijft bewaard'), 'melding: download blijft bewaard');
+    ok(!(await pg.isDisabled('#upd-btn2')) && (await pg.textContent('#upd-btn2')) === 'Installeren', 'knop Installeren weer te gebruiken');
+    const voor = await pg.evaluate(() => Android._updDownloads);
+    await pg.evaluate(() => { Android._updFail = false; });
+    await pg.click('#upd-btn2');
+    ok((await pg.textContent('#upd-text2')).startsWith('Installeren…'), 'opnieuw: meteen installeren (' + (await pg.textContent('#upd-text2')) + ')');
+    ok(await until(() => document.querySelector('#upd-text2').textContent.includes('Bevestig')), 'opnieuw: gaat door tot bevestigen');
+    ok(await pg.evaluate(() => !Android._updLog.some(s => s.phase === 'download')) && (await pg.evaluate(() => Android._updDownloads)) === voor, 'opnieuw: geen tweede download');
+    // Na opnieuw opstarten: de bewaarde download staat meteen klaar
+    await pg.evaluate(() => { updKlaar = ''; updAvail = ''; updReset(); Android._apkKlaar = '9.9'; updKlaarStart(); });
+    ok((await pg.textContent('#upd-text')).includes('Versie 9.9 is gedownload') && !(await pg.isDisabled('#upd-btn')), 'bij het starten: bewaarde download klaar');
+    await pg.evaluate(() => { Android._apkKlaar = ''; updKlaar = ''; updAvail = ''; updReset(); });
 
     // Interface-update (stil): voortgang zonder knop, ook op de knop Controleren
     await pg.evaluate(() => { updAvail = ''; onUpdateStatus({ state: 'progress', kind: 'web', phase: 'download', done: 734003, total: 1468006 }); });

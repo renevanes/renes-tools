@@ -170,6 +170,7 @@ final class AppData {
         m.put("ai-models", "taalmodellen: worden opnieuw gedownload");
         m.put("whisper", "spraakmodellen: worden opnieuw gedownload");
         m.put("web", "bijgewerkte interface: komt vanzelf weer binnen");
+        m.put("update-apk", "gedownloade nieuwe app die nog geïnstalleerd moet worden: komt vanzelf opnieuw; nooit uit een backup terugzetten");
         m.put("wa", "leesbare kopie van de WhatsApp-backup: wordt opnieuw gemaakt uit de WhatsApp-backup");
         m.put("kluis", "gaat apart mee (ontsleuteld, versleuteld in het archief)");
         m.put("masterdata", "stamgegevens en lokaal activiteitenlog: alleen versleuteld op dit toestel; sleutel is toestelgebonden");

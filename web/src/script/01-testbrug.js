@@ -196,17 +196,19 @@ if (!window.Android) window.Android = (function(){
     nieuwsInlogStand(id){ return JSON.stringify({ koekjes: this._nwKoek[id] || 0 }); },
     /* Het venster voor de cookiekeuze: de test zet _nw.cookie zelf en roept onResumeApp aan, zoals na het sluiten. */
     nieuwsCookies(id){ const s = this._nwInit(); s.calls.push(['cookies', id]); return id === 'tweakers' ? '' : 'Bijwerken lukt niet'; },
-    version:()=>JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts','masterdata']}),
+    version(){ return JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts','masterdata'],apkKlaar:this._apkKlaar||''}); },
     lastManifest:()=>'null', checkUpdates:()=>setTimeout(()=>onUpdateStatus({state:'uptodate',kind:'web',manual:true,versionName:VERSION_NAME}),400),
     reloadUi(){ if (window.prepareUiReload && window.prepareUiReload()) { this._uiReloads = (this._uiReloads || 0) + 1; document.body.inert = false; } },
     installUpdate(){
       // Downloaden met voortgang (5 MB in 10 stappen), controleren, klaarzetten en dan vraagt Android om te bevestigen
       if (this._upd) { onUpdateStatus({ state: 'busy', kind: 'apk' }); return; }
-      this._upd = true; const T = 5242880, steps = [];
+      // Staat de app al gedownload klaar (Updater.klaar), dan niet opnieuw downloaden; afgebroken = de download blijft bewaard
+      this._upd = true; const T = 5242880, steps = [], al = !!this._apkKlaar;
       steps.push({ state: 'progress', kind: 'apk', phase: 'start', done: 0, total: 0 });
-      for (let i = 0; i <= 10; i++) steps.push({ state: 'progress', kind: 'apk', phase: 'download', done: Math.round(T * i / 10), total: T });
+      if (!al) for (let i = 0; i <= 10; i++) steps.push({ state: 'progress', kind: 'apk', phase: 'download', done: Math.round(T * i / 10), total: T });
       steps.push({ state: 'progress', kind: 'apk', phase: 'check', done: 0, total: 0 }, { state: 'progress', kind: 'apk', phase: 'install', done: 0, total: 0 },
-        { state: 'progress', kind: 'apk', phase: 'committed', done: 0, total: 0 }, this._updFail ? { state: 'error', kind: 'apk', error: 'Installatie afgebroken' } : this._updSilent ? null : { state: 'confirm', kind: 'apk' });
+        { state: 'progress', kind: 'apk', phase: 'committed', done: 0, total: 0 }, this._updFail ? { state: 'error', kind: 'apk', error: 'Installatie geannuleerd', klaar: '9.9' } : this._updSilent ? null : { state: 'confirm', kind: 'apk' });
+      this._apkKlaar = '9.9'; this._updDownloads = (this._updDownloads || 0) + (al ? 0 : 1);
       (this._updLog = []);
       steps.forEach((s, i) => setTimeout(() => { if (s) { this._updLog.push(s); onUpdateStatus(s); } if (i === steps.length - 1) this._upd = false; }, (this._updMs || 60) * (i + 1)));
     }, permissions:()=>JSON.stringify({call:true,phoneState:true,callLog:true,notifications:true}),
