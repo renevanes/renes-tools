@@ -112,14 +112,20 @@ final class DocumentFotos {
                 for (byte[] jpg : opPagina) {
                     Foto f = maat(jpg, i + 1);
                     if (f == null) continue;
+                    // Een ingesloten foto zo groot als een pagina (een scan): ook de kaarten die erop staan
+                    if (paginaVorm(f.breed, f.hoog)) for (Foto k : kaartenUit(f.jpeg, i + 1)) { if (u.fotos.size() >= max) { u.afgekapt = true; return; } u.neem(k); erbij++; }
                     if (u.fotos.size() >= max) { u.afgekapt = true; return; }
                     u.neem(f); erbij++;
                 }
                 if (erbij > 0) continue;
-                // Geen bruikbare foto op deze pagina: de pagina zelf
+                // Geen bruikbare foto op deze pagina: de pagina zelf, en de kaarten die erop staan (een scan met voor- en achterkant)
                 Bitmap b;
                 try (PdfRenderer.Page p = renderer.openPage(i)) { b = render(p); }
-                try { u.neem(new Foto(jpeg(b), b.getWidth(), b.getHeight(), i + 1, true)); } finally { b.recycle(); }
+                try {
+                    for (Foto k : kaartenOp(b, i + 1)) { if (u.fotos.size() >= max) { u.afgekapt = true; return; } u.neem(k); }
+                    if (u.fotos.size() >= max) { u.afgekapt = true; return; }
+                    u.neem(new Foto(jpeg(b), b.getWidth(), b.getHeight(), i + 1, true));
+                } finally { b.recycle(); }
             }
         }
     }
@@ -205,6 +211,119 @@ final class DocumentFotos {
         } finally { temp.delete(); }
     }
 
+    // ---------- kaarten op een pagina ----------
+
+    /** Groot en in de vorm van een A-pagina of Letter (geen kaart, ≈1,59). Zuiver, getest. */
+    static boolean paginaVorm(int w, int h) {
+        if (w < 1 || h < 1 || Math.max(w, h) < 1000) return false;
+        double r = (double) Math.max(w, h) / Math.min(w, h);
+        return r > 1.25 && r < 1.50;
+    }
+
+    /** Werkmaat voor het zoeken naar kaarten (langste zijde). */
+    static final int ZOEK_ZIJDE = 600;
+
+    /**
+     * Rechthoeken zo groot als een kaart op een pagina (in de coördinaten van het raster): vlakken van "inkt" (niet-wit of
+     * gekleurd) in de verhouding van een ID-kaart (1,59; tussen 1,3 en 1,9, staand of liggend), goed gevuld en dicht (een kaart
+     * heeft een gekleurde achtergrond, een alinea tekst niet). Hooguit 4, van boven naar beneden en van links naar rechts.
+     * inkt: wat donker of gekleurd is (rij voor rij). Zuiver, getest.
+     */
+    static List<int[]> kaartVlakken(boolean[] inkt, int w, int h) {
+        // Kleine gaten dichten (de tekst op een kaart wordt één vlak): 3 px verbreden, eerst per rij en dan per kolom
+        boolean[] rij = new boolean[w * h], dicht = new boolean[w * h];
+        int r = 3;
+        for (int y = 0; y < h; y++) {
+            int laatst = -1000;
+            for (int x = 0; x < w; x++) if (inkt[y * w + x]) laatst = x; else if (x - laatst <= r) rij[y * w + x] = true;
+            laatst = 100000;
+            for (int x = w - 1; x >= 0; x--) { if (inkt[y * w + x]) { laatst = x; rij[y * w + x] = true; } else if (laatst - x <= r) rij[y * w + x] = true; }
+        }
+        for (int x = 0; x < w; x++) {
+            int laatst = -1000;
+            for (int y = 0; y < h; y++) if (rij[y * w + x]) { laatst = y; dicht[y * w + x] = true; } else if (y - laatst <= r) dicht[y * w + x] = true;
+            laatst = 100000;
+            for (int y = h - 1; y >= 0; y--) if (rij[y * w + x]) laatst = y; else if (laatst - y <= r) dicht[y * w + x] = true;
+        }
+        int[] label = new int[w * h], wachtrij = new int[w * h];
+        List<int[]> uit = new ArrayList<>();
+        int n = 0;
+        for (int start = 0; start < w * h; start++) {
+            if (!dicht[start] || label[start] != 0) continue;
+            n++;
+            int kop = 0, staart = 0, x0 = w, y0 = h, x1 = -1, y1 = -1, punten = 0;
+            wachtrij[staart++] = start; label[start] = n;
+            while (kop < staart) {
+                int p = wachtrij[kop++], x = p % w, y = p / w; punten++;
+                if (x < x0) x0 = x;
+                if (x > x1) x1 = x;
+                if (y < y0) y0 = y;
+                if (y > y1) y1 = y;
+                if (x > 0 && dicht[p - 1] && label[p - 1] == 0) { label[p - 1] = n; wachtrij[staart++] = p - 1; }
+                if (x < w - 1 && dicht[p + 1] && label[p + 1] == 0) { label[p + 1] = n; wachtrij[staart++] = p + 1; }
+                if (y > 0 && dicht[p - w] && label[p - w] == 0) { label[p - w] = n; wachtrij[staart++] = p - w; }
+                if (y < h - 1 && dicht[p + w] && label[p + w] == 0) { label[p + w] = n; wachtrij[staart++] = p + w; }
+            }
+            int bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+            double verhouding = (double) Math.max(bw, bh) / Math.min(bw, bh);
+            long vlak = (long) bw * bh, pagina = (long) w * h;
+            if (verhouding < 1.3 || verhouding > 1.9) continue;
+            if (vlak < pagina * 0.03 || vlak > pagina * 0.6) continue;
+            if (punten < vlak * 0.8) continue; // een rechthoek, geen losse vorm
+            int echt = 0;
+            for (int y = y0; y <= y1; y++) for (int x = x0; x <= x1; x++) if (inkt[y * w + x]) echt++;
+            if (echt < vlak * 0.35) continue; // een kaart met een achtergrond, geen alinea tekst
+            uit.add(new int[]{x0, y0, bw, bh});
+        }
+        if (uit.size() > 4) return new ArrayList<>();
+        uit.sort((a, b) -> Math.abs(a[1] - b[1]) > Math.min(a[3], b[3]) / 2 ? Integer.compare(a[1], b[1]) : Integer.compare(a[0], b[0]));
+        return uit;
+    }
+
+    /** De kaarten op een pagina (bitmap) als losse foto's, met een klein randje. Lukt het niet: geen (dan alleen de pagina). */
+    static List<Foto> kaartenOp(Bitmap b, int pagina) {
+        List<Foto> uit = new ArrayList<>();
+        try {
+            int side = Math.max(b.getWidth(), b.getHeight());
+            double s = side > ZOEK_ZIJDE ? (double) ZOEK_ZIJDE / side : 1;
+            int w = Math.max(1, (int) (b.getWidth() * s)), h = Math.max(1, (int) (b.getHeight() * s));
+            Bitmap klein = Bitmap.createScaledBitmap(b, w, h, true);
+            boolean[] inkt = new boolean[w * h];
+            try {
+                int[] px = new int[w * h];
+                klein.getPixels(px, 0, w, 0, 0, w, h);
+                for (int i = 0; i < px.length; i++) {
+                    int c = px[i], rr = (c >> 16) & 255, gg = (c >> 8) & 255, bb = c & 255;
+                    int luma = (rr * 30 + gg * 59 + bb * 11) / 100, kleur = Math.max(rr, Math.max(gg, bb)) - Math.min(rr, Math.min(gg, bb));
+                    inkt[i] = luma < 238 || kleur > 25;
+                }
+            } finally { if (klein != b) klein.recycle(); }
+            for (int[] v : kaartVlakken(inkt, w, h)) {
+                int rand = Math.max(2, Math.min(v[2], v[3]) / 30);
+                int x = Math.max(0, (int) ((v[0] - rand) / s)), y = Math.max(0, (int) ((v[1] - rand) / s));
+                int cw = Math.min((int) ((v[2] + 2 * rand) / s), b.getWidth() - x), ch = Math.min((int) ((v[3] + 2 * rand) / s), b.getHeight() - y);
+                if (Math.max(cw, ch) < MIN_ZIJDE) continue;
+                Bitmap stuk = Bitmap.createBitmap(b, x, y, cw, ch);
+                try { uit.add(new Foto(jpeg(stuk), cw, ch, pagina, false)); } finally { if (stuk != b) stuk.recycle(); }
+            }
+        } catch (Throwable e) { return new ArrayList<>(); }
+        return uit;
+    }
+
+    /** Zoals kaartenOp, voor een JPEG (een ingesloten foto zo groot als een pagina). */
+    static List<Foto> kaartenUit(byte[] jpg, int pagina) {
+        try {
+            BitmapFactory.Options o = new BitmapFactory.Options(); o.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(jpg, 0, jpg.length, o);
+            int sample = 1;
+            while (Math.max(o.outWidth, o.outHeight) / sample > PAGINA_ZIJDE) sample *= 2;
+            BitmapFactory.Options lees = new BitmapFactory.Options(); lees.inSampleSize = sample;
+            Bitmap b = BitmapFactory.decodeByteArray(jpg, 0, jpg.length, lees);
+            if (b == null) return new ArrayList<>();
+            try { return kaartenOp(b, pagina); } finally { b.recycle(); }
+        } catch (Throwable e) { return new ArrayList<>(); }
+    }
+
     // ---------- Word ----------
 
     private static void wordFotos(byte[] bytes, int max, BooleanSupplier active, Uitkomst u) throws IOException {
@@ -238,6 +357,7 @@ final class DocumentFotos {
             if (!active.getAsBoolean()) return;
             Foto f = alsJpeg(b, 0, false);
             if (f == null) continue;
+            if (paginaVorm(f.breed, f.hoog)) for (Foto k : kaartenUit(f.jpeg, 0)) { if (u.fotos.size() >= max) { u.afgekapt = true; return; } u.neem(k); }
             if (u.fotos.size() >= max) { u.afgekapt = true; return; }
             u.neem(f);
         }

@@ -1,0 +1,3 @@
+Stamgegevens, handtekening en Vergelijken: een bestand kiezen gaat nu overal hetzelfde, met de keuze documentenkluis, Gemaakt of bestand op de telefoon.
+ID-bewijs uit een document: tijdens het verwerken zie je een venster met wat er gebeurt en een balk, met Annuleren.
+ID-bewijs uit een document: staan voor- en achterkant samen op één gescande pagina, dan haalt Tools ze er als twee losse foto's uit, zodat je beide kunt kiezen.

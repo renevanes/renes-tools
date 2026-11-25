@@ -352,6 +352,8 @@ function openSheet(title, sub, acts, onDismiss){
   const prev = sheetDismiss; sheetDismiss = null; if (prev) prev(); // een ander menu dat nog open stond
   sheetDismiss = onDismiss || null;
   sheetAt = Date.now(); // het loslaten na lang indrukken mag het menu niet meteen sluiten
+  // Vanuit een venster (zoals de handtekening): het menu erboven
+  $('#sheet').classList.toggle('boven', !!document.querySelector('.modal.on'));
   $('#sheet-title').textContent = title;
   const subEl = $('#sheet-sub'); subEl.removeAttribute('translate'); subEl.textContent = sub || '';
   const box = $('#sheet-acts'); box.innerHTML = '';

@@ -655,7 +655,10 @@ public class MainActivity extends Activity {
 
     /** Wat de volgende bestandskiezer van dit venster krijgt (Bron.bronVolgende); null = de kiezer van Android. */
     volatile Bron.Wacht bronWacht;
-    /** De kiezers die een bestand uit de app zelf mogen krijgen (Bron), op naam; niet bij Stamgegevens, Bankzaken, back-ups of de handtekening. */
+    /**
+     * De kiezers die een bestand uit de app zelf mogen krijgen (Bron), op naam. Wens van Rene: overal dezelfde keuze, ook bij
+     * Stamgegevens (kaartfoto's en ID-bewijs uit een document) en de handtekening; niet bij Bankzaken en back-ups.
+     */
     static int bronReq(String kiezer) {
         switch (kiezer == null ? "" : kiezer) {
             case "pdfbeeld": return REQ_PDF_IMG;
@@ -668,6 +671,8 @@ public class MainActivity extends Activity {
             case "factuur": return REQ_FACT_PDF;
             case "boek": return EreaderBridge.REQ_BOOK;
             case "betalen": return BetalenBridge.REQ_BESTAND;
+            case "stamgegevens": return MasterPhotos.REQUEST;
+            case "handtekening": return REQ_SIG_IMG;
             default: return -1;
         }
     }
@@ -691,6 +696,9 @@ public class MainActivity extends Activity {
             if (isDestroyed()) return;
             if (f != null) { try { js("onBron", new JSONObject().put("error", f).toString()); } catch (Exception ignored) { } }
             onActivityResult(req, d != null ? RESULT_OK : RESULT_CANCELED, d);
+            // Er was geen kiezer van Android (geen onResume): het venster van Stamgegevens om open te blijven nu sluiten,
+            // anders blijft Stamgegevens nog even open als je de app verlaat
+            if (masterPickUntil != 0 && !"kluis".equals(masterPickKind)) { masterPickUntil = 0; masterPickReturned = false; masterPickKind = ""; }
         });
     }
 
@@ -781,6 +789,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        // Een bestand uit de kluis kiezen: alleen de vraag om te ontgrendelen (van Android) mag Stamgegevens open laten, niet de app verlaten
+        if("kluis".equals(masterPickKind)&&masterPicking()&&Lock.authBusy)masterPickReturned=true;
         visible = false; masterForeground=false; if(!masterPicking())suspendMaster(false);
         // Bankzaken gaat op slot zodra de app uit beeld gaat (niet tijdens bestanden kiezen of de vraag om te ontgrendelen)
         synchronized (bankAuth) {
@@ -800,10 +810,12 @@ public class MainActivity extends Activity {
         super.onResume();
         visible = true; masterForeground=true; eigenScherm = false; // een doorzichtig eigen scherm (zonder onStop) telt daarna niet meer
         if(masterPickUntil!=0){
-            boolean back=masterPickReturned&&masterPicking();String kind=masterPickKind;masterPickUntil=0;masterPickReturned=false;masterPickKind="";
+            String kind=masterPickKind;
+            // Terug uit de kiezer, of van de vraag om de kluis te ontgrendelen (onPause tijdens Lock.authBusy)
+            boolean back=masterPickReturned&&masterPicking();masterPickUntil=0;masterPickReturned=false;masterPickKind="";
             if(!back){masterContacts.cancel();suspendMaster(false);}
             else if("contact".equals(kind)||"perm".equals(kind))masterContacts.continueAfterPick();
-            else if(!"sig".equals(kind))masterPhotos.continueAfterPick();
+            else if(!"sig".equals(kind)&&!"kluis".equals(kind))masterPhotos.continueAfterPick();
         }
         runMasterAfterAuth();bankAuth.resume();runToolSlotNa();
         js("onResumeApp", "");

@@ -3,7 +3,7 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
 (async()=>{const browser=await chromium.launch(),errors=[];
 for(const colorScheme of ['light','dark']){
  const p=await browser.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));
- await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(250);const T=require('./_stamtabs')(p);
+ await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(250);const T=require('./_stamtabs')(p);await T.telefoonKiezer();
  await p.evaluate(()=>{
   Android._cm.records=[{id:'owner',type:'persoon',label:'Anna',revision:1,fields:{naam:'van Dijk',voornamen:'Anna'}}];
   Android._cm.photoDelay=450;

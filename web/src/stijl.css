@@ -347,6 +347,7 @@ b.ok{color:var(--ok);font-weight:600}
 .fchips button{padding:6px 12px;border-radius:10px;background:var(--chip);color:var(--on-chip);font-size:13px;font-weight:600}
 .calls .unk{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 5px;vertical-align:2px}
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.36);display:none;align-items:flex-end;z-index:1900}
+.sheet.boven{z-index:2100}
 .sheet.on{display:flex}
 .sheet-box{background:var(--card);width:100%;max-width:640px;margin:0 auto;border-radius:28px 28px 0 0;padding:10px 12px 18px;max-height:88vh;overflow:auto;animation:shup .22s cubic-bezier(.2,.8,.2,1)}
 .sheet-box::before{content:"";display:block;width:32px;height:4px;border-radius:2px;background:var(--outline);opacity:.6;margin:2px auto 16px}

@@ -5,7 +5,7 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
 (async()=>{const b=await chromium.launch(),errors=[];
 for(const colorScheme of ['light','dark']){
   const p=await b.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));
-  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);const T=require('./_stamtabs')(p);
+  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);const T=require('./_stamtabs')(p);await T.telefoonKiezer();
   const me='00000000-0000-0000-0000-000000000001';
   await p.evaluate(()=>{
     const id=n=>'00000000-0000-0000-0000-00000000000'+n,rec=(n,type,label,fields)=>({id:id(n),type,label,revision:1,fields});

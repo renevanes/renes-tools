@@ -256,7 +256,7 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   een content-uri (`PdfProvider` b/, onraadbaar token, 2 minuten; een kluisdocument wordt pas bij het openen helemaal ontsleuteld
   en het pad meteen gewist, nooit leesbaar op schijf) in plaats van de kiezer van Android (`MainActivity.startActivityForResult`), dus de
   tool verwerkt het als elk gekozen bestand. Nieuwe kiezer = een naam in `MainActivity.bronReq` en `kiezer` in `bronKies`
-  (niet bij Stamgegevens, Bankzaken, de handtekening of back-ups). Iets eigens voor de kluis
+  (ook bij Stamgegevens: kaartfoto's en ID-bewijs uit een document, `cmBron`; en de handtekening. Niet bij Bankzaken of back-ups). Iets eigens voor de kluis
   (een nieuwe versie bewerken, bekijken in de viewer van de kluis): `eigen: { kluis: doc => … }`. Test: `tests/ui/bron.test.js`, `BronTest`.
 - **Wachten: altijd zichtbaar waarom.** Moet Rene langer dan een tel wachten, dan ziet hij wat er gebeurt, niet alleen een
   melding of een stilstaande tekst. Kies (in `02-patronen.js`, test `tests/ui/wachten.test.js`):

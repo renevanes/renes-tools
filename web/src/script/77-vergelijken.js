@@ -28,29 +28,11 @@ function cmpTeken(){
 /* Een document kiezen voor A (0) of B (1) */
 function cmpKies(slot){
   if (cmp.bezig) return;
-  const outs = rdJson(Android.pdfOutputs(), []);
-  openSheet(slot ? t('Document B') : t('Document A'), '', [
-    [t('Bestand op de telefoon'), () => bronTelefoon({ bestand: () => cmpBestand(slot) }), 'smartphone'],
-    ...(!isPlay() ? [[t('Uit de documentenkluis'), () => cmpUitKluis(slot), 'lock']] : []),
-    ...(outs.length ? [[t('Uit Gemaakt (PDF-tools)'), () => cmpUitGemaakt(slot, outs), 'document']] : []),
-    ...(bronFacturen({ soort: 'pdf' }).length ? [[t('Uit het facturendossier'), () => cmpUitFacturen(slot), 'wallet']] : [])]);
-}
-/* Een factuur uit het facturendossier (de kopie in de app), via Bron: de gewone kiezer van vergelijken krijgt dat bestand */
-function cmpUitFacturen(slot){
-  const o = { soort: 'pdf', kiezer: 'vergelijken', bestand: () => cmpBestand(slot) };
-  openSheet(t('Uit het facturendossier'), '', bronFacturen(o).slice(0, BRON_MAX).map(s => [s.leverancierNaam ? t('{leverancier} · {bestand}', { leverancier: s.leverancierNaam, bestand: s.naam || '' }) : (s.naam || ''),
-    () => bronNeem(o, [{ bron: 'factuur', id: s.sha, versie: 0 }])]));
+  // Dezelfde keuze als overal (Bron); uit de kluis en Gemaakt opent Vergelijken het zelf (ook een oudere versie)
+  bronKies({ titel: slot ? t('Document B') : t('Document A'), soort: 'pdfbeeld', kiezer: 'vergelijken', kluisOpen: true,
+    bestand: () => cmpBestand(slot), eigen: { kluis: d => cmpVanKluis(slot, d.id, 0), gemaakt: n => cmpVanGemaakt(slot, n) } });
 }
 function cmpBestand(slot){ cmpWacht(t('Document kiezen…')); Android.cmpPick(slot); }
-function cmpUitKluis(slot){
-  klMetKluis(docs => {
-    const bruikbaar = docs.filter(d => /pdf|^image\//.test(d.mime || '') || /\.(pdf|jpe?g|png)$/i.test(d.name || ''));
-    if (!bruikbaar.length) { toast(t('Geen PDF of foto in de documentenkluis')); return; }
-    bruikbaar.sort((x, y) => (y.t || 0) - (x.t || 0));
-    openSheet(t('Uit de documentenkluis'), '', bruikbaar.slice(0, 40).map(d => [d.name, () => cmpVanKluis(slot, d.id, 0)]));
-  });
-}
-function cmpUitGemaakt(slot, outs){ openSheet(t('Uit Gemaakt (PDF-tools)'), '', outs.slice(0, 40).map(o => [o.name, () => cmpVanGemaakt(slot, o.name)])); }
 function cmpVanKluis(slot, id, version){ cmpWacht(t('Document uit de kluis openen…')); klMetKluis(() => { Android.cmpKluis(slot, id, version); setTimeout(klDichtBuiten, 0); }); }
 function cmpVanGemaakt(slot, name){ cmpWacht(t('Document openen…')); Android.cmpMade(slot, name); }
 /** Een oudere versie (A) met de huidige (B) van hetzelfde kluisdocument */

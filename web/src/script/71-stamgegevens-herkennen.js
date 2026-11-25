@@ -7,14 +7,20 @@ const CMH_DOC=['documentsoort','document','geldig','afgifte','afgegevenDoor','ca
 function cmhScanPick(person,soort=''){
   if(!cmOpen()||!person||cm.mutating||cm.edit&&cm.dirty){cmNote(t('Sla je wijzigingen eerst op.'));return;}
   if(cmi.photoRequest||typeof Android.masterScanPick!=='function')return;
-  cmh.scanning=true;cmi.photoRequest=cmRequest('masterScanPick',[person,soort],()=>{},false,()=>cmiPhotoCancel());
+  cmBron(t('Foto of document kiezen'),'document',()=>{cmh.scanning=true;cmi.photoRequest=cmRequest('masterScanPick',[person,soort],()=>{},false,()=>cmiPhotoCancel());});
+}
+/* Een bestand kiezen voor Stamgegevens: dezelfde keuze als overal (Bron: kluis, Gemaakt, telefoon). Uit de kluis: het
+ * ontgrendelen daarvan zet Stamgegevens niet op slot (masterBuiten). Ging Stamgegevens intussen dicht: niets klaar laten staan. */
+function cmBron(titel,soort,start){
+  bronKies({titel,soort,kiezer:'stamgegevens',zonder:['factuur'],voorKluis:()=>{if(cmOpen())Android.masterBuiten(cm.token,'kluis');},
+    bestand:()=>{if(!cmOpen()||cmi.photoRequest){try{Android.bronVolgende('','');}catch(e){}return;}start();}});
 }
 function cmhPendingText(){
   $('#cmi-photo-pending-text').textContent=cmh.scanning?t('Een bestand is gekozen. Na ontgrendelen zoekt de app daarin naar de gegevens van het ID-bewijs.'):t('Een kaartfoto is gekozen. Na ontgrendelen wordt hij bij het document opgeslagen. Je vorige bewerking is bij het verlaten van de app gewist.');
 }
 const cmhPicked=window.onMasterPhotoPicked;window.onMasterPhotoPicked=function(r){
   // Binnen 2 minuten terug uit de kiezer en nog ontgrendeld: geen kaart "Na ontgrendelen…", de foto wordt meteen verwerkt.
-  if(r&&r.request===cmi.photoRequest&&r.picked&&r.direct&&cmOpen()){cmh.photoBusy=true;cmBusy(true);cmNote(cmh.scanning?t('Bestand verwerken…'):t('Foto verwerken…'));return;}
+  if(r&&r.request===cmi.photoRequest&&r.picked&&r.direct&&cmOpen()){cmh.photoBusy=true;cmBusy(true);cmNote(cmh.scanning?t('Bestand verwerken…'):t('Foto verwerken…'));if(cmh.scanning)cmhWacht(t('Document verwerken'),t('Bestand lezen…'));return;}
   cmhPendingText();cmhPicked(r);
 };
 window.onMasterPhotoDone=function(r){
@@ -31,7 +37,27 @@ function cmhFout(text){
   openModal(t('Document niet toegevoegd'),text,null,'OK',()=>{});
   $('#modal-cancel').style.display='none';dialogFocus.sync($('#modal-ok'));
 }
-function cmhPhotoReady(){cmh.photoBusy=false;cmBusy(false);}
+function cmhPhotoReady(){cmh.photoBusy=false;cmBusy(false);cmhWachtDicht();}
+/* Een document of de gekozen foto's verwerken duurt even: een venster met wat er gebeurt en een balk (de stappen komen van Java
+ * via onVoortgang, soort kaartfoto), met Annuleren. Zolang dit open is geen balk onderin. */
+function cmhWacht(titel,tekst){
+  const m=$('#modal');cmh.wacht=true;
+  $('#modal-title').textContent=titel;$('#modal-text').textContent='';$('#modal-text').style.display='none';
+  $('#modal-input').style.display='none';$('#modal-ok').style.display='none';$('#cmh-keuze').hidden=true;
+  const c=$('#modal-cancel');c.textContent=t('Annuleren');c.style.display='';
+  c.onclick=()=>{cmhWachtDicht();cmhPhotoReady();cmiPhotoCancel();cmNote(t('Geannuleerd'));};
+  uiWacht($('#cmh-wacht'),tekst);m.classList.add('on');dialogFocus.sync(c);
+}
+function cmhWachtDicht(){
+  if(!cmh.wacht)return;cmh.wacht=false;uiWacht($('#cmh-wacht'),'');
+  $('#modal').classList.remove('on');$('#modal-ok').style.display='';$('#modal-cancel').onclick=()=>closeModal(null);dialogFocus.sync();
+}
+uiVgEigen.kaartfoto=r=>{
+  if(!cmh.wacht)return false;
+  if(r.klaar)return true;
+  const deel=r.totaal>0&&r.stap!=='verwerken'&&r.stap!=='omzetten'?Math.min(1,r.gedaan/r.totaal):undefined;
+  uiWacht($('#cmh-wacht'),uiVgStand(r)||t('Verwerken…'),deel);return true;
+};
 /* Op slot terwijl een gekozen foto of document nog verwerkt wordt (scherm uit, app uit beeld): het verwerken gaat in Java
  * door en wordt na ontgrendelen bewaard. Hier alleen laten zien dat het wacht (de kaart; het slotscherm toont dezelfde tekst). */
 const cmhLocked=window.onMasterLocked;window.onMasterLocked=function(generation){
@@ -77,11 +103,11 @@ function cmhKeuze(photo){
       if(!gekozen.length){cmNote(t('Kies eerst een foto.'));setTimeout(vraag,0);return;}
       clear();
       if(!cmOpen()){cmiPhotoCancel();return;}
-      cmBusy(true);cmh.photoBusy=true;cmNote(t('Foto verwerken…'));
+      cmBusy(true);cmh.photoBusy=true;cmNote(t('Foto verwerken…'));cmhWacht(t('Gegevens herkennen'),t('Gegevens herkennen…'));
       // Zoals bij een gekozen foto: gaat de telefoon intussen op slot, dan zegt het scherm dat het daarna bewaard wordt
       cmh.scanning=true;cmi.photoRequest=cmRequest('masterScanChoose',[photo.reviewId,JSON.stringify(gekozen)],out=>{
-        cmh.photoBusy=false;cmBusy(false);cmiPhotoAfterUnlock(out);cmListLoad();if(out&&out.error)cmhFout(t(out.error));
-      },false,()=>{cmh.photoBusy=false;cmBusy(false);cmiPhotoCancel();});
+        cmhPhotoReady();cmiPhotoAfterUnlock(out);cmListLoad();if(out&&out.error)cmhFout(t(out.error));
+      },false,()=>{cmhPhotoReady();cmiPhotoCancel();});
     },()=>{clear();cmiPhotoCancel();});
   box.hidden=false;teken();vraag();
 }

@@ -1,7 +1,7 @@
 const {chromium}=require('playwright');const assert=require('node:assert/strict');const path=require('path');
 (async()=>{const browser=await chromium.launch(),errors=[];
 for(const colorScheme of ['light','dark']){
- const p=await browser.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));await p.goto('file://'+path.join(__dirname,'ui/index.html'));const T=require('./_stamtabs')(p);
+ const p=await browser.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));await p.goto('file://'+path.join(__dirname,'ui/index.html'));const T=require('./_stamtabs')(p);await T.telefoonKiezer();
  await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
  // Een nieuwe persoon (alleen het korte blok); tijdens het opslaan opent er niets anders
  const person=async(roepnaam,naam,traag)=>{

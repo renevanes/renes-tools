@@ -59,6 +59,18 @@ public class MasterBridge extends BankBridge {
             }catch(Throwable t){vraag(request,"slot");}
         },"master-unlock").start();
     }
+    /**
+     * Een bestand uit de kluis kiezen terwijl Stamgegevens open is: het ontgrendelen van de kluis (slotscherm, vraag van Android)
+     * mag Stamgegevens niet op slot zetten. Hooguit MASTER_PICK_MS, en alleen als de app uit beeld ging voor die vraag (MainActivity.onPause).
+     */
+    @JavascriptInterface public void masterBuiten(String token,String kind){
+        if(!"kluis".equals(kind))return;
+        a.h.post(()->{
+            if(!a.masterForeground||!a.masterSession.accepts(token))return;
+            a.masterPickReturned=false;a.masterPickKind="kluis";a.masterPickUntil=SystemClock.elapsedRealtime()+MainActivity.MASTER_PICK_MS;
+            a.h.postDelayed(a::masterPickExpired,MainActivity.MASTER_PICK_MS+500);
+        });
+    }
     /** Tijden van het scherm (69-centrale-gegevens.js cmTijd): alleen bij traag in het foutlogboek, alleen vaste woorden en getallen. */
     @JavascriptInterface public void masterTijd(String wat,long totaal,long ontgrendelen,long lijst,long tekenen){
         if(!"openen".equals(wat)&&!"lijst".equals(wat))return;

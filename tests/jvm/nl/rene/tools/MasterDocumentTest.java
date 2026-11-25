@@ -60,6 +60,25 @@ public final class MasterDocumentTest {
         java.util.Collections.shuffle(veel, new java.util.Random(7));
         veel.sort(DocumentFotos::volgorde);
         for (int i = 1; i < veel.size(); i++) check(DocumentFotos.volgorde(veel.get(i - 1), veel.get(i)) <= 0, "vaste volgorde");
+        // Kaarten op een pagina (een scan met voor- en achterkant): twee gekleurde vlakken in kaartverhouding, geen alinea tekst
+        int pw = 600, ph = 848;
+        boolean[] pag = new boolean[pw * ph];
+        java.util.function.BiConsumer<int[], Double> vul = (r, dicht) -> { java.util.Random rnd = new java.util.Random(r[0] * 31 + r[1]);
+            for (int yy = r[1]; yy < r[1] + r[3]; yy++) for (int xx = r[0]; xx < r[0] + r[2]; xx++) pag[yy * pw + xx] = rnd.nextDouble() < dicht; };
+        vul.accept(new int[]{60, 80, 260, 164}, 0.9);   // voorkant
+        vul.accept(new int[]{80, 420, 254, 160}, 0.8);  // achterkant (iets anders geplaatst)
+        for (int l = 0; l < 6; l++) for (int xx = 360; xx < 560; xx++) for (int yy = 650 + l * 14; yy < 653 + l * 14; yy++) pag[yy * pw + xx] = xx % 7 != 0; // regels tekst
+        List<int[]> kaarten = DocumentFotos.kaartVlakken(pag, pw, ph);
+        check(kaarten.size() == 2, "twee kaarten: " + kaarten.size());
+        check(Math.abs(kaarten.get(0)[1] - 80) < 6 && Math.abs(kaarten.get(1)[1] - 420) < 6, "van boven naar beneden");
+        check(Math.abs(kaarten.get(0)[2] - 260) < 10 && Math.abs(kaarten.get(0)[3] - 164) < 10, "maat van de kaart");
+        // Een gewone tekstpagina: geen kaarten
+        boolean[] tekst = new boolean[pw * ph];
+        for (int l = 0; l < 50; l++) for (int xx = 50; xx < 550; xx++) for (int yy = 60 + l * 15; yy < 63 + l * 15; yy++) tekst[yy * pw + xx] = xx % 9 != 0;
+        check(DocumentFotos.kaartVlakken(tekst, pw, ph).isEmpty(), "tekst is geen kaart");
+        check(DocumentFotos.kaartVlakken(new boolean[pw * ph], pw, ph).isEmpty(), "lege pagina");
+        check(DocumentFotos.paginaVorm(2480, 3508) && DocumentFotos.paginaVorm(3508, 2480) && DocumentFotos.paginaVorm(1275, 1650), "A4 en Letter");
+        check(!DocumentFotos.paginaVorm(1600, 1009) && !DocumentFotos.paginaVorm(700, 990), "kaart, of klein");
         // Is het een PDF of een zip (Word)?
         check(DocumentFotos.pdf("%PDF-1.7".getBytes()) && !DocumentFotos.pdf("PK".getBytes()) && !DocumentFotos.pdf(null), "PDF herkend");
         check(DocumentFotos.zip(new byte[]{'P', 'K', 3, 4}) && !DocumentFotos.zip("%PDF-".getBytes()), "zip herkend");

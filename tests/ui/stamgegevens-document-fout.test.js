@@ -4,7 +4,7 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
 (async()=>{const b=await chromium.launch(),errors=[];
 for(const colorScheme of ['light','dark']){
   const p=await b.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));
-  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);const T=require('./_stamtabs')(p);
+  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);const T=require('./_stamtabs')(p);await T.telefoonKiezer();
   const kid='00000000-0000-0000-0000-000000000001';
   const fout='Geen ID-bewijs herkend in dit document. Kies een document met een scherpe foto van het ID-bewijs, of een foto van de kaart zelf.';
   await p.evaluate(([kid,fout])=>{

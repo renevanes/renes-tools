@@ -7,16 +7,19 @@
  * kiesfunctie van de tool aan en krijgt de tool het klaargezette bestand in plaats van de kiezer van Android. Zo verwerkt elke
  * tool het precies zoals een gekozen bestand. Een tool kan voor een bron ook iets eigens doen (eigen.kluis, eigen.gemaakt),
  * zoals een kluisdocument openen als nieuwe versie (PDF bewerken) of in de viewer van de kluis (PDF openen).
- * Niet hier: Stamgegevens (kaartfoto's), Bankzaken, de handtekening en back-ups terugzetten; die houden hun eigen kiezer.
+ * Ook bij Stamgegevens (kaartfoto's, ID-bewijs uit een document), de handtekening en Vergelijken (wens van Rene: overal
+ * dezelfde keuze). Niet hier: Bankzaken en back-ups terugzetten; die houden hun eigen kiezer.
  *
- * bronKies({ titel, soort: 'pdf'|'beeld'|'pdfbeeld'|'boek'|'tekst'|'alles', kiezer: (MainActivity.bronReq), bestand: () => …,
+ * bronKies({ titel, soort: 'pdf'|'beeld'|'pdfbeeld'|'document'|'boek'|'tekst'|'alles', kiezer: (MainActivity.bronReq), bestand: () => …,
  *            zonder: ['kluis'|'gemaakt'|'factuur'],
  *            eigen: { kluis: doc => …, gemaakt: naam => … }, kluisOpen: true (de kluis niet meteen weer op slot),
- *            weg: () => … (het menu dicht zonder keuze), voor: [[tekst, fn, pictogram]] (een eigen plek bovenaan) }) */
+ *            weg: () => … (het menu dicht zonder keuze), voor: [[tekst, fn, pictogram]] (een eigen plek bovenaan),
+ *            voorKluis: () => … (vlak voor het ontgrendelen van de kluis, bijv. Stamgegevens open houden) }) */
 const BRON_SOORT = {
   pdf: { ext: /\.pdf$/i, mime: /pdf/ },
   beeld: { ext: /\.(jpe?g|png|webp|gif|heic|heif|bmp)$/i, mime: /^image\// },
   pdfbeeld: { ext: /\.(pdf|jpe?g|png|webp|heic|heif)$/i, mime: /pdf|^image\// },
+  document: { ext: /\.(pdf|jpe?g|png|webp|heic|heif|docx)$/i, mime: /pdf|^image\/|wordprocessingml/ },
   boek: { ext: /\.(epub|txt)$/i, mime: /epub|^text\/plain/ },
   tekst: { ext: /\.(eml|txt|html?)$/i, mime: /rfc822|^text\/(plain|html)/ },
   alles: { ext: /./, mime: /./ }
@@ -52,6 +55,7 @@ function bronKies(o){
 }
 function bronLijst(o, titel, acts){ openSheet(titel, '', acts, o.weg); }
 function bronUitKluis(o){
+  if (o.voorKluis) try { o.voorKluis(); } catch (e) {}
   klMetKluis(docs => {
     const lijst = docs.filter(d => bronPast(o, d.name, d.mime)).sort((a, b) => (b.t || 0) - (a.t || 0));
     if (!lijst.length) { toast(t('Niets passends in de documentenkluis')); klDichtBuiten(); if (o.weg) o.weg(); return; }

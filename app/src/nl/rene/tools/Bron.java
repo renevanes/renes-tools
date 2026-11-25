@@ -85,6 +85,7 @@ final class Bron {
             case "bmp": return "image/bmp";
             case "tif": case "tiff": return "image/tiff";
             case "epub": return "application/epub+zip";
+            case "docx": return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
             case "txt": return "text/plain";
             case "csv": return "text/csv";
             case "htm": case "html": return "text/html";

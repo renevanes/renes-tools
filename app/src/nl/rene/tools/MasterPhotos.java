@@ -197,6 +197,8 @@ final class MasterPhotos {
         if(uri==null){clear(job);notify(job,false,null);return;}
         try{if(!PdfTools.grantedBySender(data,java.util.Collections.singletonList(uri)))throw new Exception();PdfTools.checkUri(activity,uri);
             synchronized(this){if(pending!=job)return;job.uri=uri;}notify(job,true,null);
+            // Een bestand uit de app zelf (Bron: kluis, Gemaakt): er was geen kiezer en dus geen onResume; meteen verwerken
+            if(PdfProvider.AUTH.equals(uri.getAuthority())&&activity.masterPicking())continueAfterPick();
         }catch(Throwable e){clear(job);notify(job,false,Taal.T("Deze kaartfoto kan niet worden geopend"));}
     }
     /** Een document zonder eigen bestand (zoals een Google-document): alleen te openen als een ander formaat. */

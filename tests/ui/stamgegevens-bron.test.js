@@ -1,0 +1,77 @@
+// Stamgegevens en de handtekening kiezen een bestand zoals overal (02-bron.js): documentenkluis, Gemaakt of de telefoon.
+// Uit de kluis houdt Stamgegevens open tijdens het ontgrendelen (masterBuiten). Een document verwerken toont een venster met
+// wat er gebeurt en een balk (de voortgang van Java), met Annuleren.
+const {chromium}=require('playwright');const assert=require('node:assert/strict');const path=require('path');
+(async()=>{const b=await chromium.launch(),errors=[];
+for(const colorScheme of ['light','dark']){
+  const p=await b.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));
+  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);const T=require('./_stamtabs')(p);
+  const kid='00000000-0000-0000-0000-000000000001',doc='00000000-0000-0000-0000-000000000002';
+  await p.evaluate(([kid,doc])=>{
+    Android._cm.records=[{id:kid,type:'persoon',label:'Zoë',revision:1,fields:{naam:'Jansen',voornamen:'Zoë'}},
+      {id:doc,type:'identiteit',label:'Paspoort Zoë',revision:1,fields:{documentsoort:'paspoort',persoon:kid}}];
+    Android._kl.open=true;
+    Android._kl.docs=[{id:'kpdf000001',name:'Paspoort.pdf',mime:'application/pdf',size:9,t:2},{id:'kfoto00001',name:'Bon.jpg',mime:'image/jpeg',size:9,t:3},
+      {id:'kword00001',name:'Brief.docx',mime:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',size:9,t:4},{id:'kboek00001',name:'Roman.epub',mime:'application/epub+zip',size:9,t:1}];
+    Android._pdf.outs=[{name:'Samengevoegd.pdf',size:1200}];
+    const sha='a'.repeat(64);Android._fa.dos={[sha]:{sha,naam:'KPN.pdf',leverancierNaam:'KPN',opgehaald:5,plekken:{app:{pad:'/x/KPN.pdf',t:5}},verzonden:{},meta:{}}};
+  },[kid,doc]);
+  await p.evaluate(()=>show('masterdata'));await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
+  const keuzes=()=>p.$$eval('#sheet-acts button',x=>x.map(e=>e.textContent));
+  const kies=naam=>p.locator('#sheet-acts').getByRole('button',{name:naam,exact:true}).click();
+
+  // 1. ID-bewijs uit een document: dezelfde keuze als overal (geen facturen); uit de kluis ook PDF en Word
+  await T.kaart(kid);await p.click('#cmc-doc-add');await p.waitForSelector('#sheet.on');
+  await kies('Identiteitskaart');await p.waitForFunction(()=>$('#sheet-title').textContent==='Identiteitskaart');
+  await kies('Foto of document kiezen');await p.waitForFunction(()=>$('#sheet-title').textContent==='Foto of document kiezen');
+  assert.deepEqual(await keuzes(),['Bestand op de telefoon','Uit de documentenkluis','Uit Gemaakt (PDF-tools)']);
+  await kies('Uit de documentenkluis');await p.waitForFunction(()=>$('#sheet-title').textContent==='Uit de documentenkluis');
+  assert.deepEqual(await keuzes(),['Brief.docx','Bon.jpg','Paspoort.pdf'],'foto, PDF en Word; geen boek');
+  assert.deepEqual(await p.evaluate(()=>Android._cm.buiten.map(x=>[x[0]===cm.token,x[1]])),[[true,'kluis']],'Stamgegevens blijft open tijdens het ontgrendelen van de kluis');
+  await p.evaluate(()=>Android._cm.photoDelay=4000);
+  await kies('Paspoort.pdf');
+  assert.equal(await p.evaluate(()=>Android._bronKiezer),'stamgegevens');
+  assert.equal(await p.evaluate(()=>JSON.stringify(Android._bron.at(-1))),JSON.stringify([{bron:'kluis',id:'kpdf000001',versie:0}]));
+  // 2. Verwerken: een venster met wat er gebeurt en een balk, niet alleen een regel onderin
+  await p.waitForFunction(()=>$('#modal.on')&&!$('#cmh-wacht').hidden);
+  assert.equal(await p.textContent('#modal-title'),'Document verwerken');assert.equal(await p.textContent('#cmh-wacht .ui-wacht-t'),'Bestand lezen…');
+  assert.equal(await p.isVisible('#modal-ok'),false);assert.equal(await p.textContent('#modal-cancel'),'Annuleren');
+  await p.evaluate(()=>onVoortgang({soort:'kaartfoto',stap:'lezen',gedaan:50,totaal:100}));
+  assert.equal(await p.getAttribute('#cmh-wacht .upd-prog','aria-valuenow'),'50');
+  await p.evaluate(()=>onVoortgang({soort:'kaartfoto',stap:'omzetten',gedaan:0,totaal:0}));
+  assert.equal(await p.textContent('#cmh-wacht .ui-wacht-t'),'Foto\'s uit het document halen…');
+  await p.waitForTimeout(500);assert.equal(await p.isVisible('#vg'),false,'geen tweede balk onderin');
+  // Annuleren: venster dicht, niets meer verwerkt, Stamgegevens blijft open
+  await p.click('#modal-cancel');await p.waitForFunction(()=>!$('#modal.on')&&!cmi.photoRequest&&!cm.mutating);
+  assert.equal(await p.evaluate(()=>cmOpen()),true);assert.equal(await p.isVisible('#modal-ok'),false,'venster dicht');
+  await p.waitForTimeout(4200);assert.equal(await p.evaluate(()=>current),'cmkaart','een late uitkomst doet niets meer');
+  assert.equal(await p.isVisible('#modal'),false);
+  // Klaar: het venster gaat vanzelf dicht
+  await p.evaluate(()=>Android._cm.photoDelay=300);await p.click('#cmc-doc-add');await kies('Identiteitskaart');
+  await p.waitForFunction(()=>$('#sheet-title').textContent==='Identiteitskaart');await kies('Foto of document kiezen');await kies('Bestand op de telefoon');
+  await p.waitForFunction(()=>$('#modal.on')&&$('#modal-title').textContent==='Document verwerken');
+  await p.waitForFunction(()=>current==='cmedit'&&!$('#modal.on'));
+  assert.equal(await p.isVisible('#modal-ok'),false);
+  await p.evaluate(()=>{cm.dirty=false;goBack();});await p.waitForFunction(()=>!cm.mutating);
+
+  // 3. Kaartfoto: alleen foto's (Gemaakt zijn PDF's)
+  await p.evaluate(()=>show('masterdata'));if(!(await p.evaluate(()=>cmOpen()))){await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);}
+  assert.equal(await p.evaluate(()=>Android._kl.open),false,'de kluis ging na het kiezen weer op slot');
+  await T.kaart(doc);await p.evaluate(()=>cmcPhotoPick('front'));await p.waitForSelector('#sheet.on');
+  assert.equal(await p.textContent('#sheet-title'),'Kaartfoto kiezen');assert.deepEqual(await keuzes(),['Bestand op de telefoon','Uit de documentenkluis']);
+  // De kluis staat op slot: het slotscherm vraagt het; Stamgegevens blijft open
+  await kies('Uit de documentenkluis');await p.waitForSelector('#toolslot.on');assert.equal(await p.textContent('#ts-naam'),'Kluis');
+  await p.click('#ts-open');await p.waitForFunction(()=>$('#sheet.on')&&$('#sheet-title').textContent==='Uit de documentenkluis');
+  assert.deepEqual(await keuzes(),['Bon.jpg']);assert.equal(await p.evaluate(()=>cmOpen()&&current==='cmkaart'),true);
+  assert.equal(await p.evaluate(()=>Android._cm.buiten.length),2);await p.evaluate(()=>closeSheet());
+
+  // 4. De handtekening: het menu ligt boven het venster
+  await p.evaluate(()=>sigTeken({}));await p.waitForSelector('#sigdlg.on');await p.click('#sig-foto');await p.waitForSelector('#sheet.on');
+  assert.equal(await p.textContent('#sheet-title'),'Foto van je handtekening');assert.deepEqual(await keuzes(),['Bestand op de telefoon','Uit de documentenkluis']);
+  assert.equal(await p.evaluate(()=>+getComputedStyle($('#sheet')).zIndex>+getComputedStyle($('#sigdlg')).zIndex),true,'menu boven het venster');
+  await kies('Bestand op de telefoon');await p.waitForFunction(()=>(Android._sigPicks||[]).length===1);
+  await p.waitForFunction(()=>!sig.kiezen);await p.evaluate(()=>sigClose());
+  await p.evaluate(()=>openSheet('x','',[['y',()=>{}]]));assert.equal(await p.evaluate(()=>$('#sheet').classList.contains('boven')),false,'zonder venster gewoon');await p.evaluate(()=>closeSheet());
+  await p.close();
+}
+await b.close();console.log('errors',errors);if(errors.length)process.exit(1);})().catch(e=>{console.error(e);process.exit(1);});

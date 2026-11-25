@@ -157,7 +157,7 @@ for(const [locale,zone,want] of [['nl-NL','Europe/Madrid','Nederlandse'],['en-US
 // al tussen staat: "staat er al". Een code uit de strook wordt de naam uit de lijst.
 for(const [nu,rij] of [['','nationaliteit:v'],['Nederlandse','nationaliteit:-'],['Nederlandse, Duitse','nationaliteit:vx'],['Belgische','nationaliteit:-']]){
   const ctx=await b.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Amsterdam'});const p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));
-  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);const T=require('./_stamtabs')(p);
+  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);const T=require('./_stamtabs')(p);await T.telefoonKiezer();
   await p.evaluate(nu=>{Android._cm.records=[{id:'kid',type:'persoon',label:'Zoë',revision:1,fields:{naam:'Jansen',voornamen:'Zoë',nationaliteit:nu}}];
     Android._cm.herkend={document:{documentsoort:'paspoort',document:'NX7P41KD9',geldig:'2031-06-11',uitgifteland:'DEU'},persoon:{naam:'Jansen',nationaliteit:'Duitse'},soort:'TD3',zeker:true};show('masterdata');},nu);
   await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);

@@ -180,6 +180,22 @@ public final class MasterDeviceTest extends Instrumentation {
         check(uitA4.size()==1&&!(Boolean)veld(uitA4.get(0),"heleBladzijde"),"the embedded card photo, not the page");
         check(Arrays.equals((byte[])veld(uitA4.get(0),"jpeg"),foto.toByteArray()),"the embedded photo unchanged (full size)");
         check(fotos(klein.toByteArray(),0).isEmpty(),"limit respected");
+        // Een scan van een A4 met voor- en achterkant (één foto zo groot als de pagina): de twee kaarten komen er los uit,
+        // en de pagina zelf ook (als laatste)
+        android.graphics.Bitmap scan=android.graphics.Bitmap.createBitmap(1240,1754,android.graphics.Bitmap.Config.ARGB_8888);
+        scan.eraseColor(android.graphics.Color.WHITE);
+        android.graphics.Canvas sc=new android.graphics.Canvas(scan);
+        sc.drawBitmap(android.graphics.Bitmap.createScaledBitmap(licence,856,542,true),120,120,null);
+        android.graphics.Paint grijs=new android.graphics.Paint();grijs.setColor(android.graphics.Color.rgb(205,215,230));
+        sc.drawRect(160,900,1016,1442,grijs);
+        java.io.ByteArrayOutputStream scanJpg=new java.io.ByteArrayOutputStream(),scanPdf=new java.io.ByteArrayOutputStream();
+        scan.compress(android.graphics.Bitmap.CompressFormat.JPEG,92,scanJpg);scan.recycle();
+        Object scanPage=call(writer,null,"layout",new Class<?>[]{byte[].class,int.class,int.class,boolean.class,boolean.class,float.class},scanJpg.toByteArray(),1240,1754,false,true,0f);
+        call(writer,null,"write",new Class<?>[]{java.io.OutputStream.class,java.util.List.class,String.class},scanPdf,Arrays.asList(scanPage),"Test");
+        java.util.List<Object> uitScan=fotos(scanPdf.toByteArray(),12);
+        check(uitScan.size()==3,"two cards and the page from a scan ("+uitScan.size()+")");
+        check(!(Boolean)veld(uitScan.get(0),"heleBladzijde")&&(Integer)veld(uitScan.get(0),"breed")<1000,"first a card, not the page");
+        check(herken((byte[])veld(uitScan.get(0),"jpeg")).getJSONObject("document").getString("document").equals("0123456789"),"ID number from the cut-out card");
     }
     void documentSides(android.graphics.Bitmap licence)throws Exception {
         java.io.ByteArrayOutputStream front=new java.io.ByteArrayOutputStream(),back=new java.io.ByteArrayOutputStream();

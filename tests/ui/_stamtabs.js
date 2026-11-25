@@ -37,5 +37,8 @@ module.exports = p => {
     fill: async (s, v) => { await tab(s); await p.fill(s, v); },
     select: async (s, v) => { await tab(s); return p.selectOption(s, v); },
     click: async s => { await tab(s); await p.click(s); },
+    // Kiezen gaat via de gedeelde keuze (Bron: kluis, Gemaakt, telefoon); tests die over iets anders gaan, kiezen meteen
+    // "Bestand op de telefoon". De keuze zelf: stamgegevens-bron.test.js.
+    telefoonKiezer: () => p.evaluate(() => { bronKies = o => bronTelefoon(o); }),
   };
 };

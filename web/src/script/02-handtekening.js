@@ -193,6 +193,13 @@ function sigFotoKan(){return typeof Android!=='undefined'&&typeof Android.pdfSig
 /* Kiezen gaat via Android (een kiezer over de app heen); is Stamgegevens open, dan blijft die zo lang open. */
 function sigFoto(){
   if(!sig.dlg||sig.kiezen||sig.bezig||!sigFotoKan())return;
+  // Dezelfde keuze als overal (Bron): ook een foto uit de documentenkluis of Gemaakt
+  const dlg=sig.dlg,master=typeof cm!=='undefined'&&typeof cmOpen==='function'&&cmOpen();
+  bronKies({titel:t('Foto van je handtekening'),soort:'beeld',kiezer:'handtekening',bestand:()=>{if(sig.dlg===dlg)sigFotoKies();else try{Android.bronVolgende('','');}catch(e){}},
+    voorKluis:master?()=>Android.masterBuiten(cm.token,'kluis'):null});
+}
+function sigFotoKies(){
+  if(!sig.dlg||sig.kiezen||sig.bezig)return;
   sig.kiezen=sig.dlg;$('#sig-fout').textContent='';$('#sig-status').textContent=t('Kies een foto of scan van je handtekening…');sigBezig(false);
   const token=typeof cm!=='undefined'&&typeof cmOpen==='function'&&cmOpen()?cm.token:'';
   try{Android.pdfSignaturePick(token||'');}catch(e){sig.kiezen=null;$('#sig-status').textContent='';$('#sig-fout').textContent=t('Bestandskiezer niet beschikbaar');}
