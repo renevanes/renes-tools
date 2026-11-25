@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.255",
+    "date": "2026-11-25",
+    "changes": [
+      "Podcasts: afleveringen die afliepen terwijl de slaaptimer liep, kun je weer als niet beluisterd markeren (verder vanaf waar je nog wakker was). Podcasts vraagt het op Luisteren, of doet het vanzelf; in te stellen bij Instellingen van Podcasts → Na de slaaptimer.",
+      "Nieuwe app installeren: annuleer je de installatie (ook per ongeluk), dan blijft de download bewaard. Installeren installeert dan meteen, zonder opnieuw te downloaden; ook na het opnieuw openen van Tools staat \"Versie … is gedownload\" klaar"
+    ]
+  },
+  {
     "version": "1.254",
     "date": "2026-11-25",
     "changes": [

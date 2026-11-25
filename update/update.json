@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.254",
-  "versionCode": 255,
-  "nativeLevel": 220,
+  "versionName": "1.255",
+  "versionCode": 256,
+  "nativeLevel": 221,
   "web": "index.html",
-  "webSha256": "2c1f2aca3ca59d9416c2d7ad4dea816d290d4821be2c186526af8b2f7400893d",
+  "webSha256": "bfa00f822d33fcdc5a28f1cf2a0a54bc214dd1dd677ec475623a2e13688f4417",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "bf3ce2567a5c86e23c8b2105217c7fe8815447e060b8b033be115829f80c8941",
+  "apkSha256": "1a3e9fa9c506264ec7bf0fa7a10047de4bb20ce99b81b1240820416f984095ef",
   "changelog": [
+    {
+      "version": "1.255",
+      "date": "2026-11-25",
+      "changes": [
+        "Podcasts: afleveringen die afliepen terwijl de slaaptimer liep, kun je weer als niet beluisterd markeren (verder vanaf waar je nog wakker was). Podcasts vraagt het op Luisteren, of doet het vanzelf; in te stellen bij Instellingen van Podcasts → Na de slaaptimer.",
+        "Nieuwe app installeren: annuleer je de installatie (ook per ongeluk), dan blijft de download bewaard. Installeren installeert dan meteen, zonder opnieuw te downloaden; ook na het opnieuw openen van Tools staat \"Versie … is gedownload\" klaar"
+      ]
+    },
     {
       "version": "1.254",
       "date": "2026-11-25",
@@ -175,15 +183,7 @@
         "Een foto of afbeelding uit de documentenkluis opent altijd in de viewer van Tools, ook als de naam geen extensie heeft (Tools kijkt naar de inhoud).",
         "Bij een betaling waarvan de rekening niet bewaard is, staat nu hoe je hem er alsnog bij krijgt."
       ]
-    },
-    {
-      "version": "1.235",
-      "date": "2026-11-20",
-      "changes": [
-        "Betalen bewaart de rekening zelf versleuteld in je documentenkluis (map Betalen). Bij een betaling tik je op Rekening bekijken om het origineel te zien. Uit te zetten bij Betalen → Instellingen.",
-        "De viewer van de app toont nu ook foto's en afbeeldingen (JPEG, PNG, WebP, GIF, HEIC), niet alleen PDF's. Een foto uit de documentenkluis opent daardoor ook in Tools zelf, in plaats van in een andere app."
-      ]
     }
   ],
-  "webSig2": "Q0UydqkeOuTiNJDm9aGnL+HmRaC2Hc/yFgUzo7zPX8wRfCXJeot2HfuLcorFgPjDrtSlCVYSEii1Hp6WGmRMNwZAeyj29ZcVdzrHBIGv+G6GgT+YxD0L8D1/VnNBe0NanoektO4qLO2gpViGbDtvumzCszWYqAo1gXNg7VDtT4tFmwhdkWSIMX8VV7I0zTdpijSz1YMn/AcE8NNsnukm39RcjpA9XxGNmgVJflVrwvn5obNL+V0ELGseGxJE8ZITIsjUPWuYMoA4BriB6/09n0Ep2nWl+4Fe56cychI8hIxN2eKRplYoopvdUykHgdZ6z+BtGZoywsFQKMZIpSk8XjggPbnwBawt57l22QSouHQkJmVECZemcgOVDrMoUyLQ1Yhm0J04cWllzXwh2284bpYQoAyv1BnIRMaMNOYVMWvR1oyOWy3B9IuiJ0R+4qGvP111Yzq7EW/BTB6ybXQ0xjXj1WHZkdaIX5Vj8ItPH1yNmvlvPOeMtoxZL1kmxPgy"
+  "webSig2": "qkP/npDeUdQLiirbC16YJC8tw4vihWhbUFLK4QXJWeoDfup7ROKBZE5X9BvWVMPKxZhW/eRlIFqSC4SgZsMIOEmvzm39yoLWA989zrkm4JOa/cTr3NcBK3mMSQRWtkDiKAQMThjthrLYMEf9cEz/3JcbKMYlaHZd/MUS6DItHbWgojfjDALVE0O4/TYJRGPNOn+NMJJPD1zasloYecToqHiiv73ou3yf4PfgcqJ/c+TsjXAooumLkJp5tZtF1IU6Ed5Bv2uTRiVZaPGup+vYbgHE1lnDOIDJh4XqgnIDiZvZszzxmF/RghB6PHfPpzmo5UBjGyENl6B7ZqESTMBCwxVWOnT5y3LXiMR7zxxC34IPL1W2U7iWwN2C1EavDU+Ahv92qiuky/r8ayo/UUFerMOHs77gtpbrnrRCqG5UXbh1iiSiGt1wYZzQQsyimeD2dAFv/VeAwDbmMPPg0DOuXQisCk1XNSSmvY2L//d9rte/EwJLvXhnX4FTyXRHWVhX"
 }
