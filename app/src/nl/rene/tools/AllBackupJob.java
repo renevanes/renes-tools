@@ -31,7 +31,7 @@ public class AllBackupJob extends JobService {
         // de app soms hard, en komt het opruimen nooit af)
         final long tot = System.currentTimeMillis() + TAAK_MS;
         // Intussen met de hand een volledige backup gemaakt (na een mislukte nacht): deze nacht is klaar
-        if (nextRun(AllBackup.prefs(ctx).getLong("lastAutoDay", 0)) > System.currentTimeMillis() + 60_000L) {
+        if (nachtGedaan(AllBackup.prefs(ctx).getLong("lastAutoDay", 0), System.currentTimeMillis())) {
             new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> schedule(ctx, 0));
             return false;
         }
@@ -153,7 +153,7 @@ public class AllBackupJob extends JobService {
     static void schedule(Context c, long minDelay) {
         JobScheduler js = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
         SharedPreferences p = AllBackup.prefs(c);
-        if (!wanted(c)) { js.cancel(JOB_ID); p.edit().remove("next").apply(); return; }
+        if (!wanted(c)) { js.cancel(JOB_ID); p.edit().remove("next").remove("pogingen").remove("pogingSinds").apply(); return; }
         long next = Math.max(nextRun(p.getLong("lastAutoDay", 0)), System.currentTimeMillis() + minDelay);
         JobInfo.Builder b = new JobInfo.Builder(JOB_ID, new ComponentName(c, AllBackupJob.class))
                 .setMinimumLatency(Math.max(0, next - System.currentTimeMillis()))
@@ -183,10 +183,15 @@ public class AllBackupJob extends JobService {
         schedule(c, 0);
     }
 
+    /** Is de backup van deze nacht al gedaan (bijv. met de hand na een mislukte poging)? Dan hoeft deze taak niet. */
+    static boolean nachtGedaan(long lastAutoDay, long nu) { return nextRun(lastAutoDay, nu) > nu + 60_000L; }
+
     /** Eerstvolgende 03:30; is de backup van vannacht gemist, dan zo snel mogelijk. */
-    static long nextRun(long lastOk) {
+    static long nextRun(long lastOk) { return nextRun(lastOk, System.currentTimeMillis()); }
+
+    static long nextRun(long lastOk, long now) {
         Calendar c = Calendar.getInstance();
-        long now = c.getTimeInMillis();
+        c.setTimeInMillis(now);
         c.set(Calendar.HOUR_OF_DAY, 3);
         c.set(Calendar.MINUTE, 30);
         c.set(Calendar.SECOND, 0);

@@ -28,7 +28,10 @@ const assert = require('node:assert/strict');
     // Mislukte de nachtelijke backup, dan zie je dat hij dezelfde nacht opnieuw probeert
     await pg.evaluate(() => { Android._bk.poging = 1; show('bkset'); }); await pg.waitForTimeout(150);
     assert.match(await pg.textContent('#bk-next'), /^Backup mislukt; nieuwe poging: /, 'nieuwe poging zichtbaar');
-    await pg.evaluate(() => { Android._bk.poging = 0; show('bkset'); }); await pg.waitForTimeout(150);
+    // De tijd van de nieuwe poging is al voorbij (de telefoon laadt niet op): geen tijd in het verleden
+    await pg.evaluate(() => { Android._bk.next = Date.now() - 60000; show('bkset'); }); await pg.waitForTimeout(150);
+    assert.equal(await pg.textContent('#bk-next'), 'Backup mislukt; nieuwe poging zodra het kan', 'nieuwe poging zonder tijd uit het verleden');
+    await pg.evaluate(() => { Android._bk.poging = 0; Android._bk.next = null; show('bkset'); }); await pg.waitForTimeout(150);
     await pg.screenshot({ path: __dirname + '/shots/bk-' + scheme + '.png', fullPage: true });
     await pg.evaluate(() => show('bkrestore')); await pg.waitForTimeout(150);
     await pg.click('#bk-restore-list [data-k="contacts"]'); await pg.waitForTimeout(300);

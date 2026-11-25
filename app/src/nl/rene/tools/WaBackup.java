@@ -435,7 +435,7 @@ final class WaBackup {
     static boolean cloud(String authority) {
         if (authority == null) return false;
         String a = authority.toLowerCase(java.util.Locale.ROOT);
-        for (String w : new String[]{"com.google.android.apps.docs", "skydrive", "onedrive", "dropbox", "nextcloud", "owncloud", "proton", "pcloud", "mega."})
+        for (String w : new String[]{"com.google.android.apps.docs", "skydrive", "onedrive", "dropbox", "nextcloud", "owncloud", "me.proton", "pcloud", "mega.privacy"})
             if (a.contains(w)) return true;
         return false;
     }

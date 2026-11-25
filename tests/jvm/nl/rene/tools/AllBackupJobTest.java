@@ -32,11 +32,22 @@ public class AllBackupJobTest {
         for (int p = 1; p < AllBackupJob.MAX_POGINGEN; p++) totaal += AllBackupJob.OPNIEUW_MS * p;
         check(AllBackupJob.MAX_POGINGEN >= 3 && totaal <= AllBackupJob.OPGEVEN_MS, "nieuwe pogingen passen in de tijd voor opgeven (" + totaal / 60_000 + " min)");
 
+        // Al met de hand gelukt na een mislukte nacht: de taak hoeft niet meer; anders wel (ook na 03:30 van vandaag)
+        java.util.Calendar k = java.util.Calendar.getInstance();
+        k.set(2026, 10, 25, 5, 0, 0);
+        long vijfUur = k.getTimeInMillis();
+        k.set(2026, 10, 24, 3, 35, 0);
+        long gisterNacht = k.getTimeInMillis();
+        check(AllBackupJob.nachtGedaan(vijfUur - 10 * 60_000L, vijfUur), "met de hand gelukt om 04:50: om 05:00 niet nog eens");
+        check(!AllBackupJob.nachtGedaan(gisterNacht, vijfUur) && !AllBackupJob.nachtGedaan(0, vijfUur), "gisteren of nooit: wel back-uppen");
+        k.set(2026, 10, 25, 2, 0, 0);
+        check(!AllBackupJob.nachtGedaan(gisterNacht, k.getTimeInMillis() + 89 * 60_000L), "vlak voor 03:30: gewoon de nacht van vandaag");
+
         // Een backup-map bij een bekende clouddienst wacht op een verbinding; op de telefoon of onbekend niet
         check(WaBackup.cloud("com.google.android.apps.docs.storage") && WaBackup.cloud("com.microsoft.skydrive.content.StorageAccessProvider")
                 && WaBackup.cloud("org.nextcloud.documents"), "Google Drive, OneDrive, Nextcloud: cloud");
         check(!WaBackup.cloud("com.android.externalstorage.documents") && !WaBackup.cloud("com.android.providers.downloads.documents")
-                && !WaBackup.cloud("com.android.mtp.documents") && !WaBackup.cloud(null), "telefoon, SD-kaart, USB, MTP en onbekend: geen verbinding nodig");
+                && !WaBackup.cloud("com.android.mtp.documents") && !WaBackup.cloud("com.omega.files") && !WaBackup.cloud(null), "telefoon, SD-kaart, USB, MTP en onbekend: geen verbinding nodig");
 
         // Eén regel in het foutlogboek: alleen getallen en vaste namen van onderdelen
         JSONObject res = new JSONObject().put("archive", "backup-2026-11-25_0330.rtb")
