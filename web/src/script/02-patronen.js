@@ -68,6 +68,7 @@ function uiVgStand(r){
   if (r.stap === 'lezen' && r.gedaan > 0) return t('Lezen… {grootte}', { grootte: fmtSize(r.gedaan) });
   if (r.stap === 'lezen') return t('Lezen…');
   if (r.stap === 'opslaan' && r.totaal > 0) return t('Opslaan… {n} van {m}', { n: fmtNum(Math.min(r.gedaan, r.totaal)), m: fmtNum(r.totaal) });
+  if (r.stap === 'omzetten') return t('Foto\'s uit het document halen…');
   if (r.stap === 'herkennen') { const s = Math.ceil((r.totaal - r.gedaan) / 1000); return r.totaal > 0 && s > 0 ? t('Gegevens herkennen… nog hooguit {n} s', { n: fmtNum(s) }) : t('Gegevens herkennen…'); }
   return r.stap === 'opslaan' ? t('Opslaan…') : t('Verwerken…');
 }

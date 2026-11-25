@@ -42,7 +42,7 @@ const SHOTS = process.env.PDF_SHOTS || path.join(__dirname, 'shots');
       assert.ok((await pg.$eval(sel, e => e.getBoundingClientRect().height)) >= 44, sel + ': raakvlak van minstens 44 px');
 
     // Tegels: echte knoppen met een naam, in een logische volgorde; elke tegel opent zijn scherm en terug gaat terug
-    const tiles = [['Bewerken en ondertekenen', 'pdfedit'], ['Plaatjes naar PDF', 'pdfimg'], ['Splitsen', 'pdfsplit'], ['Tekst naar PDF', 'pdftext'],
+    const tiles = [['Bewerken en ondertekenen', 'pdfedit'], ['Plaatjes naar PDF', 'pdfimg'], ['Splitsen', 'pdfsplit'], ["Foto's uit PDF", 'pdffoto'], ['Tekst naar PDF', 'pdftext'],
       ['Formulieren invullen', 'formulieren'], ['ID-kopie afschermen', 'idcopy'], ['Vergelijken', 'pdfcmp']];
     assert.deepEqual(await pg.$$eval('#pdf-tiles .tile', x => x.map(e => e.tagName + ':' + e.querySelector('b').textContent)), tiles.map(([n]) => 'BUTTON:' + n), 'volgorde');
     for (const [name, scr] of tiles) {
@@ -160,7 +160,7 @@ const SHOTS = process.env.PDF_SHOTS || path.join(__dirname, 'shots');
     assert.equal(await pg.$eval('#s-idcopy h1', e => e.textContent), 'ID-kopie afschermen', 'tegel en scherm zeggen hetzelfde');
     await pg.evaluate(() => show('home'));
 
-    if (scheme === 'light') for (const s of ['pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade']) {
+    if (scheme === 'light') for (const s of ['pdfedit', 'pdfimg', 'pdfsplit', 'pdffoto', 'pdftext', 'pdfmade']) {
       await pg.evaluate(s => show(s), s); await pg.waitForTimeout(100);
       await pg.screenshot({ path: path.join(SHOTS, 'pdf-after-' + s + '.png'), fullPage: true });
     }
@@ -176,7 +176,7 @@ const SHOTS = process.env.PDF_SHOTS || path.join(__dirname, 'shots');
   assert.equal(await pg.evaluate(() => TAAL.on), true, 'Engels aan');
   await pg.evaluate(() => { Android._pdf.outs.push({ name: 'Bonnetjes.pdf', size: 1000, t: Date.now() }, { name: 'Huur.pdf', size: 1000, t: Date.now() - 864e5 }); });
   const NL = /(^|[^\p{L}])(de|het|een|niet|voor|met|naar|kies|tik|nog|geen|van|je|bij|uit|als|tekst|plaatjes|splitsen|bewerken|ondertekenen|invullen|afschermen|gemaakt|recent|alles|tonen|delen|standaard|kluis|vandaag|handtekening|kiezen|maken)($|[^\p{L}])/iu;
-  for (const s of ['pdf', 'pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade']) {
+  for (const s of ['pdf', 'pdfedit', 'pdfimg', 'pdfsplit', 'pdffoto', 'pdftext', 'pdfmade']) {
     await pg.evaluate(s => show(s), s); await pg.waitForTimeout(120);
     const dutch = await pg.evaluate(([id, src]) => {
       const re = new RegExp(src, 'iu'), out = [];

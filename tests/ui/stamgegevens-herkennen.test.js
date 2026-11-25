@@ -89,31 +89,44 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>{Android._cm.herkend={document:{document:'X1'},persoon:{},zeker:true};});
   await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!cmOpen());
   assert.equal(await p.evaluate(()=>cmh.data===null&&$('#cmh-list').children.length===0),true);
-  // PDF: dezelfde voorstellen, zonder een hele documentpagina als kaartfoto.
+  // Een document met één foto: gaat als een foto (de foto wordt bewaard).
   await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
-  await p.evaluate(()=>{Android._cm.scanPdf=true;Android._cm.herkend={document:{documentsoort:'paspoort',document:'PDF123456'},persoon:{},soort:'TD3',zeker:true};});
+  await p.evaluate(()=>{Android._cm.scanFotos=[{pagina:1}];Android._cm.herkend={document:{documentsoort:'paspoort',document:'PDF123456'},persoon:{},soort:'TD3',zeker:true};});
   await scan('Paspoort');
-  await p.waitForFunction(()=>current==='cmedit'&&$('#cm-edit-status').textContent.includes('Gegevens uit de PDF gevonden'));
-  assert.equal(await p.evaluate(()=>!!Android._cm.records.find(r=>r.id===cm.edit.id).images),false);
-  await p.waitForSelector('#cmh-panel', {state:'visible'});
-  // Een document met twee zijden zet beide foto's op hetzelfde documentkaartje.
-  await p.evaluate(()=>{cm.dirty=false;cmCancelEdit();Android._cm.scanPdf=false;Android._cm.herkend={document:{documentsoort:'identiteitskaart',document:'ID1234567'},persoon:{},soort:'TD1',zeker:true};});
+  await p.waitForFunction(()=>current==='cmedit'&&$('#cm-edit-status').textContent.includes('De foto is bewaard'));
+  assert.equal(await p.evaluate(()=>!!Android._cm.records.find(r=>r.id===cm.edit.id).images),true);
+  // Een document met meer foto's: eerst kiezen (de foto's zijn te zien), dan pas herkennen en bewaren.
+  await p.evaluate(()=>{cm.dirty=false;cmCancelEdit();Android._cm.scanFotos=[{pagina:1},{pagina:1},{pagina:2,heel:true}];Android._cm.herkend={document:{documentsoort:'identiteitskaart',document:'ID1234567'},persoon:{},soort:'TD1',zeker:true};});
   await p.waitForFunction(()=>!cm.navigating&&!cm.mutating);
   await T.kaart(kid);
   await p.click('#cmc-doc-add');
   await p.getByRole('button',{name:'Identiteitskaart',exact:true}).click();
+  assert.match(await p.textContent('#sheet-sub'),/haalt er eerst de foto/,'uitleg: eerst de foto\'s eruit');
   const count=await p.evaluate(()=>Android._cm.records.length);
-  await p.getByRole('button',{name:'Document met beide zijden kiezen',exact:true}).click();
-  await p.waitForSelector('#cmh-pair-preview img');
-  assert.equal(await p.evaluate(()=>Android._cm.records.length),count,'preview does not save a document');
-  assert.doesNotMatch(await p.textContent('#modal-text'),/geen gegevens herkend/,'herkend: geen uitleg over zelf invullen');
-  const back=await p.locator('#cmh-pair-preview img').last().getAttribute('src');
-  await p.getByRole('button',{name:'Wissel voor- en achterkant'}).click();
-  assert.equal(await p.locator('#cmh-pair-preview img').first().getAttribute('src'),back);
+  await p.getByRole('button',{name:'Foto of document kiezen',exact:true}).click();
+  await p.waitForSelector('#cmh-keuze .cmh-foto');
+  assert.equal(await p.locator('#cmh-keuze .cmh-foto').count(),3,'alle foto\'s uit het document');
+  assert.equal(await p.evaluate(()=>Android._cm.records.length),count,'kiezen bewaart nog niets');
+  assert.match(await p.textContent('#modal-title'),/Kies de foto van het ID-bewijs/);
+  assert.match(await p.textContent('#cmh-keuze-heel'),/hele pagina/,'waarschuwing bij een hele pagina');
+  assert.deepEqual(await p.$$eval('#cmh-keuze .cmh-foto span',x=>x.map(e=>e.textContent)),['Foto 1 · pagina 1','Foto 2 · pagina 1','Pagina 2']);
+  // Niets gekozen: het venster blijft
+  await p.click('#modal-ok');await p.waitForFunction(()=>$('#modal').classList.contains('on')&&!$('#cmh-keuze').hidden);
+  // Twee foto's kiezen: voor- en achterkant op hetzelfde documentkaartje
+  await p.locator('#cmh-keuze .cmh-foto').nth(0).click();await p.locator('#cmh-keuze .cmh-foto').nth(1).click();
+  assert.deepEqual(await p.$$eval('#cmh-keuze .cmh-foto',x=>x.map(e=>e.getAttribute('aria-pressed'))),['true','true','false']);
   await p.click('#modal-ok');
   await p.waitForFunction(()=>current==='cmedit'&&$('#cm-edit-status').textContent.includes('Voor- en achterkant zijn bewaard'));
+  assert.deepEqual(await p.evaluate(()=>Android._cm.gekozen),[0,1]);
   assert.deepEqual(await p.evaluate(()=>Object.keys(Android._cm.records.find(r=>r.id===cm.edit.id).images).sort()),['back','front']);
-  assert.equal(await p.evaluate(()=>Android._cm.records.find(r=>r.id===cm.edit.id).images.front),back,'swap is saved');
+  // Annuleren: niets bewaard, en de knoppen werken weer
+  await p.evaluate(()=>{cm.dirty=false;cmCancelEdit();});await p.waitForFunction(()=>!cm.navigating&&!cm.mutating);
+  const count2=await p.evaluate(()=>Android._cm.records.length);
+  await T.kaart(kid);await p.click('#cmc-doc-add');await p.getByRole('button',{name:'Identiteitskaart',exact:true}).click();
+  await p.getByRole('button',{name:'Foto of document kiezen',exact:true}).click();
+  await p.waitForSelector('#cmh-keuze .cmh-foto');await p.click('#modal-cancel');
+  await p.waitForFunction(()=>$('#cmh-keuze').hidden&&!cmi.photoRequest&&!cm.mutating);
+  assert.equal(await p.evaluate(()=>Android._cm.records.length),count2,'geannuleerd: niets bewaard');
   await p.close();
 }
 console.log('errors',errors);await b.close();assert.deepEqual(errors,[]);})().catch(e=>{console.error(e);process.exit(1);});

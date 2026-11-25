@@ -418,10 +418,13 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .wn{display:block;margin:4px 0 12px;color:var(--ink);font-size:14px;line-height:1.5}
 #modal-text b{color:var(--ink)}
 #modal-text{max-height:58vh;overflow:auto}
-#cmh-pair-preview:not([hidden]){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px;text-align:center}
-#cmh-pair-preview img{display:block;width:100%;height:clamp(60px,15vh,135px);object-fit:contain}
-#cmh-pair-preview button,#cmh-pair-preview .hint{grid-column:1/-1}
-#cmh-pair-preview .hint{text-align:start;margin:0}
+#cmh-keuze:not([hidden]){display:block;max-height:46vh;overflow:auto;margin-bottom:12px}
+#cmh-keuze .hint{margin:0 0 8px}
+#cmh-keuze .cmh-raster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#cmh-keuze .cmh-foto{display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:6px;min-height:44px;border:2px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);font:inherit;font-size:13px;text-align:start;cursor:pointer}
+#cmh-keuze .cmh-foto[aria-pressed=true]{border-color:var(--primary);background:var(--tonal)}
+#cmh-keuze .cmh-foto img{display:block;width:100%;height:clamp(60px,14vh,130px);object-fit:contain}
+#cmh-keuze .cmh-tag{color:var(--primary);min-height:1em}
 .lockscr{position:fixed;inset:0;z-index:3000;background:var(--bg);color:var(--ink);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
 .lockscr.on{display:flex}.lockscr>svg{color:var(--primary)}.lockscr h2{margin:6px 0 0;font-size:24px;font-weight:400;color:var(--ink)}
 .lockscr button{margin-top:10px;padding:14px 28px;border-radius:28px;background:var(--primary);color:var(--on-primary);font-weight:600;font-size:17px}
@@ -569,6 +572,10 @@ body.solo .toolslot .hdr .back{display:none}
 .pdfres-h{margin:0 0 4px;font-size:14px;color:var(--primary)}
 .pdfres .linkish{margin-top:6px;min-height:44px}
 .pdfimgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-bottom:10px}
+.pdffotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin:8px 0 12px}
+.pdffotos figure{margin:0;border-radius:10px;overflow:hidden;background:var(--chip);color:var(--on-chip)}
+.pdffotos img{display:block;width:100%;height:150px;object-fit:contain;background:var(--hi)}
+.pdffotos figcaption{font-size:12px;padding:4px 8px}
 .pdfimg{position:relative;border-radius:10px;overflow:hidden;background:var(--chip);aspect-ratio:3/4;display:flex;align-items:center;justify-content:center}
 .pdfimg img{max-width:100%;max-height:100%}
 .pdfimg .pnum{position:absolute;top:4px;left:4px;background:#000a;color:#fff;font-size:12px;border-radius:8px;padding:1px 6px}

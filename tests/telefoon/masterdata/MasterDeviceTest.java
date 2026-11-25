@@ -129,7 +129,18 @@ public final class MasterDeviceTest extends Instrumentation {
         image.recycle();File model=new File(context.getNoBackupFilesDir(),"document-ocr/tessdata/eng.traineddata");check(model.isFile(),"public OCR model available offline");
         File[] cached=model.getParentFile().listFiles();check(cached!=null&&cached.length==1,"no photo or recognized text cached with model");
     }
+    /** DocumentFotos.zet: de foto's uit een document (zoals de PDF-tool Foto's uit PDF en Stamgegevens). */
+    @SuppressWarnings("unchecked")
+    java.util.List<Object> fotos(byte[] bytes,int max)throws Exception{
+        Object u=call(type("DocumentFotos"),null,"zet",new Class<?>[]{Context.class,byte[].class,int.class,java.util.function.BooleanSupplier.class},context,bytes,max,(java.util.function.BooleanSupplier)()->true);
+        java.lang.reflect.Field f=u.getClass().getDeclaredField("fotos");f.setAccessible(true);return (java.util.List<Object>)f.get(u);
+    }
+    static Object veld(Object o,String naam)throws Exception{java.lang.reflect.Field f=o.getClass().getDeclaredField(naam);f.setAccessible(true);return f.get(o);}
+    JSONObject herken(byte[] foto)throws Exception{
+        return (JSONObject)call(type("MasterDocumentImages"),null,"herkenFoto",new Class<?>[]{Context.class,byte[].class,String.class,java.util.function.BooleanSupplier.class},context,foto,"2026-11-08",(java.util.function.BooleanSupplier)()->true);
+    }
     void documentOcr(android.graphics.Bitmap licence)throws Exception {
+        // Een PDF zonder losse foto (Android tekent de kaart in de pagina): elke pagina wordt een foto; daarop het rijbewijs herkend.
         java.io.ByteArrayOutputStream pdfBytes=new java.io.ByteArrayOutputStream();
         android.graphics.pdf.PdfDocument pdf=new android.graphics.pdf.PdfDocument();
         try{
@@ -140,6 +151,11 @@ public final class MasterDeviceTest extends Instrumentation {
             pdf.finishPage(page);
             pdf.writeTo(pdfBytes);
         }finally{pdf.close();}
+        java.util.List<Object> uitPdf=fotos(pdfBytes.toByteArray(),12);
+        check(uitPdf.size()==2&&(Boolean)veld(uitPdf.get(0),"heleBladzijde")&&(Integer)veld(uitPdf.get(1),"pagina")==2,"two pages become two photos");
+        JSONObject f=herken((byte[])veld(uitPdf.get(1),"jpeg"));
+        check(f!=null&&f.getJSONObject("document").getString("document").equals("0123456789"),"ID number from the page photo");
+        // Word: de foto zelf (PNG wordt JPEG)
         java.io.ByteArrayOutputStream docxBytes=new java.io.ByteArrayOutputStream();
         try(java.util.zip.ZipOutputStream zip=new java.util.zip.ZipOutputStream(docxBytes)){
             zip.putNextEntry(new java.util.zip.ZipEntry("word/document.xml"));
@@ -149,31 +165,21 @@ public final class MasterDeviceTest extends Instrumentation {
             licence.compress(android.graphics.Bitmap.CompressFormat.PNG,100,zip);
             zip.closeEntry();
         }
-        Class<?> images=type("MasterDocumentImages");
-        Class<?>[] signature={Context.class,byte[].class,String.class,java.util.function.BooleanSupplier.class};
-        for(byte[] bytes:new byte[][]{pdfBytes.toByteArray(),docxBytes.toByteArray()}){
-            Object match=call(images,null,"find",signature,context,bytes,"2026-11-08",(java.util.function.BooleanSupplier)()->true);
-            check(match!=null,"ID recognized inside document");
-            java.lang.reflect.Field image=match.getClass().getDeclaredField("image");image.setAccessible(true);
-            check((image.get(match)==null)==(bytes[0]=='%'),"only the embedded Word image can become a card photo");
-            java.lang.reflect.Field fields=match.getClass().getDeclaredField("fields");fields.setAccessible(true);
-            check(((JSONObject)fields.get(match)).getJSONObject("document").getString("document").equals("0123456789"),"ID number from document photo");
-            check(call(images,null,"find",signature,context,bytes,"2026-11-08",(java.util.function.BooleanSupplier)()->false)==null,"no recognition after cancellation");
-        }
-        // Een foto van het ID-bewijs klein op een A4 (zoals in een Google-document als PDF): herkend op de foto zelf
-        // (rijbewijs gekozen: dan de tekst van de foto vóór de pagina's).
+        java.util.List<Object> uitWord=fotos(docxBytes.toByteArray(),12);
+        check(uitWord.size()==1&&!(Boolean)veld(uitWord.get(0),"heleBladzijde"),"Word photo extracted");
+        byte[] wj=(byte[])veld(uitWord.get(0),"jpeg");check(wj[0]==(byte)0xFF&&wj[1]==(byte)0xD8,"converted to JPEG");
+        check(herken(wj).getJSONObject("document").getString("document").equals("0123456789"),"ID number from the Word photo");
+        // Een foto van het ID-bewijs klein op een A4 (zoals in een Google-document als PDF): de foto komt er op volle grootte uit
         java.io.ByteArrayOutputStream foto=new java.io.ByteArrayOutputStream(),klein=new java.io.ByteArrayOutputStream();
         licence.compress(android.graphics.Bitmap.CompressFormat.JPEG,95,foto);
         Class<?> writer=type("PdfWriter"),pageType=type("PdfWriter$Page");
         java.lang.reflect.Constructor<?> mk=pageType.getDeclaredConstructor(byte[].class,int.class,int.class,boolean.class,float.class,float.class,float.class,float.class,float.class,float.class);mk.setAccessible(true);
         Object a4=mk.newInstance(foto.toByteArray(),1500,950,false,595.28f,841.89f,60f,600f,150f,95f);
         call(writer,null,"write",new Class<?>[]{java.io.OutputStream.class,java.util.List.class,String.class},klein,Arrays.asList(a4),"Test");
-        JSONObject st=new JSONObject();
-        Object kleinMatch=call(images,null,"find",new Class<?>[]{Context.class,byte[].class,String.class,java.util.function.BooleanSupplier.class,JSONObject.class,boolean.class},
-            context,klein.toByteArray(),"2026-11-08",(java.util.function.BooleanSupplier)()->true,st,true);
-        check(kleinMatch!=null&&st.optBoolean("uitFoto")&&st.optInt("fotos")==1,"ID recognized on the photo inside a PDF ("+st+")");
-        java.lang.reflect.Field kleinImage=kleinMatch.getClass().getDeclaredField("image");kleinImage.setAccessible(true);
-        check(Arrays.equals((byte[])kleinImage.get(kleinMatch),foto.toByteArray()),"the embedded card photo becomes the card photo");
+        java.util.List<Object> uitA4=fotos(klein.toByteArray(),12);
+        check(uitA4.size()==1&&!(Boolean)veld(uitA4.get(0),"heleBladzijde"),"the embedded card photo, not the page");
+        check(Arrays.equals((byte[])veld(uitA4.get(0),"jpeg"),foto.toByteArray()),"the embedded photo unchanged (full size)");
+        check(fotos(klein.toByteArray(),0).isEmpty(),"limit respected");
     }
     void documentSides(android.graphics.Bitmap licence)throws Exception {
         java.io.ByteArrayOutputStream front=new java.io.ByteArrayOutputStream(),back=new java.io.ByteArrayOutputStream();
@@ -182,17 +188,17 @@ public final class MasterDeviceTest extends Instrumentation {
         blank.eraseColor(android.graphics.Color.LTGRAY);
         blank.compress(android.graphics.Bitmap.CompressFormat.JPEG,95,back);
         blank.recycle();
-        // Bewust achterkant eerst, in beide bestandstypen.
+        // Bewust achterkant eerst, in beide bestandstypen; image10 na image2.
         java.io.ByteArrayOutputStream word=new java.io.ByteArrayOutputStream(),pdf=new java.io.ByteArrayOutputStream();
         try(java.util.zip.ZipOutputStream zip=new java.util.zip.ZipOutputStream(word)){
             zip.putNextEntry(new java.util.zip.ZipEntry("word/document.xml"));
             zip.write("<document/>".getBytes(java.nio.charset.StandardCharsets.UTF_8));
             zip.closeEntry();
-            zip.putNextEntry(new java.util.zip.ZipEntry("word/media/image1.jpg"));
-            back.writeTo(zip);
+            zip.putNextEntry(new java.util.zip.ZipEntry("word/media/image10.jpg"));
+            front.writeTo(zip);
             zip.closeEntry();
             zip.putNextEntry(new java.util.zip.ZipEntry("word/media/image2.jpg"));
-            front.writeTo(zip);
+            back.writeTo(zip);
             zip.closeEntry();
         }
         Class<?> writer=type("PdfWriter");
@@ -200,48 +206,16 @@ public final class MasterDeviceTest extends Instrumentation {
         Object backPage=call(writer,null,"layout",layout,back.toByteArray(),900,560,false,true,28f);
         Object frontPage=call(writer,null,"layout",layout,front.toByteArray(),1500,950,false,true,28f);
         call(writer,null,"write",new Class<?>[]{java.io.OutputStream.class,java.util.List.class,String.class},pdf,Arrays.asList(backPage,frontPage),"Test");
-        Class<?> images=type("MasterDocumentImages");
-        Class<?>[] pairSignature={byte[].class,JSONObject.class,byte[].class,JSONObject.class,String.class};
-        JSONObject td1=new JSONObject().put("soort","TD1").put("document",new JSONObject().put("documentsoort","identiteitskaart").put("document","ID1234567"));
-        Object card=call(images,null,"pair",pairSignature,back.toByteArray(),td1,front.toByteArray(),null,"identiteitskaart");
-        check(card!=null,"TD1 card sides classified");
-        java.lang.reflect.Field cardBack=card.getClass().getDeclaredField("back");cardBack.setAccessible(true);
-        check(Arrays.equals((byte[])cardBack.get(card),back.toByteArray()),"TD1 strip identifies the back");
-        JSONObject otherCard=new JSONObject(td1.toString());
-        otherCard.getJSONObject("document").put("document","ID2345678");
-        check(call(images,null,"pair",pairSignature,back.toByteArray(),td1,front.toByteArray(),otherCard,"identiteitskaart")==null,"two different documents are never paired");
-        Class<?>[] signature={Context.class,byte[].class,String.class,String.class,java.util.function.BooleanSupplier.class,JSONObject.class};
         for(byte[] bytes:new byte[][]{word.toByteArray(),pdf.toByteArray()}){
-            JSONObject st=new JSONObject();String wat=bytes[0]=='%'?"pdf":"word";
-            Object pair=call(type("MasterDocumentImages"),null,"findPair",signature,context,bytes,"2026-11-08","rijbewijs",(java.util.function.BooleanSupplier)()->true,st);
-            check(pair!=null,"both sides recognized ("+wat+" "+st+")");
-            java.lang.reflect.Field frontField=pair.getClass().getDeclaredField("front");frontField.setAccessible(true);
-            java.lang.reflect.Field backField=pair.getClass().getDeclaredField("back");backField.setAccessible(true);
-            java.lang.reflect.Field fieldsField=pair.getClass().getDeclaredField("fields");fieldsField.setAccessible(true);
-            check(fieldsField.get(pair)!=null,"licence recognized ("+wat+" "+st+")");
-            check(Arrays.equals((byte[])frontField.get(pair),front.toByteArray()),"recognized licence classified as front ("+wat+" "+st+")");
-            check(Arrays.equals((byte[])backField.get(pair),back.toByteArray()),"other photo classified as back ("+wat+" "+st+")");
+            String wat=bytes[0]=='%'?"pdf":"word";
+            java.util.List<Object> l=fotos(bytes,12);
+            check(l.size()==2,"two photos ("+wat+")");
+            byte[] a=(byte[])veld(l.get(0),"jpeg"),b=(byte[])veld(l.get(1),"jpeg");
+            check(Arrays.equals(a,back.toByteArray())&&Arrays.equals(b,front.toByteArray()),"photos unchanged and in document order ("+wat+")");
+            JSONObject fa=herken(a),fb=herken(b);
+            Object pair=call(type("MasterDocumentImages"),null,"pair",new Class<?>[]{byte[].class,JSONObject.class,byte[].class,JSONObject.class,String.class},a,fa,b,fb,"rijbewijs");
+            check(pair!=null&&Arrays.equals((byte[])veld(pair,"front"),front.toByteArray())&&Arrays.equals((byte[])veld(pair,"back"),back.toByteArray()),"recognized licence is the front ("+wat+")");
         }
-        // Een scan met beide zijden op één pagina: de pagina in tweeën, de herkende helft is de voorkant, met de vlag pagina.
-        android.graphics.Bitmap fb=android.graphics.BitmapFactory.decodeByteArray(front.toByteArray(),0,front.size());
-        android.graphics.Bitmap scan=android.graphics.Bitmap.createBitmap(1500,1900,android.graphics.Bitmap.Config.ARGB_8888);
-        scan.eraseColor(android.graphics.Color.WHITE);
-        android.graphics.Canvas cv=new android.graphics.Canvas(scan);
-        android.graphics.Paint grey=new android.graphics.Paint();grey.setColor(android.graphics.Color.LTGRAY);
-        cv.drawRect(0,0,900,560,grey); // achterkant boven
-        cv.drawBitmap(fb,0,950,null); // voorkant onder
-        fb.recycle();
-        java.io.ByteArrayOutputStream scanJpeg=new java.io.ByteArrayOutputStream(),scanPdf=new java.io.ByteArrayOutputStream();
-        scan.compress(android.graphics.Bitmap.CompressFormat.JPEG,95,scanJpeg);scan.recycle();
-        Object scanPage=call(writer,null,"layout",layout,scanJpeg.toByteArray(),1500,1900,false,true,28f);
-        call(writer,null,"write",new Class<?>[]{java.io.OutputStream.class,java.util.List.class,String.class},scanPdf,Arrays.asList(scanPage),"Test");
-        JSONObject stats=new JSONObject();
-        Object een=call(type("MasterDocumentImages"),null,"findPair",new Class<?>[]{Context.class,byte[].class,String.class,String.class,java.util.function.BooleanSupplier.class,JSONObject.class},
-            context,scanPdf.toByteArray(),"2026-11-08","rijbewijs",(java.util.function.BooleanSupplier)()->true,stats);
-        check(een!=null,"both sides from one scanned page ("+stats+")");
-        java.lang.reflect.Field fields=een.getClass().getDeclaredField("fields");fields.setAccessible(true);
-        java.lang.reflect.Field pagina=een.getClass().getDeclaredField("pagina");pagina.setAccessible(true);
-        check(fields.get(een)!=null&&stats.optBoolean("gesplitst")&&pagina.getBoolean(een),"licence recognized in the lower half of a split page ("+stats+")");
     }
     void runChecks()throws Exception {
         store=type("MasterStore");sessionType=type("MasterSession");keys=type("MasterKeys");

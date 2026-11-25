@@ -133,11 +133,9 @@ public class MasterBridge extends BankBridge {
     @JavascriptInterface public void masterScanPick(String token,String person,String soort,String request){
         scanPick(token,person,soort,request,"scan");
     }
-    @JavascriptInterface public void masterScanPairPick(String token,String person,String soort,String request){
-        scanPick(token,person,soort,request,"pair");
-    }
-    @JavascriptInterface public void masterScanPairSave(String token,String id,boolean swap,String request){
-        work(token,request,key->a.masterPhotos.saveReview(key,a.masterSession,token,id,swap));
+    /** Uit een document met meer foto's: de gekozen foto('s), als JSON-lijst van nummers (één, of twee: voorkant en achterkant). */
+    @JavascriptInterface public void masterScanChoose(String token,String id,String gekozen,String request){
+        work(token,request,key->a.masterPhotos.saveReview(key,a.masterSession,token,id,gekozen));
     }
     private void scanPick(String token,String person,String soort,String request,String side){
         if(request==null||request.length()>100)return;

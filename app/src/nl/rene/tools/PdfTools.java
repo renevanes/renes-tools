@@ -111,10 +111,47 @@ final class PdfTools {
     }
 
     /** Uniek uitvoerbestand in de uitvoermap. */
-    static File outFile(Context c, String baseName) {
-        File d = outDir(c), f = new File(d, baseName + ".pdf");
-        for (int i = 2; f.exists(); i++) f = new File(d, baseName + " (" + i + ").pdf");
+    static File outFile(Context c, String baseName) { return outFile(c, baseName, ".pdf"); }
+    static File outFile(Context c, String baseName, String ext) {
+        File d = outDir(c), f = new File(d, baseName + ext);
+        for (int i = 2; f.exists(); i++) f = new File(d, baseName + " (" + i + ")" + ext);
         return f;
+    }
+    /** Wat er onder Gemaakt kan staan: PDF's en (uit Foto's uit PDF) JPG's. */
+    static boolean gemaakt(String name) { return name.endsWith(".pdf") || name.endsWith(".jpg"); }
+    /** Soort van een bestand onder Gemaakt, voor delen, opslaan en de kluis. */
+    static String mime(String name) { return name != null && name.endsWith(".jpg") ? "image/jpeg" : "application/pdf"; }
+
+    /** Hoeveel foto's Foto's uit PDF hooguit maakt. */
+    static final int MAX_FOTOS = 50;
+    /**
+     * Foto's uit PDF: de gekozen PDF omzetten naar losse JPG's onder Gemaakt (DocumentFotos: ingesloten foto's op volle grootte,
+     * anders de pagina als foto). Geeft {kind:done, made, fotos:[{name,src,pagina,heel}], paginas, afgekapt}.
+     */
+    static JSONObject fotos(Context c) throws Exception {
+        IN.lock();
+        try {
+            File f = inFile(c);
+            if (!f.isFile()) throw new Exception("Kies eerst een PDF");
+            DocumentFotos.Uitkomst u;
+            try { u = DocumentFotos.zet(c, readAll(f, MAX_IN), MAX_FOTOS, () -> true); }
+            catch (java.io.IOException e) { throw new Exception(Taal.T("Deze PDF kan niet worden geopend")); }
+            if (u.fotos.isEmpty()) throw new Exception(Taal.T("Er staan geen foto's in deze PDF"));
+            JSONArray made = new JSONArray(), lijst = new JSONArray();
+            int heel = 0;
+            for (int i = 0; i < u.fotos.size(); i++) {
+                DocumentFotos.Foto foto = u.fotos.get(i);
+                if (foto.heleBladzijde) heel++;
+                File out = outFile(c, base(inName + " foto " + (i + 1)), ".jpg");
+                try (OutputStream o = new FileOutputStream(out)) { o.write(foto.jpeg); }
+                catch (Exception e) { out.delete(); throw e; }
+                made.put(out.getName());
+                lijst.put(new JSONObject().put("name", out.getName()).put("src", DocumentFotos.voorbeeld(foto.jpeg, 360))
+                    .put("pagina", foto.pagina).put("heel", foto.heleBladzijde).put("breed", foto.breed).put("hoog", foto.hoog));
+            }
+            App.log(c, "PDF", "foto's uit pdf: " + u.fotos.size() + ", waarvan hele pagina's " + heel + ", pagina's " + u.paginas + (u.afgekapt ? ", afgekapt" : ""));
+            return new JSONObject().put("kind", "done").put("made", made).put("fotos", lijst).put("paginas", u.paginas).put("afgekapt", u.afgekapt);
+        } finally { IN.unlock(); }
     }
 
     static String outputs(Context c) {
@@ -123,7 +160,7 @@ final class PdfTools {
         if (fs != null) {
             java.util.Arrays.sort(fs, (x, y) -> Long.compare(y.lastModified(), x.lastModified()));
             for (File f : fs) {
-                if (!f.getName().endsWith(".pdf")) continue;
+                if (!gemaakt(f.getName())) continue;
                 if (System.currentTimeMillis() - f.lastModified() > 7L * 86_400_000L) { f.delete(); continue; } // na een week opruimen
                 try { a.put(new JSONObject().put("name", f.getName()).put("size", f.length()).put("t", f.lastModified())); } catch (Exception ignored) { }
             }

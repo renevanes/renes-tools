@@ -1,9 +1,10 @@
 /* ---------- PDF: plaatjes naar PDF, splitsen, tekst/e-mail naar PDF ----------
  * Overzicht 'pdf' (PDF openen, recent gemaakt, tegels, Meer) met per taak een eigen scherm. Terug gaat naar het overzicht. */
-const PDF_SUBS = ['pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade', 'pdfcmp'];
+const PDF_SUBS = ['pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade', 'pdfcmp', 'pdffoto'];
 function pdfScr(name){ return name === 'pdf' || PDF_SUBS.includes(name); }
 let pdfImgs = [], pdfSel = new Set(), pdfIn = {}, pdfBusy = false, pdfInGen = 0;
 let pdfLast = null; // {scr, names}: wat er net gemaakt is, getoond op het scherm waar het gemaakt werd
+let pdfFotoLast = null; // Foto's uit PDF: {fotos, paginas, afgekapt, gen} van de laatste keer (voorbeelden in het geheugen)
 let pdfJobScr = null; // het scherm waar de lopende klus (maken, splitsen, bewerken) gestart is
 function pdfTakePending(){
   const p = typeof Android.pdfPending === 'function' ? Android.pdfPending() : '';
@@ -16,7 +17,7 @@ function pdfTarget(r){
   if (!r || r.error) return here;
   if (r.kind === 'images') return 'pdfimg';
   // De viewer zegt welke taak (to: edit/split); een gedeelde PDF gaat naar Splitsen, tenzij je al in de bewerker zit
-  if (r.kind === 'pdf') return r.to === 'edit' || (r.to !== 'split' && current === 'pdfedit') ? 'pdfedit' : 'pdfsplit';
+  if (r.kind === 'pdf') return r.to === 'edit' || (r.to !== 'split' && current === 'pdfedit') ? 'pdfedit' : current === 'pdffoto' ? 'pdffoto' : 'pdfsplit';
   if (r.kind === 'done') return current === 'pdfmade' ? 'pdfmade' : 'pdf';
   return here;
 }
@@ -85,7 +86,10 @@ window.onPdf = function(r){
   if ((r.kind === 'edited' || r.kind === 'done') && (r.made || []).length) pdfLast = { scr: pdfJobScr || current, names: r.made.slice() };
   if (r.error || r.kind === 'edited' || r.kind === 'done') pdfJobScr = null;
   if (r.kind === 'edited') { pdfEditSaved(r); if (!pdfNaarKluis(r)) toast('✓ Bewerkte PDF-kopie gemaakt'); }
-  if (r.kind === 'done') {
+  if (r.kind === 'done' && Array.isArray(r.fotos)) {
+    pdfFotoLast = { fotos: r.fotos, paginas: r.paginas || 0, afgekapt: !!r.afgekapt, gen: pdfInGen };
+    if (!pdfNaarKluis(r, 'Foto\'s')) toast(tn(r.fotos.length, '✓ {n} foto gemaakt', '✓ {n} foto\'s gemaakt'));
+  } else if (r.kind === 'done') {
     pdfImgs = rdJson(Android.pdfImages(), []);
     const n = (r.made || []).length;
     if (!pdfNaarKluis(r)) toast(n === 1 ? t('✓ PDF gemaakt') : t('✓ {n} PDF\'s gemaakt', { n }));
@@ -98,17 +102,17 @@ window.onPdf = function(r){
   if (pdfScr(current)) pdfRender();
 };
 /* Wat er net gemaakt is vanzelf in de documentenkluis (49b-kluis-centraal.js). Bewerken van een kluisdocument = nieuwe versie. */
-function pdfNaarKluis(r){
+function pdfNaarKluis(r, map){
   const names = r.made || []; if (!names.length) return false;
   const versie = r.kind === 'edited' && pdfIn && pdfIn.kluis ? pdfIn.kluis : '';
   // Een kluisdocument bewerkt: altijd terug de kluis in (nieuwe versie), ook als vanzelf bewaren uit staat
   if (versie && names.length === 1) return kcBewaar([{ name: names[0], versionOf: versie, note: 'Bewerkt' }]);
-  return kcNaMaken(names.map(name => ({ name, category: 'PDF', source: r.kind === 'edited' ? 'bewerkt' : 'pdf' })));
+  return kcNaMaken(names.map(name => ({ name, category: map || 'PDF', source: r.kind === 'edited' ? 'bewerkt' : 'pdf' })));
 }
 /* Eén gemaakt bestand: tikken opent het menu (bekijken, delen, opslaan …) */
 function pdfOutRow(o, share){
   const when = o.t ? ' · ' + (rgIsToday(o.t) ? t('vandaag {tijd}', { tijd: fmtTime(o.t) }) : fmtDate(o.t)) : '';
-  const row = '<button class="trip" data-n="' + esc(o.name) + '" onclick="pdfOutMenu(this.dataset.n)"><span><b translate="no">' + uiIcon('document') + ' ' + esc(o.name) + '</b><small>' + esc(fmtB(o.size) + when) + '</small></span>' +
+  const row = '<button class="trip" data-n="' + esc(o.name) + '" onclick="pdfOutMenu(this.dataset.n)"><span><b translate="no">' + uiIcon(/\.jpg$/.test(o.name) ? 'image' : 'document') + ' ' + esc(o.name) + '</b><small>' + esc(fmtB(o.size) + when) + '</small></span>' +
     (share ? '' : '<span aria-hidden="true">›</span>') + '</button>';
   if (!share) return row;
   return '<div class="pdfrec">' + row + '<button class="pdfrec-share" data-n="' + esc(o.name) + '" onclick="pdfShareOne(this.dataset.n)" aria-label="' + esc(t('{naam} delen', { naam: o.name })) + '">' + uiIcon('share') + '</button></div>';
@@ -162,8 +166,40 @@ function pdfRender(){
     }
     box.querySelectorAll('.ppage').forEach(b => { const on = pdfSel.has(+b.dataset.i); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   }
+  pdfFotoRender(has);
   if (pdfBusy) document.querySelectorAll('.pdfscr main button').forEach(b => b.disabled = true);
   pdfEditControls();
+}
+/* Foto's uit PDF: de gekozen PDF, en na het omzetten de foto's zelf (zo zie je wat er in de PDF staat) */
+function pdfFotoRender(has){
+  $('#pdf-foto').hidden = !has;
+  $('#pdf-foto-pick').classList.toggle('ghost', !!has);
+  $('#pdf-foto-pick').textContent = has ? t('Andere PDF kiezen') : t('PDF kiezen');
+  if (has) $('#pdf-foto-info').textContent = pdfIn.name + ' · ' + tn(pdfIn.pages, '{n} pagina', '{n} pagina\'s');
+  const r = pdfFotoLast && pdfFotoLast.gen === pdfInGen ? pdfFotoLast : null;
+  $('#pdf-foto-go').classList.toggle('ghost', !!r);
+  $('#pdf-foto-res').hidden = !r;
+  if (!r) { $('#pdf-foto-grid').replaceChildren(); return; }
+  const heel = r.fotos.filter(f => f.heel).length;
+  $('#pdf-foto-sum').textContent = [tn(r.fotos.length, '{n} foto uit {p}', '{n} foto\'s uit {p}', { p: tn(r.paginas, '{n} pagina', '{n} pagina\'s') }),
+    heel ? tn(heel, 'waarvan {n} hele pagina (geen losse foto op die pagina)', 'waarvan {n} hele pagina\'s (geen losse foto op die pagina\'s)') : '',
+    r.afgekapt ? t('Er waren meer foto\'s; de eerste {n} zijn gemaakt.', { n: r.fotos.length }) : ''].filter(Boolean).join(' · ');
+  const grid = $('#pdf-foto-grid');
+  if (grid.dataset.for === String(r.gen) + ':' + r.fotos.length) return;
+  grid.dataset.for = String(r.gen) + ':' + r.fotos.length;
+  grid.replaceChildren(...r.fotos.map((f, i) => {
+    const fig = document.createElement('figure'), img = document.createElement('img'), cap = document.createElement('figcaption');
+    img.alt = t('Foto {n}', { n: i + 1 });
+    if (/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(f.src || '')) img.src = f.src;
+    cap.textContent = (f.heel ? t('Pagina {n}', { n: f.pagina }) : t('Foto {n} · pagina {p}', { n: i + 1, p: f.pagina })) + (f.breed && f.hoog ? ' · ' + fmtNum(f.breed) + '×' + fmtNum(f.hoog) : '');
+    fig.append(img, cap);
+    return fig;
+  }));
+}
+function pdfFotosMaak(){
+  if (pdfBusy || !(pdfIn && pdfIn.pages > 0)) return;
+  pdfSetBusy('Foto\'s uit de PDF halen…');
+  Android.pdfFotos();
 }
 /* Voorbeelden in stukjes laden, zodat het scherm niet vastloopt bij grote PDF's */
 function pdfLoadThumbs(from){

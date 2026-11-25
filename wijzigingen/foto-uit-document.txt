@@ -1,0 +1,2 @@
+PDF: nieuwe tool "Foto's uit PDF": haalt elke foto uit een PDF als losse JPG (een pagina zonder losse foto wordt zelf één foto). Je ziet de foto's meteen, en ze staan daarna onder Gemaakt of in de documentenkluis.
+Stamgegevens: een document (PDF, Word of Google-document) bij een ID-bewijs wordt nu eerst omgezet naar losse foto's. Staan er meer foto's in, dan kies je zelf de foto van het ID-bewijs, of twee voor de voor- en achterkant; daarna worden de gegevens herkend.

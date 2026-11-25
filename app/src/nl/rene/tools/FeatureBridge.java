@@ -296,6 +296,14 @@ public class FeatureBridge {
             a.js("onPdf", r);
         }), "pdf-split").start();
     }
+    /** Foto's uit PDF: elke foto uit de gekozen PDF als losse JPG onder Gemaakt (PdfTools.fotos). Antwoord via onPdf. */
+    @JavascriptInterface public void pdfFotos() {
+        new Thread(Doorwerken.door("pdf-fotos", () -> {
+            String r;
+            try { r = PdfTools.fotos(ctx).toString(); } catch (Throwable e) { r = PdfTools.err(e); }
+            a.js("onPdf", r);
+        }), "pdf-fotos").start();
+    }
     @JavascriptInterface public void pdfFromText(String title, String text) {
         new Thread(Doorwerken.door("pdf-text", () -> {
             String r;
@@ -369,7 +377,9 @@ public class FeatureBridge {
             if (us.isEmpty()) return;
             Intent s = us.size() == 1 ? new Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, us.get(0))
                     : new Intent(Intent.ACTION_SEND_MULTIPLE).putParcelableArrayListExtra(Intent.EXTRA_STREAM, us);
-            s.setType("application/pdf").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            String soort = null;
+            for (int i = 0; i < l.length(); i++) { String m = PdfTools.mime(l.getString(i)); soort = soort == null || soort.equals(m) ? m : "*/*"; }
+            s.setType(soort).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             android.content.ClipData cd = android.content.ClipData.newRawUri("", us.get(0));
             for (int i = 1; i < us.size(); i++) cd.addItem(new android.content.ClipData.Item(us.get(i)));
             s.setClipData(cd);
@@ -382,7 +392,7 @@ public class FeatureBridge {
         a.pdfSaveName = name;
         ctx.getSharedPreferences("pdf", Context.MODE_PRIVATE).edit().putString("saveName", name).apply(); // na herstarten van de app nog bekend
         a.h.post(() -> {
-            Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/pdf").putExtra(Intent.EXTRA_TITLE, name);
+            Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(PdfTools.mime(name)).putExtra(Intent.EXTRA_TITLE, name);
             try { a.startActivityForResult(i, MainActivity.REQ_PDF_SAVE); } catch (ActivityNotFoundException e) { Toast.makeText(a, Taal.tx(a, "Opslaan niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
         });
     }
@@ -400,8 +410,9 @@ public class FeatureBridge {
                 for (int i = 0; i < l.length(); i++) {
                     File f = PdfTools.output(ctx, l.getString(i));
                     String name = f.getName();
-                    for (int k = 2; dir.kids.containsKey(name); k++) name = f.getName().replaceAll("\\.pdf$", "") + " (" + k + ").pdf";
-                    Uri u = WaBackup.create(dest, dir.uri, "application/pdf", name);
+                    String ext = f.getName().endsWith(".jpg") ? ".jpg" : ".pdf";
+                    for (int k = 2; dir.kids.containsKey(name); k++) name = f.getName().substring(0, f.getName().length() - ext.length()) + " (" + k + ")" + ext;
+                    Uri u = WaBackup.create(dest, dir.uri, PdfTools.mime(name), name);
                     if (u == null) throw new Exception("Bestand maken lukt niet");
                     try (java.io.InputStream in = new java.io.FileInputStream(f); java.io.OutputStream o = ctx.getContentResolver().openOutputStream(u, "w")) {
                         if (o == null) throw new Exception("Opslaan lukt niet");
@@ -548,7 +559,7 @@ public class FeatureBridge {
                             else {
                                 String title = it.optString("title", "").trim();
                                 title = title.isEmpty() ? f.getName() : DocumentMeta.text(title, 120, false, "Naam");
-                                d = Kluis.addFile(ctx, f, title, "application/pdf", it.optString("category", ""), it);
+                                d = Kluis.addFile(ctx, f, title, PdfTools.mime(f.getName()), it.optString("category", ""), it);
                             }
                             f.delete(); // staat nu versleuteld in de kluis; het leesbare bestand onder Gemaakt hoeft niet meer
                             if (!of.isEmpty()) PdfTools.dropKluisIn(ctx, of); // en de leesbare invoer van het bewerken ook niet

@@ -4,11 +4,10 @@
 const cmh={data:null,current:null,reveal:false,photoBusy:false,epoch:0,back:null,scanEpoch:0,scanBusy:false,hulp:null};
 const CMH_DOC=['documentsoort','document','geldig','afgifte','afgegevenDoor','categorieen','uitgifteland'],CMH_PERSON=['naam','voornamen','geboortedatum','geslacht','nationaliteit','bsn'];
 /* Document toevoegen vanuit een bestand: de soort bepaalt welke kant eerst (ID-kaart: achterkant met de strook; paspoort en rijbewijs: voorkant). */
-function cmhScanPick(person,soort='',both=false){
+function cmhScanPick(person,soort=''){
   if(!cmOpen()||!person||cm.mutating||cm.edit&&cm.dirty){cmNote(t('Sla je wijzigingen eerst op.'));return;}
-  const method=both?'masterScanPairPick':'masterScanPick';
-  if(cmi.photoRequest||typeof Android[method]!=='function')return;
-  cmh.scanning=true;cmi.photoRequest=cmRequest(method,[person,soort],()=>{},false,()=>cmiPhotoCancel());
+  if(cmi.photoRequest||typeof Android.masterScanPick!=='function')return;
+  cmh.scanning=true;cmi.photoRequest=cmRequest('masterScanPick',[person,soort],()=>{},false,()=>cmiPhotoCancel());
 }
 function cmhPendingText(){
   $('#cmi-photo-pending-text').textContent=cmh.scanning?t('Een bestand is gekozen. Na ontgrendelen zoekt de app daarin naar de gegevens van het ID-bewijs.'):t('Een kaartfoto is gekozen. Na ontgrendelen wordt hij bij het document opgeslagen. Je vorige bewerking is bij het verlaten van de app gewist.');
@@ -23,7 +22,7 @@ window.onMasterPhotoDone=function(r){
   const scan=cmh.scanning;
   // Intussen op slot of opnieuw ontgrendeld: de foto is weg; niet blijven wachten (anders reageren de fotoknoppen niet meer).
   if(r.token!==cm.token||!cmOpen()){cmhPhotoReady();cmiPhotoCancel();if(cmOpen()){const m=scan?t('Het bestand is niet verwerkt. Kies het opnieuw.'):t('De foto is niet verwerkt. Kies hem opnieuw.');cmNote(m);if(scan)cmhFout(m);}return;}
-  if(r.photo.reviewId){cmhPhotoReady();cmhPairPreview(r.photo);return;}
+  if(r.photo.reviewId){cmhPhotoReady();cmhKeuze(r.photo);return;}
   if(r.photo.error)cmhPhotoReady();
   cmiPhotoAfterUnlock(r.photo);if(!r.photo.error)cmListLoad(undefined,cmhPhotoReady);
 };
@@ -44,44 +43,46 @@ const cmhLocked=window.onMasterLocked;window.onMasterLocked=function(generation)
   cmhLocked(generation);
 };
 const cmhCancel=cmiPhotoCancel;cmiPhotoCancel=function(){
-  const preview=$('#cmh-pair-preview');
-  if(!preview.hidden){preview.hidden=true;preview.replaceChildren();if($('#modal').classList.contains('on'))closeModal(null);}
+  const keuze=$('#cmh-keuze');
+  if(!keuze.hidden){keuze.hidden=true;keuze.replaceChildren();if($('#modal').classList.contains('on'))closeModal(null);}
   cmh.scanning=false;if(!cmh.photoBusy)cmBusy(false);cmhCancel();};
-function cmhPairPreview(photo){
-  const sides=['front','back'],images=photo.images;
-  if(!cmOpen()||typeof photo.reviewId!=='string'||!sides.every(side=>typeof images?.[side]==='string'
-    &&images[side].length<=350000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(images[side]))){cmiPhotoCancel();return;}
+/* Een document met meer foto's (eerst omgezet naar losse foto's, zoals Foto's uit PDF): Rene ziet ze en kiest de foto van
+ * het ID-bewijs, of twee (voor- en achterkant). Pas daarna herkent Java de gegevens, alleen op wat gekozen is. */
+function cmhKeuze(photo){
+  const ok=f=>typeof f?.src==='string'&&f.src.length<=400000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(f.src);
+  const fotos=Array.isArray(photo.fotos)?photo.fotos:[];
+  if(!cmOpen()||typeof photo.reviewId!=='string'||fotos.length<2||!fotos.every(ok)){cmiPhotoCancel();return;}
   cmi.photoRequest='';cmh.scanning=false;$('#cmi-photo-pending').hidden=true;
-  const preview=$('#cmh-pair-preview');
-  let swapped=false;
-  const labels=[t('Voorkant'),t('Achterkant')];
-  const pictures=sides.map((side,i)=>{
-    const item=document.createElement('div');
-    const image=document.createElement('img');image.alt=labels[i];
-    const label=document.createElement('div');label.textContent=labels[i];
-    item.append(label,image);preview.append(item);return image;
+  const box=$('#cmh-keuze'),gekozen=[];box.replaceChildren();
+  // Een hele pagina kan meer bevatten dan het ID-bewijs: zichtbaar zeggen (het gaat om een veilige keuze)
+  if(fotos.some(f=>f.heel)){const w=document.createElement('p');w.className='hint';w.id='cmh-keuze-heel';w.textContent=t('Een hele pagina kan meer bevatten dan het ID-bewijs, zoals gegevens van iemand anders. Kies dan liever een losse foto.');box.append(w);}
+  const raster=document.createElement('div');raster.className='cmh-raster';box.append(raster);
+  const knoppen=fotos.map((f,i)=>{
+    const b=document.createElement('button');b.type='button';b.className='cmh-foto';
+    const img=document.createElement('img');img.src=f.src;img.alt='';
+    const naam=document.createElement('span');naam.textContent=f.heel?t('Pagina {n}',{n:f.pagina}):t('Foto {n} · pagina {p}',{n:i+1,p:f.pagina});
+    const tag=document.createElement('b');tag.className='cmh-tag';
+    b.append(img,naam,tag);
+    b.addEventListener('click',()=>{const k=gekozen.indexOf(i);if(k>=0)gekozen.splice(k,1);else{gekozen.push(i);if(gekozen.length>2)gekozen.shift();}teken();});
+    raster.append(b);return b;
   });
-  const redraw=()=>pictures.forEach((image,i)=>image.src=images[sides[swapped?1-i:i]]);
-  const swap=document.createElement('button');swap.className='big ghost';swap.type='button';
-  swap.textContent=t('Wissel voor- en achterkant');swap.onclick=()=>{swapped=!swapped;redraw();};
-  preview.append(swap);
-  // Uit (halve) pagina's: daarop kan meer staan dan het ID-bewijs (zichtbaar, want het gaat om een veilige keuze)
-  if(photo.pagina===true){const w=document.createElement('p');w.className='hint';w.id='cmh-pair-pagina';w.textContent=t('Dit zijn (halve) pagina’s uit het document. Staat er meer op dan het ID-bewijs, zoals gegevens van iemand anders? Bewaar dan niet en voeg de zijden apart toe als foto.');preview.prepend(w);}
-  preview.hidden=false;redraw();
-  const clear=()=>{preview.hidden=true;preview.replaceChildren();};
-  askConfirm('Controleer beide zijden',photo.herkend===false
-    ?t('Er zijn geen gegevens herkend; die vul je daarna zelf in. Controleer of de foto’s van hetzelfde ID-bewijs zijn en bij de juiste zijde staan.')
-    :'Controleer of de foto’s van hetzelfde ID-bewijs zijn en bij de juiste zijde staan.','Beide zijden bewaren',()=>{
-    clear();
-    if(!cmOpen()){cmiPhotoCancel();return;}
-    cmBusy(true);
-    cmRequest('masterScanPairSave',[photo.reviewId,swapped],out=>{
-      cmBusy(false);cmiPhotoAfterUnlock(out);cmListLoad();if(out&&out.error)cmhFout(t(out.error));
-    },false,()=>{cmBusy(false);cmiPhotoCancel();});
-  },()=>{clear();cmiPhotoCancel();});
+  const teken=()=>knoppen.forEach((b,i)=>{const on=gekozen.includes(i);b.setAttribute('aria-pressed',on?'true':'false');b.querySelector('.cmh-tag').textContent=on?t('Gekozen'):'';});
+  const clear=()=>{box.hidden=true;box.replaceChildren();};
+  const vraag=()=>askConfirm(t('Kies de foto van het ID-bewijs'),
+    t('In het document staan {n} foto\'s. Tik op de foto van het ID-bewijs, of op twee foto\'s voor de voor- en achterkant. Daarna herkent de app de gegevens.',{n:fotos.length}),
+    t('Gebruiken'),()=>{
+      if(!gekozen.length){cmNote(t('Kies eerst een foto.'));setTimeout(vraag,0);return;}
+      clear();
+      if(!cmOpen()){cmiPhotoCancel();return;}
+      cmBusy(true);cmh.photoBusy=true;cmNote(t('Foto verwerken…'));
+      cmRequest('masterScanChoose',[photo.reviewId,JSON.stringify(gekozen)],out=>{
+        cmh.photoBusy=false;cmBusy(false);cmiPhotoAfterUnlock(out);cmListLoad();if(out&&out.error)cmhFout(t(out.error));
+      },false,()=>{cmh.photoBusy=false;cmBusy(false);cmiPhotoCancel();});
+    },()=>{clear();cmiPhotoCancel();});
+  box.hidden=false;teken();vraag();
 }
 const cmhAfterUnlock=cmiPhotoAfterUnlock;cmiPhotoAfterUnlock=function(photo){
-  if(photo?.reviewId){cmhPairPreview(photo);return;}
+  if(photo?.reviewId){cmhKeuze(photo);return;}
   // Een document zoeken duurt even; een fout alleen in de statusregel bovenaan valt dan niet op (ook na opnieuw ontgrendelen).
   const scanFout=cmh.scanning&&photo?.error;
   cmh.data=null;cmh.back=null;cmh.hulp=null;
