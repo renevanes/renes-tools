@@ -137,7 +137,8 @@ final class MasterPhotos {
             if(n<0||n>=fotos.size()||kies.contains(fotos.get(n)))throw new MasterError(Taal.T("Kies één of twee foto's"));
             kies.add(fotos.get(n));
         }
-        synchronized(this){if(pending!=job)throw new MasterError(Taal.T("Kies het bestand opnieuw."));job.kiezen=true;}
+        // Bezig: wie intussen opnieuw ontgrendelt (resume → uitkomst) wacht hierop en krijgt dan deze uitkomst
+        synchronized(this){if(pending!=job)throw new MasterError(Taal.T("Kies het bestand opnieuw."));job.kiezen=true;job.bezig=true;job.klaar=null;}
         final Pending werk=job;
         java.util.function.BooleanSupplier active=()->{synchronized(MasterPhotos.this){return pending==werk&&werk.dataset==MasterSession.datasetEpoch();}};
         long tot=android.os.SystemClock.elapsedRealtime()+MasterDocumentImages.SEARCH_MS;
@@ -161,20 +162,23 @@ final class MasterPhotos {
                 images.put("front",normalize(p.front)).put("back",normalize(p.back));found=p.fields;
             }
             v.stap("opslaan",0,0);
-          }catch(Throwable e){synchronized(this){job.kiezen=false;}if(e instanceof Exception)throw (Exception)e;throw (Error)e;}
+          }catch(Throwable e){synchronized(this){job.kiezen=false;job.bezig=false;notifyAll();}if(e instanceof Exception)throw (Exception)e;throw (Error)e;}
         }
-        if(!active.getAsBoolean())throw new MasterError(Taal.T("Kies het bestand opnieuw."));
-        // Intussen vanzelf op slot (scherm uit): de uitkomst blijft in het geheugen en resume() bewaart hem na ontgrendelen
-        if(!session.accepts(token)||!activity.masterForeground){
-            Uitkomst u=new Uitkomst();u.images=images;u.found=found;
-            synchronized(this){
-                if(pending!=job)throw new MasterError(Taal.T("Kies het bestand opnieuw."));
-                job.reviewId=null;job.keuze=null;job.kiezen=false;job.klaar=u;job.klaarOp=android.os.SystemClock.elapsedRealtime();notifyAll();
+        boolean open=active.getAsBoolean()&&session.accepts(token)&&activity.masterForeground;
+        synchronized(this){
+            if(pending!=job){job.bezig=false;notifyAll();throw new MasterError(Taal.T("Kies het bestand opnieuw."));}
+            if(!open){
+                // Intussen vanzelf op slot (scherm uit) of opnieuw ontgrendeld: de uitkomst blijft in het geheugen en
+                // resume() bewaart hem (na ontgrendelen, of meteen als er al opnieuw ontgrendeld is en resume wacht)
+                Uitkomst u=new Uitkomst();u.images=images;u.found=found;
+                job.reviewId=null;job.keuze=null;job.kiezen=false;job.klaar=u;job.klaarOp=android.os.SystemClock.elapsedRealtime();job.bezig=false;notifyAll();
             }
-            activity.h.postDelayed(()->{synchronized(MasterPhotos.this){if(pending==job&&job.klaar!=null&&job.reviewId==null){pending=null;notifyAll();}}},BEWAAR_MS+1000);
+        }
+        if(!open){
+            activity.h.postDelayed(()->vervallen(job),BEWAAR_MS+1000);
             throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
         }
-        try{return scanDocument(key,session,token,job,images,found);}finally{clear(job);}
+        try{return scanDocument(key,session,token,job,images,found);}finally{synchronized(this){job.bezig=false;notifyAll();}clear(job);}
     }
     void notify(Pending job,boolean picked,String error){try{JSONObject out=new JSONObject().put("request",job.request).put("picked",picked).put("direct",picked&&activity.masterPicking());if(error!=null)out.put("error",error);activity.js("onMasterPhotoPicked",out.toString());}catch(Exception ignored){ }}
     void result(int result,Intent data){
@@ -298,8 +302,12 @@ final class MasterPhotos {
         try{u=analyse(job);}
         finally{synchronized(this){job.bezig=false;job.klaar=u;job.klaarOp=android.os.SystemClock.elapsedRealtime();job.uri=null;notifyAll();}}
         // Niet ontgrendeld binnen BEWAAR_MS: de uitkomst uit het geheugen (ook als niemand meer iets vraagt)
-        activity.h.postDelayed(()->{synchronized(MasterPhotos.this){if(pending==job&&job.klaar!=null&&job.reviewId==null){pending=null;notifyAll();}}},BEWAAR_MS+1000);
+        activity.h.postDelayed(()->vervallen(job),BEWAAR_MS+1000);
         return u;
+    }
+    /** Een uitkomst die BEWAAR_MS niet bewaard is, gaat uit het geheugen (gerekend vanaf dat hij klaar was). */
+    private synchronized void vervallen(Pending job){
+        if(pending==job&&job.klaar!=null&&job.reviewId==null&&!job.bezig&&android.os.SystemClock.elapsedRealtime()-job.klaarOp>=BEWAAR_MS){pending=null;notifyAll();}
     }
     /** Lezen en herkennen; alleen in het geheugen. Stopt alleen als de keuze vervalt (annuleren, vergrendelen met de hand). */
     private Uitkomst analyse(Pending job){

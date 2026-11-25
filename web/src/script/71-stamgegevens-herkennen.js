@@ -78,7 +78,8 @@ function cmhKeuze(photo){
       clear();
       if(!cmOpen()){cmiPhotoCancel();return;}
       cmBusy(true);cmh.photoBusy=true;cmNote(t('Foto verwerken…'));
-      cmRequest('masterScanChoose',[photo.reviewId,JSON.stringify(gekozen)],out=>{
+      // Zoals bij een gekozen foto: gaat de telefoon intussen op slot, dan zegt het scherm dat het daarna bewaard wordt
+      cmh.scanning=true;cmi.photoRequest=cmRequest('masterScanChoose',[photo.reviewId,JSON.stringify(gekozen)],out=>{
         cmh.photoBusy=false;cmBusy(false);cmiPhotoAfterUnlock(out);cmListLoad();if(out&&out.error)cmhFout(t(out.error));
       },false,()=>{cmh.photoBusy=false;cmBusy(false);cmiPhotoCancel();});
     },()=>{clear();cmiPhotoCancel();});

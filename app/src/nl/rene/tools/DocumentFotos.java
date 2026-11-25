@@ -271,7 +271,7 @@ final class DocumentFotos {
         if ("image/jpeg".equals(o.outMimeType)) return new Foto(b, o.outWidth, o.outHeight, pagina, heleBladzijde);
         // Hooguit ongeveer 4000 pixels: groter heeft geen zin en kost te veel geheugen
         int sample = 1;
-        while (Math.max(o.outWidth, o.outHeight) / (sample * 2) >= 4000) sample *= 2;
+        while (Math.max(o.outWidth, o.outHeight) / sample > 4000) sample *= 2;
         BitmapFactory.Options lees = new BitmapFactory.Options(); lees.inSampleSize = sample;
         Bitmap bm;
         try { bm = BitmapFactory.decodeByteArray(b, 0, b.length, lees); } catch (Throwable e) { return null; }
