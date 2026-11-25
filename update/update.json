@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.252",
-  "versionCode": 253,
-  "nativeLevel": 218,
+  "versionName": "1.253",
+  "versionCode": 254,
+  "nativeLevel": 219,
   "web": "index.html",
-  "webSha256": "a501e8de83902d517a692bc0eb965ae24edf19edcc7f1a383fd1da61b18345ca",
+  "webSha256": "1f98cb1659e70e3448f3b638a5724bc30996b17583fbd28af998cc31d4a39138",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "a709628260829e6a9c1f42f3df9f97804e0fb962dd8d8f5cc2eea58d8848fa38",
+  "apkSha256": "067a345ea74bfdcea674b6c22e1cc5d165f68ce25ee5a4506c3323faf49a99c5",
   "changelog": [
+    {
+      "version": "1.253",
+      "date": "2026-11-25",
+      "changes": [
+        "Nachtelijke backup: lukte hij niet omdat Google Drive nog aan het laden was, dan probeert Tools het dezelfde nacht nog een paar keer (na een half uur, een uur en anderhalf uur) voordat je een melding krijgt; Alles back-uppen toont dan wanneer de nieuwe poging is",
+        "Nachtelijke backup naar Google Drive of een andere clouddienst wacht op een internetverbinding",
+        "Backup-map opruimen na de nachtelijke backup stopt op tijd, zodat het niet halverwege wordt afgebroken"
+      ]
+    },
     {
       "version": "1.252",
       "date": "2026-11-24",
@@ -176,14 +185,7 @@
         "Nieuw bij een betaling: Zoek het rekeningnummer op internet (na een vraag, in je browser).",
         "CPAP-analyse: neem je nachtwaarden uit ResMed myAir over, volg maskerlekkage en vergelijk je maskers onder Dag & gezondheid."
       ]
-    },
-    {
-      "version": "1.233",
-      "date": "2026-11-19",
-      "changes": [
-        "Betalen vindt de naam van de ontvanger nu ook als de tekstherkenning het woord \"ontvanger\" in stukken leest."
-      ]
     }
   ],
-  "webSig2": "QbmN/6zLSS4I5JoUdeqnthEXTyL4viUSRmX/U97tAHk/8JzwM22VknCH8MurxGHMdUAfwIkjJFDhCAzR2J9CbkYh2KAV7x6MDsVh+3aKxHIpjue/Ph6I8MlYqdvj4FjrQ+vszHrCKc+d1VmYl3EY7sLWEmQSVin2V1UvuRa1OcfCmruun+xYie2nqSuei8xrK55S8oA9ys9UBO7jcgVfC6A9v38/p0+ed/5Xyg32Vz7u7gWm64nT/YRuMdeHvloGVIZJmWBnhzSyjlq2cDTnhNwI+S+G+otPYlUGe2aSgh3KBGJs7h7p1+kPqzAa4dliT75/+Nep8PKFByIZRV2BT332QsLqQ9zkffB5W0OIVK2ykroCU9XSNPFjCPJ2mHt6iyO3EilRoRpQtH5aaWQPT7zWcxuqI+JCgcR3ifIO7zfTcbNcBpFhN2CAGAtmb+6+YLjC1+fLNJlbEf0d8W5IvJdKOlyyBlfbg63K5mZ/g5s/7dECWNTzqLGQgdlUs6wD"
+  "webSig2": "os3tcy7ghRN95S0n4VxfTqwcZA3W3AlF7uOP5+cBCVX0KMHTNiXlWct1IE02Kr7sGtTG1K1dSUXeqvmRvYVVmP8NTgen6ctV0/7QASscSsvhQoGqrGY2Zhf1a/4V2bp603v7brqIilx5iD6thZdnjKkYtgGzezp052y25HhJOz4g6Y2p5wT8jWuEjYT+2T0nhdu7ARqb8t+g9OsP4kmg4fRw/cHXH3UigyM+DtUkcIGuRgQfQ664zfofQaJLAQy9m54KKEv+3K1mIIoa7RrdMWv1l2dwZVb12meflZzyV0W5Rm9gSt+Qhcp1F8D/EIB1A12b5sworMFuRLpNi+L4na8SO6KkZbUW1NBXhMWzirnesLMe0wfgH1c0aG/1iJ2MUHBrhH7VtMJBUw/l2jVR64SapglAolAwcErI5bH45giNCDffO9up/fzmCgWOCVwHBw7bBQmWPQ5NrWzv6tHeHCg7mSqS7Ef+32rt0wbon8Vl93QMETg25Ejw2eewhhV1"
 }
