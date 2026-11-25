@@ -726,7 +726,9 @@ telefoon en versleuteld; de sleutel zit in de Android Keystore.
   De pagina's (JPEG) gaan één voor één naar het geheugen van Java (`kluisScanPagina`) en worden één PDF
   (`KluisScan.pdf`: bijna-A4 op A4 zonder marge, anders 150 dpi) die met `Kluis.addStream` versleuteld de kluis in gaat
   (herkomst `scan`, de map waar Rene stond); nooit een bestand op schijf, in de galerij of onder Gemaakt. Op slot (ook
-  vanzelf), weg van het kluisscherm of annuleren = alles weg (`ksWis`). De knop verschijnt pas met een app die
+  vanzelf), weg van het kluisscherm of annuleren = alles weg (`ksWis`, en `Kluis.close` wist `KluisScan`); dat geldt ook
+  tijdens het bewaren (weg van de kluis = op slot, zoals overal in de kluis). Java neemt de pagina's bij `kluisScanBewaar` meteen over
+  (hooguit `MAX_PAGINAS` en `MAX_TOTAAL` bytes samen); zolang het bewaart, negeert de interface annuleren en schuiven. De knop verschijnt pas met een app die
   `kluisScanCamera` kent. Tests: `KluisScanTest`, `tests/ui/brief-scannen.test.js`.
 - **Map hernoemen** gaat in één keer (`kluisMapHernoem` → `KluisIndex.mapHernoem`, één keer de index schrijven); een
   oudere app zonder die brugfunctie doet het nog per document.

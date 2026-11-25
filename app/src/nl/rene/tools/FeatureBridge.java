@@ -551,13 +551,16 @@ public class FeatureBridge {
          * op schijf. Antwoord via onKluisScan: {id, name} of {error}.
          */
         @JavascriptInterface public void kluisScanBewaar(String naam, String map) {
+            final java.util.List<KluisScan.Pagina> paginas = KluisScan.neem(); // nu al: een latere kluisScanWis raakt deze brief niet meer
             new Thread(Doorwerken.door("kluis-scan", () -> {
                 String res;
-                java.util.List<KluisScan.Pagina> paginas = KluisScan.neem();
                 int n = paginas.size();
                 try {
                     if (!a.kluisOk()) throw new Exception(Taal.T("De kluis is weer op slot"));
-                    String titel = naam == null || naam.trim().isEmpty() ? "Brief" : DocumentMeta.text(naam, 110, false, "Naam");
+                    String titel = naam == null ? "" : naam.trim();
+                    if (titel.isEmpty()) titel = "Brief";
+                    if (titel.length() > 110) throw new Exception(Taal.T("Kies een naam van hooguit 110 tekens"));
+                    for (char ch : titel.toCharArray()) if (Character.isISOControl(ch)) throw new Exception(Taal.T("De naam bevat ongeldige tekens"));
                     byte[] pdf = KluisScan.pdf(paginas, titel);
                     paginas.clear();
                     String bestand = titel.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf") ? titel : titel + ".pdf";

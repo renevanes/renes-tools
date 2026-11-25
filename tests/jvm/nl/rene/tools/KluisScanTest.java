@@ -53,6 +53,11 @@ public class KluisScanTest {
         for (int i = 0; i < KluisScan.MAX_PAGINAS; i++) check(KluisScan.voegToe(grijs).isEmpty(), "pagina " + i);
         check(!KluisScan.voegToe(grijs).isEmpty(), "niet meer dan MAX_PAGINAS");
         KluisScan.wis(); check(KluisScan.aantal() == 0, "wis maakt leeg");
+        byte[] groot = Arrays.copyOf(grijs, 3_900_000); // geldige kop, opgevuld tot bijna MAX_BYTES
+        int erbij = 0; String fout = "";
+        while (erbij < KluisScan.MAX_PAGINAS && (fout = KluisScan.voegToe(groot)).isEmpty()) erbij++;
+        check(!fout.isEmpty() && (long) erbij * groot.length <= KluisScan.MAX_TOTAAL && erbij < KluisScan.MAX_PAGINAS, "samen hooguit MAX_TOTAAL (" + erbij + " grote pagina's)");
+        KluisScan.wis();
 
         // A4 of eigen maat
         check(KluisScan.opA4(1240, 1754) && KluisScan.opA4(1754, 1240) && KluisScan.opA4(1300, 1754), "(bijna) A4, ook liggend");

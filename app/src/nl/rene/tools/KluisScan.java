@@ -14,7 +14,9 @@ final class KluisScan {
     private KluisScan() { }
 
     /** Hooguit zoveel pagina's in één brief, en zo groot per pagina (een scan is ±0,2–1 MB). */
-    static final int MAX_PAGINAS = 30, MAX_BYTES = 6_000_000;
+    static final int MAX_PAGINAS = 30, MAX_BYTES = 4_000_000;
+    /** Alle pagina's samen (het geheugen: daarna komt de PDF er nog eens bij). */
+    static final long MAX_TOTAAL = 60_000_000L;
     /** Een pagina met (bijna) de verhouding van A4 komt op A4; een andere (een bonnetje) krijgt zijn eigen maat. */
     static final double A4 = 841.89 / 595.28, SPELING = 0.12;
 
@@ -36,6 +38,8 @@ final class KluisScan {
         if (p == null) return Taal.T("Deze foto is niet te lezen");
         synchronized (PAGINAS) {
             if (PAGINAS.size() >= MAX_PAGINAS) return Taal.T("Te veel pagina's in één brief");
+            long totaal = jpeg.length; for (Pagina q : PAGINAS) totaal += q.jpeg.length;
+            if (totaal > MAX_TOTAAL) return Taal.T("Deze brief is te groot. Bewaar hem in twee delen.");
             PAGINAS.add(p);
         }
         return "";

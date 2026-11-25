@@ -63,7 +63,7 @@ final class Kluis {
     /** Ontgrendeld (na vingerafdruk of pincode, of zonder vraag als extra ontgrendelen uit staat): open met een nieuwe generatie. */
     static synchronized int ontgrendeld(Context c) { clearViews(c); gen++; open(c); return gen; }
     static long remaining() { return Math.max(0, openUntil - System.currentTimeMillis()); }
-    static void close(Context c) { openUntil = 0; clearViews(c); KluisTekst.ruimWerk(c); }
+    static void close(Context c) { openUntil = 0; clearViews(c); KluisTekst.ruimWerk(c); KluisScan.wis(); } // ook een brief die nog niet bewaard is
 
     /** Bestandsnaam met behoud van de extensie (anders weet een kijk-app niet wat het is). */
     static String fileName(JSONObject d) {

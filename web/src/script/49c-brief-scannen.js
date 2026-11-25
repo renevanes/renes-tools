@@ -74,8 +74,7 @@ function ksOrden(q){
 function ksOppervlak(q){ let s = 0; for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length]; s += a[0] * b[1] - b[0] * a[1]; } return Math.abs(s) / 2; }
 /** Bol en met de klok mee? Anders is het geen bruikbaar vlak (hoeken over elkaar gesleept). */
 function ksBol(q){
-  let teken = 0;
-  for (let i = 0; i < 4; i++) { const a = q[i], b = q[(i + 1) % 4], c = q[(i + 2) % 4], k = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]); if (Math.abs(k) < 1e-9) return false; const s = Math.sign(k); if (teken && s !== teken) return false; teken = s; }
+  for (let i = 0; i < 4; i++) { const a = q[i], b = q[(i + 1) % 4], c = q[(i + 2) % 4]; if ((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]) <= 1e-9) return false; } // gespiegeld (tegen de klok in) telt ook niet
   return true;
 }
 /** Projectie die de punten van (4) op naar (4) legt: [a..h] met x' = (ax+by+c)/(gx+hy+1), y' = (dx+ey+f)/(gx+hy+1). */
@@ -325,8 +324,8 @@ async function ksDraai(i){
   const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img, 0, 0);
   ksPagina(ksKwart(c), p.modus, i); ksTekenPaginas();
 }
-function ksSchuif(i){ if (i <= 0) return; const p = ks.paginas.splice(i, 1)[0]; ks.paginas.splice(i - 1, 0, p); ksTekenPaginas(); }
-function ksWeg(i){ ks.paginas.splice(i, 1); ksTeken(); }
+function ksSchuif(i){ if (i <= 0 || ks.bezig) return; const p = ks.paginas.splice(i, 1)[0]; ks.paginas.splice(i - 1, 0, p); ksTekenPaginas(); }
+function ksWeg(i){ if (ks.bezig) return; ks.paginas.splice(i, 1); ksTeken(); }
 /** Alles weg (annuleren, op slot, weg van het kluisscherm, na bewaren). */
 function ksWis(){
   if (ksCamOpen()) ksCamDicht();
@@ -338,24 +337,28 @@ function ksWis(){
   if (!klEditId) $('#kl-lijstkaart').hidden = false;
 }
 function ksAnnuleer(){
+  if (ks.bezig) { toast(t('Even wachten: de brief wordt bewaard')); return; }
   if (!ks.paginas.length) { ksWis(); return; }
   askConfirm(t('Scan weggooien?'), tn(ks.paginas.length, 'De gescande pagina is nog niet bewaard.', 'De {n} gescande pagina\'s zijn nog niet bewaard.'), t('Weggooien'), () => ksWis());
 }
 /** Terug (pijl of de knop van de telefoon) tijdens het scannen: eerst de foto weg, dan vragen of de scan weg mag. */
 function ksTerug(){
   if (!ksOpen()) return false;
+  if (ks.bezig) { toast(t('Even wachten: de brief wordt bewaard')); return true; }
   if (ks.foto && ks.paginas.length) { ks.foto = null; ks.hoeken = null; ksTeken(); return true; }
   ksAnnuleer(); return true;
 }
 /** Bewaren: de pagina's één voor één naar Java (geheugen), dan de PDF versleuteld de kluis in. */
-function ksBewaar(){
+async function ksBewaar(){
   if (ks.bezig || !ks.paginas.length) return;
   const naam = $('#ks-naam').value.trim() || ksStandaardNaam(), map = klMap.startsWith('map:') ? klMap.slice(4) : '';
   if (naam.length > 110) { toast(t('Kies een naam van hooguit 110 tekens')); return; }
   ks.bezig = true; $('#ks-bewaar').disabled = true; uiWachtTekst($('#ks-bstatus'), t('Bewaren in de documentenkluis…'));
   let fout = '';
-  try { Android.kluisScanWis(); for (const p of ks.paginas) { fout = Android.kluisScanPagina(p.jpeg) || ''; if (fout) break; } }
+  const paginas = ks.paginas.slice(), nr = ks.camNr;
+  try { Android.kluisScanWis(); for (const p of paginas) { await new Promise(r => setTimeout(r, 0)); if (ks.camNr !== nr) return; fout = Android.kluisScanPagina(p.jpeg) || ''; if (fout) break; } } // tussendoor tekent het scherm de wachtbalk
   catch (e) { fout = t('Bewaren lukt niet'); }
+  if (ks.camNr !== nr) return; // intussen weggegaan of op slot: ksWis heeft Java al leeggemaakt
   if (fout) { try { Android.kluisScanWis(); } catch (e) { } ks.bezig = false; $('#ks-bstatus').textContent = fout; $('#ks-bewaar').disabled = false; toast(fout); klRender(); return; }
   Android.kluisScanBewaar(naam, map);
 }

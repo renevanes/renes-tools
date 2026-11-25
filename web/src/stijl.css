@@ -275,9 +275,9 @@ textarea.key:focus{outline:2px solid var(--primary);outline-offset:-1px;border-c
 .kl-pad{display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin:12px 0 2px}.kl-pad[hidden]{display:none}
 .kl-pad button{min-height:44px;min-width:44px;max-width:100%;padding:6px 8px;border:0;border-radius:8px;background:none;color:var(--primary);font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kl-pad button[aria-current]{color:var(--ink)}.kl-padst{color:var(--muted)}
-.ks-beeld{position:relative;margin:8px 0 4px;line-height:0;touch-action:none;user-select:none;-webkit-user-select:none}.ks-beeld canvas{width:100%;height:auto;border-radius:8px;background:var(--hi)}
+.ks-beeld{position:relative;margin:8px 0 4px;line-height:0;user-select:none;-webkit-user-select:none}.ks-beeld canvas{width:100%;height:auto;border-radius:8px;background:var(--hi)}
 .ks-beeld svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.ks-poly{fill:color-mix(in srgb,var(--primary) 16%,transparent);stroke:var(--primary)}
-.ks-raak{fill:transparent;cursor:grab}.ks-stip{fill:var(--card);stroke:var(--primary);pointer-events:none}.ks-hoek:focus{outline:none}.ks-hoek:focus .ks-stip{fill:var(--primary)}
+.ks-hoek{touch-action:none}.ks-raak{fill:transparent;cursor:grab}.ks-stip{fill:var(--card);stroke:var(--primary);pointer-events:none}.ks-hoek:focus{outline:none}.ks-hoek:focus .ks-stip{fill:var(--primary)}
 .ks-paginas{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin:6px 0 12px}.ks-pag{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--hi)}
 .ks-pag img{display:block;width:100%;aspect-ratio:1/1.414;object-fit:contain;background:#fff}.ks-pagnr{position:absolute;top:6px;left:6px;min-width:24px;padding:2px 6px;border-radius:12px;background:var(--primary);color:var(--on-primary);font-size:13px;text-align:center}
 .ks-pagacts{display:flex;justify-content:space-around}.ks-pagacts .icon-btn{width:44px;height:44px}

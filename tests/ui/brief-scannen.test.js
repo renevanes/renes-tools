@@ -40,7 +40,7 @@ const { chromium } = require('playwright');
       ok(d && d.every(x => x < 14), 'een recht vel: ' + (d && d.map(Math.round)));
       ok(await pg.evaluate(() => { const c = document.createElement('canvas'); c.width = 400; c.height = 300; const x = c.getContext('2d'); x.fillStyle = '#444'; x.fillRect(0, 0, 400, 300); x.fillStyle = '#eee'; x.fillRect(10, 10, 30, 20); return ksZoekHoeken(c) === null; }), 'geen papier (alleen een klein licht vlekje): niets gevonden');
       ok(await pg.evaluate(() => ksOrden([[5, 9], [0, 0], [9, 0], [0, 9]]).map(p => p.join(',')).join(' ') === '0,0 9,0 5,9 0,9'), 'hoeken op volgorde: linksboven, rechtsboven, rechtsonder, linksonder');
-      ok(await pg.evaluate(() => ksBol([[0, 0], [10, 0], [10, 10], [0, 10]]) && !ksBol([[0, 0], [10, 10], [10, 0], [0, 10]])), 'over elkaar gesleepte hoeken tellen niet als vlak');
+      ok(await pg.evaluate(() => ksBol([[0, 0], [10, 0], [10, 10], [0, 10]]) && !ksBol([[0, 0], [10, 10], [10, 0], [0, 10]]) && !ksBol([[10, 0], [0, 0], [0, 10], [10, 10]])), 'over elkaar gesleepte of gespiegelde hoeken tellen niet als vlak');
       // rechttrekken + scan: A4-verhouding, witte achtergrond (ook in de schaduw), tekst donker
       const r = await pg.evaluate(async () => {
         const a = 0.1, hw = 200, hh = 283, q = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(([x, y]) => [350 + x * Math.cos(a) - y * Math.sin(a), 350 + x * Math.sin(a) + y * Math.cos(a)]), f = __maakFoto(700, 700, q, true); // een A4-vel, iets gedraaid
