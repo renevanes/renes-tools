@@ -71,6 +71,8 @@ jobs:
 
   vrijgeven:
     needs: maken
+    # Alleen vanaf main: telefoons halen deze release op, dus nooit gegevens van een branch die (nog) niet gereviewd is
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

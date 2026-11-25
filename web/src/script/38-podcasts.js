@@ -55,6 +55,7 @@ function pcMenu(){
   const acts = [];
   if (pcSubs.length) acts.push(['↻ Alle podcasts bijwerken', () => pcRefresh()]);
   acts.push(['Instellingen voor downloaden', () => pcDlSettings()]);
+  if (typeof slpData === 'function' && (slpData().lijst || []).length) acts.push([t('Afgespeeld met de slaaptimer'), () => slpLijstOpen()]);
   if (!isPlay()) acts.push(['Uit Spotify overnemen', () => pspOpen()]);
   acts.push([t('Abonnementen importeren (OPML)'), () => opmlImport('podcasts')]);
   if (pcSubs.length) acts.push([t('Abonnementen exporteren (OPML)'), () => opmlExport('podcasts')]);
@@ -79,7 +80,7 @@ function pcPoll(force){
   if (force || sig !== pcLastSig) {
     const keyChanged = !pcLastSig || JSON.parse(pcLastSig)[1] !== (pcSt.ep && pcSt.ep.key);
     pcLastSig = sig;
-    if (keyChanged && (current === 'podcasts' || current === 'podlijst')) { pcRenderCont(); pcRenderNew(); }
+    if (keyChanged && (current === 'podcasts' || current === 'podlijst')) { pcRenderCont(); pcRenderNew(); if (current === 'podcasts' && typeof slpRender === 'function') slpRender(); }
     if (current === 'podcast') { pdRefreshRows(); pdResumeShow(); } // ▶/❚❚ en voortgang in de lijst bijwerken
   }
   if (typeof pkMeld === 'function') pkMeld(pcSt);
@@ -155,7 +156,7 @@ function pcContMenu(i){
 /* Een lijst is pas een lijst (voor TalkBack) als er rijen in staan; anders staat er alleen een melding in */
 function pcListRole(el, has){ if (!el) return; if (has) el.setAttribute('role', 'list'); else el.removeAttribute('role'); }
 /* Alles op Luisteren opnieuw: verder luisteren, nieuwe afleveringen (zonder wat bij verder luisteren staat) en mijn podcasts */
-function pcRenderListen(){ pcRenderCont(); pcRenderSubs(); pcRenderNew(); }
+function pcRenderListen(){ pcRenderCont(); pcRenderSubs(); pcRenderNew(); if (typeof slpRender === 'function') slpRender(); }
 
 /* Nieuwe afleveringen: de nieuwste die je nog niet beluisterde, van alles wat je volgt. Uit de bewaarde feeds
    (Android.podLatest leest geen internet); bijwerken gebeurt op de achtergrond met ↻ of vanzelf om de paar uur. */

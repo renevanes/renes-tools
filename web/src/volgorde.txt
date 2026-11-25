@@ -138,12 +138,14 @@ script/71-stamgegevens-assistent.js
 script/72-formulier-vast.js
 script/49-documenten-ordenen.js
 script/49b-kluis-centraal.js
+script/49c-brief-scannen.js
 script/77-vergelijken.js
 script/78-opml.js
 script/38-podcasts.js
 script/46-podcast-downloads.js
 script/46b-fijn-volume.js
 script/46c-podcast-overslaan.js
+script/46d-podcast-slaap.js
 script/51-assistent.js
 script/52-slaappraat.js
 script/53-modellen.js

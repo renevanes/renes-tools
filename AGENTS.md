@@ -719,6 +719,19 @@ telefoon en versleuteld; de sleutel zit in de Android Keystore.
   Activiteiten-regel "Kaartfoto bekeken" door ID-kopie) alleen via het geheugen van `MainActivity` (`idMasterTake`, een
   minuut) naar `IdCopy.addImages` (`idCopyTakeMaster`); nooit door de interface. Voorgestelde vlakken: `ID_VOORSTEL` in
   `67-id-kopie.js` (ruim genomen; de pagina blijft "niet gecontroleerd" tot Rene het aanvinkt).
+- **Brief scannen** (`web/src/script/49c-brief-scannen.js`, `KluisScan`; kaart `#kl-scan` in plaats van de lijst, camera
+  `#kl-cam` in `TS_LAGEN`): foto's met de camera in de interface (`kluisScanCamera`, zoals Betalen; `camFoto` is gedeeld),
+  hoeken zoeken (`ksHoekenUit`: Otsu, grootste lichte vlak, omhullende, vier hoeken; met de hand bij te stellen, ook met
+  de pijltjes), rechttrekken (`ksRecht`, projectie) en scanfilter (`ksFilter`: achtergrond wit, 'scan' grijs of 'kleur').
+  De pagina's (JPEG) gaan één voor één naar het geheugen van Java (`kluisScanPagina`) en worden één PDF
+  (`KluisScan.pdf`: bijna-A4 op A4 zonder marge, anders 150 dpi) die met `Kluis.addStream` versleuteld de kluis in gaat
+  (herkomst `scan`, de map waar Rene stond); nooit een bestand op schijf, in de galerij of onder Gemaakt. Op slot (ook
+  vanzelf), weg van het kluisscherm of annuleren = alles weg (`ksWis`, en `Kluis.close` wist `KluisScan`); dat geldt ook
+  tijdens het bewaren (weg van de kluis = op slot, zoals overal in de kluis). Java neemt de pagina's bij `kluisScanBewaar` meteen over
+  (hooguit `MAX_PAGINAS` en `MAX_TOTAAL` bytes samen); zolang het bewaart, negeert de interface annuleren en schuiven. De knop verschijnt pas met een app die
+  `kluisScanCamera` kent. Tests: `KluisScanTest`, `tests/ui/brief-scannen.test.js`.
+- **Map hernoemen** gaat in één keer (`kluisMapHernoem` → `KluisIndex.mapHernoem`, één keer de index schrijven); een
+  oudere app zonder die brugfunctie doet het nog per document.
 - **Zoeken in de tekst** (`KluisTekst`, `kluisZoek`/`kluisTekstBijwerken`): per document staat de tekst (uit de PDF, anders de lokale
   tekstherkenning; hooguit `MAX_BLZ` pagina's) in `kluis/<id>.tekst`, versleuteld met de kluissleutel. Lezen en zoeken alleen met de
   kluis open; het werkbestand staat kort in `cache/kluis-tekst` en gaat direct weg. De tekst is af te leiden: niet in backups, na
@@ -1071,6 +1084,18 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   `GONE_DAGEN`) zodat ze niet terugkomen. Een grootte uit de feed onder 1 MB telt als onbekend; er blijft `VRIJ_HOUDEN` vrij. Uit =
   het oude gedrag per podcast (de nieuwste 3). Tests: `PodcastPeriodeTest`, `tests/ui/podcast-periode.test.js`.
 - Herkennen aan het geluid (uitgeschreven tekst, terugkerende jingles) is een mogelijke volgende stap; vraag Rene eerst.
+- **Afgespeeld met de slaaptimer** (wens van Rene, 25-11-2026: met de slaaptimer val je in slaap, dus wat afliep is
+  misschien niet gehoord; `PodcastSlaap`, zuiver deel in `PodcastSlaapTest`, interface `46d-podcast-slaap.js`): loopt een
+  aflevering af terwijl de slaaptimer loopt (`onEnded`), dan komt hij in `podcasts/slaap.json` met `van` = de laatste plek
+  waar Rene zeker wakker was (`PodcastService.wakker`: begin van de beurt, timer gezet of verlengd, doorgespoeld, Afspelen)
+  en de sessie (`slaapSessie`, het begin van de timer). Hij telt eerst gewoon als beluisterd (de speler kiest de volgende);
+  de download blijft staan zolang hij open staat (`PodcastDownloads.played`). Instelling (prefs van Podcasts) `slaapTerug`:
+  `vragen` (standaard: kaart `#pc-slaap` op Luisteren, aangevinkt = weer niet beluisterd, de rest gehoord), `vanzelf` (als de
+  timer de speler stopt: `sessieKlaar` zet alleen die sessie terug; de kaart zegt het, met Toch gehoord) of `uit`; `slaapPlek`
+  `wakker`/`begin` (`terugPlek`, nooit vlak bij het einde). Terugzetten verandert alleen een aflevering die nog als beluisterd
+  staat; wakker uitgeluisterd (zonder timer, of in de laatste minuut nog wakker: `telt`) = gehoord (`wakkerAf`). Een
+  download gaat alleen weg als de aflevering dan nog als beluisterd staat. De lijst (hooguit `MAX`, `BEWAAR_MS`; wat open bleef telt dan als gehoord) en de keuze staan op Instellingen van
+  Podcasts (`#ps-slp`, ook via ⋯). Op een Chromecast niet. Test: `tests/ui/podcast-slaap.test.js`.
 
 ## Publiceren en tests (stand op GitHub in de app)
 Scherm `s-github` (Instellingen → Versie en updates; `28c-publiceren-en-tests.js`, `GithubStatus.java`): per taak de stand

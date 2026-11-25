@@ -32,11 +32,32 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => show('info')); await pg.waitForTimeout(150);
     ok((await pg.textContent('#upd-text2')).includes('Bevestig'), 'zelfde stand bij Versie en updates');
 
-    // Afgebroken: terug naar "beschikbaar", met een melding
+    // Geannuleerd: de download blijft bewaard; Installeren installeert alleen nog (geen tweede download)
     await pg.evaluate(() => { Android._updFail = true; Android._updMs = 20; });
     await pg.click('#upd-btn2');
-    ok(await until(() => document.querySelector('#upd-text2').textContent.includes('beschikbaar') && !Android._upd), 'na afbreken weer beschikbaar');
-    ok((await pg.textContent('#toast')).includes('afgebroken'), 'melding bij afbreken');
+    ok(await until(() => document.querySelector('#upd-text2').textContent.includes('is gedownload') && !Android._upd), 'na annuleren: download bewaard (' + (await pg.textContent('#upd-text2')) + ')');
+    ok((await pg.textContent('#toast')).includes('De download blijft bewaard'), 'melding: download blijft bewaard');
+    ok(!(await pg.isDisabled('#upd-btn2')) && (await pg.textContent('#upd-btn2')) === 'Installeren', 'knop Installeren weer te gebruiken');
+    const voor = await pg.evaluate(() => Android._updDownloads);
+    await pg.evaluate(() => { Android._updFail = false; });
+    // Meteen na de tik (in dezelfde stap gelezen, zodat de voortgang er nog niet overheen kan)
+    const naTik = await pg.evaluate(() => { document.querySelector('#upd-btn2').click(); return document.querySelector('#upd-text2').textContent; });
+    ok(naTik.startsWith('Installeren…'), 'opnieuw: meteen installeren (' + naTik + ')');
+    ok(await until(() => document.querySelector('#upd-text2').textContent.includes('Bevestig')), 'opnieuw: gaat door tot bevestigen');
+    ok(await pg.evaluate(() => !Android._updLog.some(s => s.phase === 'download')) && (await pg.evaluate(() => Android._updDownloads)) === voor, 'opnieuw: geen tweede download');
+    // Na opnieuw opstarten: de bewaarde download staat meteen klaar
+    await pg.evaluate(() => { updKlaar = ''; updAvail = ''; updReset(); Android._apkKlaar = '9.9'; updKlaarStart(); });
+    ok((await pg.textContent('#upd-text')).includes('Versie 9.9 is gedownload') && !(await pg.isDisabled('#upd-btn')), 'bij het starten: bewaarde download klaar');
+    // Een andere fout terwijl de download bewaard blijft: die fout, en de balk blijft "is gedownload"
+    await pg.evaluate(() => { updKlaar = '9.9'; updAvail = '9.9'; onUpdateStatus({ state: 'error', kind: 'apk', error: 'Update mislukt: HTTP 500', klaar: '9.9', bewaard: true }); });
+    ok((await pg.textContent('#upd-text')).includes('is gedownload') && (await pg.textContent('#toast')).includes('HTTP 500'), 'andere fout: download blijft klaar, fout zichtbaar');
+    // De bewaarde download bleek niet meer bruikbaar (fout zonder klaar): niet langer "is gedownload"
+    await pg.evaluate(() => onUpdateStatus({ state: 'error', kind: 'apk', error: 'De bewaarde download klopt niet meer' }));
+    ok((await pg.textContent('#upd-text')).includes('beschikbaar') && !(await pg.textContent('#upd-text')).includes('gedownload'), 'fout zonder bewaarde download: weer "beschikbaar"');
+    // Deze app is al de nieuwste (of de lijst biedt geen nieuwe app meer): balk weg
+    await pg.evaluate(() => { updKlaar = '9.9'; updAvail = '9.9'; updAvailShow(); onUpdateStatus({ state: 'uptodate', kind: 'apk', manual: true }); });
+    ok(!(await pg.isVisible('#upd-banner')), 'al de nieuwste: geen balk meer');
+    await pg.evaluate(() => { Android._apkKlaar = ''; updKlaar = ''; updAvail = ''; updReset(); });
 
     // Interface-update (stil): voortgang zonder knop, ook op de knop Controleren
     await pg.evaluate(() => { updAvail = ''; onUpdateStatus({ state: 'progress', kind: 'web', phase: 'download', done: 734003, total: 1468006 }); });

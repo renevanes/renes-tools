@@ -114,7 +114,7 @@
       "reden": "Telefoon-skin (HomeActivity): omlaag vegen opent de meldingen, zoals op een gewoon startscherm"
     },
     "android.permission.CAMERA": {
-      "reden": "QR-code van VPN, Betalen (foto van een rekening) en Gebruik (foto bij een mislukte ontgrendeling, als Rene dat aanzet)"
+      "reden": "QR-code van VPN, Betalen (foto van een rekening), Documentenkluis (brief scannen) en Gebruik (foto bij een mislukte ontgrendeling, als Rene dat aanzet)"
     },
     "android.permission.ACCESS_MOCK_LOCATION": {
       "reden": "Locatie kiezen: in de Ontwikkelaarsopties als app voor de locatie te kiezen"

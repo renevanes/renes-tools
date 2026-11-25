@@ -1,15 +1,40 @@
 {
   "app": "Tools",
-  "versionName": "1.252",
-  "versionCode": 253,
-  "nativeLevel": 218,
+  "versionName": "1.255",
+  "versionCode": 256,
+  "nativeLevel": 221,
   "web": "index.html",
-  "webSha256": "a501e8de83902d517a692bc0eb965ae24edf19edcc7f1a383fd1da61b18345ca",
+  "webSha256": "bfa00f822d33fcdc5a28f1cf2a0a54bc214dd1dd677ec475623a2e13688f4417",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "a709628260829e6a9c1f42f3df9f97804e0fb962dd8d8f5cc2eea58d8848fa38",
+  "apkSha256": "1a3e9fa9c506264ec7bf0fa7a10047de4bb20ce99b81b1240820416f984095ef",
   "changelog": [
+    {
+      "version": "1.255",
+      "date": "2026-11-25",
+      "changes": [
+        "Podcasts: afleveringen die afliepen terwijl de slaaptimer liep, kun je weer als niet beluisterd markeren (verder vanaf waar je nog wakker was). Podcasts vraagt het op Luisteren, of doet het vanzelf; in te stellen bij Instellingen van Podcasts → Na de slaaptimer.",
+        "Nieuwe app installeren: annuleer je de installatie (ook per ongeluk), dan blijft de download bewaard. Installeren installeert dan meteen, zonder opnieuw te downloaden; ook na het opnieuw openen van Tools staat \"Versie … is gedownload\" klaar"
+      ]
+    },
+    {
+      "version": "1.254",
+      "date": "2026-11-25",
+      "changes": [
+        "Documentenkluis: Brief scannen. Fotografeer een of meer pagina's met de camera in de app; Tools zoekt de hoeken van het papier (bij te stellen), zet de pagina recht, maakt de achtergrond wit en de tekst scherp, en bewaart alles als één PDF versleuteld in de kluis, in de map waar je staat. Niets komt in je galerij.",
+        "Documentenkluis: een map hernoemen gaat nu in één keer, ook met veel documenten erin; foutmeldingen zeggen \"map\" in plaats van \"categorie\"."
+      ]
+    },
+    {
+      "version": "1.253",
+      "date": "2026-11-25",
+      "changes": [
+        "Nachtelijke backup: lukte hij niet omdat Google Drive nog aan het laden was, dan probeert Tools het dezelfde nacht nog een paar keer (na een half uur, een uur en anderhalf uur) voordat je een melding krijgt; Alles back-uppen toont dan wanneer de nieuwe poging is",
+        "Nachtelijke backup naar Google Drive of een andere clouddienst wacht op een internetverbinding",
+        "Backup-map opruimen na de nachtelijke backup stopt op tijd, zodat het niet halverwege wordt afgebroken"
+      ]
+    },
     {
       "version": "1.252",
       "date": "2026-11-24",
@@ -158,32 +183,7 @@
         "Een foto of afbeelding uit de documentenkluis opent altijd in de viewer van Tools, ook als de naam geen extensie heeft (Tools kijkt naar de inhoud).",
         "Bij een betaling waarvan de rekening niet bewaard is, staat nu hoe je hem er alsnog bij krijgt."
       ]
-    },
-    {
-      "version": "1.235",
-      "date": "2026-11-20",
-      "changes": [
-        "Betalen bewaart de rekening zelf versleuteld in je documentenkluis (map Betalen). Bij een betaling tik je op Rekening bekijken om het origineel te zien. Uit te zetten bij Betalen → Instellingen.",
-        "De viewer van de app toont nu ook foto's en afbeeldingen (JPEG, PNG, WebP, GIF, HEIC), niet alleen PDF's. Een foto uit de documentenkluis opent daardoor ook in Tools zelf, in plaats van in een andere app."
-      ]
-    },
-    {
-      "version": "1.234",
-      "date": "2026-11-20",
-      "changes": [
-        "Betalen kijkt na of de ontvanger klopt: of het een officieel rekeningnummer is van bijvoorbeeld het CJIB of de Belastingdienst, bij welke bank de rekening is en of je er eerder naartoe betaalde. Noemt een rekening het CJIB of de Belastingdienst met een ander rekeningnummer, dan zie je een duidelijke waarschuwing.",
-        "Betalen zet bij een officieel rekeningnummer de juiste naam (bijvoorbeeld CJIB), ook als de tekstherkenning de naam verkeerd las; anders de naam van je vorige betaling naar dat rekeningnummer.",
-        "Nieuw bij een betaling: Zoek het rekeningnummer op internet (na een vraag, in je browser).",
-        "CPAP-analyse: neem je nachtwaarden uit ResMed myAir over, volg maskerlekkage en vergelijk je maskers onder Dag & gezondheid."
-      ]
-    },
-    {
-      "version": "1.233",
-      "date": "2026-11-19",
-      "changes": [
-        "Betalen vindt de naam van de ontvanger nu ook als de tekstherkenning het woord \"ontvanger\" in stukken leest."
-      ]
     }
   ],
-  "webSig2": "QbmN/6zLSS4I5JoUdeqnthEXTyL4viUSRmX/U97tAHk/8JzwM22VknCH8MurxGHMdUAfwIkjJFDhCAzR2J9CbkYh2KAV7x6MDsVh+3aKxHIpjue/Ph6I8MlYqdvj4FjrQ+vszHrCKc+d1VmYl3EY7sLWEmQSVin2V1UvuRa1OcfCmruun+xYie2nqSuei8xrK55S8oA9ys9UBO7jcgVfC6A9v38/p0+ed/5Xyg32Vz7u7gWm64nT/YRuMdeHvloGVIZJmWBnhzSyjlq2cDTnhNwI+S+G+otPYlUGe2aSgh3KBGJs7h7p1+kPqzAa4dliT75/+Nep8PKFByIZRV2BT332QsLqQ9zkffB5W0OIVK2ykroCU9XSNPFjCPJ2mHt6iyO3EilRoRpQtH5aaWQPT7zWcxuqI+JCgcR3ifIO7zfTcbNcBpFhN2CAGAtmb+6+YLjC1+fLNJlbEf0d8W5IvJdKOlyyBlfbg63K5mZ/g5s/7dECWNTzqLGQgdlUs6wD"
+  "webSig2": "qkP/npDeUdQLiirbC16YJC8tw4vihWhbUFLK4QXJWeoDfup7ROKBZE5X9BvWVMPKxZhW/eRlIFqSC4SgZsMIOEmvzm39yoLWA989zrkm4JOa/cTr3NcBK3mMSQRWtkDiKAQMThjthrLYMEf9cEz/3JcbKMYlaHZd/MUS6DItHbWgojfjDALVE0O4/TYJRGPNOn+NMJJPD1zasloYecToqHiiv73ou3yf4PfgcqJ/c+TsjXAooumLkJp5tZtF1IU6Ed5Bv2uTRiVZaPGup+vYbgHE1lnDOIDJh4XqgnIDiZvZszzxmF/RghB6PHfPpzmo5UBjGyENl6B7ZqESTMBCwxVWOnT5y3LXiMR7zxxC34IPL1W2U7iWwN2C1EavDU+Ahv92qiuky/r8ayo/UUFerMOHs77gtpbrnrRCqG5UXbh1iiSiGt1wYZzQQsyimeD2dAFv/VeAwDbmMPPg0DOuXQisCk1XNSSmvY2L//d9rte/EwJLvXhnX4FTyXRHWVhX"
 }

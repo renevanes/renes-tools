@@ -196,17 +196,21 @@ if (!window.Android) window.Android = (function(){
     nieuwsInlogStand(id){ return JSON.stringify({ koekjes: this._nwKoek[id] || 0 }); },
     /* Het venster voor de cookiekeuze: de test zet _nw.cookie zelf en roept onResumeApp aan, zoals na het sluiten. */
     nieuwsCookies(id){ const s = this._nwInit(); s.calls.push(['cookies', id]); return id === 'tweakers' ? '' : 'Bijwerken lukt niet'; },
-    version:()=>JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts','masterdata']}),
-    lastManifest:()=>'null', checkUpdates:()=>setTimeout(()=>onUpdateStatus({state:'uptodate',kind:'web',manual:true,versionName:VERSION_NAME}),400),
+    version(){ return JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts','masterdata'],apkKlaar:this._apkKlaar||''}); },
+    lastManifest:()=>'null',
+    // Zoals Updater.check: staat er een gedownloade nieuwe app klaar, dan is er een nieuwe app ("apk", klaar)
+    checkUpdates(){ setTimeout(()=>onUpdateStatus(this._apkKlaar ? {state:'apk',kind:'web',manual:true,versionName:this._apkKlaar,klaar:true} : {state:'uptodate',kind:'web',manual:true,versionName:VERSION_NAME}),400); },
     reloadUi(){ if (window.prepareUiReload && window.prepareUiReload()) { this._uiReloads = (this._uiReloads || 0) + 1; document.body.inert = false; } },
     installUpdate(){
       // Downloaden met voortgang (5 MB in 10 stappen), controleren, klaarzetten en dan vraagt Android om te bevestigen
       if (this._upd) { onUpdateStatus({ state: 'busy', kind: 'apk' }); return; }
-      this._upd = true; const T = 5242880, steps = [];
+      // Staat de app al gedownload klaar (Updater.klaar), dan niet opnieuw downloaden; afgebroken = de download blijft bewaard
+      this._upd = true; const T = 5242880, steps = [], al = !!this._apkKlaar;
       steps.push({ state: 'progress', kind: 'apk', phase: 'start', done: 0, total: 0 });
-      for (let i = 0; i <= 10; i++) steps.push({ state: 'progress', kind: 'apk', phase: 'download', done: Math.round(T * i / 10), total: T });
+      if (!al) for (let i = 0; i <= 10; i++) steps.push({ state: 'progress', kind: 'apk', phase: 'download', done: Math.round(T * i / 10), total: T });
       steps.push({ state: 'progress', kind: 'apk', phase: 'check', done: 0, total: 0 }, { state: 'progress', kind: 'apk', phase: 'install', done: 0, total: 0 },
-        { state: 'progress', kind: 'apk', phase: 'committed', done: 0, total: 0 }, this._updFail ? { state: 'error', kind: 'apk', error: 'Installatie afgebroken' } : this._updSilent ? null : { state: 'confirm', kind: 'apk' });
+        { state: 'progress', kind: 'apk', phase: 'committed', done: 0, total: 0 }, this._updFail ? { state: 'error', kind: 'apk', error: 'Installatie geannuleerd', klaar: '9.9' } : this._updSilent ? null : { state: 'confirm', kind: 'apk' });
+      this._apkKlaar = '9.9'; this._updDownloads = (this._updDownloads || 0) + (al ? 0 : 1);
       (this._updLog = []);
       steps.forEach((s, i) => setTimeout(() => { if (s) { this._updLog.push(s); onUpdateStatus(s); } if (i === steps.length - 1) this._upd = false; }, (this._updMs || 60) * (i + 1)));
     }, permissions:()=>JSON.stringify({call:true,phoneState:true,callLog:true,notifications:true}),
@@ -389,6 +393,17 @@ if (!window.Android) window.Android = (function(){
     kluisTekstBijwerken(){ if (!this._kl.open) return; this._klTekstStart = (this._klTekstStart || 0) + 1; const n = window.__testKluisLezen || 0; if (n) { setTimeout(() => onKluisTekst(JSON.stringify({ klaar: 0, totaal: n, bezig: true })), 10); setTimeout(() => onKluisTekst(JSON.stringify({ klaar: n, totaal: n, bezig: false })), 400); } },
     kluisList(){ return this._kl.open ? JSON.stringify({docs: this._kl.docs, left: 300000}) : '{"locked":true}'; },
     kluisAdd(){ this._kl.docs.push({id: 'k2abcdef', name: 'Polis <b>.pdf', mime: 'application/pdf', size: 1000, t: Date.now()}); setTimeout(() => onKluisChanged('ok'), 30); },
+    /* Brief scannen: de pagina's in _kl.scan (zoals KluisScan in het geheugen); bewaren maakt een PDF-document met herkomst scan */
+    kluisScanCamera(){ setTimeout(() => onKluisScanCamera(!!this._kl.open && !!window.__testCamera), 30); }, kluisScanCameraDone(){ this._kl.camDicht = (this._kl.camDicht || 0) + 1; },
+    kluisScanWis(){ this._kl.scan = []; },
+    kluisScanPagina(u){ if (!this._kl.open) return 'De kluis is weer op slot'; if (!/^data:image\/jpeg;base64,/.test(u || '')) return 'Deze foto is niet te lezen'; (this._kl.scan = this._kl.scan || []).push(u.length); return ''; },
+    kluisScanBewaar(naam, map){ const n = (this._kl.scan || []).length; this._kl.scan = []; setTimeout(() => { if (!this._kl.open || !n) { onKluisScan({ error: this._kl.open ? 'Nog geen pagina\'s' : 'De kluis is weer op slot' }); return; }
+      const id = 'ks' + Date.now().toString(36).slice(-8); this._kl.docs.push({ id, name: /\.pdf$/i.test(naam) ? naam : naam + '.pdf', mime: 'application/pdf', size: 90000 * n, t: Date.now(), category: map || '', source: 'scan' });
+      this._kl.gescand = { naam, map, paginas: n }; onKluisScan({ id, name: naam + '.pdf' }); }, 40); },
+    kluisMapHernoem(oud, nieuw){ if (!this._kl.open) return JSON.stringify({ error: 'De kluis is op slot' }); if (this._kl.error) return JSON.stringify({ error: this._kl.error }); const pad = v => String(v || '').split('/').map(x => x.trim()).filter(Boolean).join('/'), o = pad(oud), n = pad(nieuw);
+      if (n.startsWith(o + '/')) return JSON.stringify({ error: 'Een map kan niet in zichzelf' }); const mee = this._kl.docs.filter(d => { const p = pad(d.category); return p === o || p.startsWith(o + '/'); });
+      if (mee.some(d => (n + pad(d.category).slice(o.length)).length > 60)) return JSON.stringify({ error: 'Die naam is te lang voor de mappen die erin zitten' });
+      mee.forEach(d => { d.category = n + pad(d.category).slice(o.length); }); this._kl.mapHernoemd = (this._kl.mapHernoemd || 0) + 1; return JSON.stringify({ n: mee.length }); },
     kluisDelete(id){ this._kl.docs = this._kl.docs.filter(d => d.id !== id); return ''; }, kluisRename(id, n){ const d = this._kl.docs.find(x => x.id === id); if (d) d.name = n; return ''; }, kluisClose(){ this._kl.open = false; },
     /* Documentenkluis als centrale opslag: _kl.docs krijgt versions (oudste eerst), link en source zoals Kluis.java */
     kluisStore(json){const items=JSON.parse(json).items;setTimeout(()=>{if(this._kl.storeError){onKluisStored({error:this._kl.storeError});return;}const stored=[],failed=[];for(const it of items){if(!this._kl.open){failed.push({name:it.name,error:'De kluis is weer op slot'});continue;}const f=this._pdf.outs.find(o=>o.name===it.name);if(!f){failed.push({name:it.name,error:'Bestand niet gevonden'});continue;}let d;if(it.versionOf){d=this._kl.docs.find(x=>x.id===it.versionOf);if(!d){failed.push({name:it.name,error:'Document niet gevonden'});continue;}d.versions=(d.versions||[]).concat([{blob:'v'+Date.now().toString(36)+(d.versions||[]).length,t:d.t,size:d.size,name:d.name,note:d.vnote||''}]);d.size=f.size;d.t=Date.now();d.vnote=it.note||'';}else{d={id:'doc'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:it.title||it.name,mime:/\.jpg$/.test(it.name)?'image/jpeg':'application/pdf',size:f.size,t:Date.now(),category:it.category||''};if(it.source)d.source=it.source;if(it.link)d.link=it.link;this._kl.docs.push(d);}this._pdf.outs=this._pdf.outs.filter(o=>o.name!==it.name);stored.push({name:it.name,id:d.id,title:d.name,version:!!it.versionOf});}this._kl.stored=(this._kl.stored||[]).concat(items);onKluisStored({stored,failed});},40);},
@@ -1176,6 +1191,17 @@ if (!window.Android) window.Android = (function(){
         if (typeof p.reclame === 'boolean') q.reclame = p.reclame; ['intro', 'outro'].forEach(k => { const v = Math.max(0, Math.min(600, +p[k] || 0)); if (v) q[k] = v; });
         if (Object.keys(q).length) per[id] = q; });
       this._ov = { reclame: o.reclame !== false, woorden: String(o.woorden || '').slice(0, 300), per }; return ''; },
+    // Afgespeeld met de slaaptimer (PodcastSlaap); tests vullen _slp.lijst met {key, ep, pod, van, d, t, sessie, st, auto, gezien}
+    _slp: { wijze: 'vragen', plek: 'wakker', lijst: [] },
+    podSlaap(){ return JSON.stringify(this._slp); },
+    podSlaapZet(w, p){ this._slp.wijze = ['vanzelf', 'uit'].includes(w) ? w : 'vragen'; this._slp.plek = p === 'begin' ? 'begin' : 'wakker';
+      if (this._slp.wijze === 'uit') this.podSlaapOordeel(JSON.stringify(this._slp.lijst.filter(r => r.st === 'open').map(r => r.key)), 'gehoord'); },
+    podSlaapOordeel(j, st){ const keys = JSON.parse(j); let n = 0; if (!['terug', 'gehoord', 'gezien'].includes(st)) return 0;
+      this._slp.lijst.forEach(r => { if (!keys.includes(r.key)) return; n++; if (st === 'gezien') { r.gezien = true; return; }
+        const p = this._pc.prog[r.key], nuDone = !p || p.done;
+        if (st === 'terug' && nuDone) this._pc.prog[r.key] = { p: this._slp.plek === 'begin' ? 0 : r.van, d: r.d, done: false };
+        if (st === 'gehoord' && !nuDone && r.st === 'terug') this._pc.prog[r.key] = { p: 0, d: r.d, done: true };
+        r.st = st; r.auto = false; r.gezien = true; }); return n; },
     podOverslaanTerug(key, van){ const st = this._pc.st; if (!st.ep || st.ep.key !== key) return; this._pc.terug = van; st.pos = van; st.at = Date.now(); delete st.skip; },
     /* De ene speler: wie begint, neemt het over */
     _src: '', playerSrc(){ return this._src; },
@@ -1590,7 +1616,7 @@ if (!window.Android) window.Android = (function(){
     /* Elke nacht: zelf gekozen blijft; nooit gekozen = alleen met versleutelen en een backup-map (zoals AllBackup.auto) */
     _bkAuto(){ const b=this._bk; return b.auto==null ? (!!this._sec.on && !!this._wa.info.dest) : !!b.auto; },
     // Zoals AllBackup.stateJson: zonder full alleen busy, current, encrypted en last (licht, voor het pollen)
-    backupState(f){ const b=this._bk, auto=this._bkAuto(); if(!f) return JSON.stringify(Object.assign({busy:b.busy,current:b.current,encrypted:this._sec.on}, b.last?{last:b.last}:{})); return JSON.stringify({busy:b.busy,current:b.current,auto,charging:b.charging,dest:this._wa.info.dest,destName:'USB-stick',next:auto?Date.now()+5*36e5:0,parts:Object.assign({ai:false,sleep:false,checkin:false},b.parts),sleepAudio:b.sleepAudio,extra:b.extra,last:b.last,encrypted:this._sec.on,encSince:this._sec.since,rotate:this._sec.rotate,keep:this._sec.keep,space:this._sec.space,blokken:this._sec.blokken!==false,oud:this._sec.oud,herstel:this._herstelReady()}); },
+    backupState(f){ const b=this._bk, auto=this._bkAuto(); if(!f) return JSON.stringify(Object.assign({busy:b.busy,current:b.current,encrypted:this._sec.on}, b.last?{last:b.last}:{})); return JSON.stringify({busy:b.busy,current:b.current,auto,charging:b.charging,dest:this._wa.info.dest,destName:'USB-stick',next:auto?(b.next!=null?b.next:Date.now()+5*36e5):0,poging:b.poging||0,parts:Object.assign({ai:false,sleep:false,checkin:false},b.parts),sleepAudio:b.sleepAudio,extra:b.extra,last:b.last,encrypted:this._sec.on,encSince:this._sec.since,rotate:this._sec.rotate,keep:this._sec.keep,space:this._sec.space,blokken:this._sec.blokken!==false,oud:this._sec.oud,herstel:this._herstelReady()}); },
     /* Klaar voor herinstallatie (zoals Herstel.ready) */
     _herstelReady(){ const b=this._bk, h=this._hs, dest=!!this._wa.info.dest, enc=!!this._sec.on, auto=this._bkAuto(), part=b.parts.app!==false, last=b.appLast||0, miss=[];
       const blocked=h.state==='nieuw'?'Nog niet: zet eerst je gegevens terug (of kies Overslaan)':h.needPw&&!enc?'Stel eerst het wachtwoord van je backup opnieuw in (Versleutelen): na het terugzetten gaan backups alleen versleuteld verder':'';

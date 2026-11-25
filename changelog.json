@@ -1,5 +1,30 @@
 [
   {
+    "version": "1.255",
+    "date": "2026-11-25",
+    "changes": [
+      "Podcasts: afleveringen die afliepen terwijl de slaaptimer liep, kun je weer als niet beluisterd markeren (verder vanaf waar je nog wakker was). Podcasts vraagt het op Luisteren, of doet het vanzelf; in te stellen bij Instellingen van Podcasts → Na de slaaptimer.",
+      "Nieuwe app installeren: annuleer je de installatie (ook per ongeluk), dan blijft de download bewaard. Installeren installeert dan meteen, zonder opnieuw te downloaden; ook na het opnieuw openen van Tools staat \"Versie … is gedownload\" klaar"
+    ]
+  },
+  {
+    "version": "1.254",
+    "date": "2026-11-25",
+    "changes": [
+      "Documentenkluis: Brief scannen. Fotografeer een of meer pagina's met de camera in de app; Tools zoekt de hoeken van het papier (bij te stellen), zet de pagina recht, maakt de achtergrond wit en de tekst scherp, en bewaart alles als één PDF versleuteld in de kluis, in de map waar je staat. Niets komt in je galerij.",
+      "Documentenkluis: een map hernoemen gaat nu in één keer, ook met veel documenten erin; foutmeldingen zeggen \"map\" in plaats van \"categorie\"."
+    ]
+  },
+  {
+    "version": "1.253",
+    "date": "2026-11-25",
+    "changes": [
+      "Nachtelijke backup: lukte hij niet omdat Google Drive nog aan het laden was, dan probeert Tools het dezelfde nacht nog een paar keer (na een half uur, een uur en anderhalf uur) voordat je een melding krijgt; Alles back-uppen toont dan wanneer de nieuwe poging is",
+      "Nachtelijke backup naar Google Drive of een andere clouddienst wacht op een internetverbinding",
+      "Backup-map opruimen na de nachtelijke backup stopt op tijd, zodat het niet halverwege wordt afgebroken"
+    ]
+  },
+  {
     "version": "1.252",
     "date": "2026-11-24",
     "changes": [

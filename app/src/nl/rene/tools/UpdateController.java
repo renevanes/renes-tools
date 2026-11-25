@@ -30,11 +30,17 @@ final class UpdateController {
             catch (Throwable failure) { problem = "Update mislukt: " + (failure.getMessage() == null ? failure.getClass().getSimpleName() : failure.getMessage()); }
             try {
                 if ("busy".equals(problem)) MainActivity.updateStatus("{\"state\":\"busy\",\"kind\":\"apk\"}");
+                else if ("uptodate".equals(problem)) MainActivity.updateStatus("{\"state\":\"uptodate\",\"kind\":\"apk\",\"manual\":true}");
                 else if ("needs-permission".equals(problem)) {
                     MainActivity current = MainActivity.live;
                     if (current != null) current.h.post(current::openInstallSettings);
                     MainActivity.updateStatus("{\"state\":\"needs-permission\",\"kind\":\"apk\"}");
-                } else if (problem != null) MainActivity.updateStatus(error(problem).put("kind", "apk").toString());
+                } else if (problem != null) {
+                    JSONObject e = error(problem).put("kind", "apk");
+                    JSONObject klaar = Updater.klaar(context); // de bewaarde download staat er nog: alleen nog installeren
+                    if (klaar != null) e.put("klaar", klaar.optString("versionName")).put("bewaard", true);
+                    MainActivity.updateStatus(e.toString());
+                }
             } catch (Throwable ignored) { }
         }), "update-installatie").start();
     }

@@ -171,12 +171,14 @@ final class Updater {
             return r;
         }
         try {
+            klaarOpruimen(c); // een bewaarde download van een app die intussen geïnstalleerd is
             JSONObject m = fetchManifest();
             // Tijdstip altijd bewaren (anders bij elke start opnieuw); de lijst zelf alleen als hij ondertekend is,
             // want daaruit komt ook "Wat is er nieuw".
             prefs(c).edit().putLong("lastCheck", System.currentTimeMillis()).apply();
             if (!signatureOk(c, m)) throw new Exception("De updatelijst is niet goed ondertekend");
             prefs(c).edit().putString("manifest", m.toString()).apply();
+            klaarBijLijst(c, m); // een download die niet meer de nieuwste is: weg
             int code = m.getInt("versionCode");
             String name = m.getString("versionName");
             int nativeLevel = m.optInt("nativeLevel", Version.NATIVE_LEVEL);
@@ -184,6 +186,9 @@ final class Updater {
             r.put("versionCode", code);
             if (nativeLevel > Version.NATIVE_LEVEL) {
                 r.put("state", "apk");
+                // Al gedownload (dezelfde app): Installeren hoeft alleen nog te installeren
+                JSONObject k = klaar(c);
+                if (k != null && k.optString("sha256").equalsIgnoreCase(m.optString("apkSha256"))) r.put("klaar", true);
             } else if (code > webCode(c) && WebStart.afgekeurd(c).contains(code)) { // een versie die hier niet wilde starten niet opnieuw ophalen
                 r.put("state", "uptodate"); r.put("overgeslagen", true);
             } else if (code > webCode(c)) {
@@ -269,50 +274,158 @@ final class Updater {
         versions.activate(next, WebStart.afgekeurd(c));
     }
 
-    /** Downloadt de nieuwe APK en start de installatie. Geeft null of een foutmelding terug ("busy": al bezig). */
+    // ---------- de nieuwe app: downloaden, bewaren, installeren ----------
+
+    /**
+     * De gedownloade en gecontroleerde nieuwe app blijft hier staan tot hij geïnstalleerd is. Breekt Rene de
+     * installatie af (of tikt hij per ongeluk Annuleren), dan hoeft hij niet opnieuw te downloaden: Installeren gebruikt
+     * dit bestand. Alleen in de eigen map van de app (geen andere app kan erbij), en in de map die Android nooit
+     * meeneemt in een backup of bij overzetten naar een andere telefoon (getNoBackupFilesDir); onze eigen backups kijken
+     * alleen in getFilesDir(). Zo komt een klaargezette app altijd van een download op deze telefoon.
+     */
+    static final String KLAAR_DIR = "update-apk";
+    static File klaarDir(Context c) { return new File(c.getNoBackupFilesDir(), KLAAR_DIR); }
+    static File klaarApk(Context c) { return new File(klaarDir(c), "update.apk"); }
+    static File klaarMeta(Context c) { return new File(klaarDir(c), "update.json"); }
+
+    /**
+     * Wat er klaarstaat (versionCode, versionName, nativeLevel, sha256, size), of null: geen bestand, onleesbaar, of
+     * niet nieuwer dan deze app (dan al geïnstalleerd). Controleert het controlegetal niet (dat gebeurt bij installeren).
+     */
+    static JSONObject klaar(Context c) {
+        try {
+            File a = klaarApk(c), m = klaarMeta(c);
+            if (!a.isFile() || !m.isFile() || m.length() > 10_000) return null;
+            JSONObject o = new JSONObject(new String(readAll(new java.io.FileInputStream(m)), StandardCharsets.UTF_8));
+            return klaarGeldig(o, a.length(), Version.NATIVE_LEVEL) ? o.put("size", a.length()) : null;
+        } catch (Exception e) { return null; }
+    }
+
+    /** Hoort de beschrijving bij een nieuwere app dan deze en klopt de grootte? Zuiver (getest in UpdaterKlaarTest). */
+    static boolean klaarGeldig(JSONObject o, long size, int nativeLevel) {
+        return o != null && o.optString("sha256").matches("[0-9a-f]{64}") && o.optInt("nativeLevel") > nativeLevel
+                && validName(o.optString("versionName")) && o.optInt("versionCode") > 0 && size > 0 && size <= MAX_APK && size == o.optLong("bytes", -1);
+    }
+
+    /** Weg met wat er klaarstaat (na installeren, of als er een nieuwere versie is). */
+    static void klaarWeg(Context c) {
+        klaarMeta(c).delete(); // eerst de beschrijving: zonder beschrijving telt het bestand niet meer
+        klaarApk(c).delete();
+        new File(klaarApk(c).getPath() + ".part").delete();
+        new File(klaarMeta(c).getPath() + ".tmp").delete();
+    }
+
+    /** Bij een controle: is de bewaarde app intussen geïnstalleerd (of onbruikbaar), dan weg. Niet tijdens een download. */
+    static void klaarOpruimen(Context c) {
+        try {
+            if (APK_BUSY.get() || !klaarDir(c).isDirectory()) return;
+            if (klaar(c) == null) klaarWeg(c);
+        } catch (Throwable ignored) { }
+    }
+
+    /**
+     * Na een ondertekende updatelijst: staat er een download klaar die niet meer de nieuwste is (andere app, of deze app
+     * is al zo nieuw), dan weg; anders blijft de balk "is gedownload" staan en blokkeert hij interface-updates.
+     */
+    static void klaarBijLijst(Context c, JSONObject m) {
+        try {
+            if (APK_BUSY.get()) return;
+            JSONObject k = klaar(c);
+            if (k == null) return;
+            if (m.optInt("nativeLevel", 0) <= Version.NATIVE_LEVEL || !k.optString("sha256").equalsIgnoreCase(m.optString("apkSha256"))) klaarWeg(c);
+        } catch (Throwable ignored) { }
+    }
+
+    /**
+     * Downloadt de nieuwe APK (of gebruikt de al gedownloade) en start de installatie. Geeft null of een foutmelding
+     * terug ("busy": al bezig).
+     */
     static String downloadAndInstall(Context c, Progress pr) {
         if (viaPlay(c)) return "Updates komen via Google Play";
         if (!APK_BUSY.compareAndSet(false, true)) return "busy";
-        File apk = null;
         try {
             pr.step("start", 0, 0);
-            JSONObject m = fetchManifest();
             if (Build.VERSION.SDK_INT >= 26 && !c.getPackageManager().canRequestPackageInstalls()) {
                 return "needs-permission";
             }
-            String sha = m.optString("apkSha256", "");
-            if (!sha.matches("(?i)[0-9a-f]{64}") || !signatureOk(c, m)) return "De update is niet ondertekend; niet geïnstalleerd";
-            apk = File.createTempFile("tools-update-", ".apk", c.getCacheDir());
+            JSONObject bewaard = klaar(c);
+            JSONObject m;
+            try { m = fetchManifest(); }
+            catch (java.io.IOException offline) {
+                // Geen verbinding (geen antwoord van de server), maar de nieuwe app staat al klaar: gewoon installeren.
+                // Een fout antwoord (HTTP-fout, onleesbare lijst) telt niet: dan eerst een goede updatelijst.
+                if (bewaard != null) return installeer(c, bewaard, pr);
+                throw offline;
+            }
+            String sha = m.optString("apkSha256", "").toLowerCase(java.util.Locale.ROOT);
+            if (!sha.matches("[0-9a-f]{64}") || !signatureOk(c, m)) return "De update is niet ondertekend; niet geïnstalleerd";
+            if (m.optInt("nativeLevel", 0) <= Version.NATIVE_LEVEL) { klaarWeg(c); return "uptodate"; }
+            // Al gedownload (dezelfde app als in de updatelijst): niet opnieuw
+            if (bewaard != null && sha.equals(bewaard.optString("sha256"))) return installeer(c, bewaard, pr);
+            klaarWeg(c); // een oudere download: weg, de nieuwste ophalen
+            if (!validName(m.optString("versionName"))) return "Onverwachte versienaam; niet geïnstalleerd";
+            File dir = klaarDir(c);
+            if (!dir.isDirectory() && !dir.mkdirs()) return "Update mislukt: geen ruimte voor de download";
+            File part = new File(klaarApk(c).getPath() + ".part");
             String actual = download(m.optString("_base", Version.UPDATE_BASE) + m.optString("apk", "Renes-Tools.apk")
-                    + "?v=" + m.getInt("versionCode"), apk, pr, MAX_APK);
+                    + "?v=" + m.getInt("versionCode"), part, pr, MAX_APK);
             pr.step("check", 0, 0);
-            if (!sha.equalsIgnoreCase(actual)) return "Controlegetal van de download klopt niet";
-            pr.step("install", 0, 0);
-
-            PackageInstaller pi = c.getPackageManager().getPackageInstaller();
-            PackageInstaller.SessionParams p = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
-            p.setAppPackageName(c.getPackageName());
-            if (Build.VERSION.SDK_INT >= 31) p.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
-            int id = pi.createSession(p);
-            try {
-                try (PackageInstaller.Session s = pi.openSession(id)) {
-                    try (InputStream in = new java.io.FileInputStream(apk); OutputStream o = s.openWrite("base.apk", 0, apk.length())) {
-                        byte[] buffer = new byte[1 << 16]; int count;
-                        while ((count = in.read(buffer)) != -1) if (count > 0) o.write(buffer, 0, count);
-                        s.fsync(o);
-                    }
-                    Intent back = new Intent(c, MainActivity.class).setAction(MainActivity.ACTION_INSTALL_STATUS)
-                            .putExtra("tok", App.token(c)).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                    int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
-                    PendingIntent pend = PendingIntent.getActivity(c, 7, back, fl);
-                    s.commit(pend.getIntentSender());
-                }
-            } catch (Exception | Error e) { try { pi.abandonSession(id); } catch (Exception ignored) { } throw e; }
-            pr.step("committed", 0, 0);
-            return null;
+            if (!sha.equalsIgnoreCase(actual)) { part.delete(); return "Controlegetal van de download klopt niet"; }
+            JSONObject meta = new JSONObject().put("versionCode", m.getInt("versionCode")).put("versionName", m.getString("versionName"))
+                    .put("nativeLevel", m.getInt("nativeLevel")).put("sha256", sha).put("bytes", part.length()).put("t", System.currentTimeMillis());
+            // Eerst het bestand op zijn plek, als laatste de beschrijving: pas met beschrijving telt de download als klaar
+            File metaTmp = new File(klaarMeta(c).getPath() + ".tmp");
+            try (FileOutputStream o = new FileOutputStream(metaTmp)) { o.write(meta.toString().getBytes(StandardCharsets.UTF_8)); o.getFD().sync(); }
+            if (!part.renameTo(klaarApk(c)) || !metaTmp.renameTo(klaarMeta(c))) { klaarWeg(c); return "Update mislukt: de download kon niet bewaard worden"; }
+            JSONObject k = klaar(c);
+            if (k == null) { klaarWeg(c); return "Update mislukt: de download kon niet bewaard worden"; }
+            return installeer(c, k, pr);
         } catch (Exception e) {
             return "Update mislukt: " + e.getMessage();
-        } finally { if (apk != null) apk.delete(); APK_BUSY.set(false); }
+        } finally { APK_BUSY.set(false); }
+    }
+
+    /**
+     * De bewaarde app installeren: het controlegetal wordt berekend over precies de bytes die naar de pakketinstaller
+     * gaan; klopt het niet, dan wordt de installatie niet aangeboden (en de bewaarde download weggegooid).
+     */
+    private static String installeer(Context c, JSONObject k, Progress pr) throws Exception {
+        File apk = klaarApk(c);
+        pr.step("install", 0, 0);
+        PackageInstaller pi = c.getPackageManager().getPackageInstaller();
+        PackageInstaller.SessionParams p = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+        p.setAppPackageName(c.getPackageName());
+        if (Build.VERSION.SDK_INT >= 31) p.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
+        int id = pi.createSession(p);
+        try {
+            try (PackageInstaller.Session s = pi.openSession(id)) {
+                MessageDigest d = MessageDigest.getInstance("SHA-256");
+                long n = 0;
+                try (InputStream in = new java.io.FileInputStream(apk); OutputStream o = s.openWrite("base.apk", 0, apk.length())) {
+                    byte[] buffer = new byte[1 << 16]; int count;
+                    while ((count = in.read(buffer)) != -1) if (count > 0) { d.update(buffer, 0, count); o.write(buffer, 0, count); n += count; }
+                    s.fsync(o);
+                }
+                if (n != k.optLong("bytes", -1) || !k.optString("sha256").equals(hex(d.digest()))) {
+                    try { pi.abandonSession(id); } catch (Exception ignored) { }
+                    klaarWeg(c);
+                    return "De bewaarde download klopt niet meer; tik opnieuw op Installeren om hem opnieuw te downloaden";
+                }
+                Intent back = new Intent(c, MainActivity.class).setAction(MainActivity.ACTION_INSTALL_STATUS)
+                        .putExtra("tok", App.token(c)).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+                PendingIntent pend = PendingIntent.getActivity(c, 7, back, fl);
+                s.commit(pend.getIntentSender());
+            }
+        } catch (Exception | Error e) { try { pi.abandonSession(id); } catch (Exception ignored) { } throw e; }
+        pr.step("committed", 0, 0);
+        return null;
+    }
+
+    static String hex(byte[] h) {
+        StringBuilder sb = new StringBuilder();
+        for (byte x : h) sb.append(String.format(java.util.Locale.ROOT, "%02x", x));
+        return sb.toString();
     }
 
     // ---------- hulpfuncties ----------
