@@ -345,9 +345,11 @@ final class MasterStore {
                 }
                 if(!bewaard){
                     // Iedereen die er woont heeft al een ander nummer: het nummer in de naam in het overzicht, zodat het niet weg is
-                    String l=vol.getString("label")+" · "+tel;
-                    if(l.length()<=120){vol.put("label",l);inNaam++;weg0=true;}
-                    else App.log(c,"STAMGEGEVENS","adressen: telefoon past niet in de naam");
+                    // (een lange naam wordt ingekort; het nummer blijft altijd helemaal staan, telefoon is hooguit 240 tekens)
+                    String naam=vol.getString("label"),t=tel.length()>100?tel.substring(0,100):tel;
+                    int ruimte=120-3-t.length();
+                    vol.put("label",(naam.length()>ruimte?naam.substring(0,ruimte).trim():naam)+" · "+t);inNaam++;weg0=true;
+                    if(t.length()<tel.length())App.log(c,"STAMGEGEVENS","adressen: telefoon ingekort tot 100 tekens"); // geen echt nummer
                 }
                 JSONArray weg=new JSONArray();
                 for(String veld:new String[]{"naam","telefoon"})if(vf.has(veld)){vf.remove(veld);weg.put(veld);}

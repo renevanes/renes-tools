@@ -106,7 +106,7 @@ final class MasterSchema {
         for(String k:allowed){
             boolean alias=!"reis".equals(record.getString("type"))&&("instelling".equals(k)||"accommodatie".equals(k));String value=fields.optString(alias?"naam":k);
             // Een adres heeft geen naam-veld: een eigen naam (Andere naam, bijv. "Camping De Zon") is de accommodatie, de automatische niet
-            if("adres".equals(record.getString("type"))&&"accommodatie".equals(k)){String l=record.optString("label").trim();value=l.equals(MasterAdressen.label(fields))?"":l;}
+            if("adres".equals(record.getString("type"))&&"accommodatie".equals(k)){String l=record.optString("label").trim();value=l.equals(MasterAdressen.label(fields))||l.equals(fields.optString("adres").trim())?"":l;}
             if(!value.isEmpty())out.put(k,value);
         }
         return out;
