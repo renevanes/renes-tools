@@ -61,7 +61,8 @@ public class MasterBridge extends BankBridge {
     }
     /**
      * Een bestand uit de kluis kiezen terwijl Stamgegevens open is: het ontgrendelen van de kluis (slotscherm, vraag van Android)
-     * mag Stamgegevens niet op slot zetten. Hooguit MASTER_PICK_MS, en alleen als de app uit beeld ging voor die vraag (MainActivity.onPause).
+     * mag Stamgegevens niet op slot zetten. Hooguit MASTER_PICK_MS, en alleen als de app uit beeld ging voor het scherm van
+     * Android om te ontgrendelen (MainActivity.onPause, bevestigOpen); elke andere keer uit beeld = op slot zoals altijd.
      */
     @JavascriptInterface public void masterBuiten(String token,String kind){
         if(!"kluis".equals(kind))return;

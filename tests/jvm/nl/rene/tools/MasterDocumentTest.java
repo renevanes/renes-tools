@@ -79,6 +79,15 @@ public final class MasterDocumentTest {
         check(DocumentFotos.kaartVlakken(new boolean[pw * ph], pw, ph).isEmpty(), "lege pagina");
         check(DocumentFotos.paginaVorm(2480, 3508) && DocumentFotos.paginaVorm(3508, 2480) && DocumentFotos.paginaVorm(1275, 1650), "A4 en Letter");
         check(!DocumentFotos.paginaVorm(1600, 1009) && !DocumentFotos.paginaVorm(700, 990), "kaart, of klein");
+        check(!DocumentFotos.paginaVorm(4000, 3000) && !DocumentFotos.paginaVorm(3000, 4500), "foto van een camera (4:3, 3:2) is geen pagina");
+        // Een dichte alinea (regels dicht op elkaar) in kaartverhouding: geen kaart (lege rijen tussen de regels)
+        boolean[] alinea = new boolean[pw * ph];
+        for (int l = 0; l < 22; l++) for (int xx = 100; xx < 400; xx++) for (int yy = 300 + l * 8; yy < 304 + l * 8; yy++) alinea[yy * pw + xx] = xx % 5 != 0;
+        check(DocumentFotos.kaartVlakken(alinea, pw, ph).isEmpty(), "dichte alinea is geen kaart");
+        // Meer dan twee vlakken: eerder iets anders (een fotoblad), geen kaarten
+        boolean[] drie = new boolean[pw * ph];
+        for (int k = 0; k < 3; k++) for (int yy = 40 + k * 260; yy < 40 + k * 260 + 150; yy++) for (int xx = 100; xx < 340; xx++) drie[yy * pw + xx] = true;
+        check(DocumentFotos.kaartVlakken(drie, pw, ph).isEmpty(), "drie vlakken: geen kaarten");
         // Is het een PDF of een zip (Word)?
         check(DocumentFotos.pdf("%PDF-1.7".getBytes()) && !DocumentFotos.pdf("PK".getBytes()) && !DocumentFotos.pdf(null), "PDF herkend");
         check(DocumentFotos.zip(new byte[]{'P', 'K', 3, 4}) && !DocumentFotos.zip("%PDF-".getBytes()), "zip herkend");

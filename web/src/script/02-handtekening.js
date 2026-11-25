@@ -199,7 +199,7 @@ function sigFoto(){
     voorKluis:master?()=>Android.masterBuiten(cm.token,'kluis'):null});
 }
 function sigFotoKies(){
-  if(!sig.dlg||sig.kiezen||sig.bezig)return;
+  if(!sig.dlg||sig.kiezen||sig.bezig){try{Android.bronVolgende('','');}catch(e){}return;}
   sig.kiezen=sig.dlg;$('#sig-fout').textContent='';$('#sig-status').textContent=t('Kies een foto of scan van je handtekening…');sigBezig(false);
   const token=typeof cm!=='undefined'&&typeof cmOpen==='function'&&cmOpen()?cm.token:'';
   try{Android.pdfSignaturePick(token||'');}catch(e){sig.kiezen=null;$('#sig-status').textContent='';$('#sig-fout').textContent=t('Bestandskiezer niet beschikbaar');}

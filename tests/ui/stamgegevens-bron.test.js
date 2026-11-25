@@ -27,7 +27,7 @@ for(const colorScheme of ['light','dark']){
   assert.deepEqual(await keuzes(),['Bestand op de telefoon','Uit de documentenkluis','Uit Gemaakt (PDF-tools)']);
   await kies('Uit de documentenkluis');await p.waitForFunction(()=>$('#sheet-title').textContent==='Uit de documentenkluis');
   assert.deepEqual(await keuzes(),['Brief.docx','Bon.jpg','Paspoort.pdf'],'foto, PDF en Word; geen boek');
-  assert.deepEqual(await p.evaluate(()=>Android._cm.buiten.map(x=>[x[0]===cm.token,x[1]])),[[true,'kluis']],'Stamgegevens blijft open tijdens het ontgrendelen van de kluis');
+  assert.equal(await p.evaluate(()=>(Android._cm.buiten||[]).length),0,'de kluis was al open: geen venster om open te blijven');
   await p.evaluate(()=>Android._cm.photoDelay=4000);
   await kies('Paspoort.pdf');
   assert.equal(await p.evaluate(()=>Android._bronKiezer),'stamgegevens');
@@ -46,6 +46,16 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.evaluate(()=>cmOpen()),true);assert.equal(await p.isVisible('#modal-ok'),false,'venster dicht');
   await p.waitForTimeout(4200);assert.equal(await p.evaluate(()=>current),'cmkaart','een late uitkomst doet niets meer');
   assert.equal(await p.isVisible('#modal'),false);
+  // Terug tijdens het wachten = annuleren; het gedeelde venster werkt daarna weer gewoon (OK, geen balk)
+  await p.evaluate(()=>Android._cm.photoDelay=4000);await p.click('#cmc-doc-add');await kies('Identiteitskaart');
+  await p.waitForFunction(()=>$('#sheet-title').textContent==='Identiteitskaart');await kies('Foto of document kiezen');await kies('Bestand op de telefoon');
+  await p.waitForFunction(()=>$('#modal.on')&&!$('#cmh-wacht').hidden);
+  await p.evaluate(()=>goBack());await p.waitForFunction(()=>!$('#modal.on')&&!cmi.photoRequest);
+  assert.equal(await p.evaluate(()=>cmOpen()&&current==='cmkaart'),true,'terug sloot alleen het venster');
+  await p.evaluate(()=>askConfirm('Vraag','Tekst','Ja',()=>{window.__ja=1;}));
+  assert.equal(await p.isVisible('#modal-ok'),true);assert.equal(await p.isVisible('#cmh-wacht'),false);
+  await p.click('#modal-ok');assert.equal(await p.evaluate(()=>window.__ja),1);
+  await p.waitForTimeout(4200);assert.equal(await p.isVisible('#modal'),false,'de late uitkomst sluit geen ander venster');
   // Klaar: het venster gaat vanzelf dicht
   await p.evaluate(()=>Android._cm.photoDelay=300);await p.click('#cmc-doc-add');await kies('Identiteitskaart');
   await p.waitForFunction(()=>$('#sheet-title').textContent==='Identiteitskaart');await kies('Foto of document kiezen');await kies('Bestand op de telefoon');
@@ -63,7 +73,7 @@ for(const colorScheme of ['light','dark']){
   await kies('Uit de documentenkluis');await p.waitForSelector('#toolslot.on');assert.equal(await p.textContent('#ts-naam'),'Kluis');
   await p.click('#ts-open');await p.waitForFunction(()=>$('#sheet.on')&&$('#sheet-title').textContent==='Uit de documentenkluis');
   assert.deepEqual(await keuzes(),['Bon.jpg']);assert.equal(await p.evaluate(()=>cmOpen()&&current==='cmkaart'),true);
-  assert.equal(await p.evaluate(()=>Android._cm.buiten.length),2);await p.evaluate(()=>closeSheet());
+  assert.deepEqual(await p.evaluate(()=>Android._cm.buiten.map(x=>[x[0]===cm.token,x[1]])),[[true,'kluis']],'Stamgegevens blijft open tijdens het ontgrendelen van de kluis');await p.evaluate(()=>closeSheet());
 
   // 4. De handtekening: het menu ligt boven het venster
   await p.evaluate(()=>sigTeken({}));await p.waitForSelector('#sigdlg.on');await p.click('#sig-foto');await p.waitForSelector('#sheet.on');

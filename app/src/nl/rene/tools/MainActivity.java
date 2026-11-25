@@ -648,10 +648,13 @@ public class MainActivity extends Activity {
         if (viewer) intent.putExtra(PdfViewActivity.EXTRA_IN_APP, PdfViewActivity.TOKEN);
         if (!external && (requestCode >= 0 || viewer) && !isSolo()) Lock.internalNav = true; // startActivity naar een andere app (delen) heeft -1: dat is weggaan
         boolean wasEigen = eigenScherm;
+        if (requestCode == Lock.REQ_CONFIRM) bevestigOpen = true;
         if (!external && (requestCode >= 0 || viewer) && requestCode != Lock.REQ_CONFIRM) eigenScherm = true; // de vraag om te ontgrendelen: zie onStop
         try { super.startActivityForResult(intent, requestCode, options); }
-        catch (RuntimeException e) { eigenScherm = wasEigen; throw e; }
+        catch (RuntimeException e) { eigenScherm = wasEigen; if (requestCode == Lock.REQ_CONFIRM) bevestigOpen = false; throw e; }
     }
+    /** Het scherm van Android om te ontgrendelen (Lock.REQ_CONFIRM) staat open: zie onPause (kluis kiezen vanuit Stamgegevens). */
+    volatile boolean bevestigOpen;
 
     /** Wat de volgende bestandskiezer van dit venster krijgt (Bron.bronVolgende); null = de kiezer van Android. */
     volatile Bron.Wacht bronWacht;
@@ -698,7 +701,7 @@ public class MainActivity extends Activity {
             onActivityResult(req, d != null ? RESULT_OK : RESULT_CANCELED, d);
             // Er was geen kiezer van Android (geen onResume): het venster van Stamgegevens om open te blijven nu sluiten,
             // anders blijft Stamgegevens nog even open als je de app verlaat
-            if (masterPickUntil != 0 && !"kluis".equals(masterPickKind)) { masterPickUntil = 0; masterPickReturned = false; masterPickKind = ""; }
+            if (masterPickUntil != 0 && !"kluis".equals(masterPickKind)) { masterPickUntil = 0; masterPickReturned = false; masterPickKind = ""; if (!masterForeground) suspendMaster(false); }
         });
     }
 
@@ -789,8 +792,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
-        // Een bestand uit de kluis kiezen: alleen de vraag om te ontgrendelen (van Android) mag Stamgegevens open laten, niet de app verlaten
-        if("kluis".equals(masterPickKind)&&masterPicking()&&Lock.authBusy)masterPickReturned=true;
+        // Een bestand uit de kluis kiezen: alleen het scherm van Android om te ontgrendelen (pincode, patroon) mag Stamgegevens
+        // open laten; de vingerafdrukvraag laat de app niet uit beeld gaan, dus elke andere onPause is de app verlaten.
+        if("kluis".equals(masterPickKind)&&masterPicking()){if(bevestigOpen&&Lock.busy())masterPickReturned=true;else{masterPickUntil=0;masterPickKind="";masterPickReturned=false;}}
         visible = false; masterForeground=false; if(!masterPicking())suspendMaster(false);
         // Bankzaken gaat op slot zodra de app uit beeld gaat (niet tijdens bestanden kiezen of de vraag om te ontgrendelen)
         synchronized (bankAuth) {
@@ -1188,7 +1192,7 @@ public class MainActivity extends Activity {
             js(herstel ? "onHerstelFolder" : "onWaChanged", "");
             return;
         }
-        if (req == Lock.REQ_CONFIRM) { Lock.onConfirmResult(res == RESULT_OK); return; }
+        if (req == Lock.REQ_CONFIRM) { bevestigOpen = false; Lock.onConfirmResult(res == RESULT_OK); return; }
         if (req == VpnBridge.REQ_VPN) {
             if (res == RESULT_OK) {
                 String r = Vpn.start(getApplicationContext(), vpnPending, "app");

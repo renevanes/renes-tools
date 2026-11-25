@@ -217,7 +217,8 @@ final class DocumentFotos {
     static boolean paginaVorm(int w, int h) {
         if (w < 1 || h < 1 || Math.max(w, h) < 1000) return false;
         double r = (double) Math.max(w, h) / Math.min(w, h);
-        return r > 1.25 && r < 1.50;
+        // A4 (1,414) of Letter (1,294); een foto van een camera (4:3 = 1,333, 3:2) niet
+        return Math.abs(r - 1.414) < 0.035 || Math.abs(r - 1.294) < 0.035;
     }
 
     /** Werkmaat voor het zoeken naar kaarten (langste zijde). */
@@ -226,7 +227,8 @@ final class DocumentFotos {
     /**
      * Rechthoeken zo groot als een kaart op een pagina (in de coördinaten van het raster): vlakken van "inkt" (niet-wit of
      * gekleurd) in de verhouding van een ID-kaart (1,59; tussen 1,3 en 1,9, staand of liggend), goed gevuld en dicht (een kaart
-     * heeft een gekleurde achtergrond, een alinea tekst niet). Hooguit 4, van boven naar beneden en van links naar rechts.
+     * heeft een gekleurde achtergrond en geen lege rijen tussen regels, een alinea tekst wel). Hooguit 2 (voor- en achterkant),
+     * van boven naar beneden en van links naar rechts.
      * inkt: wat donker of gekleurd is (rij voor rij). Zuiver, getest.
      */
     static List<int[]> kaartVlakken(boolean[] inkt, int w, int h) {
@@ -270,12 +272,18 @@ final class DocumentFotos {
             if (verhouding < 1.3 || verhouding > 1.9) continue;
             if (vlak < pagina * 0.03 || vlak > pagina * 0.6) continue;
             if (punten < vlak * 0.8) continue; // een rechthoek, geen losse vorm
-            int echt = 0;
-            for (int y = y0; y <= y1; y++) for (int x = x0; x <= x1; x++) if (inkt[y * w + x]) echt++;
+            int echt = 0, leeg = 0;
+            for (int y = y0; y <= y1; y++) {
+                int inRij = 0;
+                for (int x = x0; x <= x1; x++) if (inkt[y * w + x]) inRij++;
+                echt += inRij;
+                if (inRij * 50 < bw) leeg++; // (bijna) lege rij: de ruimte tussen twee regels tekst
+            }
             if (echt < vlak * 0.35) continue; // een kaart met een achtergrond, geen alinea tekst
+            if (leeg * 100 > bh * 12) continue; // een alinea tekst: veel lege rijen tussen de regels; een kaart heeft die niet
             uit.add(new int[]{x0, y0, bw, bh});
         }
-        if (uit.size() > 4) return new ArrayList<>();
+        if (uit.size() > 2) return new ArrayList<>(); // voorkant en achterkant; meer is eerder iets anders dan kaarten
         uit.sort((a, b) -> Math.abs(a[1] - b[1]) > Math.min(a[3], b[3]) / 2 ? Integer.compare(a[1], b[1]) : Integer.compare(a[0], b[0]));
         return uit;
     }
@@ -292,10 +300,16 @@ final class DocumentFotos {
             try {
                 int[] px = new int[w * h];
                 klein.getPixels(px, 0, w, 0, 0, w, h);
+                // De achtergrond van het papier (een scan is niet altijd wit): de lichtste 10% van de pagina
+                int[] tel = new int[256];
+                for (int c : px) tel[((c >> 16 & 255) * 30 + (c >> 8 & 255) * 59 + (c & 255) * 11) / 100]++;
+                int papier = 255;
+                for (int som = 0; papier > 0 && (som += tel[papier]) < px.length / 10; ) papier--;
+                int grens = Math.min(238, papier - 18);
                 for (int i = 0; i < px.length; i++) {
                     int c = px[i], rr = (c >> 16) & 255, gg = (c >> 8) & 255, bb = c & 255;
                     int luma = (rr * 30 + gg * 59 + bb * 11) / 100, kleur = Math.max(rr, Math.max(gg, bb)) - Math.min(rr, Math.min(gg, bb));
-                    inkt[i] = luma < 238 || kleur > 25;
+                    inkt[i] = luma < grens || kleur > 25;
                 }
             } finally { if (klein != b) klein.recycle(); }
             for (int[] v : kaartVlakken(inkt, w, h)) {

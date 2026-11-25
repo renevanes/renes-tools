@@ -67,6 +67,8 @@ function askChoice(title, text, okLabel, otherLabel, onOk, onOther){
 }
 function openModal(title, text, inputVal, okLabel, cb){
   _modalCb = cb;
+  // Wat een eigen venster op dit gedeelde venster zette (Stamgegevens: wachten), staat weer gewoon
+  $('#modal-ok').style.display = ''; const wacht = $('#cmh-wacht'); if (wacht && !wacht.hidden) uiWacht(wacht, '');
   const mc = $('#modal-cancel'); mc.textContent = 'Annuleren'; mc.onclick = () => closeModal(null);
   $('#modal-title').textContent = title || '';
   $('#modal-text').textContent = text || '';

@@ -55,7 +55,7 @@ function bronKies(o){
 }
 function bronLijst(o, titel, acts){ openSheet(titel, '', acts, o.weg); }
 function bronUitKluis(o){
-  if (o.voorKluis) try { o.voorKluis(); } catch (e) {}
+  if (o.voorKluis && rdJson(Android.kluisList(), { locked: true }).locked) try { o.voorKluis(); } catch (e) {} // alleen als er ontgrendeld moet worden
   klMetKluis(docs => {
     const lijst = docs.filter(d => bronPast(o, d.name, d.mime)).sort((a, b) => (b.t || 0) - (a.t || 0));
     if (!lijst.length) { toast(t('Niets passends in de documentenkluis')); klDichtBuiten(); if (o.weg) o.weg(); return; }

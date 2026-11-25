@@ -13,7 +13,7 @@ function cmhScanPick(person,soort=''){
  * ontgrendelen daarvan zet Stamgegevens niet op slot (masterBuiten). Ging Stamgegevens intussen dicht: niets klaar laten staan. */
 function cmBron(titel,soort,start){
   bronKies({titel,soort,kiezer:'stamgegevens',zonder:['factuur'],voorKluis:()=>{if(cmOpen())Android.masterBuiten(cm.token,'kluis');},
-    bestand:()=>{if(!cmOpen()||cmi.photoRequest){try{Android.bronVolgende('','');}catch(e){}return;}start();}});
+    bestand:()=>{if(!cmOpen()||cmi.photoRequest){try{Android.bronVolgende('','');}catch(e){}if(!cmOpen())toast(t('Ontgrendel de stamgegevens opnieuw'));return;}start();}});
 }
 function cmhPendingText(){
   $('#cmi-photo-pending-text').textContent=cmh.scanning?t('Een bestand is gekozen. Na ontgrendelen zoekt de app daarin naar de gegevens van het ID-bewijs.'):t('Een kaartfoto is gekozen. Na ontgrendelen wordt hij bij het document opgeslagen. Je vorige bewerking is bij het verlaten van de app gewist.');
@@ -41,19 +41,22 @@ function cmhPhotoReady(){cmh.photoBusy=false;cmBusy(false);cmhWachtDicht();}
 /* Een document of de gekozen foto's verwerken duurt even: een venster met wat er gebeurt en een balk (de stappen komen van Java
  * via onVoortgang, soort kaartfoto), met Annuleren. Zolang dit open is geen balk onderin. */
 function cmhWacht(titel,tekst){
-  const m=$('#modal');cmh.wacht=true;
-  $('#modal-title').textContent=titel;$('#modal-text').textContent='';$('#modal-text').style.display='none';
-  $('#modal-input').style.display='none';$('#modal-ok').style.display='none';$('#cmh-keuze').hidden=true;
-  const c=$('#modal-cancel');c.textContent=t('Annuleren');c.style.display='';
-  c.onclick=()=>{cmhWachtDicht();cmhPhotoReady();cmiPhotoCancel();cmNote(t('Geannuleerd'));};
-  uiWacht($('#cmh-wacht'),tekst);m.classList.add('on');dialogFocus.sync(c);
+  if(cmhWachtBij()){$('#modal-title').textContent=titel;uiWacht($('#cmh-wacht'),tekst);return;}
+  // Het gedeelde venster: Annuleren, terug en buiten tikken lopen allemaal via closeModal → opruimen. Annuleren met de hand
+  // breekt het werk af; ging Stamgegevens vanzelf op slot, dan gaat het werk door (bewaard na ontgrendelen).
+  openModal(titel,'',null,'OK',()=>{
+    const open=cmh.wacht;cmhWachtWeg();
+    if(open&&cmOpen()&&cmi.photoRequest){cmhPhotoReady();cmiPhotoCancel();cmNote(t('Geannuleerd'));}
+  });
+  $('#modal-ok').style.display='none';$('#cmh-keuze').hidden=true;cmh.wacht=true;
+  uiWacht($('#cmh-wacht'),tekst);dialogFocus.sync($('#modal-cancel'));
 }
-function cmhWachtDicht(){
-  if(!cmh.wacht)return;cmh.wacht=false;uiWacht($('#cmh-wacht'),'');
-  $('#modal').classList.remove('on');$('#modal-ok').style.display='';$('#modal-cancel').onclick=()=>closeModal(null);dialogFocus.sync();
-}
+function cmhWachtWeg(){cmh.wacht=false;uiWacht($('#cmh-wacht'),'');$('#modal-ok').style.display='';}
+// Nam een ander venster het gedeelde venster over (openModal haalt de balk weg), dan dat venster laten staan
+function cmhWachtBij(){return cmh.wacht&&!$('#cmh-wacht').hidden&&$('#modal').classList.contains('on');}
+function cmhWachtDicht(){if(!cmh.wacht)return;const bij=cmhWachtBij();cmh.wacht=false;if(bij)closeModal(null);}
 uiVgEigen.kaartfoto=r=>{
-  if(!cmh.wacht)return false;
+  if(!cmhWachtBij())return false;
   if(r.klaar)return true;
   const deel=r.totaal>0&&r.stap!=='verwerken'&&r.stap!=='omzetten'?Math.min(1,r.gedaan/r.totaal):undefined;
   uiWacht($('#cmh-wacht'),uiVgStand(r)||t('Verwerken…'),deel);return true;
