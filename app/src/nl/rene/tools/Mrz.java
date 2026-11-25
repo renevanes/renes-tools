@@ -93,10 +93,22 @@ final class Mrz {
         int valid(){return (docOk?1:0)+(birthOk?1:0)+(expiryOk?1:0)+(compositeOk?1:0);}
         /** Gemiddelde afwijking per teken waarboven een lezing te onzeker is (gemeten op de testbeelden: goed 2–6, onzin 15+). */
         static final double LIMIT=10;
-        /** Bruikbaar: de tekens lijken echt op OCR-B en documentnummer, geboortedatum en vervaldatum kloppen met hun controlecijfer. */
-        boolean usable(){return mean<LIMIT&&docOk&&birthOk&&expiryOk;}
+        /**
+         * Een strook in een afwijkend lettertype (zoals de gelaserde strook van een Nederlands paspoort) lijkt minder op OCR-B,
+         * maar de tekens kunnen toch goed gelezen zijn. Dan telt de lezing alleen als de drie controlecijfers kloppen zonder
+         * dat er iets verbeterd is (bij toeval één op de duizend), en tot deze afwijking (onzin zonder kloppende cijfers: 15+).
+         */
+        static final double LIMIT_CONTROLE=40;
+        /** Bruikbaar: documentnummer, geboortedatum en vervaldatum kloppen met hun controlecijfer, en de tekens lijken op OCR-B
+         * (of, in een afwijkend lettertype, de drie controlecijfers kloppen zonder verbetering). */
+        boolean usable(){
+            if(!docOk||!birthOk||!expiryOk)return false;
+            return mean<LIMIT||mean<LIMIT_CONTROLE&&!repaired.contains("doc")&&!repaired.contains("birth")&&!repaired.contains("expiry");
+        }
+        /** Gelezen in een afwijkend lettertype: wat geen controlecijfer heeft (namen, landen) is dan niet zeker. */
+        boolean afwijkend(){return mean>=LIMIT;}
         /** Zeker: alles klopt zonder dat er iets verbeterd hoefde te worden. */
-        boolean sure(){return usable()&&compositeOk&&extraOk&&repaired.isEmpty();}
+        boolean sure(){return usable()&&!afwijkend()&&compositeOk&&extraOk&&repaired.isEmpty();}
         String line(int i){return new String(text[i]);}
     }
 
@@ -232,6 +244,8 @@ final class Mrz {
         // Velden die met de tweede keus zijn verbeterd: niet vooraf aanvinken.
         org.json.JSONArray twijfel=new org.json.JSONArray();
         if(r.repaired.contains("doc"))twijfel.put("document");if(r.repaired.contains("birth"))twijfel.put("geboortedatum");if(r.repaired.contains("expiry"))twijfel.put("geldig");
+        // Afwijkend lettertype: wat geen controlecijfer heeft, is een voorstel om na te kijken (niet vooraf aangevinkt)
+        if(r.afwijkend())for(String v:new String[]{"naam","voornamen","nationaliteit","uitgifteland","geslacht"})twijfel.put(v);
         return new JSONObject().put("document",doc).put("persoon",person).put("soort",f.name).put("zeker",r.sure()).put("twijfel",twijfel);
     }
 }

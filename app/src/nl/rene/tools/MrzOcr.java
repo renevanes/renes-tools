@@ -206,13 +206,15 @@ final class MrzOcr {
         /** Telt find nu voor de mildere ronde? (Dan apart, zodat de strenge cijfers zuiver blijven.) */
         boolean bijMild;
         /** Van de beste lezing alleen het formaat, de afwijking en de controlecijfers (nooit de tekens zelf). */
-        String besteFormaat; double besteAfwijking; boolean nrOk, gebOk, vervOk, bruikbaar; int geldig;
+        String besteFormaat; double besteAfwijking; boolean nrOk, gebOk, vervOk, bruikbaar, heelOk; int geldig;
+        java.util.Set<String> verbeterd=new java.util.TreeSet<>();
         /** Zoals {@link MrzOcr#better}, maar met alleen de bewaarde getallen. */
         void neem(Mrz.Result r){
             if(r==null)return;
             boolean beter=besteFormaat==null||(r.usable()!=bruikbaar?r.usable():r.usable()&&r.valid()!=geldig?r.valid()>geldig:r.mean<besteAfwijking);
             if(!beter)return;
             besteFormaat=r.format.name;besteAfwijking=r.mean;nrOk=r.docOk;gebOk=r.birthOk;vervOk=r.expiryOk;bruikbaar=r.usable();geldig=r.valid();
+            heelOk=r.compositeOk;verbeterd=new java.util.TreeSet<>(r.repaired);
         }
         String tekst(){
             StringBuilder b=new StringBuilder("strook: beelden ").append(beelden).append(", vlakken tot ").append(maxVlakken);
@@ -223,7 +225,8 @@ final class MrzOcr {
                 if(mildTeDruk>0)b.append(", te druk ").append(mildTeDruk);
                 b.append(", regels ");regels(b,mildRegels);b.append(")");}
             if(besteFormaat!=null)b.append(", beste ").append(besteFormaat).append(" afwijking ").append(Math.round(besteAfwijking*10)/10.0)
-                .append(" controle nr/geb/verv ").append(nrOk?"ja":"nee").append("/").append(gebOk?"ja":"nee").append("/").append(vervOk?"ja":"nee");
+                .append(" controle nr/geb/verv ").append(nrOk?"ja":"nee").append("/").append(gebOk?"ja":"nee").append("/").append(vervOk?"ja":"nee")
+                .append(" geheel ").append(heelOk?"ja":"nee").append(" verbeterd ").append(verbeterd.isEmpty()?"niets":verbeterd.toString().replace("[","").replace("]","").replace(", ","+"));
             return b.toString();
         }
         private static void regels(StringBuilder b,java.util.TreeMap<Integer,Integer> m){

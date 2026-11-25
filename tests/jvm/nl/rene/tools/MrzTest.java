@@ -33,6 +33,18 @@ public class MrzTest {
         check("D23145890".equals(doc.getString("document"))&&"2012-04-15".equals(doc.getString("geldig"))&&"identiteitskaart".equals(doc.getString("documentsoort")),"documentvelden TD1");
         check("Eriksson".equals(per.getString("naam"))&&"Anna Maria".equals(per.getString("voornamen"))&&"1974-08-12".equals(per.getString("geboortedatum"))&&"V".equals(per.getString("geslacht")),"persoonsvelden TD1");
         check("paspoort".equals(Mrz.fields(td3,"2026-11-08").getJSONObject("document").getString("documentsoort")),"paspoort herkend");
+        // Een strook in een afwijkend lettertype (gelaserd paspoort): de tekens lijken minder op OCR-B (hoge afwijking), maar de
+        // drie controlecijfers kloppen zonder verbetering: bruikbaar; namen en landen zijn dan een voorstel (twijfel)
+        char[][] tt={td3.line(0).toCharArray(),td3.line(1).toCharArray()};
+        Mrz.Result laser=new Mrz.Result(Mrz.TD3,tt,26.9*88,new java.util.HashSet<>());
+        check(laser.usable()&&laser.afwijkend()&&!laser.sure(),"afwijkend lettertype met kloppende controlecijfers is bruikbaar");
+        org.json.JSONArray twl=Mrz.fields(laser,"2026-11-08").getJSONArray("twijfel");
+        check(twl.toString().contains("naam")&&twl.toString().contains("voornamen")&&!twl.toString().contains("document")&&!twl.toString().contains("geboortedatum"),"namen niet vooraf aangevinkt: "+twl);
+        check("L898902C3".equals(Mrz.fields(laser,"2026-11-08").getJSONObject("document").getString("document")),"documentnummer uit de strook");
+        check(!new Mrz.Result(Mrz.TD3,tt,26.9*88,new java.util.HashSet<>(java.util.Arrays.asList("doc"))).usable(),"verbeterd en afwijkend: niet bruikbaar");
+        check(!new Mrz.Result(Mrz.TD3,tt,45.0*88,new java.util.HashSet<>()).usable(),"te grote afwijking: niet bruikbaar");
+        char[][] fout={td3.line(0).toCharArray(),td3.line(1).toCharArray()};fout[1][27]='0';
+        check(!new Mrz.Result(Mrz.TD3,fout,26.9*88,new java.util.HashSet<>()).usable(),"afwijkend en een controlecijfer fout: niet bruikbaar");
         check(Mrz.parse("I<UTOD231458908<<<<<<<<<<<<<<<","7408122F1204159UTO<<<<<<<<<<<6","ERIKSSON<<ANNA<MARIA<<<<<<<<<<").docOk==false,"fout controlecijfer gezien");
         // Eeuw van de geboortedatum, achternaam met tussenvoegsel, BSN alleen met 11-proef
         check("2015-02-03".equals(Mrz.birth("150203","2026-11-08"))&&"1980-01-01".equals(Mrz.birth("800101","2026-11-08"))&&"".equals(Mrz.birth("991340","2026-11-08"))&&"1926-12-31".equals(Mrz.birth("261231","2026-11-08")),"geboortedatum, nooit in de toekomst");
