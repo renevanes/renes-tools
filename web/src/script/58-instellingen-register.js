@@ -248,7 +248,7 @@ const SET_REG = [
     syn: 'podcast slaaptimer doorgaan volgende aflevering wachtrij slapen', synEn: 'podcast sleep timer keep going next episode',
     get: () => setB(psNa().naSlaap !== false), set: v => { const n = psNa(); Android.podNaSet(n.na || 'podcast', setOnV(v)); setIf('podset', psRender); return ''; } },
   { id: 'podcast.slaapterug', scr: 'podset', ctl: '#ps-slp-wijze', type: 'keuze', vals: [['vragen', 'Vragen of ik ze echt gehoord heb'], ['vanzelf', 'Vanzelf als niet beluisterd markeren'], ['uit', 'Als beluisterd laten']],
-    label: 'Podcasts: na de slaaptimer', desc: 'Wat er gebeurt met afleveringen die afliepen terwijl de slaaptimer liep: vragen of je ze echt hoorde, ze vanzelf weer als niet beluisterd markeren, of beluisterd laten.',
+    label: 'Podcasts: na de slaaptimer', desc: 'Wat er gebeurt met afleveringen die afliepen terwijl de slaaptimer liep: vragen of je ze echt hoorde, ze vanzelf weer als niet beluisterd markeren, of beluisterd laten (ook in het venster Slaaptimer).',
     syn: 'podcast slaaptimer in slaap gevallen niet beluisterd niet gehoord terugzetten afgespeeld', synEn: 'podcast sleep timer fell asleep unplayed not heard mark unplayed',
     avail: () => typeof Android.podSlaap === 'function' ? '' : 'Dat kan pas met de nieuwe app',
     get: () => slpData().wijze || 'vragen', set: v => { Android.podSlaapZet(v, slpData().plek || 'wakker'); setIf('podset', psSlpRender); return ''; } },

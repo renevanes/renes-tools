@@ -98,7 +98,20 @@ function psSlpRender(){
       esc(r.st === 'terug' ? t('Toch gehoord') : t('Niet beluisterd')) + '</button></div>').join('') + '</div>';
   el.querySelectorAll('button[data-key]').forEach(b => b.addEventListener('click', () => slpOordeel([b.dataset.key], b.dataset.st)));
 }
-function psSlp(){ Android.podSlaapZet($('#ps-slp-wijze').value, $('#ps-slp-plek').value); psSlpRender(); }
+function psSlp(){ slpZet($('#ps-slp-wijze').value, $('#ps-slp-plek').value); }
+/* Bewaren, en alles bijwerken wat het raakt. Op "Als beluisterd laten" met afleveringen die nog open staan: eerst vragen,
+   want die tellen dan meteen als gehoord (hun download kan weg) en dat draait terugzetten van de keuze niet terug. */
+function slpZet(w, plek){
+  const doe = () => { Android.podSlaapZet(w, plek); slpNa(); if (typeof sleepSlpToon === 'function') sleepSlpToon(); };
+  const open = w === 'uit' ? (slpData().lijst || []).filter(r => r.st === 'open').length : 0;
+  if (!open) { doe(); return; }
+  const terug = () => { if ($('#ps-slp-lijst')) psSlpRender(); if (typeof sleepSlpToon === 'function') sleepSlpToon(); };
+  terug(); // de keuzelijst laat de oude stand zien tot Rene het bevestigt
+  askConfirm(t('Als beluisterd laten?'), tn(open,
+    'Er staat nog één aflevering open die afliep terwijl de slaaptimer liep. Die telt dan als gehoord; een download ervan kan weg.',
+    'Er staan nog {n} afleveringen open die afliepen terwijl de slaaptimer liep. Die tellen dan als gehoord; een download ervan kan weg.'),
+    t('Als beluisterd laten'), doe, terug);
+}
 /* Vanuit ⋯ op Podcasts: naar de lijst op Instellingen van Podcasts */
 function slpLijstOpen(){ show('podset'); setTimeout(() => { const c = $('#ps-slp'); if (c) c.scrollIntoView({ block: 'start' }); }, 50); }
 
@@ -114,9 +127,4 @@ function sleepSlpToon(){
   $('#sl-slp-uitleg').textContent = w === 'vanzelf' ? t('Na de timer vanzelf weer niet beluisterd.')
     : w === 'uit' ? t('Telt gewoon als beluisterd.') : t('Daarna vraagt Podcasts wat je echt hoorde.');
 }
-function sleepSlpKies(v){
-  Android.podSlaapZet(v, slpData().plek || 'wakker');
-  sleepSlpToon();
-  if ($('#ps-slp-lijst')) psSlpRender();
-  if (current === 'podcasts') slpRender();
-}
+function sleepSlpKies(v){ slpZet(v, slpData().plek || 'wakker'); }
