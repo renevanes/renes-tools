@@ -197,7 +197,9 @@ if (!window.Android) window.Android = (function(){
     /* Het venster voor de cookiekeuze: de test zet _nw.cookie zelf en roept onResumeApp aan, zoals na het sluiten. */
     nieuwsCookies(id){ const s = this._nwInit(); s.calls.push(['cookies', id]); return id === 'tweakers' ? '' : 'Bijwerken lukt niet'; },
     version(){ return JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts','masterdata'],apkKlaar:this._apkKlaar||''}); },
-    lastManifest:()=>'null', checkUpdates:()=>setTimeout(()=>onUpdateStatus({state:'uptodate',kind:'web',manual:true,versionName:VERSION_NAME}),400),
+    lastManifest:()=>'null',
+    // Zoals Updater.check: staat er een gedownloade nieuwe app klaar, dan is er een nieuwe app ("apk", klaar)
+    checkUpdates(){ setTimeout(()=>onUpdateStatus(this._apkKlaar ? {state:'apk',kind:'web',manual:true,versionName:this._apkKlaar,klaar:true} : {state:'uptodate',kind:'web',manual:true,versionName:VERSION_NAME}),400); },
     reloadUi(){ if (window.prepareUiReload && window.prepareUiReload()) { this._uiReloads = (this._uiReloads || 0) + 1; document.body.inert = false; } },
     installUpdate(){
       // Downloaden met voortgang (5 MB in 10 stappen), controleren, klaarzetten en dan vraagt Android om te bevestigen

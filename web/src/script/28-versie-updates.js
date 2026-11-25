@@ -45,7 +45,7 @@ function updStep(r){
   const pct = r.total > 0 ? Math.min(100, Math.floor(r.done / r.total * 100)) : -1;
   const size = pct >= 0 ? ' ' + pct + '% (' + t('{a} van {b}', { a: updMB(r.done), b: updMB(r.total) }) + ')' : r.done > 0 ? ' ' + updMB(r.done) : '';
   switch (r.phase) {
-    case 'start': return ['Nieuwe versie ophalen…', -1];
+    case 'start': return [updKlaar ? t('Installeren…') : t('Nieuwe versie ophalen…'), -1]; // al gedownload: niet opnieuw ophalen
     case 'download': return [t(r.kind === 'apk' ? 'Downloaden…' : 'Interface bijwerken…') + size, pct];
     case 'download2': return [t('Startscherm bijwerken…') + size, pct];
     case 'check': return ['Controleren of de download klopt…', -1];

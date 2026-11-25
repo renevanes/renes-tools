@@ -40,8 +40,9 @@ const { chromium } = require('playwright');
     ok(!(await pg.isDisabled('#upd-btn2')) && (await pg.textContent('#upd-btn2')) === 'Installeren', 'knop Installeren weer te gebruiken');
     const voor = await pg.evaluate(() => Android._updDownloads);
     await pg.evaluate(() => { Android._updFail = false; });
-    await pg.click('#upd-btn2');
-    ok((await pg.textContent('#upd-text2')).startsWith('Installeren…'), 'opnieuw: meteen installeren (' + (await pg.textContent('#upd-text2')) + ')');
+    // Meteen na de tik (in dezelfde stap gelezen, zodat de voortgang er nog niet overheen kan)
+    const naTik = await pg.evaluate(() => { document.querySelector('#upd-btn2').click(); return document.querySelector('#upd-text2').textContent; });
+    ok(naTik.startsWith('Installeren…'), 'opnieuw: meteen installeren (' + naTik + ')');
     ok(await until(() => document.querySelector('#upd-text2').textContent.includes('Bevestig')), 'opnieuw: gaat door tot bevestigen');
     ok(await pg.evaluate(() => !Android._updLog.some(s => s.phase === 'download')) && (await pg.evaluate(() => Android._updDownloads)) === voor, 'opnieuw: geen tweede download');
     // Na opnieuw opstarten: de bewaarde download staat meteen klaar
