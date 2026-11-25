@@ -95,6 +95,7 @@ function installUpdate(){
 window.onUpdateStatus = function(r){
   if (r.state === 'play') { updReset(); return; } // Play-versie: updates via Google Play
   if (r.state === 'web') {
+    if (updKind !== 'apk') { updAvail = ''; updKlaar = ''; } // een interface-update: er is geen nieuwe app (meer)
     if (updReady !== r.versionName) updReloadingVersion = '';
     updReady = r.versionName;
     if (updKind === 'apk') return; // voortgang en installatie van de APK gaan voor
@@ -145,6 +146,8 @@ window.onUpdateStatus = function(r){
   }
   const wasKind = updKind;
   if (r.state === 'apk') { updAvail = r.versionName; if (r.klaar) updKlaar = r.versionName; else if (updKlaar !== r.versionName) updKlaar = ''; }
+  if (r.state === 'uptodate') { updAvail = ''; updKlaar = ''; } // geen nieuwe app (meer); een bewaarde download is weg
+  if (r.state === 'error' && r.kind === 'apk') updKlaar = ''; // mislukt zonder bewaarde download: Installeren downloadt weer
   updReset();
   if (r.state === 'uptodate' && r.manual && r.overgeslagen) toast(t('De nieuwste versie startte niet op deze telefoon. Tools wacht op een nieuwere.'));
   else if (r.state === 'uptodate' && r.manual) toast(t('Je hebt de nieuwste versie ({n}) ✓', { n: ver().webName }));

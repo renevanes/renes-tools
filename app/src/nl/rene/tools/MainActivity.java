@@ -457,7 +457,10 @@ public class MainActivity extends Activity {
                 try { startActivity(confirm); } catch (Exception e) { js("onUpdateStatus", "{\"state\":\"error\",\"kind\":\"apk\",\"error\":\"Installeren kon niet starten\"}"); }
             } else if (st != PackageInstaller.STATUS_SUCCESS) {
                 String msg = i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
-                // De download blijft bewaard: Installeren hoeft alleen nog te installeren
+                // De download blijft bewaard: Installeren hoeft alleen nog te installeren. Kan dezelfde app nooit
+                // lukken (ongeldig, past niet bij deze telefoon, botst met wat er staat), dan de download weg.
+                if (st == PackageInstaller.STATUS_FAILURE_INVALID || st == PackageInstaller.STATUS_FAILURE_INCOMPATIBLE
+                        || st == PackageInstaller.STATUS_FAILURE_CONFLICT) Updater.klaarWeg(this);
                 JSONObject klaar = Updater.klaar(this);
                 try {
                     JSONObject o = new JSONObject(jsonErr(st == PackageInstaller.STATUS_FAILURE_ABORTED ? "Installatie geannuleerd"

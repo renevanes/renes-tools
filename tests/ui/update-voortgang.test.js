@@ -47,6 +47,12 @@ const { chromium } = require('playwright');
     // Na opnieuw opstarten: de bewaarde download staat meteen klaar
     await pg.evaluate(() => { updKlaar = ''; updAvail = ''; updReset(); Android._apkKlaar = '9.9'; updKlaarStart(); });
     ok((await pg.textContent('#upd-text')).includes('Versie 9.9 is gedownload') && !(await pg.isDisabled('#upd-btn')), 'bij het starten: bewaarde download klaar');
+    // De bewaarde download bleek niet meer bruikbaar (fout zonder klaar): niet langer "is gedownload"
+    await pg.evaluate(() => onUpdateStatus({ state: 'error', kind: 'apk', error: 'De bewaarde download klopt niet meer' }));
+    ok((await pg.textContent('#upd-text')).includes('beschikbaar') && !(await pg.textContent('#upd-text')).includes('gedownload'), 'fout zonder bewaarde download: weer "beschikbaar"');
+    // Deze app is al de nieuwste (of de lijst biedt geen nieuwe app meer): balk weg
+    await pg.evaluate(() => { updKlaar = '9.9'; updAvail = '9.9'; updAvailShow(); onUpdateStatus({ state: 'uptodate', kind: 'apk', manual: true }); });
+    ok(!(await pg.isVisible('#upd-banner')), 'al de nieuwste: geen balk meer');
     await pg.evaluate(() => { Android._apkKlaar = ''; updKlaar = ''; updAvail = ''; updReset(); });
 
     // Interface-update (stil): voortgang zonder knop, ook op de knop Controleren

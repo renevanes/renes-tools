@@ -26,16 +26,17 @@ public class UpdaterKlaarTest {
         check(!Updater.klaarGeldig(new JSONObject(m.toString()).put("bytes", Updater.MAX_APK + 1), Updater.MAX_APK + 1, 219), "te groot: niet gebruiken");
         check(!Updater.klaarGeldig(null, 5000, 219), "geen beschrijving: niet gebruiken");
 
-        // Controlegetal van een bestand (zoals bij het installeren opnieuw gecontroleerd)
-        File f = File.createTempFile("klaar", ".apk");
-        try {
-            Files.write(f.toPath(), "abc".getBytes(StandardCharsets.US_ASCII));
-            check(Updater.sha256(f).equals("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"), "SHA-256 van een bestand");
-            check(Updater.sha256(f).equals(Updater.sha256("abc".getBytes(StandardCharsets.US_ASCII))), "zelfde als van de bytes");
-        } finally { f.delete(); }
+        // Controlegetal: dezelfde schrijfwijze als bij het downloaden
+        check(Updater.hex(java.security.MessageDigest.getInstance("SHA-256").digest("abc".getBytes(StandardCharsets.US_ASCII)))
+                .equals("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"), "SHA-256 in kleine letters");
 
-        // Nooit in een backup en nooit uit een backup terugzetten (dan zou een backup een app kunnen klaarzetten)
-        check(AppData.FILE_SKIP.containsKey(Updater.KLAAR_DIR), "map van de bewaarde download staat in FILE_SKIP");
+        // Nooit in een backup (ook niet die van Android) en nooit uit een backup terug: de bewaarde download staat in de
+        // map die Android niet meeneemt, en niet in getFilesDir() (waar onze eigen backups kijken)
+        String bron = new String(Files.readAllBytes(new File("app/src/nl/rene/tools/Updater.java").toPath()), StandardCharsets.UTF_8);
+        check(bron.contains("static File klaarDir(Context c) { return new File(c.getNoBackupFilesDir(), KLAAR_DIR); }"), "download in getNoBackupFilesDir");
+        check(!AppData.FILE_KNOWN.contains(Updater.KLAAR_DIR) && !AppData.FILE_SKIP.containsKey(Updater.KLAAR_DIR), "niet in de lijsten van getFilesDir()");
+        // Zonder verbinding alleen bij echt geen antwoord (IOException), niet bij een fout antwoord
+        check(bron.contains("catch (java.io.IOException offline)"), "offline alleen bij geen verbinding");
 
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("UpdaterKlaarTest ok");
