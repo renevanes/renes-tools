@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.256",
-  "versionCode": 257,
-  "nativeLevel": 222,
+  "versionName": "1.257",
+  "versionCode": 258,
+  "nativeLevel": 223,
   "web": "index.html",
-  "webSha256": "f90a2fe6fd3756e6ff4df3372908d6ae431183fe634697d46b6e1ea6e9f94e94",
+  "webSha256": "60b1df8918af9e57bd54ebad5858a137fa46723b117d2970c59a072b0fe5fc23",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "b0b6cd670a9d6a982ca6d6926594c2ebbe6fdb0861c17f61e858d3aba03a512f",
+  "apkSha256": "ec951a75231d3e4e731e8fe419c3b5fcebde164cbfb13df6616faebc0996e2a7",
   "changelog": [
+    {
+      "version": "1.257",
+      "date": "2026-11-25",
+      "changes": [
+        "Stamgegevens, handtekening en Vergelijken: een bestand kiezen gaat nu overal hetzelfde, met de keuze documentenkluis, Gemaakt of bestand op de telefoon.",
+        "ID-bewijs uit een document: tijdens het verwerken zie je een venster met wat er gebeurt en een balk, met Annuleren.",
+        "ID-bewijs uit een document: staan voor- en achterkant samen op één gescande pagina, dan haalt Tools ze er als twee losse foto's uit, zodat je beide kunt kiezen."
+      ]
+    },
     {
       "version": "1.256",
       "date": "2026-11-25",
@@ -177,15 +186,7 @@
       "changes": [
         "CPAP-analyse kan je myAir-ZIP importeren en toont je gebruiksduur en AHI per periode."
       ]
-    },
-    {
-      "version": "1.237",
-      "date": "2026-11-20",
-      "changes": [
-        "Podcasts slaan reclame vanzelf over als de podcast hoofdstukken meegeeft en een hoofdstuk reclame, advertentie of sponsor heet; je ziet dan even \"Reclame overgeslagen\" met Terug.",
-        "Per podcast (⋯ → Overslaan) kies je of reclame overgeslagen wordt en hoeveel seconden van het begin en het einde; bij Instellingen van Podcasts zet je het voor alles aan of uit en voeg je eigen woorden toe."
-      ]
     }
   ],
-  "webSig2": "b6k6dnJop49RdKUYyTILctnhxkdbrsQkbJyhajka4bqDJdcqBAawqCGQSLr4KsRAp2kU5TKSua7rKW6FeILGymz97zSigK3cWqMBn4IJYjhPYsXLiYSd5+JFNjTU5g8T5oKELeHyvlEhXSViAkX8N7wCHS1kO9c6bBLLFB04HtgaMUYIeiytPwy5GfqB/+riCUjGHugVA40FrAMi8nn3bUi9aRItXgUROQAVNQomMyN8OLkK5pXTOHTB4DGkQE7Z54W7QCm/hHFfPnXhN78rV81V/mrzp0DS3hvKbwBiv2wjh4mJ+yU1c+8zeORzuJFFsURyKGa2rYnhnPDOe7gLh3cudVg4H/jC62fz011pdeetd+R8nfURzdliXQenb/jtLaY3IPKPM/4Md3a61vz0c0FNnDmmDlJv8IX4sWhwLIrMCkOjURI0Mbs+v/5SaPWC9OimSr+5kANUYKSMdCTmS753RXLXuplDRJqrXiZjyBt0FHudd5p7oDhgmS9eEkCQ"
+  "webSig2": "GXrCn89N/WStPyUEGM0s8tYnTZL9Cjm672GKkePua2iqoS1ofxY8dhbegOkEgXSopoV/zYIzEeRpXiPf3jhPKmoWjhnVWNUZjrQqk/3usS0ZTi/zfHw2MMkLAM/9y1BEalCW9/WFPSr+BJSJ7SI5wSsqqU4+6L8X/yA/pom4Sv5t0zsVFmcmunA7oq1TYi7vDXZHJ0eJXmF15sFR8Pm9nj9owDe4sVAMYvQWUN43Z3pj20/Y/iYJvAkeWDkPkf1nUeT/Koyfg+SD7ez0mVsA23+pqJYzy7tOZz98H6sH955JwVWtkqyWQS2QZYOtQc8egu2O9jRRD6LM+LuDSfi76y2AEvX9nO5FkJ4Sb1T64i5pq/+HJhIxC0QIb/iG1+XRAMaVuIMbWdNly/PJFEIYeArrDBKKCYH0ovuIETKGleyiqSSm8a04huLRxvscDSewShvgvAThUaCEDq+F5oIjcjvB34hkprxIfl/xu1Jo9phbz5ry29g/7hX6aUWLAo5v"
 }
