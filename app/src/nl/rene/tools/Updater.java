@@ -363,11 +363,12 @@ final class Updater {
         } finally { APK_BUSY.set(false); }
     }
 
-    /** De bewaarde app installeren: eerst opnieuw het controlegetal, dan aan de pakketinstaller van Android geven. */
+    /**
+     * De bewaarde app installeren: het controlegetal wordt berekend over precies de bytes die naar de pakketinstaller
+     * gaan; klopt het niet, dan wordt de installatie niet aangeboden (en de bewaarde download weggegooid).
+     */
     private static String installeer(Context c, JSONObject k, Progress pr) throws Exception {
         File apk = klaarApk(c);
-        pr.step("check", 0, 0);
-        if (!k.optString("sha256").equals(sha256(apk))) { klaarWeg(c); return "De bewaarde download klopt niet meer; tik opnieuw op Installeren om hem opnieuw te downloaden"; }
         pr.step("install", 0, 0);
         PackageInstaller pi = c.getPackageManager().getPackageInstaller();
         PackageInstaller.SessionParams p = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
@@ -376,10 +377,17 @@ final class Updater {
         int id = pi.createSession(p);
         try {
             try (PackageInstaller.Session s = pi.openSession(id)) {
+                MessageDigest d = MessageDigest.getInstance("SHA-256");
+                long n = 0;
                 try (InputStream in = new java.io.FileInputStream(apk); OutputStream o = s.openWrite("base.apk", 0, apk.length())) {
                     byte[] buffer = new byte[1 << 16]; int count;
-                    while ((count = in.read(buffer)) != -1) if (count > 0) o.write(buffer, 0, count);
+                    while ((count = in.read(buffer)) != -1) if (count > 0) { d.update(buffer, 0, count); o.write(buffer, 0, count); n += count; }
                     s.fsync(o);
+                }
+                if (n != k.optLong("bytes", -1) || !k.optString("sha256").equals(hex(d.digest()))) {
+                    try { pi.abandonSession(id); } catch (Exception ignored) { }
+                    klaarWeg(c);
+                    return "De bewaarde download klopt niet meer; tik opnieuw op Installeren om hem opnieuw te downloaden";
                 }
                 Intent back = new Intent(c, MainActivity.class).setAction(MainActivity.ACTION_INSTALL_STATUS)
                         .putExtra("tok", App.token(c)).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -399,8 +407,12 @@ final class Updater {
             byte[] buf = new byte[1 << 16]; int n;
             while ((n = in.read(buf)) != -1) if (n > 0) d.update(buf, 0, n);
         }
+        return hex(d.digest());
+    }
+
+    static String hex(byte[] h) {
         StringBuilder sb = new StringBuilder();
-        for (byte x : d.digest()) sb.append(String.format(java.util.Locale.ROOT, "%02x", x));
+        for (byte x : h) sb.append(String.format(java.util.Locale.ROOT, "%02x", x));
         return sb.toString();
     }
 
