@@ -162,7 +162,17 @@ final class MasterPhotos {
                 images.put("front",normalize(p.front)).put("back",normalize(p.back));found=p.fields;
             }
             v.stap("opslaan",0,0);
-          }catch(Throwable e){synchronized(this){job.kiezen=false;job.bezig=false;notifyAll();}if(e instanceof Exception)throw (Exception)e;throw (Error)e;}
+          }catch(Throwable e){
+            boolean dicht=!session.accepts(token)||!activity.masterForeground;
+            synchronized(this){
+                job.kiezen=false;job.bezig=false;
+                // Intussen op slot: het antwoord valt weg, dus de fout bewaren; na ontgrendelen geeft resume() hem
+                if(dicht&&pending==job){Uitkomst u=new Uitkomst();u.error=e instanceof MasterError?e.getMessage():Taal.T("De kaartfoto kan niet worden opgeslagen. Kies een duidelijke afbeelding.");
+                    job.reviewId=null;job.keuze=null;job.klaar=u;job.klaarOp=android.os.SystemClock.elapsedRealtime();}
+                notifyAll();
+            }
+            if(e instanceof Exception)throw (Exception)e;throw (Error)e;
+          }
         }
         boolean open=active.getAsBoolean()&&session.accepts(token)&&activity.masterForeground;
         synchronized(this){
