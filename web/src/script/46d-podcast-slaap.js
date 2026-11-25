@@ -101,3 +101,22 @@ function psSlpRender(){
 function psSlp(){ Android.podSlaapZet($('#ps-slp-wijze').value, $('#ps-slp-plek').value); psSlpRender(); }
 /* Vanuit ⋯ op Podcasts: naar de lijst op Instellingen van Podcasts */
 function slpLijstOpen(){ show('podset'); setTimeout(() => { const c = $('#ps-slp'); if (c) c.scrollIntoView({ block: 'start' }); }, 50); }
+
+/* In het venster Slaaptimer (alleen bij podcasts, niet op een Chromecast): wat er gebeurt met afleveringen die aflopen
+   terwijl de timer loopt. Dezelfde instelling als op Instellingen van Podcasts (wens van Rene: bij de slaaptimer). */
+function sleepSlpToon(){
+  const rij = $('#sl-slp-rij'); if (!rij) return;
+  const cast = typeof plCast === 'object' && plCast && plCast.active;
+  rij.hidden = slTarget !== 'pod' || typeof Android.podSlaap !== 'function' || !!cast;
+  if (rij.hidden) return;
+  const w = slpData().wijze || 'vragen';
+  $('#sl-slp').value = w;
+  $('#sl-slp-uitleg').textContent = w === 'vanzelf' ? t('Na de timer vanzelf weer niet beluisterd.')
+    : w === 'uit' ? t('Telt gewoon als beluisterd.') : t('Daarna vraagt Podcasts wat je echt hoorde.');
+}
+function sleepSlpKies(v){
+  Android.podSlaapZet(v, slpData().plek || 'wakker');
+  sleepSlpToon();
+  if ($('#ps-slp-lijst')) psSlpRender();
+  if (current === 'podcasts') slpRender();
+}

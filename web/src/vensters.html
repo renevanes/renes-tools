@@ -80,6 +80,7 @@
     </details>
     <!-- Een vaste instelling, geen keuze per timer: bewust rustig, onderaan -->
     <div class="sl-fade" id="sl-fade-rij"><div class="sl-fade-r"><label for="sl-fade">Aan het eind zachter</label><select class="sel" id="sl-fade" onchange="sleepFadeKies(this.value)"></select></div><p class="hint" id="sl-fade-cast" hidden>Niet op een Chromecast.</p></div>
+    <div class="sl-fade" id="sl-slp-rij" hidden><div class="sl-fade-r"><label for="sl-slp">Wat afloopt</label><select class="sel" id="sl-slp" onchange="sleepSlpKies(this.value)"><option value="vragen">Daarna vragen</option><option value="vanzelf">Niet beluisterd</option><option value="uit">Beluisterd</option></select></div><p class="hint" id="sl-slp-uitleg"></p></div>
     <div class="modal-btns"><button class="big ghost" id="sl-off" onclick="sleepOff()">Uitzetten</button><button class="big ghost" id="sl-sluit" onclick="sleepClose()">Sluiten</button></div>
   </div>
 </div>

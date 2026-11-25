@@ -575,6 +575,7 @@ function sleepOpen(target){
   $('#sl-time').value = String(d.hh).padStart(2, '0') + ':' + String(Math.floor(d.mm / 5) * 5).padStart(2, '0');
   sleepShow();
   sleepFadeToon();
+  if (typeof sleepSlpToon === 'function') sleepSlpToon();
   $('#sleepdlg').classList.add('on');
   dialogFocus.sync($('#sl-t')); // focus op de kop: één Enter mag niet meteen een timer starten
 }

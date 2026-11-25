@@ -77,6 +77,19 @@ const { chromium } = require('playwright');
     await pg.click('#sheet-acts button:has-text("slaaptimer")'); await pg.waitForTimeout(200);
     ok(await pg.evaluate(() => current === 'podset'), 'opent Instellingen van Podcasts');
 
+    // In het venster Slaaptimer: dezelfde keuze
+    await pg.evaluate(() => { Android._slp.wijze = 'vragen'; sleepOpen('pod'); }); await pg.waitForTimeout(150);
+    ok(await pg.isVisible('#sl-slp'), 'slaaptimer: keuze staat in het venster');
+    ok(await pg.inputValue('#sl-slp') === 'vragen', 'slaaptimer: huidige stand');
+    await pg.selectOption('#sl-slp', 'vanzelf');
+    ok(await pg.evaluate(() => Android._slp.wijze === 'vanzelf' && Android._slp.plek === 'wakker'), 'slaaptimer: keuze bewaard, plek blijft');
+    ok(/vanzelf weer niet beluisterd/.test(await pg.textContent('#sl-slp-uitleg')), 'slaaptimer: uitleg past zich aan');
+    await pg.selectOption('#sl-slp', 'vragen');
+    await pg.evaluate(() => sleepClose()); await pg.waitForTimeout(100);
+    await pg.evaluate(() => sleepOpen('radio')); await pg.waitForTimeout(100);
+    ok(!await pg.isVisible('#sl-slp'), 'slaaptimer bij de radio: geen keuze');
+    await pg.evaluate(() => sleepClose()); await pg.waitForTimeout(100);
+
     // Engels
     await pg.evaluate(() => { rgSave({ lang: 'en' }); Android._slp.lijst.forEach(r => { r.st = 'open'; }); show('podcasts'); pcSetTab('listen'); pcRenderListen(); }); await pg.waitForTimeout(300);
     ok(/Played during the sleep timer/.test(await pg.textContent('#pc-slaap h2')), 'Engels: kop');
