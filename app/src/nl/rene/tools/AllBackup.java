@@ -8,6 +8,10 @@ import android.content.pm.PackageManager;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import java.io.Writer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -125,7 +129,7 @@ final class AllBackup {
                     zip = Secure.begin(c, Secure.key(c));
                 } catch (Exception e) {
                     put(res, "all", false, 0, e.getMessage() != null ? e.getMessage() : "Versleuteld archief maken lukt niet");
-                    App.log(c, "BACKUP", "archief: " + e.getMessage());
+                    App.log(c, "BACKUP", "archief maken mislukt: " + AppData.safeMsg(e, "onbekend"));
                     return res;
                 }
                 Secure.CAPTURE.set(zip);
@@ -200,7 +204,7 @@ final class AllBackup {
                             Herstel.markArchive(c, zip, name);
                         }
                     }
-                    catch (Exception e) { put(res, "all", false, 0, "Archief afsluiten mislukt: " + e.getMessage()); App.log(c, "BACKUP", "archief afsluiten: " + e); }
+                    catch (Exception e) { put(res, "all", false, 0, "Archief afsluiten mislukt: " + e.getMessage()); App.log(c, "BACKUP", "archief afsluiten mislukt: " + AppData.safeMsg(e, e.getClass().getSimpleName())); }
                     // Staat het privé-deel nu versleuteld in het archief, dan de oude leesbare kopie uit de backup-map weg
                     // (ook als er niets te bewaren was: dan hoort er ook geen oude leesbare kopie te blijven staan)
                     if (done) for (String p : PRIVATE) {
@@ -221,6 +225,9 @@ final class AllBackup {
             // Grote bestanden: wat geen archief meer gebruikt weg, een stuk controleren, en kijken of er nog oude grote
             // archieven staan (voor de knop bij Oude backups opruimen). Alleen na een volledig gelukte versleutelde backup.
             if (!stop && allOk && Secure.on(c)) grote(c, res);
+            // Hoe groot de backup was en wat erbij kwam (alleen getallen en vaste namen van onderdelen), zodat het
+            // nalopen van het foutlogboek ziet waar de backup groeit
+            if (res.has("archive")) App.log(c, "BACKUP", samenvatting(res));
         } finally {
             Secure.CAPTURE.remove();
             if (zip != null) Secure.abort(zip);
@@ -235,6 +242,33 @@ final class AllBackup {
         }
         return res;
     }
+
+    /**
+     * Eén regel voor het foutlogboek na een backup met archief: grootte van het archief, grote bestanden (nieuw en
+     * hergebruikt) en de onderdelen waar het meeste bij kwam. Alleen getallen en de vaste namen uit PARTS. Zuiver.
+     */
+    static String samenvatting(JSONObject res) {
+        StringBuilder b = new StringBuilder("backup klaar");
+        JSONObject g = res.optJSONObject("blok");
+        if (g != null) {
+            b.append(": archief ").append(kb(g.optLong("archief"))).append(", grote bestanden nieuw ").append(g.optInt("nieuw"))
+                    .append(" (").append(kb(g.optLong("nieuwBytes"))).append("), hergebruikt ").append(g.optInt("hergebruikt"))
+                    .append(" (").append(kb(g.optLong("hergebruiktBytes"))).append(")");
+            if (g.has("fout")) b.append(", apart opslaan mislukt");
+        }
+        List<String> groei = new ArrayList<>();
+        for (String p : PARTS) { JSONObject r = res.optJSONObject(p); if (r != null && r.optLong("o") > 0) groei.add(p); }
+        Collections.sort(groei, (x, y) -> Long.compare(res.optJSONObject(y).optLong("o"), res.optJSONObject(x).optLong("o")));
+        if (!groei.isEmpty()) {
+            b.append("; erbij:");
+            for (int i = 0; i < groei.size() && i < 4; i++) b.append(i == 0 ? " " : ", ").append(groei.get(i)).append(' ').append(kb(res.optJSONObject(groei.get(i)).optLong("o")));
+        }
+        JSONObject rot = res.optJSONObject("rotated");
+        if (rot != null) b.append("; ").append(rot.optInt("count")).append(" oude weg");
+        return b.toString();
+    }
+
+    private static String kb(long bytes) { return bytes >= 10L * 1024 * 1024 ? (bytes / (1024 * 1024)) + " MB" : ((bytes + 1023) / 1024) + " kB"; }
 
     /** Na een gelukte backup (onder het slot): ongebruikte grote bestanden opruimen, een stuk controleren, oude archieven tellen. */
     static void grote(Context c, JSONObject res) {
@@ -342,7 +376,7 @@ final class AllBackup {
             o
                     .put("auto", auto(c)).put("charging", prefs(c).getBoolean("charging", true))
                     .put("dest", WaBackup.destUri(c) != null).put("destName", WaBackup.destName(c))
-                    .put("next", prefs(c).getLong("next", 0))
+                    .put("next", prefs(c).getLong("next", 0)).put("poging", prefs(c).getInt("pogingen", 0))
                     .put("rotate", rotateOn(c)).put("keep", keep(c)).put("encrypted", Secure.on(c)).put("encBroken", Secure.broken(c))
                     .put("blokken", blokken(c))
                     .put("encSince", Secure.prefs(c).getLong("since", 0));

@@ -428,6 +428,11 @@ final class WaBackup {
         return e.getMessage() == null ? "Backup-map: schrijven lukt niet" : "Backup-map: " + PodcastFeed.cut(e.getMessage(), 160);
     }
 
+    /** Staat een map uit deze bron op de telefoon zelf (of een SD-kaart/USB-stick), en niet in de cloud? */
+    static boolean lokaal(String authority) {
+        return "com.android.externalstorage.documents".equals(authority) || "com.android.providers.downloads.documents".equals(authority);
+    }
+
     static Uri destUri(Context c) {
         String s = prefs(c).getString("dest", null);
         return s == null ? null : Uri.parse(s);

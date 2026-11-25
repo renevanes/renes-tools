@@ -99,8 +99,8 @@ final class AppData {
     static final Map<String, List<String>> KEY_SKIP_PREFIX;
     static {
         Map<String, Set<String>> k = new HashMap<>();
-        k.put("allbackup", set("next"));
-        k.put("backupmap", set("last", "doneVersion")); // uitkomst van de controle van deze backup-map
+        k.put("allbackup", set("next", "pogingen", "pogingSinds")); // pogingen: mislukte nachtelijke backups van deze nacht
+        k.put("backupmap", set("last", "doneVersion", "bezig")); // uitkomst van de controle van deze backup-map
         k.put("transcribe", set("status", "dlModel"));
         k.put("lock", set("fails", "waitUntil", "waitElapsed", "waitBoot", "waitServed", "lastTry", "keyMismatch", "bioRenew"));
         // De backup-map is net opnieuw gekozen; de leesbare WhatsApp-database gaat niet mee (wordt opnieuw gemaakt)

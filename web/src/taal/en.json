@@ -8154,6 +8154,7 @@
  "Vandaag komt de zon niet op {waar}": "Today the sun doesn't rise {waar}",
  "Vandaag om {tijd}": "Today at {tijd}",
  "Vandaag zon op {op}, onder {onder} {waar}": "Sunrise today {op}, sunset {onder} {waar}",
+ "Vannacht mislukt; nieuwe poging: {wanneer}": "Failed last night; trying again: {wanneer}",
  "Vanuatuaanse": "Ni-Vanuatu",
  "Vanuit je mailapp: kies <b>Delen</b> → <b>PDF maken</b>.": "From your mail app: choose <b>Share</b> → <b translate=\"no\">PDF maken</b>.",
  "Vanzelf": "Automatically",

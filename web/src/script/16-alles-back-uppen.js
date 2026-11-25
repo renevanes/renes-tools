@@ -51,7 +51,9 @@ function enterBackup(){
     ' onchange="Android.backupSetPart(this.dataset.p, this.checked); bkSums()"> ' + t(BK_PARTS[k]) + '</label>' +
     (k === 'app' ? '<div class=bk-sub><p class="note' + (st.encrypted ? '' : ' warn') + '" id=bk-app-note>' + bkAppNote(st.encrypted) + '</p></div>' : '')).join('');
   $('#bk-auto').checked = !!st.auto; $('#bk-charging').checked = st.charging !== false;
-  $('#bk-next').textContent = st.auto && st.next ? t('Volgende backup: {wanneer}', { wanneer: fmtDT(st.next, {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) }) : '';
+  const bkWanneer = st.next ? fmtDT(st.next, {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
+  // Mislukte de nachtelijke backup (Google Drive nog aan het laden), dan probeert hij het dezelfde nacht nog een paar keer
+  $('#bk-next').textContent = !st.auto || !st.next ? '' : st.poging > 0 ? t('Vannacht mislukt; nieuwe poging: {wanneer}', { wanneer: bkWanneer }) : t('Volgende backup: {wanneer}', { wanneer: bkWanneer });
   bkRestoreList();
   bkRenderLast(st); bkRenderSecure(st); bkRenderHerstel(st); bkSums(st);
   if (typeof bmRender === 'function') bmRender();

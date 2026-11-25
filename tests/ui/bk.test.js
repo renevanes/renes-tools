@@ -24,6 +24,11 @@ const assert = require('node:assert/strict');
     await pg.click('#bk-row-set'); await pg.waitForTimeout(150);
     await pg.click('#bk-auto'); await pg.waitForTimeout(150);
     console.log('next', await pg.textContent('#bk-next'));
+    assert.match(await pg.textContent('#bk-next'), /^Volgende backup: /, 'automatisch: volgende backup zichtbaar');
+    // Mislukte de nachtelijke backup, dan zie je dat hij dezelfde nacht opnieuw probeert
+    await pg.evaluate(() => { Android._bk.poging = 1; show('bkset'); }); await pg.waitForTimeout(150);
+    assert.match(await pg.textContent('#bk-next'), /^Vannacht mislukt; nieuwe poging: /, 'nieuwe poging zichtbaar');
+    await pg.evaluate(() => { Android._bk.poging = 0; show('bkset'); }); await pg.waitForTimeout(150);
     await pg.screenshot({ path: __dirname + '/shots/bk-' + scheme + '.png', fullPage: true });
     await pg.evaluate(() => show('bkrestore')); await pg.waitForTimeout(150);
     await pg.click('#bk-restore-list [data-k="contacts"]'); await pg.waitForTimeout(300);
