@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.258",
-  "versionCode": 259,
-  "nativeLevel": 224,
+  "versionName": "1.259",
+  "versionCode": 260,
+  "nativeLevel": 225,
   "web": "index.html",
-  "webSha256": "ec665b25405bd9ff9aa5837a24e0f2e65c4cb117d081844937a162c41afc606d",
+  "webSha256": "958e513d23b63898902ce63b533f34172145995dfe1d454b1b9db9de62457012",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "8cc3a32aa9ef4e516e18b7f1d36bbbfcaa77368e79ad80c527cf933256e5f1c8",
+  "apkSha256": "5e69c827551b0626793f6e17c0c66a60347f96a886b584644a41e609f9282e29",
   "changelog": [
+    {
+      "version": "1.259",
+      "date": "2026-11-25",
+      "changes": [
+        "Stamgegevens: de strook van een paspoort met een afwijkende (gelaserde) letter wordt nu ook herkend als de controlecijfers kloppen; nummer, geboortedatum en vervaldatum worden dan voorgesteld, naam en nationaliteit staan erbij om na te kijken."
+      ]
+    },
     {
       "version": "1.258",
       "date": "2026-11-25",
@@ -178,16 +185,7 @@
         "Stamgegevens: kies bij Document toevoegen ook een PDF of Word-document met een foto van je ID-bewijs en neem de gevonden gegevens over.",
         "Stamgegevens: importeer de voor- en achterkant uit één PDF of Word-bestand met twee losse kaartfoto’s."
       ]
-    },
-    {
-      "version": "1.239",
-      "date": "2026-11-20",
-      "changes": [
-        "Podcasts downloaden nu vanzelf alles wat je nog niet beluisterde van de afgelopen 2 weken, van alle podcasts die je volgt, met de hoofdstukken erbij: zo slaat de speler reclame ook offline over.",
-        "Vanzelf gedownloade afleveringen gaan na 2 weken weer van je telefoon; wat je zelf downloadt blijft staan.",
-        "Bij Instellingen van Podcasts kies je welke podcasts meedoen, hoe ver terug, wanneer ze weer weg gaan en hoeveel ruimte het mag gebruiken (standaard hooguit 2 GB, en met Alleen via wifi aan alleen op wifi)."
-      ]
     }
   ],
-  "webSig2": "IhsOx7rrT+dDm6O8DjTmKL7JbWs7o/n8fKhkZs46L3O6pmxPE1L7i7umvI4SNsfPfpPwagPIvQ6nrGQr2JalRfz+yzA/rWkVNpXfbuH1oM6WVf9DMAg9yR6I6mqEzZnhu/Lo92Ulj18ABzmfppB6H2u7heeHJJqljGU0eZqDNX62D91aWEaQwjR5ogHh4cl8aBc3JnRhi0WQ6nwDo3thxSBm5smKS+svskKP8phE/Pi6Ch7lAXXJi6LxJbHHRUO9OLiNcn1gcGh2ych2q+JwbNLqnANmGWU/Ujm8NorTRHV5eFpa4lkXoDDsILlh4xKfV2nV//8oHI2B0cmdYh8rI4sazvbBRyIjUC4LIFVbg7ayC8IpbeviMQ/XdrGQWwqQoyv9goT+69yHFkiGfd9RP16JlPTqdFt/xqsNI6ES9hKy2CQs7th/xAvAKJgh5/YBy3ObRFgY9WhQOFoST+wSf6iO969Z+YtstzX+0CM70gBZdIniElHHhRFjeg7j06IG"
+  "webSig2": "Sqv+/1mQijTcDGg48AYJnei8Uz3s9xjgXCJNXyHvpoWy+iK3KuW3pzxfvvsiqM/FLqmNm1Itay1bRWwNKumpEJug8D0Gbwss65gQKYT7C1xJggzoN+WccWN4o8DB65czi2CKA+qrtkeCZdgwc1jRF9qAPBq45Fdgq86oYvxJYnax+4nencU8tc5PUrGK31Gx+GXijiHG+D0hcQgVCtSaNnHqhA1iZrvYbJygQxcLXaS74ks0wouW4Duewjz0GN2cEO8vMVHEizqcxkm0NcvFLUAIB1t6DEZxYNpPT64z5xuw7x/PuDUdvs6OJqoQe2px6s7tX/Mj+CmA9l9cRvgB8SEYYmPSTe9MynMm8v3XnOnk6CbLIU50FAJT7BEmsacgn9cflfHF2UHIB92IE1W05ufXeV0tKgib9aa0eZzMRJPAvjsc2IgAnNw64UxXiot2dOg4fTNM1jOHfk3E3ldesVgjucUKdigo8xTkphAk1wxVx+k2xw4SgpukqYelJKfg"
 }
