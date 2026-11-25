@@ -203,6 +203,8 @@ public class MasterBridge extends BankBridge {
         });
     }
     @JavascriptInterface public void masterPhotoDelete(String token,String id,long revision,String side,String request){work(token,request,key->MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,false));}
+    /** Deze app kan een kaartfoto (voor- of achterkant) ook uit een PDF of Word-document halen (voor een nieuwere interface op een oudere app). */
+    @JavascriptInterface public boolean masterKaartDocument(){return true;}
     @JavascriptInterface public void masterPhotoCancel(){a.masterPhotos.cancel("annuleren");}
     @JavascriptInterface public void masterUse(String token,String id,long revision,String source,String role,String fields,boolean consent,String request){
         work(token,request,key->{

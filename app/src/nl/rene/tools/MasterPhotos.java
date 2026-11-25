@@ -46,7 +46,7 @@ final class MasterPhotos {
         Uitkomst klaar;
         /** Wanneer klaar kwam: na BEWAAR_MS zonder ontgrendelen gaat het uit het geheugen. */
         long klaarOp;
-        /** Een document met meer foto's: Rene kiest er één of twee (voor- en achterkant); alleen in het geheugen. */
+        /** Een document met meer foto's: Rene kiest er één of twee (voor- en achterkant; voor één kant één); alleen in het geheugen. */
         String reviewId,reviewToken;java.util.List<DocumentFotos.Foto> keuze;
         /** De gekozen foto's worden herkend (saveReview): dat gaat door als Stamgegevens vanzelf op slot gaat. */
         boolean kiezen;
@@ -58,7 +58,7 @@ final class MasterPhotos {
         if(pending!=null)throw new MasterError(Taal.T("Er staat al een kaartfoto klaar; ontgrendel om die op te slaan"));
         if(!side.equals("front")&&!side.equals("back")&&!side.equals("scan"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
         if(soort==null||!SOORTEN.contains(soort))throw new MasterError(Taal.T("Kies wat voor document het is"));
-        Pending job=new Pending(id,revision,side,request,activity.masterView,soort);pending=job;
+        Pending job=new Pending(id,revision,side,request,activity.masterView,soort);pending=job;stop="onbekend";
         activity.h.post(()->{
             synchronized(MasterPhotos.this){if(pending!=job)return;}
             if(!activity.masterForeground||!activity.masterSession.accepts(token)||!job.view.equals(activity.masterView)){clear(job);notify(job,false,Taal.T("Ontgrendel de stamgegevens opnieuw"));return;}
@@ -131,14 +131,14 @@ final class MasterPhotos {
                 throw new MasterError(Taal.T("Kies het bestand opnieuw."));
             fotos=job.keuze;
         }
-        JSONArray gekozen;
-        try{gekozen=new JSONArray(gekozenJson==null?"":gekozenJson);}catch(Exception e){throw new MasterError(Taal.T("Kies één of twee foto's"));}
         boolean kant=!"scan".equals(job.side); // de voor- of achterkant van een bestaand document: precies één foto
+        JSONArray gekozen;
+        try{gekozen=new JSONArray(gekozenJson==null?"":gekozenJson);}catch(Exception e){throw new MasterError(kant?Taal.T("Kies één foto"):Taal.T("Kies één of twee foto's"));}
         if(gekozen.length()<1||gekozen.length()>(kant?1:2))throw new MasterError(kant?Taal.T("Kies één foto"):Taal.T("Kies één of twee foto's"));
         java.util.List<DocumentFotos.Foto> kies=new java.util.ArrayList<>();
         for(int i=0;i<gekozen.length();i++){
             int n=gekozen.optInt(i,-1);
-            if(n<0||n>=fotos.size()||kies.contains(fotos.get(n)))throw new MasterError(Taal.T("Kies één of twee foto's"));
+            if(n<0||n>=fotos.size()||kies.contains(fotos.get(n)))throw new MasterError(kant?Taal.T("Kies één foto"):Taal.T("Kies één of twee foto's"));
             kies.add(fotos.get(n));
         }
         // Bezig: wie intussen opnieuw ontgrendelt (resume → uitkomst) wacht hierop en krijgt dan deze uitkomst
@@ -226,11 +226,11 @@ final class MasterPhotos {
      * of PDF, zoals de app die het bewaart het aanbiedt; ook als gewoon openen mislukt en de app die formaten aanbiedt.
      */
     private InputStream open(Voortgang v,Pending job,java.util.function.BooleanSupplier active)throws Exception{
-        boolean doc=true; // elke kant mag een document zijn (zie pick)
-        job.virtual=doc&&virtual(job.uri);
+        // Elke kant mag een document zijn (zie pick): een bestand dat niet gewoon open gaat, als PDF of Word ophalen
+        job.virtual=virtual(job.uri);
         if(!job.virtual){
             try{return v.open(activity,job.uri);}
-            catch(java.io.FileNotFoundException|SecurityException e){if(!doc)throw e;job.virtual=true;}
+            catch(java.io.FileNotFoundException|SecurityException e){job.virtual=true;}
         }
         String fout=Taal.T("Dit document kan niet als PDF of Word-bestand worden geopend. Download het eerst als PDF en kies dat bestand.");
         android.content.ContentResolver cr=activity.getContentResolver();

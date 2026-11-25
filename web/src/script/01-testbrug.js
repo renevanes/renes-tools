@@ -1788,6 +1788,7 @@ if (!window.Android) window.Android = (function(){
     /* Extra ontgrendelen uit: zonder vraag open; _cm.lang = de telefoon is te lang geleden ontgrendeld (dan {vraag:true}) */
     /* Zoals Java: open na het slotscherm (_tslot.net; telt in _cm.vragen) of met extra ontgrendelen uit (telt in _cm.vanzelf;
      * _cm.lang = de telefoon is te lang geleden ontgrendeld: {vraag:'tijd'}); anders {vraag:'slot'} */
+    masterKaartDocument(){return true;},
     masterBuiten(token,kind){(this._cm.buiten=this._cm.buiten||[]).push([token,kind]);},
     masterTijd(wat,totaal,ontgrendelen,lijst,tekenen){(this._cm.tijden=this._cm.tijden||[]).push([wat,totaal,ontgrendelen,lijst,tekenen]);},
     masterOpen(request){const m=this._cm;if(!m.view){setTimeout(()=>onMasterReply({request}),10);return;}const net=this._tsNeem('masterdata');

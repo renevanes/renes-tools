@@ -86,6 +86,9 @@ for(const colorScheme of ['light','dark']){
   assert.deepEqual(await p.evaluate(()=>Android._cm.gekozen),[1]);
   assert.equal(await p.evaluate(doc=>!!Android._cm.records.find(r=>r.id===doc).images?.front,doc),true,'de gekozen foto is de voorkant');
   await p.evaluate(()=>{Android._cm.kaartFotos=null;});
+  // Een oudere app (zonder masterKaartDocument): bij een kaartfoto alleen foto's, zoals die app het aankan
+  await p.evaluate(()=>{window.__kd=Android.masterKaartDocument;Android.masterKaartDocument=undefined;cmcPhotoPick('back');});await p.waitForSelector('#sheet.on');
+  assert.deepEqual(await keuzes(),['Bestand op de telefoon','Uit de documentenkluis']);await p.evaluate(()=>{closeSheet();Android.masterKaartDocument=window.__kd;});
 
   // 4. De handtekening: het menu ligt boven het venster
   await p.evaluate(()=>sigTeken({}));await p.waitForSelector('#sigdlg.on');await p.click('#sig-foto');await p.waitForSelector('#sheet.on');

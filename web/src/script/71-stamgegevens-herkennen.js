@@ -11,6 +11,8 @@ function cmhScanPick(person,soort=''){
 }
 /* Een bestand kiezen voor Stamgegevens: dezelfde keuze als overal (Bron: kluis, Gemaakt, telefoon). Uit de kluis: het
  * ontgrendelen daarvan zet Stamgegevens niet op slot (masterBuiten). Ging Stamgegevens intussen dicht: niets klaar laten staan. */
+/* Een kaartfoto ook uit een document: alleen als de app dat kan (de interface komt eerder op de telefoon dan een nieuwe app) */
+function cmKaartSoort(){return typeof Android.masterKaartDocument==='function'?'document':'beeld';}
 function cmBron(titel,soort,start){
   bronKies({titel,soort,kiezer:'stamgegevens',zonder:['factuur'],voorKluis:()=>{if(cmOpen())Android.masterBuiten(cm.token,'kluis');},
     bestand:()=>{if(!cmOpen()||cmi.photoRequest){try{Android.bronVolgende('','');}catch(e){}if(!cmOpen())toast(t('Ontgrendel de stamgegevens opnieuw'));return;}start();}});
