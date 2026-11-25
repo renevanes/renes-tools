@@ -44,12 +44,23 @@ final class PodcastSlaap {
     static String plek(Context c) { return normPlek(Podcasts.prefs(c).getString("slaapPlek", WAKKER)); }
     static void zet(Context c, String wijze, String plek) {
         Podcasts.prefs(c).edit().putString("slaapTerug", norm(wijze)).putString("slaapPlek", normPlek(plek)).apply();
+        if (UIT.equals(norm(wijze))) { // niets meer vragen: wat nog open stond telt als gehoord (de download mag dan weg)
+            List<String> open = new ArrayList<>();
+            synchronized (LOCK) {
+                JSONArray l = leesRuw(c);
+                for (int i = 0; i < l.length(); i++) if (OPEN.equals(l.optJSONObject(i).optString("st"))) open.add(l.optJSONObject(i).optString("key"));
+            }
+            oordeel(c, open, GEHOORD, false);
+        }
     }
 
     // ---------- zuiver ----------
 
     /** De lijst met deze regel erbij: dezelfde aflevering vervangt de oude regel, nieuwste achteraan, hooguit MAX. */
-    static JSONArray erbij(JSONArray lijst, JSONObject r) {
+    static JSONArray erbij(JSONArray lijst, JSONObject r) { return erbij(lijst, r, null); }
+
+    /** Idem; een regel die er door de grens uit valt en nog open stond, komt in weg (die telt dan als gehoord). */
+    static JSONArray erbij(JSONArray lijst, JSONObject r, List<String> weg) {
         JSONArray b = new JSONArray();
         String key = r.optString("key");
         if (lijst != null) for (int i = 0; i < lijst.length(); i++) {
@@ -57,7 +68,11 @@ final class PodcastSlaap {
             if (o != null && !key.equals(o.optString("key"))) b.put(o);
         }
         b.put(r);
-        while (b.length() > MAX) b.remove(0);
+        while (b.length() > MAX) {
+            JSONObject o = b.optJSONObject(0);
+            if (weg != null && o != null && OPEN.equals(o.optString("st"))) weg.add(o.optString("key"));
+            b.remove(0);
+        }
         return b;
     }
 
@@ -151,19 +166,41 @@ final class PodcastSlaap {
         return false;
     }
 
+    /** Telt dit mee? Niet als Rene vlak voor het einde nog wakker was (dan hoorde hij het einde). Zuiver. */
+    static boolean telt(long wakker, long dur) { return dur <= 0 || wakker < dur - MARGE_EIND_MS; }
+
     /** Een aflevering liep af terwijl de slaaptimer liep. Vóór het markeren als beluisterd aanroepen (de download blijft dan staan). */
     static void liepAf(Context c, String epJson, String podJson, long wakker, long dur, long sessie) {
         try {
-            if (UIT.equals(wijze(c))) return;
+            if (UIT.equals(wijze(c)) || !telt(wakker, dur)) return;
             JSONObject ep = Podcasts.cleanEp(new JSONObject(epJson));
             if (ep == null) return;
             JSONObject pod = podJson == null ? new JSONObject() : Podcasts.cleanPod(new JSONObject(podJson));
             JSONObject r = new JSONObject().put("key", ep.optString("key")).put("ep", ep).put("pod", pod)
                     .put("van", Math.max(0, wakker)).put("d", Math.max(0, dur)).put("t", System.currentTimeMillis())
                     .put("sessie", Math.max(0, sessie)).put("st", OPEN).put("auto", false).put("gezien", false);
-            synchronized (LOCK) { schrijf(c, erbij(opschonen(leesRuw(c), System.currentTimeMillis(), null), r)); }
+            List<String> weg = new ArrayList<>();
+            synchronized (LOCK) { schrijf(c, erbij(opschonen(leesRuw(c), System.currentTimeMillis(), weg), r, weg)); }
+            weg.remove(ep.optString("key"));
+            downloadsWeg(c, weg);
             App.log(c, "PODCAST", "slaaptimer: aflevering afgelopen");
         } catch (Throwable t) { App.log(c, "PODCAST", "slaaptimer: bijhouden mislukt (" + t.getClass().getSimpleName() + ")"); }
+    }
+
+    /** Rene luisterde een aflevering die hier nog open stond wakker uit (zonder slaaptimer): dan hoorde hij hem. Vóór het markeren als beluisterd. */
+    static void wakkerAf(Context c, String key) {
+        try {
+            JSONArray l;
+            boolean veranderd = false;
+            synchronized (LOCK) {
+                l = leesRuw(c);
+                for (int i = 0; i < l.length(); i++) {
+                    JSONObject o = l.optJSONObject(i);
+                    if (key != null && key.equals(o.optString("key")) && OPEN.equals(o.optString("st"))) { o.put("st", GEHOORD).put("auto", false).put("gezien", true); veranderd = true; }
+                }
+                if (veranderd) schrijf(c, l);
+            }
+        } catch (Throwable t) { App.log(c, "PODCAST", "slaaptimer: bijwerken mislukt (" + t.getClass().getSimpleName() + ")"); }
     }
 
     /** De slaaptimer is klaar (de speler stopte). Bij "vanzelf": wat in deze sessie afliep meteen terugzetten. */
@@ -201,7 +238,9 @@ final class PodcastSlaap {
                         // Alleen als hij nog als beluisterd staat: luisterde Rene hem intussen opnieuw, dan die plek houden
                         if (nuDone) Podcasts.saveProgress(c, key, terugPlek(o, plek), o.optLong("d"), false);
                     } else {
-                        if (!nuDone) Podcasts.saveProgress(c, key, 0, o.optLong("d"), true);
+                        // Toch gehoord na terugzetten: weer beluisterd. Stond hij nog open en luisterde Rene hem intussen
+                        // opnieuw, dan die plek houden
+                        if (!nuDone && TERUG.equals(o.optString("st"))) Podcasts.saveProgress(c, key, 0, o.optLong("d"), true);
                         gehoord.add(key);
                     }
                     o.put("st", st).put("auto", auto).put("gezien", !auto);

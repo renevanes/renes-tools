@@ -1171,12 +1171,13 @@ if (!window.Android) window.Android = (function(){
     // Afgespeeld met de slaaptimer (PodcastSlaap); tests vullen _slp.lijst met {key, ep, pod, van, d, t, sessie, st, auto, gezien}
     _slp: { wijze: 'vragen', plek: 'wakker', lijst: [] },
     podSlaap(){ return JSON.stringify(this._slp); },
-    podSlaapZet(w, p){ this._slp.wijze = ['vanzelf', 'uit'].includes(w) ? w : 'vragen'; this._slp.plek = p === 'begin' ? 'begin' : 'wakker'; },
+    podSlaapZet(w, p){ this._slp.wijze = ['vanzelf', 'uit'].includes(w) ? w : 'vragen'; this._slp.plek = p === 'begin' ? 'begin' : 'wakker';
+      if (this._slp.wijze === 'uit') this.podSlaapOordeel(JSON.stringify(this._slp.lijst.filter(r => r.st === 'open').map(r => r.key)), 'gehoord'); },
     podSlaapOordeel(j, st){ const keys = JSON.parse(j); let n = 0; if (!['terug', 'gehoord', 'gezien'].includes(st)) return 0;
       this._slp.lijst.forEach(r => { if (!keys.includes(r.key)) return; n++; if (st === 'gezien') { r.gezien = true; return; }
         const p = this._pc.prog[r.key], nuDone = !p || p.done;
         if (st === 'terug' && nuDone) this._pc.prog[r.key] = { p: this._slp.plek === 'begin' ? 0 : r.van, d: r.d, done: false };
-        if (st === 'gehoord' && !nuDone) this._pc.prog[r.key] = { p: 0, d: r.d, done: true };
+        if (st === 'gehoord' && !nuDone && r.st === 'terug') this._pc.prog[r.key] = { p: 0, d: r.d, done: true };
         r.st = st; r.auto = false; r.gezien = true; }); return n; },
     podOverslaanTerug(key, van){ const st = this._pc.st; if (!st.ep || st.ep.key !== key) return; this._pc.terug = van; st.pos = van; st.at = Date.now(); delete st.skip; },
     /* De ene speler: wie begint, neemt het over */

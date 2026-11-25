@@ -302,14 +302,14 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
                 Podcasts.prefs(this).edit().remove("last").apply();
                 stopAll();
                 break;
-            case SEEK: try { long to = Long.parseLong(x); staToe(to); seekTo(to); wakker = Math.max(0, to); } catch (Exception ignored) { } break;
-            case SKIP: try { int sec = Integer.parseInt(x); long to = curPos() + sec * 1000L; if (sec < 0) staToe(to); seekTo(to); wakker = Math.max(0, to); } catch (Exception ignored) { } break;
+            case SEEK: try { long to = Long.parseLong(x); staToe(to); seekTo(to); wakker = wakkerOp(to); } catch (Exception ignored) { } break;
+            case SKIP: try { int sec = Integer.parseInt(x); long to = curPos() + sec * 1000L; if (sec < 0) staToe(to); seekTo(to); wakker = wakkerOp(to); } catch (Exception ignored) { } break;
             case TERUG: // na "Reclame overgeslagen": terug naar het begin van dat stuk, en dat stuk deze keer niet overslaan
                 try {
                     int i = x.lastIndexOf('|');
                     long van = Long.parseLong(x.substring(i + 1));
                     if (i <= 0 || !x.substring(0, i).equals(stukkenKey)) break; // intussen een andere aflevering
-                    toegestaan.add(van); staToe(van); overgeslagen = null; seekTo(van);
+                    toegestaan.add(van); staToe(van); overgeslagen = null; seekTo(van); wakker = wakkerOp(van);
                 } catch (Exception ignored) { }
                 break;
             case SPEED:
@@ -648,11 +648,14 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         pos = 0;
         release(); prepared = false;
         status = "ended"; // eerst: dan telt hij niet meer als "speelt nog" en kan een download weg
+        final Context app0 = getApplicationContext();
         if (sleepAt > 0 || sleepEnd) { // met de slaaptimer afgelopen: misschien niet gehoord (vóór beluisterd, zodat de download blijft)
-            final Context app = getApplicationContext();
             final String e0 = ep, p0 = pod;
             final long w = wakker, d0 = dur, s0 = slaapSessie;
-            Podcasts.IO.execute(() -> PodcastSlaap.liepAf(app, e0, p0, w, d0, s0));
+            Podcasts.IO.execute(() -> PodcastSlaap.liepAf(app0, e0, p0, w, d0, s0));
+        } else { // wakker uitgeluisterd: stond hij nog open in de lijst, dan is hij gehoord
+            final String k0 = optEp("key");
+            Podcasts.IO.execute(() -> PodcastSlaap.wakkerAf(app0, k0));
         }
         try { JSONObject e = new JSONObject(ep); Podcasts.saveProgress(this, e.optString("key"), 0, dur, true); } catch (Exception ignored) { }
         h.removeCallbacks(tickRun);
@@ -806,6 +809,9 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         if ("playing".equals(status)) setVolume(fadeMin);
         h.postDelayed(sleepTick, SleepFade.wacht(left, fade));
     }
+
+    /** Een plek die Rene zelf koos, binnen de aflevering. */
+    private long wakkerOp(long to) { return dur > 0 ? Math.max(0, Math.min(to, dur)) : Math.max(0, to); }
 
     /** De slaaptimer stopte de speler: bij "vanzelf" wat in deze sessie afliep als niet beluisterd markeren. */
     private void slaapKlaar() {

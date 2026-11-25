@@ -80,7 +80,7 @@ function pcPoll(force){
   if (force || sig !== pcLastSig) {
     const keyChanged = !pcLastSig || JSON.parse(pcLastSig)[1] !== (pcSt.ep && pcSt.ep.key);
     pcLastSig = sig;
-    if (keyChanged && (current === 'podcasts' || current === 'podlijst')) { pcRenderCont(); pcRenderNew(); }
+    if (keyChanged && (current === 'podcasts' || current === 'podlijst')) { pcRenderCont(); pcRenderNew(); if (current === 'podcasts' && typeof slpRender === 'function') slpRender(); }
     if (current === 'podcast') { pdRefreshRows(); pdResumeShow(); } // ▶/❚❚ en voortgang in de lijst bijwerken
   }
   if (typeof pkMeld === 'function') pkMeld(pcSt);

@@ -36,6 +36,16 @@ public class PodcastSlaapTest {
         for (int i = 0; i < PodcastSlaap.MAX + 5; i++) vol = PodcastSlaap.erbij(vol, regel(String.format("e%016x", i), 0, 0, nu, 1, "open"));
         check(vol.length() == PodcastSlaap.MAX && vol.getJSONObject(0).optString("key").equals(String.format("e%016x", 5)), "hooguit " + PodcastSlaap.MAX + ", de oudste gaan eruit");
 
+        List<String> eruit = new ArrayList<>();
+        JSONArray vol2 = new JSONArray();
+        for (int i = 0; i < PodcastSlaap.MAX; i++) vol2 = PodcastSlaap.erbij(vol2, regel(String.format("e%016x", i), 0, 0, nu, 1, i == 0 ? "open" : "gehoord"));
+        PodcastSlaap.erbij(vol2, regel("e1000000000000000", 0, 0, nu, 1, "open"), eruit);
+        check(eruit.size() == 1 && eruit.get(0).equals(String.format("e%016x", 0)), "valt een open regel eruit, dan telt hij als gehoord (download mag weg)");
+
+        // Wakker vlak voor het einde: hij hoorde het einde, dus niet bijhouden
+        check(PodcastSlaap.telt(10 * min, 60 * min) && PodcastSlaap.telt(0, 0), "gewoon in slaap gevallen: telt");
+        check(!PodcastSlaap.telt(59 * min + 30_000, 60 * min), "in de laatste minuut nog wakker: telt niet");
+
         // Opschonen: na twee weken weg; wat toen nog open stond telt als gehoord
         JSONArray oud = new JSONArray().put(regel(k1, 0, 0, nu - PodcastSlaap.BEWAAR_MS - 1, 1, "open"))
                 .put(regel(k2, 0, 0, nu - PodcastSlaap.BEWAAR_MS - 1, 1, "terug")).put(regel(k3, 0, 0, nu - 1000, 1, "open"));
