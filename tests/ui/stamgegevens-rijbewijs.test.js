@@ -16,7 +16,7 @@ for(const colorScheme of ['light','dark']){
  await p.getByRole('button',{name:'Foto of document kiezen',exact:true}).click();await p.waitForFunction(()=>cm.mutating);
  await p.evaluate(()=>{Android._cm.replyDelay=150;});
  assert.equal(await p.isDisabled('#cmc-doc-add'),true,'geen andere acties tijdens verwerking gekozen foto');
- await p.evaluate(()=>goBack());assert.equal(await p.evaluate(()=>current+' '+cmc.rec?.id),'cmkaart owner','kaartje blijft staan tijdens verwerking');
+ await p.waitForFunction(()=>$('#modal.on')&&$('#modal-title').textContent==='Document verwerken');assert.equal(await p.evaluate(()=>current+' '+cmc.rec?.id),'cmkaart owner','kaartje blijft staan tijdens verwerking, met het wachtvenster erover');
  await p.waitForFunction(()=>cmh.photoBusy&&cm.recordsReady&&current==='cmkaart'&&cm.pending.size>0);
  assert.equal(await p.isDisabled('#cmc-doc-add'),true,'blijft geblokkeerd tot het document is geladen');
  await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='identiteit'&&!$('#cmh-panel').hidden);
