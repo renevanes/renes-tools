@@ -270,7 +270,7 @@ function cmhRender(){
       cmData(text);label.append(input,text);box.append(label);
     }
   }
-  $('#cmh-source').textContent=d.fields.bron==='tekst'?t('Rijbewijs gelezen uit de gedrukte tekst. Er zijn geen controlecijfers: controleer elk gekozen veld.'):d.fields.zeker===false?t('Niet alle controlecijfers kloppen: kijk de gegevens extra goed na.'):t('Namen in de strook kunnen zonder accenten zijn geschreven.');
+  $('#cmh-source').textContent=d.fields.bron==='tekst'?t('Rijbewijs gelezen uit de gedrukte tekst. Er zijn geen controlecijfers: controleer elk gekozen veld.'):d.fields.afwijkend===true?t('De strook is in een afwijkende letter gelezen. De controlecijfers kloppen, maar kijk namen en landen extra goed na.'):d.fields.zeker===false?t('Niet alle controlecijfers kloppen: kijk de gegevens extra goed na.'):t('Namen in de strook kunnen zonder accenten zijn geschreven.');
   const numbers=$('#cmh-numbers');numbers.textContent=cmh.reveal?t('Nummers verbergen'):t('Nummers tonen');numbers.setAttribute('aria-pressed',String(cmh.reveal));
   $('#cmh-panel').hidden=!box.querySelector('input');cmhMist();cmhReviewState();
 }

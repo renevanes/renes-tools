@@ -211,7 +211,8 @@ final class MrzOcr {
         /** Zoals {@link MrzOcr#better}, maar met alleen de bewaarde getallen. */
         void neem(Mrz.Result r){
             if(r==null)return;
-            boolean beter=besteFormaat==null||(r.usable()!=bruikbaar?r.usable():r.usable()&&r.valid()!=geldig?r.valid()>geldig:r.mean<besteAfwijking);
+            boolean afw=bruikbaar&&besteAfwijking>=Mrz.Result.LIMIT;
+            boolean beter=besteFormaat==null||(r.usable()!=bruikbaar?r.usable():r.usable()&&r.afwijkend()!=afw?!r.afwijkend():r.usable()&&r.valid()!=geldig?r.valid()>geldig:r.mean<besteAfwijking);
             if(!beter)return;
             besteFormaat=r.format.name;besteAfwijking=r.mean;nrOk=r.docOk;gebOk=r.birthOk;vervOk=r.expiryOk;bruikbaar=r.usable();geldig=r.valid();
             heelOk=r.compositeOk;verbeterd=new java.util.TreeSet<>(r.repaired);
@@ -283,6 +284,8 @@ final class MrzOcr {
     }
     static boolean better(Mrz.Result r,Mrz.Result best){
         if(best==null)return true;if(r.usable()!=best.usable())return r.usable();
+        // Een lezing in OCR-B gaat voor een in een afwijkende letter (die is minder zeker), daarna het aantal kloppende cijfers
+        if(r.usable()&&r.afwijkend()!=best.afwijkend())return !r.afwijkend();
         if(r.usable()&&r.valid()!=best.valid())return r.valid()>best.valid();return r.mean<best.mean;
     }
 
@@ -299,7 +302,7 @@ final class MrzOcr {
         // Niets bruikbaars: nog eens met een mildere drempel. Bleke, dunne tekens (een gelaserde strook van een nieuwer
         // paspoort, een flets licht) vallen bij de strenge drempel in stukjes; zo worden ze weer heel. Alleen in de
         // draairichtingen waar al iets als een strookregel te zien was: een beeld zonder strook kost zo geen extra tijd.
-        if(best==null||!best.usable()){
+        if(best==null||!best.usable()||best.afwijkend()){
             try{
                 if(sp!=null)sp.bijMild=true;
                 for(int q=0;q<4;q++){

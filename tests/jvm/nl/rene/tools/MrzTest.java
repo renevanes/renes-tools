@@ -45,6 +45,19 @@ public class MrzTest {
         check(!new Mrz.Result(Mrz.TD3,tt,45.0*88,new java.util.HashSet<>()).usable(),"te grote afwijking: niet bruikbaar");
         char[][] fout={td3.line(0).toCharArray(),td3.line(1).toCharArray()};fout[1][27]='0';
         check(!new Mrz.Result(Mrz.TD3,fout,26.9*88,new java.util.HashSet<>()).usable(),"afwijkend en een controlecijfer fout: niet bruikbaar");
+        // Onzin die toevallig de drie controlecijfers haalt: datums die niet bestaan of een code die niet bij het formaat past
+        char[][] maand={td3.line(0).toCharArray(),td3.line(1).toCharArray()};
+        "741312".getChars(0,6,maand[1],13);maand[1][19]=(char)('0'+Mrz.digit("741312"));
+        Mrz.Result maandFout=new Mrz.Result(Mrz.TD3,maand,26.9*88,new java.util.HashSet<>());
+        check(maandFout.birthOk&&!maandFout.usable(),"maand 13 met kloppend controlecijfer: afwijkend niet bruikbaar");
+        check(new Mrz.Result(Mrz.TD3,maand,3.0*88,new java.util.HashSet<>()).usable(),"in OCR-B blijft het zoals het was");
+        char[][] code={td3.line(0).toCharArray(),td3.line(1).toCharArray()};code[0][0]='I';
+        check(!new Mrz.Result(Mrz.TD3,code,26.9*88,new java.util.HashSet<>()).usable(),"een paspoortstrook die niet met P begint: afwijkend niet bruikbaar");
+        check(Mrz.Result.datum("000229".toCharArray(),0)&&!Mrz.Result.datum("010229".toCharArray(),0)&&!Mrz.Result.datum("7408A2".toCharArray(),0),"datums");
+        check(Mrz.fields(laser,"2026-11-08").getBoolean("afwijkend")&&!Mrz.fields(td3,"2026-11-08").getBoolean("afwijkend"),"afwijkend doorgegeven");
+        // Een lezing in OCR-B gaat voor een afwijkende, ook als die meer controlecijfers haalt
+        Mrz.Result ocrb=new Mrz.Result(Mrz.TD3,tt,5.0*88,new java.util.HashSet<>());
+        check(MrzOcr.better(ocrb,laser)&&!MrzOcr.better(laser,ocrb),"OCR-B gaat voor afwijkend");
         check(Mrz.parse("I<UTOD231458908<<<<<<<<<<<<<<<","7408122F1204159UTO<<<<<<<<<<<6","ERIKSSON<<ANNA<MARIA<<<<<<<<<<").docOk==false,"fout controlecijfer gezien");
         // Eeuw van de geboortedatum, achternaam met tussenvoegsel, BSN alleen met 11-proef
         check("2015-02-03".equals(Mrz.birth("150203","2026-11-08"))&&"1980-01-01".equals(Mrz.birth("800101","2026-11-08"))&&"".equals(Mrz.birth("991340","2026-11-08"))&&"1926-12-31".equals(Mrz.birth("261231","2026-11-08")),"geboortedatum, nooit in de toekomst");

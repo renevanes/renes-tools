@@ -57,11 +57,15 @@ for(const colorScheme of ['light','dark']){
   await p.click('#modal-ok');assert.equal(await p.evaluate(()=>window.__ja),1);
   await p.waitForTimeout(4200);assert.equal(await p.isVisible('#modal'),false,'de late uitkomst sluit geen ander venster');
   // Klaar: het venster gaat vanzelf dicht
+  // (een strook in een afwijkende letter: dat staat er zichtbaar bij)
+  await p.evaluate(()=>{Android._cm.herkend={document:{documentsoort:'identiteitskaart',document:'NX7P41KD9',geldig:'2031-06-11'},persoon:{naam:'Jansen'},soort:'TD1',zeker:false,afwijkend:true,twijfel:['naam']};});
   await p.evaluate(()=>Android._cm.photoDelay=300);await p.click('#cmc-doc-add');await kies('Identiteitskaart');
   await p.waitForFunction(()=>$('#sheet-title').textContent==='Identiteitskaart');await kies('Foto of document kiezen');await kies('Bestand op de telefoon');
   await p.waitForFunction(()=>$('#modal.on')&&$('#modal-title').textContent==='Document verwerken');
   await p.waitForFunction(()=>current==='cmedit'&&!$('#modal.on'));
   assert.equal(await p.isVisible('#modal-ok'),false);
+  await p.waitForFunction(()=>!$('#cmh-panel').hidden);assert.match(await p.textContent('#cmh-source'),/afwijkende letter gelezen/);
+  await p.evaluate(()=>{Android._cm.herkend=null;});
   await p.evaluate(()=>{cm.dirty=false;goBack();});await p.waitForFunction(()=>!cm.mutating);
 
   // 3. Kaartfoto (voor- of achterkant): ook uit een document (PDF, Word), zoals bij Document toevoegen

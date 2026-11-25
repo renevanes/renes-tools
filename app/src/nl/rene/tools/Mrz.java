@@ -96,14 +96,31 @@ final class Mrz {
         /**
          * Een strook in een afwijkend lettertype (zoals de gelaserde strook van een Nederlands paspoort) lijkt minder op OCR-B,
          * maar de tekens kunnen toch goed gelezen zijn. Dan telt de lezing alleen als de drie controlecijfers kloppen zonder
-         * dat er iets verbeterd is (bij toeval één op de duizend), en tot deze afwijking (onzin zonder kloppende cijfers: 15+).
+         * dat er iets verbeterd is, de datums echte datums zijn en de documentcode bij het formaat past (plausibel). Onzin
+         * haalt de drie controlecijfers bij toeval ongeveer één keer op de duizend lezingen; een foto geeft veel lezingen
+         * (stukken, draairichtingen, verschuivingen), daarom ook de datums en de code: samen nog eens zo'n één op de vijfhonderd.
          */
         static final double LIMIT_CONTROLE=40;
         /** Bruikbaar: documentnummer, geboortedatum en vervaldatum kloppen met hun controlecijfer, en de tekens lijken op OCR-B
          * (of, in een afwijkend lettertype, de drie controlecijfers kloppen zonder verbetering). */
         boolean usable(){
             if(!docOk||!birthOk||!expiryOk)return false;
-            return mean<LIMIT||mean<LIMIT_CONTROLE&&!repaired.contains("doc")&&!repaired.contains("birth")&&!repaired.contains("expiry");
+            if(mean<LIMIT)return true;
+            return mean<LIMIT_CONTROLE&&!repaired.contains("doc")&&!repaired.contains("birth")&&!repaired.contains("expiry")&&plausibel();
+        }
+        /** Geboorte- en vervaldatum zijn echte datums (JJMMDD) en de documentcode past bij het formaat (paspoort P, kaart I/A/C/R). */
+        boolean plausibel(){
+            int[] geb=format==TD1?new int[]{1,0}:new int[]{1,13},verv=format==TD1?new int[]{1,8}:new int[]{1,21};
+            if(!datum(text[geb[0]],geb[1])||!datum(text[verv[0]],verv[1]))return false;
+            char k=text[0][0];
+            return format==TD3?k=='P':k=='I'||k=='A'||k=='C'||k=='R'||(format==TD2&&k=='V');
+        }
+        static boolean datum(char[] t,int at){
+            if(at+6>t.length)return false;
+            for(int i=at;i<at+6;i++)if(t[i]<'0'||t[i]>'9')return false;
+            int jj=(t[at]-'0')*10+(t[at+1]-'0'),mm=(t[at+2]-'0')*10+(t[at+3]-'0'),dd=(t[at+4]-'0')*10+(t[at+5]-'0');
+            int[] dagen={31,(jj%4==0)?29:28,31,30,31,30,31,31,30,31,30,31};
+            return mm>=1&&mm<=12&&dd>=1&&dd<=dagen[mm-1];
         }
         /** Gelezen in een afwijkend lettertype: wat geen controlecijfer heeft (namen, landen) is dan niet zeker. */
         boolean afwijkend(){return mean>=LIMIT;}
@@ -246,6 +263,6 @@ final class Mrz {
         if(r.repaired.contains("doc"))twijfel.put("document");if(r.repaired.contains("birth"))twijfel.put("geboortedatum");if(r.repaired.contains("expiry"))twijfel.put("geldig");
         // Afwijkend lettertype: wat geen controlecijfer heeft, is een voorstel om na te kijken (niet vooraf aangevinkt)
         if(r.afwijkend())for(String v:new String[]{"naam","voornamen","nationaliteit","uitgifteland","geslacht"})twijfel.put(v);
-        return new JSONObject().put("document",doc).put("persoon",person).put("soort",f.name).put("zeker",r.sure()).put("twijfel",twijfel);
+        return new JSONObject().put("document",doc).put("persoon",person).put("soort",f.name).put("zeker",r.sure()).put("twijfel",twijfel).put("afwijkend",r.afwijkend());
     }
 }
