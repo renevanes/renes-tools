@@ -10,7 +10,7 @@ agSpiegelAntwoord  # testbrug: nabootsing van Agenda.java
 
 # Stamgegevens: brugfuncties die de interface aanroept via cmRequest (Android[method]) in 69-centrale-gegevens.js
 masterAboutMove  # via cmRequest('masterAboutMove', …)
-masterScanPairSave  # via cmRequest('masterScanPairSave', …) in 71-stamgegevens-herkennen.js
+masterScanChoose  # via cmRequest('masterScanChoose', …) in 71-stamgegevens-herkennen.js
 masterAudit  # via cmRequest('masterAudit', …)
 masterContactAction  # via cmRequest('masterContactAction', …)
 masterDelete  # via cmRequest('masterDelete', …)

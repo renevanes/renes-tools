@@ -1777,8 +1777,8 @@ if (!window.Android) window.Android = (function(){
     masterSafeFrame(view,generation){this._cm.frame={view,generation};},
     // Gekozen kaartfoto verwerken (na ontgrendelen, of meteen als de kiezer binnen de tijd terugkwam).
     _cmPhoto(){const m=this._cm;let photo;const job=m.photo;
-    // Zoals MasterPhotos: een document met meer foto's (_cm.scanFotos = [{pagina, heel}]) eerst tonen om te kiezen
-    if(job&&job.side==='scan'&&(m.scanFotos||[]).length>1&&!job.confirmed&&!m.scanError){
+    // Zoals MasterPhotos: een document (_cm.scanFotos = [{pagina, heel}], ook één foto) eerst tonen om te kiezen
+    if(job&&job.side==='scan'&&(m.scanFotos||[]).length>0&&!job.confirmed&&!m.scanError){
       m.photo=null;m.keuzeReview=job;job.reviewId=crypto.randomUUID();
       job.fotos=m.scanFotos.map((f,i)=>{const c=document.createElement('canvas');c.width=80;c.height=48;const x=c.getContext('2d');x.fillStyle=['blue','green','red','gray'][i%4];x.fillRect(0,0,80,48);return {src:c.toDataURL('image/jpeg'),pagina:f.pagina||1,heel:!!f.heel};});
       return {reviewId:job.reviewId,fotos:job.fotos,info:{fotos:job.fotos.length}};

@@ -89,10 +89,14 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>{Android._cm.herkend={document:{document:'X1'},persoon:{},zeker:true};});
   await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!cmOpen());
   assert.equal(await p.evaluate(()=>cmh.data===null&&$('#cmh-list').children.length===0),true);
-  // Een document met één foto: gaat als een foto (de foto wordt bewaard).
+  // Een document met één foto: ook eerst tonen (al gekozen), dan bewaren.
   await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);
   await p.evaluate(()=>{Android._cm.scanFotos=[{pagina:1}];Android._cm.herkend={document:{documentsoort:'paspoort',document:'PDF123456'},persoon:{},soort:'TD3',zeker:true};});
   await scan('Paspoort');
+  await p.waitForSelector('#cmh-keuze .cmh-foto');
+  assert.match(await p.textContent('#modal-text'),/staat één foto/);
+  assert.equal(await p.getAttribute('#cmh-keuze .cmh-foto','aria-pressed'),'true','al gekozen');
+  await p.click('#modal-ok');
   await p.waitForFunction(()=>current==='cmedit'&&$('#cm-edit-status').textContent.includes('De foto is bewaard'));
   assert.equal(await p.evaluate(()=>!!Android._cm.records.find(r=>r.id===cm.edit.id).images),true);
   // Een document met meer foto's: eerst kiezen (de foto's zijn te zien), dan pas herkennen en bewaren.

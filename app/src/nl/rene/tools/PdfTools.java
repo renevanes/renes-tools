@@ -133,23 +133,32 @@ final class PdfTools {
         try {
             File f = inFile(c);
             if (!f.isFile()) throw new Exception("Kies eerst een PDF");
-            DocumentFotos.Uitkomst u;
-            try { u = DocumentFotos.zet(c, readAll(f, MAX_IN), MAX_FOTOS, () -> true); }
-            catch (java.io.IOException e) { throw new Exception(Taal.T("Deze PDF kan niet worden geopend")); }
-            if (u.fotos.isEmpty()) throw new Exception(Taal.T("Er staan geen foto's in deze PDF"));
             JSONArray made = new JSONArray(), lijst = new JSONArray();
-            int heel = 0;
-            for (int i = 0; i < u.fotos.size(); i++) {
-                DocumentFotos.Foto foto = u.fotos.get(i);
-                if (foto.heleBladzijde) heel++;
-                File out = outFile(c, base(inName + " foto " + (i + 1)), ".jpg");
-                try (OutputStream o = new FileOutputStream(out)) { o.write(foto.jpeg); }
-                catch (Exception e) { out.delete(); throw e; }
-                made.put(out.getName());
-                lijst.put(new JSONObject().put("name", out.getName()).put("src", DocumentFotos.voorbeeld(foto.jpeg, 360))
-                    .put("pagina", foto.pagina).put("heel", foto.heleBladzijde).put("breed", foto.breed).put("hoog", foto.hoog));
+            List<File> gemaakt = new ArrayList<>();
+            int[] heel = {0};
+            DocumentFotos.Uitkomst u;
+            try {
+                // Elke foto meteen wegschrijven (niet alle foto's tegelijk in het geheugen)
+                u = DocumentFotos.zet(c, readAll(f, MAX_IN), MAX_FOTOS, () -> true, foto -> {
+                    try {
+                        if (foto.heleBladzijde) heel[0]++;
+                        File out = outFile(c, base(inName + " foto " + (gemaakt.size() + 1)), ".jpg");
+                        gemaakt.add(out);
+                        try (OutputStream o = new FileOutputStream(out)) { o.write(foto.jpeg); }
+                        made.put(out.getName());
+                        lijst.put(new JSONObject().put("name", out.getName()).put("src", DocumentFotos.voorbeeld(foto.jpeg, 360))
+                            .put("pagina", foto.pagina).put("heel", foto.heleBladzijde).put("breed", foto.breed).put("hoog", foto.hoog));
+                    } catch (Exception e) { throw new IllegalStateException(e); }
+                });
+            } catch (Throwable e) {
+                for (File g : gemaakt) g.delete(); // half klaar: niets laten staan
+                if (e instanceof java.io.IOException) throw new Exception(Taal.T("Deze PDF kan niet worden geopend"));
+                if (e instanceof IllegalStateException && e.getCause() instanceof Exception) throw (Exception) e.getCause();
+                if (e instanceof Error) throw (Error) e;
+                throw (Exception) e;
             }
-            App.log(c, "PDF", "foto's uit pdf: " + u.fotos.size() + ", waarvan hele pagina's " + heel + ", pagina's " + u.paginas + (u.afgekapt ? ", afgekapt" : ""));
+            if (u.fotos.isEmpty()) throw new Exception(Taal.T("Er staan geen foto's in deze PDF"));
+            App.log(c, "PDF", "foto's uit pdf: " + u.fotos.size() + ", waarvan hele pagina's " + heel[0] + ", pagina's " + u.paginas + (u.afgekapt ? ", afgekapt" : ""));
             return new JSONObject().put("kind", "done").put("made", made).put("fotos", lijst).put("paginas", u.paginas).put("afgekapt", u.afgekapt);
         } finally { IN.unlock(); }
     }

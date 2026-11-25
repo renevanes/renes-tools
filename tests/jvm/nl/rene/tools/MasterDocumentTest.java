@@ -54,6 +54,12 @@ public final class MasterDocumentTest {
         List<String> namen = new java.util.ArrayList<>(java.util.Arrays.asList("word/media/image10.png", "word/media/image2.jpeg", "word/media/image1.png", "word/media/foto.jpg"));
         namen.sort(DocumentFotos::volgorde);
         check(namen.equals(java.util.Arrays.asList("word/media/foto.jpg", "word/media/image1.png", "word/media/image2.jpeg", "word/media/image10.png")), "volgorde: " + namen);
+        // Gemengde namen: een vaste volgorde (sorteren met veel namen gaat nooit mis)
+        List<String> veel = new java.util.ArrayList<>();
+        for (int i = 0; i < 200; i++) veel.add("word/media/" + (i % 3 == 0 ? "x" + i + ".png" : i % 3 == 1 ? "x" + i + "z.png" : "image" + i + ".jpeg"));
+        java.util.Collections.shuffle(veel, new java.util.Random(7));
+        veel.sort(DocumentFotos::volgorde);
+        for (int i = 1; i < veel.size(); i++) check(DocumentFotos.volgorde(veel.get(i - 1), veel.get(i)) <= 0, "vaste volgorde");
         // Is het een PDF of een zip (Word)?
         check(DocumentFotos.pdf("%PDF-1.7".getBytes()) && !DocumentFotos.pdf("PK".getBytes()) && !DocumentFotos.pdf(null), "PDF herkend");
         check(DocumentFotos.zip(new byte[]{'P', 'K', 3, 4}) && !DocumentFotos.zip("%PDF-".getBytes()), "zip herkend");

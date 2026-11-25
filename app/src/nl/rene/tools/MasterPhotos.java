@@ -48,6 +48,8 @@ final class MasterPhotos {
         long klaarOp;
         /** Een document met meer foto's: Rene kiest er één of twee (voor- en achterkant); alleen in het geheugen. */
         String reviewId,reviewToken;java.util.List<DocumentFotos.Foto> keuze;
+        /** De gekozen foto's worden herkend (saveReview): dat gaat door als Stamgegevens vanzelf op slot gaat. */
+        boolean kiezen;
         Pending(String id,long revision,String side,String request,String view,String soort){this.id=id;this.revision=revision;this.side=side;this.request=request;this.view=view;this.soort=soort;this.dataset=MasterSession.datasetEpoch();}
     }
     synchronized void pick(String token,String id,long revision,String side,String request)throws Exception {pick(token,id,revision,side,request,"");}
@@ -74,13 +76,16 @@ final class MasterPhotos {
     }
     synchronized void clear(Pending job){if(pending==job)pending=null;notifyAll();}
     synchronized void cancel(){pending=null;notifyAll();}
-    synchronized void cancelReview(){if(pending!=null&&pending.reviewId!=null)pending=null;notifyAll();}
+    /** Vanzelf op slot: een open keuze vervalt, maar herkennen van wat al gekozen is gaat door (bewaard na ontgrendelen). */
+    synchronized void cancelReview(){if(pending!=null&&pending.reviewId!=null&&!pending.kiezen)pending=null;notifyAll();}
     /**
      * Uitkomst van lezen en herkennen, alleen in het geheugen (nooit in een bestand): de genormaliseerde foto(’s) en wat er
      * herkend is, of de fout. Weg met de klaargezette keuze (cancel, vergrendelen met de hand, de app sluiten).
      */
     static final class Uitkomst {
         String image,error;JSONObject found,diag;
+        /** Gekozen foto's uit een document, herkend maar nog niet bewaard (op slot gegaan tijdens herkennen). */
+        JSONObject images;
         /** Meer foto's in een document: Rene kiest (review). */
         java.util.List<DocumentFotos.Foto> keuze;
     }
@@ -91,9 +96,11 @@ final class MasterPhotos {
     /** Hoeveel foto's uit een document hooguit te kiezen zijn. */
     static final int MAX_KEUZE=12;
     /** Meer foto's in het document: ze tonen (klein) en Rene laten kiezen; de foto's zelf blijven in het geheugen. */
-    private JSONObject review(Pending job,String token,java.util.List<DocumentFotos.Foto> fotos,JSONObject info)throws Exception{
-        JSONArray lijst=new JSONArray();
-        for(DocumentFotos.Foto f:fotos)lijst.put(new JSONObject().put("src",DocumentFotos.voorbeeld(f.jpeg,600)).put("pagina",f.pagina).put("heel",f.heleBladzijde));
+    private JSONObject review(Pending job,String token,java.util.List<DocumentFotos.Foto> alle,JSONObject info)throws Exception{
+        // Een foto die Android niet helemaal kan openen (geen voorbeeld) valt af: die is ook niet te herkennen of te bewaren
+        JSONArray lijst=new JSONArray();java.util.List<DocumentFotos.Foto> fotos=new java.util.ArrayList<>();
+        for(DocumentFotos.Foto f:alle){String src=DocumentFotos.voorbeeld(f.jpeg,600);if(src.isEmpty())continue;fotos.add(f);lijst.put(new JSONObject().put("src",src).put("pagina",f.pagina).put("heel",f.heleBladzijde));}
+        if(fotos.isEmpty())throw new MasterError(Taal.T("Geen foto's in dit document gevonden. Kies een document met een foto van het ID-bewijs, of een foto van de kaart zelf."));
         synchronized(activity.masterSession){
             activity.masterSession.require(token);
             synchronized(this){
@@ -117,7 +124,7 @@ final class MasterPhotos {
         java.util.List<DocumentFotos.Foto> fotos;
         synchronized(this){
             job=pending;
-            if(job==null||id==null||!id.equals(job.reviewId)||!token.equals(job.reviewToken)||job.keuze==null)
+            if(job==null||id==null||!id.equals(job.reviewId)||!token.equals(job.reviewToken)||job.keuze==null||job.kiezen)
                 throw new MasterError(Taal.T("Kies het bestand opnieuw."));
             fotos=job.keuze;
         }
@@ -130,6 +137,7 @@ final class MasterPhotos {
             if(n<0||n>=fotos.size()||kies.contains(fotos.get(n)))throw new MasterError(Taal.T("Kies één of twee foto's"));
             kies.add(fotos.get(n));
         }
+        synchronized(this){if(pending!=job)throw new MasterError(Taal.T("Kies het bestand opnieuw."));job.kiezen=true;}
         final Pending werk=job;
         java.util.function.BooleanSupplier active=()->{synchronized(MasterPhotos.this){return pending==werk&&werk.dataset==MasterSession.datasetEpoch();}};
         long tot=android.os.SystemClock.elapsedRealtime()+MasterDocumentImages.SEARCH_MS;
@@ -137,6 +145,7 @@ final class MasterPhotos {
         String today=Regio.dayKey(activity,System.currentTimeMillis());
         JSONObject images=new JSONObject(),found;
         try(Voortgang v=Voortgang.van(activity,"kaartfoto",1)){
+          try{
             v.tijd("herkennen",MasterDocumentImages.SEARCH_MS);
             if(kies.size()==1){
                 found=MasterDocumentImages.herkenFoto(activity,kies.get(0).jpeg,today,zoekt);
@@ -152,8 +161,19 @@ final class MasterPhotos {
                 images.put("front",normalize(p.front)).put("back",normalize(p.back));found=p.fields;
             }
             v.stap("opslaan",0,0);
+          }catch(Throwable e){synchronized(this){job.kiezen=false;}if(e instanceof Exception)throw (Exception)e;throw (Error)e;}
         }
         if(!active.getAsBoolean())throw new MasterError(Taal.T("Kies het bestand opnieuw."));
+        // Intussen vanzelf op slot (scherm uit): de uitkomst blijft in het geheugen en resume() bewaart hem na ontgrendelen
+        if(!session.accepts(token)||!activity.masterForeground){
+            Uitkomst u=new Uitkomst();u.images=images;u.found=found;
+            synchronized(this){
+                if(pending!=job)throw new MasterError(Taal.T("Kies het bestand opnieuw."));
+                job.reviewId=null;job.keuze=null;job.kiezen=false;job.klaar=u;job.klaarOp=android.os.SystemClock.elapsedRealtime();notifyAll();
+            }
+            activity.h.postDelayed(()->{synchronized(MasterPhotos.this){if(pending==job&&job.klaar!=null&&job.reviewId==null){pending=null;notifyAll();}}},BEWAAR_MS+1000);
+            throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
+        }
         try{return scanDocument(key,session,token,job,images,found);}finally{clear(job);}
     }
     void notify(Pending job,boolean picked,String error){try{JSONObject out=new JSONObject().put("request",job.request).put("picked",picked).put("direct",picked&&activity.masterPicking());if(error!=null)out.put("error",error);activity.js("onMasterPhotoPicked",out.toString());}catch(Exception ignored){ }}
@@ -314,13 +334,9 @@ final class MasterPhotos {
                 if(!active.getAsBoolean())throw new MasterError(Taal.T("Kies het bestand opnieuw."));
                 if(d.fotos.isEmpty())throw new MasterError(Taal.T("Geen foto's in dit document gevonden. Kies een document met een foto van het ID-bewijs, of een foto van de kaart zelf."));
                 diag.put("fotos",d.fotos.size()).put("heel",heel).put("afgekapt",d.afgekapt);
-                if(d.fotos.size()>1){u.keuze=d.fotos;u.diag=diag;return u;}
-                v.tijd("herkennen",MasterDocumentImages.SEARCH_MS);
-                bytes=d.fotos.get(0).jpeg;
-                long tot=android.os.SystemClock.elapsedRealtime()+MasterDocumentImages.SEARCH_MS;
-                MrzOcr.Spoor spoor=new MrzOcr.Spoor();MrzOcr.volg(spoor);
-                try{found=MasterDocumentImages.herkenFoto(activity,bytes,today,()->active.getAsBoolean()&&android.os.SystemClock.elapsedRealtime()<tot);}finally{MrzOcr.volg(null);}
-                if(found==null&&active.getAsBoolean())App.log(activity,"STAMGEGEVENS","foto uit document: niet herkend; "+spoor.tekst());
+                // Altijd eerst tonen (ook bij één foto): Rene ziet wat er in het document staat en kiest. Een hele pagina kan
+                // meer bevatten dan het ID-bewijs; dat staat er zichtbaar bij.
+                u.keuze=d.fotos;u.diag=diag;return u;
             }else{
                 v.tijd("herkennen",HERKEN_MS);
                 MrzOcr.Spoor spoor=new MrzOcr.Spoor();MrzOcr.volg(spoor);
@@ -339,6 +355,7 @@ final class MasterPhotos {
         if(job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kies de kaartfoto opnieuw vanuit Stamgegevens"));
         session.require(token);
         if(u.keuze!=null)return review(job,token,u.keuze,u.diag);
+        if(u.images!=null)return scanDocument(key,session,token,job,u.images,u.found).put("diag",u.diag);
         // Herkennen uit foto (bij een persoon): een nieuw document met deze foto als bijlage, daarna voorstellen.
         if("scan".equals(job.side)){
             String type=u.found==null?job.soort:u.found.getJSONObject("document").optString("documentsoort",job.soort);

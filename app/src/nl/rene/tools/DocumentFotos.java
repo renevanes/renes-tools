@@ -58,6 +58,12 @@ final class DocumentFotos {
         int paginas;
         /** Meer foto's of pagina's dan de grens: de rest is overgeslagen. */
         boolean afgekapt;
+        java.util.function.Consumer<Foto> elk;
+        void neem(Foto f) {
+            if (elk == null) { fotos.add(f); return; }
+            elk.accept(f);
+            fotos.add(new Foto(null, f.breed, f.hoog, f.pagina, f.heleBladzijde));
+        }
     }
 
     static boolean pdf(byte[] b) { return b != null && b.length >= 5 && b[0] == '%' && b[1] == 'P' && b[2] == 'D' && b[3] == 'F' && b[4] == '-'; }
@@ -67,15 +73,21 @@ final class DocumentFotos {
      * Zet het document om. max: hoeveel foto's hooguit (de rest valt af, met afgekapt). active: stoppen als dat onwaar wordt.
      * IOException als het document niet te openen is.
      */
-    static Uitkomst zet(Context c, byte[] bytes, int max, BooleanSupplier active) throws IOException {
+    static Uitkomst zet(Context c, byte[] bytes, int max, BooleanSupplier active) throws IOException { return zet(c, bytes, max, active, null); }
+    /**
+     * elk (mag null): krijgt elke foto meteen, en de uitkomst houdt dan alleen de maten bij (jpeg null). Zo staan bij een grote
+     * PDF niet alle foto's tegelijk in het geheugen (Foto's uit PDF schrijft ze meteen weg).
+     */
+    static Uitkomst zet(Context c, byte[] bytes, int max, BooleanSupplier active, java.util.function.Consumer<Foto> elk) throws IOException {
         Uitkomst u = new Uitkomst();
+        u.elk = elk;
         if (pdf(bytes)) { u.soort = "pdf"; pdfFotos(c, bytes, max, active, u); }
         else if (zip(bytes)) { u.soort = "word"; wordFotos(bytes, max, active, u); }
         else {
             u.soort = "foto";
             Foto f = alsJpeg(bytes, 0, false);
             if (f == null) throw new IOException("geen foto");
-            u.fotos.add(f);
+            u.neem(f);
         }
         return u;
     }
@@ -101,13 +113,13 @@ final class DocumentFotos {
                     Foto f = maat(jpg, i + 1);
                     if (f == null) continue;
                     if (u.fotos.size() >= max) { u.afgekapt = true; return; }
-                    u.fotos.add(f); erbij++;
+                    u.neem(f); erbij++;
                 }
                 if (erbij > 0) continue;
                 // Geen bruikbare foto op deze pagina: de pagina zelf
                 Bitmap b;
                 try (PdfRenderer.Page p = renderer.openPage(i)) { b = render(p); }
-                try { u.fotos.add(new Foto(jpeg(b), b.getWidth(), b.getHeight(), i + 1, true)); } finally { b.recycle(); }
+                try { u.neem(new Foto(jpeg(b), b.getWidth(), b.getHeight(), i + 1, true)); } finally { b.recycle(); }
             }
         }
     }
@@ -227,15 +239,25 @@ final class DocumentFotos {
             Foto f = alsJpeg(b, 0, false);
             if (f == null) continue;
             if (u.fotos.size() >= max) { u.afgekapt = true; return; }
-            u.fotos.add(f);
+            u.neem(f);
         }
     }
 
     /** image2 vóór image10 (getallen als getal), verder op naam. Zuiver, getest. */
     static int volgorde(String a, String b) {
-        java.util.regex.Matcher x = java.util.regex.Pattern.compile("(\\d{1,9})(?=\\.[^.]*$)").matcher(a), y = java.util.regex.Pattern.compile("(\\d{1,9})(?=\\.[^.]*$)").matcher(b);
-        if (x.find() && y.find() && a.substring(0, x.start()).equals(b.substring(0, y.start()))) return Integer.compare(Integer.parseInt(x.group(1)), Integer.parseInt(y.group(1)));
-        return a.compareTo(b);
+        // Sleutel: de naam zonder het getal vlak voor de extensie, dan dat getal (zonder getal: -1), dan de hele naam. Een vaste
+        // volgorde (ook voor gemengde namen), dus sorteren gaat nooit mis.
+        Object[] x = sleutel(a), y = sleutel(b);
+        int c = ((String) x[0]).compareTo((String) y[0]);
+        if (c != 0) return c;
+        c = Long.compare((Long) x[1], (Long) y[1]);
+        return c != 0 ? c : a.compareTo(b);
+    }
+    private static final java.util.regex.Pattern GETAL = java.util.regex.Pattern.compile("(\\d{1,9})(\\.[^.]*)?$");
+    private static Object[] sleutel(String n) {
+        java.util.regex.Matcher m = GETAL.matcher(n);
+        if (m.find()) return new Object[]{n.substring(0, m.start()), Long.parseLong(m.group(1))};
+        return new Object[]{n, -1L};
     }
 
     // ---------- foto's ----------
@@ -247,9 +269,12 @@ final class DocumentFotos {
         try { BitmapFactory.decodeByteArray(b, 0, b.length, o); } catch (Throwable e) { return null; }
         if (o.outWidth < MIN_ZIJDE || o.outHeight < MIN_ZIJDE) return null;
         if ("image/jpeg".equals(o.outMimeType)) return new Foto(b, o.outWidth, o.outHeight, pagina, heleBladzijde);
-        if ((long) o.outWidth * o.outHeight > 40_000_000L) return null; // te groot om te openen
+        // Hooguit ongeveer 4000 pixels: groter heeft geen zin en kost te veel geheugen
+        int sample = 1;
+        while (Math.max(o.outWidth, o.outHeight) / (sample * 2) >= 4000) sample *= 2;
+        BitmapFactory.Options lees = new BitmapFactory.Options(); lees.inSampleSize = sample;
         Bitmap bm;
-        try { bm = BitmapFactory.decodeByteArray(b, 0, b.length); } catch (Throwable e) { return null; }
+        try { bm = BitmapFactory.decodeByteArray(b, 0, b.length, lees); } catch (Throwable e) { return null; }
         if (bm == null) return null;
         try {
             // Doorzichtig (PNG): op wit

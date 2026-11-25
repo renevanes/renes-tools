@@ -51,16 +51,17 @@ const cmhCancel=cmiPhotoCancel;cmiPhotoCancel=function(){
 function cmhKeuze(photo){
   const ok=f=>typeof f?.src==='string'&&f.src.length<=400000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(f.src);
   const fotos=Array.isArray(photo.fotos)?photo.fotos:[];
-  if(!cmOpen()||typeof photo.reviewId!=='string'||fotos.length<2||!fotos.every(ok)){cmiPhotoCancel();return;}
+  if(!cmOpen()||typeof photo.reviewId!=='string'||fotos.length<1||!fotos.every(ok)){cmiPhotoCancel();return;}
   cmi.photoRequest='';cmh.scanning=false;$('#cmi-photo-pending').hidden=true;
   const box=$('#cmh-keuze'),gekozen=[];box.replaceChildren();
   // Een hele pagina kan meer bevatten dan het ID-bewijs: zichtbaar zeggen (het gaat om een veilige keuze)
   if(fotos.some(f=>f.heel)){const w=document.createElement('p');w.className='hint';w.id='cmh-keuze-heel';w.textContent=t('Een hele pagina kan meer bevatten dan het ID-bewijs, zoals gegevens van iemand anders. Kies dan liever een losse foto.');box.append(w);}
+  if(photo.info?.afgekapt===true){const w=document.createElement('p');w.className='hint';w.id='cmh-keuze-meer';w.textContent=tn(fotos.length,'Er staan meer foto’s in het document; alleen de eerste is te kiezen. Staat het ID-bewijs er niet bij, kies dan een kleiner document of een foto.','Er staan meer foto’s in het document; alleen de eerste {n} zijn te kiezen. Staat het ID-bewijs er niet bij, kies dan een kleiner document of een foto.');box.append(w);}
   const raster=document.createElement('div');raster.className='cmh-raster';box.append(raster);
   const knoppen=fotos.map((f,i)=>{
     const b=document.createElement('button');b.type='button';b.className='cmh-foto';
     const img=document.createElement('img');img.src=f.src;img.alt='';
-    const naam=document.createElement('span');naam.textContent=f.heel?t('Pagina {n}',{n:f.pagina}):t('Foto {n} · pagina {p}',{n:i+1,p:f.pagina});
+    const naam=document.createElement('span');naam.textContent=f.heel?t('Pagina {n}',{n:f.pagina}):f.pagina>0?t('Foto {n} · pagina {p}',{n:i+1,p:f.pagina}):t('Foto {n}',{n:i+1});
     const tag=document.createElement('b');tag.className='cmh-tag';
     b.append(img,naam,tag);
     b.addEventListener('click',()=>{const k=gekozen.indexOf(i);if(k>=0)gekozen.splice(k,1);else{gekozen.push(i);if(gekozen.length>2)gekozen.shift();}teken();});
@@ -68,8 +69,10 @@ function cmhKeuze(photo){
   });
   const teken=()=>knoppen.forEach((b,i)=>{const on=gekozen.includes(i);b.setAttribute('aria-pressed',on?'true':'false');b.querySelector('.cmh-tag').textContent=on?t('Gekozen'):'';});
   const clear=()=>{box.hidden=true;box.replaceChildren();};
+  if(fotos.length===1)gekozen.push(0); // één foto: al gekozen, je ziet hem en bevestigt
   const vraag=()=>askConfirm(t('Kies de foto van het ID-bewijs'),
-    t('In het document staan {n} foto\'s. Tik op de foto van het ID-bewijs, of op twee foto\'s voor de voor- en achterkant. Daarna herkent de app de gegevens.',{n:fotos.length}),
+    fotos.length===1?t('In het document staat één foto. Is dit het ID-bewijs? Daarna herkent de app de gegevens.')
+    :t('In het document staan {n} foto\'s. Tik op de foto van het ID-bewijs, of op twee foto\'s voor de voor- en achterkant. Daarna herkent de app de gegevens.',{n:fotos.length}),
     t('Gebruiken'),()=>{
       if(!gekozen.length){cmNote(t('Kies eerst een foto.'));setTimeout(vraag,0);return;}
       clear();
