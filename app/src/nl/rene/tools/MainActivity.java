@@ -624,7 +624,7 @@ public class MainActivity extends Activity {
         if (isFinishing() && !isSolo()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
         bankAuth.cancel();toolSlotVergeet();
         masterSession.close();masterAfterAuth=null;masterAuthSerial.incrementAndGet();h.removeCallbacks(masterExpiry);
-        masterPhotos.cancel(); // een herkende foto die op ontgrendelen wachtte: weg met het venster
+        masterPhotos.cancel("venster dicht"); // een herkende foto die op ontgrendelen wachtte: weg met het venster
         final IdCopy closingId = idCopy; final PdfCompare closingCmp = cmp;
         idMasterClear();
         new Thread(() -> { try { closingId.clear(); } catch (Throwable ignored) { } try { closingCmp.clear(); } catch (Throwable ignored) { } }, "id-copy-close").start();
@@ -728,7 +728,7 @@ public class MainActivity extends Activity {
         masterContacts.cancel();
         pdfFormAi.cancel(null);
         synchronized(masterSession){masterSession.close();masterGrants.clear();if(explicit||!masterAuthPending)masterAuthSerial.incrementAndGet();}
-        if(explicit)masterPhotos.cancel();else masterPhotos.cancelReview();
+        if(explicit)masterPhotos.cancel("slot");else masterPhotos.cancelReview();
         h.removeCallbacks(masterExpiry);
         long generation;
         synchronized(masterSecurityGeneration){generation=masterSecurityGeneration.incrementAndGet();if(masterScreen){masterCover=true;coverOn();}}

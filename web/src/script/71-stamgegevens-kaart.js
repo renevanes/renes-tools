@@ -266,7 +266,7 @@ function cmcPhotoViewerClose(){if(cmc.kijker&&$('#er-image').classList.contains(
 function cmcPhotoPick(side){
   const r=cmc.rec;if(!cmOpen()||cm.mutating||!r||r.type!=='identiteit'||cmi.photoRequest)return;
   const id=r.id,rev=r.revision;
-  cmBron(t('Kaartfoto kiezen'),'beeld',()=>{cmi.photoRequest=cmRequest('masterPhotoPick',[id,rev,side],()=>{},false,()=>cmiPhotoCancel());});
+  cmBron(t('Kaartfoto kiezen'),'document',()=>{cmi.photoRequest=cmRequest('masterPhotoPick',[id,rev,side],()=>{},false,()=>cmiPhotoCancel());});
 }
 
 /* Document toevoegen bij een persoon: eerst de soort, dan een bestand (herkennen op de telefoon) of zelf invullen. */

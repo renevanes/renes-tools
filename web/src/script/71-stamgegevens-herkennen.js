@@ -20,7 +20,7 @@ function cmhPendingText(){
 }
 const cmhPicked=window.onMasterPhotoPicked;window.onMasterPhotoPicked=function(r){
   // Binnen 2 minuten terug uit de kiezer en nog ontgrendeld: geen kaart "Na ontgrendelen…", de foto wordt meteen verwerkt.
-  if(r&&r.request===cmi.photoRequest&&r.picked&&r.direct&&cmOpen()){cmh.photoBusy=true;cmBusy(true);cmNote(cmh.scanning?t('Bestand verwerken…'):t('Foto verwerken…'));if(cmh.scanning)cmhWacht(t('Document verwerken'),t('Bestand lezen…'));return;}
+  if(r&&r.request===cmi.photoRequest&&r.picked&&r.direct&&cmOpen()){cmh.photoBusy=true;cmBusy(true);cmNote(cmh.scanning?t('Bestand verwerken…'):t('Foto verwerken…'));cmhWacht(cmh.scanning?t('Document verwerken'):t('Kaartfoto verwerken'),t('Bestand lezen…'));return;}
   cmhPendingText();cmhPicked(r);
 };
 window.onMasterPhotoDone=function(r){
@@ -80,6 +80,8 @@ const cmhCancel=cmiPhotoCancel;cmiPhotoCancel=function(){
 function cmhKeuze(photo){
   const ok=f=>typeof f?.src==='string'&&f.src.length<=400000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(f.src);
   const fotos=Array.isArray(photo.fotos)?photo.fotos:[];
+  // Uit een document voor de voor- of achterkant van een bestaand document: één foto; anders één of twee (voor en achter)
+  const zijde=photo.zijde==='front'||photo.zijde==='back'?photo.zijde:'scan',max=zijde==='scan'?2:1;
   if(!cmOpen()||typeof photo.reviewId!=='string'||fotos.length<1||!fotos.every(ok)){cmiPhotoCancel();return;}
   cmi.photoRequest='';cmh.scanning=false;$('#cmi-photo-pending').hidden=true;
   const box=$('#cmh-keuze'),gekozen=[];box.replaceChildren();
@@ -93,14 +95,15 @@ function cmhKeuze(photo){
     const naam=document.createElement('span');naam.textContent=f.heel?t('Pagina {n}',{n:f.pagina}):f.pagina>0?t('Foto {n} · pagina {p}',{n:i+1,p:f.pagina}):t('Foto {n}',{n:i+1});
     const tag=document.createElement('b');tag.className='cmh-tag';
     b.append(img,naam,tag);
-    b.addEventListener('click',()=>{const k=gekozen.indexOf(i);if(k>=0)gekozen.splice(k,1);else{gekozen.push(i);if(gekozen.length>2)gekozen.shift();}teken();});
+    b.addEventListener('click',()=>{const k=gekozen.indexOf(i);if(k>=0)gekozen.splice(k,1);else{gekozen.push(i);if(gekozen.length>max)gekozen.shift();}teken();});
     raster.append(b);return b;
   });
   const teken=()=>knoppen.forEach((b,i)=>{const on=gekozen.includes(i);b.setAttribute('aria-pressed',on?'true':'false');b.querySelector('.cmh-tag').textContent=on?t('Gekozen'):'';});
   const clear=()=>{box.hidden=true;box.replaceChildren();};
   if(fotos.length===1)gekozen.push(0); // één foto: al gekozen, je ziet hem en bevestigt
-  const vraag=()=>askConfirm(t('Kies de foto van het ID-bewijs'),
-    fotos.length===1?t('In het document staat één foto. Is dit het ID-bewijs? Daarna herkent de app de gegevens.')
+  const vraag=()=>askConfirm(zijde==='front'?t('Kies de foto van de voorkant'):zijde==='back'?t('Kies de foto van de achterkant'):t('Kies de foto van het ID-bewijs'),
+    zijde!=='scan'?(fotos.length===1?t('In het document staat één foto. Wil je deze bewaren?'):t('In het document staan {n} foto\'s. Tik op de foto die je wilt bewaren.',{n:fotos.length}))
+    :fotos.length===1?t('In het document staat één foto. Is dit het ID-bewijs? Daarna herkent de app de gegevens.')
     :t('In het document staan {n} foto\'s. Tik op de foto van het ID-bewijs, of op twee foto\'s voor de voor- en achterkant. Daarna herkent de app de gegevens.',{n:fotos.length}),
     t('Gebruiken'),()=>{
       if(!gekozen.length){cmNote(t('Kies eerst een foto.'));setTimeout(vraag,0);return;}
@@ -108,7 +111,7 @@ function cmhKeuze(photo){
       if(!cmOpen()){cmiPhotoCancel();return;}
       cmBusy(true);cmh.photoBusy=true;cmNote(t('Foto verwerken…'));cmhWacht(t('Gegevens herkennen'),t('Gegevens herkennen…'));
       // Zoals bij een gekozen foto: gaat de telefoon intussen op slot, dan zegt het scherm dat het daarna bewaard wordt
-      cmh.scanning=true;cmi.photoRequest=cmRequest('masterScanChoose',[photo.reviewId,JSON.stringify(gekozen)],out=>{
+      cmh.scanning=zijde==='scan';cmi.photoRequest=cmRequest('masterScanChoose',[photo.reviewId,JSON.stringify(gekozen)],out=>{
         cmhPhotoReady();cmiPhotoAfterUnlock(out);cmListLoad();if(out&&out.error)cmhFout(t(out.error));
       },false,()=>{cmhPhotoReady();cmiPhotoCancel();});
     },()=>{clear();cmiPhotoCancel();});

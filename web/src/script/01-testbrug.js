@@ -1778,10 +1778,12 @@ if (!window.Android) window.Android = (function(){
     // Gekozen kaartfoto verwerken (na ontgrendelen, of meteen als de kiezer binnen de tijd terugkwam).
     _cmPhoto(){const m=this._cm;let photo;const job=m.photo;
     // Zoals MasterPhotos: een document (_cm.scanFotos = [{pagina, heel}], ook één foto) eerst tonen om te kiezen
-    if(job&&job.side==='scan'&&(m.scanFotos||[]).length>0&&!job.confirmed&&!m.scanError){
+    // Ook voor de voor- of achterkant van een bestaand document (_cm.kaartFotos): dan kiest Rene één foto
+    const docFotos=job&&(job.side==='scan'?m.scanFotos:m.kaartFotos)||[];
+    if(job&&docFotos.length>0&&!job.confirmed&&!m.scanError){
       m.photo=null;m.keuzeReview=job;job.reviewId=crypto.randomUUID();
-      job.fotos=m.scanFotos.map((f,i)=>{const c=document.createElement('canvas');c.width=80;c.height=48;const x=c.getContext('2d');x.fillStyle=['blue','green','red','gray'][i%4];x.fillRect(0,0,80,48);return {src:c.toDataURL('image/jpeg'),pagina:f.pagina||1,heel:!!f.heel};});
-      return {reviewId:job.reviewId,fotos:job.fotos,info:{fotos:job.fotos.length}};
+      job.fotos=docFotos.map((f,i)=>{const c=document.createElement('canvas');c.width=80;c.height=48;const x=c.getContext('2d');x.fillStyle=['blue','green','red','gray'][i%4];x.fillRect(0,0,80,48);return {src:c.toDataURL('image/jpeg'),pagina:f.pagina||1,heel:!!f.heel};});
+      return {reviewId:job.reviewId,fotos:job.fotos,info:{fotos:job.fotos.length},zijde:job.side};
     }if(job&&job.side==='scan'&&m.scanError){m.photo=null;return {error:m.scanError};}if(job&&job.side==='scan'){m.photo=null;const who=m.records.find(r=>r.id===job.id&&r.type==='persoon');if(!who)photo={error:'Kies een gekoppelde persoon'};else{const soort=m.herkend?.document?.documentsoort||job.soort||'',side=m.herkend?(m.herkend.soort==='TD1'?'back':'front'):['identiteitskaart','verblijfsdocument'].includes(soort)?'back':'front',word={paspoort:'Paspoort',identiteitskaart:'Identiteitskaart',verblijfsdocument:'Verblijfsdocument',rijbewijs:'Rijbewijs'}[soort]||'Document';const fields={persoon:job.id};if(soort)fields.documentsoort=soort;const doc={id:crypto.randomUUID(),type:'identiteit',label:t('{soort} {naam}',{soort:t(word),naam:who.label}),revision:1,fields,...(job.both?{images:job.images}:{images:{[side]:job.image}})};m.records.push(doc);this._cmEvent('create','masterdata',doc,[...Object.keys(fields),'label']);this._cmEvent('photo_add','masterdata',doc,[side]);photo={id:doc.id,revision:doc.revision,saved:true,scan:true,person:job.id,side,photoSaved:true,bothSides:job.both,diag:this._cmDiag(false),...(m.herkend?{herkend:m.herkend}:{})};}}else if(job){m.photo=null;const r=m.records.find(r=>r.id===job.id);if(!r||r.revision!==job.revision)photo={error:'Deze gegevens zijn intussen gewijzigd; laad ze opnieuw'};else{r.images={...r.images,[job.side]:job.image};r.revision++;this._cmEvent('photo_add','masterdata',r,[job.side]);photo={id:r.id,revision:r.revision,saved:true,diag:this._cmDiag(false),...(m.herkend?{herkend:m.herkend}:{})};}}return photo;},
     /* Extra ontgrendelen uit: zonder vraag open; _cm.lang = de telefoon is te lang geleden ontgrendeld (dan {vraag:true}) */
     /* Zoals Java: open na het slotscherm (_tslot.net; telt in _cm.vragen) of met extra ontgrendelen uit (telt in _cm.vanzelf;
@@ -1863,7 +1865,7 @@ if (!window.Android) window.Android = (function(){
     masterScanChoose(token,id,gekozen,request){this._cmReply(token,request,()=>{
       const m=this._cm,job=m.keuzeReview;
       if(!job||id!==job.reviewId)throw Error('Kies het bestand opnieuw.');
-      const k=JSON.parse(gekozen);if(!Array.isArray(k)||k.length<1||k.length>2||new Set(k).size!==k.length||k.some(n=>!(n>=0&&n<job.fotos.length)))throw Error("Kies één of twee foto's");
+      const k=JSON.parse(gekozen);if(job.side!=='scan'&&Array.isArray(k)&&k.length>1)throw Error('Kies één foto');if(!Array.isArray(k)||k.length<1||k.length>2||new Set(k).size!==k.length||k.some(n=>!(n>=0&&n<job.fotos.length)))throw Error("Kies één of twee foto's");
       m.keuzeReview=null;m.gekozen=k;job.confirmed=true;job.both=k.length===2;
       job.image=job.fotos[k[0]].src;job.images=job.both?{front:job.fotos[k[0]].src,back:job.fotos[k[1]].src}:null;
       m.photo=job;return this._cmPhoto();

@@ -203,7 +203,7 @@ public class MasterBridge extends BankBridge {
         });
     }
     @JavascriptInterface public void masterPhotoDelete(String token,String id,long revision,String side,String request){work(token,request,key->MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,false));}
-    @JavascriptInterface public void masterPhotoCancel(){a.masterPhotos.cancel();}
+    @JavascriptInterface public void masterPhotoCancel(){a.masterPhotos.cancel("annuleren");}
     @JavascriptInterface public void masterUse(String token,String id,long revision,String source,String role,String fields,boolean consent,String request){
         work(token,request,key->{
             if(fields==null||fields.length()>1000)throw new MasterError(Taal.T("Kies welke velden je wilt overnemen"));

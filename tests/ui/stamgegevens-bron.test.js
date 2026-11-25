@@ -64,16 +64,28 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.isVisible('#modal-ok'),false);
   await p.evaluate(()=>{cm.dirty=false;goBack();});await p.waitForFunction(()=>!cm.mutating);
 
-  // 3. Kaartfoto: alleen foto's (Gemaakt zijn PDF's)
+  // 3. Kaartfoto (voor- of achterkant): ook uit een document (PDF, Word), zoals bij Document toevoegen
   await p.evaluate(()=>show('masterdata'));if(!(await p.evaluate(()=>cmOpen()))){await p.click('#ts-open');await p.waitForFunction(()=>cmOpen()&&cm.recordsReady);}
   assert.equal(await p.evaluate(()=>Android._kl.open),false,'de kluis ging na het kiezen weer op slot');
   await T.kaart(doc);await p.evaluate(()=>cmcPhotoPick('front'));await p.waitForSelector('#sheet.on');
-  assert.equal(await p.textContent('#sheet-title'),'Kaartfoto kiezen');assert.deepEqual(await keuzes(),['Bestand op de telefoon','Uit de documentenkluis']);
+  assert.equal(await p.textContent('#sheet-title'),'Kaartfoto kiezen');assert.deepEqual(await keuzes(),['Bestand op de telefoon','Uit de documentenkluis','Uit Gemaakt (PDF-tools)']);
   // De kluis staat op slot: het slotscherm vraagt het; Stamgegevens blijft open
   await kies('Uit de documentenkluis');await p.waitForSelector('#toolslot.on');assert.equal(await p.textContent('#ts-naam'),'Kluis');
   await p.click('#ts-open');await p.waitForFunction(()=>$('#sheet.on')&&$('#sheet-title').textContent==='Uit de documentenkluis');
-  assert.deepEqual(await keuzes(),['Bon.jpg']);assert.equal(await p.evaluate(()=>cmOpen()&&current==='cmkaart'),true);
+  assert.deepEqual(await keuzes(),['Brief.docx','Bon.jpg','Paspoort.pdf']);assert.equal(await p.evaluate(()=>cmOpen()&&current==='cmkaart'),true);
   assert.deepEqual(await p.evaluate(()=>Android._cm.buiten.map(x=>[x[0]===cm.token,x[1]])),[[true,'kluis']],'Stamgegevens blijft open tijdens het ontgrendelen van de kluis');await p.evaluate(()=>closeSheet());
+  // Een PDF met twee foto's voor de voorkant: Tools zet hem om, Rene kiest één foto; die wordt de voorkant
+  await p.evaluate(()=>{Android._cm.kaartFotos=[{pagina:1},{pagina:2,heel:true}];Android._cm.photoDelay=200;});
+  await p.evaluate(()=>cmcPhotoPick('front'));await p.waitForSelector('#sheet.on');await kies('Bestand op de telefoon');
+  await p.waitForFunction(()=>$('#modal.on')&&$('#modal-title').textContent==='Kies de foto van de voorkant'&&!$('#cmh-keuze').hidden);
+  assert.match(await p.textContent('#modal-text'),/2 foto's\. Tik op de foto die je wilt bewaren/);
+  const fotoKnop=n=>p.locator('#cmh-keuze .cmh-foto').nth(n);
+  await fotoKnop(0).click();await fotoKnop(1).click();
+  assert.deepEqual(await p.$$eval('#cmh-keuze .cmh-foto',x=>x.map(b=>b.getAttribute('aria-pressed'))),['false','true'],'voor één kant: één foto gekozen');
+  await p.click('#modal-ok');await p.waitForFunction(()=>current==='cmkaart'&&/Kaartfoto opgeslagen/.test($('#cm-kaart-status').textContent));
+  assert.deepEqual(await p.evaluate(()=>Android._cm.gekozen),[1]);
+  assert.equal(await p.evaluate(doc=>!!Android._cm.records.find(r=>r.id===doc).images?.front,doc),true,'de gekozen foto is de voorkant');
+  await p.evaluate(()=>{Android._cm.kaartFotos=null;});
 
   // 4. De handtekening: het menu ligt boven het venster
   await p.evaluate(()=>sigTeken({}));await p.waitForSelector('#sigdlg.on');await p.click('#sig-foto');await p.waitForSelector('#sheet.on');
