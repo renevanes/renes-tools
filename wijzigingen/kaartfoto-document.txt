@@ -1,0 +1,1 @@
+Stamgegevens: bij de voorkant of achterkant van een ID-bewijs kun je nu ook een PDF of Word-document kiezen; Tools haalt de foto's eruit en jij kiest welke je bewaart.

@@ -46,7 +46,7 @@ final class MasterPhotos {
         Uitkomst klaar;
         /** Wanneer klaar kwam: na BEWAAR_MS zonder ontgrendelen gaat het uit het geheugen. */
         long klaarOp;
-        /** Een document met meer foto's: Rene kiest er één of twee (voor- en achterkant); alleen in het geheugen. */
+        /** Een document met meer foto's: Rene kiest er één of twee (voor- en achterkant; voor één kant één); alleen in het geheugen. */
         String reviewId,reviewToken;java.util.List<DocumentFotos.Foto> keuze;
         /** De gekozen foto's worden herkend (saveReview): dat gaat door als Stamgegevens vanzelf op slot gaat. */
         boolean kiezen;
@@ -58,26 +58,29 @@ final class MasterPhotos {
         if(pending!=null)throw new MasterError(Taal.T("Er staat al een kaartfoto klaar; ontgrendel om die op te slaan"));
         if(!side.equals("front")&&!side.equals("back")&&!side.equals("scan"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
         if(soort==null||!SOORTEN.contains(soort))throw new MasterError(Taal.T("Kies wat voor document het is"));
-        Pending job=new Pending(id,revision,side,request,activity.masterView,soort);pending=job;
+        Pending job=new Pending(id,revision,side,request,activity.masterView,soort);pending=job;stop="onbekend";
         activity.h.post(()->{
             synchronized(MasterPhotos.this){if(pending!=job)return;}
             if(!activity.masterForeground||!activity.masterSession.accepts(token)||!job.view.equals(activity.masterView)){clear(job);notify(job,false,Taal.T("Ontgrendel de stamgegevens opnieuw"));return;}
             // Zolang de kiezer open is (hooguit 2 minuten) niet op slot: zie MainActivity.masterPickUntil.
             if(activity.masterSession.accepts(token)){activity.masterPickReturned=false;activity.masterPickKind="photo";activity.masterPickUntil=android.os.SystemClock.elapsedRealtime()+MainActivity.MASTER_PICK_MS;activity.h.postDelayed(activity::masterPickExpired,MainActivity.MASTER_PICK_MS+500);}
             Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            // Een kaartfoto: alleen echte bestanden. Een document: ook een Google-document (een "virtueel" bestand zonder
-            // CATEGORY_OPENABLE); dat haalt resume() als Word-bestand of PDF op.
-            if("scan".equals(job.side))intent.setType("*/*").putExtra(Intent.EXTRA_MIME_TYPES,new String[]{
+            // Een foto of een document (PDF, Word, ook een Google-document: een "virtueel" bestand zonder CATEGORY_OPENABLE;
+            // dat haalt resume() als Word-bestand of PDF op). Uit een document kiest Rene daarna de foto (wens van Rene:
+            // ook voor de voor- of achterkant van een bestaand document).
+            intent.setType("*/*").putExtra(Intent.EXTRA_MIME_TYPES,new String[]{
                 "image/*","application/pdf","application/vnd.openxmlformats-officedocument.wordprocessingml.document",GOOGLE_DOC
             });
-            else intent.addCategory(Intent.CATEGORY_OPENABLE);
             try{activity.startActivityForResult(intent,REQUEST);}catch(Throwable e){activity.masterPickUntil=0;clear(job);notify(job,false,Taal.T("Bestandskiezer niet beschikbaar"));}
         });
     }
     synchronized void clear(Pending job){if(pending==job)pending=null;notifyAll();}
-    synchronized void cancel(){pending=null;notifyAll();}
+    synchronized void cancel(){cancel("anders");}
+    /** reden (vaste woorden, voor het logboek): waarom een lopend verwerken stopte. */
+    synchronized void cancel(String reden){if(pending!=null)stop=reden;pending=null;notifyAll();}
+    private volatile String stop="onbekend";
     /** Vanzelf op slot: een open keuze vervalt, maar herkennen van wat al gekozen is gaat door (bewaard na ontgrendelen). */
-    synchronized void cancelReview(){if(pending!=null&&pending.reviewId!=null&&!pending.kiezen)pending=null;notifyAll();}
+    synchronized void cancelReview(){if(pending!=null&&pending.reviewId!=null&&!pending.kiezen){stop="slot vanzelf";pending=null;}notifyAll();}
     /**
      * Uitkomst van lezen en herkennen, alleen in het geheugen (nooit in een bestand): de genormaliseerde foto(’s) en wat er
      * herkend is, of de fout. Weg met de klaargezette keuze (cancel, vergrendelen met de hand, de app sluiten).
@@ -111,7 +114,7 @@ final class MasterPhotos {
                 job.reviewToken=token;
                 job.keuze=fotos;
                 job.uri=null;
-                return new JSONObject().put("reviewId",job.reviewId).put("fotos",lijst).put("info",info);
+                return new JSONObject().put("reviewId",job.reviewId).put("fotos",lijst).put("info",info).put("zijde",job.side);
             }
         }
     }
@@ -128,13 +131,14 @@ final class MasterPhotos {
                 throw new MasterError(Taal.T("Kies het bestand opnieuw."));
             fotos=job.keuze;
         }
+        boolean kant=!"scan".equals(job.side); // de voor- of achterkant van een bestaand document: precies één foto
         JSONArray gekozen;
-        try{gekozen=new JSONArray(gekozenJson==null?"":gekozenJson);}catch(Exception e){throw new MasterError(Taal.T("Kies één of twee foto's"));}
-        if(gekozen.length()<1||gekozen.length()>2)throw new MasterError(Taal.T("Kies één of twee foto's"));
+        try{gekozen=new JSONArray(gekozenJson==null?"":gekozenJson);}catch(Exception e){throw new MasterError(kant?Taal.T("Kies één foto"):Taal.T("Kies één of twee foto's"));}
+        if(gekozen.length()<1||gekozen.length()>(kant?1:2))throw new MasterError(kant?Taal.T("Kies één foto"):Taal.T("Kies één of twee foto's"));
         java.util.List<DocumentFotos.Foto> kies=new java.util.ArrayList<>();
         for(int i=0;i<gekozen.length();i++){
             int n=gekozen.optInt(i,-1);
-            if(n<0||n>=fotos.size()||kies.contains(fotos.get(n)))throw new MasterError(Taal.T("Kies één of twee foto's"));
+            if(n<0||n>=fotos.size()||kies.contains(fotos.get(n)))throw new MasterError(kant?Taal.T("Kies één foto"):Taal.T("Kies één of twee foto's"));
             kies.add(fotos.get(n));
         }
         // Bezig: wie intussen opnieuw ontgrendelt (resume → uitkomst) wacht hierop en krijgt dan deze uitkomst
@@ -148,7 +152,10 @@ final class MasterPhotos {
         try(Voortgang v=Voortgang.van(activity,"kaartfoto",1)){
           try{
             v.tijd("herkennen",MasterDocumentImages.SEARCH_MS);
-            if(kies.size()==1){
+            if(kant){
+                found=MasterDocumentImages.herkenFoto(activity,kies.get(0).jpeg,today,zoekt);
+                images.put(job.side,normalize(kies.get(0).jpeg));
+            }else if(kies.size()==1){
                 found=MasterDocumentImages.herkenFoto(activity,kies.get(0).jpeg,today,zoekt);
                 String type=found==null?job.soort:found.getJSONObject("document").optString("documentsoort",job.soort);
                 images.put(MasterSchema.scanSide(type,found),normalize(kies.get(0).jpeg));
@@ -180,7 +187,8 @@ final class MasterPhotos {
             if(!open){
                 // Intussen vanzelf op slot (scherm uit) of opnieuw ontgrendeld: de uitkomst blijft in het geheugen en
                 // resume() bewaart hem (na ontgrendelen, of meteen als er al opnieuw ontgrendeld is en resume wacht)
-                Uitkomst u=new Uitkomst();u.images=images;u.found=found;
+                Uitkomst u=new Uitkomst();u.found=found;
+                if(kant)u.image=images.optString(job.side,null);else u.images=images;
                 job.reviewId=null;job.keuze=null;job.kiezen=false;job.klaar=u;job.klaarOp=android.os.SystemClock.elapsedRealtime();job.bezig=false;notifyAll();
             }
         }
@@ -188,7 +196,8 @@ final class MasterPhotos {
             activity.h.postDelayed(()->vervallen(job),BEWAAR_MS+1000);
             throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
         }
-        try{return scanDocument(key,session,token,job,images,found);}finally{synchronized(this){job.bezig=false;notifyAll();}clear(job);}
+        try{return kant?bewaarFoto(key,session,token,job,images.getString(job.side),found,new JSONObject()):scanDocument(key,session,token,job,images,found);}
+        finally{synchronized(this){job.bezig=false;notifyAll();}clear(job);}
     }
     void notify(Pending job,boolean picked,String error){try{JSONObject out=new JSONObject().put("request",job.request).put("picked",picked).put("direct",picked&&activity.masterPicking());if(error!=null)out.put("error",error);activity.js("onMasterPhotoPicked",out.toString());}catch(Exception ignored){ }}
     void result(int result,Intent data){
@@ -217,11 +226,11 @@ final class MasterPhotos {
      * of PDF, zoals de app die het bewaart het aanbiedt; ook als gewoon openen mislukt en de app die formaten aanbiedt.
      */
     private InputStream open(Voortgang v,Pending job,java.util.function.BooleanSupplier active)throws Exception{
-        boolean doc="scan".equals(job.side);
-        job.virtual=doc&&virtual(job.uri);
+        // Elke kant mag een document zijn (zie pick): een bestand dat niet gewoon open gaat, als PDF of Word ophalen
+        job.virtual=virtual(job.uri);
         if(!job.virtual){
             try{return v.open(activity,job.uri);}
-            catch(java.io.FileNotFoundException|SecurityException e){if(!doc)throw e;job.virtual=true;}
+            catch(java.io.FileNotFoundException|SecurityException e){job.virtual=true;}
         }
         String fout=Taal.T("Dit document kan niet als PDF of Word-bestand worden geopend. Download het eerst als PDF en kies dat bestand.");
         android.content.ContentResolver cr=activity.getContentResolver();
@@ -319,7 +328,7 @@ final class MasterPhotos {
     }
     /** Een uitkomst die BEWAAR_MS niet bewaard is, gaat uit het geheugen (gerekend vanaf dat hij klaar was). */
     private synchronized void vervallen(Pending job){
-        if(pending==job&&job.klaar!=null&&job.reviewId==null&&!job.bezig&&android.os.SystemClock.elapsedRealtime()-job.klaarOp>=BEWAAR_MS){pending=null;notifyAll();}
+        if(pending==job&&job.klaar!=null&&job.reviewId==null&&!job.bezig&&android.os.SystemClock.elapsedRealtime()-job.klaarOp>=BEWAAR_MS){stop="verlopen";pending=null;notifyAll();}
     }
     /** Lezen en herkennen; alleen in het geheugen. Stopt alleen als de keuze vervalt (annuleren, vergrendelen met de hand). */
     private Uitkomst analyse(Pending job){
@@ -335,7 +344,7 @@ final class MasterPhotos {
             }finally{Runnable k=job.exportKlaar;job.exportKlaar=null;if(k!=null)k.run();}
             JSONObject diag=new JSONObject();
             String today=Regio.dayKey(activity,System.currentTimeMillis());
-            boolean document="scan".equals(job.side)&&(DocumentFotos.pdf(bytes)||DocumentFotos.zip(bytes));
+            boolean document=DocumentFotos.pdf(bytes)||DocumentFotos.zip(bytes);
             JSONObject found;
             if(document){
                 // Eerst omzetten naar losse foto's (zoals de PDF-tool Foto's uit PDF); daarna gaat het als met een foto
@@ -349,8 +358,8 @@ final class MasterPhotos {
                 }
                 int heel=0;for(DocumentFotos.Foto f:d.fotos)if(f.heleBladzijde)heel++;
                 // Alleen aantallen: nooit namen, nummers of tekst uit het document
-                App.log(activity,"STAMGEGEVENS","document ("+soortBestand+(job.virtual?", google":"")+"): foto's "+d.fotos.size()+", waarvan hele pagina's "+heel
-                    +("pdf".equals(soortBestand)?", pagina's "+d.paginas:"")+(d.afgekapt?", afgekapt":""));
+                App.log(activity,"STAMGEGEVENS","document ("+soortBestand+(job.virtual?", google":"")+("scan".equals(job.side)?"":", kaartfoto")+"): foto's "+d.fotos.size()+", waarvan hele pagina's "+heel
+                    +("pdf".equals(soortBestand)?", pagina's "+d.paginas:"")+(d.afgekapt?", afgekapt":"")+(active.getAsBoolean()?"":", gestopt: "+stop));
                 if(!active.getAsBoolean())throw new MasterError(Taal.T("Kies het bestand opnieuw."));
                 if(d.fotos.isEmpty())throw new MasterError(Taal.T("Geen foto's in dit document gevonden. Kies een document met een foto van het ID-bewijs, of een foto van de kaart zelf."));
                 diag.put("fotos",d.fotos.size()).put("heel",heel).put("afgekapt",d.afgekapt);
@@ -381,8 +390,12 @@ final class MasterPhotos {
             String type=u.found==null?job.soort:u.found.getJSONObject("document").optString("documentsoort",job.soort);
             return scanDocument(key,session,token,job,new JSONObject().put(MasterSchema.scanSide(type,u.found),u.image),u.found).put("diag",u.diag);
         }
-        JSONObject result=MasterStore.photo(activity,key,session,token,job.id,job.revision,job.side,u.image,false,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});
-        result.put("saved",true).put("diag",u.diag);if(u.found!=null)result.put("herkend",u.found);
+        return bewaarFoto(key,session,token,job,u.image,u.found,u.diag);
+    }
+    /** De kaartfoto (voor- of achterkant) bij het document bewaren. */
+    private JSONObject bewaarFoto(SecretKey key,MasterSession session,String token,Pending job,String image,JSONObject found,JSONObject diag)throws Exception{
+        JSONObject result=MasterStore.photo(activity,key,session,token,job.id,job.revision,job.side,image,false,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});
+        result.put("saved",true).put("diag",diag);if(found!=null)result.put("herkend",found);
         return result;
     }
     /**

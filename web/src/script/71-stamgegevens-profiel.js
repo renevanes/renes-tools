@@ -224,7 +224,7 @@ function cmiPhotoCanChange(){if(!cmOpen()||cm.mutating||!cm.edit?.id||cm.dirty){
 function cmiPhotoPick(side){
   if(!cmiPhotoCanChange()||cmi.photoRequest)return;
   const id=cm.edit.id,rev=cm.edit.revision;
-  cmBron(t('Kaartfoto kiezen'),'beeld',()=>{cmi.photoRequest=cmRequest('masterPhotoPick',[id,rev,side],()=>{},false,()=>cmiPhotoCancel());});
+  cmBron(t('Kaartfoto kiezen'),cmKaartSoort(),()=>{cmi.photoRequest=cmRequest('masterPhotoPick',[id,rev,side],()=>{},false,()=>cmiPhotoCancel());});
 }
 window.onMasterPhotoPicked=function(r){if(!r||r.request!==cmi.photoRequest)return;if(!r.picked){cmiPhotoCancel();if(r.error)cmNote(t(r.error));return;}$('#cmi-photo-pending').hidden=false;};
 function cmiPhotoCancel(){cmi.photoRequest='';$('#cmi-photo-pending').hidden=true;Android.masterPhotoCancel();}
