@@ -63,7 +63,7 @@ final class Kluis {
     /** Ontgrendeld (na vingerafdruk of pincode, of zonder vraag als extra ontgrendelen uit staat): open met een nieuwe generatie. */
     static synchronized int ontgrendeld(Context c) { clearViews(c); gen++; open(c); return gen; }
     static long remaining() { return Math.max(0, openUntil - System.currentTimeMillis()); }
-    static void close(Context c) { openUntil = 0; clearViews(c); KluisTekst.ruimWerk(c); }
+    static void close(Context c) { openUntil = 0; clearViews(c); KluisTekst.ruimWerk(c); KluisScan.wis(); } // ook een brief die nog niet bewaard is
 
     /** Bestandsnaam met behoud van de extensie (anders weet een kijk-app niet wat het is). */
     static String fileName(JSONObject d) {
@@ -215,17 +215,20 @@ final class Kluis {
 
     /** Een gemaakt bestand (PDF-tools, ID-kopie) als nieuw document, met herkomst en koppeling (zie meta). */
     static synchronized JSONObject addFile(Context c,File source,String name,String mime,String category,JSONObject extra) throws Exception {
+        try(InputStream in=new FileInputStream(source)){return addStream(c,in,name,mime,category,extra);}
+    }
+
+    /** Zoals addFile, maar uit het geheugen (Brief scannen): er komt nooit een leesbaar bestand op schijf. */
+    static synchronized JSONObject addStream(Context c,InputStream in,String name,String mime,String category,JSONObject extra) throws Exception {
         JSONObject meta=meta(extra);
-        try(InputStream in=new FileInputStream(source)){
-            JSONObject d=store(c,in,name,mime,DocumentMeta.category(category));
-            if(meta.length()==0)return d;
-            JSONArray all=list(c);
-            for(int i=0;i<all.length();i++)if(d.getString("id").equals(all.getJSONObject(i).optString("id"))){
-                JSONObject e=all.getJSONObject(i);java.util.Iterator<String> k=meta.keys();
-                while(k.hasNext()){String key=k.next();e.put(key,meta.get(key));d.put(key,meta.get(key));}
-            }
-            saveIndex(c,all);return d;
+        JSONObject d=store(c,in,name,mime,DocumentMeta.category(category));
+        if(meta.length()==0)return d;
+        JSONArray all=list(c);
+        for(int i=0;i<all.length();i++)if(d.getString("id").equals(all.getJSONObject(i).optString("id"))){
+            JSONObject e=all.getJSONObject(i);java.util.Iterator<String> k=meta.keys();
+            while(k.hasNext()){String key=k.next();e.put(key,meta.get(key));d.put(key,meta.get(key));}
         }
+        saveIndex(c,all);return d;
     }
 
     // ---------- versies ----------
@@ -353,6 +356,14 @@ final class Kluis {
         if(patch.has("favorite"))found.put("favorite",patch.getBoolean("favorite"));
         if(props!=null){if(props.length()>0)found.put("props",props);else found.remove("props");}
         saveIndex(c,all);
+    }
+
+    /** Map hernoemen in één keer (één keer de index wegschrijven, ook bij tientallen documenten). Geeft het aantal. */
+    static synchronized int mapHernoem(Context c,String oud,String nieuw) throws Exception {
+        if(!isOpen())throw new Exception(Taal.T("De kluis is op slot"));
+        JSONArray all=list(c);int n=KluisIndex.mapHernoem(all,oud,nieuw);
+        if(n>0){if(!isOpen())throw new Exception(Taal.T("De kluis is op slot"));saveIndex(c,all);}
+        return n;
     }
 
     static final class CountingIn extends java.io.FilterInputStream {

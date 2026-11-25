@@ -233,6 +233,7 @@ function navSluit(){
   if ($('#ci-rem') && $('#ci-rem').classList.contains('on')) { ciRemClose(); return 'laag'; }
   if ($('#sleepdlg').classList.contains('on')) { sleepClose(); return 'laag'; }
   if ($('#vp-scan') && $('#vp-scan').classList.contains('on')) { vpScanClose(); return 'laag'; }
+  if (typeof ksCamOpen === 'function' && ksCamOpen()) { ksCamDicht(); return 'laag'; }
   if ($('#sheet').classList.contains('on')) { closeSheet(); return 'laag'; }
   if ($('#er-image').classList.contains('on')) { erImageClose(); return 'laag'; }
   if (typeof erPanelBack === 'function' && erPanelBack()) return 'laag'; // e-reader: eerst het paneel (leesweergave, voorlezen)

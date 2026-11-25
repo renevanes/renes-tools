@@ -1,15 +1,32 @@
 {
   "app": "Tools",
-  "versionName": "1.252",
-  "versionCode": 253,
-  "nativeLevel": 218,
+  "versionName": "1.254",
+  "versionCode": 255,
+  "nativeLevel": 220,
   "web": "index.html",
-  "webSha256": "a501e8de83902d517a692bc0eb965ae24edf19edcc7f1a383fd1da61b18345ca",
+  "webSha256": "2c1f2aca3ca59d9416c2d7ad4dea816d290d4821be2c186526af8b2f7400893d",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "a709628260829e6a9c1f42f3df9f97804e0fb962dd8d8f5cc2eea58d8848fa38",
+  "apkSha256": "bf3ce2567a5c86e23c8b2105217c7fe8815447e060b8b033be115829f80c8941",
   "changelog": [
+    {
+      "version": "1.254",
+      "date": "2026-11-25",
+      "changes": [
+        "Documentenkluis: Brief scannen. Fotografeer een of meer pagina's met de camera in de app; Tools zoekt de hoeken van het papier (bij te stellen), zet de pagina recht, maakt de achtergrond wit en de tekst scherp, en bewaart alles als één PDF versleuteld in de kluis, in de map waar je staat. Niets komt in je galerij.",
+        "Documentenkluis: een map hernoemen gaat nu in één keer, ook met veel documenten erin; foutmeldingen zeggen \"map\" in plaats van \"categorie\"."
+      ]
+    },
+    {
+      "version": "1.253",
+      "date": "2026-11-25",
+      "changes": [
+        "Nachtelijke backup: lukte hij niet omdat Google Drive nog aan het laden was, dan probeert Tools het dezelfde nacht nog een paar keer (na een half uur, een uur en anderhalf uur) voordat je een melding krijgt; Alles back-uppen toont dan wanneer de nieuwe poging is",
+        "Nachtelijke backup naar Google Drive of een andere clouddienst wacht op een internetverbinding",
+        "Backup-map opruimen na de nachtelijke backup stopt op tijd, zodat het niet halverwege wordt afgebroken"
+      ]
+    },
     {
       "version": "1.252",
       "date": "2026-11-24",
@@ -166,24 +183,7 @@
         "Betalen bewaart de rekening zelf versleuteld in je documentenkluis (map Betalen). Bij een betaling tik je op Rekening bekijken om het origineel te zien. Uit te zetten bij Betalen → Instellingen.",
         "De viewer van de app toont nu ook foto's en afbeeldingen (JPEG, PNG, WebP, GIF, HEIC), niet alleen PDF's. Een foto uit de documentenkluis opent daardoor ook in Tools zelf, in plaats van in een andere app."
       ]
-    },
-    {
-      "version": "1.234",
-      "date": "2026-11-20",
-      "changes": [
-        "Betalen kijkt na of de ontvanger klopt: of het een officieel rekeningnummer is van bijvoorbeeld het CJIB of de Belastingdienst, bij welke bank de rekening is en of je er eerder naartoe betaalde. Noemt een rekening het CJIB of de Belastingdienst met een ander rekeningnummer, dan zie je een duidelijke waarschuwing.",
-        "Betalen zet bij een officieel rekeningnummer de juiste naam (bijvoorbeeld CJIB), ook als de tekstherkenning de naam verkeerd las; anders de naam van je vorige betaling naar dat rekeningnummer.",
-        "Nieuw bij een betaling: Zoek het rekeningnummer op internet (na een vraag, in je browser).",
-        "CPAP-analyse: neem je nachtwaarden uit ResMed myAir over, volg maskerlekkage en vergelijk je maskers onder Dag & gezondheid."
-      ]
-    },
-    {
-      "version": "1.233",
-      "date": "2026-11-19",
-      "changes": [
-        "Betalen vindt de naam van de ontvanger nu ook als de tekstherkenning het woord \"ontvanger\" in stukken leest."
-      ]
     }
   ],
-  "webSig2": "QbmN/6zLSS4I5JoUdeqnthEXTyL4viUSRmX/U97tAHk/8JzwM22VknCH8MurxGHMdUAfwIkjJFDhCAzR2J9CbkYh2KAV7x6MDsVh+3aKxHIpjue/Ph6I8MlYqdvj4FjrQ+vszHrCKc+d1VmYl3EY7sLWEmQSVin2V1UvuRa1OcfCmruun+xYie2nqSuei8xrK55S8oA9ys9UBO7jcgVfC6A9v38/p0+ed/5Xyg32Vz7u7gWm64nT/YRuMdeHvloGVIZJmWBnhzSyjlq2cDTnhNwI+S+G+otPYlUGe2aSgh3KBGJs7h7p1+kPqzAa4dliT75/+Nep8PKFByIZRV2BT332QsLqQ9zkffB5W0OIVK2ykroCU9XSNPFjCPJ2mHt6iyO3EilRoRpQtH5aaWQPT7zWcxuqI+JCgcR3ifIO7zfTcbNcBpFhN2CAGAtmb+6+YLjC1+fLNJlbEf0d8W5IvJdKOlyyBlfbg63K5mZ/g5s/7dECWNTzqLGQgdlUs6wD"
+  "webSig2": "Q0UydqkeOuTiNJDm9aGnL+HmRaC2Hc/yFgUzo7zPX8wRfCXJeot2HfuLcorFgPjDrtSlCVYSEii1Hp6WGmRMNwZAeyj29ZcVdzrHBIGv+G6GgT+YxD0L8D1/VnNBe0NanoektO4qLO2gpViGbDtvumzCszWYqAo1gXNg7VDtT4tFmwhdkWSIMX8VV7I0zTdpijSz1YMn/AcE8NNsnukm39RcjpA9XxGNmgVJflVrwvn5obNL+V0ELGseGxJE8ZITIsjUPWuYMoA4BriB6/09n0Ep2nWl+4Fe56cychI8hIxN2eKRplYoopvdUykHgdZ6z+BtGZoywsFQKMZIpSk8XjggPbnwBawt57l22QSouHQkJmVECZemcgOVDrMoUyLQ1Yhm0J04cWllzXwh2284bpYQoAyv1BnIRMaMNOYVMWvR1oyOWy3B9IuiJ0R+4qGvP111Yzq7EW/BTB6ybXQ0xjXj1WHZkdaIX5Vj8ItPH1yNmvlvPOeMtoxZL1kmxPgy"
 }

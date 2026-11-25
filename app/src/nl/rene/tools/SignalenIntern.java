@@ -206,7 +206,11 @@ final class SignalenIntern {
             }
             case "taken": {
                 JSONObject backup = null;
-                try { String last = AllBackup.prefs(c).getString("last", null); if (last != null) backup = new JSONObject(last); } catch (Exception ignored) { }
+                try {
+                    // Mislukte de nachtelijke backup en probeert hij het straks opnieuw, dan nog geen bericht
+                    String last = AllBackup.pogingNu(c) > 0 ? null : AllBackup.prefs(c).getString("last", null);
+                    if (last != null) backup = new JSONObject(last);
+                } catch (Exception ignored) { }
                 return taken(c, backup, Facturen.lijst(c), Facturen.toestand(c), Toiletten.bronnen(c), Toiletten.toestand(c), bron, nu, tz);
             }
             case "github":

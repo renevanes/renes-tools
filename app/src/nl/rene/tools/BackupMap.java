@@ -102,7 +102,7 @@ final class BackupMap {
     /** Uitkomst. */
     static final class Report {
         int dirs, files, dupDirs, dupFiles, temps, merged, removed, renamed, cleaned, errors;
-        boolean repair, stopped;
+        boolean repair, stopped, taak; // taak: binnen de nachtelijke taak (die Android kan stoppen)
         final JSONArray items = new JSONArray(), unknown = new JSONArray();
         long t = System.currentTimeMillis();
 
@@ -122,11 +122,14 @@ final class BackupMap {
     }
 
     /** Controleren (repair = false: alleen kijken) of opruimen. */
-    static JSONObject run(Context c, boolean repair, boolean auto) throws Exception {
+    static JSONObject run(Context c, boolean repair, boolean auto) throws Exception { return run(c, repair, auto, 0); }
+
+    /** Zelfde, maar uiterlijk klaar om tot (System.currentTimeMillis; 0 = de gewone tijd): binnen de tijd die Android de nachtelijke taak geeft. */
+    static JSONObject run(Context c, boolean repair, boolean auto, long tot) throws Exception {
         Uri tree = WaBackup.destUri(c);
         if (tree == null) throw new Exception("Kies eerst een backup-map");
         if (!RUNNING.compareAndSet(false, true)) throw new Exception(Taal.T("De backup-map wordt al gecontroleerd"));
-        boolean began = false;
+        boolean began = false, gezet = false;
         stop = false;
         try {
             if (repair) {
@@ -136,7 +139,14 @@ final class BackupMap {
             }
             Report r = new Report();
             r.repair = repair;
+            r.taak = tot > 0;
             long deadline = System.currentTimeMillis() + (auto ? 15 : 60) * 60_000L;
+            if (tot > 0) deadline = Math.min(deadline, tot);
+            // Merkje zolang het loopt: stopt Android de app halverwege, dan staat dat de volgende keer in het logboek
+            if (repair) {
+                if (prefs(c).getLong("bezig", 0) > 0) App.log(c, "BACKUP", "backup-map opruimen vorige keer niet afgemaakt (app gestopt)");
+                gezet = prefs(c).edit().putLong("bezig", System.currentTimeMillis()).commit();
+            }
             WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
             WaBackup.DestDir root = dest.root();
             walk(dest, root, "", 0, r, repair, deadline);
@@ -150,10 +160,12 @@ final class BackupMap {
             SharedPreferences.Editor e = prefs(c).edit().putString("last", o.toString());
             if (repair && !r.stopped && r.errors == 0) e.putInt("doneVersion", VERSION);
             e.apply();
-            App.log(c, "BACKUP", "backup-map " + (repair ? "opgeruimd" : "gecontroleerd") + ": " + r.problems() + " punten, " + r.errors + " fouten");
+            App.log(c, "BACKUP", "backup-map " + (repair ? "opgeruimd" : "gecontroleerd") + ": " + r.problems() + " punten, " + r.errors + " fouten"
+                    + (r.stopped ? ", nog niet af (tijd op of gestopt)" : ""));
             if (auto && repair) notifyChanged(c, r);
             return o;
         } finally {
+            if (gezet) prefs(c).edit().remove("bezig").apply();
             current = "";
             stop = false; // een Stop geldt alleen voor deze keer
             if (began) { AllBackup.running.set(false); AllBackup.busy = false; }
@@ -163,7 +175,7 @@ final class BackupMap {
 
     static boolean halt(Report r, long deadline) {
         // AllBackup.stop telt alleen bij opruimen (dan zette tryBegin hem net terug); bij alleen controleren kan hij van een vorige nacht zijn
-        if (stop || (r.repair && AllBackup.stop) || System.currentTimeMillis() > deadline) { r.stopped = true; return true; }
+        if (stop || (r.repair && AllBackup.stop) || (r.taak && AllBackupJob.gestopt) || System.currentTimeMillis() > deadline) { r.stopped = true; return true; }
         return false;
     }
 
@@ -441,9 +453,10 @@ final class BackupMap {
     }
 
     /** Na de nachtelijke backup: opruimen als dat aan staat. */
-    static void nightly(Context c) {
+    static void nightly(Context c, long tot) {
         if (!auto(c) || WaBackup.destUri(c) == null || Herstel.blocked(c) != null) return;
-        try { run(c, true, true); } catch (Throwable t) { App.log(c, "BACKUP", "backup-map opruimen: " + AppData.safeMsg(t, "mislukt")); }
+        if (tot > 0 && tot - System.currentTimeMillis() < 60_000L) return; // geen tijd meer: de volgende nacht
+        try { run(c, true, true, tot); } catch (Throwable t) { App.log(c, "BACKUP", "backup-map opruimen: " + AppData.safeMsg(t, "mislukt")); }
     }
 
     /** Eenmalig na een update met een nieuwe indeling (of de eerste keer): even na het opstarten, op de achtergrond. */

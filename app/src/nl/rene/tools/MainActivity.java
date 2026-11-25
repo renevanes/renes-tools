@@ -1033,6 +1033,10 @@ public class MainActivity extends Activity {
             camAllowed = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED;
             js("onBetalenCamera", camAllowed ? "true" : "false");
         }
+        if (req == FeatureBridge.REQ_SCAN_CAM) {
+            camAllowed = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED && kluisOk();
+            js("onKluisScanCamera", camAllowed ? "true" : "false");
+        }
         if (req == VpnBridge.REQ_CAM) {
             camAllowed = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED;
             js("onVpnCamera", camAllowed ? "true" : "false");

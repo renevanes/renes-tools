@@ -551,6 +551,7 @@ const SET_EXCLUDE = [
   ['#calls-filter, #cf-period, #cf-who, #cf-dur', 'Filters in de oproepenlijst, geen instelling'],
   ['#s-autoed .tg, #s-autoed [role=radiogroup], #s-autoed .chips, #s-autoed select, #s-autoed input', 'Hoort bij één automatisering (de editor)'],
   ['#kl-sort, #s-kluis .kl-doc input, #s-kluis .kl-doc textarea', 'Mappen, sortering en gegevens van één document in de kluis'],
+  ['#ks-modus, #ks-naam', 'Soort scan en naam bij Brief scannen in de kluis: per brief, op dat scherm'],
   ['#s-bank select, #s-bank input, #s-bank .chips', 'Filters en keuzes in Bankzaken (gegevens die versleuteld en alleen daar bewaard worden); de assistent komt bewust niet aan bankgegevens'],
   ['#history-apps', 'Filter in de meldingsgeschiedenis'],
   ['.pdfscr select, .pdfscr input, .pdfscr [role=radiogroup], .pdfscr .chips', 'Keuzes bij het maken of bewerken van één pdf'],

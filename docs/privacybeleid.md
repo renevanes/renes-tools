@@ -35,7 +35,7 @@ Alles in deze tabel blijft op de telefoon, behalve wat onder "Wanneer er iets de
 | Contacten | Contactenbackup en -beheer met wijzigingsgeschiedenis, namen bij gesprekken en berichten, en in Stamgegevens alleen het contact dat je zelf kiest (telefoon en e-mail daarna actueel uit dat contact) |
 | Locatie, ook op de achtergrond | Mijn routes, Mijn auto (parkeerplek en ritten), het weer op het startscherm, automatiseringen op een plek, Apparaten, Locatie kiezen. Op de achtergrond alleen als je een automatisering op een plek of Apparaten aanzet |
 | Microfoon | Muziekherkenning, spraaknotities, de assistent, Slaappraat |
-| Camera | QR-codes scannen (bijvoorbeeld voor de VPN) en een foto van een rekening maken in Betalen; het beeld wordt alleen op de telefoon gelezen en (als je dat aan laat) versleuteld in je documentenkluis bewaard |
+| Camera | QR-codes scannen (bijvoorbeeld voor de VPN), een foto van een rekening maken in Betalen en een brief scannen in de Documentenkluis; het beeld wordt alleen op de telefoon gelezen en (bij Betalen als je dat aan laat) versleuteld in je documentenkluis bewaard, nooit in je galerij |
 | Agenda (lezen en schrijven) | Check-in, de agenda-widget en de tool Agenda: afspraken uit de agenda's van de telefoon tonen en, als je dat kiest, een afspraak in zo'n agenda zetten. Zet je een afspraak in een Google-agenda, dan stuurt de agenda-app van de telefoon hem naar Google; Tools praat zelf niet met Google |
 | Telefoon (status, bellen) | Bellen vanuit de app en herkennen of er een gesprek is |
 | Apparaten in de buurt (Bluetooth, wifi) | Het overzicht van apparaten in de buurt |

@@ -521,6 +521,57 @@ public class FeatureBridge {
                 try { a.startActivityForResult(i, MainActivity.REQ_KLUIS); } catch (ActivityNotFoundException e) { Toast.makeText(a, Taal.tx(a, "Bestandskiezer niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
             });
         }
+        // ----- Brief scannen (49c-brief-scannen.js, KluisScan): de camera in de interface, de pagina's alleen in het geheugen -----
+
+        static final int REQ_SCAN_CAM = 83;
+        /** De camera voor Brief scannen (alleen met de kluis open). Antwoord via onKluisScanCamera(true|false). */
+        @JavascriptInterface public void kluisScanCamera() {
+            a.h.post(() -> {
+                if (!a.kluisOk()) { a.js("onKluisScanCamera", "false"); return; }
+                if (ctx.checkSelfPermission(android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) { a.camAllowed = true; a.js("onKluisScanCamera", "true"); return; }
+                a.requestPermissions(new String[]{android.Manifest.permission.CAMERA}, REQ_SCAN_CAM);
+            });
+        }
+        /** Klaar met de camera: de pagina mag hem niet meer gebruiken. */
+        @JavascriptInterface public void kluisScanCameraDone() { a.camAllowed = false; }
+        /** Opnieuw beginnen, of annuleren: de pagina's die Java nog had, uit het geheugen. */
+        @JavascriptInterface public void kluisScanWis() { KluisScan.wis(); }
+        /** Een gescande pagina (data:image/jpeg;base64,…) erbij, in het geheugen. "" als het lukte, anders de reden. */
+        @JavascriptInterface public String kluisScanPagina(String dataUrl) {
+            final String kop = "data:image/jpeg;base64,";
+            if (!a.kluisOk()) return Taal.tx(ctx, Taal.T("De kluis is weer op slot"));
+            if (dataUrl == null || !dataUrl.startsWith(kop) || dataUrl.length() > KluisScan.MAX_BYTES * 4L / 3 + 100) return Taal.tx(ctx, Taal.T("Deze foto is niet te lezen"));
+            byte[] b;
+            try { b = android.util.Base64.decode(dataUrl.substring(kop.length()), android.util.Base64.DEFAULT); } catch (Throwable e) { return Taal.tx(ctx, Taal.T("Deze foto is niet te lezen")); }
+            String fout = KluisScan.voegToe(b);
+            return fout.isEmpty() ? "" : Taal.tx(ctx, fout);
+        }
+        /**
+         * De pagina's als één PDF versleuteld in de kluis (map = de map waar Rene stond, of ""). Er komt geen leesbaar bestand
+         * op schijf. Antwoord via onKluisScan: {id, name} of {error}.
+         */
+        @JavascriptInterface public void kluisScanBewaar(String naam, String map) {
+            final java.util.List<KluisScan.Pagina> paginas = KluisScan.neem(); // nu al: een latere kluisScanWis raakt deze brief niet meer
+            new Thread(Doorwerken.door("kluis-scan", () -> {
+                String res;
+                int n = paginas.size();
+                try {
+                    if (!a.kluisOk()) throw new Exception(Taal.T("De kluis is weer op slot"));
+                    String titel = naam == null ? "" : naam.trim();
+                    if (titel.isEmpty()) titel = "Brief";
+                    if (titel.length() > 110) throw new Exception(Taal.T("Kies een naam van hooguit 110 tekens"));
+                    for (char ch : titel.toCharArray()) if (Character.isISOControl(ch)) throw new Exception(Taal.T("De naam bevat ongeldige tekens"));
+                    byte[] pdf = KluisScan.pdf(paginas, titel);
+                    paginas.clear();
+                    String bestand = titel.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf") ? titel : titel + ".pdf";
+                    JSONObject d = Kluis.addStream(ctx, new java.io.ByteArrayInputStream(pdf), bestand, "application/pdf", map == null ? "" : map, new JSONObject().put("source", "scan"));
+                    App.log(ctx, "KLUIS", "brief gescand: " + n + " pagina's");
+                    res = new JSONObject().put("id", d.getString("id")).put("name", d.optString("name")).toString();
+                    KluisTekst.start(ctx, json -> a.js("onKluisTekst", json)); // meteen doorzoekbaar
+                } catch (Throwable e) { res = PdfTools.err(e); }
+                a.js("onKluisScan", res);
+            }), "kluis-scan").start();
+        }
         // ----- Documentenkluis als centrale opslag: gemaakte PDF's erin, bekijken in de eigen viewer, bewerken als nieuwe versie -----
 
         /**
@@ -777,6 +828,16 @@ public class FeatureBridge {
             if (!a.kluisOk()) return "De kluis is op slot";
             try { Kluis.organize(ctx,id,json);return ""; }
             catch (Exception e) { return e.getMessage()==null?"Ordenen lukt niet":e.getMessage(); }
+        }
+        /** Map hernoemen of verplaatsen, met alles erin, in één keer. Antwoord {n} of {error} (Nederlands; de interface vertaalt). */
+        @JavascriptInterface public String kluisMapHernoem(String oud, String nieuw) {
+            try {
+                if (!a.kluisOk()) throw new Exception(Taal.T("De kluis is op slot"));
+                if (oud == null || nieuw == null || oud.length() > 200 || nieuw.length() > 200) throw new Exception(Taal.T("Kies een naam van 1 tot 60 tekens"));
+                return new JSONObject().put("n", Kluis.mapHernoem(ctx, oud, nieuw)).toString();
+            } catch (Exception e) {
+                try { return new JSONObject().put("error", e.getMessage() == null ? "Document ordenen lukt niet" : e.getMessage()).toString(); } catch (Exception f) { return "{\"error\":\"Document ordenen lukt niet\"}"; }
+            }
         }
         @JavascriptInterface public void kluisClose() {
             Kluis.close(ctx);
