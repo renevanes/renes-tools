@@ -1,9 +1,15 @@
 package nl.rene.tools;
 
-/** Grenzen voor categorieën en toelichtingen, onafhankelijk van het bestandsformaat. */
+/** Grenzen voor mappen en toelichtingen, onafhankelijk van het bestandsformaat (de map heette eerst categorie). */
 final class DocumentMeta {
     private DocumentMeta() { }
-    static String category(String value) { return text(value,60,false,"Categorie"); }
+    /** De map van een document; de foutteksten zeggen "map", zoals het scherm (en zijn te vertalen). */
+    static String category(String value) {
+        if(value==null)throw new IllegalArgumentException(Taal.T("De map ontbreekt"));
+        if(value.trim().length()>60)throw new IllegalArgumentException(Taal.T("De naam van de map is te lang (hooguit 60 tekens)"));
+        try{return text(value,60,false,"Map");}
+        catch(IllegalArgumentException e){throw new IllegalArgumentException(Taal.T("De naam van de map bevat ongeldige tekens"));}
+    }
     static String note(String value) { return text(value,1000,true,"Toelichting"); }
     static String text(String value,int max,boolean lines,String label) {
         if(value==null)throw new IllegalArgumentException(label+" ontbreekt");

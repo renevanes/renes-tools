@@ -94,6 +94,25 @@ public class KluisIndexTest {
         check("Polis".equals(metProps.getJSONObject("props").optString("soort")) && !metProps.getJSONObject("props").has("x"), "eigenschappen overleven een backup");
         JSONObject kapot = KluisIndex.clean(new JSONObject().put("id", "dddddddddddd").put("name", "Polis.pdf").put("props", new JSONObject().put("datum", "kapot")), er::contains);
         check(kapot != null && !kapot.has("props"), "kapotte eigenschappen kosten niet het document");
+        // De map: foutteksten zeggen "map" (zoals het scherm), niet meer "categorie"
+        check("Wonen/Hypotheek".equals(DocumentMeta.category(" Wonen/Hypotheek ")), "map netjes");
+        String[] fouten = new String[3]; String[] mapIn = {null, new String(new char[61]).replace('\0', 'x'), "a\u0001b"};
+        for (int i = 0; i < 3; i++) try { DocumentMeta.category(mapIn[i]); } catch (IllegalArgumentException e) { fouten[i] = e.getMessage(); }
+        check("De map ontbreekt".equals(fouten[0]) && "De naam van de map is te lang (hooguit 60 tekens)".equals(fouten[1]) && "De naam van de map bevat ongeldige tekens".equals(fouten[2]), "foutteksten over de map: " + java.util.Arrays.toString(fouten));
+        // Map hernoemen in één keer: alles eronder gaat mee, andere mappen niet; een fout verandert niets
+        JSONArray docs = new JSONArray().put(new JSONObject().put("id", "a").put("category", "Wonen"))
+                .put(new JSONObject().put("id", "b").put("category", " Wonen / Hypotheek ")).put(new JSONObject().put("id", "c").put("category", "Wonenbeter"))
+                .put(new JSONObject().put("id", "d"));
+        check(KluisIndex.mapHernoem(docs, "Wonen", "Huis") == 2, "twee documenten mee");
+        check("Huis".equals(docs.getJSONObject(0).optString("category")) && "Huis/Hypotheek".equals(docs.getJSONObject(1).optString("category"))
+                && "Wonenbeter".equals(docs.getJSONObject(2).optString("category")) && !docs.getJSONObject(3).has("category"), "alleen de map en wat eronder staat: " + docs);
+        check(KluisIndex.mapHernoem(docs, "Huis", "Huis") == 0, "zelfde naam: niets");
+        String fout = null;
+        try { KluisIndex.mapHernoem(docs, "Huis", "Huis/Kelder"); } catch (IllegalArgumentException e) { fout = e.getMessage(); }
+        check("Een map kan niet in zichzelf".equals(fout), "niet in zichzelf");
+        fout = null;
+        try { KluisIndex.mapHernoem(docs, "Huis", new String(new char[56]).replace('\0', 'x')); } catch (IllegalArgumentException e) { fout = e.getMessage(); }
+        check("Die naam is te lang voor de mappen die erin zitten".equals(fout) && "Huis".equals(docs.getJSONObject(0).optString("category")), "te lang: niets veranderd");
         System.out.println("Kluisindex: herkomst, koppeling, versies en schoonmaken kloppen");
     }
 }

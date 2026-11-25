@@ -18,7 +18,32 @@
         <div id="kl-list"></div>
         <p class="note" id="kl-empty" style="display:none;margin:0">Nog leeg. Voeg een foto of pdf toe.</p>
         <button class="big" style="margin-top:10px" onclick="klToevoegen()">＋ Document toevoegen</button>
+        <button class="big tonal" id="kl-scanknop" style="margin-top:8px" onclick="ksStart()" data-icon="camera">Brief scannen</button>
         <button class="big ghost" id="kl-lock" style="margin-top:8px" onclick="klLock()" data-icon="lock">Op slot doen</button>
+      </div>
+      <div class="card ks" id="kl-scan" hidden>
+        <h2 tabindex="-1">Brief scannen</h2>
+        <div id="ks-hoekstap">
+          <p class="note"><b id="ks-nr">Pagina 1</b> · <span id="ks-uitleg">Sleep de hoeken naar de hoeken van het papier.</span></p>
+          <div class="ks-beeld"><canvas id="ks-foto" width="1" height="1" aria-hidden="true"></canvas><svg id="ks-vlak" role="group" aria-label="Hoeken van het papier" preserveAspectRatio="none"></svg></div>
+          <label class="f" for="ks-modus">Soort scan</label>
+          <select class="sel" id="ks-modus" onchange="ksModus(this.value)"><option value="scan">Zwart-wit, voor tekst</option><option value="kleur">Kleur</option></select>
+          <p class="note" id="ks-status" role="status" aria-live="polite"></p>
+          <button class="big" id="ks-goed" onclick="ksGebruik()" data-icon="check">Pagina gebruiken</button>
+          <div class="row"><button class="big ghost" onclick="ksOpnieuw()" data-icon="camera">Opnieuw</button><button class="big ghost" onclick="ksHeel()" data-icon="image">Hele foto</button></div>
+        </div>
+        <div id="ks-paginastap">
+          <p class="note" id="ks-aantal" role="status"></p>
+          <div class="ks-paginas" id="ks-paginas" translate="no"></div>
+          <button class="big tonal" onclick="ksCamera()" data-icon="camera">Nog een pagina</button>
+          <label class="f" for="ks-naam">Naam</label>
+          <input class="search" id="ks-naam" maxlength="110" autocomplete="off">
+          <p class="hint" id="ks-waar" translate="no"></p>
+          <p class="note" id="ks-bstatus" role="status" aria-live="polite"></p>
+          <button class="big" id="ks-bewaar" onclick="ksBewaar()" data-icon="lock">Bewaren in de kluis</button>
+          <button class="big ghost" onclick="ksAnnuleer()">Annuleren</button>
+          <details class="help in"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>De foto's maakt de camera in de app; ze komen niet in je galerij. Tools zet elke pagina recht, maakt de achtergrond wit en de tekst scherp, en bewaart alle pagina's samen als één PDF versleuteld in de kluis. Daarna kun je de eigenschappen invullen (soort, van wie, datum); de tekst wordt op de telefoon gelezen, zodat je erin kunt zoeken.</p><p>Tip: leg de brief op een donkere, effen ondergrond met genoeg licht. Dan vindt Tools de hoeken vanzelf.</p></div></details>
+        </div>
       </div>
       <div class="card kl-doc" id="kl-edit" hidden>
         <div class="kl-dochoofd"><span class="stic" id="kl-doc-ic"></span><div class="kl-doctitel"><h2 id="kl-edit-title" tabindex="-1" translate="no">Document</h2><p class="note" id="kl-doc-sub" translate="no"></p></div></div>
@@ -41,3 +66,10 @@
     </div>
   </main>
 </section>
+<!-- Brief scannen: de camera in de app (het beeld blijft in het geheugen tot het versleuteld in de kluis staat) -->
+<div class="vpscan" id="kl-cam" role="dialog" aria-modal="true" aria-label="Brief scannen">
+  <video id="ks-video" playsinline muted aria-hidden="true" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video>
+  <p id="ks-cammsg" role="status" aria-live="polite">Camera starten…</p>
+  <button class="big ghost" id="ks-camfoto" type="button" onclick="ksCamKlik()">Foto maken</button>
+  <button class="big ghost" type="button" onclick="ksCamDicht()">Annuleren</button>
+</div>

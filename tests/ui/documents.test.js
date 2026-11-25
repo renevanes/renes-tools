@@ -56,7 +56,7 @@ const assert=require('node:assert/strict');
     await p.evaluate(()=>{Android._kl.docs=Android._kl.docs.filter(d=>d.id!=='k3abcdef');klRender();});
     // 6. Een map hernoemen neemt alles eronder mee; een fout halverwege wordt gemeld; een lange naam past op een smal scherm.
     await p.evaluate(()=>goBack());assert.equal(await hier(),'map:Wonen');
-    await p.click('#kl-maphernoem');await p.fill('#modal-input','Huis');await p.click('#modal-ok');assert.equal((await doc(B)).category,'Huis/Polissen');assert.equal(await hier(),'map:Huis');
+    await p.click('#kl-maphernoem');await p.fill('#modal-input','Huis');await p.click('#modal-ok');assert.equal((await doc(B)).category,'Huis/Polissen');assert.equal(await hier(),'map:Huis');assert.equal(await p.evaluate(()=>Android._kl.mapHernoemd),1,'hernoemen in één keer (één brugaanroep voor de hele map)');
     await p.click('#kl-maphernoem');await p.fill('#modal-input','Huis/Kelder');await p.click('#modal-ok');assert.equal((await doc(B)).category,'Huis/Polissen','een map kan niet in zichzelf');
     await p.evaluate(()=>Android._kl.error='Opslaan lukt niet');await p.click('#kl-maphernoem');await p.fill('#modal-input','Anders');await p.click('#modal-ok');assert.equal((await doc(B)).category,'Huis/Polissen');assert.equal(await hier(),'map:Huis');await p.evaluate(()=>Android._kl.error='');
     await p.click('#kl-maphernoem');await p.fill('#modal-input','Verzekeringspolissenenanderebelangrijkepapieren');await p.click('#modal-ok');await p.setViewportSize({width:320,height:740});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,'lange mapnaam loopt niet buiten beeld');

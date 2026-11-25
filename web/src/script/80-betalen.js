@@ -103,21 +103,7 @@ function btCamDicht(){
   Android.betalenCameraDone();
 }
 /** Het beeld voor de foto: liefst een echte foto op volle resolutie (scherper dan het videobeeld), anders het videobeeld. */
-async function btCamBeeld(){
-  const v = $('#bt-video'), spoor = bt.stream && bt.stream.getVideoTracks ? bt.stream.getVideoTracks()[0] : null;
-  const opCanvas = (bron, w, h) => { const s = Math.min(1, 3200 / Math.max(w, h)), c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(w * s)); c.height = Math.max(1, Math.round(h * s)); c.getContext('2d').drawImage(bron, 0, 0, c.width, c.height); return c; };
-  if (spoor && typeof ImageCapture === 'function' && typeof createImageBitmap === 'function') {
-    try {
-      const blob = await Promise.race([new ImageCapture(spoor).takePhoto(), new Promise((_, nee) => setTimeout(() => nee(new Error('te laat')), 5000))]);
-      const beeld = await createImageBitmap(blob);
-      const goed = beeld.width >= v.videoWidth && beeld.height > 0, c = goed ? opCanvas(beeld, beeld.width, beeld.height) : null;
-      if (beeld.close) beeld.close();
-      if (c) return c;
-    } catch (e) { /* dan het videobeeld */ }
-  }
-  return v.videoWidth ? opCanvas(v, v.videoWidth, v.videoHeight) : null;
-}
+async function btCamBeeld(){ return camFoto($('#bt-video'), bt.stream, 3200); } // 49c-brief-scannen.js
 async function btCamFoto(){
   const knop = $('#bt-camfoto');
   if (knop.disabled || !$('#bt-video').videoWidth) return;

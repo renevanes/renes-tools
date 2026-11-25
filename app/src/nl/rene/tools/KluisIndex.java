@@ -10,8 +10,38 @@ import org.json.JSONObject;
 final class KluisIndex {
     private KluisIndex() { }
     static final int MAX_VERSIONS = 20;
-    static final String[] SOURCES={"pdf","bewerkt","idkopie","formulier","betalen","factuur"};
+    static final String[] SOURCES={"pdf","bewerkt","idkopie","formulier","betalen","factuur","scan"};
     static final String[] LINK_KEYS={"kind","ref","soort","ontvanger","doel","datum"};
+
+    /** Een mappad netjes (zoals klPad in de interface): delen zonder spaties eromheen, geen lege delen. */
+    static String pad(String v) {
+        StringBuilder b = new StringBuilder();
+        if (v != null) for (String deel : v.split("/")) { String d = deel.trim(); if (d.isEmpty()) continue; if (b.length() > 0) b.append('/'); b.append(d); }
+        return b.toString();
+    }
+
+    /**
+     * Map hernoemen (of verplaatsen): elk document in de map oud of een map daaronder komt onder nieuw, in één keer.
+     * Geeft het aantal verplaatste documenten; gooit IllegalArgumentException (met een te vertalen tekst) als het niet kan,
+     * en verandert dan niets.
+     */
+    static int mapHernoem(JSONArray docs, String oud, String nieuw) throws Exception {
+        String o = pad(oud), n = pad(nieuw);
+        if (o.isEmpty() || n.isEmpty()) throw new IllegalArgumentException(Taal.T("De map ontbreekt"));
+        if (n.equals(o)) return 0;
+        if (n.startsWith(o + "/")) throw new IllegalArgumentException(Taal.T("Een map kan niet in zichzelf"));
+        java.util.List<JSONObject> mee = new java.util.ArrayList<>(); java.util.List<String> naar = new java.util.ArrayList<>();
+        for (int i = 0; i < docs.length(); i++) {
+            JSONObject d = docs.optJSONObject(i); if (d == null) continue;
+            String p = pad(d.optString("category", ""));
+            if (!p.equals(o) && !p.startsWith(o + "/")) continue;
+            String nu = n + p.substring(o.length());
+            if (nu.length() > 60) throw new IllegalArgumentException(Taal.T("Die naam is te lang voor de mappen die erin zitten"));
+            mee.add(d); naar.add(DocumentMeta.category(nu));
+        }
+        for (int i = 0; i < mee.size(); i++) mee.get(i).put("category", naar.get(i));
+        return mee.size();
+    }
 
     /** Bekende velden voor koppelingen met een identiteitsdocument, betaling of factuur. */
     static JSONObject meta(JSONObject in) throws Exception {

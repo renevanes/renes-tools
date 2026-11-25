@@ -138,6 +138,7 @@ script/71-stamgegevens-assistent.js
 script/72-formulier-vast.js
 script/49-documenten-ordenen.js
 script/49b-kluis-centraal.js
+script/49c-brief-scannen.js
 script/77-vergelijken.js
 script/78-opml.js
 script/38-podcasts.js

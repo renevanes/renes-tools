@@ -172,6 +172,11 @@ function klMapHernoem(){
     klRender(); // de kluis kan intussen op slot zijn gegaan: dan is de lijst leeg en staat het slotscherm er
     const lijst=(klRender.docs||[]).filter(d=>klOnder(klPad(d.category),oud)); if(!lijst.length) return;
     if(lijst.some(d=>(v+klPad(d.category).slice(oud.length)).length>60)){toast(t('Die naam is te lang voor de mappen die erin zitten'));return;}
+    if(typeof Android.kluisMapHernoem==='function'){ // in één keer (een oudere app: per document, hieronder)
+      let r; try{r=JSON.parse(Android.kluisMapHernoem(oud,v));}catch(e){r={error:'Document ordenen lukt niet'};}
+      if(!r.error) klMap='map:'+v;
+      klRender(); toast(r.error?t(r.error):t('Map hernoemd')); return;
+    }
     let err='',n=0;
     for(const d of lijst){
       try{err=Android.kluisOrganize(d.id,JSON.stringify({category:v+klPad(d.category).slice(oud.length)}));}catch(e){err='Document ordenen lukt niet';}
@@ -205,7 +210,7 @@ function klKaart(id){
   $('#kl-edit').scrollIntoView({block:'start'});$('#kl-edit-title').focus({preventScroll:true});
 }
 function klOrganizeClose(){
-  klEditId=null;$('#kl-edit').hidden=true;const l=$('#kl-lijstkaart');if(l)l.hidden=false;
+  klEditId=null;$('#kl-edit').hidden=true;const l=$('#kl-lijstkaart');if(l)l.hidden=typeof ksOpen==='function'&&ksOpen(); // tijdens Brief scannen blijft de lijst weg
   $('#kl-edit-title').textContent='';$('#kl-doc-sub').textContent='';
   ['soort','category','partij','datum','verloopt','bedrag','labels','note'].forEach(k=>{$('#kl-edit-'+k).value='';});
   $('#kl-edit-favorite').checked=false;$('#kl-edit-status').textContent='';
@@ -227,7 +232,7 @@ function klOrganizeSave(){
   klOrganizeClose();klRender();toast(t('Documentgegevens opgeslagen'));
 }
 /** Terug (pijl of de terugknop van de telefoon) op de documentkaart: eerst terug naar de lijst; goBack roept dit aan. */
-function klKaartTerug(){ if(klEditId){ klOrganizeClose(); return true; } return klOmhoog(); } // en anders een map omhoog
+function klKaartTerug(){ if(typeof ksTerug==='function'&&ksTerug()) return true; if(klEditId){ klOrganizeClose(); return true; } return klOmhoog(); } // en anders een map omhoog
 function klFavorite(id){
   const d=(klRender.docs||[]).find(d=>d.id===id);if(!d)return;
   let err;try{err=Android.kluisOrganize(id,JSON.stringify({favorite:!d.favorite}));}catch(e){err='Favoriet wijzigen lukt niet';}
