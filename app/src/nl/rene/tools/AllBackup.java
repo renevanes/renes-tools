@@ -70,6 +70,12 @@ final class AllBackup {
     /** Grote bestanden één keer bewaren in Versleuteld/Grote bestanden (standaard aan; uit = elk archief compleet, zoals vroeger). */
     static boolean blokken(Context c) { return prefs(c).getBoolean("blokken", true); }
 
+    /** Hoeveel nachtelijke pogingen er vannacht mislukten (0 = geen, of te lang geleden om nog te tonen). */
+    static int pogingNu(Context c) {
+        long sinds = prefs(c).getLong("pogingSinds", 0), nu = System.currentTimeMillis();
+        return sinds > 0 && sinds <= nu && nu - sinds < 12 * 60 * 60 * 1000L ? prefs(c).getInt("pogingen", 0) : 0;
+    }
+
     /** Er kan maar één backup tegelijk lopen. */
     static final java.util.concurrent.atomic.AtomicBoolean running = new java.util.concurrent.atomic.AtomicBoolean(false);
     static volatile boolean busy = false;
@@ -217,6 +223,9 @@ final class AllBackup {
             }
             boolean allOk = !res.has("all");
             for (String p : PARTS) { JSONObject r = res.optJSONObject(p); if (r != null && !r.optBoolean("ok")) allOk = false; }
+            // Met de hand gelukt terwijl de nachtelijke nog opnieuw zou proberen: die is daarmee klaar voor vandaag
+            if (!auto && !stop && allOk && prefs(c).getInt("pogingen", 0) > 0)
+                prefs(c).edit().putLong("lastAutoDay", System.currentTimeMillis()).remove("pogingen").remove("pogingSinds").apply();
             // Alleen opruimen na een volledig gelukte backup, anders kan een onvolledige backup de goede verdringen.
             if (!stop && allOk && rotateOn(c)) {
                 try { JSONObject r = Secure.rotate(c, false); if (r.optInt("count") > 0) res.put("rotated", r); }
@@ -227,7 +236,7 @@ final class AllBackup {
             if (!stop && allOk && Secure.on(c)) grote(c, res);
             // Hoe groot de backup was en wat erbij kwam (alleen getallen en vaste namen van onderdelen), zodat het
             // nalopen van het foutlogboek ziet waar de backup groeit
-            if (res.has("archive")) App.log(c, "BACKUP", samenvatting(res));
+            if (res.has("archive")) { try { App.log(c, "BACKUP", samenvatting(res)); } catch (Throwable ignored) { } }
         } finally {
             Secure.CAPTURE.remove();
             if (zip != null) Secure.abort(zip);
@@ -248,7 +257,9 @@ final class AllBackup {
      * hergebruikt) en de onderdelen waar het meeste bij kwam. Alleen getallen en de vaste namen uit PARTS. Zuiver.
      */
     static String samenvatting(JSONObject res) {
-        StringBuilder b = new StringBuilder("backup klaar");
+        int mis = 0;
+        for (String p : PARTS) { JSONObject r = res.optJSONObject(p); if (r != null && !r.optBoolean("ok", true)) mis++; }
+        StringBuilder b = new StringBuilder(res.optBoolean("stopped") ? "backup gestopt" : mis > 0 ? "backup klaar met " + mis + " fout(en)" : "backup klaar");
         JSONObject g = res.optJSONObject("blok");
         if (g != null) {
             b.append(": archief ").append(kb(g.optLong("archief"))).append(", grote bestanden nieuw ").append(g.optInt("nieuw"))
@@ -376,7 +387,7 @@ final class AllBackup {
             o
                     .put("auto", auto(c)).put("charging", prefs(c).getBoolean("charging", true))
                     .put("dest", WaBackup.destUri(c) != null).put("destName", WaBackup.destName(c))
-                    .put("next", prefs(c).getLong("next", 0)).put("poging", prefs(c).getInt("pogingen", 0))
+                    .put("next", prefs(c).getLong("next", 0)).put("poging", pogingNu(c))
                     .put("rotate", rotateOn(c)).put("keep", keep(c)).put("encrypted", Secure.on(c)).put("encBroken", Secure.broken(c))
                     .put("blokken", blokken(c))
                     .put("encSince", Secure.prefs(c).getLong("since", 0));

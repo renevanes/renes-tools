@@ -53,7 +53,8 @@ function enterBackup(){
   $('#bk-auto').checked = !!st.auto; $('#bk-charging').checked = st.charging !== false;
   const bkWanneer = st.next ? fmtDT(st.next, {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
   // Mislukte de nachtelijke backup (Google Drive nog aan het laden), dan probeert hij het dezelfde nacht nog een paar keer
-  $('#bk-next').textContent = !st.auto || !st.next ? '' : st.poging > 0 ? t('Vannacht mislukt; nieuwe poging: {wanneer}', { wanneer: bkWanneer }) : t('Volgende backup: {wanneer}', { wanneer: bkWanneer });
+  $('#bk-next').textContent = !st.auto || !st.next ? '' : !(st.poging > 0) ? t('Volgende backup: {wanneer}', { wanneer: bkWanneer })
+    : st.next <= Date.now() ? t('Backup mislukt; nieuwe poging zodra het kan') : t('Backup mislukt; nieuwe poging: {wanneer}', { wanneer: bkWanneer });
   bkRestoreList();
   bkRenderLast(st); bkRenderSecure(st); bkRenderHerstel(st); bkSums(st);
   if (typeof bmRender === 'function') bmRender();

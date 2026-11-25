@@ -428,9 +428,16 @@ final class WaBackup {
         return e.getMessage() == null ? "Backup-map: schrijven lukt niet" : "Backup-map: " + PodcastFeed.cut(e.getMessage(), 160);
     }
 
-    /** Staat een map uit deze bron op de telefoon zelf (of een SD-kaart/USB-stick), en niet in de cloud? */
-    static boolean lokaal(String authority) {
-        return "com.android.externalstorage.documents".equals(authority) || "com.android.providers.downloads.documents".equals(authority);
+    /**
+     * Staat een map uit deze bron bij een bekende clouddienst (Google Drive, OneDrive, Dropbox, Nextcloud, …)? Die laadt
+     * via internet; een onbekende bron telt als op de telefoon (zoals vroeger: geen eis van een verbinding).
+     */
+    static boolean cloud(String authority) {
+        if (authority == null) return false;
+        String a = authority.toLowerCase(java.util.Locale.ROOT);
+        for (String w : new String[]{"com.google.android.apps.docs", "skydrive", "onedrive", "dropbox", "nextcloud", "owncloud", "proton", "pcloud", "mega."})
+            if (a.contains(w)) return true;
+        return false;
     }
 
     static Uri destUri(Context c) {

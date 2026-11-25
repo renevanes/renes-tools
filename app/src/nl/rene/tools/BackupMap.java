@@ -102,7 +102,7 @@ final class BackupMap {
     /** Uitkomst. */
     static final class Report {
         int dirs, files, dupDirs, dupFiles, temps, merged, removed, renamed, cleaned, errors;
-        boolean repair, stopped;
+        boolean repair, stopped, taak; // taak: binnen de nachtelijke taak (die Android kan stoppen)
         final JSONArray items = new JSONArray(), unknown = new JSONArray();
         long t = System.currentTimeMillis();
 
@@ -129,7 +129,7 @@ final class BackupMap {
         Uri tree = WaBackup.destUri(c);
         if (tree == null) throw new Exception("Kies eerst een backup-map");
         if (!RUNNING.compareAndSet(false, true)) throw new Exception(Taal.T("De backup-map wordt al gecontroleerd"));
-        boolean began = false;
+        boolean began = false, gezet = false;
         stop = false;
         try {
             if (repair) {
@@ -139,10 +139,14 @@ final class BackupMap {
             }
             Report r = new Report();
             r.repair = repair;
+            r.taak = tot > 0;
             long deadline = System.currentTimeMillis() + (auto ? 15 : 60) * 60_000L;
             if (tot > 0) deadline = Math.min(deadline, tot);
             // Merkje zolang het loopt: stopt Android de app halverwege, dan staat dat de volgende keer in het logboek
-            if (repair) prefs(c).edit().putLong("bezig", System.currentTimeMillis()).commit();
+            if (repair) {
+                if (prefs(c).getLong("bezig", 0) > 0) App.log(c, "BACKUP", "backup-map opruimen vorige keer niet afgemaakt (app gestopt)");
+                gezet = prefs(c).edit().putLong("bezig", System.currentTimeMillis()).commit();
+            }
             WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
             WaBackup.DestDir root = dest.root();
             walk(dest, root, "", 0, r, repair, deadline);
@@ -161,7 +165,7 @@ final class BackupMap {
             if (auto && repair) notifyChanged(c, r);
             return o;
         } finally {
-            if (repair) prefs(c).edit().remove("bezig").apply();
+            if (gezet) prefs(c).edit().remove("bezig").apply();
             current = "";
             stop = false; // een Stop geldt alleen voor deze keer
             if (began) { AllBackup.running.set(false); AllBackup.busy = false; }
@@ -171,7 +175,7 @@ final class BackupMap {
 
     static boolean halt(Report r, long deadline) {
         // AllBackup.stop telt alleen bij opruimen (dan zette tryBegin hem net terug); bij alleen controleren kan hij van een vorige nacht zijn
-        if (stop || (r.repair && AllBackup.stop) || System.currentTimeMillis() > deadline) { r.stopped = true; return true; }
+        if (stop || (r.repair && AllBackup.stop) || (r.taak && AllBackupJob.gestopt) || System.currentTimeMillis() > deadline) { r.stopped = true; return true; }
         return false;
     }
 
@@ -450,18 +454,9 @@ final class BackupMap {
 
     /** Na de nachtelijke backup: opruimen als dat aan staat. */
     static void nightly(Context c, long tot) {
-        vorigeKeer(c);
         if (!auto(c) || WaBackup.destUri(c) == null || Herstel.blocked(c) != null) return;
         if (tot > 0 && tot - System.currentTimeMillis() < 60_000L) return; // geen tijd meer: de volgende nacht
         try { run(c, true, true, tot); } catch (Throwable t) { App.log(c, "BACKUP", "backup-map opruimen: " + AppData.safeMsg(t, "mislukt")); }
-    }
-
-    /** Stopte Android de app tijdens het vorige opruimen (het merkje "bezig" staat er nog)? Dan dat in het logboek. */
-    static void vorigeKeer(Context c) {
-        long b = prefs(c).getLong("bezig", 0);
-        if (b <= 0 || RUNNING.get()) return;
-        prefs(c).edit().remove("bezig").apply();
-        App.log(c, "BACKUP", "backup-map opruimen vorige keer niet afgemaakt: app gestopt na " + Math.max(0, (System.currentTimeMillis() - b) / 60_000L) + " min of later");
     }
 
     /** Eenmalig na een update met een nieuwe indeling (of de eerste keer): even na het opstarten, op de achtergrond. */
@@ -471,7 +466,6 @@ final class BackupMap {
         new Thread(() -> {
             try {
                 Thread.sleep(90_000); // het opstarten niet ophouden
-                vorigeKeer(app);
                 if (prefs(app).getInt("doneVersion", 0) >= VERSION) return;
                 if (!auto(app) || WaBackup.destUri(app) == null || Herstel.blocked(app) != null || busy() != null) return;
                 run(app, true, true); // gaat 's nachts verder binnen de nachtelijke taak (AllBackupJob)

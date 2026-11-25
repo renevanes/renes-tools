@@ -30,6 +30,11 @@ public class AllBackupJob extends JobService {
         // Android geeft een taak hooguit zo'n tien minuten; het opruimen daarna stopt ruim op tijd (anders stopt de telefoon
         // de app soms hard, en komt het opruimen nooit af)
         final long tot = System.currentTimeMillis() + TAAK_MS;
+        // Intussen met de hand een volledige backup gemaakt (na een mislukte nacht): deze nacht is klaar
+        if (nextRun(AllBackup.prefs(ctx).getLong("lastAutoDay", 0)) > System.currentTimeMillis() + 60_000L) {
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> schedule(ctx, 0));
+            return false;
+        }
         if (!AllBackup.tryBegin()) {
             // Er loopt al een backup: over een uur opnieuw (pas plannen nadat deze taak is afgemeld).
             new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> schedule(ctx, 60 * 60 * 1000L));
@@ -47,9 +52,14 @@ public class AllBackupJob extends JobService {
                 // verbinding): stil opnieuw over een half uur, een uur, anderhalf uur; pas daarna een melding.
                 if (nietGelukt(r)) {
                     int poging = poging(p.getLong("pogingSinds", 0), p.getInt("pogingen", 0), nu);
-                    p.edit().putInt("pogingen", poging).putLong("pogingSinds", poging == 1 ? nu : p.getLong("pogingSinds", nu)).apply();
-                    App.log(ctx, "BACKUP", "nachtelijke backup mislukt, poging " + poging + " van " + MAX_POGINGEN);
-                    if (poging < MAX_POGINGEN) { wacht = OPNIEUW_MS * poging; return; }
+                    long sinds = poging == 1 ? nu : p.getLong("pogingSinds", nu);
+                    boolean klaar = opgeven(sinds, poging, nu);
+                    App.log(ctx, "BACKUP", "nachtelijke backup mislukt, poging " + poging + (klaar ? ", geen nieuwe poging meer" : ", straks opnieuw"));
+                    if (!klaar) {
+                        p.edit().putInt("pogingen", poging).putLong("pogingSinds", sinds).commit(); // vóór Signalen of het scherm het lezen
+                        wacht = OPNIEUW_MS * poging;
+                        return;
+                    }
                 }
                 p.edit().putLong("lastAutoDay", nu).remove("pogingen").remove("pogingSinds").apply();
                 notifyIfFailed(ctx, r);
@@ -74,16 +84,28 @@ public class AllBackupJob extends JobService {
     static final long TAAK_MS = 8 * 60 * 1000L;
     static final long OPNIEUW_MS = 30 * 60 * 1000L;
 
-    /** Mislukte de hele backup (niet begonnen, of het archief niet afgemaakt)? Eén onderdeel dat misging telt niet. */
+    /** Na zoveel tijd sinds de eerste mislukte poging niet meer stil opnieuw, maar een melding (ook als het opladen ertussen stopte). */
+    static final long OPGEVEN_MS = 3 * 60 * 60 * 1000L;
+
+    /**
+     * Mislukte de hele backup zo dat opnieuw proberen zin heeft (niet begonnen, of het archief niet afgemaakt)? Eén
+     * onderdeel dat misging telt niet, een archief dat er al staat ook niet, en zonder toegang tot de map helpt het niet.
+     */
     static boolean nietGelukt(JSONObject r) {
         JSONObject a = r == null ? null : r.optJSONObject("all");
-        return a != null && !a.optBoolean("ok", true);
+        if (a == null || a.optBoolean("ok", true) || r.has("archive")) return false;
+        return !a.optString("msg").startsWith(WaBackup.NO_ACCESS);
     }
 
-    /** De hoeveelste mislukte poging dit is; een poging van meer dan 12 uur geleden hoort bij een vorige nacht. */
+    /** De hoeveelste mislukte poging dit is (klok teruggezet: opnieuw beginnen). */
     static int poging(long sinds, int eerder, long nu) {
-        if (eerder <= 0 || sinds <= 0 || sinds > nu || nu - sinds > 12 * 60 * 60 * 1000L) return 1;
+        if (eerder <= 0 || sinds <= 0 || sinds > nu) return 1;
         return eerder + 1;
+    }
+
+    /** Niet meer stil opnieuw: genoeg pogingen, of het duurt al te lang sinds de eerste (dan een melding). */
+    static boolean opgeven(long sinds, int poging, long nu) {
+        return poging >= MAX_POGINGEN || (sinds > 0 && sinds <= nu && nu - sinds >= OPGEVEN_MS);
     }
 
     /** De backup is klaar en de backup-map wordt opgeruimd (stoppen = niet opnieuw back-uppen). */
@@ -140,16 +162,24 @@ public class AllBackupJob extends JobService {
                 .setBackoffCriteria(10 * 60 * 1000L, JobInfo.BACKOFF_POLICY_LINEAR);
         if (Build.VERSION.SDK_INT >= 26) b.setRequiresBatteryNotLow(true);
         // Een backup-map in de cloud (Google Drive): alleen met een verbinding, anders blijft de map "laden"
-        Uri map = WaBackup.destUri(c);
-        if (map != null && !WaBackup.lokaal(map.getAuthority())) b.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
+        if (cloud(c)) b.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
         js.schedule(b.build());
         p.edit().putLong("next", next).apply();
+    }
+
+    /** Staat de backup-map bij een bekende clouddienst (Google Drive e.d.)? Dan wacht de taak op een verbinding. */
+    static boolean cloud(Context c) {
+        Uri map = WaBackup.destUri(c);
+        return map != null && WaBackup.cloud(map.getAuthority());
     }
 
     static void ensureScheduled(Context c) {
         JobScheduler js = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
         boolean auto = wanted(c);
-        if (auto == (js.getPendingJob(JOB_ID) != null)) return;
+        JobInfo j = js.getPendingJob(JOB_ID);
+        // Een andere backup-map (bijv. van Google Drive naar een USB-stick): ook de voorwaarde voor een verbinding bijwerken
+        @SuppressWarnings("deprecation") boolean netGoed = j == null || (j.getNetworkType() != JobInfo.NETWORK_TYPE_NONE) == cloud(c);
+        if (auto == (j != null) && netGoed) return;
         schedule(c, 0);
     }
 

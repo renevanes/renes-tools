@@ -11,27 +11,32 @@ public class AllBackupJobTest {
     static void check(boolean ok, String what) { System.out.println((ok ? "✓ " : "✗ ") + what); if (!ok) fails++; }
 
     public static void main(String[] a) throws Exception {
-        // Wanneer telt de hele backup als mislukt?
+        // Wanneer telt de hele backup als mislukt (en heeft opnieuw proberen zin)?
         JSONObject laden = new JSONObject().put("all", new JSONObject().put("ok", false).put("msg", "De backup-map is nog aan het laden; probeer het zo opnieuw"));
         JSONObject deel = new JSONObject().put("sms", new JSONObject().put("ok", false)).put("notes", new JSONObject().put("ok", true));
         JSONObject goed = new JSONObject().put("notes", new JSONObject().put("ok", true)).put("archive", "backup-2026-11-25_0330.rtb");
+        JSONObject alGemaakt = new JSONObject().put("archive", "backup-2026-11-25_0330.rtb").put("all", new JSONObject().put("ok", false).put("msg", "Archief afsluiten mislukt"));
+        JSONObject geenToegang = new JSONObject().put("all", new JSONObject().put("ok", false).put("msg", WaBackup.NO_ACCESS));
         check(AllBackupJob.nietGelukt(laden), "archief niet begonnen: hele backup mislukt");
         check(!AllBackupJob.nietGelukt(deel) && !AllBackupJob.nietGelukt(goed) && !AllBackupJob.nietGelukt(null), "één onderdeel mis of alles goed: geen nieuwe poging");
+        check(!AllBackupJob.nietGelukt(alGemaakt) && !AllBackupJob.nietGelukt(geenToegang), "archief staat er al, of geen toegang tot de map: niet opnieuw");
 
-        // Pogingen tellen per nacht
+        // Pogingen tellen; opgeven na MAX_POGINGEN of als het te lang duurt (bijv. opladen gestopt): dan een melding
         long nu = 1_800_000_000_000L, uur = 3_600_000L;
-        check(AllBackupJob.poging(0, 0, nu) == 1, "eerste mislukte poging");
-        check(AllBackupJob.poging(nu - uur, 1, nu) == 2 && AllBackupJob.poging(nu - 3 * uur, 3, nu) == 4, "dezelfde nacht: tellen door");
-        check(AllBackupJob.poging(nu - 13 * uur, 3, nu) == 1, "een vorige nacht telt niet mee");
-        check(AllBackupJob.poging(nu + uur, 2, nu) == 1, "klok teruggezet: opnieuw beginnen");
-        // Hooguit MAX_POGINGEN per nacht, met steeds meer tijd ertussen; daarna een melding
+        check(AllBackupJob.poging(0, 0, nu) == 1 && AllBackupJob.poging(nu + uur, 2, nu) == 1, "eerste poging (ook als de klok terugging)");
+        check(AllBackupJob.poging(nu - uur, 1, nu) == 2 && AllBackupJob.poging(nu - 13 * uur, 3, nu) == 4, "pogingen tellen door, ook na lang wachten");
+        check(!AllBackupJob.opgeven(nu, 1, nu) && !AllBackupJob.opgeven(nu - uur, 2, nu), "eerste pogingen: stil opnieuw");
+        check(AllBackupJob.opgeven(nu - uur, AllBackupJob.MAX_POGINGEN, nu), "genoeg pogingen: melding");
+        check(AllBackupJob.opgeven(nu - 13 * uur, 2, nu), "opladen stopte en het werd te laat: toch een melding");
         long totaal = 0;
         for (int p = 1; p < AllBackupJob.MAX_POGINGEN; p++) totaal += AllBackupJob.OPNIEUW_MS * p;
-        check(AllBackupJob.MAX_POGINGEN >= 3 && totaal <= 4 * uur, "nieuwe pogingen binnen dezelfde nacht (" + totaal / 60_000 + " min)");
+        check(AllBackupJob.MAX_POGINGEN >= 3 && totaal <= AllBackupJob.OPGEVEN_MS, "nieuwe pogingen passen in de tijd voor opgeven (" + totaal / 60_000 + " min)");
 
-        // Een backup-map in de cloud wacht op een verbinding; op de telefoon zelf niet
-        check(WaBackup.lokaal("com.android.externalstorage.documents") && WaBackup.lokaal("com.android.providers.downloads.documents"), "telefoon, SD-kaart en Downloads: lokaal");
-        check(!WaBackup.lokaal("com.google.android.apps.docs.storage") && !WaBackup.lokaal(null), "Google Drive (of onbekend): cloud");
+        // Een backup-map bij een bekende clouddienst wacht op een verbinding; op de telefoon of onbekend niet
+        check(WaBackup.cloud("com.google.android.apps.docs.storage") && WaBackup.cloud("com.microsoft.skydrive.content.StorageAccessProvider")
+                && WaBackup.cloud("org.nextcloud.documents"), "Google Drive, OneDrive, Nextcloud: cloud");
+        check(!WaBackup.cloud("com.android.externalstorage.documents") && !WaBackup.cloud("com.android.providers.downloads.documents")
+                && !WaBackup.cloud("com.android.mtp.documents") && !WaBackup.cloud(null), "telefoon, SD-kaart, USB, MTP en onbekend: geen verbinding nodig");
 
         // Eén regel in het foutlogboek: alleen getallen en vaste namen van onderdelen
         JSONObject res = new JSONObject().put("archive", "backup-2026-11-25_0330.rtb")
@@ -41,7 +46,9 @@ public class AllBackupJobTest {
         String regel = AllBackup.samenvatting(res);
         check(regel.equals("backup klaar: archief 3321 kB, grote bestanden nieuw 2 (879 kB), hergebruikt 812 (181 MB); erbij: sms 684 kB, notes 20 kB; 1 oude weg"), "samenvatting: " + regel);
         check(AllBackup.samenvatting(new JSONObject().put("archive", "x.rtb")).equals("backup klaar"), "zonder grote bestanden: kort");
-        check(!Logboek.probleem("BACKUP", regel) && Logboek.probleem("BACKUP", "nachtelijke backup mislukt, poging 1 van 4"), "geslaagd is geen probleem, mislukt wel");
+        check(!Logboek.probleem("BACKUP", regel) && Logboek.probleem("BACKUP", "nachtelijke backup mislukt, poging 1, straks opnieuw"), "geslaagd is geen probleem, mislukt wel");
+        res.put("sms", new JSONObject().put("ok", false));
+        check(AllBackup.samenvatting(res).startsWith("backup klaar met 1 fout(en): ") && AllBackup.samenvatting(res.put("stopped", true)).startsWith("backup gestopt: "), "met fouten of gestopt: zo genoemd");
 
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("AllBackupJobTest ok");
