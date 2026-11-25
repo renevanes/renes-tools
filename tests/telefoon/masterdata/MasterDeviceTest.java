@@ -185,7 +185,9 @@ public final class MasterDeviceTest extends Instrumentation {
         android.graphics.Bitmap scan=android.graphics.Bitmap.createBitmap(1240,1754,android.graphics.Bitmap.Config.ARGB_8888);
         scan.eraseColor(android.graphics.Color.WHITE);
         android.graphics.Canvas sc=new android.graphics.Canvas(scan);
-        sc.drawBitmap(android.graphics.Bitmap.createScaledBitmap(licence,856,542,true),120,120,null);
+        // Een echt rijbewijs heeft een gekleurde achtergrond (roze): het witte testplaatje zo gekleurd (wit wordt roze, tekst blijft zwart)
+        android.graphics.Paint roze=new android.graphics.Paint();roze.setColorFilter(new android.graphics.PorterDuffColorFilter(android.graphics.Color.rgb(240,200,212),android.graphics.PorterDuff.Mode.MULTIPLY));
+        sc.drawBitmap(android.graphics.Bitmap.createScaledBitmap(licence,856,542,true),120,120,roze);
         android.graphics.Paint grijs=new android.graphics.Paint();grijs.setColor(android.graphics.Color.rgb(205,215,230));
         sc.drawRect(160,900,1016,1442,grijs);
         java.io.ByteArrayOutputStream scanJpg=new java.io.ByteArrayOutputStream(),scanPdf=new java.io.ByteArrayOutputStream();
