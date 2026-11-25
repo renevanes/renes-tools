@@ -376,6 +376,7 @@ final class PodcastDownloads {
     static boolean played(Context c, String key) {
         if (!autoDelete(c)) return false;
         if (key.equals(PodcastService.playingKey())) return false; // speelt nog (bijv. de laatste seconden)
+        if (PodcastSlaap.open(c, key)) return false; // afgelopen met de slaaptimer: blijft tot Rene zegt dat hij hem hoorde
         java.util.Set<String> k = KEYS;
         if (k != null && !k.contains(key)) return false;
         boolean had = index(c).has(key);

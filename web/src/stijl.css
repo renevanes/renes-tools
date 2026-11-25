@@ -588,6 +588,8 @@ body.solo .toolslot .hdr .back{display:none}
 .pill{padding:8px 14px;border-radius:999px;background:var(--chip);color:var(--ink);font-weight:600;font-size:14px;border:0}
 .pill.on{background:var(--primary);color:var(--on-primary)}
 .pclist{padding-top:2px;padding-bottom:2px}
+/* Afgespeeld met de slaaptimer (46d-podcast-slaap.js) */
+.pcslp-l{margin:6px 0 10px}.pcslp-r{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)}.pcslp-r:first-child{border-top:0}.pcslp-r b{display:block;font-weight:600;overflow-wrap:anywhere}.pcslp-r small{display:block;color:var(--muted);margin-top:2px}.pcslp-r input{margin-top:2px}.pcslp-st{align-items:center}.pcslp-st>span{flex:1;min-width:0}.pcslp-st .mini{float:none;flex:none;min-height:44px}.pcslp .big+.big{margin-top:8px}
 .pcep{display:flex;align-items:center;border-top:1px solid var(--line)}.pcep:first-child{border-top:0}
 .pcepb{flex:1;display:flex;align-items:center;gap:12px;padding:10px 2px;text-align:left;min-width:0;background:none;border:0;color:inherit;font:inherit}
 .pcepb .pctxt{flex:1;min-width:0}

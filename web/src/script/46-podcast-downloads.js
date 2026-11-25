@@ -135,6 +135,7 @@ function psRender(){
   fvRender('ps');
   psOvRender();
   psPeriodeRender(pr);
+  psSlpRender();
 }
 /* Vanzelf downloaden over een periode (PodcastDownloads.periodeQueue) en weer verwijderen (opruimen) */
 function psPeriodeTxt(d){
