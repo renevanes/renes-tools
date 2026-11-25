@@ -1080,7 +1080,8 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   `vragen` (standaard: kaart `#pc-slaap` op Luisteren, aangevinkt = weer niet beluisterd, de rest gehoord), `vanzelf` (als de
   timer de speler stopt: `sessieKlaar` zet alleen die sessie terug; de kaart zegt het, met Toch gehoord) of `uit`; `slaapPlek`
   `wakker`/`begin` (`terugPlek`, nooit vlak bij het einde). Terugzetten verandert alleen een aflevering die nog als beluisterd
-  staat. De lijst (hooguit `MAX`, `BEWAAR_MS`; wat open bleef telt dan als gehoord) en de keuze staan op Instellingen van
+  staat; wakker uitgeluisterd (zonder timer, of in de laatste minuut nog wakker: `telt`) = gehoord (`wakkerAf`). Een
+  download gaat alleen weg als de aflevering dan nog als beluisterd staat. De lijst (hooguit `MAX`, `BEWAAR_MS`; wat open bleef telt dan als gehoord) en de keuze staan op Instellingen van
   Podcasts (`#ps-slp`, ook via ⋯). Op een Chromecast niet. Test: `tests/ui/podcast-slaap.test.js`.
 
 ## Publiceren en tests (stand op GitHub in de app)

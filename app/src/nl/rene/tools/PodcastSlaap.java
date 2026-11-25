@@ -172,9 +172,10 @@ final class PodcastSlaap {
     /** Een aflevering liep af terwijl de slaaptimer liep. Vóór het markeren als beluisterd aanroepen (de download blijft dan staan). */
     static void liepAf(Context c, String epJson, String podJson, long wakker, long dur, long sessie) {
         try {
-            if (UIT.equals(wijze(c)) || !telt(wakker, dur)) return;
+            if (UIT.equals(wijze(c))) return;
             JSONObject ep = Podcasts.cleanEp(new JSONObject(epJson));
             if (ep == null) return;
+            if (!telt(wakker, dur)) { wakkerAf(c, ep.optString("key")); return; } // het einde nog gehoord
             JSONObject pod = podJson == null ? new JSONObject() : Podcasts.cleanPod(new JSONObject(podJson));
             JSONObject r = new JSONObject().put("key", ep.optString("key")).put("ep", ep).put("pod", pod)
                     .put("van", Math.max(0, wakker)).put("d", Math.max(0, dur)).put("t", System.currentTimeMillis())
@@ -196,7 +197,8 @@ final class PodcastSlaap {
                 l = leesRuw(c);
                 for (int i = 0; i < l.length(); i++) {
                     JSONObject o = l.optJSONObject(i);
-                    if (key != null && key.equals(o.optString("key")) && OPEN.equals(o.optString("st"))) { o.put("st", GEHOORD).put("auto", false).put("gezien", true); veranderd = true; }
+                    // Open, of eerder (vanzelf) teruggezet: nu wakker uitgeluisterd, dus gehoord
+                    if (key != null && key.equals(o.optString("key")) && !GEHOORD.equals(o.optString("st"))) { o.put("st", GEHOORD).put("auto", false).put("gezien", true); veranderd = true; }
                 }
                 if (veranderd) schrijf(c, l);
             }
@@ -261,7 +263,11 @@ final class PodcastSlaap {
         Podcasts.IO.execute(() -> {
             try {
                 boolean any = false;
-                for (String key : k) if (PodcastDownloads.played(app, key)) any = true;
+                for (String key : k) {
+                    JSONObject p = Podcasts.progressOf(app, key);
+                    if (p != null && !p.optBoolean("done")) continue; // intussen opnieuw begonnen: de download blijft
+                    if (PodcastDownloads.played(app, key)) any = true;
+                }
                 if (any) MainActivity.jsAll("onPodDl", "");
             } catch (Throwable ignored) { }
         });
