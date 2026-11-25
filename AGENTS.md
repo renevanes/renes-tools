@@ -335,6 +335,12 @@ tegelijk. Je hebt de sleutel dus **niet** nodig: zet je werk (met een bestand in
 **Vaste opdracht van Rene:** publiceer functionele wijzigingen standaard, na geslaagde tests en een onafhankelijke
 review; een aparte bevestiging per wijziging is niet nodig. Kijk na het pushen of de run `Publiceren` slaagt (tabblad
 Actions, of `gh api repos/renevanes/renes-tools/actions/runs`) en meld Rene de nieuwe versie, of concreet wat misging.
+**Altijd zelf publiceren** (vaste opdracht van Rene, 25-11-2026): laat een publicatie nooit voor Rene liggen. Mislukt
+Publiceren door iets buiten je wijziging (een emulator die blijft hangen, een download die de bouwmachine weigert) en is
+je werk daardoor niet gepubliceerd, start dan zelf de mislukte taken opnieuw
+(`gh api -X POST repos/renevanes/renes-tools/actions/runs/<id>/rerun-failed-jobs`) of Publiceren op main
+(`gh workflow run publiceren.yml --ref main`), hooguit twee keer per wijziging; ligt het aan je wijziging, los het dan op
+en push opnieuw. Alleen `allow_grow` (APK meer dan 10% groter) en `major` (hoofdversie omhoog) blijven voor Rene.
 
 1. **Werk in je eigen branch of git-worktree** (`git worktree add ../rt-codex -b codex/onderwerp origin/main`), nooit
    met twee agents in dezelfde map. Een nieuwe worktree heeft geen `node_modules` (installeer Playwright) en geen
@@ -638,14 +644,16 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
 5. **Workflows starten** (`gh workflow run …`, werkt via REST): Bouwen en testen, Telefoontest en Play-controle op je
    eigen branch (`--ref <branch>`; zonder geheimen), hooguit een paar keer per run. Onderhoud en Toiletten-gegevens
    alleen met `--ref main`, om een mislukte run opnieuw te doen (zie de tabel bij Onderhoud); Toiletten-gegevens zet
-   zijn uitvoer meteen in de release die telefoons ophalen. Nooit Publiceren: dat start alleen Rene (`allow_grow`, `major`).
+   zijn uitvoer meteen in de release die telefoons ophalen. Publiceren op main wel, zoals "Altijd zelf publiceren"
+   hierboven zegt (na een mislukking buiten je wijziging, hooguit twee keer); `allow_grow` en `major` start alleen Rene.
 6. **Na de push naar main:** zoek de run Publiceren die je commit bevat
    (`gh api "repos/renevanes/renes-tools/actions/workflows/publiceren.yml/runs?branch=main&per_page=10" --jq '.workflow_runs[]|[.id,.head_sha,.status,.conclusion]|@tsv'`
    en `git merge-base --is-ancestor <jouw commit> <head_sha>`). Ging main tijdens het testen verder, dan slaat
    een run na een push het publiceren over (melding "Overgeslagen", de run blijft groen; gebeurt het tijdens de
    interfacetests of het publiceren zelf, of startte Rene de run met de hand, dan eindigt hij rood met "De bron is sinds
    de telefoontest veranderd"): de volgende run publiceert het, controleer die. Groen is dus nog niet gepubliceerd: kijk
-   of er na je commit een commit "Versie X.Y" op main staat. Groeit de APK meer dan 10%, dan
+   of er na je commit een commit "Versie X.Y" op main staat. Mislukte hij buiten je wijziging om, start hem dan zelf
+   opnieuw ("Altijd zelf publiceren") en wacht tot er een versie is. Groeit de APK meer dan 10%, dan
    weigert Publiceren: nooit omzeilen, maar Rene vragen Publiceren met de hand te starten met `allow_grow`, met de reden
    van de groei. Dan staan ook de publicaties van anderen stil: zet dat bovenaan je bericht.
 7. **Te groot voor één sessie:** maak het logische deel af en publiceer dat; zet de rest met een afvinklijst in een
