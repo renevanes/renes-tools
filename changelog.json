@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.258",
+    "date": "2026-11-25",
+    "changes": [
+      "Stamgegevens: bij de voorkant of achterkant van een ID-bewijs kun je nu ook een PDF of Word-document kiezen; Tools haalt de foto's eruit en jij kiest welke je bewaart.",
+      "Podcasts: in het venster Slaaptimer kies je nu ook wat er gebeurt met afleveringen die aflopen terwijl de timer loopt (daarna vragen, niet beluisterd of beluisterd)."
+    ]
+  },
+  {
     "version": "1.257",
     "date": "2026-11-25",
     "changes": [
