@@ -141,7 +141,8 @@ window.onUpdateStatus = function(r){
   // Installatie afgebroken of geannuleerd, maar de download is bewaard: alleen nog installeren
   if (r.state === 'error' && r.kind === 'apk' && r.klaar) {
     updAvail = r.klaar; updKlaar = r.klaar; updReset();
-    toast(t('Niet geïnstalleerd. De download blijft bewaard: tik op Installeren om het opnieuw te proberen.'));
+    // Een andere fout (bijv. geen goede updatelijst) met de download nog bewaard: die fout laten zien
+    toast(r.bewaard && r.error ? r.error : t('Niet geïnstalleerd. De download blijft bewaard: tik op Installeren om het opnieuw te proberen.'));
     return;
   }
   const wasKind = updKind;

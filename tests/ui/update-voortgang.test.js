@@ -47,6 +47,9 @@ const { chromium } = require('playwright');
     // Na opnieuw opstarten: de bewaarde download staat meteen klaar
     await pg.evaluate(() => { updKlaar = ''; updAvail = ''; updReset(); Android._apkKlaar = '9.9'; updKlaarStart(); });
     ok((await pg.textContent('#upd-text')).includes('Versie 9.9 is gedownload') && !(await pg.isDisabled('#upd-btn')), 'bij het starten: bewaarde download klaar');
+    // Een andere fout terwijl de download bewaard blijft: die fout, en de balk blijft "is gedownload"
+    await pg.evaluate(() => { updKlaar = '9.9'; updAvail = '9.9'; onUpdateStatus({ state: 'error', kind: 'apk', error: 'Update mislukt: HTTP 500', klaar: '9.9', bewaard: true }); });
+    ok((await pg.textContent('#upd-text')).includes('is gedownload') && (await pg.textContent('#toast')).includes('HTTP 500'), 'andere fout: download blijft klaar, fout zichtbaar');
     // De bewaarde download bleek niet meer bruikbaar (fout zonder klaar): niet langer "is gedownload"
     await pg.evaluate(() => onUpdateStatus({ state: 'error', kind: 'apk', error: 'De bewaarde download klopt niet meer' }));
     ok((await pg.textContent('#upd-text')).includes('beschikbaar') && !(await pg.textContent('#upd-text')).includes('gedownload'), 'fout zonder bewaarde download: weer "beschikbaar"');
