@@ -59,6 +59,8 @@ final class Blokken {
     static final int VERSION = 1;
     /** Vanaf deze grootte apart; kleinere bestanden gewoon in het archief (anders heel veel losse bestanden). */
     static final long MIN = 32 * 1024;
+    /** Na zoveel keer apart opslaan mislukt gaan de volgende grote bestanden van die backup in het archief zelf. */
+    static final int MAX_FOUTEN = 3;
     /** sleutel-id (8 hex) - inhoud-id (32 hex) .blok */
     static final Pattern NAME = Pattern.compile("([0-9a-f]{8})-([0-9a-f]{32})\\.blok");
     static final int MAX_ITEMS = 500_000;
@@ -426,7 +428,7 @@ final class Blokken {
                 enc = t.n;
                 if (!z && enc != verwacht) throw new IOException("Groot bestand onvolledig geschreven");
                 // Pas na een volledige controle (teruglezen, ontsleutelen, SHA-256) krijgt het zijn echte naam
-                leesHelemaal(lees(s.terug(), key, z, n, sha));
+                terugControle(s, z, n, sha);
                 s.klaar();
             } catch (IOException e) {
                 s.afbreken();
@@ -438,6 +440,26 @@ final class Blokken {
             Item it = new Item(pad, n, sha, naam, z, enc);
             items.add(it);
             return it;
+        }
+
+        /**
+         * Wachttijden (ms) voor nog eens teruglezen. Een cloudmap (Google Drive) heeft een net geschreven bestand soms
+         * nog niet helemaal klaarstaan; een tel later wel. Zonder wachten ging de rest van de backup in het archief zelf.
+         */
+        static long[] TERUG_WACHT = {2_000L, 10_000L};
+        /** Hoe vaak teruglezen pas bij een volgende poging klopte. */
+        int terugOpnieuw;
+
+        private void terugControle(Schrijf s, boolean z, long n, String sha) throws IOException {
+            for (int i = 0; ; i++) {
+                try { leesHelemaal(lees(s.terug(), key, z, n, sha)); if (i > 0) terugOpnieuw++; return; }
+                catch (IOException e) {
+                    // Een ander wachtwoord wordt niet beter van wachten; te kort of (nog) niet kloppend misschien wel
+                    if (i >= TERUG_WACHT.length || "Groot bestand hoort bij een ander wachtwoord".equals(e.getMessage())) throw e;
+                    try { Thread.sleep(TERUG_WACHT[i]); }
+                    catch (InterruptedException x) { Thread.currentThread().interrupt(); throw e; }
+                }
+            }
         }
 
         private boolean klopt(String naam, boolean z, long n, String sha) {

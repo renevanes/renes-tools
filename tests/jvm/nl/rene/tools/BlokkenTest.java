@@ -94,6 +94,7 @@ public class BlokkenTest {
     static String fout(Runnable r) { try { r.run(); return null; } catch (RuntimeException e) { return String.valueOf(e.getCause() != null ? e.getCause().getMessage() : e.getMessage()); } }
 
     public static void main(String[] a) throws Exception {
+        Blokken.Schrijver.TERUG_WACHT = new long[]{1, 1}; // niet echt wachten in de test
         Vault.Key k = Vault.derive("geheim-wachtwoord".toCharArray(), new byte[16], 1000, 1);
         Vault.Key anders = Vault.derive("ander".toCharArray(), new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}, 1000, 1);
 
@@ -279,6 +280,78 @@ public class BlokkenTest {
         Map<String, byte[]> l3 = lees(raw3.toByteArray(), k, stuk);
         check(Arrays.equals(l3.get("A/groot.bin"), ruis(50_000, 8)) && Arrays.equals(l3.get("A/groot2.bin"), ruis(60_000, 9)), "apart opslaan mislukt: de bestanden staan in het archief zelf");
         check(z3.tmpDir.list().length == 0, "geen tijdelijke bestanden achtergebleven");
+        check(z3.blokFouten == 2, "beide grote bestanden apart geprobeerd (" + z3.blokFouten + ")");
+
+        // Een cloudmap geeft een net geschreven bestand eerst nog onvolledig terug: even later nog eens lezen
+        File traagDir = Files.createTempDirectory("traag").toFile();
+        final int[] terugKeer = {0};
+        Blokken.Opslag traag = new Blokken.Opslag() {
+            public Map<String, Long> lijst() { return new HashMap<>(); }
+            public Blokken.Schrijf maak(String naam) throws IOException {
+                final File p = new File(traagDir, naam + ".part");
+                return new Schrijf(p, new File(traagDir, naam)) {
+                    @Override public InputStream terug() throws IOException {
+                        byte[] b = Files.readAllBytes(p.toPath());
+                        return new java.io.ByteArrayInputStream(terugKeer[0]++ == 0 ? Arrays.copyOf(b, b.length / 2) : b);
+                    }
+                };
+            }
+            public InputStream open(String naam) throws IOException { return new FileInputStream(new File(traagDir, naam)); }
+            public void weg(String naam) { }
+        };
+        Blokken.Schrijver tw = new Blokken.Schrijver(traag, k);
+        File tmp2 = File.createTempFile("blok", ".tmp");
+        Files.write(tmp2.toPath(), ruis(70_000, 11));
+        String e4 = null;
+        try { tw.bewaar("x/z.bin", tmp2, 70_000, AppData.hex(AppData.sha256().digest(ruis(70_000, 11)))); } catch (IOException e) { e4 = e.getMessage(); }
+        File[] traagFs = traagDir.listFiles();
+        check(e4 == null && tw.nieuw == 1 && tw.terugOpnieuw == 1 && terugKeer[0] == 2 && traagFs.length == 1 && !traagFs[0].getName().endsWith(".part"),
+                "teruglezen eerst onvolledig, daarna goed: toch apart bewaard (" + e4 + ")");
+        check(Blokken.Schrijver.TERUG_WACHT.length == 2 && terugKeer[0] <= 1 + Blokken.Schrijver.TERUG_WACHT.length, "hooguit zo vaak opnieuw als er wachttijden zijn");
+
+        // Eén bestand lukt apart niet (verbinding): dat ene in het archief, de volgende gewoon weer apart
+        File halfDir = Files.createTempDirectory("half").toFile();
+        final int[] maakKeer = {0};
+        MapOpslag goedeMap = new MapOpslag(halfDir);
+        Blokken.Opslag eenKeerMis = new Blokken.Opslag() {
+            public Map<String, Long> lijst() { return goedeMap.lijst(); }
+            public Blokken.Schrijf maak(String naam) throws IOException { if (maakKeer[0]++ == 0) throw new IOException("Connection reset"); return goedeMap.maak(naam); }
+            public InputStream open(String naam) throws IOException { return goedeMap.open(naam); }
+            public void weg(String naam) { goedeMap.weg(naam); }
+        };
+        ByteArrayOutputStream raw5 = new ByteArrayOutputStream();
+        Secure.Zip z5 = new Secure.Zip(null, null, null, "x.rtb", raw5, k);
+        z5.blok = new Blokken.Schrijver(eenKeerMis, k);
+        z5.tmpDir = Files.createTempDirectory("blok").toFile();
+        for (int i = 0; i < 3; i++) try (OutputStream out = z5.stream("B", "groot" + i + ".bin")) { out.write(ruis(50_000, 20 + i)); }
+        z5.lijst();
+        z5.z.close();
+        Map<String, byte[]> l5 = lees(raw5.toByteArray(), k, eenKeerMis);
+        check(z5.blokFouten == 1 && z5.blok.items.size() == 2 && z5.blok.nieuw == 2, "één keer mislukt: de volgende grote bestanden gaan weer apart (" + z5.blokFouten + ", " + z5.blok.items.size() + ")");
+        boolean alle5 = true;
+        for (int i = 0; i < 3; i++) alle5 &= Arrays.equals(l5.get("B/groot" + i + ".bin"), ruis(50_000, 20 + i));
+        check(alle5, "en alles is terug te lezen (het mislukte uit het archief zelf)");
+
+        // Blijft het mislukken, dan na MAX_FOUTEN keer niet meer proberen
+        final int[] probeer = {0};
+        Blokken.Opslag dicht = new Blokken.Opslag() {
+            public Map<String, Long> lijst() { return new HashMap<>(); }
+            public Blokken.Schrijf maak(String naam) throws IOException { probeer[0]++; throw new IOException("Connection reset"); }
+            public InputStream open(String naam) throws IOException { throw new IOException("nee"); }
+            public void weg(String naam) { }
+        };
+        ByteArrayOutputStream raw6 = new ByteArrayOutputStream();
+        Secure.Zip z6 = new Secure.Zip(null, null, null, "x.rtb", raw6, k);
+        z6.blok = new Blokken.Schrijver(dicht, k);
+        z6.tmpDir = Files.createTempDirectory("blok").toFile();
+        for (int i = 0; i < Blokken.MAX_FOUTEN + 3; i++) try (OutputStream out = z6.stream("C", "groot" + i + ".bin")) { out.write(ruis(40_000, 30 + i)); }
+        z6.lijst();
+        z6.z.close();
+        check(probeer[0] == Blokken.MAX_FOUTEN && z6.blokFouten == Blokken.MAX_FOUTEN, "na " + Blokken.MAX_FOUTEN + " keer mislukt: de rest meteen in het archief (" + probeer[0] + ")");
+        Map<String, byte[]> l6 = lees(raw6.toByteArray(), k, dicht);
+        boolean alle6 = true;
+        for (int i = 0; i < Blokken.MAX_FOUTEN + 3; i++) alle6 &= Arrays.equals(l6.get("C/groot" + i + ".bin"), ruis(40_000, 30 + i));
+        check(alle6, "en dat archief is compleet");
 
         // ---------- de lijst uit een archief is niet te vertrouwen ----------
         String goedJson = Blokken.json(ids.kid, s[0].items);

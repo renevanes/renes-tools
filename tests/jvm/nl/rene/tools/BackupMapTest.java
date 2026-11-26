@@ -87,6 +87,45 @@ public class BackupMapTest {
         check(!BackupMap.temp("notities.json") && !BackupMap.temp("Factuur~20261009.pdf"), "gewone en oude versies zijn niet tijdelijk");
         check(BackupMap.known("Notities") && BackupMap.known("Toolgegevens") && !BackupMap.known("Oude foto's"), "bekende en onbekende mappen");
 
+        // Foutlogboek: waarom iets niet lukte en waar het stopte, in vaste woorden (geen namen van bestanden of mappen)
+        check(BackupMap.soort(new Exception("Hernoemen lukt niet: Mijn geheime brief.pdf")).equals("hernoemen lukt niet")
+                && BackupMap.soort(new Exception("Kopie onvolledig: vakantie.jpg")).equals("kopie onvolledig")
+                && BackupMap.soort(new Exception("Verwijderen geweigerd")).equals("verwijderen geweigerd")
+                && BackupMap.soort(new java.io.IOException("De backup-map is nog aan het laden; probeer het zo opnieuw")).equals("map laadt nog")
+                && BackupMap.soort(new SecurityException("uri content://x/Jan")).equals("geen toegang")
+                && BackupMap.soort(new java.io.FileNotFoundException("/Jan/foto.jpg")).equals("niet gevonden")
+                && BackupMap.soort(new java.io.IOException("Connection reset by /10.0.0.1")).equals("verbinding of opslag")
+                && BackupMap.soort(new IllegalStateException("Jan")).equals("IllegalStateException")
+                && BackupMap.soort(null).equals("onbekend"), "reden van een fout: vaste woorden, zonder namen");
+        check(BackupMap.bovenMap("WhatsApp backup/Media/Jan").equals("WhatsApp backup") && BackupMap.bovenMap("Notities").equals("Notities")
+                && BackupMap.bovenMap("Mijn foto's/x").isEmpty() && BackupMap.bovenMap("").isEmpty() && BackupMap.bovenMap(null).isEmpty(), "waar het stopte: alleen een eigen map bovenin");
+        BackupMap.Report r = new BackupMap.Report();
+        r.repair = true; r.dupDirs = 2; r.dupFiles = 1;
+        r.fout("verwijderen geweigerd"); r.fout("verwijderen geweigerd"); r.fout("map niet te lezen: map laadt nog");
+        r.stopped = true; r.stopReden = "tijd op"; r.stopMap = "WhatsApp backup"; r.overgeslagen = 4;
+        String regel = r.regel();
+        check(regel.equals("backup-map opgeruimd: 3 punten, 3 fouten (1 map niet te lezen: map laadt nog, 2 verwijderen geweigerd), 4 mappen al eerder nagelopen, nog niet af (tijd op, in WhatsApp backup)"), "logregel: " + regel);
+        BackupMap.Report leeg = new BackupMap.Report();
+        leeg.repair = true;
+        check(leeg.regel().equals("backup-map opgeruimd: 0 punten, 0 fouten"), "logregel zonder fouten: kort (" + leeg.regel() + ")");
+        check(Logboek.probleem("BACKUP", regel) && !Logboek.probleem("BACKUP", leeg.regel()), "met fouten een probleem in het logboek, zonder niet");
+
+        // Verder waar het opruimen stopte: alleen voor dezelfde backup-map
+        java.util.Set<String> klaar = new java.util.HashSet<>(java.util.Arrays.asList("Notities", "WhatsApp backup/Media"));
+        String kj = BackupMap.klaarJson(klaar, "content://drive/tree/A");
+        check(BackupMap.klaarLees(kj, "content://drive/tree/A").equals(klaar), "nagelopen mappen terug te lezen");
+        check(BackupMap.klaarLees(kj, "content://drive/tree/B").isEmpty(), "andere backup-map: vooraan beginnen");
+        check(BackupMap.klaarLees("{kapot", "content://drive/tree/A").isEmpty() && BackupMap.klaarLees(null, "x").isEmpty()
+                && BackupMap.klaarLees("[\"Notities\"]", "x").isEmpty(), "onleesbaar of oud formaat: vooraan beginnen");
+        java.util.Set<String> veel = new java.util.HashSet<>();
+        for (int i = 0; i < BackupMap.MAX_KLAAR + 50; i++) veel.add("Notities/" + i);
+        check(BackupMap.klaarLees(BackupMap.klaarJson(veel, "m"), "m").size() == BackupMap.MAX_KLAAR, "hooguit MAX_KLAAR mappen onthouden");
+
+        // Eenmalig opruimen na het opstarten: niet bij elke start van de app opnieuw
+        long nu = 1_800_000_000_000L;
+        check(BackupMap.onceMag(0, nu) && BackupMap.onceMag(nu - BackupMap.ONCE_PAUZE, nu) && !BackupMap.onceMag(nu - 60_000L, nu)
+                && BackupMap.onceMag(nu + 3_600_000L, nu), "eenmalig opruimen: hooguit eens per zes uur (klok terug: mag)");
+
         System.out.println(fails == 0 ? "Alle BackupMap-tests geslaagd" : fails + " BackupMap-tests mislukt");
         System.exit(fails == 0 ? 0 : 1);
     }

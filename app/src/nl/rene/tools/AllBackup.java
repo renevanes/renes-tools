@@ -198,9 +198,11 @@ final class AllBackup {
                                     .put("archief", zip.archiefBytes());
                             // Apart opslaan lukte niet: de rest zit in het archief zelf (compleet, alleen groter)
                             if (zip.blokFout != null) {
-                                g.put("fout", AppData.safeMsg(zip.blokFout, "mislukt"));
-                                App.log(c, "BACKUP", "grote bestanden apart: " + AppData.safeMsg(zip.blokFout, "mislukt"));
+                                g.put("fout", AppData.safeMsg(zip.blokFout, "mislukt")).put("fouten", zip.blokFouten);
+                                App.log(c, "BACKUP", "grote bestanden apart: " + zip.blokFouten + " keer mislukt"
+                                        + (zip.blokFouten >= Blokken.MAX_FOUTEN ? " (de rest in het archief)" : "") + ", laatste: " + AppData.safeMsg(zip.blokFout, "mislukt"));
                             }
+                            if (zip.blok.terugOpnieuw > 0) g.put("terugOpnieuw", zip.blok.terugOpnieuw);
                             res.put("blok", g);
                         }
                         // Laatste complete backup voor herinstallatie (alle appgegevens erin, archief niet afgebroken)
@@ -265,7 +267,8 @@ final class AllBackup {
             b.append(": archief ").append(kb(g.optLong("archief"))).append(", grote bestanden nieuw ").append(g.optInt("nieuw"))
                     .append(" (").append(kb(g.optLong("nieuwBytes"))).append("), hergebruikt ").append(g.optInt("hergebruikt"))
                     .append(" (").append(kb(g.optLong("hergebruiktBytes"))).append(")");
-            if (g.has("fout")) b.append(", apart opslaan mislukt");
+            if (g.has("fout")) b.append(", apart opslaan ").append(Math.max(1, g.optInt("fouten"))).append(" keer mislukt");
+            if (g.optInt("terugOpnieuw") > 0) b.append(", ").append(g.optInt("terugOpnieuw")).append(" keer later teruggelezen");
         }
         List<String> groei = new ArrayList<>();
         for (String p : PARTS) { JSONObject r = res.optJSONObject(p); if (r != null && r.optLong("o") > 0) groei.add(p); }
