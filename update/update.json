@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.264",
-  "versionCode": 265,
-  "nativeLevel": 229,
+  "versionName": "1.265",
+  "versionCode": 266,
+  "nativeLevel": 230,
   "web": "index.html",
-  "webSha256": "5e569f57f1ef058b414db6b0fbc32459bfb5ca473acc02ae2a4ce3201eb7980a",
+  "webSha256": "1bb774fac7193cab08a9604d5808e3ef45f260de5ceaa8e8518910f78cca6bf6",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "81c9f7af602a1111cb11583d2393181dca8a62a92d3efaf61659ae7e10368f0a",
+  "apkSha256": "eb8cb64705cb532f463c91be5f81ae3f91a6ba8cf6ba19ae007422c69ffe4570",
   "changelog": [
+    {
+      "version": "1.265",
+      "date": "2026-11-26",
+      "changes": [
+        "Opdracht geven: zeg of typ bij de assistent \"maak een afspraak morgen om 10 uur met Jos\" (of een herinnering of notitie); dat werkt nu ook zonder taalmodel, en na je tik staat de afspraak meteen in je agenda (kies op de kaart in welke)",
+        "Opdracht geven snel bereikbaar: lang drukken op het app-icoon, een snelkoppeling, een tegel in de snelle instellingen, een widget, of Tools als digitale assistent van Android; de assistent opent dan met de microfoon aan",
+        "Nieuw scherm \"Wat kan ik zeggen?\" bij de assistent, met voorbeelden per onderwerp"
+      ]
+    },
     {
       "version": "1.264",
       "date": "2026-11-26",
@@ -177,15 +186,7 @@
         "Backup-map opruimen (dubbele mappen, zoals de WhatsApp-mappen, samenvoegen) loopt nu binnen de nachtelijke taak en gaat door als het scherm uitgaat, zodat het afkomt; één map die niet te lezen is houdt de rest niet meer tegen",
         "Ontbreekt een groot bestand of is het beschadigd, dan zetten terugzetten, uitpakken en ontsleutelen.html de rest toch terug en zeggen ze welke ontbraken"
       ]
-    },
-    {
-      "version": "1.245",
-      "date": "2026-11-23",
-      "changes": [
-        "Stamgegevens: een document met beide zijden lukt nu ook als het een scan is (beide zijden op één pagina of op twee pagina's), als er een logo of ander klein plaatje in staat, of als de foto's geen JPEG zijn.",
-        "Stamgegevens: wordt er bij beide zijden niets herkend, dan kun je de twee zijden toch nakijken en bewaren en vul je de gegevens zelf in; en lukt het niet, dan zegt de melding waarom."
-      ]
     }
   ],
-  "webSig2": "ELAB8PUUwj21a7gLpnmJ8jClfK9DPlPl349KAdGqJjzq4Fot7/S5FeWsAVkwSALjC91agJ6y8fKig2/Z99Dzdz6dGjRya+U5kzaa+jSTQ3CWjY64Z8MPN5qhAS/VAJ4HRQDl8wSXyQWW16wHaJjUU23TAbxBlpu2PsOYj7XCuFfa/CpsqJh01NVIlLb+YICY4MEbcWYYOkvvYRk9kslSoori/VqXqQzLN2xxvuJDqp76Jll2yTOmMZKI2yTWHtjmytTX3YlSDgGdNNlRvoUpVu8yD0QheGwLUVnoH3njFR3XjNqlaItD7WNUTq5BbI8DKFUykGWfgs2ZtlIfdrvc08RHnX/Ejr6RrY3857EakBHSke1ZFjCyRUv794krompNBi2ao/GF4YXXfV8xvGSA4hikKwqLNKnhbMSGfZPovdW2fv9MZNUvHNf9KKq2DyHzKJOn4JOgS+KjS3s/5IDvHhEpRIrZfoQbeeCUHJF7ILQY5qnrDvIMEPp8Q2Ia8Mle"
+  "webSig2": "CgdkYXFFCOJEU80osOkrCOpx6ax8IvrUpvVbwekFrv09ja4j/wd3X1GPMULjXiutsSzRh6PIyAHGkYYH+qm55W6dkHBN7ZcCdaFgrpHOH29A/T3wKIDE1Csh+FyO0qe06pFbiri5V87GnwDWR/csOQ3b56AxmK85kmlS1ARniSc++R3u9HxdGnpLSBnc0lvoB5eUIZWeCoRW0xlfQky34udQK8ClQAjDd0S6qtpXnT6iDe200GabC+ZCqAdhVOJLkBKvHwx4Mcz3NcL2wmxArA2++BviV8UyIy1AMpLN4UOk+MFi3Y+S+R07HpO1LeA8RPz1s3zhja3J4TFR7s7p6rt0kKCgxej+upzsC3GYmzS0Xs/K6P36aOSPMJa85owSRmRdVEoeppC9SNdt2FCKGon6xfuQaVNWOAJFTDAaAVyLgencBiV+d6IvlcSorkz/7An/q1OiJsU4qIDXS4GIsJoiDuw06tADem0KW+WddydzFr9AI0Lovf0E/LvKky5u"
 }

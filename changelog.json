@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.265",
+    "date": "2026-11-26",
+    "changes": [
+      "Opdracht geven: zeg of typ bij de assistent \"maak een afspraak morgen om 10 uur met Jos\" (of een herinnering of notitie); dat werkt nu ook zonder taalmodel, en na je tik staat de afspraak meteen in je agenda (kies op de kaart in welke)",
+      "Opdracht geven snel bereikbaar: lang drukken op het app-icoon, een snelkoppeling, een tegel in de snelle instellingen, een widget, of Tools als digitale assistent van Android; de assistent opent dan met de microfoon aan",
+      "Nieuw scherm \"Wat kan ik zeggen?\" bij de assistent, met voorbeelden per onderwerp"
+    ]
+  },
+  {
     "version": "1.264",
     "date": "2026-11-26",
     "changes": [
