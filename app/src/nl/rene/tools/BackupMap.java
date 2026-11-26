@@ -128,6 +128,7 @@ final class BackupMap {
         /** Een map is helemaal nagelopen. Bewaart de voortgang hooguit eens per 20 mappen of 15 seconden. */
         void mapKlaar(String p) {
             if (!klaarErbij(klaar, p)) { vol = true; return; }
+            vol = false; // een bovenliggende map maakte weer ruimte
             long nu = System.currentTimeMillis();
             if (bewaar != null && (++nietBewaard >= 20 || nu - bewaardOp >= 15_000L)) { bewaar.run(); nietBewaard = 0; bewaardOp = nu; }
         }
@@ -274,6 +275,13 @@ final class BackupMap {
         if (e instanceof java.io.IOException) return "verbinding of opslag";
         String n = e.getClass().getSimpleName();
         return n.isEmpty() ? "onbekend" : n;
+    }
+
+    /** Logregel als opruimen niet kon beginnen: iets anders loopt of geen map = gewoon; de rest is mislukt (een probleem). Zuiver. */
+    static String nietBegonnen(String wat, Throwable t) {
+        String w = soort(t);
+        boolean gewoon = w.equals("loopt al") || w.equals("iets anders loopt") || w.equals("geen backup-map");
+        return wat + (gewoon ? " niet begonnen: " : " mislukt: ") + w;
     }
 
     /** Hoeveel nagelopen mappen hij hooguit onthoudt (daarna begint de ronde weer vooraan). */
@@ -620,7 +628,7 @@ final class BackupMap {
     static void nightly(Context c, long tot) {
         if (!auto(c) || WaBackup.destUri(c) == null || Herstel.blocked(c) != null) return;
         if (tot > 0 && tot - System.currentTimeMillis() < 60_000L) return; // geen tijd meer: de volgende nacht
-        try { run(c, true, true, tot); } catch (Throwable t) { App.log(c, "BACKUP", "backup-map opruimen niet begonnen: " + soort(t)); }
+        try { run(c, true, true, tot); } catch (Throwable t) { App.log(c, "BACKUP", nietBegonnen("backup-map opruimen", t)); }
     }
 
     /** Hoe vaak het eenmalige opruimen na het opstarten hooguit begint (anders bij elke start van de app opnieuw). */
@@ -641,7 +649,7 @@ final class BackupMap {
                 if (!auto(app) || WaBackup.destUri(app) == null || Herstel.blocked(app) != null || busy() != null) return;
                 voortgang(app).edit().putLong("onceTry", System.currentTimeMillis()).apply();
                 run(app, true, true); // gaat 's nachts verder binnen de nachtelijke taak (AllBackupJob)
-            } catch (Throwable t) { App.log(app, "BACKUP", "backup-map eerste keer niet begonnen: " + soort(t)); }
+            } catch (Throwable t) { App.log(app, "BACKUP", nietBegonnen("backup-map eerste keer", t)); }
         }, "backupmap-once").start();
     }
 

@@ -135,6 +135,9 @@ public class BackupMapTest {
                 "afloop: af = vooraan; vanzelf gestopt = verder; vol = vooraan; met de hand gestopt of controleren: voortgang blijft");
         check(BackupMap.soort(new Exception("Kies eerst een backup-map")).equals("geen backup-map") && BackupMap.soort(new Exception("De backup-map wordt al gecontroleerd")).equals("loopt al")
                 && BackupMap.soort(new Exception("Er loopt nu iets anders in de backup-map; opruimen kan zo meteen")).equals("iets anders loopt"), "niet begonnen: waarom, in vaste woorden");
+        String mis = BackupMap.nietBegonnen("backup-map opruimen", new java.io.IOException("Connection reset")), gewoon = BackupMap.nietBegonnen("backup-map opruimen", new Exception("De backup-map wordt al gecontroleerd"));
+        check(mis.equals("backup-map opruimen mislukt: verbinding of opslag") && Logboek.probleem("BACKUP", mis)
+                && gewoon.equals("backup-map opruimen niet begonnen: loopt al") && !Logboek.probleem("BACKUP", gewoon), "opruimen mislukt is een probleem, al bezig niet (" + mis + " / " + gewoon + ")");
 
         // Eenmalig opruimen na het opstarten: niet bij elke start van de app opnieuw
         check(BackupMap.onceMag(0, nu) && BackupMap.onceMag(nu - BackupMap.ONCE_PAUZE, nu) && !BackupMap.onceMag(nu - 60_000L, nu)

@@ -357,7 +357,9 @@ public class BlokkenTest {
                 && Blokken.reden(new Blokken.OpslagFout("De map " + Blokken.DIR + " is niet te lezen", new IOException("x"))).equals("map niet te lezen")
                 && Blokken.reden(new Blokken.OpslagFout("Een groot bestand opslaan lukt niet: Groot bestand beschadigd", null)).equals("beschadigd teruggelezen")
                 && Blokken.reden(new Blokken.OpslagFout("Een groot bestand opslaan lukt niet", new SecurityException("primary:Mijn map"))).equals("geen toegang")
-                && Blokken.reden(null).equals("onbekend"), "reden van apart opslaan: vaste woorden");
+                && Blokken.reden(new Blokken.OpslagFout("Een groot bestand opslaan lukt niet", new IOException("Bestand maken lukt niet"))).equals("maken lukt niet")
+                && Blokken.reden(new Blokken.OpslagFout("Een groot bestand opslaan lukt niet", new IOException("Schrijven lukt niet"))).equals("schrijven lukt niet")
+                && Blokken.reden(null).equals("onbekend"), "reden van apart opslaan: vaste woorden (ook uit de oorzaak)");
 
         // Eén bestand lukt apart niet (verbinding): dat ene in het archief, de volgende gewoon weer apart
         File halfDir = Files.createTempDirectory("half").toFile();

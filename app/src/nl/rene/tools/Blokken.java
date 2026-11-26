@@ -68,8 +68,9 @@ final class Blokken {
      */
     static String reden(Throwable e) {
         if (e == null) return "onbekend";
-        String m = String.valueOf(e.getMessage());
         Throwable oorzaak = e instanceof OpslagFout && e.getCause() != null ? e.getCause() : e;
+        // De eigen meldingen van de oorzaak tellen ook (alleen om te kiezen; de uitkomst is altijd een vast woord)
+        String m = e.getMessage() + " | " + (oorzaak == e ? "" : oorzaak.getMessage());
         if (m.contains(ONVOLLEDIG)) return "onvolledig teruggelezen";
         if (m.contains("onvolledig geschreven")) return "onvolledig geschreven";
         if (m.contains("ander wachtwoord")) return "ander wachtwoord";
@@ -81,6 +82,7 @@ final class Blokken {
         if (m.contains("Teruglezen lukt niet")) return "teruglezen lukt niet";
         if (m.contains("Hernoemen lukt niet") || m.contains("opzij zetten lukt niet")) return "hernoemen lukt niet";
         if (m.contains("Kopie onvolledig")) return "kopie onvolledig";
+        if (m.contains("Vreemde naam")) return "vreemde naam";
         if (oorzaak instanceof SecurityException) return "geen toegang";
         if (oorzaak instanceof java.io.FileNotFoundException) return "niet gevonden";
         if (oorzaak instanceof IOException) return "verbinding of opslag";
