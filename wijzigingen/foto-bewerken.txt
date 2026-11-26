@@ -1,3 +1,0 @@
-Nieuwe tool Foto bewerken: bijsnijden, draaien, rechtzetten, belichting en zwarte vlakken; Tools stelt zelf een verbetering voor (het document zoeken, rechtop zetten, beter belichten).
-Stamgegevens: kaartfoto bewerken op het documentkaartje, en na een nieuwe foto een voorstel om hem bij te snijden en recht te zetten.
-ID-kopie: een nieuwe pagina wordt vanzelf bijgesneden tot het document en rechtgezet; met Bijsnijden en rechtzetten pas je het aan.

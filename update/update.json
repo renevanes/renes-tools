@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.263",
-  "versionCode": 264,
-  "nativeLevel": 228,
+  "versionName": "1.264",
+  "versionCode": 265,
+  "nativeLevel": 229,
   "web": "index.html",
-  "webSha256": "152d5d415d1b192ac96c4ad74205d1887f50699f806890d3ebc5866e567a5c5b",
+  "webSha256": "5e569f57f1ef058b414db6b0fbc32459bfb5ca473acc02ae2a4ce3201eb7980a",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "2e0b26ab471051e2f664c3a7bdcda16d290f6c9c08bc9ed31727d1f58876b8e2",
+  "apkSha256": "81c9f7af602a1111cb11583d2393181dca8a62a92d3efaf61659ae7e10368f0a",
   "changelog": [
+    {
+      "version": "1.264",
+      "date": "2026-11-26",
+      "changes": [
+        "Nieuwe tool Foto bewerken: bijsnijden, draaien, rechtzetten, belichting en zwarte vlakken; Tools stelt zelf een verbetering voor (het document zoeken, rechtop zetten, beter belichten).",
+        "Stamgegevens: kaartfoto bewerken op het documentkaartje, en na een nieuwe foto een voorstel om hem bij te snijden en recht te zetten.",
+        "ID-kopie: een nieuwe pagina wordt vanzelf bijgesneden tot het document en rechtgezet; met Bijsnijden en rechtzetten pas je het aan."
+      ]
+    },
     {
       "version": "1.263",
       "date": "2026-11-26",
@@ -176,16 +185,7 @@
         "Stamgegevens: een document met beide zijden lukt nu ook als het een scan is (beide zijden op één pagina of op twee pagina's), als er een logo of ander klein plaatje in staat, of als de foto's geen JPEG zijn.",
         "Stamgegevens: wordt er bij beide zijden niets herkend, dan kun je de twee zijden toch nakijken en bewaren en vul je de gegevens zelf in; en lukt het niet, dan zegt de melding waarom."
       ]
-    },
-    {
-      "version": "1.244",
-      "date": "2026-11-23",
-      "changes": [
-        "Wat je start, maakt Tools nu af als het scherm uitgaat of je de app even verlaat: een document of kaartfoto herkennen, een afschrift inlezen, een backup, een export, een PDF maken of vergelijken. Duurt het langer, dan zie je een stille melding \"Tools maakt iets af\".",
-        "Stamgegevens: gaat het scherm uit terwijl een document of kaartfoto herkend wordt, dan gaat het herkennen door en wordt het na ontgrendelen bewaard; je hoeft het niet opnieuw te kiezen.",
-        "Bankzaken: een afschrift dat aan het inlezen was, wordt ook bewaard als Bankzaken intussen op slot gaat; de uitslag zie je na ontgrendelen."
-      ]
     }
   ],
-  "webSig2": "emz7JkB7tGcipWhQHKnUjaMBMboq+SmPy60/yvY44KNHPObubTFwFnRBpItyL4zipbSpSvm1F9YSk+EryFHYmJFA0w0OqIJ6DbZ8EMDkqeQ7HjIZl5vv01cjEsP8Jxl3SYztR/wJHQ6CBpXXh8GLZd9SN8PqtJ3qEHG39tJ6GqfiIe53X4973k5nUV12BnQ5O2GgWcN4sNBKtYoomQ/SJfYHi92a2iMc1FvanLzVJBYC5NY60Nu5NGm5K2FpqBkxf0bInjcHXhhGP6yl0jk6q5YhEpU5HcYNUgZiT3G5/oa+WTLxYmsqYhukTzrOrz51/HOy8bm6EnYc5mCvpTUsAxLNve+0o+Blyb0hSXCgAbERDsC24sOmfu/SsMqFts+9eo3+k7A4woBaSNyfV+V6gLezXe8tupsMfuYbm+UU4OCk3fgxzgGBFOvDlXDNyFpF4se8WkV9aBhk4wvNMzrUz0CScoAZ3cu4Ps1JbE5CtU5J/08+NsknIuhzbnRyBoXb"
+  "webSig2": "ELAB8PUUwj21a7gLpnmJ8jClfK9DPlPl349KAdGqJjzq4Fot7/S5FeWsAVkwSALjC91agJ6y8fKig2/Z99Dzdz6dGjRya+U5kzaa+jSTQ3CWjY64Z8MPN5qhAS/VAJ4HRQDl8wSXyQWW16wHaJjUU23TAbxBlpu2PsOYj7XCuFfa/CpsqJh01NVIlLb+YICY4MEbcWYYOkvvYRk9kslSoori/VqXqQzLN2xxvuJDqp76Jll2yTOmMZKI2yTWHtjmytTX3YlSDgGdNNlRvoUpVu8yD0QheGwLUVnoH3njFR3XjNqlaItD7WNUTq5BbI8DKFUykGWfgs2ZtlIfdrvc08RHnX/Ejr6RrY3857EakBHSke1ZFjCyRUv794krompNBi2ao/GF4YXXfV8xvGSA4hikKwqLNKnhbMSGfZPovdW2fv9MZNUvHNf9KKq2DyHzKJOn4JOgS+KjS3s/5IDvHhEpRIrZfoQbeeCUHJF7ILQY5qnrDvIMEPp8Q2Ia8Mle"
 }
