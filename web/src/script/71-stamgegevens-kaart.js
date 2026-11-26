@@ -237,8 +237,26 @@ function cmcPhotos(box,r,blok){
     grid.append(tile);
   }
   sec.append(grid);
-  if(r.images?.front||r.images?.back)sec.append(cmEl('p',t('Tik op een foto om hem groot te bekijken en in te zoomen.'),'hint'));
+  if(r.images?.front||r.images?.back){
+    sec.append(cmEl('p',t('Tik op een foto om hem groot te bekijken en in te zoomen.'),'hint'));
+    // Zelf de gegevens laten herkennen uit de bewaarde foto's, en voor- en achterkant omwisselen als ze andersom staan
+    const acts=cmEl('div',undefined,'row cmi-actions');
+    if(typeof Android.masterPhotoScan==='function'){const h=cmEl('button',t('Gegevens herkennen'),'mini');h.type='button';h.id='cmc-herken';h.onclick=cmcHerken;acts.append(h);}
+    if(typeof Android.masterPhotoSwap==='function'){const w=cmEl('button',r.images?.front&&r.images?.back?t('Voor- en achterkant omwisselen'):r.images?.front?t('Naar de achterkant verplaatsen'):t('Naar de voorkant verplaatsen'),'mini');w.type='button';w.id='cmc-wissel';w.onclick=cmcWissel;acts.append(w);}
+    if(acts.children.length)sec.append(acts);
+  }
   for(const side of ['front','back'])if(r.images?.[side])cmcPhotoLoad(side);
+}
+/* Herkennen vanaf het kaartje: naar Bewerken (tabblad Foto's) en daar herkennen; de voorstellen komen in het blok Document. */
+function cmcHerken(){
+  const r=cmc.rec;if(!cmOpen()||cm.mutating||!r||r.type!=='identiteit')return;
+  cmEdit(r.id,'fotos',null,null,()=>setTimeout(()=>{if(cm.edit?.id===r.id)cmhPhotoScan();},0));
+}
+/* Voor- en achterkant omwisselen (de app zette ze andersom, of er is maar één en die hoort aan de andere kant) */
+function cmcWissel(){
+  const r=cmc.rec;if(!cmOpen()||cm.mutating||!r||r.type!=='identiteit')return;
+  cmBusy(true);
+  cmRequest('masterPhotoSwap',[r.id,r.revision],()=>{cmBusy(false);cmListLoad(()=>cmKaartLoad(r.id,r.images?.front&&r.images?.back?t('Voor- en achterkant zijn omgewisseld.'):t('De foto staat nu aan de andere kant.')));});
 }
 function cmcPhotoPut(side){
   const tile=$('#cmc-foto-'+side),src=cmc.fotos[side];if(!tile||!src)return;

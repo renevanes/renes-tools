@@ -89,6 +89,7 @@ final class AppData {
         m.put("update", "toestand van de updates van deze installatie");
         m.put("alarm_dp", "kopie van de radiowekker voor na een herstart (wordt opnieuw gemaakt)");
         m.put("notewidget", "koppeling met widgets (die moet je opnieuw plaatsen)");
+        m.put("backupmap_voortgang", "hoe ver het vanzelf opruimen van deze backup-map is (begint op een nieuwe telefoon gewoon vooraan)");
         m.put("facturen_geheim", "wachtwoorden voor Facturen, versleuteld met de sleutel van deze telefoon (opnieuw invullen)");
         PREFS_SKIP = Collections.unmodifiableMap(m);
     }

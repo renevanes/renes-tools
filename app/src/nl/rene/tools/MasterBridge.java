@@ -180,10 +180,13 @@ public class MasterBridge extends BankBridge {
         work(token,request,key->{
             JSONObject photo=MasterStore.photoScan(ctx,key,a.masterSession,token,id,revision,side);
             JSONObject diag=new JSONObject(),found;
+            MrzOcr.Spoor spoor=new MrzOcr.Spoor();MrzOcr.volg(spoor);
             try(Voortgang v=Voortgang.van(a,"kaartfoto",1)){
                 v.tijd("herkennen",grondig?MasterPhotos.HERKEN_GRONDIG_MS:MasterPhotos.HERKEN_MS);
                 found=MasterPhotos.recognizeStored(ctx,photo.optString("image"),Regio.dayKey(ctx,System.currentTimeMillis()),()->a.masterSession.accepts(token)&&a.masterForeground&&a.masterWanted,grondig,diag);
-            }
+            }finally{MrzOcr.volg(null);}
+            // Alleen vaste woorden en getallen (MrzOcr.Spoor): waar het lezen bleef steken
+            if(found==null&&a.masterSession.accepts(token)&&a.masterForeground)App.log(ctx,"STAMGEGEVENS","kaartfoto herkennen ("+("front".equals(side)?"voorkant":"achterkant")+(grondig?", grondig":"")+"): niet herkend; "+spoor.tekst());
             JSONObject out=new JSONObject().put("id",id).put("side",side).put("diag",diag);if(found!=null)out.put("herkend",found);return out;
         });
     }
@@ -203,6 +206,8 @@ public class MasterBridge extends BankBridge {
         });
     }
     @JavascriptInterface public void masterPhotoDelete(String token,String id,long revision,String side,String request){work(token,request,key->MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,false));}
+    /** Voor- en achterkant van een identiteitsdocument omwisselen (de app zette ze andersom). */
+    @JavascriptInterface public void masterPhotoSwap(String token,String id,long revision,String request){work(token,request,key->MasterStore.photoSwap(ctx,key,a.masterSession,token,id,revision));}
     /** Deze app kan een kaartfoto (voor- of achterkant) ook uit een PDF of Word-document halen (voor een nieuwere interface op een oudere app). */
     @JavascriptInterface public boolean masterKaartDocument(){return true;}
     @JavascriptInterface public void masterPhotoCancel(){a.masterPhotos.cancel("annuleren");}

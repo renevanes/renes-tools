@@ -100,12 +100,21 @@ function cmhKeuze(photo){
     b.addEventListener('click',()=>{const k=gekozen.indexOf(i);if(k>=0)gekozen.splice(k,1);else{gekozen.push(i);if(gekozen.length>max)gekozen.shift();}teken();});
     raster.append(b);return b;
   });
-  const teken=()=>knoppen.forEach((b,i)=>{const on=gekozen.includes(i);b.setAttribute('aria-pressed',on?'true':'false');b.querySelector('.cmh-tag').textContent=on?t('Gekozen'):'';});
+  // Twee gekozen: de eerste is de voorkant, de tweede de achterkant (zichtbaar op de foto), om te wisselen met de knop
+  const vast=zijde==='scan'&&typeof Android.masterPhotoSwap==='function';
+  const wissel=document.createElement('button');wissel.type='button';wissel.className='mini';wissel.id='cmh-keuze-wissel';wissel.textContent=t('Voor- en achterkant wisselen');
+  wissel.addEventListener('click',()=>{gekozen.reverse();teken();});if(vast)box.append(wissel);
+  const teken=()=>{
+    knoppen.forEach((b,i)=>{const k=gekozen.indexOf(i);b.setAttribute('aria-pressed',k>=0?'true':'false');
+      b.querySelector('.cmh-tag').textContent=k<0?'':vast&&gekozen.length===2?(k===0?t('Voorkant'):t('Achterkant')):t('Gekozen');});
+    wissel.hidden=!(vast&&gekozen.length===2);
+  };
   const clear=()=>{box.hidden=true;box.replaceChildren();};
   if(fotos.length===1)gekozen.push(0); // één foto: al gekozen, je ziet hem en bevestigt
   const vraag=()=>askConfirm(zijde==='front'?t('Kies de foto van de voorkant'):zijde==='back'?t('Kies de foto van de achterkant'):t('Kies de foto van het ID-bewijs'),
     zijde!=='scan'?(fotos.length===1?t('In het document staat één foto. Wil je deze bewaren?'):t('In het document staan {n} foto\'s. Tik op de foto die je wilt bewaren.',{n:fotos.length}))
     :fotos.length===1?t('In het document staat één foto. Is dit het ID-bewijs? Daarna herkent de app de gegevens.')
+    :vast?t('In het document staan {n} foto\'s. Tik op de foto van het ID-bewijs, of tik eerst op de voorkant en dan op de achterkant. Daarna herkent de app de gegevens.',{n:fotos.length})
     :t('In het document staan {n} foto\'s. Tik op de foto van het ID-bewijs, of op twee foto\'s voor de voor- en achterkant. Daarna herkent de app de gegevens.',{n:fotos.length}),
     t('Gebruiken'),()=>{
       if(!gekozen.length){cmNote(t('Kies eerst een foto.'));setTimeout(vraag,0);return;}
@@ -113,7 +122,7 @@ function cmhKeuze(photo){
       if(!cmOpen()){cmiPhotoCancel();return;}
       cmBusy(true);cmh.photoBusy=true;cmNote(t('Foto verwerken…'));cmhWacht(t('Gegevens herkennen'),t('Gegevens herkennen…'));
       // Zoals bij een gekozen foto: gaat de telefoon intussen op slot, dan zegt het scherm dat het daarna bewaard wordt
-      cmh.scanning=zijde==='scan';cmi.photoRequest=cmRequest('masterScanChoose',[photo.reviewId,JSON.stringify(gekozen)],out=>{
+      cmh.scanning=zijde==='scan';cmi.photoRequest=cmRequest('masterScanChoose',[photo.reviewId,JSON.stringify(vast&&gekozen.length===2?{fotos:gekozen,vast:true}:gekozen)],out=>{
         cmhPhotoReady();cmiPhotoAfterUnlock(out);cmListLoad();if(out&&out.error)cmhFout(t(out.error));
       },false,()=>{cmhPhotoReady();cmiPhotoCancel();});
     },()=>{clear();cmiPhotoCancel();});

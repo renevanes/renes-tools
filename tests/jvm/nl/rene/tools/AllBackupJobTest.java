@@ -58,6 +58,14 @@ public class AllBackupJobTest {
         check(regel.equals("backup klaar: archief 3321 kB, grote bestanden nieuw 2 (879 kB), hergebruikt 812 (181 MB); erbij: sms 684 kB, notes 20 kB; 1 oude weg"), "samenvatting: " + regel);
         check(AllBackup.samenvatting(new JSONObject().put("archive", "x.rtb")).equals("backup klaar"), "zonder grote bestanden: kort");
         check(!Logboek.probleem("BACKUP", regel) && Logboek.probleem("BACKUP", "nachtelijke backup mislukt, poging 1, straks opnieuw"), "geslaagd is geen probleem, mislukt wel");
+        res.getJSONObject("blok").put("terugOpnieuw", 3);
+        regel = AllBackup.samenvatting(res);
+        check(regel.contains("hergebruikt 812 (181 MB), 3 keer later teruggelezen;") && !Logboek.probleem("BACKUP", regel), "later teruggelezen: genoemd, geen probleem (" + regel + ")");
+        res.getJSONObject("blok").put("fout", "x").put("fouten", 2);
+        regel = AllBackup.samenvatting(res);
+        check(regel.contains(", apart opslaan 2 keer mislukt,") && Logboek.probleem("BACKUP", regel), "apart opslaan mislukt: met aantal, een probleem (" + regel + ")");
+        res.getJSONObject("blok").remove("fout");
+        res.getJSONObject("blok").remove("terugOpnieuw");
         res.put("sms", new JSONObject().put("ok", false));
         check(AllBackup.samenvatting(res).startsWith("backup klaar met 1 fout(en): ") && AllBackup.samenvatting(res.put("stopped", true)).startsWith("backup gestopt: "), "met fouten of gestopt: zo genoemd");
 

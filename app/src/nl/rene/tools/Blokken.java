@@ -59,6 +59,36 @@ final class Blokken {
     static final int VERSION = 1;
     /** Vanaf deze grootte apart; kleinere bestanden gewoon in het archief (anders heel veel losse bestanden). */
     static final long MIN = 32 * 1024;
+    /** Na zoveel keer apart opslaan mislukt gaan de volgende grote bestanden van die backup in het archief zelf. */
+    static final int MAX_FOUTEN = 3;
+
+    /**
+     * Waarom apart opslaan niet lukte, in vaste woorden: de meldingen zelf kunnen van de mappen-app komen en de naam van
+     * de backup-map bevatten (die hoort niet in het foutlogboek). Zuiver.
+     */
+    static String reden(Throwable e) {
+        if (e == null) return "onbekend";
+        Throwable oorzaak = e instanceof OpslagFout && e.getCause() != null ? e.getCause() : e;
+        // De eigen meldingen van de oorzaak tellen ook (alleen om te kiezen; de uitkomst is altijd een vast woord)
+        String m = e.getMessage() + " | " + (oorzaak == e ? "" : oorzaak.getMessage());
+        if (m.contains(ONVOLLEDIG)) return "onvolledig teruggelezen";
+        if (m.contains("onvolledig geschreven")) return "onvolledig geschreven";
+        if (m.contains("ander wachtwoord")) return "ander wachtwoord";
+        if (m.contains(AFGEKAPT) || m.contains("Groot bestand beschadigd")) return "beschadigd teruggelezen";
+        if (m.contains("De map " + DIR + " is niet te lezen")) return "map niet te lezen";
+        if (m.contains("nog aan het laden")) return "map laadt nog";
+        if (m.contains("Bestand maken lukt niet") || m.contains("Map maken lukt niet")) return "maken lukt niet";
+        if (m.contains("Schrijven lukt niet")) return "schrijven lukt niet";
+        if (m.contains("Teruglezen lukt niet")) return "teruglezen lukt niet";
+        if (m.contains("Hernoemen lukt niet") || m.contains("opzij zetten lukt niet")) return "hernoemen lukt niet";
+        if (m.contains("Kopie onvolledig")) return "kopie onvolledig";
+        if (m.contains("Vreemde naam")) return "vreemde naam";
+        if (oorzaak instanceof SecurityException) return "geen toegang";
+        if (oorzaak instanceof java.io.FileNotFoundException) return "niet gevonden";
+        if (oorzaak instanceof IOException) return "verbinding of opslag";
+        String n = oorzaak.getClass().getSimpleName();
+        return n.isEmpty() ? "onbekend" : n;
+    }
     /** sleutel-id (8 hex) - inhoud-id (32 hex) .blok */
     static final Pattern NAME = Pattern.compile("([0-9a-f]{8})-([0-9a-f]{32})\\.blok");
     static final int MAX_ITEMS = 500_000;
@@ -426,7 +456,7 @@ final class Blokken {
                 enc = t.n;
                 if (!z && enc != verwacht) throw new IOException("Groot bestand onvolledig geschreven");
                 // Pas na een volledige controle (teruglezen, ontsleutelen, SHA-256) krijgt het zijn echte naam
-                leesHelemaal(lees(s.terug(), key, z, n, sha));
+                terugControle(s, z, n, sha);
                 s.klaar();
             } catch (IOException e) {
                 s.afbreken();
@@ -438,6 +468,33 @@ final class Blokken {
             Item it = new Item(pad, n, sha, naam, z, enc);
             items.add(it);
             return it;
+        }
+
+        /**
+         * Wachttijden (ms) voor nog eens teruglezen. Een cloudmap (Google Drive) heeft een net geschreven bestand soms
+         * nog niet helemaal klaarstaan; een tel later wel. Zonder wachten ging de rest van de backup in het archief zelf.
+         */
+        static long[] TERUG_WACHT = {2_000L, 10_000L};
+        /** Hoeveel er per backup in totaal op teruglezen gewacht mag worden (de nachtelijke taak heeft niet veel tijd). */
+        static long WACHT_TEGOED = 180_000L;
+        /** Hoe vaak teruglezen pas bij een volgende poging klopte. */
+        int terugOpnieuw;
+        long gewacht;
+        /** Is de backup gestopt? Dan niet meer wachten (null = nooit). */
+        java.util.function.BooleanSupplier gestopt;
+
+        private void terugControle(Schrijf s, boolean z, long n, String sha) throws IOException {
+            for (int i = 0; ; i++) {
+                try { leesHelemaal(lees(s.terug(), key, z, n, sha)); if (i > 0) terugOpnieuw++; return; }
+                catch (IOException e) {
+                    // Een ander wachtwoord wordt niet beter van wachten; te kort of (nog) niet kloppend misschien wel
+                    if (i >= TERUG_WACHT.length || "Groot bestand hoort bij een ander wachtwoord".equals(e.getMessage())
+                            || gewacht + TERUG_WACHT[i] > WACHT_TEGOED || (gestopt != null && gestopt.getAsBoolean())) throw e;
+                    try { Thread.sleep(TERUG_WACHT[i]); }
+                    catch (InterruptedException x) { Thread.currentThread().interrupt(); throw e; }
+                    gewacht += TERUG_WACHT[i];
+                }
+            }
         }
 
         private boolean klopt(String naam, boolean z, long n, String sha) {
