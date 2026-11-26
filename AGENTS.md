@@ -1122,7 +1122,8 @@ de app zelf doet. **De bewerker** (`web/src/script/02-fotobewerken.js`, venster 
 `dialogFocus` en `navSluit`): `fotoBewerk({src, titel, knop, soort, zijde, ops, voorstel, afdekken, actief, bron})` →
 `{ops, gewijzigd}` of null. Tabbladen Bijsnijden (vier hoeken en vier randen; een schuin of scheef vlak wordt rechtgetrokken,
 verhoudingen ID-1, ID-3, A4, vierkant), Draaien (kwartslag, rechtzetten tot 45°), Licht (helderheid, contrast, zwart-wit,
-automatisch: `fbNiveau`) en Afdekken (zwarte vlakken; uit met `afdekken: false`). Ongedaan maken, Origineel, Automatisch
+automatisch: `fbNiveau`) en Afdekken (zwarte vlakken; uit met `afdekken: false`; verandert de uitsnede, dan gaan ze weg met
+een melding, `fbVlakkenWeg`; een kwartslag draait ze mee; JS en Java nemen dezelfde marge, `fbVlakPix`/`FotoBewerk.vlak`). Ongedaan maken, Origineel, Automatisch
 verbeteren. Hij geeft alleen de **bewerking** terug (`ops`, zelfde vorm als `FotoOps.java`: draai, q, verhouding, licht,
 contrast, niveau, grijs, vlakken); Java past die toe op de foto zelf (`FotoBewerk`: `Matrix.setPolyToPoly`, `ColorMatrix`),
 zodat de volle resolutie blijft en een kaartfoto niet als pixels door de interface terug hoeft. `fbRender` rekent het
@@ -1132,7 +1133,7 @@ rand, grootste vlak, vier hoeken; bij een brief ook `ksHoekenUit`), rechtop (een
 machineleesbare strook hoort onderaan: `fbStrook`, alleen als die duidelijk te zien is), de verhouding van het document
 (binnen 15%) en de belichting. Instelling `fotoVoorstel` (store, standaard aan) en `fotoSoort` op het scherm van de tool.
 **De tool** (`s-foto`, `82-foto-bewerken.js`, prefix `fob`; `FotoBridge`): kiezen via `bronKies` (kiezer `foto`), de foto
-alleen zolang het scherm open is in `cache/foto-bewerken` (weg bij verlaten, een nieuwe keuze of opstarten), bewaren als JPG
+alleen in het geheugen (nooit leesbaar op schijf; weg bij verlaten of een nieuwe keuze), bewaren als JPG
 onder Gemaakt en vanzelf de kluis in (`kcNaMaken`, herkomst `foto`). Niet in de Play-versie.
 **Stamgegevens**: Foto bewerken op het documentkaartje (`masterPhotoBewerk` → `MasterStore.photoEdit`, Activiteiten
 `photo_edit`; zonder afdekken: de app leest de foto nog) en na een nieuwe kaartfoto een voorstel op het kaartje

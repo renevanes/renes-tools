@@ -26,7 +26,8 @@ final class FotoBewerk {
         BitmapFactory.decodeByteArray(bytes, 0, bytes.length, o);
         if (o.outWidth < 1 || o.outHeight < 1 || o.outWidth > 20000 || o.outHeight > 20000 || (long) o.outWidth * o.outHeight > 120_000_000L)
             throw new FotoOps.Fout(Taal.T("Deze foto kan niet worden geopend"));
-        int sample = 1; while (Math.max(o.outWidth, o.outHeight) / (sample * 2) >= max) sample *= 2;
+        // Niet veel groter inlezen dan nodig (geheugen): hooguit anderhalf keer max, liever iets kleiner
+        int sample = 1; while (Math.max(o.outWidth, o.outHeight) / sample > max * 3 / 2) sample *= 2;
         o = new BitmapFactory.Options(); o.inSampleSize = sample;
         Bitmap b = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, o);
         if (b == null) throw new FotoOps.Fout(Taal.T("Deze foto kan niet worden geopend"));
@@ -65,10 +66,17 @@ final class FotoBewerk {
             c.drawBitmap(r, m, p);
             if (o.vlakken.length > 0) {
                 Paint zwart = new Paint(); zwart.setColor(Color.BLACK); zwart.setStyle(Paint.Style.FILL);
-                for (double[] v : o.vlakken) c.drawRect((float) Math.floor(v[0] * W), (float) Math.floor(v[1] * H), (float) Math.ceil((v[0] + v[2]) * W), (float) Math.ceil((v[1] + v[3]) * H), zwart);
+                for (double[] v : o.vlakken) { int[] p2 = vlak(v, W, H); c.drawRect(p2[0], p2[1], p2[2], p2[3], zwart); }
             }
             return uit;
         } finally { if (r != src) r.recycle(); }
+    }
+
+    /** Zwart vlak in pixels met een kleine marge, op dezelfde manier als fbVlakPix: liever iets te veel zwart. */
+    static final double MARGE = 0.002;
+    static int[] vlak(double[] v, int W, int H) {
+        return new int[]{Math.max(0, (int) Math.floor((v[0] - MARGE) * W)), Math.max(0, (int) Math.floor((v[1] - MARGE) * H)),
+                Math.min(W, (int) Math.ceil((v[0] + v[2] + MARGE) * W)), Math.min(H, (int) Math.ceil((v[1] + v[3] + MARGE) * H))};
     }
 
     /** ColorMatrix met dezelfde rekenwijze als FotoOps.kleur (bij grijs eerst de helderheid). */

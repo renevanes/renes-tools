@@ -45,6 +45,11 @@ public class FotoOpsTest {
         double[] l = FotoOps.lees("{\"licht\":50}").kleur(); check(Math.abs(l[1] - 64) < 1e-9, "helderheid +50 = +64");
         double[] c = FotoOps.lees("{\"contrast\":100}").kleur(); check(Math.abs(c[0] * 128 + c[1] - 128) < 1e-9 && c[0] == 2, "contrast draait om het midden");
 
+        int[] v = FotoBewerk.vlak(new double[]{0.1, 0.1, 0.2, 0.2}, 1000, 1000);
+        check(v[0] == 98 && v[1] == 98 && v[2] == 303 && v[3] == 303, "zwart vlak met marge, zelfde als fbVlakPix");
+        v = FotoBewerk.vlak(new double[]{0, 0, 1, 1}, 640, 480);
+        check(v[0] == 0 && v[1] == 0 && v[2] == 640 && v[3] == 480, "marge blijft binnen de foto");
+
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }
         System.out.println("alles goed");
     }

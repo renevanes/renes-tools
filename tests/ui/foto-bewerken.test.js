@@ -78,6 +78,11 @@ const { chromium } = require('playwright'); const path = require('path');
     // Annuleren met wijzigingen vraagt eerst; terug (goBack) doet hetzelfde
     await pg.evaluate(() => { window.__fb2 = 'open'; fotoBewerk({ src: Android._foBeeld().toDataURL('image/jpeg', 0.9) }).then(x => window.__fb2 = x); });
     await until(() => $('#fbdlg').classList.contains('on'));
+    // Zwarte vlakken gaan weg (met een melding) als de uitsnede verandert: anders liggen ze op iets anders
+    ok(await pg.evaluate(() => { fb.ops.vlakken = [[0.1, 0.1, 0.1, 0.1]]; fbVerhouding(String(85.6 / 54)); return !fb.ops.vlakken.length && /zwarte vlakken zijn weg/.test($('#fb-status').textContent); }), 'uitsnede veranderd: zwarte vlakken weg, met een melding');
+    ok(await pg.evaluate(() => { fb.ops.vlakken = [[0.1, 0.1, 0.1, 0.1]]; fbDraai(1); fbDraai(-1); return fb.ops.vlakken.length === 1 && Math.abs(fb.ops.vlakken[0][0] - 0.1) < 1e-9; }), 'een kwartslag draait de vlakken mee');
+    // Automatisch verbeteren overschrijft niet wat je intussen zelf deed
+    ok(await pg.evaluate(async () => { const p = fbAuto(); fbDraai(1); await p; return fb.ops.draai !== 0 && /niet toegepast/.test($('#fb-status').textContent); }), 'voorstel niet over je eigen aanpassing heen');
     await pg.click('#fb-tab-draai'); await pg.click('#fb-p-draai button:has-text("Kwartslag naar links")');
     await pg.evaluate(() => goBack()); ok(await until(() => $('#modal').classList.contains('on')), 'terug met wijzigingen: eerst een vraag');
     await pg.click('#modal-ok'); ok(await until(() => window.__fb2 === null && !$('#fbdlg').classList.contains('on')), 'gestopt: niets terug');
@@ -136,6 +141,11 @@ const { chromium } = require('playwright'); const path = require('path');
     ok(await until(() => idc.pages[0].ops === null && !idc.loading), 'Origineel: geen bewerking meer');
     await pg.click('#id-bewerk'); await until(() => fbAan()); await pg.click('#fb-auto'); await until(() => /Voorstel:/.test($('#fb-status').textContent)); await pg.click('#fb-ok');
     ok(await until(() => idc.pages[0].ops && !idc.loading), 'opnieuw het voorstel: ' + (opsVoor ? 'ok' : ''));
+    // Lukt de bewerking niet (meer), dan gaat de pagina zonder bewerking verder in plaats van vast te lopen
+    await pg.evaluate(() => { Android._idc.fout = 'Ongeldige bewerking'; idCopyLoad(); });
+    ok(await until(() => idc.pages[0].ops === null && !idc.loading && !!idc.meta && /lukte niet/.test($('#id-status').textContent)), 'bewerking geweigerd: pagina weer zonder bewerking');
+    await pg.evaluate(() => { Android._idc.fout = ''; idc.pages[0].ops = fbSchoon(Object.assign(fbLeeg(), { q: [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]] })); idc.pages[0].opsTurn = idc.pages[0].turn; idCopyLoad(); });
+    await until(() => !idc.loading && !!idc.meta);
     await pg.fill('#id-recipient', 'Test'); await pg.fill('#id-purpose', 'Test'); await pg.click('#id-add').catch(() => {});
     await pg.evaluate(() => idCopyAdd([0.1, 0.1, 0.2, 0.2])); await pg.check('#id-checked'); await pg.click('#id-save');
     ok(await until(() => Android._idc.saved && Android._idc.saved.pages[0].ops && Android._idc.saved.pages[0].ops.v === 1), 'de bewerking gaat mee bij het maken van de kopie (Java past hem toe)');

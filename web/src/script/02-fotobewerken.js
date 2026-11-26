@@ -11,7 +11,7 @@ const FB_MAX_TOON = 1000; // zo groot tekent de bewerker de foto op het scherm
 const FB_DOC = { idkaart: 85.6 / 54, rijbewijs: 85.6 / 54, paspoort: 125 / 88 };
 const FB_VERH = () => [['0', t('Vrij')], [String(85.6 / 54), t('ID-kaart of rijbewijs')], [String(125 / 88), t('Paspoort (fotopagina)')],
   [String(297 / 210), t('A4 liggend')], [String(210 / 297), t('A4 staand')], ['1', t('Vierkant')]];
-const fb = { open: false, foto: null, ops: null, terug: [], klaar: null, opts: {}, sleep: -1, vlak: null, tab: 'snij', hoek: 0, hoekBasis: null, cache: {}, teken: 0, toon: null, uit: null, bezig: 0 };
+const fb = { open: false, foto: null, ops: null, terug: [], klaar: null, opts: {}, sleep: -1, vlak: null, tab: 'snij', hoek: 0, hoekBasis: null, cache: {}, teken: 0, toon: null, uit: null, zoek: 0, render: 0, lichtStap: false };
 
 /* ---------- rekenwerk, zonder scherm ---------- */
 function fbLeeg(){ return { draai: 0, q: [[0, 0], [1, 0], [1, 1], [0, 1]], verhouding: 0, licht: 0, contrast: 0, niveau: [0, 255], grijs: false, vlakken: [] }; }
@@ -88,9 +88,16 @@ async function fbRender(foto, o, max, cache){
   }
   cx.putImageData(fbKleur(img, o), 0, 0);
   cx.fillStyle = '#000000';
-  for (const [x, y, w, h] of o.vlakken) cx.fillRect(Math.floor(x * W), Math.floor(y * H), Math.ceil(w * W) + 1, Math.ceil(h * H) + 1);
+  for (const r of o.vlakken) { const [x0, y0, x1, y1] = fbVlakPix(r, W, H); cx.fillRect(x0, y0, x1 - x0, y1 - y0); }
   return uit;
 }
+/** Een zwart vlak in pixels, met een kleine marge (zelfde als FotoBewerk.vlak): liever iets te veel zwart. */
+const FB_MARGE = 0.002;
+function fbVlakPix([x, y, w, h], W, H){
+  return [Math.max(0, Math.floor((x - FB_MARGE) * W)), Math.max(0, Math.floor((y - FB_MARGE) * H)), Math.min(W, Math.ceil((x + w + FB_MARGE) * W)), Math.min(H, Math.ceil((y + h + FB_MARGE) * H))];
+}
+/** Bruikbaar vlak: bol, met de klok mee en niet te klein (zelfde als FotoOps.bol en de grens op het oppervlak). */
+function fbGeldig(q, pix){ return ksBol(pix) && ksOppervlak(q) >= 0.0004; }
 /** Vier hoeken uit de omhullende: de verste twee punten (een diagonaal), en aan elke kant daarvan het verste punt. */
 function fbVierHoeken(hull){
   if (hull.length < 4) return null;
@@ -206,7 +213,7 @@ function fotoBewerk(opts = {}){
   });
 }
 function fbStart(foto, opts, klaar){
-  Object.assign(fb, { open: true, foto, opts, klaar, ops: opts.ops ? fbKopie(opts.ops) : fbLeeg(), terug: [], tab: 'snij', hoek: 0, hoekBasis: null, cache: {}, sleep: -1, vlak: null, uit: null });
+  Object.assign(fb, { open: true, foto, opts, klaar, ops: opts.ops ? fbKopie(opts.ops) : fbLeeg(), terug: [], tab: 'snij', hoek: 0, hoekBasis: null, cache: {}, sleep: -1, vlak: null, uit: null, lichtStap: false });
   $('#fb-titel').textContent = opts.titel || t('Foto bewerken');
   $('#fb-ok').textContent = opts.knop || t('Klaar');
   $('#fb-tab-vlak').hidden = opts.afdekken === false;
@@ -214,12 +221,12 @@ function fbStart(foto, opts, klaar){
   $('#fb-verh').innerHTML = FB_VERH().map(([v, n]) => '<option value="' + v + '">' + esc(n) + '</option>').join('');
   fbStatus(''); fbTab('snij');
   $('#fbdlg').classList.add('on'); dialogFocus.sync($('#fb-ok'));
-  if (opts.voorstel && !opts.ops) fbAuto(true); else fbTeken();
+  fbTeken(); if (opts.voorstel && !opts.ops) fbAuto(true);
 }
 function fbStatus(s, wacht){ const el = $('#fb-status'); if (wacht) uiWachtTekst(el, s); else el.textContent = s; }
 function fbSluit(uitkomst = null){
   if (!fb.open) return;
-  fb.open = false; fb.bezig++; $('#fbdlg').classList.remove('on'); dialogFocus.sync();
+  fb.open = false; fb.zoek++; fb.render++; $('#fbdlg').classList.remove('on'); dialogFocus.sync();
   const k = fb.klaar; fb.klaar = null; fb.foto = null; fb.cache = {}; fb.uit = null; fb.toon = null;
   const c = $('#fb-doek'); c.width = 1; c.height = 1; $('#fb-vlak').innerHTML = '';
   if (k) k(uitkomst);
@@ -230,20 +237,31 @@ function fbAnnuleer(){
   fbSluit(null);
 }
 function fbOk(){
-  if (!fb.open || !ksBol(fbPix(fb.ops.q))) { fbStatus(t('Dit vlak lukt niet. Zet de hoeken op de hoeken van wat je wilt houden.')); return; }
+  if (!fb.open || !fbGeldig(fb.ops.q, fbPix(fb.ops.q))) { fbStatus(t('Dit vlak lukt niet. Zet de hoeken op de hoeken van wat je wilt houden.')); return; }
   fbSluit({ ops: fbSchoon(fb.ops), gewijzigd: fbIets(fb.ops) });
+}
+/** De uitsnede verandert: zwarte vlakken liggen dan op iets anders. Weg, en zeggen (liever opnieuw dan op de verkeerde plek). */
+function fbVlakkenWeg(){
+  if (!fb.ops.vlakken.length) return;
+  fb.ops.vlakken = []; fbStatus(t('De zwarte vlakken zijn weg, want de uitsnede veranderde. Zet ze opnieuw bij Afdekken.'));
 }
 function fbBewaarStap(){ fb.terug.push(fbKopie(fb.ops)); if (fb.terug.length > 40) fb.terug.shift(); fbKnoppen(); }
 function fbOngedaan(){ if (!fb.terug.length) return; fb.ops = fb.terug.pop(); fb.hoek = 0; fbTeken(); fbStatus(t('Ongedaan gemaakt.')); }
 function fbOrigineel(){ if (!fbIets(fb.ops)) return; fbBewaarStap(); fb.ops = fbLeeg(); fb.hoek = 0; fbTeken(); fbStatus(t('Weer de foto zoals hij was. Ongedaan maken zet je bewerking terug.')); }
 async function fbAuto(start){
   if (!fb.open) return;
-  const nr = ++fb.bezig, foto = fb.foto; fbStatus(t('Verbetering zoeken…'), true); fbKnoppen(true);
+  const nr = ++fb.zoek, foto = fb.foto, voor = JSON.stringify(fb.ops); fbStatus(t('Verbetering zoeken…'), true); fbKnoppen(true);
   let v = null; try { v = await fbVoorstel(foto, fb.opts.soort, fb.opts.zijde); } catch (e) { v = null; }
-  if (!fb.open || nr !== fb.bezig || fb.foto !== foto) return;
-  if (v) { fbBewaarStap(); const vl = fb.ops.vlakken; fb.ops = v.ops; if (!v.redenen.includes('bijsnijden') && !v.redenen.includes('draaien')) fb.ops.vlakken = vl; fb.hoek = 0; }
+  if (!fb.open || nr !== fb.zoek || fb.foto !== foto) return;
+  if (JSON.stringify(fb.ops) !== voor) { fbKnoppen(); fbStatus(t('Voorstel niet toegepast: je paste intussen zelf iets aan.')); return; }
+  let weg = false;
+  if (v) {
+    fbBewaarStap();
+    if (v.redenen.includes('bijsnijden') || v.redenen.includes('draaien')) { weg = fb.ops.vlakken.length > 0; fb.ops = v.ops; fb.hoek = 0; }
+    else { fb.ops.niveau = v.ops.niveau; fb.ops.licht = 0; fb.ops.contrast = 0; } // alleen de belichting: je uitsnede en vlakken blijven
+  }
   fbTeken();
-  fbStatus(v ? t('Voorstel: {wat}. Controleer het en pas aan waar nodig.', { wat: fbRedenTekst(v.redenen) })
+  fbStatus(v ? (weg ? t('Voorstel: {wat}. De zwarte vlakken zijn weg; zet ze opnieuw bij Afdekken.', { wat: fbRedenTekst(v.redenen) }) : t('Voorstel: {wat}. Controleer het en pas aan waar nodig.', { wat: fbRedenTekst(v.redenen) }))
     : start ? t('Geen verbetering gevonden. Pas zelf aan waar nodig.') : t('Geen verbetering gevonden.'));
 }
 function fbTab(tab){
@@ -263,7 +281,7 @@ function fbKnoppen(bezig){
   $('#fb-licht').value = fb.ops.licht; $('#fb-contrast').value = fb.ops.contrast;
   const g = $('#fb-grijs'); g.classList.toggle('on', !!fb.ops.grijs); g.setAttribute('aria-checked', fb.ops.grijs ? 'true' : 'false');
   $('#fb-vlak-weg').disabled = !fb.ops.vlakken.length; $('#fb-vlak-alles').disabled = !fb.ops.vlakken.length;
-  $('#fb-ok').disabled = !ksBol(fbPix(fb.ops.q));
+  $('#fb-ok').disabled = !fbGeldig(fb.ops.q, fbPix(fb.ops.q));
 }
 /** Tekenen (hooguit één keer per beeld). */
 function fbTeken(){
@@ -297,9 +315,9 @@ function fbTekenVlak(){
   svg.innerHTML = html;
 }
 async function fbTekenUitkomst(){
-  const nr = ++fb.bezig, o = fbKopie(fb.ops), vl = o.vlakken; o.vlakken = [];
+  const nr = ++fb.render, o = fbKopie(fb.ops), vl = o.vlakken; o.vlakken = [];
   let c; try { c = await fbRender(fb.foto, o, FB_MAX_TOON, fb.cache); } catch (e) { fbStatus(t('Dit vlak lukt niet. Zet de hoeken op de hoeken van wat je wilt houden.')); return; }
-  if (!fb.open || nr !== fb.bezig) return;
+  if (!fb.open || nr !== fb.render) return;
   fb.uit = c; const d = $('#fb-doek'); d.width = c.width; d.height = c.height; d.getContext('2d').drawImage(c, 0, 0);
   fbTekenVlakken(vl);
 }
@@ -321,12 +339,12 @@ function fbHoek(v){
   const g = fbGedraaid(fb.foto, fb.ops.draai, fb.cache), W = g.width, H = g.height, a = -(v - fb.hoekBasis.v) * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a);
   const P = fb.hoekBasis.q.map(([x, y]) => [x * W, y * H]), cx = P.reduce((s, p) => s + p[0], 0) / 4, cy = P.reduce((s, p) => s + p[1], 0) / 4;
   fb.ops.q = fbBinnen(P.map(([x, y]) => [(cx + (x - cx) * cos - (y - cy) * sin) / W, (cy + (x - cx) * sin + (y - cy) * cos) / H]));
-  fb.hoek = v; fbTeken();
+  fbVlakkenWeg(); fb.hoek = v; fbTeken();
 }
 function fbHoekKlaar(){ fb.hoekBasis = null; }
 function fbDraai(stap){ fbBewaarStap(); fbDraaiOps(fb.ops, stap); fb.hoek = 0; fbTeken(); }
 function fbVerhouding(v){
-  fbBewaarStap(); v = +v || 0; fb.ops.verhouding = v;
+  fbBewaarStap(); v = +v || 0; fb.ops.verhouding = v; fbVlakkenWeg();
   // Nog de hele foto: dan meteen het grootste vlak met die verhouding, in het midden
   const heel = fb.ops.q.every((p, i) => Math.abs(p[0] - [0, 1, 1, 0][i]) < 0.005 && Math.abs(p[1] - [0, 0, 1, 1][i]) < 0.005);
   if (v && heel) {
@@ -335,24 +353,24 @@ function fbVerhouding(v){
   }
   fbTeken();
 }
-function fbHeel(){ fbBewaarStap(); fb.ops.q = fbLeeg().q; fb.hoek = 0; fbTeken(); }
+function fbHeel(){ fbBewaarStap(); fbVlakkenWeg(); fb.ops.q = fbLeeg().q; fb.hoek = 0; fbTeken(); }
 async function fbZoekDocument(){
-  const nr = ++fb.bezig, foto = fb.foto; fbStatus(t('Document zoeken…'), true);
+  const nr = ++fb.zoek, foto = fb.foto; fbStatus(t('Document zoeken…'), true);
   const g = fbGedraaid(foto, fb.ops.draai, fb.cache), k = ksVerklein(g, 360), px = k.getContext('2d').getImageData(0, 0, k.width, k.height).data;
   await new Promise(r => setTimeout(r, 0));
   const q = fbDocHoeken(px, k.width, k.height) || (typeof ksHoekenUit === 'function' ? ksHoekenUit(px, k.width, k.height) : null);
-  if (!fb.open || nr !== fb.bezig || fb.foto !== foto) return;
+  if (!fb.open || nr !== fb.zoek || fb.foto !== foto) return;
   if (!q) { fbStatus(t('Geen document gevonden. Sleep de hoeken zelf.')); return; }
-  fbBewaarStap(); fb.ops.q = q.map(([x, y]) => [Math.min(1, (x + 0.5) / k.width), Math.min(1, (y + 0.5) / k.height)]); fb.hoek = 0; fbTeken();
-  fbStatus(t('Document gevonden. Klopt het? Sleep anders de hoeken.'));
+  fbBewaarStap(); const weg = fb.ops.vlakken.length; fb.ops.vlakken = []; fb.ops.q = q.map(([x, y]) => [Math.min(1, (x + 0.5) / k.width), Math.min(1, (y + 0.5) / k.height)]); fb.hoek = 0; fbTeken();
+  fbStatus(weg ? t('Document gevonden. De zwarte vlakken zijn weg; zet ze opnieuw bij Afdekken.') : t('Document gevonden. Klopt het? Sleep anders de hoeken.'));
 }
 function fbLicht(veld, v){ if (!fb.lichtStap) { fbBewaarStap(); fb.lichtStap = true; } fb.ops[veld] = Math.max(-100, Math.min(100, Math.round(+v || 0))); fbTeken(); }
 function fbLichtKlaar(){ fb.lichtStap = false; }
 function fbGrijs(){ fbBewaarStap(); fb.ops.grijs = !fb.ops.grijs; fbTeken(); }
 async function fbAutoLicht(){
-  const nr = ++fb.bezig, o = fbKopie(fb.ops); o.niveau = [0, 255]; o.licht = 0; o.contrast = 0; o.vlakken = [];
+  const nr = ++fb.zoek, o = fbKopie(fb.ops); o.niveau = [0, 255]; o.licht = 0; o.contrast = 0; o.vlakken = [];
   const n = fbNiveau(await fbRender(ksVerklein(fb.foto, 360), o, 300));
-  if (!fb.open || nr !== fb.bezig) return;
+  if (!fb.open || nr !== fb.zoek) return;
   fbBewaarStap(); fb.ops.niveau = n[1] - n[0] >= 30 ? n : [0, 255]; fb.ops.licht = 0; fb.ops.contrast = 0; fbTeken();
   fbStatus(t('Belichting aangepast: het donkerste is zwart, het lichtste wit.'));
 }
@@ -364,7 +382,8 @@ function fbZet(i, p){
   const q = fbKopie(fb.ops.q);
   if (i < 4) q[i] = p;
   else { const [a, b] = FB_KANT[i - 4], m = [(q[a][0] + q[b][0]) / 2, (q[a][1] + q[b][1]) / 2], dx = p[0] - m[0], dy = p[1] - m[1]; for (const k of [a, b]) q[k] = [Math.max(0, Math.min(1, q[k][0] + dx)), Math.max(0, Math.min(1, q[k][1] + dy))]; }
-  if (!ksBol(fbPix(q))) return false; // hoeken over elkaar: niet toegestaan
+  if (!fbGeldig(q, fbPix(q))) return false; // hoeken over elkaar of te klein: niet toegestaan
+  fbVlakkenWeg();
   fb.ops.q = q; fbTeken(); return true;
 }
 function fbEvents(){

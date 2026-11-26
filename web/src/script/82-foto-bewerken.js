@@ -135,7 +135,8 @@ async function cmfVoorstel(r, side){
   const c = await fbCanvas(src); if (!c) return;
   let v = null; try { v = await fbVoorstel(c, cmfSoort(r), side); } catch (e) { v = null; }
   if (!fbVormVoorstel(v) || !cmOpen() || cmc.rec?.id !== r.id || cmc.rec.revision !== r.revision) return;
-  const klein = await fbRender(c, v.ops, 240), plek = $('#cmf-voorstellen'); if (!plek) return;
+  const klein = await fbRender(c, v.ops, 240), plek = $('#cmf-voorstellen');
+  if (!plek || !cmOpen() || cmc.rec?.id !== r.id || cmc.rec.revision !== r.revision) return;
   cmfWeg(side);
   const kaart = cmEl('div', undefined, 'card fob-voorstel'); kaart.id = 'cmf-' + side;
   const img = cmEl('img'); img.src = klein.toDataURL('image/jpeg', 0.8); img.alt = t('Voorbeeld van het voorstel');
@@ -158,32 +159,27 @@ function fbCanvas(src){
 
 /* ---------- ID-kopie: bijsnijden en rechtzetten per pagina; bij een nieuwe pagina meteen een voorstel ---------- */
 function idfKan(){ return typeof Android.idCopyPreviewBewerkt === 'function'; }
-idc.volg = 0;
-idCopyLoad = function(){
-  if (!idc.revision || !idc.pages[idc.page]) return;
-  const p = idc.pages[idc.page];
-  if (p.ops && p.opsTurn !== p.turn) p.ops = null; // de pagina is intussen gedraaid
-  idc.loading = true; idc.meta = null; idc.point = null; idc.draft = null; $('#id-image').removeAttribute('src');
-  const c = $('#id-layer'); c.getContext('2d').clearRect(0, 0, c.width, c.height);
-  uiWachtTekst($('#id-status'), t('Pagina laden…')); idCopyControls();
-  if (idfKan()) Android.idCopyPreviewBewerkt(idc.revision, idc.page, p.turn, p.ops ? JSON.stringify(p.ops) : '', ++idc.volg, false);
-  else Android.idCopyPreview(idc.revision, idc.page, p.turn);
-};
 const idfPreview0 = window.onIdCopyPreview;
 window.onIdCopyPreview = function(r){
   if (r && r.bron) { const w = idc.bronWacht; if (w && r.volg === w.volg) { idc.bronWacht = null; w.klaar(r.error || r.session !== idc.session || r.revision !== idc.revision ? '' : r.image); } return; }
   if (r && r.volg != null && r.volg !== idc.volg) return; // een ouder antwoord
+  const p0 = idc.pages[idc.page];
+  if (r && r.error && p0 && p0.ops && r.page === idc.page && r.session === idc.session && r.revision === idc.revision) {
+    // De bewerking lukt niet (meer): zonder bewerking verder, zodat de pagina niet vastloopt
+    p0.ops = null; p0.auto = true; p0.checked = false; idc.loading = false; idc.melding = t('De bewerking lukte niet; de pagina staat weer zoals hij was.'); idCopyLoad(); return;
+  }
   idfPreview0(r);
   const p = idc.pages[idc.page];
   if (!r || r.error || !p || !idfKan() || !fobVoorstelAan() || p.ops || p.auto !== undefined || r.page !== idc.page) return;
   p.auto = false; idfVoorstel(p, r.image);
 };
 async function idfVoorstel(p, src){
-  const rev = idc.revision, page = idc.page, turn = p.turn, c = await fbCanvas(src); if (!c) return;
+  const rev = idc.revision, page = idc.page, turn = p.turn, vlakken = JSON.stringify(p.rects), c = await fbCanvas(src); if (!c) return;
   let v = null; try { v = await fbVoorstel(c, idfSoort(), ''); } catch (e) { v = null; }
-  if (!fbVormVoorstel(v) || current !== 'idcopy' || idc.revision !== rev || idc.page !== page || p.turn !== turn || p.ops || idc.busy || idc.loading) return;
+  if (!fbVormVoorstel(v) || current !== 'idcopy' || idc.revision !== rev || idc.page !== page || p.turn !== turn || p.ops || idc.busy || idc.loading || JSON.stringify(p.rects) !== vlakken) return;
   p.ops = fbSchoon(v.ops); p.opsTurn = p.turn; p.auto = true; p.checked = false;
-  idc.melding = t('Voorstel toegepast: {wat}. Niet goed? Tik op Bijsnijden en rechtzetten.', { wat: fbRedenTekst(v.redenen) });
+  idc.melding = p.rects.length ? t('Voorstel toegepast: {wat}, met zwarte vlakken op de plekken die meestal afgeschermd worden. Controleer elke pagina; niet goed? Tik op Bijsnijden en rechtzetten.', { wat: fbRedenTekst(v.redenen) })
+    : t('Voorstel toegepast: {wat}. Niet goed? Tik op Bijsnijden en rechtzetten.', { wat: fbRedenTekst(v.redenen) });
   idCopyLoad();
 }
 function idfSoort(){ return (typeof idCopySoort === 'function' && idCopySoort(idc.bron && idc.bron.soort)) || 'doc'; }
@@ -211,5 +207,7 @@ idCopyControls = function(){
   const b = $('#id-bewerk'); if (!b) return;
   b.hidden = !idfKan(); b.disabled = idc.busy || idc.loading || !idc.meta;
 };
+const idfReset0 = idCopyReset;
+idCopyReset = function(){ if (fbAan() && fb.opts.bron === 'id') fbSluit(null); idc.bronWacht = null; return idfReset0.apply(this, arguments); };
 const idfLeave0 = idCopyLeave;
 idCopyLeave = function(){ if (fbAan() && fb.opts.bron === 'id') fbSluit(null); idc.bronWacht = null; return idfLeave0.apply(this, arguments); };

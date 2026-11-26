@@ -305,7 +305,6 @@ public class MainActivity extends Activity {
         if (!isSolo() || "backup".equals(solo)) AppBackup.recoverIfNeeded(getApplicationContext());
         IdCopy.cleanStale(getApplicationContext());
         PdfCompare.cleanStale(getApplicationContext());
-        try { FotoBridge.wisBijStart(getApplicationContext()); } catch (Throwable ignored) { }
         Kluis.cleanTmp(getApplicationContext());
         { Context app = getApplicationContext(); new Thread(() -> { try { PdfTools.opruimKluisIn(app); } catch (Throwable ignored) { } }, "pdf-kluis-oud").start(); }
         PlayPolicy.sanitizePreferences(getApplicationContext());
