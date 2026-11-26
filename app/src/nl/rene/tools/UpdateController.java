@@ -19,7 +19,24 @@ final class UpdateController {
                 MainActivity current = MainActivity.live != null ? MainActivity.live : activity;
                 current.js("onUpdateStatus", reply.toString());
             });
+            // Een nieuwe app die nog niet klaarstaat: vanzelf downloaden (als dat aan staat en het netwerk het toelaat)
+            if ("apk".equals(reply.optString("state")) && !reply.optBoolean("klaar") && Updater.magVanzelf(app)) vanzelf(app, reply.optString("versionName"));
         }, "update-controle").start();
+    }
+
+    /** Vanzelf downloaden met de voortgang in de balk; daarna staat hij klaar (Installeren) of weer gewoon beschikbaar. */
+    static void vanzelf(Context app, String versie) {
+        new Thread(Doorwerken.door("update-vanzelf", () -> {
+            String reden = Updater.vanzelfNu(app, MainActivity.progressTo("apk"));
+            JSONObject k = Updater.klaar(app);
+            try {
+                JSONObject r = new JSONObject().put("state", "apk").put("kind", "apk").put("vanzelf", true)
+                        .put("versionName", k != null ? k.optString("versionName") : versie);
+                if (k != null) r.put("klaar", true);
+                if (reden != null) r.put("reden", reden);
+                MainActivity.updateStatus(r.toString());
+            } catch (Throwable ignored) { }
+        }), "update-vanzelf").start();
     }
 
     static void install(Context context) {

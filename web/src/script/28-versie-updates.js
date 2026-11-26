@@ -7,6 +7,7 @@ function renderInfo(){
   $('#i-android').textContent = v.android;
   // Publiceren en tests: alleen met een app die het kan ophalen, en niet in de Play-versie
   const gk = $('#i-gh-kaart'); if (gk) gk.hidden = isPlay() || typeof Android.githubStatus !== 'function';
+  updVzRender();
   let log = CHANGELOG;
   try { const m = JSON.parse(Android.lastManifest()); if (m && m.changelog && m.versionCode >= VERSION_CODE) log = infoLog(m.changelog, CHANGELOG); } catch(e){}
   // Alleen de laatste versies; de rest met "Alle versies" (anders is dit scherm tientallen schermen lang)
@@ -28,6 +29,25 @@ function infoLog(nieuw, eigen){
 const INFO_RECENT = 3;
 let infoAllOn = false;
 function infoAll(){ infoAllOn = !infoAllOn; renderInfo(); if (!infoAllOn) $('#log').closest('.card').scrollIntoView({ block: 'start' }); }
+/* Nieuwe app vanzelf downloaden (Updater.vanzelf): standaard aan, alleen via wifi. Niet in de Play-versie (Google Play)
+   en niet met een app die het nog niet kent. */
+function updVzInfo(){ return typeof Android.updVanzelf === 'function' && !isPlay() ? rdJson(Android.updVanzelf(), null) : null; }
+function updVzRender(){
+  const k = $('#i-vz'); if (!k) return;
+  const v = updVzInfo();
+  k.hidden = !v;
+  if (!v) return;
+  const tg = (id, on) => { const b = $(id); b.classList.toggle('on', !!on); b.setAttribute('aria-checked', on ? 'true' : 'false'); };
+  tg('#i-vz-aan', v.aan !== false); tg('#i-vz-wifi', v.wifi !== false);
+  $('#i-vz-wifi-rij').style.display = v.aan === false ? 'none' : '';
+}
+function updVz(wat){
+  const v = updVzInfo(); if (!v) return;
+  let aan = v.aan !== false, wifi = v.wifi !== false;
+  if (wat === 'aan') aan = !aan; else wifi = !wifi;
+  Android.updVanzelfZet(aan, wifi);
+  updVzRender();
+}
 /* Bij het starten: staat er al een gedownloade nieuwe app klaar, dan meteen de balk met Installeren */
 function updKlaarStart(){ try { const k = ver().apkKlaar; if (k && !updKind) { updKlaar = k; updAvailShow(); } } catch(e){} }
 setTimeout(updKlaarStart, 0);

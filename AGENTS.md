@@ -1107,6 +1107,17 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   podcasts; tijdens casten weg, want op een Chromecast wordt niets bijgehouden). Kiest Rene `uit` terwijl er nog regels open
   staan, dan vraagt `slpZet` eerst (die tellen dan als gehoord). Test: `tests/ui/podcast-slaap.test.js`.
 
+## Nieuwe app vanzelf downloaden
+Wens van Rene (26-11-2026). Instellingen → Versie en updates (`#i-vz`, `28-versie-updates.js`: `updVzRender`/`updVz`;
+brug `updVanzelf`/`updVanzelfZet`; register `update.vanzelf`, `update.wifi`). Standaard aan en alleen via wifi; bewaard in
+het instellingenbestand `update_keuze` (gaat mee in backups; `update` zelf is toestand van deze installatie). Is er een
+nieuwe app die nog niet klaarstaat, dan downloadt `Updater.downloadVanzelf` hem met precies dezelfde controles als
+Installeren (ondertekende updatelijst, controlegetal) en zet hem klaar; **installeren doet Rene altijd zelf** (de balk:
+"Versie X is gedownload; tik op Installeren"). Na een controle met de app open (`UpdateController.vanzelf`, voortgang in
+de balk) en eens per dag in `Care.daily`. Niet zonder netwerk, niet op mobiele data als Alleen via wifi aan staat
+(`Updater.magVanzelf`, zuiver), niet in de Play-versie. Mislukt het, dan blijft hij gewoon beschikbaar; logsoort `UPDATE`
+alleen met een vaste reden (`vanzelfReden`). Tests: `UpdaterVanzelfTest`, `tests/ui/update-vanzelf.test.js`.
+
 ## Publiceren en tests (stand op GitHub in de app)
 Scherm `s-github` (Instellingen → Versie en updates; `28c-publiceren-en-tests.js`, `GithubStatus.java`): per taak de stand
 (de laatste run op main, met wat er op een andere tak loopt), recente runs en open punten van de openbare repository; een

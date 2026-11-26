@@ -1465,6 +1465,18 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void checkUpdates() { a.h.post(() -> a.checkUpdates(true)); }
 
+        /** Nieuwe app vanzelf downloaden: {aan, wifi}. */
+        @JavascriptInterface public String updVanzelf() {
+            try { return new JSONObject().put("aan", Updater.vanzelf(ctx)).put("wifi", Updater.vanzelfWifi(ctx)).toString(); }
+            catch (Exception e) { return "{}"; }
+        }
+        /** Aanzetten zoekt meteen (als er een nieuwe app is die nog niet klaarstaat, begint het downloaden). */
+        @JavascriptInterface public void updVanzelfZet(boolean aan, boolean wifi) {
+            boolean was = Updater.vanzelf(ctx), wasWifi = Updater.vanzelfWifi(ctx);
+            Updater.vanzelfZet(ctx, aan, wifi);
+            if (aan && (!was || (wasWifi && !wifi))) a.h.post(() -> a.checkUpdates(false));
+        }
+
         /** De pagina beslist zelf of alle bewerkingen bewaard zijn, en blokkeert invoer tot de nieuwe pagina er is. */
         @JavascriptInterface public void reloadUi() {
             a.h.post(() -> {

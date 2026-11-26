@@ -1,0 +1,1 @@
+Nieuwe versies van de app worden voortaan vanzelf gedownload (standaard aan, alleen via wifi); installeren doe je zelf met één tik. Aan of uit bij Instellingen → Versie en updates.

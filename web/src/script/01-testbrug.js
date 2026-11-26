@@ -198,6 +198,9 @@ if (!window.Android) window.Android = (function(){
     nieuwsCookies(id){ const s = this._nwInit(); s.calls.push(['cookies', id]); return id === 'tweakers' ? '' : 'Bijwerken lukt niet'; },
     version(){ return JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts','masterdata'],apkKlaar:this._apkKlaar||''}); },
     lastManifest:()=>'null',
+    _updVz: { aan: true, wifi: true, zet: 0 },
+    updVanzelf(){ return JSON.stringify({ aan: this._updVz.aan, wifi: this._updVz.wifi }); },
+    updVanzelfZet(aan, wifi){ this._updVz.aan = !!aan; this._updVz.wifi = !!wifi; this._updVz.zet++; },
     // Zoals Updater.check: staat er een gedownloade nieuwe app klaar, dan is er een nieuwe app ("apk", klaar)
     checkUpdates(){ setTimeout(()=>onUpdateStatus(this._apkKlaar ? {state:'apk',kind:'web',manual:true,versionName:this._apkKlaar,klaar:true} : {state:'uptodate',kind:'web',manual:true,versionName:VERSION_NAME}),400); },
     reloadUi(){ if (window.prepareUiReload && window.prepareUiReload()) { this._uiReloads = (this._uiReloads || 0) + 1; document.body.inert = false; } },
