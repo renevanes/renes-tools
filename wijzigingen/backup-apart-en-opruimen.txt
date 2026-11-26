@@ -1,2 +1,0 @@
-Backup: grote bestanden die Google Drive net na het schrijven nog niet helemaal teruggeeft, worden even later nog eens gelezen; één keer mislukken zet de rest van de backup niet meer in het archief zelf
-Backup-map opruimen gaat verder waar het de vorige keer stopte, begint niet meer bij elke start van de app opnieuw en noemt in het foutlogboek waarom iets niet lukte

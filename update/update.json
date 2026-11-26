@@ -1,15 +1,29 @@
 {
   "app": "Tools",
-  "versionName": "1.259",
-  "versionCode": 260,
-  "nativeLevel": 225,
+  "versionName": "1.260",
+  "versionCode": 261,
+  "nativeLevel": 226,
   "web": "index.html",
-  "webSha256": "958e513d23b63898902ce63b533f34172145995dfe1d454b1b9db9de62457012",
+  "webSha256": "b94bdd231627aab3303ecd8673b6d582ac7811fd2e26ce40f3a2b784f9e31e47",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "5e69c827551b0626793f6e17c0c66a60347f96a886b584644a41e609f9282e29",
+  "apkSha256": "fa98ed568063c7aad762c20eb3c145f5551398dcf41fd4a5b7beb7a22a2c2208",
   "changelog": [
+    {
+      "version": "1.260",
+      "date": "2026-11-26",
+      "changes": [
+        "Backup: grote bestanden die Google Drive net na het schrijven nog niet helemaal teruggeeft, worden even later nog eens gelezen; één keer mislukken zet de rest van de backup niet meer in het archief zelf",
+        "Backup-map opruimen gaat verder waar het de vorige keer stopte, begint niet meer bij elke start van de app opnieuw en noemt in het foutlogboek waarom iets niet lukte",
+        "Foutrapport en statistieken is opnieuw ingedeeld: bovenaan in één oogopslag wat er vanzelf naar je repository gaat, daaronder korte rijen naar eigen schermen voor Bestemming, Foutlogboek, Statistieken, Diagnose, het foutrapport op de telefoon en wat de telefoon verliet.",
+        "Nieuw bij Foutrapport en statistieken: Verbinding testen (bestaat de repository, is hij privé en mag de sleutel schrijven), Alleen via wifi, hoe vaak de statistieken gaan (elke dag, week of maand) en het foutlogboek (snel, per uur of per dag), en of tools een diagnose vastleggen en hoe lang die bewaard blijft.",
+        "Stamgegevens: kies je twee foto's uit een document, dan is de eerste de voorkant en de tweede de achterkant; met een knop wissel je ze om.",
+        "Stamgegevens: op het kaartje van een ID-bewijs staan nu de knoppen Gegevens herkennen en Voor- en achterkant omwisselen.",
+        "Stamgegevens: bij twee foto's zoekt de app eerst op beide naar de strook, zodat de tweede foto niet zonder tijd blijft.",
+        "Nieuwe versies van de app worden voortaan vanzelf gedownload (standaard aan, alleen via wifi); installeren doe je zelf met één tik. Aan of uit bij Instellingen → Versie en updates."
+      ]
+    },
     {
       "version": "1.259",
       "date": "2026-11-25",
@@ -174,18 +188,7 @@
         "Muziek herkennen: de grote knop staat bovenaan met meteen eronder wat er naar AudD gaat; sleutel wijzigen en het aantal herkenningen staan nu onder ⋯ rechtsboven, en boven de herkende nummers staat een kop met het aantal (zoeken pas bij een langere lijst)",
         "Muziek herkennen: beter met TalkBack (de knop zegt Stoppen tijdens het luisteren, de stand wordt voorgelezen) en een te korte sleutel geeft een melding bij het veld"
       ]
-    },
-    {
-      "version": "1.240",
-      "date": "2026-11-20",
-      "changes": [
-        "Het instellen van een backupwachtwoord geeft ook bij een onverwachte fout een melding, zodat het scherm bedienbaar blijft.",
-        "Voorbereiding op één documentenarchief: de kluis kan een factuurkoppeling bewaren en uit een backup terugzetten.",
-        "Op Luisteren staat een klein schaartje bij podcasts waar reclame overslaan werkt; op de pagina van een podcast staat onder de titel of het daar werkt (of bij een deel van de afleveringen), uit staat of niet kan.",
-        "Stamgegevens: kies bij Document toevoegen ook een PDF of Word-document met een foto van je ID-bewijs en neem de gevonden gegevens over.",
-        "Stamgegevens: importeer de voor- en achterkant uit één PDF of Word-bestand met twee losse kaartfoto’s."
-      ]
     }
   ],
-  "webSig2": "Sqv+/1mQijTcDGg48AYJnei8Uz3s9xjgXCJNXyHvpoWy+iK3KuW3pzxfvvsiqM/FLqmNm1Itay1bRWwNKumpEJug8D0Gbwss65gQKYT7C1xJggzoN+WccWN4o8DB65czi2CKA+qrtkeCZdgwc1jRF9qAPBq45Fdgq86oYvxJYnax+4nencU8tc5PUrGK31Gx+GXijiHG+D0hcQgVCtSaNnHqhA1iZrvYbJygQxcLXaS74ks0wouW4Duewjz0GN2cEO8vMVHEizqcxkm0NcvFLUAIB1t6DEZxYNpPT64z5xuw7x/PuDUdvs6OJqoQe2px6s7tX/Mj+CmA9l9cRvgB8SEYYmPSTe9MynMm8v3XnOnk6CbLIU50FAJT7BEmsacgn9cflfHF2UHIB92IE1W05ufXeV0tKgib9aa0eZzMRJPAvjsc2IgAnNw64UxXiot2dOg4fTNM1jOHfk3E3ldesVgjucUKdigo8xTkphAk1wxVx+k2xw4SgpukqYelJKfg"
+  "webSig2": "QpT8YOBX51upF4X0ptvrWCCxiLKDru7IJne04salysjiNXqN9od7lODHSuu7NX4kCsJdnTY+sBzzSPIHUSFqjJJGlku0Jqyp2GMQg54yEtzK0ugEJEOPAiS18TUoSiZmeabIyVz9jDLfNZ3lwui/i44Yp3+kbs6hQ8IY+mAE9qwlG7XBIg37VCDDuV8mj3ic5SDgKii8Ar0zNxWeIsLzPQhSsAbm7MlX2tgDhxcq1z/SBclJfUKplR1VL7IbVwuTDFORJ2x5BJPyNH5yoDdb0o/2oA1RYbvQKJcYhNCEQjC02GUDlinF/seWl22C2u31tjFGkY3jTUQKPjaBK4ZtGZlVDY/oI9JGO4bSotZ59BmkyUTmnHmGwJgqcWTqlacKmn+vGGvQMwE5u3kfraU8rf9i2XpJDmY3Xab4m3Wzw9x4Qwhhf2bMUeGxMiTpwVbKZL2MD19J/+QHYOPqwa5dRJHCqwYUiOp3n7TJ9XC5ffN6RNCrKCZx+YofdjOK1gn9"
 }

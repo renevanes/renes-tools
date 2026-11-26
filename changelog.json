@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.260",
+    "date": "2026-11-26",
+    "changes": [
+      "Backup: grote bestanden die Google Drive net na het schrijven nog niet helemaal teruggeeft, worden even later nog eens gelezen; één keer mislukken zet de rest van de backup niet meer in het archief zelf",
+      "Backup-map opruimen gaat verder waar het de vorige keer stopte, begint niet meer bij elke start van de app opnieuw en noemt in het foutlogboek waarom iets niet lukte",
+      "Foutrapport en statistieken is opnieuw ingedeeld: bovenaan in één oogopslag wat er vanzelf naar je repository gaat, daaronder korte rijen naar eigen schermen voor Bestemming, Foutlogboek, Statistieken, Diagnose, het foutrapport op de telefoon en wat de telefoon verliet.",
+      "Nieuw bij Foutrapport en statistieken: Verbinding testen (bestaat de repository, is hij privé en mag de sleutel schrijven), Alleen via wifi, hoe vaak de statistieken gaan (elke dag, week of maand) en het foutlogboek (snel, per uur of per dag), en of tools een diagnose vastleggen en hoe lang die bewaard blijft.",
+      "Stamgegevens: kies je twee foto's uit een document, dan is de eerste de voorkant en de tweede de achterkant; met een knop wissel je ze om.",
+      "Stamgegevens: op het kaartje van een ID-bewijs staan nu de knoppen Gegevens herkennen en Voor- en achterkant omwisselen.",
+      "Stamgegevens: bij twee foto's zoekt de app eerst op beide naar de strook, zodat de tweede foto niet zonder tijd blijft.",
+      "Nieuwe versies van de app worden voortaan vanzelf gedownload (standaard aan, alleen via wifi); installeren doe je zelf met één tik. Aan of uit bij Instellingen → Versie en updates."
+    ]
+  },
+  {
     "version": "1.259",
     "date": "2026-11-25",
     "changes": [
