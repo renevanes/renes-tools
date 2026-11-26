@@ -460,6 +460,9 @@ final class AiActions {
     private static final Pattern Q_AGENDA_LOS = Pattern.compile("(?iu)^\\s*(?:nieuwe\\s+)?(?:afspraak\\b\\s*[:,]?|agenda\\s*:)\\s*(.+?)\\s*$");
     // "kun je een afspraak maken voor …", "afspraak inplannen: …"
     private static final Pattern Q_AGENDA_MAKEN = Pattern.compile("(?iu)" + Q_BELEEFD + "(?:een\\s+)?(?:nieuwe\\s+)?afspraak\\s+(?:maken|aanmaken|inplannen|plannen|zetten|toevoegen)\\b\\s*[:,]?\\s*(.*?)\\s*\\??$");
+    // Bij de losse vorm geen vraag, mededeling of wijziging: "afspraak verzetten naar morgen", "afspraak vrijdag is nog
+    // niet bevestigd", "agenda: wat staat er morgen", "afspraak morgen bij de tandarts, moet ik nuchter zijn"
+    private static final Pattern Q_LOS_NIET = Pattern.compile("(?iu)[,;?]|\\b(?:wat|hoe|hoelaat|wanneer|waar|waarom|welke|wie|moet|moeten|kan|kun|mag|is|was|zijn|waren|wordt|niet|geen|nog|afzeggen|afgezegd|zeg|verzetten|verzet|verplaatsen|verplaatst|annuleren|geannuleerd|afgelast|vergeten|bevestig\\p{L}*|staat|staan)\\b");
     private static final Pattern Q_AGENDA_PLAN = Pattern.compile("(?iu)" + Q_BELEEFD + "plan\\s+(.+?)\\s+in\\s*\\??$");
     // "met omschrijving tandarts", "met als titel …", "onderwerp: …": wat erachter staat is de titel
     private static final Pattern Q_OMSCHR = Pattern.compile("(?iu)(?:^|\\s)(?:met\\s+(?:als\\s+|de\\s+|het\\s+)?)?(?:omschrijving|titel|onderwerp)\\s*:?\\s+(.+)$");
@@ -470,37 +473,51 @@ final class AiActions {
         String r = rest == null ? "" : rest;
         Matcher m = Q_OMSCHR.matcher(r);
         if (m.find()) r = m.group(1);
+        else r = r.replaceAll("(?iu)\\s*(?:met\\s+(?:als\\s+|de\\s+|het\\s+)?)?(?:omschrijving|titel|onderwerp)\\s*:?\\s*$", ""); // "met omschrijving" zonder tekst erachter
         r = Q_IN_AGENDA.matcher(r).replaceAll(" ").replaceAll("\\s+", " ").trim();
-        r = r.replaceAll("(?iu)^(?:voor|op|om|in|:|,)\\s+", "").replaceAll("(?iu)\\s+(?:voor|op|om|in|aan)$", "").trim();
+        r = r.replaceAll("\\s+([,;:])", "$1").replaceAll("(?iu)^(?:voor|op|om|in|:|,)\\s+", "").replaceAll("(?iu)\\s+(?:voor|op|om|in|aan|van|tot|naar)$", "").trim();
         if (r.matches("(?iu)^(?:met|bij)\\s+\\S.*")) r = "Afspraak " + r; // taal-vast: een titel in Rene's agenda, geen tekst van de app
         return tidy(r.replaceAll("(?iu)^(?:met|bij)\\s+$", ""), 120);
     }
 
     /** Een duidelijke opdracht in de vraag zelf ("Herinner me morgen om 9 uur aan de vuilnis"), voor als het model
      *  de regel vergat. Alleen bij een zin die met de opdracht begint; anders null. */
-    static Act fromQuestion(String q, long now, TimeZone tz) {
+    static Act fromQuestion(String q, long now, TimeZone tz) { return fromQuestion(q, now, tz, false); }
+
+    // Vooraf (vóór het taalmodel): een herinnering alleen met "me/mij" en een moment; een notitie niet als hij naar het
+    // gesprek verwijst ("maak een notitie van dit gesprek", "schrijf op wat je net zei"): dat doet het taalmodel beter.
+    private static final Pattern Q_ME = Pattern.compile("(?iu)\\b(?:me|mij)\\b");
+    private static final Pattern Q_JE = Pattern.compile("(?iu)^\\s*herinner\\s+(?:je|jij)\\b");
+    private static final Pattern Q_GESPREK = Pattern.compile("(?iu)\\b(?:dit|dat|het|ons|deze)\\s+gesprek\\b|\\bhierboven\\b|\\bhieronder\\b|\\bwat\\s+(?:je|jij|u)\\b|\\bje\\s+antwoord\\b|\\bdat\\s+antwoord\\b|\\bsamenvatting\\b|\\bsamenvat\\p{L}*|\\bvan\\s+(?:dit|dat|deze)\\s*$");
+
+    /** vooraf: zonder taalmodel, vóór het model; dan alleen opdrachten die zeker zo bedoeld zijn. */
+    static Act fromQuestion(String q, long now, TimeZone tz, boolean vooraf) {
         if (q == null || q.length() > 600) return null;
         Matcher m;
         Act a = new Act();
         a.src = "vraag";
         String what;
         if ((m = Q_NOTE.matcher(q)).matches()) {
+            if (vooraf && Q_GESPREK.matcher(q).find()) return null;
             a.type = "notitie";
             a.text = tidyText(m.group(1));
             a.title = titleOf(a.text);
             if (a.text.equalsIgnoreCase(a.title)) a.text = "";
             return a.title.isEmpty() ? null : a;
         }
-        boolean metMoment = false; // alleen een opdracht als er ook een datum of tijd in staat
+        boolean metMoment = false, nodigMoment = false; // alleen een opdracht als er ook een datum of tijd in staat
         if ((m = Q_AGENDA_IN.matcher(q)).matches()) { a.type = "agenda"; what = m.group(1); }
         else if ((m = Q_AGENDA.matcher(q)).matches()) { a.type = "agenda"; what = m.group(1) + " " + m.group(2); }
         else if ((m = Q_AGENDA_MAAK.matcher(q)).matches() || (m = Q_AGENDA_MAKEN.matcher(q)).matches()) { a.type = "agenda"; what = m.group(1); }
         // Zonder werkwoord alleen met een datum of tijd, en geen vraag ("afspraak morgen?" = wat staat er)
         else if (!q.trim().endsWith("?") && ((m = Q_AGENDA_LOS.matcher(q)).matches() || (m = Q_AGENDA_PLAN.matcher(q)).matches())) { a.type = "agenda"; what = m.group(1); metMoment = true; }
-        else if ((m = Q_REMIND2.matcher(q)).matches() || (m = Q_REMIND3.matcher(q)).matches() || (m = Q_REMIND.matcher(q)).matches()) { a.type = "herinnering"; what = m.group(1); }
+        else if ((m = Q_REMIND2.matcher(q)).matches() || (m = Q_REMIND3.matcher(q)).matches() || (m = Q_REMIND.matcher(q)).matches()) {
+            if (vooraf && (Q_JE.matcher(q).find() || !Q_ME.matcher(q).find() && !q.matches("(?iu)^\\s*(?:zet|maak|stel).*"))) return null;
+            a.type = "herinnering"; what = m.group(1); nodigMoment = vooraf;
+        }
         else return null;
         When w = when(what, now, tz);
-        if (metMoment && !w.any()) return null;
+        if (metMoment && (!w.any() || Q_LOS_NIET.matcher(what).find()) || nodigMoment && !w.any()) return null;
         if ("agenda".equals(a.type)) {
             a.title = agendaTitel(w.rest);
             if (a.title.isEmpty()) a.title = "Afspraak"; // taal-vast: een titel in Rene's agenda; hij kan hem op de kaart aanpassen

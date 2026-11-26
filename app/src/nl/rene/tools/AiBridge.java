@@ -175,7 +175,7 @@ public class AiBridge extends SleepBridge {
     @JavascriptInterface public String aiActQ(String q) {
         if (!PlayPolicy.allows(ctx, "ai")) return "";
         try {
-            AiActions.Act act = AiActions.fromQuestion(q, System.currentTimeMillis(), Regio.zone(ctx));
+            AiActions.Act act = AiActions.fromQuestion(q, System.currentTimeMillis(), Regio.zone(ctx), true);
             return act == null ? "" : LocalAi.actJson(act).toString();
         } catch (Throwable t) { return ""; }
     }

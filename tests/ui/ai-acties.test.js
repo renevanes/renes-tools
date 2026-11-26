@@ -97,11 +97,19 @@ const { chromium } = require('playwright');
     await pg.click('.aiact .mini.on'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => { const it = Android._ag.laatste; return it.titel === 'Verjaardag Daan' && it.heleDag === true && it.kalender === '2' && it.ext > 0; }), 'hele dag in de gekozen agenda (Werk)');
     ok((await pg.textContent('.aiact.done')).includes('In Werk'), 'gedaan: in welke agenda');
-    // Lukt het niet (alleen lezen): melding, voorstel blijft
+    // Zonder schrijfrecht op de agenda van de telefoon: geen keuzelijst, alleen in Tools
     await pg.evaluate(() => { Android._agInit().schrijf = false; aiNew(); });
     await ask('Zet de verjaardag van Daan morgen in mijn agenda'); await pg.waitForTimeout(700);
+    ok(!(await pg.$('.aiact select')), 'geen schrijfrecht: geen keuzelijst');
     await pg.click('.aiact .mini.on'); await pg.waitForTimeout(100);
-    ok((await pg.textContent('#toast')).includes('Geen toestemming') && await pg.isVisible('.aiact .mini.on'), 'geen toestemming: melding, voorstel blijft');
+    ok(await pg.evaluate(() => Android._ag.laatste.kalender === '') && (await pg.textContent('.aiact.done')).includes('Alleen in Tools'), 'geen schrijfrecht: alleen in Tools bewaard');
+    // Agenda op slot (Extra ontgrendelen): geen namen van agenda's op de kaart
+    await pg.evaluate(() => { Android._agInit().schrijf = true; aiNew(); window.__tsv = window.tsVerborgen; window.tsVerborgen = tool => tool === 'agenda'; });
+    await ask('Zet de verjaardag van Daan morgen in mijn agenda'); await pg.waitForTimeout(700);
+    ok(!(await pg.$('.aiact select')), 'agenda op slot: geen keuzelijst');
+    await pg.click('.aiact .mini.on'); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => Android._ag.laatste.kalender === '1') && !(await pg.$('.aiact.done small span[translate=no]')) && !(await pg.textContent('.aiact.done')).includes('Alleen in Tools'), 'op slot: in de standaardagenda, zonder naam');
+    await pg.evaluate(() => { window.tsVerborgen = window.__tsv; });
     await pg.evaluate(() => { Object.assign(Android._agInit(), { perm: false, schrijf: false, standaard: '' }); });
     // Een oudere app zonder Agenda-brug: de agenda-app opent met alles ingevuld
     await pg.evaluate(y => { Android._agB = Android.agendaBewaar; Android.agendaBewaar = undefined; aiNew(); Android._ai.reply = 'Zal ik dat in je agenda zetten?\n[[agenda: ' + y + ' 10:00 | Tandarts]]'; Android._cal = null; }, ymd);

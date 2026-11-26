@@ -27,14 +27,16 @@ let aiAgSt = null; // agendaStaat, één keer per voorstel (de agenda's van de t
 function aiAgKan(){ return typeof Android.agendaBewaar === 'function' && typeof Android.agendaStaat === 'function' && !!document.getElementById('s-agenda') && !(typeof playWeg === 'function' && playWeg('agenda')); }
 function aiAgStaat(){ if (!aiAgSt) aiAgSt = rdJson(Android.agendaStaat(), {}) || {}; return aiAgSt; }
 /* Agenda's waarin je kunt schrijven (die je in Agenda niet hebt uitgezet) */
-function aiAgKals(){ return (aiAgStaat().kalenders || []).filter(k => k && k.schrijf && k.aan !== false); }
+function aiAgKals(){ const st = aiAgStaat(); return st.schrijf ? (st.kalenders || []).filter(k => k && k.schrijf && k.aan !== false) : []; } // zonder schrijfrecht: alleen in Tools
+/* Namen van je agenda's niet tonen in een losse app (zonder app-slot) of terwijl Agenda op slot staat */
+function aiAgPrive(){ return (typeof SOLO !== 'undefined' && !!SOLO) || (typeof tsVerborgen === 'function' && tsVerborgen('agenda')); }
 function aiAgStandaard(){ const s = String(aiAgStaat().standaard || ''); return aiAgKals().some(k => String(k.id) === s) ? s : ''; }
 function aiAgNaam(id){ const k = aiAgKals().find(x => String(x.id) === String(id || '')); return k ? (k.naam || String(k.id)) : ''; }
 /* Keuzelijst op de kaart: alleen in Tools, of een agenda op de telefoon */
 function aiAgKalHtml(a, i){
   if (a.kal === undefined) a.kal = aiAgStandaard(); // een voorstel van het taalmodel: de standaardagenda
   const kals = aiAgKals();
-  if (!kals.length) return '';
+  if (!kals.length || aiAgPrive()) return '';
   const cur = String(a.kal || '');
   const opts = '<option value="">' + esc(t('Alleen in Tools')) + '</option>' + kals.map(k => '<option value="' + esc(k.id) + '" translate="no"' + (String(k.id) === cur ? ' selected' : '') + '>' + esc(k.naam || k.id) + '</option>').join('');
   return '<label class="aiactw"><span>' + esc(t('Agenda')) + '</span><select class="sel" id="aiact-kal-' + i + '" onchange="aiActKal(' + i + ', this.value)">' + opts + '</select></label>';
@@ -49,7 +51,8 @@ function aiAgBewaar(a, at, allDay){
   const r = rdJson(Android.agendaBewaar(JSON.stringify({ id: '', titel: String(a.title || '').slice(0, 200), plek: '', notitie: a.text || '', dag, eind: dag,
     van: van || '09:00', tot: van ? aiHmPlus(van, 60) : '10:00', heleDag: !!allDay, herhaal: '', totDag: '', kalender: a.kal || '', ext: 0 })), {});
   if (!r || !r.ok) return (r && r.fout) || t('Opslaan lukte niet.');
-  a.agId = r.id || ''; a.kalNaam = aiAgNaam(a.kal); a.via = 'tools';
+  a.agId = r.id || ''; a.via = 'tools';
+  a.kalNaam = aiAgPrive() ? '' : aiAgNaam(a.kal); a.kalStil = !!a.kal && aiAgPrive(); // op slot: geen naam
   return '';
 }
 /* Na het bewaren: de afspraak in Agenda bekijken (niet vanuit een losse app: die gaat niet naar een andere tool) */
@@ -58,7 +61,7 @@ function aiActAgenda(i){
   if (typeof SOLO !== 'undefined' && SOLO) return;
   aiNaarAgenda();
 }
-function aiNaarAgenda(){ show('agenda'); }
+function aiNaarAgenda(){ jumpTo('agenda'); } // terug gaat weer naar het gesprek
 
 /* ---------- De assistent openen met de microfoon aan ---------- */
 function aiOpdracht(){

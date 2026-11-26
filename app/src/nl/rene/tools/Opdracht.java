@@ -28,13 +28,19 @@ final class Opdracht {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
     }
 
-    /** Is Tools nu de digitale assistent van de telefoon? (Settings.Secure "assistant"; null = onbekend) */
+    /** Is Tools nu de digitale assistent van de telefoon? (RoleManager, Android 10+; null = onbekend) */
     static Boolean isAssistent(Context c) {
+        if (Build.VERSION.SDK_INT < 29) return null;
         try {
-            String s = android.provider.Settings.Secure.getString(c.getContentResolver(), "assistant");
-            if (s == null) return null;
-            return s.startsWith(c.getPackageName() + "/");
+            android.app.role.RoleManager rm = c.getSystemService(android.app.role.RoleManager.class);
+            if (rm == null || !rm.isRoleAvailable(android.app.role.RoleManager.ROLE_ASSISTANT)) return null;
+            return rm.isRoleHeld(android.app.role.RoleManager.ROLE_ASSISTANT);
         } catch (Throwable t) { return null; }
+    }
+
+    /** Gewoon de assistent, zonder geheim en zonder microfoon (voor wie Tools van buiten opent). */
+    static Intent gewoon(Context c) {
+        return new Intent(c, MainActivity.class).setAction(Intent.ACTION_VIEW).putExtra("open", "ai").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
     }
 
     /** Het scherm van Android waar je de digitale assistent kiest. "" = geopend, anders een melding. */

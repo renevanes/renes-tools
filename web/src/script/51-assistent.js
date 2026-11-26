@@ -209,7 +209,7 @@ function aiSendOrStop(){
   const c = typeof aiCmdFor === 'function' ? aiCmdFor(qc) : null;
   if (c) { aiLocalAnswer(c, v); return; }
   // Een afspraak, herinnering of notitie ("maak een afspraak morgen om 10 uur met Jos"): ook zonder taalmodel (61b-opdracht-geven.js)
-  const ac = typeof aiActFor === 'function' ? aiActFor(qc) : null;
+  const ac = typeof aiActFor === 'function' && !aiChat.msgs.some(m => m.att) ? aiActFor(qc) : null; // met een bijlage (samenvatting): het taalmodel
   if (ac) { aiLocalAnswer(ac, v); return; }
   const d = typeof aiDataFor === 'function' ? aiDataFor(qc) : null;
   if (d) { aiLocalAnswer(d, v); return; }
@@ -975,7 +975,7 @@ function aiActHtml(m, i){
   const when = a.type === 'notitie' ? '' : a.at ? aiActFmt(a.at) : a.allDay && a.day ? aiActFmt(a.day, true) : '';
   const tools = a.st === 'gedaan' ? a.via === 'tools' : aiActTools(a); // eerder gedaan: zoals het toen ging
   if (a.st === 'gedaan') return '<div class="aiact done" role="status">' + uiIcon('check') + '<span>' + esc(t(tools ? 'In je agenda gezet' : k.done)) + (when ? ' ' + esc(t('voor {wanneer}', { wanneer: when })) : '') + ': <b translate="no">' + esc(a.title) + '</b>' +
-    (a.type === 'agenda' ? (tools ? (a.kalNaam ? '<small>' + esc(t('In {agenda}', { agenda: a.kalNaam })) + '</small>' : '<small>' + esc(t('Alleen in Tools')) + '</small>') : '<small>Bewaar de afspraak in je agenda-app.</small>') : '') + '</span>' +
+    (a.type === 'agenda' ? (tools ? (a.kalNaam ? '<small>' + esc(t('In {agenda}', { agenda: '\u0001' })).replace('\u0001', '<span translate="no">' + esc(a.kalNaam) + '</span>') + '</small>' : a.kalStil ? '' : '<small>' + esc(t('Alleen in Tools')) + '</small>') : '<small>Bewaar de afspraak in je agenda-app.</small>') : '') + '</span>' +
     (a.note ? '<button class="linkish" onclick="aiActOpen(' + i + ')">Openen</button>' : '') +
     (tools && a.agId && !(typeof SOLO !== 'undefined' && SOLO) ? '<button class="linkish" onclick="aiActAgenda(' + i + ')">' + esc(t('Agenda openen')) + '</button>' : '') + '</div>';
   if (a.st === 'afgewezen') return '<div class="aiact no">' + uiIcon(k.icon) + '<span><s>' + esc(a.title) + '</s> <small>(niet gedaan)</small></span><button class="linkish" onclick="aiActUndoNo(' + i + ')">Toch voorstellen</button></div>';

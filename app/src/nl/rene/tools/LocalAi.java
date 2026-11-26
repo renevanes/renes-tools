@@ -1042,7 +1042,8 @@ final class LocalAi {
     /** Mag het model een actie voorstellen? Alleen als de vraag erom vraagt; nooit bij "onthoud/vergeet" (het geheugen) en
      *  nooit in een gesprek met berichten van anderen (een samenvatting): hun tekst mag geen voorstel sturen. Zuiver (getest). */
     static boolean actAllowed(boolean noAct, boolean hasAtt, String remember, String forget, String question) {
-        return !noAct && !hasAtt && remember == null && forget == null && AiActions.wanted(question);
+        return !noAct && !hasAtt && remember == null && forget == null && AiActions.wanted(question)
+                && !Agenda.gaatOver(question); // een vraag over je agenda ("hoe laat is mijn afspraak?"): de agendafeiten, geen actie
     }
     /** Mag de assistent na het antwoord kijken wat er te onthouden valt? Niet bij een actie, niet met berichten van
      *  anderen erbij, niet als het geheugen of leren uit staat. Zuiver (getest). */

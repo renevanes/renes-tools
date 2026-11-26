@@ -369,7 +369,7 @@
       ],
       "meta": [],
       "permissie": null,
-      "reden": "Opdracht geven als digitale assistent van Android (alleen als Rene Tools daar zelf kiest): opent de assistent met de microfoon aan; uitschrijven blijft op de telefoon en er gebeurt niets zonder zijn tik"
+      "reden": "Opdracht geven als digitale assistent van Android: is Tools de assistent (Rene kiest dat zelf, RoleManager), dan opent de assistent met de microfoon aan (uitschrijven op de telefoon, niets zonder zijn tik); anders alleen de assistent, zonder microfoon en zonder het installatiegeheim"
     }
   },
   "onderdeelpermissies": {

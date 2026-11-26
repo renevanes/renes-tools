@@ -518,7 +518,8 @@ final class Agenda {
 
     // ---------- assistent ----------
 
-    private static final Pattern AANMAKEN = Pattern.compile("(?iu)\\b(zet|plan|maak|voeg|herinner|noteer|schrijf)\\b.{0,80}\\b(agenda|kalender)\\b");
+    // Een opdracht om iets te zetten, geen vraag: ook "maak een afspraak …" en "afspraak maken …" (Opdracht geven)
+    private static final Pattern AANMAKEN = Pattern.compile("(?iu)\\b(zet|plan|maak|voeg|herinner|noteer|schrijf|boek)\\b.{0,80}\\b(agenda|kalender|afspraak)\\b|\\bafspraak\\s+(?:maken|aanmaken|inplannen|plannen|toevoegen)\\b");
     private static final Pattern ONDERWERP = Pattern.compile("(?iu)\\b(agenda|kalender|afspraken|afspraak)\\b");
     private static final Pattern VRAAGVORM = Pattern.compile("(?iu)\\b(wat|wanneer|welke|hoeveel|zoek|toon|laat|staat|stond|heb|had|hebben|planning)\\b");
 

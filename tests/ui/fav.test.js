@@ -17,7 +17,9 @@ const assert = (ok, what) => { if (!ok) throw new Error('mislukt: ' + what); con
     assert(g[0] === '★ Favorieten:tile-notes,tile-podcasts', 'favorieten bovenaan in hun eigen groep: ' + g[0]);
     assert(!g.slice(1).some(x => x.includes('tile-notes') || x.includes('tile-podcasts')), 'niet nog eens in hun gewone groep');
     const dyn = JSON.parse(await pg.evaluate(() => Android._dyn)).map(x => x[0]);
-    assert(dyn.join() === 'notes,podcasts,player,radio', 'app-icoon-keuzes beginnen met de favorieten: ' + dyn);
+    assert(dyn.join() === 'ai-spreek,notes,podcasts,player', 'app-icoon-keuzes: Opdracht geven, dan de favorieten: ' + dyn);
+    const zonder = await pg.evaluate(() => { const c = homeCfg(); const was = c.hidden; c.hidden = (was || []).concat(['ai']); store.set('home', c); setDynamicShortcuts(); const d = JSON.parse(Android._dyn).map(x => x[0]); c.hidden = was; store.set('home', c); setDynamicShortcuts(); return d.join(); });
+    assert(zonder === 'notes,podcasts,player,radio', 'assistent verborgen: geen Opdracht geven bij het app-icoon: ' + zonder);
     // Startscherm aanpassen: volgorde van favorieten en ster
     await pg.evaluate(() => show('homeedit')); await pg.waitForTimeout(200);
     assert((await pg.$$eval('#he-fav .herow .nm', x => x.map(e => e.textContent))).join() === 'Notities,Podcasts', 'favorietenkaart');

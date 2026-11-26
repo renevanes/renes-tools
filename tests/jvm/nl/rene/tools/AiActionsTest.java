@@ -164,6 +164,27 @@ public class AiActionsTest {
         check(AiActions.fromQuestion("Wat staat er morgen in mijn agenda?", now, TZ) == null, "wat-vraag is geen opdracht");
         check(AiActions.fromQuestion("Plan het in", now, TZ) == null, "'plan het in' zonder moment: geen opdracht");
         check(AiActions.wanted("Maak een afspraak met de notaris"), "afspraak = actie voor het taalmodel");
+        // Geen opdracht: vragen, mededelingen en wijzigingen bij de losse vorm (review)
+        for (String q : new String[]{"Afspraak morgen bij de tandarts, moet ik nuchter zijn", "Agenda: wat staat er morgen", "afspraak afzeggen morgen",
+                "afspraak verzetten naar morgen", "afspraak vrijdag is nog niet bevestigd"})
+            check(AiActions.fromQuestion(q, now, TZ, true) == null, "geen afspraak: " + q);
+        // Vooraf (vóór het taalmodel): alleen duidelijke herinneringen en notities
+        for (String q : new String[]{"Herinner je je wat ik gisteren zei?", "Remind me what the capital of France is", "Maak een notitie van dit gesprek",
+                "Schrijf op wat je net zei", "Herinner me eraan Jos te bellen"})
+            check(AiActions.fromQuestion(q, now, TZ, true) == null, "vooraf niet, dat doet het taalmodel: " + q);
+        check(AiActions.fromQuestion("Maak een notitie van dit gesprek", now, TZ) != null, "als vangnet na het model blijft het wel werken");
+        a = AiActions.fromQuestion("Zet een herinnering morgen om 8 uur voor de vuilnis", now, TZ, true);
+        check(a != null && "herinnering".equals(a.type) && "2026-10-25 08:00".equals(fmt(a.at)), "vooraf: zet een herinnering met moment");
+        a = AiActions.fromQuestion("Herinner me morgen om 9 uur aan de vuilnis", now, TZ, true);
+        check(a != null && "De vuilnis".equals(a.title), "vooraf: herinner me met moment");
+        a = AiActions.fromQuestion("Noteer: melk en brood", now, TZ, true);
+        check(a != null && "notitie".equals(a.type), "vooraf: noteer");
+        // Titels netjes
+        check("De afspraak".equals(AiActions.fromQuestion("Zet de afspraak van morgen in mijn agenda", now, TZ, true).title), "titel zonder losse 'van' aan het eind");
+        check("De huisarts, wat lastig".equals(AiActions.fromQuestion("Zet de huisarts vandaag, wat lastig, in mijn agenda", now, TZ, true).title), "geen spatie voor een komma");
+        check("Afspraak".equals(AiActions.fromQuestion("Maak een afspraak morgen met omschrijving", now, TZ, true).title), "'met omschrijving' zonder tekst: Afspraak");
+        // Een vraag over je agenda krijgt de agendafeiten, geen actie
+        check(!LocalAi.actAllowed(false, false, null, null, "Hoe laat is mijn afspraak bij de tandarts morgen?") && LocalAi.actAllowed(false, false, null, null, "Maak een afspraak met de notaris"), "vraag over de agenda: geen actie; afspraak maken: wel");
         // Herinnering en notitie werken ook zonder model
         a = AiActions.fromQuestion("Herinner me morgen om 9 uur aan de vuilnis", now, TZ);
         check(a != null && "herinnering".equals(a.type) && "2026-10-25 09:00".equals(fmt(a.at)), "herinnering uit de vraag");
