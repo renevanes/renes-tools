@@ -1563,7 +1563,7 @@ if (!window.Android) window.Android = (function(){
       if (!ok || !ok.includes(String(v))) return 'Onbekende keuze'; const f = this._fout; f[k] = k === 'elke' || k === 'diagBewaar' ? +v : k === 'wifi' || k === 'diagLeg' ? v === 'true' : String(v);
       if (k === 'diagLeg' && v === 'false') this._diag.items = []; return ''; },
     statTest(){ const s = this._stat, f = this._fout; setTimeout(() => { if (!(s.repo && s.token)) { window.onStatTest('Stel eerst de repository en de sleutel in'); return; } if (s.testFout) { window.onStatTest(s.testFout); return; }
-      f.getest++; this._diag.sent.unshift({ t: Date.now(), tool: 'verbinding', n: 0 }); window.onStatTest(''); }, 40); },
+      f.getest++; this._diag.sent.unshift({ t: Date.now(), tool: 'verbinding', n: 60 }); window.onStatTest(''); }, 150); },
     statState(){ const s = this._stat; return JSON.stringify({ on: s.on, repo: s.repo, token: s.token, since: s.since, lastSent: s.lastSent, lastResult: s.lastResult }); },
     statOn(on){ this._stat.on = !!on; if (!on) this._stat.tags = {}; },
     statDest(repo, token){ const s = this._stat; if (repo !== s.repo || token) this._diag.auto = false; if (!repo && !token) { s.repo = ''; s.token = false; return ''; }

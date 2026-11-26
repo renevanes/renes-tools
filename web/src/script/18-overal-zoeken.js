@@ -74,7 +74,10 @@ function norm2(s){ return String(s || '').normalize('NFD').replace(/[\u0300-\u03
 function gsApp(q){
   if (!gsIndex) gsBuildIndex();
   const words = norm2(q).split(/\s+/).filter(Boolean);
-  const hits = gsIndex.map((x, i) => ({x, i, s: words.every(w => x.key.includes(w)) ? (norm2(x.title).includes(words[0]) ? 2 : 1) : 0})).filter(h => h.s).sort((a, b) => b.s - a.s);
+  // Begin van een woord telt zwaarder dan midden in een woord ("stemming" vindt eerst Check-in, dan pas Bestemming)
+  const begin = (t, w) => { let i = t.indexOf(w); while (i >= 0) { if (i === 0 || !/[a-z0-9]/.test(t[i - 1])) return true; i = t.indexOf(w, i + 1); } return false; };
+  const hits = gsIndex.map((x, i) => { if (!words.every(w => x.key.includes(w))) return {x, i, s: 0}; const ti = norm2(x.title), w = words[0];
+    return {x, i, s: begin(ti, w) ? 4 : begin(x.key, w) ? 3 : ti.includes(w) ? 2 : 1}; }).filter(h => h.s).sort((a, b) => b.s - a.s);
   return {items: hits.slice(0, 6).map(h => ({i: h.i, title: h.x.title, sub: h.x.sub})), total: Math.min(hits.length, 6)};
 }
 function gsHistory(q){

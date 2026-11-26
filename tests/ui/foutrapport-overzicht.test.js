@@ -24,12 +24,12 @@ const { chromium } = require('playwright');
     ok((await tekst('#fc-test-uit')).includes('Vul eerst'), scheme + ': testen zonder repository: eerst invullen');
     await pg.fill('#st-stat-repo', 'renevanes/renes-tools-statistiek'); await pg.fill('#st-stat-token', 'github_pat_11ABCDEFGHIJ0123456789_abcdefghij');
     await pg.click('#s-setcrashdoel button:has-text("Opslaan")'); await pg.waitForTimeout(100);
-    await pg.click('#fc-test'); await pg.waitForTimeout(20);
+    await pg.click('#fc-test');
     ok(await pg.isDisabled('#fc-test') && (await tekst('#fc-test-uit')).includes('testen'), scheme + ': tijdens het testen: zichtbaar en de knop wacht');
-    await pg.waitForTimeout(150);
+    await pg.waitForFunction(() => !document.querySelector('#fc-test').disabled, null, { timeout: 5000 });
     ok((await tekst('#fc-test-uit')).includes('In orde') && (await pg.evaluate(() => Android._fout.getest)) === 1 && !(await pg.isDisabled('#fc-test')), scheme + ': verbinding in orde');
     await pg.evaluate(() => { Android._stat.testFout = 'Alleen naar een privé repository: GitHub meldt deze niet als privé'; });
-    await pg.click('#fc-test'); await pg.waitForTimeout(150);
+    await pg.click('#fc-test'); await pg.waitForFunction(() => /Niet gelukt/.test(document.querySelector('#fc-test-uit').textContent), null, { timeout: 5000 }).catch(() => {});
     ok((await tekst('#fc-test-uit')).includes('Niet gelukt') && (await tekst('#fc-test-uit')).includes('privé'), scheme + ': een fout zegt waarom');
     await pg.evaluate(() => { delete Android._stat.testFout; goBack(); }); await pg.waitForTimeout(120);
     // Met bestemming: het overzicht zegt wat er vanzelf gaat
