@@ -10,7 +10,7 @@ import org.json.JSONObject;
 final class KluisIndex {
     private KluisIndex() { }
     static final int MAX_VERSIONS = 20;
-    static final String[] SOURCES={"pdf","bewerkt","idkopie","formulier","betalen","factuur","scan"};
+    static final String[] SOURCES={"pdf","bewerkt","idkopie","formulier","betalen","factuur","scan","foto"};
     static final String[] LINK_KEYS={"kind","ref","soort","ontvanger","doel","datum"};
 
     /** Een mappad netjes (zoals klPad in de interface): delen zonder spaties eromheen, geen lege delen. */

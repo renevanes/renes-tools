@@ -1,0 +1,39 @@
+<!-- ============ FOTO BEWERKEN ============ -->
+<section class="screen" id="s-foto">
+  <div class="hdr"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">Foto bewerken</h1></div>
+  <main>
+    <p class="hint">Bijsnijden, draaien, rechtzetten en beter belichten. Alles gebeurt op je telefoon.</p>
+    <p class="note warn" id="fob-oud" hidden>Foto bewerken kan pas met de nieuwe app. Installeer eerst de nieuwste versie (Instellingen → Versie en updates).</p>
+    <div id="fob-leeg"></div>
+    <div class="card" id="fob-kaart" hidden>
+      <img id="fob-beeld" class="fob-voorbeeld" alt="Voorbeeld van de foto">
+      <p class="note fob-naam" id="fob-naam" translate="no"></p>
+      <p class="note" id="fob-stand" role="status" aria-live="polite"></p>
+      <button class="big tonal" id="fob-bewerk" type="button" onclick="fobBewerk()" data-icon="crop">Bewerken</button>
+      <label class="f" for="fob-naamin">Naam van de nieuwe foto</label>
+      <input class="search" id="fob-naamin" maxlength="60" autocomplete="off" translate="no">
+      <button class="big" id="fob-bewaar" type="button" onclick="fobBewaar()" data-icon="save">Bewaren</button>
+      <button class="big ghost" id="fob-ander" type="button" onclick="fobKies()" data-icon="image">Andere foto kiezen</button>
+    </div>
+    <div class="card" id="fob-klaar" hidden>
+      <p class="note" id="fob-klaar-t" role="status"></p>
+      <p class="note fob-naam" id="fob-klaar-naam" translate="no"></p>
+      <div class="row"><button class="mini" type="button" onclick="fobOpen()" data-icon="eye">Bekijken</button><button class="mini" type="button" onclick="fobDeel()" data-icon="share">Delen</button><button class="mini" type="button" onclick="fobOpslaan()" data-icon="save">Opslaan als…</button></div>
+    </div>
+    <div class="card">
+      <label class="f" for="fob-soort">Wat staat er meestal op je foto's?</label>
+      <select class="sel" id="fob-soort" onchange="fobSoortZet(this.value)">
+        <option value="doc">Een brief of document</option>
+        <option value="idkaart">Een ID-kaart of rijbewijs</option>
+        <option value="paspoort">Een paspoort</option>
+        <option value="foto">Iets anders (alleen de belichting)</option>
+      </select>
+      <div class="sw"><span>Verbetering voorstellen<small>Bij een nieuwe foto zoekt Tools zelf het document, zet het rechtop en verbetert de belichting. Ook bij kaartfoto's in Stamgegevens en bij ID-kopie.</small></span><button class="tg" id="fob-voorstel" type="button" role="switch" aria-checked="true" onclick="fobVoorstelZet()" aria-label="Verbetering voorstellen"></button></div>
+    </div>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Kies een foto: van de telefoon, uit de documentenkluis of uit Gemaakt. Tools stelt meteen een verbetering voor; jij past aan wat niet klopt.</p>
+      <p><b>Bijsnijden:</b> sleep de hoeken of randen. Staat een document schuin of scheef, zet de hoeken op de hoeken van het document: dan wordt het rechtgetrokken. <b>Draaien:</b> een kwartslag, of rechtzetten met de schuif. <b>Licht:</b> helderheid, contrast en zwart-wit. <b>Afdekken:</b> zwarte vlakken over wat niemand hoeft te zien.</p>
+      <p>Bewaren maakt een nieuwe foto; het origineel blijft waar het stond. De nieuwe foto gaat versleuteld de documentenkluis in (zoals alles wat de PDF-tools maken). Er gaat niets van de telefoon af.</p>
+    </div></details>
+  </main>
+</section>

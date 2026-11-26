@@ -507,6 +507,30 @@ final class MasterStore {
             append(db,k,h,value==null?"photo_delete":"photo_add","masterdata","",r,new JSONArray().put(side));return new JSONObject().put("id",id).put("revision",next);
         },commit);
     }
+    /**
+     * Een kaartfoto bewerken (bijsnijden, draaien, rechtzetten, lichter; FotoOps uit Foto bewerken): de bewaarde foto
+     * wordt in het geheugen bewerkt en vervangen. In Activiteiten als Kaartfoto bewerkt.
+     */
+    static JSONObject photoEdit(Context c,SecretKey key,MasterSession session,String token,String id,long revision,String side,FotoOps ops)throws Exception{
+        if(!side.equals("front")&&!side.equals("back"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
+        if(ops.vlakken.length>0)throw new MasterError(Taal.T("Ongeldige bewerking"));
+        return transaction(c,key,session,token,(db,k,h)->{
+            JSONObject r=record(db,k,id);if(!r.getString("type").equals("identiteit"))throw new MasterError(Taal.T("Kaartfoto’s horen bij een identiteitsdocument"));
+            if(r.getLong("revision")!=revision)throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
+            JSONObject images=r.optJSONObject("images");String oud=images==null?"":images.optString(side,"");
+            if(!oud.startsWith("data:image/jpeg;base64,"))throw new MasterError(Taal.T("Voeg eerst een foto van het document toe"));
+            byte[] bytes=android.util.Base64.decode(oud.substring(oud.indexOf(',')+1),android.util.Base64.DEFAULT);
+            String nieuw;android.graphics.Bitmap b=null,uit=null;
+            try{b=FotoBewerk.lees(bytes,2000);uit=FotoBewerk.toepassen(b,ops,1600);nieuw=MasterPhotos.normalize(FotoBewerk.jpeg(uit,92));}
+            catch(FotoOps.Fout f){throw new MasterError(f.getMessage());}
+            finally{java.util.Arrays.fill(bytes,(byte)0);if(b!=null)b.recycle();if(uit!=null)uit.recycle();}
+            if(nieuw.length()>MasterPhotos.MAX_DATA)throw new MasterError(Taal.T("De kaartfoto is te groot"));
+            images.put(side,nieuw);
+            long next=revision+1;r.put("images",images).put("revision",next).put("updated",System.currentTimeMillis());
+            ContentValues v=new ContentValues();v.put("rev",next);v.put("body",MasterCipher.encrypt(k,"record/"+id+"/"+next,bytes(r)));db.update("records",v,"id=?",new String[]{id});
+            append(db,k,h,"photo_edit","masterdata","",r,new JSONArray().put(side));return new JSONObject().put("id",id).put("revision",next).put("side",side);
+        });
+    }
     /** Voor- en achterkant omwisselen (staat er maar één, dan gaat die naar de andere kant). */
     static JSONObject photoSwap(Context c,SecretKey key,MasterSession session,String token,String id,long revision)throws Exception{
         return transaction(c,key,session,token,(db,k,h)->{

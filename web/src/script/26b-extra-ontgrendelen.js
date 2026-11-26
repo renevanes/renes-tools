@@ -79,6 +79,7 @@ const TS_LAGEN = [
   ['fmq', () => typeof fmq !== 'undefined' && fmq.open, () => fmqClose()],
   ['modal', () => $('#modal').classList.contains('on'), () => closeModal(null)],
   ['sigdlg', () => $('#sigdlg').classList.contains('on'), () => sigClose()],
+  ['fbdlg', () => typeof fbAan === 'function' && fbAan(), () => fbSluit(null)],
   ['voice', () => !!$('#voice') && $('#voice').classList.contains('on'), () => voiceClose()],
   ['ci-ans', () => !!$('#ci-ans') && $('#ci-ans').classList.contains('on'), () => ciAnsClose()],
   ['ci-rem', () => !!$('#ci-rem') && $('#ci-rem').classList.contains('on'), () => ciRemPark()], // wat je schreef blijft als concept

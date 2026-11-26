@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * (BetaalLinkActivity). Tools betaalt nooit zelf. Alles wat van een rekening komt is een voorstel en gaat als gegevens
  * naar de interface (daar altijd esc() of textContent).
  */
-public class BetalenBridge extends FeatureBridge {
+public class BetalenBridge extends FotoBridge {
 
     static final int REQ_CAM = 79, REQ_BESTAND = 80;
     static final int MAX_FOTO = 16 * 1024 * 1024, MAX_BESTAND = 40 * 1024 * 1024, BLZ = 2;

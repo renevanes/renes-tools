@@ -152,8 +152,10 @@ final class IdCopy {
         flat.eraseColor(Color.WHITE); new Canvas(flat).drawBitmap(image, 0, 0, null); image.recycle(); return flat;
     }
 
-    synchronized JSONObject preview(String token, int page, int turn) throws Exception {
-        check(token); Bitmap b = render(page, turn, 1200);
+    synchronized JSONObject preview(String token, int page, int turn) throws Exception { return preview(token, page, turn, null); }
+    /** Voorbeeld met een bewerking (bijsnijden, rechtzetten: FotoOps uit Foto bewerken, op de gedraaide pagina); null = zonder. */
+    synchronized JSONObject preview(String token, int page, int turn, FotoOps ops) throws Exception {
+        check(token); Bitmap b = bewerkt(render(page, turn, 1200), ops, 1200);
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream(); b.compress(Bitmap.CompressFormat.JPEG, 88, out);
             return new JSONObject().put("revision", token).put("page", page).put("turn", turn).put("w", b.getWidth()).put("h", b.getHeight())
@@ -171,9 +173,11 @@ final class IdCopy {
         String watermark = plan.optString("watermark").trim();
         if (entries.length() != pages.size() || watermark.length() < 12 || watermark.length() > 300 || watermark.split("\n", -1).length > 4)
             throw new Exception(Taal.T("Vul ontvanger, doel en datum in"));
-        int masks = 0;
+        int masks = 0; FotoOps[] ops = new FotoOps[entries.length()];
         for (int i = 0; i < entries.length(); i++) {
             JSONObject p = entries.getJSONObject(i);
+            JSONObject bw = p.optJSONObject("ops");
+            if (bw != null) { ops[i] = FotoOps.lees(bw.toString()); if (ops[i].vlakken.length > 0) throw new Exception(Taal.T("Ongeldige bewerking")); }
             if (!p.optBoolean("checked")) throw new Exception(Taal.T("Controleer elke pagina voordat je de kopie maakt"));
             int turn = p.getInt("turn"); if (turn < 0 || turn > 3) throw new Exception(Taal.T("Ongeldige pagina"));
             JSONArray rects = p.getJSONArray("rects"); if (rects.length() > 60) throw new Exception(Taal.T("Maximaal 60 vlakken per pagina"));
@@ -183,7 +187,7 @@ final class IdCopy {
         if (masks == 0) throw new Exception(Taal.T("Scherm eerst de gegevens af die je niet wilt delen"));
         List<PdfWriter.Page> output = new ArrayList<>();
         for (int i = 0; i < entries.length(); i++) {
-            JSONObject p = entries.getJSONObject(i); Bitmap b = render(i, p.getInt("turn"), EDGE);
+            JSONObject p = entries.getJSONObject(i); Bitmap b = bewerkt(render(i, p.getInt("turn"), EDGE), ops[i], EDGE);
             try {
                 int w = b.getWidth(), h = b.getHeight(); int[] pixels = new int[w * h]; b.getPixels(pixels, 0, w, 0, 0, w, h);
                 JSONArray rects = p.getJSONArray("rects");
@@ -208,6 +212,12 @@ final class IdCopy {
             if (out != null) out.delete();
             throw e;
         } finally { if(temporary!=null)temporary.delete(); }
+    }
+
+    /** Bewerking op een gerenderde pagina; de oude bitmap gaat weg. Daarna weer eigen, schrijfbare pixels. */
+    private static Bitmap bewerkt(Bitmap b, FotoOps ops, int edge) throws Exception {
+        if (ops == null || ops.leeg()) return b;
+        try { return FotoBewerk.toepassen(b, ops, edge); } finally { b.recycle(); }
     }
 
     private static void stamp(Bitmap b, String text) {

@@ -305,6 +305,7 @@ public class MainActivity extends Activity {
         if (!isSolo() || "backup".equals(solo)) AppBackup.recoverIfNeeded(getApplicationContext());
         IdCopy.cleanStale(getApplicationContext());
         PdfCompare.cleanStale(getApplicationContext());
+        try { FotoBridge.wisBijStart(getApplicationContext()); } catch (Throwable ignored) { }
         Kluis.cleanTmp(getApplicationContext());
         { Context app = getApplicationContext(); new Thread(() -> { try { PdfTools.opruimKluisIn(app); } catch (Throwable ignored) { } }, "pdf-kluis-oud").start(); }
         PlayPolicy.sanitizePreferences(getApplicationContext());
@@ -676,6 +677,7 @@ public class MainActivity extends Activity {
             case "betalen": return BetalenBridge.REQ_BESTAND;
             case "stamgegevens": return MasterPhotos.REQUEST;
             case "handtekening": return REQ_SIG_IMG;
+            case "foto": return FotoBridge.REQ_FOTO;
             default: return -1;
         }
     }
@@ -1124,6 +1126,7 @@ public class MainActivity extends Activity {
             }), "sig-image").start();
             return;
         }
+        if (req == FotoBridge.REQ_FOTO) { FotoBridge.opGekozen(this, res == RESULT_OK && data != null ? data.getData() : null); return; }
         if (req == BetalenBridge.REQ_BESTAND) { BetalenBridge.opBestand(this, res == RESULT_OK && data != null ? data.getData() : null); return; }
         if (req == REQ_FACT_PDF) {
             final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
