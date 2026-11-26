@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.261",
-  "versionCode": 262,
-  "nativeLevel": 226,
+  "versionName": "1.262",
+  "versionCode": 263,
+  "nativeLevel": 227,
   "web": "index.html",
-  "webSha256": "590a1668f8af1c67b6dffbecfd4285864ee4d1ad05359881f349dc750665cbe0",
+  "webSha256": "fe8a8c85a427c76441e05a543816024db6731ca1af80be1e0c4e970da6d2dbd3",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "326161e21fbe08645d7cc36235e230eca3d0cfb6ec050762aa5b7e8e4db9db71",
+  "apkSha256": "8403a8228a015702a986238f63babf4aa90a35031e82a7f68966551d3407eaaf",
   "changelog": [
+    {
+      "version": "1.262",
+      "date": "2026-11-26",
+      "changes": [
+        "Sneller opstarten: de app leest de interface en plant zijn taken op de achtergrond terwijl het scherm wordt opgebouwd",
+        "SMS-backup: de lijst met gesprekken opent sneller en toont er eerst 200 (met Meer tonen); een gesprek openen leest alleen dat gesprek",
+        "Notities: een lange lijst opent nog iets sneller"
+      ]
+    },
     {
       "version": "1.261",
       "date": "2026-11-26",
@@ -178,16 +187,7 @@
         "Stamgegevens: een ID-bewijs dat klein op een PDF-pagina staat (een scan of kopie op A4) wordt nu beter herkend.",
         "Stamgegevens: lukt het toevoegen van een document niet, dan zie je nu een melding met de reden in plaats van niets."
       ]
-    },
-    {
-      "version": "1.242",
-      "date": "2026-11-23",
-      "changes": [
-        "Diagnose: versturen gaat alleen naar een repository die GitHub als privé meldt, en een betaallink van een rekening komt er niet in",
-        "Alle appgegevens terugzetten gaat door als het CPAP-logboek in de backup niet te lezen is",
-        "Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"
-      ]
     }
   ],
-  "webSig2": "LPLe8mId0/oi67NSgV7x9WUyJpKFXPl7VwiTThLh/iti0NL2uxYoyLTXiHE1VxV88FoTUVNE1fW16eX7cIwQNTYpS7fwm29AvmMPWATydAKtShSFymQH16lrfvW2VRwIEq5Lpf4H7RF6m2QlndnJiwXfrR9jnGIwFLE08fC53QlhWhT9+O3lPMYLrnxm3AhNST85jgc1pEErIPushYWKKfQKHDqeNW7AW9m7LoMr7ErPFdLXq+EFa0ek0M3hi6BgvsING/444nO+/X/vwBfQMIMiVBPYHdfHuHZ91CwsCaw5jAhbneSr0Ry2UjzkrZEJTVKmw/VfXVCrfNPzacBZMd6tSTp4HpMbFAyLb3hjBiEbv2UntTvB9ZduunWUqeXDSO5jGIkH7TpNPa0KO/aVfuPrgHjHsH0hFpBQjffpEDWFvvKp7H2tyzSd1c3icwEu/EtK4AA0SOVuhugDHxeyVihnGE0rpYep2CJcU6166zrKbByZ7HUSH3vfmafAdD9X"
+  "webSig2": "d2CRviUXrSZqvi11jKM6DhTMO4qIA/c/Vft4NveGEIdvwsSeGH8nMKtnq7g6urmQX73N6dgJO2IlcG1f0vk8cINcVcq1eFXAU11xMdDKQHCkURBWOowJelulnbS9Bh9NWWGi9AuquKdiuTkQRhAkW19TgnOHlCxV+PReXquVl78Ic29TUt/rbgrvdyxa/03vp9lA7rNq2jPKCW/p8z3kgSgb//rvYgauvyCSe2oTJ4Wbh9e//zn8PzkwL7v4DiJe9cEDSaxvnF4R4wTPzhFvuo03sFUjZB8YxZKgvaV/aNZ7/COnT8u3RHbqtLbCO6q/pSnl10M0ydj/gNGbaLEkmdJ/ZS8TKvtFoDcWfQ0pRnI5O3F+mi2QNTz1LzA/IyDa0GEf0leb/xAYqLU5SkDYknfMc0omdmDcTDqSSek207vIwMZoJ1Qaat9lXliCLOooq1DXROV9tnOf5kWMTZjcRW1SCQH9eQlzMW+7SUVShl/CmljQQeXk7lrzOfdK7H/r"
 }
