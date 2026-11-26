@@ -411,7 +411,7 @@ final class MasterPhotos {
     /** De kaartfoto (voor- of achterkant) bij het document bewaren. */
     private JSONObject bewaarFoto(SecretKey key,MasterSession session,String token,Pending job,String image,JSONObject found,JSONObject diag)throws Exception{
         JSONObject result=MasterStore.photo(activity,key,session,token,job.id,job.revision,job.side,image,false,()->{synchronized(MasterPhotos.this){if(pending!=job||job.dataset!=MasterSession.datasetEpoch()||!job.view.equals(activity.masterView)||!activity.masterWanted||!activity.masterForeground)throw new MasterError(Taal.T("Kaartfoto opslaan geannuleerd"));pending=null;}});
-        result.put("saved",true).put("diag",diag);if(found!=null)result.put("herkend",found);
+        result.put("saved",true).put("side",job.side).put("diag",diag);if(found!=null)result.put("herkend",found);
         return result;
     }
     /**

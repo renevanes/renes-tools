@@ -1,6 +1,6 @@
 /* ID-kopie: tijdelijke bron en vlakken alleen in het geheugen; export door de native pixelbewerker. */
 let idCopyCounter=0;
-const idc = {session:'',revision:'', pages:[], page:0, busy:false, loading:false, point:null, draft:null, result:'', meta:null};
+const idc = {volg:0, session:'',revision:'', pages:[], page:0, busy:false, loading:false, point:null, draft:null, result:'', meta:null};
 function idCopyEnter(){ if(!idc.session)idc.session=Date.now()+'-'+(++idCopyCounter)+'-'+Math.random().toString(36).slice(2); Android.idCopySecure(true,idc.session); if (!$('#id-date').value) $('#id-date').value = rgToday(); idCopyControls(); idCopyStamHalen(); }
 function idCopyReset(secure=true){
   if(secure){idc.session=Date.now()+'-'+(++idCopyCounter)+'-'+Math.random().toString(36).slice(2);Android.idCopySecure(true,idc.session);}
@@ -34,7 +34,11 @@ function idCopyLoad(){
   if(!idc.revision||!idc.pages[idc.page])return;
   idc.loading=true; idc.meta=null; idc.point=null; idc.draft=null; $('#id-image').removeAttribute('src');
   const c=$('#id-layer');c.getContext('2d').clearRect(0,0,c.width,c.height);
-  uiWachtTekst($('#id-status'),t('Pagina laden…'));idCopyControls();Android.idCopyPreview(idc.revision,idc.page,idc.pages[idc.page].turn);
+  uiWachtTekst($('#id-status'),t('Pagina laden…'));idCopyControls();
+  // Met een bewerking uit Foto bewerken (bijsnijden, rechtzetten; 82-foto-bewerken.js) via idCopyPreviewBewerkt
+  const p=idc.pages[idc.page];if(p.ops&&p.opsTurn!==p.turn)p.ops=null; // intussen gedraaid
+  if(typeof Android.idCopyPreviewBewerkt==='function')Android.idCopyPreviewBewerkt(idc.revision,idc.page,p.turn,p.ops?JSON.stringify(p.ops):'',++idc.volg,false);
+  else Android.idCopyPreview(idc.revision,idc.page,p.turn);
 }
 window.onIdCopyPreview=function(r){
   if(current!=='idcopy'||r.session!==idc.session||!idc.revision)return;

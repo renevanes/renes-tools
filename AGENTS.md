@@ -20,7 +20,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   `kop.html`, `stijl.css` (Material 3-kleurrollen: `--bg --card --hi --ink --muted --line --outline --primary --on-primary --tonal --chip --on-chip …`),
   `schermen/NN-*.html` (één `<section class="screen" id="s-naam">` per scherm), `script/NN-*.js`, `vensters.html` (dialogen, tabbalk).
 - `web/src/script/01-testbrug.js` — de nagebootste Android-brug voor de tests (in de app zelf weggelaten).
-- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends ReadAloudBridge extends NieuwsBridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends AgendaBridge extends SignalenBridge extends BetalenBridge extends FeatureBridge`.
+- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends ReadAloudBridge extends NieuwsBridge extends EreaderBridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends AgendaBridge extends SignalenBridge extends BetalenBridge extends FotoBridge extends FeatureBridge` (plus `CpapBridge`; nieuwe brugklasse = ook in `tools/check-bridge.py`).
 - `web/start.html` — de Telefoon-skin (eigen startscherm); `tests/` — Java- en interfacetests; `tools/` — hulpscripts.
 - **Iedere nieuwe schermtool ondersteunt standaard losse apps.** Registreer hem in `web/src/script/00-tools.js`: het
   openen, het overzicht Losse apps en het native register volgen daaruit. Subschermen krijgen een `BACK`-verwijzing
@@ -328,13 +328,14 @@ Nieuwe functie = ook een test in `tests/ui/` (en bij logica in `tests/jvm/`). Ee
 `tests/ui/prestaties.test.js` bewaakt wat vast te tellen is, met ruimte voor groei (stand 19-11-2026 tussen haakjes):
 `web/index.html` zonder testbrug hooguit 4,5 MB (3,43 MB), na het starten hooguit 10.000 elementen (7.783) en
 100 brugaanroepen (51). Lange lijsten tekenen niet alles tegelijk: Notities 100 rijen met Meer tonen, Contacten 600,
-Meldingsgeschiedenis 200, Nieuws 60 (gemeten met 5000 items in de testbrug). Een nieuwe lijst die duizenden items kan
+Meldingsgeschiedenis 200, Nieuws 60, SMS-backup 200 gesprekken met Meer tonen (gemeten met 5000 items in de testbrug). Een nieuwe lijst die duizenden items kan
 krijgen doet hetzelfde en komt in die test. Tijden alleen met een zeer ruime grens (start tot `uiReady` 5 s, Notities
 openen met 5000 notities 3 s; zo'n 10× de gemeten waarde, want de test draait naast veel andere) en nooit in de
 telefoontest. Raakt een telgrens op: kijk eerst wat er groeide en of het lichter kan; verhoog hem alleen bewust, met de
 reden in het logboek. De telefoontest (`rooktest.sh`) legt per API-niveau vast: starttijd per scherm (`TotalTime`),
 overgeslagen beelden (Choreographer), geheugen (`dumpsys meminfo`, PSS) en haperingen (`dumpsys gfxinfo`) na het starten
-en na alle schermen; in de uitvoer onder "Metingen" en in de samenvatting van de run. Dat is alleen vastleggen: een
+en na alle schermen, en de tijd per stap van `MainActivity.onCreate` en tot `uiReady` (regel `opstart:`; de app zet die
+met `Opstart` in logcat onder `ToolsStart`, alleen vaste stapnamen en milliseconden); in de uitvoer onder "Metingen" en in de samenvatting van de run. Dat is alleen vastleggen: een
 meetwaarde laat de telefoontest nooit falen. De emulator tekent in software: vergelijk alleen hetzelfde API-niveau.
 
 ## Tegelijk werken met andere agents
@@ -1146,6 +1147,33 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   Podcasts (`#ps-slp`, ook via ⋯); de keuze `slaapTerug` staat ook in het venster Slaaptimer (`#sl-slp`, `sleepSlpToon`, alleen bij
   podcasts; tijdens casten weg, want op een Chromecast wordt niets bijgehouden). Kiest Rene `uit` terwijl er nog regels open
   staan, dan vraagt `slpZet` eerst (die tellen dan als gehoord). Test: `tests/ui/podcast-slaap.test.js`.
+
+## Foto bewerken (één bewerker voor de hele app)
+Wens van Rene (26-11-2026): bijsnijden, draaien en meer, ook in andere tools (Stamgegevens, ID-kopie), met een voorstel dat
+de app zelf doet. **De bewerker** (`web/src/script/02-fotobewerken.js`, venster `#fbdlg` in `vensters.html`, in `TS_LAGEN`,
+`dialogFocus` en `navSluit`): `fotoBewerk({src, titel, knop, soort, zijde, ops, voorstel, afdekken, actief, bron})` →
+`{ops, gewijzigd}` of null. Tabbladen Bijsnijden (vier hoeken en vier randen; een schuin of scheef vlak wordt rechtgetrokken,
+verhoudingen ID-1, ID-3, A4, vierkant), Draaien (kwartslag, rechtzetten tot 45°), Licht (helderheid, contrast, zwart-wit,
+automatisch: `fbNiveau`) en Afdekken (zwarte vlakken; uit met `afdekken: false`; verandert de uitsnede, dan gaan ze weg met
+een melding, `fbVlakkenWeg`; een kwartslag draait ze mee; JS en Java nemen dezelfde marge, `fbVlakPix`/`FotoBewerk.vlak`). Ongedaan maken, Origineel, Automatisch
+verbeteren. Hij geeft alleen de **bewerking** terug (`ops`, zelfde vorm als `FotoOps.java`: draai, q, verhouding, licht,
+contrast, niveau, grijs, vlakken); Java past die toe op de foto zelf (`FotoBewerk`: `Matrix.setPolyToPoly`, `ColorMatrix`),
+zodat de volle resolutie blijft en een kaartfoto niet als pixels door de interface terug hoeft. `fbRender` rekent het
+voorbeeld op dezelfde manier (zelfde `fbMaat`/`fbKleurAB` als `FotoOps.maat`/`kleur`; `FotoOpsTest`).
+**Voorstel** (`fbVoorstel(foto, soort, zijde)`): het document zoeken (`fbDocHoeken`: alles wat duidelijk anders is dan de
+rand, grootste vlak, vier hoeken; bij een brief ook `ksHoekenUit`), rechtop (een pas of paspoort is liggend; de
+machineleesbare strook hoort onderaan: `fbStrook`, alleen als die duidelijk te zien is), de verhouding van het document
+(binnen 15%) en de belichting. Instelling `fotoVoorstel` (store, standaard aan) en `fotoSoort` op het scherm van de tool.
+**De tool** (`s-foto`, `82-foto-bewerken.js`, prefix `fob`; `FotoBridge`): kiezen via `bronKies` (kiezer `foto`), de foto
+alleen in het geheugen (nooit leesbaar op schijf; weg bij verlaten of een nieuwe keuze), bewaren als JPG
+onder Gemaakt en vanzelf de kluis in (`kcNaMaken`, herkomst `foto`). Niet in de Play-versie.
+**Stamgegevens**: Foto bewerken op het documentkaartje (`masterPhotoBewerk` → `MasterStore.photoEdit`, Activiteiten
+`photo_edit`; zonder afdekken: de app leest de foto nog) en na een nieuwe kaartfoto een voorstel op het kaartje
+(`cmc.fbNa`, Toepassen/Aanpassen/Laten zo). **ID-kopie**: per pagina `ops` (na `turn`), voorbeeld via
+`idCopyPreviewBewerkt` (`volg` herkent oude antwoorden, `bron` = zonder bewerking voor de bewerker), mee in het plan van
+`idCopySave` (`IdCopy.bewerkt`, op EDGE); bij een nieuwe pagina meteen het voorstel (alleen bijsnijden of draaien:
+`fbVormVoorstel`), met Bijsnijden en rechtzetten (`#id-bewerk`) om het aan te passen of terug te draaien. Een oudere app
+zonder die brugfuncties: de knoppen blijven weg. Tests: `FotoOpsTest`, `tests/ui/foto-bewerken.test.js`.
 
 ## Nieuwe app vanzelf downloaden
 Wens van Rene (26-11-2026). Instellingen → Versie en updates (`#i-vz`, `28-versie-updates.js`: `updVzRender`/`updVz`;

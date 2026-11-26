@@ -148,6 +148,26 @@ public class FeatureBridge {
         }, "id-copy-preview").start();
     }
     /**
+     * Voorbeeld van een pagina met een bewerking (Foto bewerken: bijsnijden, rechtzetten, lichter). bron = zonder bewerking,
+     * om in de bewerker te openen. volg komt terug, zodat de interface een oud antwoord herkent. Antwoord onIdCopyPreview.
+     */
+    @JavascriptInterface public void idCopyPreviewBewerkt(String revision, int page, int turn, String ops, int volg, boolean bron) {
+        final IdCopy store = a.idCopy; final String session = a.idSession;
+        if (!a.idScreen) return;
+        new Thread(() -> {
+            String result;
+            try {
+                FotoOps o = bron ? null : FotoOps.lees(ops);
+                if (o != null && o.vlakken.length > 0) throw new Exception(Taal.T("Ongeldige bewerking"));
+                result = store.preview(revision, page, turn, o).put("volg", volg).put("bron", bron).toString();
+            } catch (Throwable e) {
+                try { result = new JSONObject(PdfTools.err(e)).put("page", page).put("turn", turn).put("volg", volg).put("bron", bron).toString(); }
+                catch (Exception ignored) { result = "{}"; }
+            }
+            if (store == a.idCopy && a.idScreen) a.js("onIdCopyPreview", idAnswer(result, session, revision));
+        }, "id-copy-preview").start();
+    }
+    /**
      * Een ID-kopie of formulier met gegevens uit Stamgegevens alleen maken terwijl de app in beeld is (bij de aanroep en nu):
      * tijdens het kiezen van een kaartfoto is de sessie nog even open, maar dan mag er niets met die gegevens gebeuren.
      */

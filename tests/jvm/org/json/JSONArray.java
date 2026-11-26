@@ -60,6 +60,7 @@ public class JSONArray {
     public long optLong(int i, long d) { Object v = opt(i); if (v instanceof Number) return ((Number) v).longValue(); Double n = toNum(v); return n == null ? d : n.longValue(); }
     public long getLong(int i) throws JSONException { Object v = get(i); if (v instanceof Number) return ((Number) v).longValue(); Double n = toNum(v); if (n == null) throw new JSONException("Geen getal op " + i); return n.longValue(); }
     public int getInt(int i) throws JSONException { return (int) getLong(i); }
+    public double getDouble(int i) throws JSONException { Double n = toNum(get(i)); if (n == null) throw new JSONException("Geen getal op " + i); return n; }
     public JSONObject optJSONObject(int i) { Object v = opt(i); return v instanceof JSONObject ? (JSONObject) v : null; }
     public JSONArray optJSONArray(int i) { Object v = opt(i); return v instanceof JSONArray ? (JSONArray) v : null; }
     public JSONObject getJSONObject(int i) throws JSONException { Object v = get(i); if (v instanceof JSONObject) return (JSONObject) v; throw new JSONException("Geen object op " + i); }

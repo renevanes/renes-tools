@@ -1,5 +1,37 @@
 [
   {
+    "version": "1.264",
+    "date": "2026-11-26",
+    "changes": [
+      "Nieuwe tool Foto bewerken: bijsnijden, draaien, rechtzetten, belichting en zwarte vlakken; Tools stelt zelf een verbetering voor (het document zoeken, rechtop zetten, beter belichten).",
+      "Stamgegevens: kaartfoto bewerken op het documentkaartje, en na een nieuwe foto een voorstel om hem bij te snijden en recht te zetten.",
+      "ID-kopie: een nieuwe pagina wordt vanzelf bijgesneden tot het document en rechtgezet; met Bijsnijden en rechtzetten pas je het aan."
+    ]
+  },
+  {
+    "version": "1.263",
+    "date": "2026-11-26",
+    "changes": [
+      "Stamgegevens: een paspoort of ID-kaart wordt beter herkend. Lukt het lezen van de strook onderaan niet, dan leest Tools de strook nog eens op een tweede manier. Wat daarbij rechtgezet moest worden, staat als voorstel klaar om na te kijken."
+    ]
+  },
+  {
+    "version": "1.262",
+    "date": "2026-11-26",
+    "changes": [
+      "Sneller opstarten: de app leest de interface en plant zijn taken op de achtergrond terwijl het scherm wordt opgebouwd",
+      "SMS-backup: de lijst met gesprekken opent sneller en toont er eerst 200 (met Meer tonen); een gesprek openen leest alleen dat gesprek",
+      "Notities: een lange lijst opent nog iets sneller"
+    ]
+  },
+  {
+    "version": "1.261",
+    "date": "2026-11-26",
+    "changes": [
+      "Achter de schermen: nieuwe versies komen sneller online, ook als er veel tegelijk aan de app gewerkt wordt; in de app verandert er niets."
+    ]
+  },
+  {
     "version": "1.260",
     "date": "2026-11-26",
     "changes": [

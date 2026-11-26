@@ -1,15 +1,47 @@
 {
   "app": "Tools",
-  "versionName": "1.260",
-  "versionCode": 261,
-  "nativeLevel": 226,
+  "versionName": "1.264",
+  "versionCode": 265,
+  "nativeLevel": 229,
   "web": "index.html",
-  "webSha256": "b94bdd231627aab3303ecd8673b6d582ac7811fd2e26ce40f3a2b784f9e31e47",
+  "webSha256": "5e569f57f1ef058b414db6b0fbc32459bfb5ca473acc02ae2a4ce3201eb7980a",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "fa98ed568063c7aad762c20eb3c145f5551398dcf41fd4a5b7beb7a22a2c2208",
+  "apkSha256": "81c9f7af602a1111cb11583d2393181dca8a62a92d3efaf61659ae7e10368f0a",
   "changelog": [
+    {
+      "version": "1.264",
+      "date": "2026-11-26",
+      "changes": [
+        "Nieuwe tool Foto bewerken: bijsnijden, draaien, rechtzetten, belichting en zwarte vlakken; Tools stelt zelf een verbetering voor (het document zoeken, rechtop zetten, beter belichten).",
+        "Stamgegevens: kaartfoto bewerken op het documentkaartje, en na een nieuwe foto een voorstel om hem bij te snijden en recht te zetten.",
+        "ID-kopie: een nieuwe pagina wordt vanzelf bijgesneden tot het document en rechtgezet; met Bijsnijden en rechtzetten pas je het aan."
+      ]
+    },
+    {
+      "version": "1.263",
+      "date": "2026-11-26",
+      "changes": [
+        "Stamgegevens: een paspoort of ID-kaart wordt beter herkend. Lukt het lezen van de strook onderaan niet, dan leest Tools de strook nog eens op een tweede manier. Wat daarbij rechtgezet moest worden, staat als voorstel klaar om na te kijken."
+      ]
+    },
+    {
+      "version": "1.262",
+      "date": "2026-11-26",
+      "changes": [
+        "Sneller opstarten: de app leest de interface en plant zijn taken op de achtergrond terwijl het scherm wordt opgebouwd",
+        "SMS-backup: de lijst met gesprekken opent sneller en toont er eerst 200 (met Meer tonen); een gesprek openen leest alleen dat gesprek",
+        "Notities: een lange lijst opent nog iets sneller"
+      ]
+    },
+    {
+      "version": "1.261",
+      "date": "2026-11-26",
+      "changes": [
+        "Achter de schermen: nieuwe versies komen sneller online, ook als er veel tegelijk aan de app gewerkt wordt; in de app verandert er niets."
+      ]
+    },
     {
       "version": "1.260",
       "date": "2026-11-26",
@@ -153,42 +185,7 @@
         "Stamgegevens: een document met beide zijden lukt nu ook als het een scan is (beide zijden op één pagina of op twee pagina's), als er een logo of ander klein plaatje in staat, of als de foto's geen JPEG zijn.",
         "Stamgegevens: wordt er bij beide zijden niets herkend, dan kun je de twee zijden toch nakijken en bewaren en vul je de gegevens zelf in; en lukt het niet, dan zegt de melding waarom."
       ]
-    },
-    {
-      "version": "1.244",
-      "date": "2026-11-23",
-      "changes": [
-        "Wat je start, maakt Tools nu af als het scherm uitgaat of je de app even verlaat: een document of kaartfoto herkennen, een afschrift inlezen, een backup, een export, een PDF maken of vergelijken. Duurt het langer, dan zie je een stille melding \"Tools maakt iets af\".",
-        "Stamgegevens: gaat het scherm uit terwijl een document of kaartfoto herkend wordt, dan gaat het herkennen door en wordt het na ontgrendelen bewaard; je hoeft het niet opnieuw te kiezen.",
-        "Bankzaken: een afschrift dat aan het inlezen was, wordt ook bewaard als Bankzaken intussen op slot gaat; de uitslag zie je na ontgrendelen."
-      ]
-    },
-    {
-      "version": "1.243",
-      "date": "2026-11-23",
-      "changes": [
-        "Stamgegevens: bij Document toevoegen kun je nu ook een Google-document kiezen; Tools haalt het als Word-bestand of PDF op.",
-        "Stamgegevens: een ID-bewijs dat klein op een PDF-pagina staat (een scan of kopie op A4) wordt nu beter herkend.",
-        "Stamgegevens: lukt het toevoegen van een document niet, dan zie je nu een melding met de reden in plaats van niets."
-      ]
-    },
-    {
-      "version": "1.242",
-      "date": "2026-11-23",
-      "changes": [
-        "Diagnose: versturen gaat alleen naar een repository die GitHub als privé meldt, en een betaallink van een rekening komt er niet in",
-        "Alle appgegevens terugzetten gaat door als het CPAP-logboek in de backup niet te lezen is",
-        "Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"
-      ]
-    },
-    {
-      "version": "1.241",
-      "date": "2026-11-20",
-      "changes": [
-        "Muziek herkennen: de grote knop staat bovenaan met meteen eronder wat er naar AudD gaat; sleutel wijzigen en het aantal herkenningen staan nu onder ⋯ rechtsboven, en boven de herkende nummers staat een kop met het aantal (zoeken pas bij een langere lijst)",
-        "Muziek herkennen: beter met TalkBack (de knop zegt Stoppen tijdens het luisteren, de stand wordt voorgelezen) en een te korte sleutel geeft een melding bij het veld"
-      ]
     }
   ],
-  "webSig2": "QpT8YOBX51upF4X0ptvrWCCxiLKDru7IJne04salysjiNXqN9od7lODHSuu7NX4kCsJdnTY+sBzzSPIHUSFqjJJGlku0Jqyp2GMQg54yEtzK0ugEJEOPAiS18TUoSiZmeabIyVz9jDLfNZ3lwui/i44Yp3+kbs6hQ8IY+mAE9qwlG7XBIg37VCDDuV8mj3ic5SDgKii8Ar0zNxWeIsLzPQhSsAbm7MlX2tgDhxcq1z/SBclJfUKplR1VL7IbVwuTDFORJ2x5BJPyNH5yoDdb0o/2oA1RYbvQKJcYhNCEQjC02GUDlinF/seWl22C2u31tjFGkY3jTUQKPjaBK4ZtGZlVDY/oI9JGO4bSotZ59BmkyUTmnHmGwJgqcWTqlacKmn+vGGvQMwE5u3kfraU8rf9i2XpJDmY3Xab4m3Wzw9x4Qwhhf2bMUeGxMiTpwVbKZL2MD19J/+QHYOPqwa5dRJHCqwYUiOp3n7TJ9XC5ffN6RNCrKCZx+YofdjOK1gn9"
+  "webSig2": "ELAB8PUUwj21a7gLpnmJ8jClfK9DPlPl349KAdGqJjzq4Fot7/S5FeWsAVkwSALjC91agJ6y8fKig2/Z99Dzdz6dGjRya+U5kzaa+jSTQ3CWjY64Z8MPN5qhAS/VAJ4HRQDl8wSXyQWW16wHaJjUU23TAbxBlpu2PsOYj7XCuFfa/CpsqJh01NVIlLb+YICY4MEbcWYYOkvvYRk9kslSoori/VqXqQzLN2xxvuJDqp76Jll2yTOmMZKI2yTWHtjmytTX3YlSDgGdNNlRvoUpVu8yD0QheGwLUVnoH3njFR3XjNqlaItD7WNUTq5BbI8DKFUykGWfgs2ZtlIfdrvc08RHnX/Ejr6RrY3857EakBHSke1ZFjCyRUv794krompNBi2ao/GF4YXXfV8xvGSA4hikKwqLNKnhbMSGfZPovdW2fv9MZNUvHNf9KKq2DyHzKJOn4JOgS+KjS3s/5IDvHhEpRIrZfoQbeeCUHJF7ILQY5qnrDvIMEPp8Q2Ia8Mle"
 }

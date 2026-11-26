@@ -206,6 +206,10 @@ public class MasterBridge extends BankBridge {
         });
     }
     @JavascriptInterface public void masterPhotoDelete(String token,String id,long revision,String side,String request){work(token,request,key->MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,false));}
+    /** Een kaartfoto bijsnijden, draaien, rechtzetten of lichter maken (Foto bewerken); ops = FotoOps-JSON, zonder vlakken. */
+    @JavascriptInterface public void masterPhotoBewerk(String token,String id,long revision,String side,String ops,String request){
+        work(token,request,key->{FotoOps o;try{o=FotoOps.lees(ops);}catch(FotoOps.Fout f){throw new MasterError(f.getMessage());}return MasterStore.photoEdit(ctx,key,a.masterSession,token,id,revision,side,o);});
+    }
     /** Voor- en achterkant van een identiteitsdocument omwisselen (de app zette ze andersom). */
     @JavascriptInterface public void masterPhotoSwap(String token,String id,long revision,String request){work(token,request,key->MasterStore.photoSwap(ctx,key,a.masterSession,token,id,revision));}
     /** Deze app kan een kaartfoto (voor- of achterkant) ook uit een PDF of Word-document halen (voor een nieuwere interface op een oudere app). */

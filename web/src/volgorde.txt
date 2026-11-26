@@ -13,6 +13,7 @@ agenda.css
 signalen.css
 betalen.css
 cpap.css
+fotobewerken.css
 body-begin.html
 schermen/01-home.html
 schermen/02-auto-redial.html
@@ -67,6 +68,7 @@ schermen/46-agenda.html
 schermen/47-signalen.html
 schermen/48-betalen.html
 schermen/49-cpap.html
+schermen/50-foto.html
 speler.html
 vensters.html
 taal/en.json
@@ -83,6 +85,7 @@ script/02-thema.js
 script/02-patronen.js
 script/02-bron.js
 script/02-handtekening.js
+script/02-fotobewerken.js
 script/03-auto-redial.js
 script/04-whatsapp-backup.js
 script/05-leesbare-chats.js
@@ -187,5 +190,6 @@ script/76-agenda.js
 script/79-signalen.js
 script/80-betalen.js
 script/81-cpap.js
+script/82-foto-bewerken.js
 script/29-start.js
 einde.html

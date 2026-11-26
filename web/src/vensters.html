@@ -84,6 +84,53 @@
     <div class="modal-btns"><button class="big ghost" id="sl-off" onclick="sleepOff()">Uitzetten</button><button class="big ghost" id="sl-sluit" onclick="sleepClose()">Sluiten</button></div>
   </div>
 </div>
+<!-- Foto bewerken: één bewerker voor alle tools (script/02-fotobewerken.js); alleen in het geheugen -->
+<div class="fbdlg" id="fbdlg" role="dialog" aria-modal="true" aria-labelledby="fb-titel" aria-describedby="fb-status">
+  <div class="fb-kop">
+    <button class="icon-btn" id="fb-dicht" type="button" onclick="fbAnnuleer()" aria-label="Annuleren"><span class="ui-icon" data-icon="close" aria-hidden="true"></span></button>
+    <h3 id="fb-titel">Foto bewerken</h3>
+    <button class="big fb-ok" id="fb-ok" type="button" onclick="fbOk()">Klaar</button>
+  </div>
+  <div class="fb-midden">
+    <p class="hint" id="fb-uitleg"></p>
+    <div class="fb-beeld"><canvas id="fb-doek" width="1" height="1" aria-hidden="true"></canvas><svg id="fb-vlak" role="group" preserveAspectRatio="none"></svg></div>
+    <p class="note" id="fb-status" role="status" aria-live="polite"></p>
+    <div class="row fb-acties">
+      <button class="mini" id="fb-auto" type="button" onclick="fbAuto()" data-icon="sparkle">Automatisch verbeteren</button>
+      <button class="mini" id="fb-ongedaan" type="button" onclick="fbOngedaan()" data-icon="refresh">Ongedaan maken</button>
+      <button class="mini" id="fb-orig" type="button" onclick="fbOrigineel()">Origineel</button>
+    </div>
+    <div class="pctabs fb-tabs" role="tablist" aria-label="Bewerken">
+      <button role="tab" id="fb-tab-snij" data-tab="snij" aria-controls="fb-p-snij" aria-selected="true" tabindex="0" type="button" onclick="fbTab('snij')">Bijsnijden</button>
+      <button role="tab" id="fb-tab-draai" data-tab="draai" aria-controls="fb-p-draai" aria-selected="false" tabindex="-1" type="button" onclick="fbTab('draai')">Draaien</button>
+      <button role="tab" id="fb-tab-licht" data-tab="licht" aria-controls="fb-p-licht" aria-selected="false" tabindex="-1" type="button" onclick="fbTab('licht')">Licht</button>
+      <button role="tab" id="fb-tab-vlak" data-tab="vlak" aria-controls="fb-p-vlak" aria-selected="false" tabindex="-1" type="button" onclick="fbTab('vlak')">Afdekken</button>
+    </div>
+    <div class="fb-paneel" id="fb-p-snij" role="tabpanel" aria-labelledby="fb-tab-snij">
+      <p class="hint">Sleep de hoeken of de randen naar wat je wilt houden. Staat het document schuin of scheef, zet dan de hoeken op de hoeken van het document: dan wordt het rechtgetrokken.</p>
+      <label class="f" for="fb-verh">Verhouding</label>
+      <select class="sel" id="fb-verh" onchange="fbVerhouding(this.value)"></select>
+      <div class="row"><button class="mini" type="button" onclick="fbZoekDocument()" data-icon="search">Document zoeken</button><button class="mini" type="button" onclick="fbHeel()">Hele foto</button></div>
+    </div>
+    <div class="fb-paneel" id="fb-p-draai" role="tabpanel" aria-labelledby="fb-tab-draai" hidden>
+      <div class="row"><button class="mini" type="button" onclick="fbDraai(-1)" data-icon="rotate-left">Kwartslag naar links</button><button class="mini" type="button" onclick="fbDraai(1)" data-icon="rotate-right">Kwartslag naar rechts</button></div>
+      <label class="f" for="fb-hoek">Rechtzetten <output id="fb-hoek-n" for="fb-hoek"></output></label>
+      <input type="range" id="fb-hoek" min="-45" max="45" step="0.5" value="0" oninput="fbHoek(this.value)" onchange="fbHoekKlaar()">
+    </div>
+    <div class="fb-paneel" id="fb-p-licht" role="tabpanel" aria-labelledby="fb-tab-licht" hidden>
+      <button class="mini" type="button" onclick="fbAutoLicht()" data-icon="sparkle">Belichting automatisch</button>
+      <label class="f" for="fb-licht">Helderheid</label>
+      <input type="range" id="fb-licht" min="-100" max="100" step="1" value="0" oninput="fbLicht('licht', this.value)" onchange="fbLichtKlaar()">
+      <label class="f" for="fb-contrast">Contrast</label>
+      <input type="range" id="fb-contrast" min="-100" max="100" step="1" value="0" oninput="fbLicht('contrast', this.value)" onchange="fbLichtKlaar()">
+      <div class="sw"><span>Zwart-wit</span><button class="tg" id="fb-grijs" type="button" role="switch" aria-checked="false" onclick="fbGrijs()" aria-label="Zwart-wit"></button></div>
+    </div>
+    <div class="fb-paneel" id="fb-p-vlak" role="tabpanel" aria-labelledby="fb-tab-vlak" hidden>
+      <p class="hint">Sleep over wat niemand hoeft te zien (bijvoorbeeld een nummer): dat wordt zwart, ook in de foto zelf.</p>
+      <div class="row"><button class="mini" id="fb-vlak-weg" type="button" onclick="fbVlakWeg(false)">Laatste vlak weg</button><button class="mini" id="fb-vlak-alles" type="button" onclick="fbVlakWeg(true)">Alle vlakken weg</button></div>
+    </div>
+  </div>
+</div>
 <!-- Je handtekening tekenen: één venster voor alle tools (script/02-handtekening.js) -->
 <div class="modal" id="sigdlg">
   <div class="modal-box sig-box" role="dialog" aria-modal="true" aria-labelledby="sig-title" aria-describedby="sig-uitleg">

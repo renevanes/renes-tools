@@ -208,6 +208,8 @@ final class MrzOcr {
         /** Van de beste lezing alleen het formaat, de afwijking en de controlecijfers (nooit de tekens zelf). */
         String besteFormaat; double besteAfwijking; boolean nrOk, gebOk, vervOk, bruikbaar, heelOk; int geldig;
         java.util.Set<String> verbeterd=new java.util.TreeSet<>();
+        /** De tweede manier (MrzTekst, uit de gewone tekstherkenning): geprobeerd, hoeveel regels leken op een strook, hoeveel lezingen, gevonden. */
+        boolean tekstGeprobeerd, tekstGevonden; int tekstKandidaten, tekstLezingen;
         /** Zoals {@link MrzOcr#better}, maar met alleen de bewaarde getallen. */
         void neem(Mrz.Result r){
             if(r==null)return;
@@ -228,6 +230,7 @@ final class MrzOcr {
             if(besteFormaat!=null)b.append(", beste ").append(besteFormaat).append(" afwijking ").append(Math.round(besteAfwijking*10)/10.0)
                 .append(" controle nr/geb/verv ").append(nrOk?"ja":"nee").append("/").append(gebOk?"ja":"nee").append("/").append(vervOk?"ja":"nee")
                 .append(" geheel ").append(heelOk?"ja":"nee").append(" verbeterd ").append(verbeterd.isEmpty()?"niets":verbeterd.toString().replace("[","").replace("]","").replace(", ","+"));
+            if(tekstGeprobeerd||tekstGevonden)b.append("; tekst: regels ").append(tekstKandidaten).append(", lezingen ").append(tekstLezingen).append(", strook ").append(tekstGevonden?"ja":"nee");
             return b.toString();
         }
         private static void regels(StringBuilder b,java.util.TreeMap<Integer,Integer> m){
@@ -238,6 +241,8 @@ final class MrzOcr {
     private static final ThreadLocal<Spoor> SPOOR=new ThreadLocal<>();
     /** Spoor bijhouden op deze draad (null = stoppen). */
     static void volg(Spoor s){if(s==null)SPOOR.remove();else SPOOR.set(s);}
+    /** Het spoor van deze draad (null als niemand meekijkt). */
+    static Spoor spoor(){return SPOOR.get();}
     static Mrz.Result find(Gray g){return find(g,85,null);}
     /** Zo lang moet een regel bij de strenge drempel minstens zijn voor een mildere ronde (een bleke strook valt half weg). */
     static final int KANDIDAAT=20;

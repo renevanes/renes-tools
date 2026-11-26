@@ -276,6 +276,9 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle b) {
+        opstart = Opstart.nu();
+        final long voorAf = Math.max(0, android.os.SystemClock.uptimeMillis() - android.os.Process.getStartUptimeMillis()); // proces en App.onCreate
+        final boolean eersteScherm; synchronized (ALL) { eersteScherm = ALL.isEmpty(); } // proces= alleen bij een koude start
         super.onCreate(b);
         // Meteen in de kleur van het gekozen thema (ook automatisch 's avonds donker): geen witte flits bij het opstarten
         final int bg0 = Thema.bg(this);
@@ -303,20 +306,21 @@ public class MainActivity extends Activity {
         synchronized (ALL) { ALL.add(this); }
         // Een terugzetten dat halverwege stopte (ook als de app vóór het ontgrendelen startte): eerst afmaken of terugdraaien
         if (!isSolo() || "backup".equals(solo)) AppBackup.recoverIfNeeded(getApplicationContext());
+        // De interface (±3,5 MB) alvast lezen en controleren terwijl hieronder de WebView gemaakt wordt (Prestaties)
+        htmlVooraf = new java.util.concurrent.FutureTask<>(() -> leesInterface());
+        new Thread(App.veilig(htmlVooraf), "interface-lezen").start();
         IdCopy.cleanStale(getApplicationContext());
         PdfCompare.cleanStale(getApplicationContext());
         Kluis.cleanTmp(getApplicationContext());
         { Context app = getApplicationContext(); new Thread(() -> { try { PdfTools.opruimKluisIn(app); } catch (Throwable ignored) { } }, "pdf-kluis-oud").start(); }
         PlayPolicy.sanitizePreferences(getApplicationContext());
+        opstart.stap("opruimen");
         if (!Updater.viaPlay(this)) {
             RedialService.createChannel(this);
             WaBackupService.createChannel(this);
-            WaBackupJob.ensureScheduled(this); // houdt de nachtelijke backup gepland
-            Care.ensureScheduled(this);
-            NotifCenter.ensureAll(this);        // alle soorten meldingen met nette namen in Android         // dagelijks onderhoud: backup-controle (maandelijks) en batterij (wekelijks)
-            AllBackupJob.ensureScheduled(this);
-            TranscribeJob.ensureScheduled(this);
-            ApparatenJob.ensure(getApplicationContext(), false); // Apparaten op de achtergrond (alleen als dat aan staat)
+            // Taken en meldingskanalen nalopen (elk een paar vragen aan Android): op een eigen draad, de hoofdthread tekent nu het scherm
+            final Context appT = getApplicationContext();
+            new Thread(App.veilig(() -> startTaken(appT)), "start-taken").start();
             // Automatiseringen: plekken opnieuw instellen als Android ze kwijt kan zijn (bijv. na geforceerd stoppen op Oppo)
             if (System.currentTimeMillis() - Auto.prefs(this).getLong("armedAt", 0) > 6 * 3600_000L) Auto.armPlaces(this, true);
         }
@@ -328,12 +332,14 @@ public class MainActivity extends Activity {
             final Context app = getApplicationContext();
             new Thread(() -> { try { Herstel.afterRestart(app); Herstel.resumeModels(app); } catch (Throwable t) { App.log(app, "HERSTEL", "na start: " + t); } }, "herstel-start").start();
         }
+        opstart.stap("taken");
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         topBar = new View(this);
         bottomBar = new View(this);
         web = new PrivWeb(this);
+        opstart.stap("webview");
         root.addView(topBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
         // De WebView met daarover een dichte laag: met app-slot blijft die liggen tot het slotscherm echt getekend is.
         android.widget.FrameLayout holder = new android.widget.FrameLayout(this);
@@ -375,6 +381,7 @@ public class MainActivity extends Activity {
         web.setWebChromeClient(new Chrome(this));
         web.addJavascriptInterface(new Bridge(this), "Android");
         web.setBackgroundColor(bg0);
+        opstart.stap("scherm");
 
         if (Build.VERSION.SDK_INT >= 33) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
@@ -384,7 +391,7 @@ public class MainActivity extends Activity {
         pendingOpen = openExtra(this, getIntent());
         boolean fromHistory = getIntent() != null && (getIntent().getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0;
         if (b == null && !fromHistory && takeShare(getIntent())) pendingOpen = "share";
-        Shortcuts.refreshPinned(this);
+        if (Updater.viaPlay(this)) Shortcuts.refreshPinned(this); // anders in startTaken
         if (!Kluis.isOpen()) Kluis.clearViews(this); // tijdelijk ontsleutelde documenten van een eerdere keer opruimen
         if (b == null && !fromHistory) playFromShortcut(getIntent()); // niet opnieuw afspelen bij terugkomen via Recents
         if (b == null && !fromHistory) RedialPlan.startMissed(this, getIntent());
@@ -393,7 +400,51 @@ public class MainActivity extends Activity {
             coverOn();
             h.postDelayed(() -> { if (!uiReady) showUi(); }, 4000); // vangnet als de pagina het niet meldt
         }
+        opstart.stap("overig");
         loadUi();
+        Opstart.log(opstart.regel("onCreate") + (eersteScherm ? " proces=" + voorAf : " warm"));
+    }
+
+    /** Opstarttijden (alleen getallen, logcat; zie Opstart): tot de pagina zich meldt, daarna weg. */
+    private Opstart opstart;
+
+    /**
+     * Bij het openen van de app nagelopen (Prestaties: niet op de hoofdthread). Elk apart, zodat één fout de rest niet
+     * overslaat. Alles hier mocht al vanaf een andere draad (de brug en Herstel doen het ook).
+     */
+    static void startTaken(Context c) {
+        try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND); } catch (Throwable ignored) { }
+        try { WaBackupJob.ensureScheduled(c); } catch (Throwable e) { App.log(c, "START", "nachtelijke backup inplannen: " + e.getClass().getSimpleName()); } // houdt de nachtelijke backup gepland
+        try { Care.ensureScheduled(c); } catch (Throwable e) { App.log(c, "START", "onderhoud inplannen: " + e.getClass().getSimpleName()); } // dagelijks onderhoud: backup-controle (maandelijks) en batterij (wekelijks)
+        try { NotifCenter.ensureAll(c); } catch (Throwable e) { App.log(c, "START", "meldingskanalen: " + e.getClass().getSimpleName()); } // alle soorten meldingen met nette namen in Android
+        try { AllBackupJob.ensureScheduled(c); } catch (Throwable e) { App.log(c, "START", "backup inplannen: " + e.getClass().getSimpleName()); }
+        try { TranscribeJob.ensureScheduled(c); } catch (Throwable e) { App.log(c, "START", "uitschrijven inplannen: " + e.getClass().getSimpleName()); }
+        try { ApparatenJob.ensure(c, false); } catch (Throwable e) { App.log(c, "START", "apparaten inplannen: " + e.getClass().getSimpleName()); } // Apparaten op de achtergrond (alleen als dat aan staat)
+        try { Shortcuts.refreshPinned(c); } catch (Throwable e) { App.log(c, "START", "snelkoppelingen: " + e.getClass().getSimpleName()); }
+    }
+
+    /** De interface die geladen wordt, met de HTML al gelezen (en bij een gedownloade versie gecontroleerd). */
+    static final class Interface {
+        final Updater.Web w; final String html;
+        Interface(Updater.Web w, String html) { this.w = w; this.html = html; }
+    }
+
+    /** Alvast gelezen bij het openen (onCreate); alleen de eerste keer laden gebruikt hem. */
+    private java.util.concurrent.FutureTask<Interface> htmlVooraf;
+
+    private Interface leesInterface() {
+        Updater.Web w = Updater.geladen(this);
+        return new Interface(w, w == null ? readAsset("index.html") : w.html);
+    }
+
+    /** Wat interface-lezen al klaarzette (wacht zo nodig); null = zelf lezen (geen of mislukt). */
+    private Interface neemVooraf() {
+        java.util.concurrent.FutureTask<Interface> f = htmlVooraf;
+        htmlVooraf = null;
+        if (f == null) return null;
+        f.run(); // nog niet begonnen: nu hier (zoals vroeger); loopt hij al, dan keert dit meteen terug
+        try { return f.get(); } // alleen wachten op wat de draad nog moet doen
+        catch (Throwable e) { return null; }
     }
 
     /** Pagina klaar (slotscherm al getekend als de app op slot is): nu pas tonen. */
@@ -413,11 +464,16 @@ public class MainActivity extends Activity {
     private boolean webUitBeeld;
 
     private void loadUi() {
-        Updater.Web w = Updater.geladen(this);
+        Interface i = neemVooraf();
+        if (i == null) i = leesInterface();
+        Updater.Web w = i.w;
         webGeladen = w == null ? 0 : w.code;
         webGemeld = false; webUitBeeld = false;
         final int ronde = ++webRonde;
-        web.loadDataWithBaseURL(BASE_URL, w == null ? readAsset("index.html") : w.html, "text/html", "utf-8", null);
+        String html = i.html;
+        if (opstart != null) opstart.stap("html");
+        web.loadDataWithBaseURL(BASE_URL, html, "text/html", "utf-8", null);
+        if (opstart != null) opstart.stap("laden");
         if (webGeladen > 0 && !isSolo()) h.postDelayed(() -> webNietGestart(ronde), WebStart.WACHT_MS);
     }
 
@@ -678,6 +734,7 @@ public class MainActivity extends Activity {
             case "betalen": return BetalenBridge.REQ_BESTAND;
             case "stamgegevens": return MasterPhotos.REQUEST;
             case "handtekening": return REQ_SIG_IMG;
+            case "foto": return FotoBridge.REQ_FOTO;
             default: return -1;
         }
     }
@@ -1126,6 +1183,7 @@ public class MainActivity extends Activity {
             }), "sig-image").start();
             return;
         }
+        if (req == FotoBridge.REQ_FOTO) { FotoBridge.opGekozen(this, res == RESULT_OK && data != null ? data.getData() : null); return; }
         if (req == BetalenBridge.REQ_BESTAND) { BetalenBridge.opBestand(this, res == RESULT_OK && data != null ? data.getData() : null); return; }
         if (req == REQ_FACT_PDF) {
             final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
@@ -2655,7 +2713,10 @@ public class MainActivity extends Activity {
         /** De pagina is opgebouwd (en toont het slotscherm als dat moet). */
         @JavascriptInterface public void uiReady() {
             a.webGemeld = true;
-            a.h.post(() -> { if (!a.isSolo()) WebStart.gemeld(ctx, a.webGeladen); });
+            a.h.post(() -> {
+                if (!a.isSolo()) WebStart.gemeld(ctx, a.webGeladen);
+                if (a.opstart != null) { Opstart.log("uiReady na=" + a.opstart.sinds()); a.opstart = null; }
+            });
             a.h.postDelayed(a::showUi, 50);
         }
         /** Losse app: welke tool ("" in de gewone app). */
