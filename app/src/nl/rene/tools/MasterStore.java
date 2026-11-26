@@ -64,7 +64,7 @@ final class MasterStore {
                 db.execSQL("CREATE TABLE IF NOT EXISTS records(id TEXT PRIMARY KEY,rev INTEGER NOT NULL,body BLOB NOT NULL)");
                 db.execSQL("CREATE TABLE IF NOT EXISTS events(seq INTEGER PRIMARY KEY,body BLOB NOT NULL)");
                 db.execSQL("CREATE TABLE IF NOT EXISTS control(id INTEGER PRIMARY KEY CHECK(id=1),body BLOB NOT NULL)");
-                db.execSQL("CREATE TABLE IF NOT EXISTS fotos_oud(n INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL,side TEXT NOT NULL,t INTEGER NOT NULL,k TEXT NOT NULL,body BLOB NOT NULL)");
+                fotosOudTabel(db,key);
                 long a=android.os.SystemClock.elapsedRealtime();
                 JSONObject head=verify(db,key);long b=android.os.SystemClock.elapsedRealtime();
                 JSONObject result=work.run(db,key,head);long d=android.os.SystemClock.elapsedRealtime();
@@ -73,6 +73,19 @@ final class MasterStore {
                 return result;
             }finally{try{if(db.inTransaction())db.endTransaction();}finally{db.close();}}
         }
+    }
+    /**
+     * De tabel met eerdere kaartfoto's kwam er later bij. De controle vergelijkt het hele schema: bestaande stamgegevens
+     * worden daarom eerst met het oude schema gecontroleerd, daarna komt de tabel erbij en het nieuwe schema in de controleregel.
+     */
+    static void fotosOudTabel(SQLiteDatabase db,SecretKey key)throws Exception{
+        if(number(db,"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='fotos_oud'")!=0)return;
+        boolean bestaand=number(db,"SELECT COUNT(*) FROM control WHERE id=1")!=0;
+        JSONObject head=bestaand?verify(db,key):null;
+        db.execSQL("CREATE TABLE fotos_oud(n INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL,side TEXT NOT NULL,t INTEGER NOT NULL,k TEXT NOT NULL,body BLOB NOT NULL)");
+        if(head==null)return;
+        head.put("schema",schemaDigest(db));
+        ContentValues control=new ContentValues();control.put("id",1);control.put("body",MasterCipher.encrypt(key,"control",bytes(head)));db.insertWithOnConflict("control",null,control,SQLiteDatabase.CONFLICT_REPLACE);
     }
     static JSONObject decode(byte[] bytes)throws Exception{return new JSONObject(new String(bytes,StandardCharsets.UTF_8));}
     static byte[] bytes(JSONObject o){return o.toString().getBytes(StandardCharsets.UTF_8);}

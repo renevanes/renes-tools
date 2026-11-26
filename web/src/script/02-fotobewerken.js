@@ -253,7 +253,7 @@ function fbVergToon(aan){
   $('#fb-verg').hidden = !aan; $('#fb-werk').hidden = aan;
 }
 async function fbControle(){
-  const nr = ++fb.render, foto = fb.foto; fb.modus = 'controle';
+  const nr = ++fb.render, foto = fb.foto; fb.zoek++; fb.modus = 'controle';
   $('#fb-verg-uitleg').textContent = fb.opts.controleUitleg || t('Controleer wat er verandert.');
   $('#fb-verg-voor-t').textContent = t('Zo is hij nu'); $('#fb-verg-na-t').textContent = t('Zo wordt hij');
   $('#fb-verg-voor').src = ksVerklein(foto, 900).toDataURL('image/jpeg', 0.85); $('#fb-verg-na').removeAttribute('src');
