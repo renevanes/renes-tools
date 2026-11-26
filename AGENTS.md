@@ -1169,7 +1169,13 @@ alleen in het geheugen (nooit leesbaar op schijf; weg bij verlaten of een nieuwe
 onder Gemaakt en vanzelf de kluis in (`kcNaMaken`, herkomst `foto`). Niet in de Play-versie.
 **Stamgegevens**: Foto bewerken op het documentkaartje (`masterPhotoBewerk` → `MasterStore.photoEdit`, Activiteiten
 `photo_edit`; zonder afdekken: de app leest de foto nog) en na een nieuwe kaartfoto een voorstel op het kaartje
-(`cmc.fbNa`, Toepassen/Aanpassen/Laten zo). **ID-kopie**: per pagina `ops` (na `turn`), voorbeeld via
+(`cmc.fbNa`, Toepassen/Aanpassen/Laten zo); ook op het bewerkscherm (blok Foto's, `cmiPhotoBewerk`). **Eerst een voorbeeld**
+(`controle: true`): na Bewaren toont de bewerker voor en na naast elkaar (`fbControle`, `#fb-verg`), pas de tweede Bewaren
+vervangt de foto. **Eerdere versies** (wens van Rene: terug kunnen): `photoEdit` bewaart de vorige foto in de tabel
+`fotos_oud` van de stamgegevens (per rij één foto, versleuteld met `MasterCipher`, hooguit `MAX_OUD` per kant; weg bij een
+andere foto, verwijderen van de foto of het document; wisselt mee bij omwisselen). Op het kaartje "N eerdere versies"
+(`masterPhotoVersies`), een versie naast de foto van nu (`masterPhotoVersie`, `fbVergelijk`) en Terugzetten
+(`masterPhotoTerug` → `photoRestore`, Activiteiten `photo_restore`; de foto van nu wordt zelf een eerdere versie). **ID-kopie**: per pagina `ops` (na `turn`), voorbeeld via
 `idCopyPreviewBewerkt` (`volg` herkent oude antwoorden, `bron` = zonder bewerking voor de bewerker), mee in het plan van
 `idCopySave` (`IdCopy.bewerkt`, op EDGE); bij een nieuwe pagina meteen het voorstel (alleen bijsnijden of draaien:
 `fbVormVoorstel`), met Bijsnijden en rechtzetten (`#id-bewerk`) om het aan te passen of terug te draaien. Een oudere app

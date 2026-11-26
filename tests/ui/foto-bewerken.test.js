@@ -118,7 +118,20 @@ const { chromium } = require('playwright'); const path = require('path');
     await pg.click('#cmc-bewerk'); ok(await until(() => fbAan()), 'één foto: meteen de bewerker');
     ok(await pg.evaluate(() => $('#fb-tab-vlak').hidden), 'geen afdekken bij een kaartfoto (de app leest hem nog)');
     await pg.click('#fb-tab-draai'); await pg.click('#fb-p-draai button:has-text("Kwartslag naar rechts")'); await pg.click('#fb-ok');
+    // Eerst voor en na naast elkaar; pas na nog een keer Bewaren wordt de foto vervangen
+    ok(await until(() => !$('#fb-verg').hidden && !!$('#fb-verg-na').getAttribute('src') && !$('#fb-ok').disabled) && await pg.evaluate(() => !(Android._cm.bewerkt || []).length && $('#fb-werk').hidden), 'eerst een voorbeeld: voor en na naast elkaar, nog niets bewaard');
+    ok(/Eerdere versies/.test(await pg.textContent('#fb-verg-uitleg')), 'zegt dat de foto van nu bewaard blijft');
+    await pg.screenshot({ path: __dirname + '/shots/foto-bewerken-controle-' + scheme + '.png' });
+    await pg.click('#fb-verg-terug'); ok(await pg.evaluate(() => $('#fb-verg').hidden && !$('#fb-werk').hidden && fb.ops.draai === 90), 'Verder bewerken: terug in de bewerker, niets kwijt');
+    await pg.click('#fb-ok'); await until(() => !$('#fb-verg').hidden && !$('#fb-ok').disabled); await pg.click('#fb-ok');
     ok(await until(() => (Android._cm.bewerkt || []).length === 1 && !cm.mutating && current === 'cmkaart'), 'bewaard via masterPhotoBewerk');
+    // De vorige foto staat bij Eerdere versies; bekijken naast de foto van nu en terugzetten
+    ok(await until(() => !!$('#cmc-versies') && /Eén eerdere versie/.test($('#cmc-versies').textContent)), 'kaartje: Eén eerdere versie');
+    await pg.click('#cmc-versies'); await pg.locator('#sheet-acts button', { hasText: 'Voorkant van' }).first().click();
+    ok(await until(() => fbAan() && fb.modus === 'los' && !!$('#fb-verg-na').getAttribute('src') && $('#fb-verg-terug').hidden && $('#fb-ok').textContent === 'Terugzetten'), 'eerdere versie naast de foto van nu, met Terugzetten');
+    await pg.click('#fb-ok');
+    ok(await until(() => Android._cm.terug === 1 && !cm.mutating && current === 'cmkaart' && !fbAan()), 'teruggezet');
+    ok(await pg.evaluate(() => Android._cm.oud.length === 1 && Android._cm.events.some(e => e.action === 'photo_restore')), 'de foto van daarnet is nu zelf een eerdere versie; in Activiteiten');
     ok(await pg.evaluate(() => Android._cm.bewerkt[0].side === 'front' && Android._cm.bewerkt[0].ops.draai === 90 && Android._cm.events.some(e => e.action === 'photo_edit')), 'de bewerking (draai) en in Activiteiten: Kaartfoto bewerkt');
     // Na een nieuwe kaartfoto: een voorstel op het kaartje, met Toepassen
     await pg.evaluate(() => { cmiPhotoAfterUnlock({ saved: true, id: '00000000-0000-0000-0000-000000000002', side: 'front' }); cmc.fotos = {}; cmKaartLoad('00000000-0000-0000-0000-000000000002'); });
@@ -132,6 +145,7 @@ const { chromium } = require('playwright'); const path = require('path');
     ok(await until(() => !$('#cmi-front-bewerk').hidden && $('#cmi-back-bewerk').hidden), "bewerkscherm: Voorzijde bewerken zodra de foto er staat (geen achterkant: geen knop)");
     await pg.click('#cmi-front-bewerk'); await until(() => fbAan());
     await pg.click('#fb-tab-draai'); await pg.click('#fb-p-draai button:has-text("Kwartslag naar links")'); await pg.click('#fb-ok');
+    await until(() => !$('#fb-verg').hidden && !$('#fb-ok').disabled); await pg.click('#fb-ok');
     ok(await until(() => (Android._cm.bewerkt || []).length === 3 && !cm.mutating && Android._cm.bewerkt[2].ops.draai === 270 && !$('#cmi-front-paper').hidden), 'bewaard vanaf het bewerkscherm; de foto staat er weer');
     await pg.evaluate(() => cmLock()); await pg.waitForTimeout(100);
 

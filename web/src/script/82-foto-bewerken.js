@@ -90,7 +90,41 @@ cmcPhotos = function(box, r, blok){
   const plek = cmEl('div', undefined, 'cmf-voorstellen'); plek.id = 'cmf-voorstellen'; grid.after(plek);
   let acts = sec.querySelector('.cmi-actions'); if (!acts) { acts = cmEl('div', undefined, 'row cmi-actions'); sec.append(acts); }
   const b = cmEl('button', t('Foto bewerken'), 'mini'); b.type = 'button'; b.id = 'cmc-bewerk'; b.dataset.icon = 'crop'; b.onclick = () => cmfKies(); acts.prepend(b);
+  cmfVersiesLaad(r, acts);
 };
+/* ---------- eerdere versies van een kaartfoto: bekijken naast de foto van nu, en terugzetten ---------- */
+function cmfVersiesKan(){ return typeof Android.masterPhotoVersies === 'function'; }
+function cmfControleTekst(){ return cmfVersiesKan() ? t('Controleer wat er verandert. Bewaren vervangt de foto; de foto van nu blijft bewaard bij Eerdere versies, zodat je terug kunt.') : t('Controleer wat er verandert. Bewaren vervangt de foto.'); }
+function cmfVersiesLaad(r, acts){
+  if (!cmfVersiesKan() || !cmOpen()) return;
+  cmRequest('masterPhotoVersies', [r.id], out => {
+    if (cmc.rec?.id !== r.id || !acts.isConnected) return;
+    const lijst = ['front', 'back'].flatMap(side => (out[side] || []).map(v => ({ side, n: v.n, t: v.t })));
+    cmc.versies = lijst; const oud = $('#cmc-versies'); if (oud) oud.remove();
+    if (!lijst.length) return;
+    const b = cmEl('button', tn(lijst.length, 'Eén eerdere versie', '{n} eerdere versies'), 'mini'); b.type = 'button'; b.id = 'cmc-versies'; b.dataset.icon = 'clock'; b.onclick = cmfVersies;
+    document.querySelector('#cmc-bewerk')?.after(b);
+  }, false, () => {});
+}
+function cmfVersies(){
+  const r = cmc.rec, lijst = cmc.versies || []; if (!cmOpen() || cm.mutating || !r || !lijst.length) return;
+  openSheet(t('Eerdere versies'), t('Na elke bewerking blijft de vorige foto bewaard (hooguit vijf per kant), versleuteld op je telefoon. Kies er een om hem naast de foto van nu te zien.'),
+    lijst.map(v => [v.side === 'front' ? t('Voorkant van {moment}', { moment: fmtDT(v.t) }) : t('Achterkant van {moment}', { moment: fmtDT(v.t) }), () => cmfVersieToon(r, v), 'image']));
+}
+async function cmfVersieToon(r, v){
+  if (!cmOpen() || cm.mutating || cmc.rec?.id !== r.id) return;
+  const nu = await cmfFoto(v.side); if (!cmOpen() || cmc.rec?.id !== r.id) return;
+  cmRequest('masterPhotoVersie', [r.id, v.side, v.n], async out => {
+    if (cmc.rec?.id !== r.id || typeof out.image !== 'string' || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(out.image)) return;
+    cmTouch();
+    const ja = await fbVergelijk({ bron: 'stam', voor: nu || out.image, na: out.image, titel: t('Eerdere versie'), knop: t('Terugzetten'),
+      voorTekst: t('Zo is hij nu'), naTekst: t('De versie van {moment}', { moment: fmtDT(v.t) }),
+      uitleg: t('Terugzetten vervangt de foto van nu; die blijft zelf bewaard als eerdere versie.') });
+    if (!ja || !cmOpen() || cm.mutating || cmc.rec?.id !== r.id) return;
+    cmBusy(true);
+    cmRequest('masterPhotoTerug', [r.id, cmc.rec.revision, v.side, v.n], () => { cmBusy(false); cmListLoad(() => cmKaartLoad(r.id, t('De eerdere versie is teruggezet.'))); });
+  });
+}
 function cmfKies(){
   const r = cmc.rec; if (!cmOpen() || cm.mutating || !r) return;
   const zijden = ['front', 'back'].filter(s => r.images?.[s]);
@@ -106,7 +140,7 @@ async function cmfBewerk(side, ops){
   const src = await cmfFoto(side); if (!src || cmc.rec !== r) return;
   cmTouch();
   const res = await fotoBewerk({ src, bron: 'stam', titel: side === 'front' ? t('Voorkant bewerken') : t('Achterkant bewerken'), knop: t('Bewaren'),
-    soort: cmfSoort(r), zijde: side, ops, afdekken: false, actief: cmTouch,
+    soort: cmfSoort(r), zijde: side, ops, afdekken: false, actief: cmTouch, controle: true, controleUitleg: cmfControleTekst(),
     uitleg: ops ? t('Dit is het voorstel. Pas aan wat niet klopt en tik op Bewaren.') : '' });
   if (!res || !res.gewijzigd || !cmOpen() || cmc.rec?.id !== r.id) return;
   cmfToepassen(r, side, res.ops);
@@ -156,7 +190,7 @@ async function cmiPhotoBewerk(side){
   const r = cm.edit, src = $('#cmi-' + side + '-image').getAttribute('src'); if (!src || !r.images?.[side]) return;
   cmTouch();
   const res = await fotoBewerk({ src, bron: 'stam', titel: side === 'front' ? t('Voorzijde bewerken') : t('Achterzijde bewerken'), knop: t('Bewaren'),
-    soort: cmfSoort(r), zijde: side, afdekken: false, actief: cmTouch });
+    soort: cmfSoort(r), zijde: side, afdekken: false, actief: cmTouch, controle: true, controleUitleg: cmfControleTekst() });
   if (!res || !res.gewijzigd || !cmOpen() || cm.edit !== r || cm.mutating) return;
   cmBusy(true);
   cmRequest('masterPhotoBewerk', [r.id, r.revision, side, JSON.stringify(res.ops)], out => { cmBusy(false); r.revision = out.revision; cmiEditor(); if (!cmi.show) cmiPhotoShow(); cmNote(t('Kaartfoto bewerkt.')); });

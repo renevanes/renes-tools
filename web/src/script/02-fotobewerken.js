@@ -11,7 +11,7 @@ const FB_MAX_TOON = 1000; // zo groot tekent de bewerker de foto op het scherm
 const FB_DOC = { idkaart: 85.6 / 54, rijbewijs: 85.6 / 54, paspoort: 125 / 88 };
 const FB_VERH = () => [['0', t('Vrij')], [String(85.6 / 54), t('ID-kaart of rijbewijs')], [String(125 / 88), t('Paspoort (fotopagina)')],
   [String(297 / 210), t('A4 liggend')], [String(210 / 297), t('A4 staand')], ['1', t('Vierkant')]];
-const fb = { open: false, foto: null, ops: null, terug: [], klaar: null, opts: {}, sleep: -1, vlak: null, tab: 'snij', hoek: 0, hoekBasis: null, cache: {}, teken: 0, toon: null, uit: null, zoek: 0, render: 0, lichtStap: false };
+const fb = { open: false, foto: null, ops: null, terug: [], klaar: null, opts: {}, modus: 'bewerk', sleep: -1, vlak: null, tab: 'snij', hoek: 0, hoekBasis: null, cache: {}, teken: 0, toon: null, uit: null, zoek: 0, render: 0, lichtStap: false };
 
 /* ---------- rekenwerk, zonder scherm ---------- */
 function fbLeeg(){ return { draai: 0, q: [[0, 0], [1, 0], [1, 1], [0, 1]], verhouding: 0, licht: 0, contrast: 0, niveau: [0, 255], grijs: false, vlakken: [] }; }
@@ -213,7 +213,8 @@ function fotoBewerk(opts = {}){
   });
 }
 function fbStart(foto, opts, klaar){
-  Object.assign(fb, { open: true, foto, opts, klaar, ops: opts.ops ? fbKopie(opts.ops) : fbLeeg(), terug: [], tab: 'snij', hoek: 0, hoekBasis: null, cache: {}, sleep: -1, vlak: null, uit: null, lichtStap: false });
+  fbVergToon(false);
+  Object.assign(fb, { modus: 'bewerk', open: true, foto, opts, klaar, ops: opts.ops ? fbKopie(opts.ops) : fbLeeg(), terug: [], tab: 'snij', hoek: 0, hoekBasis: null, cache: {}, sleep: -1, vlak: null, uit: null, lichtStap: false });
   $('#fb-titel').textContent = opts.titel || t('Foto bewerken');
   $('#fb-ok').textContent = opts.knop || t('Klaar');
   $('#fb-tab-vlak').hidden = opts.afdekken === false;
@@ -227,18 +228,53 @@ function fbStatus(s, wacht){ const el = $('#fb-status'); if (wacht) uiWachtTekst
 function fbSluit(uitkomst = null){
   if (!fb.open) return;
   fb.open = false; fb.zoek++; fb.render++; $('#fbdlg').classList.remove('on'); dialogFocus.sync();
-  const k = fb.klaar; fb.klaar = null; fb.foto = null; fb.cache = {}; fb.uit = null; fb.toon = null;
+  const k = fb.klaar; fb.klaar = null; fb.foto = null; fb.cache = {}; fb.uit = null; fb.toon = null; fb.modus = 'bewerk';
+  $('#fb-verg-voor').removeAttribute('src'); $('#fb-verg-na').removeAttribute('src'); fbVergToon(false);
   const c = $('#fb-doek'); c.width = 1; c.height = 1; $('#fb-vlak').innerHTML = '';
   if (k) k(uitkomst);
 }
 function fbAnnuleer(){
   if (!fb.open) return;
+  if (fb.modus === 'controle') { fbVergTerug(); return; } // eerst terug naar het bewerken
+  if (fb.modus === 'los') { fbSluit(null); return; }
   if (fb.terug.length && fbIets(fb.ops)) { askConfirm(t('Stoppen met bewerken?'), t('Wat je hebt aangepast, wordt niet bewaard.'), t('Stoppen'), () => fbSluit(null)); return; }
   fbSluit(null);
 }
 function fbOk(){
-  if (!fb.open || !fbGeldig(fb.ops.q, fbPix(fb.ops.q))) { fbStatus(t('Dit vlak lukt niet. Zet de hoeken op de hoeken van wat je wilt houden.')); return; }
+  if (!fb.open) return;
+  if (fb.modus === 'los') { fbSluit(true); return; }
+  if (!fbGeldig(fb.ops.q, fbPix(fb.ops.q))) { fbStatus(t('Dit vlak lukt niet. Zet de hoeken op de hoeken van wat je wilt houden.')); return; }
+  // Eerst laten zien wat er verandert (opts.controle): voor en na naast elkaar, dan pas bewaren
+  if (fb.opts.controle && fb.modus === 'bewerk' && fbIets(fb.ops)) { fbControle(); return; }
   fbSluit({ ops: fbSchoon(fb.ops), gewijzigd: fbIets(fb.ops) });
+}
+/* ---------- voor en na naast elkaar ---------- */
+function fbVergToon(aan){
+  $('#fb-verg').hidden = !aan; $('#fb-werk').hidden = aan;
+}
+async function fbControle(){
+  const nr = ++fb.render, foto = fb.foto; fb.modus = 'controle';
+  $('#fb-verg-uitleg').textContent = fb.opts.controleUitleg || t('Controleer wat er verandert.');
+  $('#fb-verg-voor-t').textContent = t('Zo is hij nu'); $('#fb-verg-na-t').textContent = t('Zo wordt hij');
+  $('#fb-verg-voor').src = ksVerklein(foto, 900).toDataURL('image/jpeg', 0.85); $('#fb-verg-na').removeAttribute('src');
+  $('#fb-verg-terug').hidden = false; uiWachtTekst($('#fb-verg-status'), t('Voorbeeld maken…')); $('#fb-ok').disabled = true; fbVergToon(true);
+  let c = null; try { c = await fbRender(foto, fb.ops, 900, fb.cache); } catch (e) { c = null; }
+  if (!fb.open || nr !== fb.render || fb.modus !== 'controle') return;
+  if (!c) { fbVergTerug(); fbStatus(t('Dit vlak lukt niet. Zet de hoeken op de hoeken van wat je wilt houden.')); return; }
+  $('#fb-verg-na').src = c.toDataURL('image/jpeg', 0.85); $('#fb-verg-status').textContent = ''; $('#fb-ok').disabled = false; $('#fb-ok').focus({ preventScroll: true });
+}
+function fbVergTerug(){ if (!fb.open || fb.modus !== 'controle') return; fb.modus = 'bewerk'; fb.render++; fbVergToon(false); fbTeken(); }
+/** Twee foto's naast elkaar met één vraag (bijv. een eerdere versie terugzetten): Promise met true of null. */
+function fbVergelijk(opts = {}){
+  if (fb.open) fbSluit(null);
+  return new Promise(klaar => {
+    Object.assign(fb, { modus: 'los', open: true, foto: null, opts, klaar, ops: fbLeeg(), terug: [] });
+    $('#fb-titel').textContent = opts.titel || t('Vergelijken'); $('#fb-ok').textContent = opts.knop || t('Klaar'); $('#fb-ok').disabled = false;
+    $('#fb-verg-uitleg').textContent = opts.uitleg || '';
+    $('#fb-verg-voor-t').textContent = opts.voorTekst || t('Zo is hij nu'); $('#fb-verg-na-t').textContent = opts.naTekst || t('Zo wordt hij');
+    $('#fb-verg-voor').src = opts.voor; $('#fb-verg-na').src = opts.na; $('#fb-verg-status').textContent = ''; $('#fb-verg-terug').hidden = true;
+    fbVergToon(true); $('#fbdlg').classList.add('on'); dialogFocus.sync($('#fb-ok'));
+  });
 }
 /** De uitsnede verandert: zwarte vlakken liggen dan op iets anders. Weg, en zeggen (liever opnieuw dan op de verkeerde plek). */
 function fbVlakkenWeg(){
@@ -274,7 +310,7 @@ function fbTab(tab){
 /** Het vlak in pixels van de gedraaide foto. */
 function fbPix(q){ const g = fbGedraaid(fb.foto, fb.ops.draai, fb.cache); return q.map(([x, y]) => [x * g.width, y * g.height]); }
 function fbKnoppen(bezig){
-  if (!fb.open) return;
+  if (!fb.open || fb.modus !== 'bewerk') return;
   $('#fb-ongedaan').disabled = !fb.terug.length; $('#fb-orig').disabled = !fbIets(fb.ops); $('#fb-auto').disabled = !!bezig;
   $('#fb-verh').value = String(fb.ops.verhouding ? FB_VERH().map(x => +x[0]).find(v => v && Math.abs(v - fb.ops.verhouding) < 0.001) || '0' : '0');
   $('#fb-hoek').value = fb.hoek; $('#fb-hoek-n').textContent = t('{n}°', { n: fmtNum(fb.hoek) });
@@ -285,9 +321,9 @@ function fbKnoppen(bezig){
 }
 /** Tekenen (hooguit één keer per beeld). */
 function fbTeken(){
-  if (!fb.open) return;
+  if (!fb.open || fb.modus !== 'bewerk') return;
   fbKnoppen(); if (fb.teken) return;
-  fb.teken = requestAnimationFrame(async () => { fb.teken = 0; if (!fb.open) return; fbKnoppen(); if (fb.tab === 'vlak') await fbTekenUitkomst(); else fbTekenFoto(); });
+  fb.teken = requestAnimationFrame(async () => { fb.teken = 0; if (!fb.open || fb.modus !== 'bewerk') return; fbKnoppen(); if (fb.tab === 'vlak') await fbTekenUitkomst(); else fbTekenFoto(); });
 }
 function fbTekenFoto(){
   const g = fbGedraaid(fb.foto, fb.ops.draai, fb.cache), s = Math.min(1, FB_MAX_TOON / Math.max(g.width, g.height));

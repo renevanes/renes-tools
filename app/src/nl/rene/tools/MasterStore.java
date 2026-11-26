@@ -64,6 +64,7 @@ final class MasterStore {
                 db.execSQL("CREATE TABLE IF NOT EXISTS records(id TEXT PRIMARY KEY,rev INTEGER NOT NULL,body BLOB NOT NULL)");
                 db.execSQL("CREATE TABLE IF NOT EXISTS events(seq INTEGER PRIMARY KEY,body BLOB NOT NULL)");
                 db.execSQL("CREATE TABLE IF NOT EXISTS control(id INTEGER PRIMARY KEY CHECK(id=1),body BLOB NOT NULL)");
+                db.execSQL("CREATE TABLE IF NOT EXISTS fotos_oud(n INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL,side TEXT NOT NULL,t INTEGER NOT NULL,k TEXT NOT NULL,body BLOB NOT NULL)");
                 long a=android.os.SystemClock.elapsedRealtime();
                 JSONObject head=verify(db,key);long b=android.os.SystemClock.elapsedRealtime();
                 JSONObject result=work.run(db,key,head);long d=android.os.SystemClock.elapsedRealtime();
@@ -413,7 +414,7 @@ final class MasterStore {
                 if(id.equals(f.optString("woonadres")))throw new MasterError(Taal.T("Op dit adres woont nog iemand; kies bij die persoon eerst een ander adres"));
                 if("formulier".equals(other.getString("type")))for(String field:MasterFormProfile.FIELDS)if(MasterFormProfile.reference(field)!=null&&id.equals(f.optString(field)))throw new MasterError(Taal.T("Dit stamgegeven wordt gebruikt in vaste formuliergegevens; pas die eerst aan"));}}
             MasterAppContext.invalidate(c);
-            db.delete("records","id=?",new String[]{id});append(db,k,h,"delete","masterdata","",r,null);return new JSONObject().put("ok",true);
+            db.delete("records","id=?",new String[]{id});oudWis(db,id,null);append(db,k,h,"delete","masterdata","",r,null);return new JSONObject().put("ok",true);
         });
     }
     static JSONObject use(Context c,SecretKey key,MasterSession session,String token,String id,long revision,String source,String role,JSONArray wanted,boolean consent)throws Exception{
@@ -501,6 +502,7 @@ final class MasterStore {
             if(r.getLong("revision")!=revision)throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
             JSONObject images=r.optJSONObject("images");if(images==null)images=new JSONObject();
             if(read){append(db,k,h,"photo_view","masterdata","",r,new JSONArray().put(side));return new JSONObject().put("image",images.optString(side)).put("id",id).put("revision",revision).put("side",side);}
+            oudWis(db,id,side); // een andere foto of geen foto meer: de eerdere versies horen daar niet meer bij
             if(value==null)images.remove(side);else{if(!value.startsWith("data:image/jpeg;base64,")||value.length()>MasterPhotos.MAX_DATA)throw new MasterError(Taal.T("De kaartfoto is te groot"));images.put(side,value);}
             long next=revision+1;r.put("images",images).put("revision",next).put("updated",System.currentTimeMillis());
             ContentValues v=new ContentValues();v.put("rev",next);v.put("body",MasterCipher.encrypt(k,"record/"+id+"/"+next,bytes(r)));db.update("records",v,"id=?",new String[]{id});
@@ -525,10 +527,69 @@ final class MasterStore {
             catch(FotoOps.Fout f){throw new MasterError(f.getMessage());}
             finally{java.util.Arrays.fill(bytes,(byte)0);if(b!=null)b.recycle();if(uit!=null)uit.recycle();}
             if(nieuw.length()>MasterPhotos.MAX_DATA)throw new MasterError(Taal.T("De kaartfoto is te groot"));
-            images.put(side,nieuw);
+            oudBewaar(db,k,id,side,oud);images.put(side,nieuw);
             long next=revision+1;r.put("images",images).put("revision",next).put("updated",System.currentTimeMillis());
             ContentValues v=new ContentValues();v.put("rev",next);v.put("body",MasterCipher.encrypt(k,"record/"+id+"/"+next,bytes(r)));db.update("records",v,"id=?",new String[]{id});
             append(db,k,h,"photo_edit","masterdata","",r,new JSONArray().put(side));return new JSONObject().put("id",id).put("revision",next).put("side",side);
+        });
+    }
+    // ---------- eerdere versies van een kaartfoto (na bewerken), om terug te kunnen ----------
+    /** Zoveel eerdere versies per kant; de oudste gaat weg. Elk versleuteld, in een eigen rij (een rij blijft klein). */
+    static final int MAX_OUD=5;
+    private static void oudBewaar(SQLiteDatabase db,SecretKey key,String id,String side,String image)throws Exception{
+        String k=java.util.UUID.randomUUID().toString();ContentValues v=new ContentValues();
+        v.put("id",id);v.put("side",side);v.put("t",System.currentTimeMillis());v.put("k",k);
+        v.put("body",MasterCipher.encrypt(key,"foto-oud/"+id+"/"+k,image.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        db.insertOrThrow("fotos_oud",null,v);
+        db.execSQL("DELETE FROM fotos_oud WHERE id=? AND side=? AND n NOT IN (SELECT n FROM fotos_oud WHERE id=? AND side=? ORDER BY n DESC LIMIT "+MAX_OUD+")",new Object[]{id,side,id,side});
+    }
+    private static void oudWis(SQLiteDatabase db,String id,String side){
+        if(side==null)db.delete("fotos_oud","id=?",new String[]{id});else db.delete("fotos_oud","id=? AND side=?",new String[]{id,side});
+    }
+    private static JSONObject identiteit(SQLiteDatabase db,SecretKey k,String id)throws Exception{
+        JSONObject r=record(db,k,id);if(!r.getString("type").equals("identiteit"))throw new MasterError(Taal.T("Kaartfoto’s horen bij een identiteitsdocument"));return r;
+    }
+    /** Welke eerdere versies er zijn: {front:[{n,t}],back:[…]}, nieuwste eerst. Alleen nummers en tijden. */
+    static JSONObject photoVersions(Context c,SecretKey key,MasterSession session,String token,String id)throws Exception{
+        return transaction(c,key,session,token,(db,k,h)->{
+            identiteit(db,k,id);JSONObject out=new JSONObject().put("id",id).put("front",new JSONArray()).put("back",new JSONArray());
+            try(Cursor cur=db.rawQuery("SELECT n,side,t FROM fotos_oud WHERE id=? ORDER BY n DESC",new String[]{id})){
+                while(cur.moveToNext()){JSONArray l=out.optJSONArray(cur.getString(1));if(l!=null)l.put(new JSONObject().put("n",cur.getLong(0)).put("t",cur.getLong(2)));}
+            }
+            return out;
+        });
+    }
+    private static String oudLees(SQLiteDatabase db,SecretKey k,String id,String side,long n)throws Exception{
+        try(Cursor cur=db.rawQuery("SELECT k,body FROM fotos_oud WHERE n=? AND id=? AND side=?",new String[]{String.valueOf(n),id,side})){
+            if(!cur.moveToFirst())throw new MasterError(Taal.T("Deze versie bestaat niet meer"));
+            String image=new String(MasterCipher.decrypt(k,"foto-oud/"+id+"/"+cur.getString(0),cur.getBlob(1)),java.nio.charset.StandardCharsets.UTF_8);
+            if(!image.startsWith("data:image/jpeg;base64,")||image.length()>MasterPhotos.MAX_DATA)throw new MasterError(Taal.T("Deze versie bestaat niet meer"));
+            return image;
+        }
+    }
+    /** Een eerdere versie bekijken (in Activiteiten als Kaartfoto bekeken). */
+    static JSONObject photoVersion(Context c,SecretKey key,MasterSession session,String token,String id,String side,long n)throws Exception{
+        if(!side.equals("front")&&!side.equals("back"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
+        return transaction(c,key,session,token,(db,k,h)->{
+            JSONObject r=identiteit(db,k,id);String image=oudLees(db,k,id,side,n);
+            append(db,k,h,"photo_view","masterdata","",r,new JSONArray().put(side));
+            return new JSONObject().put("id",id).put("side",side).put("n",n).put("image",image);
+        });
+    }
+    /** Een eerdere versie terugzetten: de foto van nu wordt zelf een eerdere versie, zodat ook dit terug te draaien is. */
+    static JSONObject photoRestore(Context c,SecretKey key,MasterSession session,String token,String id,long revision,String side,long n)throws Exception{
+        if(!side.equals("front")&&!side.equals("back"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
+        return transaction(c,key,session,token,(db,k,h)->{
+            JSONObject r=identiteit(db,k,id);
+            if(r.getLong("revision")!=revision)throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
+            String terug=oudLees(db,k,id,side,n);
+            JSONObject images=r.optJSONObject("images");if(images==null)images=new JSONObject();String nu=images.optString(side,"");
+            db.delete("fotos_oud","n=?",new String[]{String.valueOf(n)});
+            if(nu.startsWith("data:image/jpeg;base64,"))oudBewaar(db,k,id,side,nu);
+            images.put(side,terug);
+            long next=revision+1;r.put("images",images).put("revision",next).put("updated",System.currentTimeMillis());
+            ContentValues v=new ContentValues();v.put("rev",next);v.put("body",MasterCipher.encrypt(k,"record/"+id+"/"+next,bytes(r)));db.update("records",v,"id=?",new String[]{id});
+            append(db,k,h,"photo_restore","masterdata","",r,new JSONArray().put(side));return new JSONObject().put("id",id).put("revision",next).put("side",side);
         });
     }
     /** Voor- en achterkant omwisselen (staat er maar één, dan gaat die naar de andere kant). */
@@ -540,6 +601,8 @@ final class MasterStore {
             String voor=images.optString("front",""),achter=images.optString("back","");
             if(voor.isEmpty()&&achter.isEmpty())throw new MasterError(Taal.T("Voeg eerst een foto van het document toe"));
             images.remove("front");images.remove("back");if(!achter.isEmpty())images.put("front",achter);if(!voor.isEmpty())images.put("back",voor);
+            // de eerdere versies wisselen mee van kant
+            db.execSQL("UPDATE fotos_oud SET side=CASE side WHEN 'front' THEN 'back' ELSE 'front' END WHERE id=?",new Object[]{id});
             long next=revision+1;r.put("images",images).put("revision",next).put("updated",System.currentTimeMillis());
             ContentValues v=new ContentValues();v.put("rev",next);v.put("body",MasterCipher.encrypt(k,"record/"+id+"/"+next,bytes(r)));db.update("records",v,"id=?",new String[]{id});
             append(db,k,h,"photo_swap","masterdata","",r,names(images));return new JSONObject().put("id",id).put("revision",next);

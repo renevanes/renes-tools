@@ -91,7 +91,16 @@
     <h3 id="fb-titel">Foto bewerken</h3>
     <button class="big fb-ok" id="fb-ok" type="button" onclick="fbOk()">Klaar</button>
   </div>
-  <div class="fb-midden">
+  <div class="fb-midden" id="fb-verg" hidden>
+    <p class="hint" id="fb-verg-uitleg"></p>
+    <div class="fb-verg">
+      <figure><figcaption id="fb-verg-voor-t">Zo is hij nu</figcaption><img id="fb-verg-voor" alt="De foto zoals hij nu is"></figure>
+      <figure><figcaption id="fb-verg-na-t">Zo wordt hij</figcaption><img id="fb-verg-na" alt="De foto zoals hij wordt"></figure>
+    </div>
+    <p class="note" id="fb-verg-status" role="status" aria-live="polite"></p>
+    <button class="big ghost" id="fb-verg-terug" type="button" onclick="fbVergTerug()">Verder bewerken</button>
+  </div>
+  <div class="fb-midden" id="fb-werk">
     <p class="hint" id="fb-uitleg"></p>
     <div class="fb-beeld"><canvas id="fb-doek" width="1" height="1" aria-hidden="true"></canvas><svg id="fb-vlak" role="group" preserveAspectRatio="none"></svg></div>
     <p class="note" id="fb-status" role="status" aria-live="polite"></p>

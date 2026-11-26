@@ -19,6 +19,10 @@
 .fb-paneel input[type=range]{width:100%;min-height:44px;accent-color:var(--primary)}
 .fb-paneel .row{flex-wrap:wrap;gap:6px;margin-top:8px}
 .fb-paneel .f output{color:var(--muted);font-weight:400;margin-left:6px}
+.fb-verg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+.fb-verg figure{margin:0;min-width:0}.fb-verg figcaption{font-size:13px;color:var(--muted);margin-bottom:4px}
+.fb-verg img{display:block;width:100%;height:auto;max-height:46vh;object-fit:contain;border-radius:6px;background:var(--hi)}
+@media (orientation:portrait) and (max-width:480px){.fb-verg{grid-template-columns:1fr}.fb-verg img{max-height:30vh}}
 /* De tool */
 .fob-voorbeeld{display:block;max-width:100%;max-height:50vh;margin:8px auto;border-radius:8px;background:var(--hi)}
 .fob-naam{word-break:break-word}

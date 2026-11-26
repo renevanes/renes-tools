@@ -210,6 +210,12 @@ public class MasterBridge extends BankBridge {
     @JavascriptInterface public void masterPhotoBewerk(String token,String id,long revision,String side,String ops,String request){
         work(token,request,key->{FotoOps o;try{o=FotoOps.lees(ops);}catch(FotoOps.Fout f){throw new MasterError(f.getMessage());}return MasterStore.photoEdit(ctx,key,a.masterSession,token,id,revision,side,o);});
     }
+    /** Eerdere versies van de kaartfoto's (na bewerken bewaard): {front:[{n,t}],back:[…]}. */
+    @JavascriptInterface public void masterPhotoVersies(String token,String id,String request){work(token,request,key->MasterStore.photoVersions(ctx,key,a.masterSession,token,id));}
+    /** Eén eerdere versie bekijken. */
+    @JavascriptInterface public void masterPhotoVersie(String token,String id,String side,double n,String request){work(token,request,key->MasterStore.photoVersion(ctx,key,a.masterSession,token,id,side,(long)n));}
+    /** Een eerdere versie terugzetten (de foto van nu wordt zelf een eerdere versie). */
+    @JavascriptInterface public void masterPhotoTerug(String token,String id,long revision,String side,double n,String request){work(token,request,key->MasterStore.photoRestore(ctx,key,a.masterSession,token,id,revision,side,(long)n));}
     /** Voor- en achterkant van een identiteitsdocument omwisselen (de app zette ze andersom). */
     @JavascriptInterface public void masterPhotoSwap(String token,String id,long revision,String request){work(token,request,key->MasterStore.photoSwap(ctx,key,a.masterSession,token,id,revision));}
     /** Deze app kan een kaartfoto (voor- of achterkant) ook uit een PDF of Word-document halen (voor een nieuwere interface op een oudere app). */
