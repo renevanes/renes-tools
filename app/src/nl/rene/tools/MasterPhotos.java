@@ -75,6 +75,8 @@ final class MasterPhotos {
         });
     }
     synchronized void clear(Pending job){if(pending==job)pending=null;notifyAll();}
+    /** Vaste woorden voor het logboek: liep de zoektijd af? */
+    static String tijdOp(long tot){return android.os.SystemClock.elapsedRealtime()>=tot?", tijd op":"";}
     synchronized void cancel(){cancel("anders");}
     /** reden (vaste woorden, voor het logboek): waarom een lopend verwerken stopte. */
     synchronized void cancel(String reden){if(pending!=null)stop=reden;pending=null;notifyAll();}
@@ -159,12 +161,12 @@ final class MasterPhotos {
             if(kant){
                 MrzOcr.Spoor spoor=new MrzOcr.Spoor();MrzOcr.volg(spoor);
                 try{found=MasterDocumentImages.herkenFoto(activity,kies.get(0).jpeg,today,zoekt);}finally{MrzOcr.volg(null);}
-                if(found==null)App.log(activity,"STAMGEGEVENS","document, kaartfoto gekozen: niet herkend; "+spoor.tekst());
+                if(found==null&&active.getAsBoolean())App.log(activity,"STAMGEGEVENS","document, kaartfoto gekozen: niet herkend"+tijdOp(tot)+"; "+spoor.tekst());
                 images.put(job.side,normalize(kies.get(0).jpeg));
             }else if(kies.size()==1){
                 MrzOcr.Spoor spoor=new MrzOcr.Spoor();MrzOcr.volg(spoor);
                 try{found=MasterDocumentImages.herkenFoto(activity,kies.get(0).jpeg,today,zoekt);}finally{MrzOcr.volg(null);}
-                if(found==null)App.log(activity,"STAMGEGEVENS","document, één foto gekozen: niet herkend; "+spoor.tekst());
+                if(found==null&&active.getAsBoolean())App.log(activity,"STAMGEGEVENS","document, één foto gekozen: niet herkend"+tijdOp(tot)+"; "+spoor.tekst());
                 String type=found==null?job.soort:found.getJSONObject("document").optString("documentsoort",job.soort);
                 images.put(MasterSchema.scanSide(type,found),normalize(kies.get(0).jpeg));
             }else{
@@ -177,8 +179,8 @@ final class MasterPhotos {
                 if(a==null&&b==null&&zoekt.getAsBoolean()){a=MasterDocumentImages.herken(activity,kies.get(0).jpeg,today,zoekt,true);if(a==null)b=MasterDocumentImages.herken(activity,kies.get(1).jpeg,today,zoekt,true);}
                 MasterDocumentImages.Pair p=vast?MasterDocumentImages.pairVast(kies.get(0).jpeg,a,kies.get(1).jpeg,b):MasterDocumentImages.pair(kies.get(0).jpeg,a,kies.get(1).jpeg,b,job.soort);
                 // Alleen vaste woorden en ja/nee: nooit tekst uit het document
-                App.log(activity,"STAMGEGEVENS","document, twee foto's gekozen"+(vast?" (volgorde van Rene)":"")+": herkend "+(a!=null?"ja":"nee")+"/"+(b!=null?"ja":"nee")+(p==null?", verschillend":"")
-                    +(a==null&&b==null?"; "+spoor.tekst():""));
+                App.log(activity,"STAMGEGEVENS","document, twee foto's gekozen"+(vast?" (eigen volgorde)":"")+": herkend "+(a!=null?"ja":"nee")+"/"+(b!=null?"ja":"nee")+(p==null?", verschillend":"")
+                    +(!active.getAsBoolean()?", gestopt":a==null&&b==null?tijdOp(tot)+"; "+spoor.tekst():""));
                 if(p==null)throw new MasterError(Taal.T("De twee foto's lijken van verschillende ID-bewijzen te zijn. Kies de voor- en achterkant van hetzelfde ID-bewijs."));
                 images.put("front",normalize(p.front)).put("back",normalize(p.back));found=p.fields;
             }

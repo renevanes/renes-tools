@@ -75,6 +75,8 @@ final class MasterDocumentImages {
             JSONObject d1 = a.optJSONObject("document"), d2 = b.optJSONObject("document");
             String n1 = d1 == null ? "" : d1.optString("document"), n2 = d2 == null ? "" : d2.optString("document");
             if (!n1.isEmpty() && !n2.isEmpty() && !n1.equals(n2)) return null;
+            String s1 = d1 == null ? "" : d1.optString("documentsoort", ""), s2 = d2 == null ? "" : d2.optString("documentsoort", "");
+            if (!s1.isEmpty() && !s2.isEmpty() && !s1.equals(s2)) return null;
         }
         return new Pair(front, back, a != null ? a : b);
     }

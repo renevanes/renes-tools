@@ -518,7 +518,7 @@ final class MasterStore {
             images.remove("front");images.remove("back");if(!achter.isEmpty())images.put("front",achter);if(!voor.isEmpty())images.put("back",voor);
             long next=revision+1;r.put("images",images).put("revision",next).put("updated",System.currentTimeMillis());
             ContentValues v=new ContentValues();v.put("rev",next);v.put("body",MasterCipher.encrypt(k,"record/"+id+"/"+next,bytes(r)));db.update("records",v,"id=?",new String[]{id});
-            append(db,k,h,"photo_add","masterdata","",r,new JSONArray().put("front").put("back"));return new JSONObject().put("id",id).put("revision",next);
+            append(db,k,h,"photo_swap","masterdata","",r,names(images));return new JSONObject().put("id",id).put("revision",next);
         });
     }
     /**

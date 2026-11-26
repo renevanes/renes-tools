@@ -186,7 +186,7 @@ public class MasterBridge extends BankBridge {
                 found=MasterPhotos.recognizeStored(ctx,photo.optString("image"),Regio.dayKey(ctx,System.currentTimeMillis()),()->a.masterSession.accepts(token)&&a.masterForeground&&a.masterWanted,grondig,diag);
             }finally{MrzOcr.volg(null);}
             // Alleen vaste woorden en getallen (MrzOcr.Spoor): waar het lezen bleef steken
-            if(found==null)App.log(ctx,"STAMGEGEVENS","kaartfoto herkennen ("+("front".equals(side)?"voorkant":"achterkant")+(grondig?", grondig":"")+"): niet herkend; "+spoor.tekst());
+            if(found==null&&a.masterSession.accepts(token)&&a.masterForeground)App.log(ctx,"STAMGEGEVENS","kaartfoto herkennen ("+("front".equals(side)?"voorkant":"achterkant")+(grondig?", grondig":"")+"): niet herkend; "+spoor.tekst());
             JSONObject out=new JSONObject().put("id",id).put("side",side).put("diag",diag);if(found!=null)out.put("herkend",found);return out;
         });
     }

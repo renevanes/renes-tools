@@ -53,6 +53,8 @@ public final class MasterDocumentTest {
             MasterDocumentImages.Pair v2 = MasterDocumentImages.pairVast(x, null, y, td1);
             check(v2 != null && v2.front == x && v2.fields == td1, "vaste volgorde: gegevens van de tweede");
             check(MasterDocumentImages.pairVast(x, td1, y, ander) == null, "vaste volgorde: twee verschillende nummers niet samen");
+            org.json.JSONObject pas = new org.json.JSONObject().put("soort", "TD3").put("document", new org.json.JSONObject().put("documentsoort", "paspoort"));
+            check(MasterDocumentImages.pairVast(x, td1, y, pas) == null, "vaste volgorde: paspoort en ID-kaart niet samen");
         } catch (org.json.JSONException e) { throw new AssertionError(e); }
         // Breedte en hoogte uit een PDF zijn PdfSplit.Num
         check(DocumentFotos.getal(new PdfSplit.Num("1500")) == 1500 && DocumentFotos.getal(null) == 0, "getal uit een PDF");

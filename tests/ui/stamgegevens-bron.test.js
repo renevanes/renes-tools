@@ -92,10 +92,10 @@ for(const colorScheme of ['light','dark']){
   await p.evaluate(()=>{Android._cm.kaartFotos=null;});
   // Op het kaartje: voor- en achterkant omwisselen (staat er één, dan naar de andere kant) en zelf laten herkennen
   await T.kaart(doc);await p.waitForSelector('#cmc-wissel');
-  assert.equal(await p.textContent('#cmc-wissel'),'Dit is de achterkant');assert.equal(await p.isVisible('#cmc-herken'),true);
+  assert.equal(await p.textContent('#cmc-wissel'),'Naar de achterkant verplaatsen');assert.equal(await p.isVisible('#cmc-herken'),true);
   await p.click('#cmc-wissel');await p.waitForFunction(()=>/andere kant/.test($('#cm-kaart-status').textContent));
   assert.equal(await p.evaluate(doc=>{const i=Android._cm.records.find(r=>r.id===doc).images;return !i.front&&!!i.back;},doc),true,'de foto staat nu achter');
-  await p.waitForFunction(()=>$('#cmc-wissel')?.textContent==='Dit is de voorkant');
+  await p.waitForFunction(()=>$('#cmc-wissel')?.textContent==='Naar de voorkant verplaatsen');
   await p.click('#cmc-herken');await p.waitForFunction(doc=>current==='cmedit'&&cm.edit?.id===doc&&cm.tab==='fotos',doc);
   await p.waitForFunction(()=>!cmh.scanBusy&&!cm.mutating);
   await p.evaluate(()=>{cm.dirty=false;goBack();});await p.waitForFunction(()=>current==='cmkaart'&&!cm.mutating);
