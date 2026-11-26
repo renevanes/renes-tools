@@ -56,11 +56,14 @@ jobs:
     runs-on: ubuntu-24.04  # vast: een nieuwe Ubuntu mag de publicatie niet ineens stukmaken
     timeout-minutes: 60
     environment: publiceren
-    # Eén publicatie tegelijk. Een wachtende publicatie maakt plaats voor een nieuwere (die bevat dezelfde wijzigingen en
-    # meer); een lopende wordt nooit afgebroken. Daarnaast bewaakt het publicatieslot (publish.sh) dat er nooit twee tegelijk pushen.
+    # Eén publicatie tegelijk, in een wachtrij (queue: max, tot 100): een wachtende wordt nooit afgebroken door een
+    # andere. Zonder wachtrij verving elke nieuwe wachtende de vorige, en die volgorde is die van "tests klaar", niet van
+    # de pushes: een oudere run kon zo nieuwer werk wegdrukken. Wat al in een nieuwere versie staat, stopt meteen (stap
+    # "Al gepubliceerd?"). Daarnaast bewaakt het publicatieslot (publish.sh) dat er nooit twee tegelijk pushen.
     concurrency:
       group: publiceren
       cancel-in-progress: false
+      queue: max
     env:
       TOOLS: ${{ github.workspace }}/../toolchain
       TESTED_SOURCE_SHA: ${{ github.sha }}
@@ -86,8 +89,23 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.sha }}
 
-      - name: Publicatieslot en unieke versies controleren
+      # Een run die pas aan de beurt komt als een nieuwere versie deze bron al bevat: meteen klaar, zonder gereedschap of
+      # sleutel (publish.sh controleert hetzelfde nog eens onder het slot).
+      - name: Al gepubliceerd?
+        id: al
         if: steps.gate.outputs.ok == 'true'
+        run: |
+          git fetch -q origin main
+          laatste=$(git log -1 --format=%H FETCH_HEAD -- update/update.json)
+          if [ -n "$laatste" ] && git merge-base --is-ancestor "$GITHUB_SHA" "$laatste"; then
+            echo "::notice title=Al gepubliceerd::Deze bron staat al in een nieuwere versie; niets te doen."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publicatieslot en unieke versies controleren
+        if: steps.gate.outputs.ok == 'true' && steps.al.outputs.ok == 'true'
         run: |
           bash tests/publicatie-bron.sh
           bash tests/publicatie-voorbereiden.sh
@@ -95,32 +113,32 @@ jobs:
           bash tests/publicatie-geteste-bron.sh
 
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
-        if: steps.gate.outputs.ok == 'true'
+        if: steps.gate.outputs.ok == 'true' && steps.al.outputs.ok == 'true'
         with:
           distribution: temurin
           java-version: '25'
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: steps.gate.outputs.ok == 'true'
+        if: steps.gate.outputs.ok == 'true' && steps.al.outputs.ok == 'true'
         with:
           node-version: '26'
 
       - name: Bouwgereedschap en Playwright (vóór de sleutel er is)
-        if: steps.gate.outputs.ok == 'true'
+        if: steps.gate.outputs.ok == 'true' && steps.al.outputs.ok == 'true'
         run: |
           ./setup-tools.sh
           # valt terug op een andere pakketserver van Ubuntu als die van Azure niet bereikbaar is
           .github/scripts/playwright-installeren.sh
 
       - name: Sleutel uitpakken
-        if: steps.gate.outputs.ok == 'true'
+        if: steps.gate.outputs.ok == 'true' && steps.al.outputs.ok == 'true'
         env:
           PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
         run: |
           ./keys/unlock.sh > /dev/null || { echo "::error::Sleutel uitpakken mislukt; klopt het geheim SIGNING_PASSPHRASE?"; exit 1; }
 
       - name: Testen, bouwen, ondertekenen en publiceren
-        if: steps.gate.outputs.ok == 'true'
+        if: steps.gate.outputs.ok == 'true' && steps.al.outputs.ok == 'true'
         env:
           AGENT: GitHub
           AUTO_NOTES: '1'

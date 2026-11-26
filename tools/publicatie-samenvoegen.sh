@@ -21,9 +21,18 @@ export GIT_INDEX_FILE=$index
 git read-tree "$basis"
 git rm -r -q -f --cached --ignore-unmatch -- update VERSION changelog.json > /dev/null
 git ls-tree -r "$versie" -- VERSION changelog.json update | git update-index --index-info
-# Wijzigingsregels die deze versie verwerkte (weg in de versiecommit), ook weg op main
-git diff --name-only --diff-filter=D "$bron" "$versie" -- wijzigingen | while IFS= read -r f; do
-  git rm -q -f --cached --ignore-unmatch -- "$f" > /dev/null
-done
+# Wijzigingsregels die deze versie verwerkte (weg in de versiecommit), ook weg op main. Kreeg het bestand op main er
+# later regels bij, dan blijven alleen die nieuwe regels staan (voor de volgende versie); anders blijft het zoals het is.
+while IFS= read -r -d '' f; do
+  op_main=$(git rev-parse -q --verify "$basis:$f" 2>/dev/null || true); verwerkt=$(git rev-parse -q --verify "$bron:$f" 2>/dev/null || true)
+  [ -n "$op_main" ] || continue
+  if [ "$op_main" = "$verwerkt" ]; then git rm -q -f --cached --ignore-unmatch -- "$f" > /dev/null; continue; fi
+  oud=$(git cat-file blob "$verwerkt"; echo x); nieuw=$(git cat-file blob "$op_main"; echo x)
+  oud=${oud%x}; nieuw=${nieuw%x}
+  if [ -n "$oud" ] && [ "${nieuw:0:${#oud}}" = "$oud" ]; then
+    rest=$(printf '%s' "${nieuw:${#oud}}" | git hash-object -w --stdin)
+    git update-index --cacheinfo "100644,$rest,$f"
+  fi
+done < <(git diff -z --name-only --diff-filter=D "$bron" "$versie" -- wijzigingen)
 boom=$(git write-tree)
 git commit-tree "$boom" -p "$basis" -p "$versie" -m "$bericht"

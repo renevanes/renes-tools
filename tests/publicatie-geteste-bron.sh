@@ -26,7 +26,9 @@ git add -A && git commit -qm "Versie 1.10" && git push -q origin HEAD:main
 echo twee >> app/bron.txt; echo "Regel van X" > wijzigingen/x.txt
 git add -A && git commit -qm "Werk X" && git push -q origin HEAD:main
 x=$(git rev-parse HEAD)
-echo drie > app/later.txt; echo "Regel van Y" > wijzigingen/y.txt
+echo "Regel van X" > wijzigingen/gedeeld.txt; git add -A; git commit -qm "Gedeelde regel" && git push -q origin HEAD:main
+x=$(git rev-parse HEAD)
+echo drie > app/later.txt; echo "Regel van Y" > wijzigingen/y.txt; echo "Nog een regel van Y" >> wijzigingen/gedeeld.txt
 git add -A && git commit -qm "Werk Y" && git push -q origin HEAD:main
 y=$(git rev-parse HEAD)
 
@@ -35,7 +37,7 @@ git checkout -q --detach "$x"
 printf 'VERSION_NAME=1.11\nVERSION_CODE=12\nNATIVE_LEVEL=6\n' > VERSION
 echo '[{"version":"1.11","changes":["Regel van X"]},{"version":"1.10","changes":["oud"]}]' > changelog.json
 echo '{"versionName":"1.11","versionCode":12,"nativeLevel":6}' > update/update.json
-git rm -q wijzigingen/x.txt
+git rm -q wijzigingen/x.txt wijzigingen/gedeeld.txt
 git add -A && git commit -qm "Versie 1.11"
 v=$(git rev-parse HEAD)
 m=$(tools/publicatie-samenvoegen.sh "$y" "$v" "Versie 1.11")
@@ -47,6 +49,7 @@ git diff --quiet "$y" "$m" -- app || fout "bron van main veranderd"
   && [ "$(git show "$m:changelog.json")" = "$(git show "$v:changelog.json")" ] || fout "versie of update/ niet overgenomen"
 ! git cat-file -e "$m:wijzigingen/x.txt" 2>/dev/null || fout "verwerkte regel bleef staan"
 git cat-file -e "$m:wijzigingen/y.txt" || fout "regel van later werk weg"
+[ "$(git show "$m:wijzigingen/gedeeld.txt")" = "Nog een regel van Y" ] || fout "aangevulde regel op main: alleen de nieuwe regel hoort te blijven"
 # De volgende run (bron Y, main = M): de laatste versie is V, dus Y telt als nieuw
 git push -q origin "$m:refs/heads/main"
 laatste=$(git log -1 --format=%H "$m" -- update/update.json)
@@ -71,5 +74,5 @@ grep -q "al in een nieuwere versie" "$tmp/oud.log" || { cat "$tmp/oud.log"; fout
 f=$(probeer "$tmp/y" "$y")
 [[ $f =~ ^[0-9a-f]{64}$ ]] || fout "het werk van Y niet klaargezet"
 grep -q '^VERSION_NAME=1.12$' "$tmp/y/VERSION" || fout "versie na 1.11 niet 1.12"
-python3 -c "import json,sys; e=json.load(open(sys.argv[1]))[0]; assert e['changes']==['Regel van Y'], e" "$tmp/y/changelog.json" || fout "wijzigingslog van Y klopt niet"
+python3 -c "import json,sys; e=json.load(open(sys.argv[1]))[0]; assert sorted(e['changes'])==['Nog een regel van Y','Regel van Y'], e" "$tmp/y/changelog.json" || fout "wijzigingslog van Y klopt niet"
 echo 'Alleen de geteste bron geslaagd: niets teruggedraaid, nieuwer werk volgt, oudere run publiceert niets'

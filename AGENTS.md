@@ -667,9 +667,12 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
    en `git merge-base --is-ancestor <jouw commit> <head_sha>`). Elke push krijgt meteen een eigen run (tests naast
    elkaar); alleen de taak publiceren gaat één tegelijk. Ging main tijdens het testen verder, dan publiceert de run
    precies de geteste bron ("alleen de geteste bron", zie hieronder) en het nieuwere werk komt met de volgende run.
-   Een wachtende taak publiceren maakt plaats voor een nieuwere (run "cancelled"): die bevat jouw werk ook. Groen is
-   nog niet gepubliceerd: kijk of er na je commit een commit "Versie X.Y" op main staat (bij "alleen de geteste bron"
-   een samenvoegcommit "Versie X.Y" met de versiecommit als tweede ouder). Mislukte hij buiten je wijziging om, start hem dan zelf
+   Wachtende taken publiceren staan in een wachtrij (`queue: max`); een run waarvan de bron al in een nieuwere versie
+   staat, stopt meteen ("Al gepubliceerd"). Groen is nog niet gepubliceerd, en een commit "Versie X.Y" ná de jouwe
+   ook niet (bij "alleen de geteste bron" kan die versie ouder werk bevatten dan het jouwe). Gepubliceerd = je commit
+   zit in de laatste versie: `git fetch origin && git merge-base --is-ancestor <jouw commit> "$(git log -1 --format=%H origin/main -- update/update.json)"`.
+   Elke push start de hele reeks tests (emulators, Play-controle, interfacetests); vlak na elkaar pushen kost dus veel
+   runners en kan Bouwen en testen even laten wachten. Mislukte hij buiten je wijziging om, start hem dan zelf
    opnieuw ("Altijd zelf publiceren") en wacht tot er een versie is. Groeit de APK meer dan 10%, dan
    weigert Publiceren: nooit omzeilen, maar Rene vragen Publiceren met de hand te starten met `allow_grow`, met de reden
    van de groei. Dan staan ook de publicaties van anderen stil: zet dat bovenaan je bericht.
