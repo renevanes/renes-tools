@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.262",
-  "versionCode": 263,
-  "nativeLevel": 227,
+  "versionName": "1.263",
+  "versionCode": 264,
+  "nativeLevel": 228,
   "web": "index.html",
-  "webSha256": "fe8a8c85a427c76441e05a543816024db6731ca1af80be1e0c4e970da6d2dbd3",
+  "webSha256": "152d5d415d1b192ac96c4ad74205d1887f50699f806890d3ebc5866e567a5c5b",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "8403a8228a015702a986238f63babf4aa90a35031e82a7f68966551d3407eaaf",
+  "apkSha256": "2e0b26ab471051e2f664c3a7bdcda16d290f6c9c08bc9ed31727d1f58876b8e2",
   "changelog": [
+    {
+      "version": "1.263",
+      "date": "2026-11-26",
+      "changes": [
+        "Stamgegevens: een paspoort of ID-kaart wordt beter herkend. Lukt het lezen van de strook onderaan niet, dan leest Tools de strook nog eens op een tweede manier. Wat daarbij rechtgezet moest worden, staat als voorstel klaar om na te kijken."
+      ]
+    },
     {
       "version": "1.262",
       "date": "2026-11-26",
@@ -178,16 +185,7 @@
         "Stamgegevens: gaat het scherm uit terwijl een document of kaartfoto herkend wordt, dan gaat het herkennen door en wordt het na ontgrendelen bewaard; je hoeft het niet opnieuw te kiezen.",
         "Bankzaken: een afschrift dat aan het inlezen was, wordt ook bewaard als Bankzaken intussen op slot gaat; de uitslag zie je na ontgrendelen."
       ]
-    },
-    {
-      "version": "1.243",
-      "date": "2026-11-23",
-      "changes": [
-        "Stamgegevens: bij Document toevoegen kun je nu ook een Google-document kiezen; Tools haalt het als Word-bestand of PDF op.",
-        "Stamgegevens: een ID-bewijs dat klein op een PDF-pagina staat (een scan of kopie op A4) wordt nu beter herkend.",
-        "Stamgegevens: lukt het toevoegen van een document niet, dan zie je nu een melding met de reden in plaats van niets."
-      ]
     }
   ],
-  "webSig2": "d2CRviUXrSZqvi11jKM6DhTMO4qIA/c/Vft4NveGEIdvwsSeGH8nMKtnq7g6urmQX73N6dgJO2IlcG1f0vk8cINcVcq1eFXAU11xMdDKQHCkURBWOowJelulnbS9Bh9NWWGi9AuquKdiuTkQRhAkW19TgnOHlCxV+PReXquVl78Ic29TUt/rbgrvdyxa/03vp9lA7rNq2jPKCW/p8z3kgSgb//rvYgauvyCSe2oTJ4Wbh9e//zn8PzkwL7v4DiJe9cEDSaxvnF4R4wTPzhFvuo03sFUjZB8YxZKgvaV/aNZ7/COnT8u3RHbqtLbCO6q/pSnl10M0ydj/gNGbaLEkmdJ/ZS8TKvtFoDcWfQ0pRnI5O3F+mi2QNTz1LzA/IyDa0GEf0leb/xAYqLU5SkDYknfMc0omdmDcTDqSSek207vIwMZoJ1Qaat9lXliCLOooq1DXROV9tnOf5kWMTZjcRW1SCQH9eQlzMW+7SUVShl/CmljQQeXk7lrzOfdK7H/r"
+  "webSig2": "emz7JkB7tGcipWhQHKnUjaMBMboq+SmPy60/yvY44KNHPObubTFwFnRBpItyL4zipbSpSvm1F9YSk+EryFHYmJFA0w0OqIJ6DbZ8EMDkqeQ7HjIZl5vv01cjEsP8Jxl3SYztR/wJHQ6CBpXXh8GLZd9SN8PqtJ3qEHG39tJ6GqfiIe53X4973k5nUV12BnQ5O2GgWcN4sNBKtYoomQ/SJfYHi92a2iMc1FvanLzVJBYC5NY60Nu5NGm5K2FpqBkxf0bInjcHXhhGP6yl0jk6q5YhEpU5HcYNUgZiT3G5/oa+WTLxYmsqYhukTzrOrz51/HOy8bm6EnYc5mCvpTUsAxLNve+0o+Blyb0hSXCgAbERDsC24sOmfu/SsMqFts+9eo3+k7A4woBaSNyfV+V6gLezXe8tupsMfuYbm+UU4OCk3fgxzgGBFOvDlXDNyFpF4se8WkV9aBhk4wvNMzrUz0CScoAZ3cu4Ps1JbE5CtU5J/08+NsknIuhzbnRyBoXb"
 }
