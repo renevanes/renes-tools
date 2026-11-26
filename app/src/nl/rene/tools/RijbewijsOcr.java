@@ -79,16 +79,35 @@ final class RijbewijsOcr {
             if(diag!=null)diag.put("ocr",true);
             api.setDebug(false);api.setVariable("tessedit_write_images","0");api.setVariable("user_defined_dpi","300");
             JSONObject best=null;int bestTurn=-1,bestScore=-1;
+            MrzTekst.Telling telling=new MrzTekst.Telling();int strookTurn=-1,strookRegels=0;
             // 1. Gewoon, in vier draaiingen
             for(int turn=0;turn<4&&running.getAsBoolean()&&!complete(best);turn++) {
                 Bitmap page=turned(image,turn);
                 try {
                     List<Rijbewijs.Line> found=ocr(api,page,TessBaseAPI.PageSegMode.PSM_SPARSE_TEXT);if(!running.getAsBoolean())break;if(found==null)continue;
+                    // Paspoort of ID-kaart waarvan de strook MrzOcr niet lukte: dezelfde tekst als strook lezen
+                    JSONObject m=strook(found,today,telling);if(m!=null)return klaar(m,diag,thorough,active);
+                    if(telling.kandidaten>strookRegels){strookRegels=telling.kandidaten;strookTurn=turn;}telling.kandidaten=0;
                     JSONObject r=Rijbewijs.read(found,today,stand);lines=Math.max(lines,stand.regels);licence|=stand.rijbewijs;bottom|=stand.onderregel;
                     int score=(r==null?0:100*r.optInt("gelezen"))+(stand.rijbewijs?50:0)+stand.regels;
                     if(score>bestScore){bestScore=score;bestTurn=turn;}
                     best=Rijbewijs.merge(best,r);
                 }finally{if(page!=image)page.recycle();}
+            }
+            // 1b. Leek er een regel op een strook, lees dan alleen de tekens van de strook (zonder spaties), zwart-wit en vergroot
+            if(strookTurn>=0&&running.getAsBoolean()) {
+                Bitmap page=turned(image,strookTurn);
+                try{
+                    api.setVariable("tessedit_char_whitelist",MrzTekst.TEKENS);api.setVariable("preserve_interword_spaces","0");
+                    for(int poging=0;poging<2&&running.getAsBoolean();poging++){
+                        Bitmap groot=poging==0?null:stretched(page,3200),bw=null;
+                        try{bw=binary(groot==null?page:groot,poging==0?2400:3200);telling.kandidaten=0;
+                            List<Rijbewijs.Line> found=ocr(api,bw,TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK);
+                            if(found!=null){JSONObject m=strook(found,today,telling);if(m!=null)return klaar(m,diag,thorough,active);}
+                            strookRegels=Math.max(strookRegels,telling.kandidaten);}
+                        finally{if(bw!=null)bw.recycle();if(groot!=null&&groot!=page)groot.recycle();}
+                    }
+                }finally{api.setVariable("tessedit_char_whitelist","");if(page!=image)page.recycle();}
             }
             // 2. Zwart-wit (drempel per buurt), in de beste draaiing; grondig: ook vergroot en als één tekstblok
             List<Bitmap> extra=new ArrayList<>();
@@ -112,6 +131,7 @@ final class RijbewijsOcr {
                     }finally{if(page!=image)page.recycle();}
                 }
             }
+            telling.kandidaten=strookRegels;strookSpoor(telling);
             if(diag!=null)diag.put("regels",lines).put("rijbewijs",licence).put("onderregel",bottom).put("grondig",thorough).put("tijd",active.getAsBoolean()&&android.os.SystemClock.elapsedRealtime()>=deadline);
             return active.getAsBoolean()?best:null;
         }catch(Throwable ignored){return null;}
@@ -169,6 +189,24 @@ final class RijbewijsOcr {
             return uit;
         }catch(Throwable ignored){return uit;}
         finally{current[0]=null;if(api!=null)api.recycle();if(groot!=null)groot.recycle();}
+    }
+
+    /** De strook (MRZ) in de gelezen regels (MrzTekst), of null. Nooit tekst in het logboek: alleen de telling. */
+    private static JSONObject strook(List<Rijbewijs.Line> found,String today,MrzTekst.Telling telling) {
+        try{
+            List<MrzTekst.Stuk> stukken=new ArrayList<>();
+            for(Rijbewijs.Line l:found)stukken.add(new MrzTekst.Stuk(l.text,l.left,l.top,l.right,l.bottom));
+            Mrz.Result r=MrzTekst.beste(MrzTekst.regels(stukken),telling);
+            return r==null?null:Mrz.fields(r,today);
+        }catch(Throwable e){return null;}
+    }
+    private static JSONObject klaar(JSONObject m,JSONObject diag,boolean thorough,BooleanSupplier active)throws Exception {
+        if(diag!=null)diag.put("strook",true).put("grondig",thorough);
+        MrzOcr.Spoor s=MrzOcr.spoor();if(s!=null){s.tekstGevonden=true;s.tekstGeprobeerd=true;}
+        return active.getAsBoolean()?m:null;
+    }
+    private static void strookSpoor(MrzTekst.Telling t) {
+        MrzOcr.Spoor s=MrzOcr.spoor();if(s!=null){s.tekstKandidaten=Math.max(s.tekstKandidaten,t.kandidaten);s.tekstLezingen+=t.lezingen;s.tekstGeprobeerd=true;}
     }
 
     /** Alles wat een rijbewijs nodig heeft gevonden (nummer zeker, einddatum en geboortedatum): dan niet verder zoeken. */

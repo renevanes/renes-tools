@@ -1,0 +1,1 @@
+Stamgegevens: een paspoort of ID-kaart wordt beter herkend. Lukt het lezen van de strook onderaan niet, dan leest Tools de strook nog eens op een tweede manier. Wat daarbij rechtgezet moest worden, staat als voorstel klaar om na te kijken.
