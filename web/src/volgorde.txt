@@ -175,6 +175,7 @@ script/58-instellingen-register.js
 script/59-assistent-instellingen.js
 script/59b-assistent-engels.js
 script/61-assistent-acties.js
+script/61b-opdracht-geven.js
 script/62-assistent-gesprek.js
 script/63-facturen.js
 script/64-bankzaken.js

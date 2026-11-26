@@ -1115,6 +1115,21 @@ if (!window.Android) window.Android = (function(){
       A.calls.push(['data', topic]);
       if (topic === 'agenda') { const text = typeof agSpiegelAntwoord === 'function' ? agSpiegelAntwoord(this._agInit(), q) : ''; return JSON.stringify(fact && text ? Object.assign(o, { text, title: 'Agenda' }) : o); }
       return JSON.stringify(fact ? Object.assign(o, { text: this._aiData[topic], title: L[topic] + (topic === 'gebruik' ? ' vandaag' : '') }) : o); },
+    // ----- Afspraak, herinnering of notitie zoals AiActions.fromQuestion (alleen de zinnen van de tests) -----
+    aiActQ(q){ if (this._actQ !== undefined) return this._actQ; const s = String(q || '').trim().replace(/[?.!]+$/, ''); let m;
+      const morgen = () => rgDayAdd(rgToday(), 1), J = o => JSON.stringify(Object.assign({ text: '', need: '', src: 'vraag' }, o));
+      if ((m = /^(?:maak|plan) (?:een )?afspraak morgen om (\d{1,2})(?::(\d{2}))? uur(?: ((?:met|bij) .+))?$/i.exec(s))) {
+        const hm = String(m[1]).padStart(2, '0') + ':' + (m[2] || '00');
+        return J({ type: 'agenda', title: m[3] ? 'Afspraak ' + m[3] : 'Afspraak', at: rgFromLocal(morgen(), hm), day: rgFromLocal(morgen(), '00:00') }); }
+      if ((m = /^maak (?:een )?afspraak morgen(?: (?:voor|met omschrijving) (.+))?$/i.exec(s))) return J({ type: 'agenda', title: m[1] ? m[1].charAt(0).toUpperCase() + m[1].slice(1) : 'Afspraak', day: rgFromLocal(morgen(), '00:00'), allDay: true });
+      if (/^maak (?:een )?afspraak$/i.test(s)) return J({ type: 'agenda', title: 'Afspraak', need: 'datum' });
+      return ''; },
+    // ----- Opdracht geven: snel bereikbaar (Opdracht.java) -----
+    aiOpdrachtStaat(){ return JSON.stringify(Object.assign({ assistent: false, tegel: true, widget: true, pin: true }, this._opdr || {})); },
+    aiOpdrachtPin(){ this._opdrPin = (this._opdrPin || 0) + 1; return ''; },
+    aiOpdrachtTegel(){ this._opdrTegel = (this._opdrTegel || 0) + 1; setTimeout(() => onAiTegel('2'), 50); return ''; },
+    aiOpdrachtWidget(){ this._opdrWidget = (this._opdrWidget || 0) + 1; return ''; },
+    aiAssistentKiezen(){ this._assistKies = (this._assistKies || 0) + 1; return ''; },
     // ----- Opdrachten zoals AiCommands (alleen de zinnen van de tests) -----
     aiCmd(q){ const s = String(q || '').trim().replace(/[?.!]+$/, ''), l = s.toLowerCase(); let m; const J = o => JSON.stringify(o);
       if (/^(?:wat|hoe|waarom|hoeveel)\b/.test(l)) return '';

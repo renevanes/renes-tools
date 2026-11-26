@@ -131,6 +131,44 @@ public class AiActionsTest {
         check(a != null && a.allDay && a.day == t(2026, 10, 30, 0, 0) && a.need.isEmpty(), "agenda zonder tijd: hele dag");
         a = AiActions.parse("", "Zet de tandarts vrijdag om 10 uur in mijn agenda", now, TZ);
         check(a != null && "agenda".equals(a.type) && "De tandarts".equals(a.title) && "2026-10-30 10:00".equals(fmt(a.at)), "agenda uit de vraag: " + (a == null ? "null" : a.title));
+        // Opdracht geven zonder taalmodel: meer manieren om een afspraak te maken
+        String[][] ag = {
+                {"Maak een afspraak in mijn agenda op 3 december om 14:00 met omschrijving tandarts", "Tandarts", "2026-12-03 14:00"},
+                {"maak afspraak in mijn agenda voor 3 december 14:00 met omschrijving controle bij de tandarts", "Controle bij de tandarts", "2026-12-03 14:00"},
+                {"Maak een afspraak morgen om 10 uur met Jos", "Afspraak met Jos", "2026-10-25 10:00"},
+                {"Plan een nieuwe afspraak: vrijdag 9:30 overleg Sabaas", "Overleg Sabaas", "2026-10-30 09:30"},
+                {"Kun je een afspraak maken voor dinsdag om half 3 bij de kapper?", "Afspraak bij de kapper", "2026-10-27 14:30"},
+                {"Zet in mijn agenda: 2-11 om 10 uur APK auto", "APK auto", "2026-11-02 10:00"},
+                {"Zet de huisarts maandag om 8:15 op mijn agenda", "De huisarts", "2026-10-26 08:15"},
+                {"Afspraak morgen 10 uur kapper", "Kapper", "2026-10-25 10:00"},
+                {"Agenda: volgende week dinsdag 11:00 lunch met Hans", "Lunch met Hans", "2026-10-27 11:00"},
+                {"Plan vrijdag om 14 uur de jaarafsluiting in", "De jaarafsluiting", "2026-10-30 14:00"},
+                {"Maak een afspraak op 3 december om 14:00 met als titel Gesprek Jos", "Gesprek Jos", "2026-12-03 14:00"},
+        };
+        for (String[] x : ag) {
+            a = AiActions.fromQuestion(x[0], now, TZ);
+            check(a != null && "agenda".equals(a.type) && x[1].equals(a.title) && x[2].equals(fmt(a.at)) && a.need.isEmpty(),
+                    "afspraak: " + x[0] + " → " + (a == null ? "null" : a.title + " @ " + (a.at > 0 ? fmt(a.at) : "geen tijd") + " need=" + a.need));
+        }
+        a = AiActions.fromQuestion("Maak een afspraak met de notaris", now, TZ);
+        check(a != null && "agenda".equals(a.type) && "Afspraak met de notaris".equals(a.title) && "datum".equals(a.need), "afspraak zonder moment: zelf kiezen");
+        a = AiActions.fromQuestion("Maak een afspraak", now, TZ);
+        check(a != null && "Afspraak".equals(a.title) && "datum".equals(a.need), "alleen 'maak een afspraak': titel Afspraak, moment kiezen");
+        a = AiActions.fromQuestion("Maak een afspraak op 30 oktober voor de verjaardag van Daan", now, TZ);
+        check(a != null && a.allDay && a.day == t(2026, 10, 30, 0, 0) && "De verjaardag van Daan".equals(a.title), "afspraak met alleen een datum: hele dag (" + (a == null ? "null" : a.title) + ")");
+        check(AiActions.fromQuestion("Afspraak morgen?", now, TZ) == null, "vraag 'afspraak morgen?' is geen opdracht");
+        check(AiActions.fromQuestion("Afspraak met de tandarts verzetten", now, TZ) == null, "'afspraak …' zonder moment is geen opdracht");
+        check(AiActions.fromQuestion("Afspraakbevestiging morgen 10 uur", now, TZ) == null, "afspraakbevestiging is geen afspraak");
+        check(AiActions.fromQuestion("Agenda morgen", now, TZ) == null, "'agenda morgen' is een vraag, geen afspraak");
+        check(AiActions.fromQuestion("Hoe maak ik een afspraak in de agenda?", now, TZ) == null, "hoe-vraag is geen opdracht");
+        check(AiActions.fromQuestion("Wat staat er morgen in mijn agenda?", now, TZ) == null, "wat-vraag is geen opdracht");
+        check(AiActions.fromQuestion("Plan het in", now, TZ) == null, "'plan het in' zonder moment: geen opdracht");
+        check(AiActions.wanted("Maak een afspraak met de notaris"), "afspraak = actie voor het taalmodel");
+        // Herinnering en notitie werken ook zonder model
+        a = AiActions.fromQuestion("Herinner me morgen om 9 uur aan de vuilnis", now, TZ);
+        check(a != null && "herinnering".equals(a.type) && "2026-10-25 09:00".equals(fmt(a.at)), "herinnering uit de vraag");
+        a = AiActions.fromQuestion("Noteer: melk en brood", now, TZ);
+        check(a != null && "notitie".equals(a.type), "notitie uit de vraag");
         // Rommelige regels van kleine modellen
         a = AiActions.parse("Oké!\n`[[Herinnering: 2026-10-25 09:00 Jos bellen]]`", "herinner me morgen om 9 uur aan Jos", now, TZ);
         check(a != null && "Jos bellen".equals(a.title) && "2026-10-25 09:00".equals(fmt(a.at)), "regel zonder | en met backticks");

@@ -66,7 +66,7 @@ public class FeatureBridge {
         new Thread(() -> {
             try {
                 // Andere taal: namen van meldingskanalen, snelkoppelingen en alle widgets in de nieuwe taal
-                if (taal) { Taal.channels(ctx); RadioWidget.refresh(ctx); NoteWidget.refresh(ctx); MusicWidget.refresh(ctx); }
+                if (taal) { Taal.channels(ctx); RadioWidget.refresh(ctx); NoteWidget.refresh(ctx); MusicWidget.refresh(ctx); OpdrachtWidget.refresh(ctx); }
                 if (!java.util.Arrays.equals(Regio.place(before), Regio.place(after)) || !java.util.Arrays.equals(before.home(), after.home()))
                     Launcher.prefs(ctx).edit().remove("weather").apply();
                 // Andere tijdzone: alle wekkers, herinneringen en planningen opnieuw (de tijden zijn wandklok in de app-zone)

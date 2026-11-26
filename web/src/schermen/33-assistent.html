@@ -195,6 +195,33 @@
   </main>
 </section>
 
+<!-- Opdracht geven: wat je kunt zeggen, en de assistent snel openen met de microfoon aan (61b-opdracht-geven.js) -->
+<section class="screen" id="s-aizeggen">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Opdracht geven</h1>
+  </div>
+  <main>
+    <p class="hint">Zeg of typ een opdracht. Tools zet het klaar; pas na jouw tik gebeurt het. Dit werkt ook zonder taalmodel.</p>
+    <div id="aiz-snel">
+      <div class="flabel">Snel opdracht geven</div>
+      <div class="card stlist">
+        <button class="strow" id="aiz-pin" onclick="aizPin()"><span class="stic"><span class="ui-icon" data-icon="smartphone" aria-hidden="true"></span></span><span class="sttxt"><b>Snelkoppeling op je startscherm</b><small>Ook via lang drukken op Tools</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+        <button class="strow" id="aiz-tegel" onclick="aizTegel()"><span class="stic"><span class="ui-icon" data-icon="grid" aria-hidden="true"></span></span><span class="sttxt"><b>Tegel in de snelle instellingen</b><small>Veeg omlaag en tik op Opdracht</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+        <button class="strow" id="aiz-widget" onclick="aizWidget()"><span class="stic"><span class="ui-icon" data-icon="mic" aria-hidden="true"></span></span><span class="sttxt"><b>Widget</b><small>Eén knop op je startscherm</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+        <button class="strow" id="aiz-assist" onclick="aizAssistent()"><span class="stic"><span class="ui-icon" data-icon="settings" aria-hidden="true"></span></span><span class="sttxt"><b>Digitale assistent van Android</b><small id="aiz-assist-st"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      </div>
+      <details class="help in"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+        <p>Elke manier opent de assistent met de microfoon aan. Zeg je opdracht en tik op het vinkje. Wat je zegt wordt op je telefoon uitgeschreven; er gaat niets naar internet.</p>
+        <p>Kies je Tools als digitale assistent van Android, dan opent Tools als je de aan/uit-knop of de thuisknop lang indrukt (dat verschilt per telefoon). Terugzetten doe je op dezelfde plek in de instellingen van Android.</p>
+      </div></details>
+    </div>
+    <div class="flabel">Wat kan ik zeggen?</div>
+    <p class="note">Tik op een voorbeeld om het in te vullen; pas het daarna aan.</p>
+    <div id="aiz-lijst"></div>
+  </main>
+</section>
+
 <section class="screen" id="s-aisetmem">
   <div class="hdr sm">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>

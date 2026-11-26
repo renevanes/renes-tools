@@ -1256,6 +1256,13 @@ body.tabs-on.ai-typing.has-plbar .aicomp{bottom:calc(84px + env(safe-area-inset-
 .aisugh{text-align:center;margin:0 6px 12px;font-size:13.5px}
 .aisugg .chip.new{border-color:color-mix(in srgb,var(--primary) 55%,var(--outline))}
 .aisugg .chip .ui-icon{width:16px;height:16px;margin:-2px 6px 0 0;vertical-align:middle;color:var(--primary)}
+/* Opdracht geven (s-aizeggen): voorbeelden per onderwerp; tikvlakken minstens 44 px */
+.aiz{padding:12px 12px 4px}
+.aiz .aizh{display:flex;align-items:center;gap:8px;margin:0 2px 10px;font-size:15px}
+.aiz .aizh .ui-icon{width:20px;height:20px;color:var(--primary)}
+.aiz .aisugg{justify-content:flex-start;margin-bottom:8px}
+.aiz .aisugg .chip{min-height:44px;text-align:left}
+.aiact .aiactw select.sel{flex:1;min-height:44px}
 /* Opdrachten van de assistent (kaart met bevestigen) */
 .aiact textarea{font:inherit;padding:8px 12px;border-radius:12px;border:1px solid var(--outline);background:var(--card);color:var(--ink);min-height:52px;resize:vertical;width:100%;box-sizing:border-box}
 .aiact .aiactb[role=radiogroup] .mini{text-align:left}

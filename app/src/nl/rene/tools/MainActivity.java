@@ -485,6 +485,8 @@ public class MainActivity extends Activity {
     static String openExtra(Context c, Intent i) {
         String open = i == null ? null : i.getStringExtra("open");
         if ("music-now".equals(open) && !App.tokenOk(c, i)) return "music";
+        // Opdracht geven (de microfoon meteen aan): alleen vanuit eigen knoppen; een andere app krijgt gewoon de assistent
+        if (Opdracht.OPEN.equals(open) && !App.tokenOk(c, i)) return "ai";
         return open;
     }
 

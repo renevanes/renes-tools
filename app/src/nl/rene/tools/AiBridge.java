@@ -1,5 +1,6 @@
 package nl.rene.tools;
 
+import android.os.Build;
 import android.webkit.JavascriptInterface;
 
 import org.json.JSONArray;
@@ -167,6 +168,61 @@ public class AiBridge extends SleepBridge {
             AiCommands.Cmd c = AiCommands.parse(q, name -> { try { if (!AiCommands.people(app, name).isEmpty()) return true; JSONArray r = contactsNamed(name); return r != null && r.length() > 0; } catch (Throwable t) { return false; } });
             return c == null ? "" : AiCommands.json(c).toString();
         } catch (Throwable t) { return ""; }
+    }
+
+    /** Een afspraak, herinnering of notitie in je eigen vraag ("maak een afspraak morgen om 10 uur met Jos"), zonder
+     *  taalmodel; "" als het geen duidelijke opdracht is. Er gebeurt niets: de interface toont een kaart om te bevestigen. */
+    @JavascriptInterface public String aiActQ(String q) {
+        if (!PlayPolicy.allows(ctx, "ai")) return "";
+        try {
+            AiActions.Act act = AiActions.fromQuestion(q, System.currentTimeMillis(), Regio.zone(ctx));
+            return act == null ? "" : LocalAi.actJson(act).toString();
+        } catch (Throwable t) { return ""; }
+    }
+
+    // ----- Opdracht geven: de assistent openen met de microfoon aan, vanaf de plekken buiten de app (Opdracht) -----
+
+    /** Wat er kan: {assistent: true/false/null (null = onbekend), tegel: Android vraagt het zelf, widget, pin}. */
+    @JavascriptInterface public String aiOpdrachtStaat() {
+        try {
+            JSONObject o = new JSONObject();
+            Boolean as = Opdracht.isAssistent(ctx);
+            o.put("assistent", as == null ? JSONObject.NULL : as);
+            o.put("tegel", Build.VERSION.SDK_INT >= 33);
+            o.put("widget", Build.VERSION.SDK_INT >= 26);
+            o.put("pin", Build.VERSION.SDK_INT >= 26);
+            return o.toString();
+        } catch (Throwable t) { return "{}"; }
+    }
+
+    /** Snelkoppeling "Opdracht geven" op het startscherm. "" of een melding. */
+    @JavascriptInterface public String aiOpdrachtPin() {
+        if (a.isSolo()) return "";
+        return Taal.tx(ctx, Shortcuts.pin(ctx, "opdracht", Taal.t(ctx, "Opdracht geven"), Opdracht.OPEN, null, "#5B4BB7", "🎙️"));
+    }
+
+    /** Tegel "Opdracht" in de snelle instellingen (Android 13+ vraagt het zelf; anders "manual"). Antwoord via onAiTegel. */
+    @JavascriptInterface public String aiOpdrachtTegel() {
+        if (Build.VERSION.SDK_INT < 33) return "manual";
+        a.h.post(() -> {
+            try {
+                android.app.StatusBarManager sb = ctx.getSystemService(android.app.StatusBarManager.class);
+                sb.requestAddTileService(new android.content.ComponentName(ctx, OpdrachtTile.class), Taal.t(ctx, "Opdracht"),
+                        android.graphics.drawable.Icon.createWithResource(ctx, R.drawable.ic_mic), ctx.getMainExecutor(),
+                        r -> a.js("onAiTegel", String.valueOf(r)));
+            } catch (Throwable e) { a.js("onAiTegel", "-1"); }
+        });
+        return "";
+    }
+
+    /** Widget "Opdracht" op het startscherm. "" of een melding. */
+    @JavascriptInterface public String aiOpdrachtWidget() {
+        return Taal.tx(ctx, Opdracht.widgetVastzetten(ctx));
+    }
+
+    /** Het scherm van Android waar je de digitale assistent kiest. "" of een melding. */
+    @JavascriptInterface public String aiAssistentKiezen() {
+        return Taal.tx(ctx, Opdracht.assistentKiezen(a));
     }
 
     /** Telefoonnummers voor een bericht of om te bellen: [{name, number, label}] of {perm:false}. Eerst wie de assistent uit

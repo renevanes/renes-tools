@@ -352,6 +352,24 @@
       ],
       "permissie": "android.permission.BIND_DEVICE_ADMIN",
       "reden": "Gebruik: apparaatbeheer om mislukte ontgrendelingen te zien (zet Rene zelf aan); alleen het systeem mag dit aanroepen"
+    },
+    ".OpdrachtTile": {
+      "soort": "service",
+      "filters": [
+        "acties=android.service.quicksettings.action.QS_TILE | cat= | data="
+      ],
+      "meta": [],
+      "permissie": "android.permission.BIND_QUICK_SETTINGS_TILE",
+      "reden": "Tegel Opdracht in Snelle instellingen: opent de assistent met de microfoon aan; alleen het systeem kan hem binden"
+    },
+    ".OpdrachtAssist": {
+      "soort": "activity",
+      "filters": [
+        "acties=android.intent.action.ASSIST | cat=android.intent.category.DEFAULT | data="
+      ],
+      "meta": [],
+      "permissie": null,
+      "reden": "Opdracht geven als digitale assistent van Android (alleen als Rene Tools daar zelf kiest): opent de assistent met de microfoon aan; uitschrijven blijft op de telefoon en er gebeurt niets zonder zijn tik"
     }
   },
   "onderdeelpermissies": {
@@ -388,7 +406,8 @@
     "android.permission.BIND_QUICK_SETTINGS_TILE": {
       "reden": "Tegel in Snelle instellingen: alleen het systeem mag binden",
       "onderdelen": [
-        ".VpnTile"
+        ".VpnTile",
+        ".OpdrachtTile"
       ]
     },
     "android.permission.BIND_REMOTEVIEWS": {

@@ -306,6 +306,31 @@
             </intent-filter>
             <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="true" />
         </service>
+        <!-- Opdracht geven: tegel in de snelle instellingen die de assistent opent met de microfoon aan -->
+        <service
+            android:name=".OpdrachtTile"
+            android:exported="true"
+            android:label="Opdracht"
+            android:icon="@drawable/ic_mic"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+        <!-- Opdracht geven als digitale assistent van Android (alleen als Rene Tools daar zelf kiest): meteen door naar de assistent -->
+        <activity
+            android:name=".OpdrachtAssist"
+            android:exported="true"
+            android:label="Tools"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
         <receiver android:name=".VpnNet" android:exported="false" />
         <!-- Locatie kiezen: geeft de gekozen plek door zolang hij aan staat -->
         <service android:name=".MockLocSvc" android:exported="false" android:foregroundServiceType="location" />
@@ -458,6 +483,16 @@
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".OpdrachtWidget"
+            android:label="Opdracht geven"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_opdracht_info" />
+        </receiver>
 
         <receiver
             android:name=".MusicWidget"

@@ -968,8 +968,27 @@ Zoeken kijkt in alle afspraken, ook van jaren geleden.
   op het scherm. Een afspraak zonder agenda blijft alleen in Tools. Haalt Bijwerken een gekoppelde afspraak niet meer op,
   dan blijft de kopie in Tools staan, zonder koppeling.
 - **Assistent**: bron `agenda` staat standaard uit (`srcDefault`). Aan zetten kan bij Agenda → Instellingen of bij
-  Assistent → Gegevens; de assistent zet hem niet zelf aan. "Zet … in mijn agenda" opent nog steeds de agenda-app
-  (`AiActions` / `aiCalendarAdd`): `Agenda.gaatOver` is onwaar bij een opdracht om iets te zetten.
+  Assistent → Gegevens; de assistent zet hem niet zelf aan. Een afspraak van de assistent ("zet … in mijn agenda",
+  "maak een afspraak …") gaat na Rene's tik rechtstreeks in de Agenda van Tools via `agendaBewaar` (`aiAgBewaar` in
+  `61b-opdracht-geven.js`), in de agenda die hij op de kaart kiest (standaard de standaardagenda); alleen een app zonder
+  `agendaBewaar` opent nog de agenda-app (`aiCalendarAdd`). `Agenda.gaatOver` is onwaar bij een opdracht om iets te zetten.
+
+## Opdracht geven (de assistent als centrale plek voor opdrachten)
+Wens van Rene (26-11-2026): via één centrale functie opdrachten geven, zoals een afspraak maken. Dat is de assistent:
+- **Zonder taalmodel** herkent de app zelf: opdrachten (`AiCommands`, `61-assistent-acties.js`), vragen over je gegevens
+  (`AiData`), instellingen (`59-assistent-instellingen.js`) en een **afspraak, herinnering of notitie**
+  (`AiActions.fromQuestion`, brug `aiActQ`, `aiActFor` in `61b-opdracht-geven.js`; volgorde in `aiSendOrStop`: opdracht,
+  actie, gegevens, instellingen, dan pas het taalmodel). Nieuwe zinsvorm = een patroon in `AiActions` (`Q_AGENDA*`,
+  `agendaTitel`) met voorbeelden in `AiActionsTest`; vragen ("wat staat er morgen?", "afspraak morgen?") blijven buiten.
+  Er gebeurt nooit iets zonder een tik op de kaart (`aiActHtml`).
+- **Snel bereikbaar** (`Opdracht.java`): `openTool('ai-spreek')` opent de assistent met de microfoon aan (`aiOpdracht`,
+  nieuw gesprek als er al iets stond). Alleen met het geheim van deze installatie (`MainActivity.openExtra`, anders
+  gewoon de assistent). Plekken: de snelle keuze bij lang drukken op het app-icoon (`setDynamicShortcuts`, eerste plek),
+  een vastgezette snelkoppeling (`aiOpdrachtPin`), de tegel `OpdrachtTile`, de widget `OpdrachtWidget` en de digitale
+  assistent van Android (`OpdrachtAssist`, `ACTION_ASSIST`; alleen als Rene Tools daar kiest, `aiAssistentKiezen`).
+- **Scherm Opdracht geven** (`s-aizeggen`, vanuit de suggesties en ⋯ van de assistent): de plekken hierboven en
+  voorbeeldzinnen per onderwerp (`AI_ZEGGEN`, vast Nederlands: zo ontleedt de app ze). Nieuwe opdracht = ook een voorbeeld.
+- Tests: `tests/ui/opdracht-geven.test.js`, `tests/ui/ai-acties.test.js`; Java: `AiActionsTest`.
 - Tests: `tests/ui/agenda.test.js`; Java: `AgendaTest` (en een stuk in `AiDataTest`).
 
 ## Signalen (bronnen volgen, één inbox, melden per bron)

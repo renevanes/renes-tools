@@ -138,6 +138,7 @@ function aiRenderMain(){
     $('#ai-notes').style.display = 'none';
     $('#ai-sugg').innerHTML = '<p class="note" style="margin:0 4px 8px">Ook zonder taalmodel kun je opdrachten geven, vragen stellen over je eigen gegevens en over de instellingen van de app, bijvoorbeeld:</p>' +
       AI_SET_SUGG.map((s, i) => '<button class="chip" onclick="aiSetSugg(' + i + ')">' + esc(s) + '</button>').join('') +
+      '<button class="chip new" onclick="show(\'aizeggen\')">' + uiIcon('mic') + esc(t('Wat kan ik zeggen?')) + '</button>' +
       (aiTalkCan() ? '<button class="chip" onclick="aiTalkStart()">' + uiIcon('mic') + 'Start een gesprek</button>' : '');
     aiSendBtn();
     return;
@@ -147,7 +148,8 @@ function aiRenderMain(){
   n.style.display = aiReady('zoek') && !SOLO ? '' : 'none'; // losse app (zonder app-slot): niet zoeken in je gegevens
   n.classList.toggle('on', !!aiSt.notes); n.setAttribute('aria-checked', aiSt.notes ? 'true' : 'false');
   $('#ai-sugg').innerHTML = '<p class="note aisugh">Wat ik kan: vragen beantwoorden, je eigen gegevens bekijken (alleen wat je aanzet), en dingen voor je klaarzetten, altijd pas na jouw tik. Alles blijft op je telefoon.</p>' +
-    AI_SUGG.filter(s => (!s[2] || aiReady('zoek') && !SOLO) && (s[3] !== 'gesprek' || aiTalkCan())).map(s => '<button class="chip' + (s[3] ? ' new' : '') + '" onclick="aiSugg(' + AI_SUGG.indexOf(s) + ')">' + (s[3] === 'gesprek' ? uiIcon('mic') : '') + esc(t(s[0])) + '</button>').join('');
+    AI_SUGG.filter(s => (!s[2] || aiReady('zoek') && !SOLO) && (s[3] !== 'gesprek' || aiTalkCan())).map(s => '<button class="chip' + (s[3] ? ' new' : '') + '" onclick="aiSugg(' + AI_SUGG.indexOf(s) + ')">' + (s[3] === 'gesprek' ? uiIcon('mic') : '') + esc(t(s[0])) + '</button>').join('') +
+    '<button class="chip new" onclick="show(\'aizeggen\')">' + uiIcon('mic') + esc(t('Wat kan ik zeggen?')) + '</button>';
   aiSendBtn();
 }
 const AI_SET_SUGG = ['Hoeveel schermtijd vandaag?', 'Zet een timer van 10 minuten', 'Wat kan ik instellen bij de assistent?', 'Waar vind ik de tekstgrootte?', 'Zet de nachtelijke backup aan'];
@@ -206,6 +208,9 @@ function aiSendOrStop(){
   const qc = typeof aiCmdQ === 'function' ? aiCmdQ(q) : q;
   const c = typeof aiCmdFor === 'function' ? aiCmdFor(qc) : null;
   if (c) { aiLocalAnswer(c, v); return; }
+  // Een afspraak, herinnering of notitie ("maak een afspraak morgen om 10 uur met Jos"): ook zonder taalmodel (61b-opdracht-geven.js)
+  const ac = typeof aiActFor === 'function' ? aiActFor(qc) : null;
+  if (ac) { aiLocalAnswer(ac, v); return; }
   const d = typeof aiDataFor === 'function' ? aiDataFor(qc) : null;
   if (d) { aiLocalAnswer(d, v); return; }
   // Een vraag over de instellingen van de app: soms zonder taalmodel (opdracht, opzoeken), soms met de instellingen erbij
@@ -217,7 +222,7 @@ function aiSendOrStop(){
 /* Een antwoord van de app zelf (zonder taalmodel), bijv. over een instelling */
 function aiLocalAnswer(h, v){
   aiSpeakStop();
-  const m = Object.assign({ r: 'ai', c: h.text || '', t: Date.now(), local: true }, h.set ? { set: h.set } : {}, h.src ? { src: h.src } : {}, h.cmd ? { cmd: h.cmd } : {});
+  const m = Object.assign({ r: 'ai', c: h.text || '', t: Date.now(), local: true }, h.set ? { set: h.set } : {}, h.src ? { src: h.src } : {}, h.cmd ? { cmd: h.cmd } : {}, h.act ? { act: h.act } : {});
   aiChat.msgs.push(m);
   aiSaveChat(aiChat); aiRenderMsgs(); aiSendBtn();
   if (typeof aiTalkOn === 'function' && aiTalkOn()) { aiTalkLocal(m); return; } // gesprek: voorlezen (dan niet ook nog de schermlezer) en weer luisteren
@@ -297,7 +302,7 @@ window.onAiDone = function(info){
       m.c = m.c.trim(); if (info.cancelled) m.stopped = true; if (info.cut) m.cut = true; if (info.trim) m.trim = true;
       // Een voorgestelde actie: pas na een tik op de knop (zie aiActHtml)
       if (m.set && typeof setFromModel === 'function' && !info.cancelled) setFromModel(m, info.settings);
-      if (info.action && info.action.type && !info.cancelled) { m.act = Object.assign({}, info.action, { st: 'voorgesteld' }); if (typeof aiVSay === 'function') aiVSay(t('Voorstel: {wat}, {titel}. Bevestig met de knop onder het antwoord.', { wat: aiActLabel(m.act), titel: m.act.title })); }
+      if (info.action && info.action.type && !info.cancelled) { m.act = Object.assign({}, info.action, { st: 'voorgesteld' }); if (typeof aiAgSt !== 'undefined') aiAgSt = null; /* de agenda's opnieuw lezen */ if (typeof aiVSay === 'function') aiVSay(t('Voorstel: {wat}, {titel}. Bevestig met de knop onder het antwoord.', { wat: aiActLabel(m.act), titel: m.act.title })); }
       // Gesprek met je stem: het antwoord voorlezen (Lokale AI → Spraak); in een Gesprek doet aiTalkDone dat
       if (!info.cancelled && m.c && aiSt.speakVoice && !(typeof aiTalkOn === 'function' && aiTalkOn())) { const q = chat.msgs.slice(0, chat.msgs.indexOf(m)).filter(x => x.r === 'user').slice(-1)[0]; if (q && q.v) setTimeout(() => { if (aiChat === chat && current === 'ai' && !document.hidden) aiSpeakStart(m, chat, true); }, 0); }
       if (info.mem) m.memUsed = +info.mem || 0;
@@ -517,6 +522,7 @@ function aiMenu(){
   const acts = [];
   if (aiChatReady() || (aiChat && aiChat.msgs.length)) acts.push(['＋ Nieuw gesprek', () => aiNew()]);
   acts.push(['Eerdere gesprekken', () => show('aichats')]);
+  acts.push([t('Opdracht geven: wat kan ik zeggen?'), () => show('aizeggen')]);
   if (aiChat && aiChat.msgs.length) acts.push(['Dit gesprek delen', () => Android.aiShare(aiChat.msgs.map(m => t(m.r === 'user' ? 'Ik: {tekst}' : 'Assistent: {tekst}', { tekst: m.c })).join('\n\n'))]);
   const cf = aiSt.cfg || {};
   acts.push([t('Antwoorden: {stijl}…', { stijl: [t(AIC_LABEL.style[cf.style] || 'Normaal').toLowerCase(), t(AIC_LABEL.creative[cf.creative] || 'Gebalanceerd').toLowerCase()].join(', ') }), () => jumpTo('aisetanswer')]);
@@ -949,6 +955,8 @@ const AI_ACT = {
   agenda: { icon: 'calendar', label: 'In je agenda zetten', btn: 'Agenda openen', done: 'Naar je agenda gestuurd' }
 };
 function aiActLabel(a){ return (AI_ACT[a.type] || AI_ACT.notitie).label; }
+/* Een afspraak gaat (met een app die het kan) rechtstreeks in de Agenda van Tools, anders naar de agenda-app */
+function aiActTools(a){ return a.type === 'agenda' && (a.via === 'tools' || (a.via !== 'app' && typeof aiAgKan === 'function' && aiAgKan())); }
 function aiActFmt(tt, allDay){
   const d = new Date(tt);
   return allDay ? fmtDate(d, { weekday: 'short', day: 'numeric', month: 'short' }) + ' ' + t('(hele dag)')
@@ -965,8 +973,11 @@ function aiActHtml(m, i){
   const a = m.act; if (!a || !a.type) return '';
   const k = AI_ACT[a.type] || AI_ACT.notitie;
   const when = a.type === 'notitie' ? '' : a.at ? aiActFmt(a.at) : a.allDay && a.day ? aiActFmt(a.day, true) : '';
-  if (a.st === 'gedaan') return '<div class="aiact done" role="status">' + uiIcon('check') + '<span>' + esc(t(k.done)) + (when ? ' ' + esc(t('voor {wanneer}', { wanneer: when })) : '') + ': <b translate="no">' + esc(a.title) + '</b>' +
-    (a.type === 'agenda' ? '<small>Bewaar de afspraak in je agenda-app.</small>' : '') + '</span>' + (a.note ? '<button class="linkish" onclick="aiActOpen(' + i + ')">Openen</button>' : '') + '</div>';
+  const tools = a.st === 'gedaan' ? a.via === 'tools' : aiActTools(a); // eerder gedaan: zoals het toen ging
+  if (a.st === 'gedaan') return '<div class="aiact done" role="status">' + uiIcon('check') + '<span>' + esc(t(tools ? 'In je agenda gezet' : k.done)) + (when ? ' ' + esc(t('voor {wanneer}', { wanneer: when })) : '') + ': <b translate="no">' + esc(a.title) + '</b>' +
+    (a.type === 'agenda' ? (tools ? (a.kalNaam ? '<small>' + esc(t('In {agenda}', { agenda: a.kalNaam })) + '</small>' : '<small>' + esc(t('Alleen in Tools')) + '</small>') : '<small>Bewaar de afspraak in je agenda-app.</small>') : '') + '</span>' +
+    (a.note ? '<button class="linkish" onclick="aiActOpen(' + i + ')">Openen</button>' : '') +
+    (tools && a.agId && !(typeof SOLO !== 'undefined' && SOLO) ? '<button class="linkish" onclick="aiActAgenda(' + i + ')">' + esc(t('Agenda openen')) + '</button>' : '') + '</div>';
   if (a.st === 'afgewezen') return '<div class="aiact no">' + uiIcon(k.icon) + '<span><s>' + esc(a.title) + '</s> <small>(niet gedaan)</small></span><button class="linkish" onclick="aiActUndoNo(' + i + ')">Toch voorstellen</button></div>';
   // Een voorstel van eerder (bijv. een heropend gesprek) waarvan het moment al voorbij is: opnieuw kiezen
   if (a.st === 'voorgesteld' && a.type !== 'notitie' && !a.need) {
@@ -980,7 +991,8 @@ function aiActHtml(m, i){
     '<div class="aiactt">' + esc(a.title) + (a.text ? '<small>' + esc(a.text.length > 240 ? a.text.slice(0, 240) + '…' : a.text) + '</small>' : '') + '</div>' +
     (pick ? '<label class="aiactw"><span>' + why + '</span><input type="datetime-local" id="aiact-t-' + i + '" value="' + esc(aiActPickVal(a)) + '" oninput="aiActPick(' + i + ', this.value)"></label>'
       : when ? '<div class="aiactw">' + uiIcon('clock') + '<span>' + esc(when) + '</span><button class="linkish" onclick="aiActEditWhen(' + i + ')">Ander moment</button></div>' : '') +
-    '<div class="aiactb"><button class="mini on" onclick="aiActDo(' + i + ')" aria-label="' + esc(t(k.btn) + ': ' + a.title) + '">' + esc(k.btn) + '</button><button class="mini" onclick="aiActNo(' + i + ')" aria-label="' + esc(t('Niet doen: {titel}', { titel: a.title })) + '">Nee</button>' +
+    (tools ? aiAgKalHtml(a, i) : '') +
+    '<div class="aiactb"><button class="mini on" onclick="aiActDo(' + i + ')" aria-label="' + esc(t(tools ? 'Bewaren' : k.btn) + ': ' + a.title) + '">' + esc(t(tools ? 'Bewaren' : k.btn)) + '</button><button class="mini" onclick="aiActNo(' + i + ')" aria-label="' + esc(t('Niet doen: {titel}', { titel: a.title })) + '">Nee</button>' +
     '<button class="linkish" onclick="aiActEditText(' + i + ')">Tekst aanpassen</button></div></div>';
 }
 function aiActMsg(i){ const m = aiChat && aiChat.msgs[i]; return m && m.act ? m : null; }
@@ -999,7 +1011,13 @@ function aiActDo(i){
   if (inp) { if (!inp.value) { toast('Kies een datum en tijd'); inp.focus(); return; } at = rgFromLocalIn(inp.value); allDay = false; }
   if (a.type !== 'notitie' && !allDay && !(at > Date.now())) { toast('Kies een moment in de toekomst'); if (inp) inp.focus(); return; }
   if (!once('aiact' + (aiChat.id || '') + i)) return; // dubbel tikken: één keer
-  if (a.type === 'agenda') {
+  if (a.type === 'agenda' && aiActTools(a)) {
+    // Rechtstreeks in de Agenda van Tools (en in de gekozen agenda van de telefoon)
+    const e = aiAgBewaar(a, at, allDay);
+    if (e) { toast(e); return; }
+    a.at = allDay ? 0 : at; a.allDay = allDay;
+  } else if (a.type === 'agenda') {
+    a.via = 'app';
     const begin = allDay ? a.day : at, end = allDay ? rgEndOfDay(a.day) : at + 36e5;
     const e = Android.aiCalendarAdd(JSON.stringify({ title: a.title, text: a.text || '', begin, end, allDay }));
     if (e) { toast(e); return; }
@@ -1025,8 +1043,8 @@ function aiActDo(i){
   }
   a.st = 'gedaan'; a.need = ''; delete a.pick; delete a.edit; delete a.remFail;
   aiMemAfter(i);
-  const k = AI_ACT[a.type] || AI_ACT.notitie, msg = t(k.done) + (a.type === 'notitie' ? '' : ' ' + t('voor {wanneer}', { wanneer: aiActFmt(a.at || a.day, !a.at) }));
-  toast(a.type === 'agenda' ? 'Je agenda-app is geopend: bewaar het daar' : msg); aiVSay(msg + ': ' + a.title);
+  const k = AI_ACT[a.type] || AI_ACT.notitie, tools = a.via === 'tools', msg = t(tools ? 'In je agenda gezet' : k.done) + (a.type === 'notitie' ? '' : ' ' + t('voor {wanneer}', { wanneer: aiActFmt(a.at || a.day, !a.at) }));
+  toast(a.type === 'agenda' && !tools ? t('Je agenda-app is geopend: bewaar het daar') : msg); aiVSay(msg + ': ' + a.title);
 }
 function aiActOpen(i){
   const m = aiActMsg(i); if (!m || !m.act.note) return;

@@ -41,7 +41,7 @@ final class AiActions {
         boolean any() { return day >= 0 || min >= 0 || abs >= 0; }
     }
 
-    private static final Pattern WANT = Pattern.compile("(?iu)(^|[^\\p{L}])(herinner\\p{L}*|notitie\\p{L}*|noteer|noteren|opschrijven|agenda|remind\\p{L}*|calendar"
+    private static final Pattern WANT = Pattern.compile("(?iu)(^|[^\\p{L}])(herinner\\p{L}*|notitie\\p{L}*|noteer|noteren|opschrijven|agenda|afspraak|remind\\p{L}*|calendar"
             + "|schrijf\\s+(?:dat|dit|het)?\\s*op|vergeet\\s+(?:me\\s+|mij\\s+)?niet)([^\\p{L}]|$)");
 
     /** Lijkt de vraag om een notitie, herinnering of afspraak te vragen? Lange geplakte teksten niet. */
@@ -450,7 +450,31 @@ final class AiActions {
     private static final Pattern Q_REMIND2 = Pattern.compile("(?iu)^\\s*(?:(?:kun|kan|wil)\\s+je\\s+)?(?:zet|maak|stel)\\s+(?:een\\s+)?herinnering\\s*(?:in\\s+)?(.+?)\\s*\\??$");
     private static final Pattern Q_REMIND3 = Pattern.compile("(?iu)^\\s*(?:(?:kun|kan|wil)\\s+je\\s+)(?:me|mij)\\s+(?:er\\s*aan|eraan)\\s+herinneren\\s+(.+?)\\s*\\??$");
     private static final Pattern Q_NOTE = Pattern.compile("(?iu)^\\s*(?:(?:kun|kan|wil)\\s+je\\s+)?(?:(?:maak|schrijf)\\s+(?:een\\s+)?notitie(?:\\s+(?:van|over|met))?|noteer|schrijf\\s+op)\\s*[:,]?\\s*(.+?)\\s*$");
-    private static final Pattern Q_AGENDA = Pattern.compile("(?iu)^\\s*(?:(?:kun|kan|wil)\\s+je\\s+)?zet\\s+(.+?)\\s+in\\s+(?:mijn|m'n|de)\\s+agenda\\b\\s*(.*?)\\s*\\??$");
+    private static final String Q_BELEEFD = "^\\s*(?:(?:kun|kan|wil)\\s+je\\s+(?:even\\s+|alsjeblieft\\s+)?|graag\\s+)?";
+    private static final Pattern Q_AGENDA = Pattern.compile("(?iu)" + Q_BELEEFD + "zet\\s+(.+?)\\s+(?:in|op)\\s+(?:mijn|m'n|de)\\s+agenda\\b\\s*(.*?)\\s*\\??$");
+    // "maak een afspraak …", "plan een nieuwe afspraak in …", "maak afspraak aan …"
+    private static final Pattern Q_AGENDA_MAAK = Pattern.compile("(?iu)" + Q_BELEEFD + "(?:maak|plan|zet|boek)\\s+(?:(?:een|n)\\s+)?(?:nieuwe\\s+)?afspraak(?:\\s+(?:aan|in))?(?:\\s+|\\s*[:,]\\s*|$)(.*?)\\s*\\??$");
+    // "zet in mijn agenda: …", "plan in de agenda …"
+    private static final Pattern Q_AGENDA_IN = Pattern.compile("(?iu)" + Q_BELEEFD + "(?:zet|plan)\\s+(?:in|op)\\s+(?:mijn|m'n|de)\\s+agenda\\s*[:,]?\\s*(.+?)\\s*\\??$");
+    // Alleen met een datum of tijd: "afspraak morgen 10 uur kapper", "agenda: vrijdag tandarts", "plan vrijdag 14:00 overleg in"
+    private static final Pattern Q_AGENDA_LOS = Pattern.compile("(?iu)^\\s*(?:nieuwe\\s+)?(?:afspraak\\b\\s*[:,]?|agenda\\s*:)\\s*(.+?)\\s*$");
+    // "kun je een afspraak maken voor …", "afspraak inplannen: …"
+    private static final Pattern Q_AGENDA_MAKEN = Pattern.compile("(?iu)" + Q_BELEEFD + "(?:een\\s+)?(?:nieuwe\\s+)?afspraak\\s+(?:maken|aanmaken|inplannen|plannen|zetten|toevoegen)\\b\\s*[:,]?\\s*(.*?)\\s*\\??$");
+    private static final Pattern Q_AGENDA_PLAN = Pattern.compile("(?iu)" + Q_BELEEFD + "plan\\s+(.+?)\\s+in\\s*\\??$");
+    // "met omschrijving tandarts", "met als titel …", "onderwerp: …": wat erachter staat is de titel
+    private static final Pattern Q_OMSCHR = Pattern.compile("(?iu)(?:^|\\s)(?:met\\s+(?:als\\s+|de\\s+|het\\s+)?)?(?:omschrijving|titel|onderwerp)\\s*:?\\s+(.+)$");
+    private static final Pattern Q_IN_AGENDA = Pattern.compile("(?iu)(?:^|\\s)(?:in|op)\\s+(?:mijn|m'n|de)\\s+agenda\\b");
+
+    /** De titel van een afspraak uit wat overblijft zonder datum en tijd. */
+    static String agendaTitel(String rest) {
+        String r = rest == null ? "" : rest;
+        Matcher m = Q_OMSCHR.matcher(r);
+        if (m.find()) r = m.group(1);
+        r = Q_IN_AGENDA.matcher(r).replaceAll(" ").replaceAll("\\s+", " ").trim();
+        r = r.replaceAll("(?iu)^(?:voor|op|om|in|:|,)\\s+", "").replaceAll("(?iu)\\s+(?:voor|op|om|in|aan)$", "").trim();
+        if (r.matches("(?iu)^(?:met|bij)\\s+\\S.*")) r = "Afspraak " + r; // taal-vast: een titel in Rene's agenda, geen tekst van de app
+        return tidy(r.replaceAll("(?iu)^(?:met|bij)\\s+$", ""), 120);
+    }
 
     /** Een duidelijke opdracht in de vraag zelf ("Herinner me morgen om 9 uur aan de vuilnis"), voor als het model
      *  de regel vergat. Alleen bij een zin die met de opdracht begint; anders null. */
@@ -467,12 +491,23 @@ final class AiActions {
             if (a.text.equalsIgnoreCase(a.title)) a.text = "";
             return a.title.isEmpty() ? null : a;
         }
-        if ((m = Q_AGENDA.matcher(q)).matches()) { a.type = "agenda"; what = m.group(1) + " " + m.group(2); }
+        boolean metMoment = false; // alleen een opdracht als er ook een datum of tijd in staat
+        if ((m = Q_AGENDA_IN.matcher(q)).matches()) { a.type = "agenda"; what = m.group(1); }
+        else if ((m = Q_AGENDA.matcher(q)).matches()) { a.type = "agenda"; what = m.group(1) + " " + m.group(2); }
+        else if ((m = Q_AGENDA_MAAK.matcher(q)).matches() || (m = Q_AGENDA_MAKEN.matcher(q)).matches()) { a.type = "agenda"; what = m.group(1); }
+        // Zonder werkwoord alleen met een datum of tijd, en geen vraag ("afspraak morgen?" = wat staat er)
+        else if (!q.trim().endsWith("?") && ((m = Q_AGENDA_LOS.matcher(q)).matches() || (m = Q_AGENDA_PLAN.matcher(q)).matches())) { a.type = "agenda"; what = m.group(1); metMoment = true; }
         else if ((m = Q_REMIND2.matcher(q)).matches() || (m = Q_REMIND3.matcher(q)).matches() || (m = Q_REMIND.matcher(q)).matches()) { a.type = "herinnering"; what = m.group(1); }
         else return null;
         When w = when(what, now, tz);
-        a.title = tidy(w.rest.replaceAll("(?iu)^(?:voor|op|om)\\s+", "").replaceAll("(?iu)^[:,]\\s*", ""), 120);
-        if (a.title.isEmpty()) return null;
+        if (metMoment && !w.any()) return null;
+        if ("agenda".equals(a.type)) {
+            a.title = agendaTitel(w.rest);
+            if (a.title.isEmpty()) a.title = "Afspraak"; // taal-vast: een titel in Rene's agenda; hij kan hem op de kaart aanpassen
+        } else {
+            a.title = tidy(w.rest.replaceAll("(?iu)^(?:voor|op|om)\\s+", "").replaceAll("(?iu)^[:,]\\s*", ""), 120);
+            if (a.title.isEmpty()) return null;
+        }
         resolve(a, w, new When(), now, tz);
         return a;
     }

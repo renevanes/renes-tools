@@ -23,6 +23,10 @@ aangegeven.
   **versleuteld** bewaard. Bankzaken verlaten de telefoon nooit.
 - De lokale assistent, slim zoeken en het uitschrijven van gesprekken werken **op de telefoon zelf**. Er gaat niets naar
   een AI-dienst op internet; alleen het model wordt eenmalig gedownload.
+- **Opdracht geven** (snelkoppeling, tegel in de snelle instellingen, widget, en als je Tools zelf als digitale
+  assistent van Android kiest): opent de assistent met de microfoon aan. Wat je zegt wordt op de telefoon uitgeschreven;
+  een afspraak, herinnering of notitie wordt pas gemaakt na je tik, en een afspraak gaat alleen naar de agenda die je
+  kiest (een Google-agenda via de agenda van de telefoon).
 
 ## Welke gegevens de app gebruikt
 

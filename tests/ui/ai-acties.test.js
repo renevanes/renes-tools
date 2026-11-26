@@ -78,23 +78,43 @@ const { chromium } = require('playwright');
     await pg.click('.aiact .mini.on'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => { const n = notesGet().find(x => x.title === 'Boodschappen zaterdag'); return !!n && n.text === 'melk, brood en kaas'; }), 'Toch voorstellen, tekst aangepast, notitie gemaakt');
 
-    // 4. Agenda: de agenda-app opent met alles ingevuld
-    await pg.evaluate(y => { aiNew(); Android._ai.reply = 'Zal ik dat in je agenda zetten?\n[[agenda: ' + y + ' 10:00 | Tandarts]]'; }, ymd);
+    // 4. Agenda: rechtstreeks in de Agenda van Tools (in de agenda die je kiest)
+    await pg.evaluate(y => { aiNew(); Android._ai.reply = 'Zal ik dat in je agenda zetten?\n[[agenda: ' + y + ' 10:00 | Tandarts]]'; Android._cal = null; }, ymd);
     await ask('Zet de tandarts morgen om 10 uur in mijn agenda'); await pg.waitForTimeout(700);
-    ok((await pg.textContent('.aiact')).includes('In je agenda zetten?'), 'voorstel: agenda');
+    ok((await pg.textContent('.aiact')).includes('In je agenda zetten?') && (await pg.textContent('.aiact .mini.on')).includes('Bewaren'), 'voorstel: agenda, met Bewaren');
+    await pg.click('.aiact .mini.on'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(y => { const it = Android._ag && Android._ag.laatste; return !!it && it.titel === 'Tandarts' && it.dag === y && it.van === '10:00' && it.tot === '11:00' && !it.heleDag && it.kalender === '' && !Android._cal; }, ymd), 'bewaard in Tools: titel, dag, 10:00-11:00, geen agenda-app');
+    ok((await pg.textContent('.aiact.done')).includes('In je agenda gezet') && (await pg.textContent('.aiact.done')).includes('Alleen in Tools'), 'gedaan: in je agenda gezet (alleen in Tools)');
+    await pg.click('.aiact.done .linkish'); await pg.waitForTimeout(200);
+    ok(await pg.evaluate(() => current === 'agenda'), 'Agenda openen');
+    await pg.evaluate(() => show('ai')); await pg.waitForTimeout(150);
+    // Een agenda van de telefoon kiezen (toestemming en schrijven aan)
+    await pg.evaluate(y => { Object.assign(Android._agInit(), { perm: true, schrijf: true, standaard: '1' }); aiNew(); Android._ai.reply = 'Komt goed.\n[[agenda: ' + y + ' | Verjaardag Daan]]'; }, ymd);
+    await ask('Zet de verjaardag van Daan morgen in mijn agenda'); await pg.waitForTimeout(700);
+    ok((await pg.textContent('.aiact')).includes('hele dag'), 'zonder tijd: hele dag');
+    ok(await pg.evaluate(() => { const s = $('.aiact select'); return !!s && s.value === '1' && s.options.length === 3 && s.options[1].getAttribute('translate') === 'no'; }), 'keuzelijst met de agenda\'s; de standaardagenda staat klaar');
+    await pg.selectOption('.aiact select', '2');
+    await pg.click('.aiact .mini.on'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => { const it = Android._ag.laatste; return it.titel === 'Verjaardag Daan' && it.heleDag === true && it.kalender === '2' && it.ext > 0; }), 'hele dag in de gekozen agenda (Werk)');
+    ok((await pg.textContent('.aiact.done')).includes('In Werk'), 'gedaan: in welke agenda');
+    // Lukt het niet (alleen lezen): melding, voorstel blijft
+    await pg.evaluate(() => { Android._agInit().schrijf = false; aiNew(); });
+    await ask('Zet de verjaardag van Daan morgen in mijn agenda'); await pg.waitForTimeout(700);
+    await pg.click('.aiact .mini.on'); await pg.waitForTimeout(100);
+    ok((await pg.textContent('#toast')).includes('Geen toestemming') && await pg.isVisible('.aiact .mini.on'), 'geen toestemming: melding, voorstel blijft');
+    await pg.evaluate(() => { Object.assign(Android._agInit(), { perm: false, schrijf: false, standaard: '' }); });
+    // Een oudere app zonder Agenda-brug: de agenda-app opent met alles ingevuld
+    await pg.evaluate(y => { Android._agB = Android.agendaBewaar; Android.agendaBewaar = undefined; aiNew(); Android._ai.reply = 'Zal ik dat in je agenda zetten?\n[[agenda: ' + y + ' 10:00 | Tandarts]]'; Android._cal = null; }, ymd);
+    await ask('Zet de tandarts morgen om 10 uur in mijn agenda'); await pg.waitForTimeout(700);
+    ok((await pg.textContent('.aiact .mini.on')).includes('Agenda openen'), 'oudere app: Agenda openen');
     await pg.click('.aiact .mini.on'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._cal && Android._cal.title === 'Tandarts' && new Date(Android._cal.begin).getHours() === 10 && Android._cal.end - Android._cal.begin === 36e5 && !Android._cal.allDay), 'agenda-app met titel, begin en eind');
     ok((await pg.textContent('.aiact.done')).includes('agenda-app'), 'gedaan: bewaar het in je agenda-app');
-    await pg.evaluate(y => { aiNew(); Android._ai.reply = 'Komt goed.\n[[agenda: ' + y + ' | Verjaardag Daan]]'; Android._cal = null; }, ymd);
-    await ask('Zet de verjaardag van Daan morgen in mijn agenda'); await pg.waitForTimeout(700);
-    ok((await pg.textContent('.aiact')).includes('hele dag'), 'zonder tijd: hele dag');
-    await pg.click('.aiact .mini.on'); await pg.waitForTimeout(150);
-    ok(await pg.evaluate(() => Android._cal && Android._cal.allDay === true && new Date(Android._cal.begin).getHours() === 0), 'hele dag in de agenda');
     await pg.evaluate(() => { aiNew(); Android._calErr = 'Er is geen agenda-app op je telefoon'; });
     await ask('Zet de verjaardag van Daan morgen in mijn agenda'); await pg.waitForTimeout(700);
     await pg.click('.aiact .mini.on'); await pg.waitForTimeout(100);
     ok((await pg.textContent('#toast')).includes('geen agenda-app') && await pg.isVisible('.aiact .mini.on'), 'geen agenda-app: melding, voorstel blijft');
-    await pg.evaluate(() => { Android._calErr = ''; });
+    await pg.evaluate(() => { Android._calErr = ''; Android.agendaBewaar = Android._agB; });
 
     // 5. Niet gevraagd: geen voorstel (wel de regel weg); "onthoud dat" blijft het geheugen
     await pg.evaluate(y => { aiNew(); Android._ai.reply = 'Vier.\n[[herinnering: ' + y + ' 09:00 | iets]]'; }, ymd);
