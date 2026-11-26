@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.259",
+    "date": "2026-11-25",
+    "changes": [
+      "Stamgegevens: de strook van een paspoort met een afwijkende (gelaserde) letter wordt nu ook herkend als de controlecijfers kloppen; nummer, geboortedatum en vervaldatum worden dan voorgesteld, naam en nationaliteit staan erbij om na te kijken."
+    ]
+  },
+  {
     "version": "1.258",
     "date": "2026-11-25",
     "changes": [
