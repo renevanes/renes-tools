@@ -150,6 +150,19 @@ async function cmfVoorstel(r, side){
 /** Vanzelf alleen bij bijsnijden of draaien (alleen de belichting is bij een kaartfoto of ID-kopie geen reden om te storen). */
 function fbVormVoorstel(v){ return !!v && v.redenen.some(x => x === 'bijsnijden' || x === 'draaien'); }
 function cmfWeg(side){ const k = $('#cmf-' + side); if (k) k.remove(); }
+/* Ook op het bewerkscherm (blok Foto's): per kant een knop zodra de foto getoond is */
+async function cmiPhotoBewerk(side){
+  if (!cmfKan() || !cmiPhotoCanChange()) return;
+  const r = cm.edit, src = $('#cmi-' + side + '-image').getAttribute('src'); if (!src || !r.images?.[side]) return;
+  cmTouch();
+  const res = await fotoBewerk({ src, bron: 'stam', titel: side === 'front' ? t('Voorkant bewerken') : t('Achterkant bewerken'), knop: t('Bewaren'),
+    soort: cmfSoort(r), zijde: side, afdekken: false, actief: cmTouch });
+  if (!res || !res.gewijzigd || !cmOpen() || cm.edit !== r || cm.mutating) return;
+  cmBusy(true);
+  cmRequest('masterPhotoBewerk', [r.id, r.revision, side, JSON.stringify(res.ops)], out => { cmBusy(false); r.revision = out.revision; cmiPhotoClear(); cmiPhotoShow(); cmNote(t('Kaartfoto bewerkt.')); });
+}
+function cmfKnoppen(){ for (const side of ['front', 'back']) { const b = document.getElementById(['cmi', side, 'bewerk'].join('-')), z = document.getElementById(['cmi', side, 'zoom'].join('-')); const weg = z ? z.hidden || !cmfKan() : true; if (b && b.hidden !== weg) b.hidden = weg; } } // alleen bij verschil: anders roept de waarnemer zichzelf eindeloos aan
+new MutationObserver(cmfKnoppen).observe($('#cmi-photos'), { subtree: true, attributes: true, attributeFilter: ['hidden'] });
 const cmfClear0 = cmClearCentral;
 cmClearCentral = function(){ if (fbAan() && fb.opts.bron === 'stam') fbSluit(null); cmc.fbNa = null; return cmfClear0.apply(this, arguments); };
 /** Een plaatje (data-adres) als canvas. */

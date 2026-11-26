@@ -127,6 +127,12 @@ const { chromium } = require('playwright'); const path = require('path');
     await pg.locator('#cmf-front button', { hasText: 'Toepassen' }).click();
     ok(await until(() => (Android._cm.bewerkt || []).length === 2 && !cm.mutating), 'Toepassen bewaart het voorstel');
     ok(await pg.evaluate(() => Android._cm.bewerkt[1].ops.q[0][0] > 0.05 && !$('#cmf-front')), 'met het gevonden vlak; voorstel weg');
+    // Ook op het bewerkscherm (blok Foto's): per kant een knop Bewerken
+    await T.blok('00000000-0000-0000-0000-000000000002', 'fotos');
+    ok(await until(() => !$('#cmi-front-bewerk').hidden && $('#cmi-back-bewerk').hidden), "bewerkscherm: Voorzijde bewerken zodra de foto er staat (geen achterkant: geen knop)");
+    await pg.click('#cmi-front-bewerk'); await until(() => fbAan());
+    await pg.click('#fb-tab-draai'); await pg.click('#fb-p-draai button:has-text("Kwartslag naar links")'); await pg.click('#fb-ok');
+    ok(await until(() => (Android._cm.bewerkt || []).length === 3 && !cm.mutating && Android._cm.bewerkt[2].ops.draai === 270 && !$('#cmi-front-paper').hidden), 'bewaard vanaf het bewerkscherm; de foto staat er weer');
     await pg.evaluate(() => cmLock()); await pg.waitForTimeout(100);
 
     // ---------- 5. ID-kopie ----------
