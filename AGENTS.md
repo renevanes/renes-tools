@@ -670,7 +670,8 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
    Wachtende taken publiceren staan in een wachtrij (`queue: max`); een run waarvan de bron al in een nieuwere versie
    staat, stopt meteen ("Al gepubliceerd"). Groen is nog niet gepubliceerd, en een commit "Versie X.Y" ná de jouwe
    ook niet (bij "alleen de geteste bron" kan die versie ouder werk bevatten dan het jouwe). Gepubliceerd = je commit
-   zit in de laatste versie: `git fetch origin && git merge-base --is-ancestor <jouw commit> "$(git log -1 --format=%H origin/main -- update/update.json)"`.
+   zit in de laatste versie: `git fetch origin && git merge-base --is-ancestor <jouw commit> "$(git log -1 --format=%H origin/main -- update/update.json)"`. Dat geldt
+   voor werk aan de app (`app/`, `web/`, `tools/`, `build.sh`); alleen documentatie, tests of workflows komt zonder nieuwe versie op main.
    Elke push start de hele reeks tests (emulators, Play-controle, interfacetests); vlak na elkaar pushen kost dus veel
    runners en kan Bouwen en testen even laten wachten. Mislukte hij buiten je wijziging om, start hem dan zelf
    opnieuw ("Altijd zelf publiceren") en wacht tot er een versie is. Groeit de APK meer dan 10%, dan

@@ -134,11 +134,15 @@ for try in 1 2 3 4 5; do
   if [ -n "$GETEST" ]; then
     DIRTY=1
     # Versie en wijzigingslog van main (daar staan de eerdere versies in), en alleen de wijzigingsregels van de geteste
-    # bron die main nog heeft (een regel die main al niet meer heeft, zat in een eerdere versie)
+    # bron die main nog heeft, per regel (een regel die main al niet meer heeft, zat in een eerdere versie)
     git checkout -q "$BASE" -- VERSION changelog.json
     for f in wijzigingen/*.txt; do
       [ -e "$f" ] || continue
-      git cat-file -e "$BASE:$f" 2>/dev/null || { git rm -q --cached --ignore-unmatch -- "$f" > /dev/null; rm -f "$f"; }
+      if git cat-file -e "$BASE:$f" 2>/dev/null; then
+        nog=$(grep -Fx -f <(git show "$BASE:$f") "$f" || true)
+        if [ -n "$nog" ]; then printf '%s\n' "$nog" > "$f"; continue; fi
+      fi
+      git rm -q --cached --ignore-unmatch -- "$f" > /dev/null; rm -f "$f"
     done
   fi
   if git diff --quiet "$LASTREL" HEAD -- app web tools build.sh; then

@@ -62,6 +62,10 @@ if tools/publicatie-samenvoegen.sh "$y" "$(git rev-parse HEAD)" x > /dev/null 2>
 leeg=$(git hash-object -t tree /dev/null); los=$(git commit-tree "$leeg" -m los); vlos=$(git commit-tree "$leeg" -p "$los" -m "Versie los")
 if tools/publicatie-samenvoegen.sh "$y" "$vlos" x > /dev/null 2>&1; then fout "bron buiten main toegelaten"; fi
 
+# Daarna Z op main (terwijl Y nog getest wordt): de run van Y publiceert dan alleen de geteste bron
+git checkout -q --detach "$m"; echo vier > app/z.txt; echo "Regel van Z" > wijzigingen/z.txt
+git add -A && git commit -qm "Werk Z" && git push -q origin HEAD:main
+
 # publish.sh: een run van X die pas klaar is nadat V er al staat, publiceert niets meer; een run van Y wel
 probeer(){ # $1 = map, $2 = geteste bron
   rm -rf "$1" && git clone -q "$tmp/origin.git" "$1" 2>/dev/null
@@ -72,7 +76,8 @@ probeer(){ # $1 = map, $2 = geteste bron
 [ "$(probeer "$tmp/oud" "$x")" = geen ] || { cat "$tmp/oud.log"; fout "een al gepubliceerde bron opnieuw klaargezet"; }
 grep -q "al in een nieuwere versie" "$tmp/oud.log" || { cat "$tmp/oud.log"; fout "geen melding bij een al gepubliceerde bron"; }
 f=$(probeer "$tmp/y" "$y")
+grep -q "geteste bron" "$tmp/y.log" || { cat "$tmp/y.log"; fout "de run van Y ging niet via alleen de geteste bron"; }
 [[ $f =~ ^[0-9a-f]{64}$ ]] || fout "het werk van Y niet klaargezet"
 grep -q '^VERSION_NAME=1.12$' "$tmp/y/VERSION" || fout "versie na 1.11 niet 1.12"
-python3 -c "import json,sys; e=json.load(open(sys.argv[1]))[0]; assert sorted(e['changes'])==['Nog een regel van Y','Regel van Y'], e" "$tmp/y/changelog.json" || fout "wijzigingslog van Y klopt niet"
+python3 -c "import json,sys; e=json.load(open(sys.argv[1]))[0]; assert sorted(e['changes'])==['Nog een regel van Y','Regel van Y'] and e['version']=='1.12', e" "$tmp/y/changelog.json" || fout "wijzigingslog van Y klopt niet"
 echo 'Alleen de geteste bron geslaagd: niets teruggedraaid, nieuwer werk volgt, oudere run publiceert niets'
