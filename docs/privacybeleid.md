@@ -67,7 +67,7 @@ bij elke internetverbinding zo. Daarnaast:
 
 | Dienst | Wanneer | Wat er naartoe gaat |
 |---|---|---|
-| GitHub (alleen de GitHub-versie) | Bij het openen van de app, hooguit eens per half uur | Een vraag om de nieuwste versie; niets persoonlijks |
+| GitHub (alleen de GitHub-versie) | Bij het openen van de app, hooguit eens per half uur, en eens per dag op de achtergrond; is er een nieuwe versie, dan wordt die vanzelf gedownload (standaard aan, alleen via wifi; uit te zetten bij Versie en updates). Installeren doe je zelf | Een vraag om de nieuwste versie en de download van de app; niets persoonlijks |
 | Open-Meteo | Weer op het startscherm en de weerwidget, als je die gebruikt | De laatst bekende locatie van de telefoon (op ongeveer 10 meter) of een plaatsnaam |
 | Hugging Face | Een onderbroken download van een AI-model gaat vanzelf verder | Niets persoonlijks |
 
@@ -186,7 +186,7 @@ audio clip), Spotify, Google (read-only Gmail search for invoices, Drive, sendin
 cloud, supplier and bank websites, news sites and feeds you choose (optionally with your own login on the real
 site), OpenStreetMap (map tiles and, only when you choose to share a toilet location, a public anonymous note), Apple's podcast search, radio-browser.info, radio streams and podcast
 feeds, Chromecast in your network, Hugging Face (model downloads), your VPN, websites you follow in Signalen, your bank's website when you pre-fill a payment in Betalen (you sign it yourself), payment links from a bill's QR code and a DuckDuckGo search, both only after you confirm, video player services in news articles, and podcast chapter files. Automatically: weather (approximate
-location to Open-Meteo), resuming model downloads and, in the GitHub version, update checks (and, when you open Publishing and tests or turn on that Signals source, the public status of the repository on GitHub). Optional weekly
+location to Open-Meteo), resuming model downloads and, in the GitHub version, update checks and downloading a new app version in advance (on by default, Wi-Fi only; installing is up to you) (and, when you open Publishing and tests or turn on that Signals source, the public status of the repository on GitHub). Optional weekly
 statistics (counts, crash type and location in the code, app version, device make/model, Android version, random
 install id) and the error log (technical messages, at most hourly, cleaned up as well as possible first: email addresses, phone and account numbers, long numbers, keys, web addresses, paths, file names, IP addresses, postcodes and read content are removed; on by default once you set up the repository, can be turned off) go only to your own private GitHub repository; Diagnose (content such as text read from a bill) only when you copy or send it yourself or turn on automatic sending, and only to that repository when GitHub reports it as private. CPAP measurements you import stay encrypted on the phone. The assistant and transcription run on the device. Android's
 Google backup may include notes, music history, parking/trips, saved places and settings, but never passwords, keys or

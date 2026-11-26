@@ -22,6 +22,14 @@ public class UpdaterVanzelfTest {
         for (String p : new String[]{"Update mislukt: https://example.org/x", "x@y.nl", "iets onbekends"})
             check(Updater.vanzelfReden(p).matches("[a-z]+"), "altijd een vast woord: " + Updater.vanzelfReden(p));
 
+        long u = 3600_000L, nu = 100 * u;
+        check(Updater.pauzeVoorbij(0, nu), "nooit mislukt: proberen");
+        check(!Updater.pauzeVoorbij(nu - u, nu), "een uur na een fout: wachten");
+        check(Updater.pauzeVoorbij(nu - 12 * u, nu), "na 12 uur: weer proberen");
+        check(Updater.pauzeVoorbij(nu + u, nu), "klok teruggezet: proberen");
+        check(Updater.vanzelfReden("bezig").equals("bezig"), "bezig blijft bezig");
+        check(Updater.vanzelfReden("Update mislukt: te weinig geheugen").equals("geheugen"), "geheugen");
+
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }
         System.out.println("alles goed");
     }

@@ -20,23 +20,33 @@ final class UpdateController {
                 current.js("onUpdateStatus", reply.toString());
             });
             // Een nieuwe app die nog niet klaarstaat: vanzelf downloaden (als dat aan staat en het netwerk het toelaat)
-            if ("apk".equals(reply.optString("state")) && !reply.optBoolean("klaar") && Updater.magVanzelf(app)) vanzelf(app, reply.optString("versionName"));
+            try {
+                if ("apk".equals(reply.optString("state")) && !reply.optBoolean("klaar") && Updater.magVanzelf(app)) vanzelf(app, reply.optString("versionName"));
+            } catch (Throwable t) { App.log(app, "UPDATE", "vanzelf downloaden mislukt (" + t.getClass().getSimpleName() + ")"); }
         }, "update-controle").start();
     }
 
     /** Vanzelf downloaden met de voortgang in de balk; daarna staat hij klaar (Installeren) of weer gewoon beschikbaar. */
     static void vanzelf(Context app, String versie) {
-        new Thread(Doorwerken.door("update-vanzelf", () -> {
-            String reden = Updater.vanzelfNu(app, MainActivity.progressTo("apk"));
-            JSONObject k = Updater.klaar(app);
-            try {
-                JSONObject r = new JSONObject().put("state", "apk").put("kind", "apk").put("vanzelf", true)
-                        .put("versionName", k != null ? k.optString("versionName") : versie);
-                if (k != null) r.put("klaar", true);
-                if (reden != null) r.put("reden", reden);
-                MainActivity.updateStatus(r.toString());
-            } catch (Throwable ignored) { }
-        }), "update-vanzelf").start();
+        new Thread(Doorwerken.door("update-vanzelf", () -> vanzelfHier(app, versie)), "update-vanzelf").start();
+    }
+
+    /**
+     * Op deze draad vanzelf downloaden; staat de app open, dan ziet die de voortgang en de uitkomst (ook vanuit de
+     * dagelijkse taak). Loopt er al een download, dan niets melden: die meldt zelf.
+     */
+    static void vanzelfHier(Context app, String versie) {
+        String reden = Updater.vanzelfNu(app, MainActivity.progressTo("apk"));
+        if ("bezig".equals(reden)) return;
+        JSONObject k = Updater.klaar(app);
+        if (k == null && reden == null) return; // niets gedaan (uit, geen netwerk, pauze of al bij)
+        try {
+            JSONObject r = new JSONObject().put("state", "apk").put("kind", "apk").put("vanzelf", true)
+                    .put("versionName", k != null ? k.optString("versionName") : versie);
+            if (k != null) r.put("klaar", true);
+            if (reden != null) r.put("reden", reden);
+            MainActivity.updateStatus(r.toString());
+        } catch (Throwable ignored) { }
     }
 
     static void install(Context context) {

@@ -421,13 +421,32 @@ final class Updater {
         } catch (Throwable t) { return false; }
     }
 
-    /** Kost dit netwerk mogelijk geld (mobiele data)? Onbekend telt als ja. */
+    /**
+     * Kost dit netwerk mogelijk geld (mobiele data)? Onbekend telt als ja. Alleen een verbonden wifi- of kabelnetwerk
+     * zonder datalimiet telt als gratis: een VPN (ook de eigen, die zich als onbeperkt meldt) telt niet mee, zodat
+     * "Alleen via wifi" niet over mobiele data loopt als de VPN aan staat.
+     */
+    @SuppressWarnings("deprecation")
     static boolean betaaldNet(Context c) {
         try {
             android.net.ConnectivityManager cm = (android.net.ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
-            return cm == null || cm.isActiveNetworkMetered();
+            if (cm == null || cm.isActiveNetworkMetered()) return true;
+            for (android.net.Network n : cm.getAllNetworks()) {
+                android.net.NetworkCapabilities nc = cm.getNetworkCapabilities(n);
+                android.net.NetworkInfo ni = cm.getNetworkInfo(n);
+                if (nc == null || ni == null || !ni.isConnected()) continue;
+                boolean vast = nc.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) || nc.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET);
+                if (vast && !nc.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)
+                        && nc.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) return false;
+            }
+            return true;
         } catch (Throwable t) { return true; }
     }
+
+    /** Na een mislukte poging een tijd niet opnieuw vanzelf (Installeren met de hand kan altijd). */
+    static final long PAUZE_NA_FOUT_MS = 12L * 3600_000L;
+    /** Zuiver: mag er weer geprobeerd worden? */
+    static boolean pauzeVoorbij(long misluktOp, long nu) { return misluktOp <= 0 || nu < misluktOp || nu - misluktOp >= PAUZE_NA_FOUT_MS; }
 
     /** Een vaste reden voor het logboek (geen adressen of foutteksten van buiten). Zuiver. */
     static String vanzelfReden(String probleem) {
@@ -436,26 +455,33 @@ final class Updater {
         if (probleem.contains("Controlegetal") || probleem.contains("versienaam")) return "controle";
         if (probleem.contains("bewaard") || probleem.contains("ruimte")) return "opslaan";
         if (probleem.contains("geheugen")) return "geheugen";
+        if (probleem.equals("bezig")) return "bezig";
         return "download";
     }
 
     /**
-     * Vanzelf downloaden als het mag en er nog niets klaarstaat; null als er niets te doen was of het klaar is, anders de
-     * reden in vaste woorden. Voor de dagelijkse taak (Care) en na een controle met de app open (UpdateController).
+     * Vanzelf downloaden als het mag en er nog niets klaarstaat; null als er niets te doen was of het klaar is, "bezig"
+     * als er al een download loopt (dan niets melden: die meldt zelf), anders de reden in vaste woorden. Voor de
+     * dagelijkse taak (Care) en na een controle met de app open (UpdateController).
      */
     static String vanzelfNu(Context c, Progress pr) {
-        if (!magVanzelf(c)) return null;
+        if (!magVanzelf(c) || !pauzeVoorbij(prefs(c).getLong("vzMis", 0), System.currentTimeMillis())) return null;
         String r;
-        try { r = downloadVanzelf(c, pr); } catch (Throwable t) { r = "Update mislukt"; }
+        try { r = downloadVanzelf(c, pr); }
+        catch (OutOfMemoryError e) { r = "Update mislukt: te weinig geheugen"; }
+        catch (Throwable t) { r = "Update mislukt"; }
         if (r == null) {
             JSONObject k = klaar(c);
-            if (k != null && keuze(c).getInt("gemeld", 0) != k.optInt("versionCode")) {
-                keuze(c).edit().putInt("gemeld", k.optInt("versionCode")).apply();
+            prefs(c).edit().remove("vzMis").apply();
+            if (k != null && prefs(c).getInt("vzGemeld", 0) != k.optInt("versionCode")) {
+                prefs(c).edit().putInt("vzGemeld", k.optInt("versionCode")).apply();
                 App.log(c, "UPDATE", "nieuwe app vanzelf gedownload: versie " + k.optString("versionName"));
             }
             return null;
         }
-        if ("uptodate".equals(r) || "busy".equals(r)) return null;
+        if ("uptodate".equals(r)) return null;
+        if ("busy".equals(r)) return "bezig";
+        prefs(c).edit().putLong("vzMis", System.currentTimeMillis()).apply();
         String reden = vanzelfReden(r);
         App.log(c, "UPDATE", "vanzelf downloaden mislukt (" + reden + ")");
         return reden;

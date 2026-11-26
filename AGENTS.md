@@ -1115,8 +1115,10 @@ nieuwe app die nog niet klaarstaat, dan downloadt `Updater.downloadVanzelf` hem 
 Installeren (ondertekende updatelijst, controlegetal) en zet hem klaar; **installeren doet Rene altijd zelf** (de balk:
 "Versie X is gedownload; tik op Installeren"). Na een controle met de app open (`UpdateController.vanzelf`, voortgang in
 de balk) en eens per dag in `Care.daily`. Niet zonder netwerk, niet op mobiele data als Alleen via wifi aan staat
-(`Updater.magVanzelf`, zuiver), niet in de Play-versie. Mislukt het, dan blijft hij gewoon beschikbaar; logsoort `UPDATE`
-alleen met een vaste reden (`vanzelfReden`). Tests: `UpdaterVanzelfTest`, `tests/ui/update-vanzelf.test.js`.
+(`Updater.magVanzelf`, zuiver; alleen een wifi- of kabelnetwerk zonder datalimiet telt, een VPN niet: `betaaldNet`), niet
+in de Play-versie. Mislukt het, dan blijft hij gewoon beschikbaar en wacht vanzelf downloaden `PAUZE_NA_FOUT_MS`
+(`vzMis` in de toestand `update`); logsoort `UPDATE` alleen met een vaste reden (`vanzelfReden`). Loopt er al een
+download (`busy`), dan meldt het niets (`vanzelfHier`). Tests: `UpdaterVanzelfTest`, `tests/ui/update-vanzelf.test.js`.
 
 ## Publiceren en tests (stand op GitHub in de app)
 Scherm `s-github` (Instellingen → Versie en updates; `28c-publiceren-en-tests.js`, `GithubStatus.java`): per taak de stand

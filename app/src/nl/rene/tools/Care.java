@@ -96,7 +96,7 @@ public class Care extends JobService {
         try { Statistiek.daily(c); } catch (Throwable t) { App.log(c, "STATISTIEK", t.getClass().getSimpleName()); }
         Logboek.bijStart(c); // vangnet: wat nog niet weg is (bijv. als de geplande taak verviel)
         // Een nieuwe app alvast downloaden, ook als Tools niet open is (Nieuwe app vanzelf downloaden; alleen downloaden)
-        try { Updater.vanzelfNu(c, Updater.NONE); } catch (Throwable t) { App.log(c, "UPDATE", "vanzelf downloaden mislukt (" + t.getClass().getSimpleName() + ")"); }
+        try { UpdateController.vanzelfHier(c, ""); } catch (Throwable t) { App.log(c, "UPDATE", "vanzelf downloaden mislukt (" + t.getClass().getSimpleName() + ")"); }
     }
 
     // ---------- batterij ----------
