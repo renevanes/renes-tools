@@ -109,9 +109,15 @@ const WACHT = parseFloat(process.env.UI_WACHT || '1') || 1;
     await page.click('#sms-meer .sms-verder'); await page.waitForTimeout(100);
     ok(await smsRijen() === 400, colorScheme + ': SMS-backup Meer tonen: 200 rijen erbij (' + await smsRijen() + ')');
     ok(await page.evaluate(() => document.activeElement === document.querySelectorAll('#sms-list > button')[200]), colorScheme + ': SMS-backup: focus op de eerste nieuwe rij');
+    await page.evaluate(() => onSmsChanged()); await page.waitForTimeout(100);
+    ok(await smsRijen() === 400, colorScheme + ': SMS-backup: opnieuw laden in het scherm houdt Meer tonen (' + await smsRijen() + ')');
+    await page.evaluate(() => { show('smschat'); goBack(); }); await page.waitForTimeout(150);
+    ok(await smsRijen() === 400, colorScheme + ': SMS-backup: terug uit een gesprek houdt Meer tonen (' + await smsRijen() + ')');
     await page.fill('#sms-search', 'zz'); await page.evaluate(() => smsSearchDo('zz')); await page.waitForTimeout(400);
     ok(!(await page.isVisible('#sms-meer .sms-verder')), colorScheme + ': SMS-backup: tijdens zoeken geen Meer tonen');
     await page.fill('#sms-search', ''); await page.evaluate(() => smsSearchDo(''));
+    await open('sms'); await page.waitForTimeout(200);
+    ok(await smsRijen() === 200, colorScheme + ': SMS-backup: opnieuw openen begint weer bij 200 (' + await smsRijen() + ')');
     await open('cpap');
     await page.selectOption('#cp-periode', 'all');
     const cpap = await page.evaluate(() => ({nachten: document.querySelectorAll('#cp-nachten button').length,

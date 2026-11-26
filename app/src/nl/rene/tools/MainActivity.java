@@ -278,6 +278,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle b) {
         opstart = Opstart.nu();
         final long voorAf = Math.max(0, android.os.SystemClock.uptimeMillis() - android.os.Process.getStartUptimeMillis()); // proces en App.onCreate
+        final boolean eersteScherm; synchronized (ALL) { eersteScherm = ALL.isEmpty(); } // proces= alleen bij een koude start
         super.onCreate(b);
         // Meteen in de kleur van het gekozen thema (ook automatisch 's avonds donker): geen witte flits bij het opstarten
         final int bg0 = Thema.bg(this);
@@ -401,7 +402,7 @@ public class MainActivity extends Activity {
         }
         opstart.stap("overig");
         loadUi();
-        Opstart.log(opstart.regel("onCreate") + " proces=" + voorAf);
+        Opstart.log(opstart.regel("onCreate") + (eersteScherm ? " proces=" + voorAf : " warm"));
     }
 
     /** Opstarttijden (alleen getallen, logcat; zie Opstart): tot de pagina zich meldt, daarna weg. */
@@ -414,12 +415,12 @@ public class MainActivity extends Activity {
     static void startTaken(Context c) {
         try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND); } catch (Throwable ignored) { }
         try { WaBackupJob.ensureScheduled(c); } catch (Throwable e) { App.log(c, "START", "nachtelijke backup inplannen: " + e.getClass().getSimpleName()); } // houdt de nachtelijke backup gepland
-        try { Care.ensureScheduled(c); } catch (Throwable ignored) { } // dagelijks onderhoud: backup-controle (maandelijks) en batterij (wekelijks)
-        try { NotifCenter.ensureAll(c); } catch (Throwable ignored) { } // alle soorten meldingen met nette namen in Android
+        try { Care.ensureScheduled(c); } catch (Throwable e) { App.log(c, "START", "onderhoud inplannen: " + e.getClass().getSimpleName()); } // dagelijks onderhoud: backup-controle (maandelijks) en batterij (wekelijks)
+        try { NotifCenter.ensureAll(c); } catch (Throwable e) { App.log(c, "START", "meldingskanalen: " + e.getClass().getSimpleName()); } // alle soorten meldingen met nette namen in Android
         try { AllBackupJob.ensureScheduled(c); } catch (Throwable e) { App.log(c, "START", "backup inplannen: " + e.getClass().getSimpleName()); }
-        try { TranscribeJob.ensureScheduled(c); } catch (Throwable ignored) { }
-        try { ApparatenJob.ensure(c, false); } catch (Throwable ignored) { } // Apparaten op de achtergrond (alleen als dat aan staat)
-        try { Shortcuts.refreshPinned(c); } catch (Throwable ignored) { }
+        try { TranscribeJob.ensureScheduled(c); } catch (Throwable e) { App.log(c, "START", "uitschrijven inplannen: " + e.getClass().getSimpleName()); }
+        try { ApparatenJob.ensure(c, false); } catch (Throwable e) { App.log(c, "START", "apparaten inplannen: " + e.getClass().getSimpleName()); } // Apparaten op de achtergrond (alleen als dat aan staat)
+        try { Shortcuts.refreshPinned(c); } catch (Throwable e) { App.log(c, "START", "snelkoppelingen: " + e.getClass().getSimpleName()); }
     }
 
     /** De interface die geladen wordt, met de HTML al gelezen (en bij een gedownloade versie gecontroleerd). */
@@ -436,13 +437,14 @@ public class MainActivity extends Activity {
         return new Interface(w, w == null ? readAsset("index.html") : w.html);
     }
 
-    /** Wat interface-lezen al klaarzette (wacht zo nodig); null = zelf lezen (geen, mislukt of te laat). */
+    /** Wat interface-lezen al klaarzette (wacht zo nodig); null = zelf lezen (geen of mislukt). */
     private Interface neemVooraf() {
         java.util.concurrent.FutureTask<Interface> f = htmlVooraf;
         htmlVooraf = null;
         if (f == null) return null;
-        try { return f.get(3, java.util.concurrent.TimeUnit.SECONDS); } // ruim onder de grens van Android (5 s); te laat = zelf lezen
-        catch (Throwable e) { f.cancel(false); return null; }
+        f.run(); // nog niet begonnen: nu hier (zoals vroeger); loopt hij al, dan keert dit meteen terug
+        try { return f.get(); } // alleen wachten op wat de draad nog moet doen
+        catch (Throwable e) { return null; }
     }
 
     /** Pagina klaar (slotscherm al getekend als de app op slot is): nu pas tonen. */

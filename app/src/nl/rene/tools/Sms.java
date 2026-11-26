@@ -167,6 +167,23 @@ final class Sms {
             return order;
         }
 
+        /** Hooguit zoveel ?-tekens in één vraag aan de sms-database (SQLite heeft een grens). */
+        static final int PER_VRAAG = 400;
+
+        /** De id's in stukken van hooguit PER_VRAAG. */
+        static List<List<Long>> stukken(List<Long> ids) {
+            List<List<Long>> uit = new ArrayList<>();
+            for (int i = 0; i < ids.size(); i += PER_VRAAG) uit.add(ids.subList(i, Math.min(ids.size(), i + PER_VRAAG)));
+            return uit;
+        }
+
+        /** Selectie "_id IN (?,?,…)" voor één stuk; de waarden gaan apart mee (args). */
+        static String inVraag(int n) {
+            StringBuilder sel = new StringBuilder("_id IN (");
+            for (int j = 0; j < n; j++) sel.append(j == 0 ? "?" : ",?");
+            return sel.append(')').toString();
+        }
+
         /** Hoe lang de laatste tekst in de lijst mag zijn (één regel op het scherm). */
         static final int LAATSTE_TEKST = 200;
 
@@ -193,13 +210,10 @@ final class Sms {
         Map<Long, Conv> perId = new HashMap<>();
         for (Conv x : cv) { x.name = nameFor(c, x.address); perId.put(x.lastId, x); }
         List<Long> ids = new ArrayList<>(perId.keySet());
-        for (int i = 0; i < ids.size(); i += 400) { // niet te veel ?-tekens in één vraag (SQLite)
-            List<Long> deel = ids.subList(i, Math.min(ids.size(), i + 400));
-            StringBuilder sel = new StringBuilder("_id IN (");
+        for (List<Long> deel : Gesprekken.stukken(ids)) { // niet te veel ?-tekens in één vraag (SQLite)
             String[] args = new String[deel.size()];
-            for (int j = 0; j < deel.size(); j++) { sel.append(j == 0 ? "?" : ",?"); args[j] = String.valueOf(deel.get(j)); }
-            sel.append(')');
-            try (Cursor cur = c.getContentResolver().query(SMS_URI, new String[]{"_id", "body"}, sel.toString(), args, null)) {
+            for (int j = 0; j < deel.size(); j++) args[j] = String.valueOf(deel.get(j));
+            try (Cursor cur = c.getContentResolver().query(SMS_URI, new String[]{"_id", "body"}, Gesprekken.inVraag(deel.size()), args, null)) {
                 while (cur != null && cur.moveToNext()) {
                     Conv x = perId.get(cur.getLong(0));
                     if (x != null) x.lastText = Gesprekken.kort(cur.getString(1));

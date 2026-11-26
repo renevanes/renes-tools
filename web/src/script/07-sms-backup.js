@@ -29,7 +29,7 @@ let smsConvs = [], smsToon = SMS_TOON;
 function loadSmsList(){
   let d; try { d = JSON.parse(Android.smsConversations()); } catch(e){ return; }
   if (d.error) { smsConvs = []; $('#sms-list').innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; $('#sms-meer').innerHTML = ''; return; }
-  smsConvs = d.conversations || []; smsToon = SMS_TOON;
+  smsConvs = d.conversations || [];
   smsRenderList();
 }
 function smsRenderList(){

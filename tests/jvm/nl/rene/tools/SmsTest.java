@@ -40,6 +40,17 @@ public class SmsTest {
         String e = Sms.Gesprekken.kort(emoji.toString());
         check(!Character.isHighSurrogate(e.charAt(e.length() - 2)), "geen half teken (emoji) aan het eind");
 
+        List<Long> ids = new ArrayList<>();
+        check(Sms.Gesprekken.stukken(ids).isEmpty(), "geen id's: geen vragen");
+        ids.add(7L);
+        check(Sms.Gesprekken.stukken(ids).size() == 1 && "_id IN (?)".equals(Sms.Gesprekken.inVraag(1)), "één id: één vraag met één ?");
+        for (long i = 1; i < 400; i++) ids.add(i);
+        check(Sms.Gesprekken.stukken(ids).size() == 1 && Sms.Gesprekken.stukken(ids).get(0).size() == 400, "400 id's: één vraag");
+        ids.add(999L);
+        List<List<Long>> st = Sms.Gesprekken.stukken(ids);
+        check(st.size() == 2 && st.get(1).size() == 1 && st.get(1).get(0) == 999L, "401 id's: twee vragen, niets kwijt");
+        check(Sms.Gesprekken.inVraag(3).equals("_id IN (?,?,?)"), "drie plaatshouders, geen waarden in de tekst");
+
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }
     }
 }
