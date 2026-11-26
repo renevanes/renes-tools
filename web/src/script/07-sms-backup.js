@@ -23,15 +23,27 @@ function smsAskPerm(){
   if (store.get('smsAsked', false) && !Android.smsHasPermission()) { Android.openAppSettings(); return; }
   store.set('smsAsked', true); Android.smsRequestPermission();
 }
+// Lange lijst in delen (Prestaties: duizenden gesprekken niet allemaal tegelijk tekenen); zoeken kijkt in alle berichten
+const SMS_TOON = 200;
+let smsConvs = [], smsToon = SMS_TOON;
 function loadSmsList(){
   let d; try { d = JSON.parse(Android.smsConversations()); } catch(e){ return; }
-  if (d.error) { $('#sms-list').innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; return; }
+  if (d.error) { smsConvs = []; $('#sms-list').innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; $('#sms-meer').innerHTML = ''; return; }
+  smsConvs = d.conversations || []; smsToon = SMS_TOON;
+  smsRenderList();
+}
+function smsRenderList(){
   const el = $('#sms-list');
-  el.innerHTML = (d.conversations || []).map(cv =>
-    '<button onclick="openSms(' + cv.thread + ',' + jsq(cv.name) + ')">' +
+  el.innerHTML = smsConvs.slice(0, smsToon).map(cv =>
+    '<button onclick="openSms(' + Number(cv.thread) + ',' + jsq(cv.name) + ')">' +
     '<span class=r1><b translate="no">' + esc(cv.name) + '</b><time>' + esc(fmtD(cv.last)) + '</time></span>' +
     '<span class=r2 translate="no">' + esc(cv.lastText || '') + ' · ' + cv.count + '</span></button>').join('');
-  if (!(d.conversations || []).length) el.innerHTML = '<p class=note style="padding:14px">Geen sms-berichten gevonden.</p>';
+  if (!smsConvs.length) el.innerHTML = '<p class=note style="padding:14px">Geen sms-berichten gevonden.</p>';
+  $('#sms-meer').innerHTML = smsConvs.length > smsToon ? '<button class="big ghost sms-verder" onclick="smsVerder()">' + esc(t('Meer tonen')) + '</button>' : '';
+}
+function smsVerder(){
+  const voor = smsToon; smsToon += SMS_TOON; smsRenderList();
+  const r = document.querySelectorAll('#sms-list > button')[voor]; if (r) r.focus({ preventScroll: true }); // de knop is weg: focus op de eerste nieuwe rij
 }
 let smsChatCur = null;
 function openSms(thread, name){ smsChatCur = thread; $('#sms-title').textContent = name; show('smschat'); loadSmsMsgs(); }
@@ -55,10 +67,11 @@ function smsRenderMsgs(msgs){
 function smsSearchDo(q){
   clearTimeout(smsSearchTmr);
   const sr = $('#sms-results'), cl = $('#sms-list');
-  if (!q || q.trim().length < 2) { sr.innerHTML = ''; cl.style.display = 'block'; return; }
+  const meer = $('#sms-meer');
+  if (!q || q.trim().length < 2) { sr.innerHTML = ''; cl.style.display = 'block'; meer.style.display = ''; return; }
   smsSearchTmr = setTimeout(() => {
     let msgs; try { msgs = JSON.parse(Android.smsSearch(q.trim())); } catch(e){ return; }
-    cl.style.display = 'none';
+    cl.style.display = 'none'; meer.style.display = 'none';
     if (msgs.error) { sr.innerHTML = '<p class=note>' + esc(msgs.error) + '</p>'; return; }
     if (!msgs.length) { sr.innerHTML = '<p class=note style="text-align:center">Niets gevonden</p>'; return; }
     sr.innerHTML = '<p class=note>' + tn(msgs.length, '{n} resultaat', '{n} resultaten') + '</p><div class="msgs">' + msgs.map(m =>

@@ -192,6 +192,7 @@ function renderNotes(){
   document.querySelectorAll('.notes-scopes button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.scope===notesScope)));
   const rows = [];
   for (const r of list) {
+    if (rows.length > notesToon) break; // genoeg om te tonen en om te weten dat er meer is (Prestaties: niet alle rijen opbouwen)
     const n=r.n;
     if(notesScope==='main'&&r.parent!==null||notesScope==='children'&&r.parent===null)continue;
     if(notesScope==='notes'&&noteKind(n)!=='note')continue;

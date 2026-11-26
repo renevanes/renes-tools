@@ -96,6 +96,22 @@ const WACHT = parseFloat(process.env.UI_WACHT || '1') || 1;
     await open('nieuws'); await page.waitForTimeout(600);
     const nwr = await page.evaluate(() => document.querySelectorAll('#nw-lijst .nw-rij').length);
     ok(nwr > 0 && nwr <= 60, colorScheme + ': Nieuws met ' + N + ' artikelen tekent hooguit 60 rijen (' + nwr + ')');
+    // SMS-backup: duizenden gesprekken in delen van 200, met Meer tonen
+    await page.evaluate((N) => {
+      const A = Android; A._sms.perm = true; A._smsDemo();
+      const c = A._sms.convs, cs = [];
+      for (let i = 0; i < N; i++) { cs.push(Object.assign({}, c[i % c.length], { thread: 9000 + i, name: 'Gesprek ' + i, last: Date.now() - i * 6e4 })); A._sms.msgs[9000 + i] = A._sms.msgs[c[i % c.length].thread]; }
+      A._sms.convs = cs;
+    }, N);
+    await open('sms'); await page.waitForTimeout(300);
+    const smsRijen = () => page.evaluate(() => document.querySelectorAll('#sms-list > button').length);
+    ok(await smsRijen() === 200, colorScheme + ': SMS-backup met ' + N + ' gesprekken tekent 200 rijen (' + await smsRijen() + ')');
+    await page.click('#sms-meer .sms-verder'); await page.waitForTimeout(100);
+    ok(await smsRijen() === 400, colorScheme + ': SMS-backup Meer tonen: 200 rijen erbij (' + await smsRijen() + ')');
+    ok(await page.evaluate(() => document.activeElement === document.querySelectorAll('#sms-list > button')[200]), colorScheme + ': SMS-backup: focus op de eerste nieuwe rij');
+    await page.fill('#sms-search', 'zz'); await page.evaluate(() => smsSearchDo('zz')); await page.waitForTimeout(400);
+    ok(!(await page.isVisible('#sms-meer .sms-verder')), colorScheme + ': SMS-backup: tijdens zoeken geen Meer tonen');
+    await page.fill('#sms-search', ''); await page.evaluate(() => smsSearchDo(''));
     await open('cpap');
     await page.selectOption('#cp-periode', 'all');
     const cpap = await page.evaluate(() => ({nachten: document.querySelectorAll('#cp-nachten button').length,

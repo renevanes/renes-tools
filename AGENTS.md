@@ -328,13 +328,14 @@ Nieuwe functie = ook een test in `tests/ui/` (en bij logica in `tests/jvm/`). Ee
 `tests/ui/prestaties.test.js` bewaakt wat vast te tellen is, met ruimte voor groei (stand 19-11-2026 tussen haakjes):
 `web/index.html` zonder testbrug hooguit 4,5 MB (3,43 MB), na het starten hooguit 10.000 elementen (7.783) en
 100 brugaanroepen (51). Lange lijsten tekenen niet alles tegelijk: Notities 100 rijen met Meer tonen, Contacten 600,
-Meldingsgeschiedenis 200, Nieuws 60 (gemeten met 5000 items in de testbrug). Een nieuwe lijst die duizenden items kan
+Meldingsgeschiedenis 200, Nieuws 60, SMS-backup 200 gesprekken met Meer tonen (gemeten met 5000 items in de testbrug). Een nieuwe lijst die duizenden items kan
 krijgen doet hetzelfde en komt in die test. Tijden alleen met een zeer ruime grens (start tot `uiReady` 5 s, Notities
 openen met 5000 notities 3 s; zo'n 10× de gemeten waarde, want de test draait naast veel andere) en nooit in de
 telefoontest. Raakt een telgrens op: kijk eerst wat er groeide en of het lichter kan; verhoog hem alleen bewust, met de
 reden in het logboek. De telefoontest (`rooktest.sh`) legt per API-niveau vast: starttijd per scherm (`TotalTime`),
 overgeslagen beelden (Choreographer), geheugen (`dumpsys meminfo`, PSS) en haperingen (`dumpsys gfxinfo`) na het starten
-en na alle schermen; in de uitvoer onder "Metingen" en in de samenvatting van de run. Dat is alleen vastleggen: een
+en na alle schermen, en de tijd per stap van `MainActivity.onCreate` en tot `uiReady` (regel `opstart:`; de app zet die
+met `Opstart` in logcat onder `ToolsStart`, alleen vaste stapnamen en milliseconden); in de uitvoer onder "Metingen" en in de samenvatting van de run. Dat is alleen vastleggen: een
 meetwaarde laat de telefoontest nooit falen. De emulator tekent in software: vergelijk alleen hetzelfde API-niveau.
 
 ## Tegelijk werken met andere agents

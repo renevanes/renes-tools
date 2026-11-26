@@ -46,10 +46,13 @@ final class Sms {
         int type, read, status = -1, protocol;
     }
 
-    static List<Msg> read(Context c) {
+    static List<Msg> read(Context c) { return read(c, null, null); }
+
+    /** Zoals {@link #read(Context)}, alleen de berichten die bij selectie (bijv. "thread_id=?") passen. */
+    static List<Msg> read(Context c, String selectie, String[] args) {
         List<Msg> out = new ArrayList<>();
         String[] cols = {"_id", "thread_id", "address", "date", "date_sent", "body", "type", "read", "status", "service_center", "protocol"};
-        try (Cursor cur = c.getContentResolver().query(SMS_URI, cols, null, null, "date ASC")) {
+        try (Cursor cur = c.getContentResolver().query(SMS_URI, cols, selectie, args, "date ASC")) {
             if (cur == null) return out;
             int iId = cur.getColumnIndex("_id"), iTh = cur.getColumnIndex("thread_id"), iAddr = cur.getColumnIndex("address"),
                     iDate = cur.getColumnIndex("date"), iDs = cur.getColumnIndex("date_sent"), iBody = cur.getColumnIndex("body"),
@@ -113,7 +116,7 @@ final class Sms {
     // ---------- gesprekken groeperen ----------
 
     static final class Conv {
-        long threadId, last;
+        long threadId, last, lastId;
         String address, name, lastText;
         int count;
     }
@@ -138,10 +141,78 @@ final class Sms {
         return order;
     }
 
+    /** Het zuivere deel van de gesprekkenlijst (los van Android, getest in SmsTest). */
+    static final class Gesprekken {
+        private Gesprekken() { }
+
+        /**
+         * Gesprekken uit berichten zonder tekst (Prestaties: de lijst hoeft niet elke sms-tekst van de telefoon te lezen).
+         * rijen = nieuwste eerst (date DESC); per gesprek telt het aantal, en de nieuwste geeft tijd, id en (als die er is)
+         * het adres. Namen en tekst vult de aanroeper in. Zuiver (getest in SmsTest).
+         */
+        static List<Conv> groepeerNieuwsteEerst(List<Msg> rijen) {
+            Map<Long, Conv> map = new HashMap<>();
+            List<Conv> order = new ArrayList<>();
+            for (Msg m : rijen) {
+                Conv cv = map.get(m.threadId);
+                if (cv == null) {
+                    cv = new Conv();
+                    cv.threadId = m.threadId; cv.last = m.date; cv.lastId = m.id; cv.address = m.address;
+                    map.put(m.threadId, cv);
+                    order.add(cv);
+                } else if (cv.address == null) cv.address = m.address;
+                cv.count++;
+            }
+            order.sort((a, b) -> Long.compare(b.last, a.last));
+            return order;
+        }
+
+        /** Hoe lang de laatste tekst in de lijst mag zijn (één regel op het scherm). */
+        static final int LAATSTE_TEKST = 200;
+
+        static String kort(String s) {
+            if (s == null) return "";
+            if (s.length() <= LAATSTE_TEKST) return s;
+            int n = LAATSTE_TEKST;
+            if (Character.isHighSurrogate(s.charAt(n - 1))) n--; // geen half teken (emoji)
+            return s.substring(0, n) + "…";
+        }
+    }
+
+    /** De gesprekken voor de lijst: eerst alleen nummers en tijden, daarna alleen de tekst van het laatste bericht per gesprek. */
+    static List<Conv> conversationsLicht(Context c) {
+        List<Msg> rijen = new ArrayList<>();
+        try (Cursor cur = c.getContentResolver().query(SMS_URI, new String[]{"_id", "thread_id", "address", "date"}, null, null, "date DESC")) {
+            while (cur != null && cur.moveToNext()) {
+                Msg m = new Msg();
+                m.id = cur.getLong(0); m.threadId = cur.getLong(1); m.address = cur.getString(2); m.date = cur.getLong(3);
+                rijen.add(m);
+            }
+        }
+        List<Conv> cv = Gesprekken.groepeerNieuwsteEerst(rijen);
+        Map<Long, Conv> perId = new HashMap<>();
+        for (Conv x : cv) { x.name = nameFor(c, x.address); perId.put(x.lastId, x); }
+        List<Long> ids = new ArrayList<>(perId.keySet());
+        for (int i = 0; i < ids.size(); i += 400) { // niet te veel ?-tekens in één vraag (SQLite)
+            List<Long> deel = ids.subList(i, Math.min(ids.size(), i + 400));
+            StringBuilder sel = new StringBuilder("_id IN (");
+            String[] args = new String[deel.size()];
+            for (int j = 0; j < deel.size(); j++) { sel.append(j == 0 ? "?" : ",?"); args[j] = String.valueOf(deel.get(j)); }
+            sel.append(')');
+            try (Cursor cur = c.getContentResolver().query(SMS_URI, new String[]{"_id", "body"}, sel.toString(), args, null)) {
+                while (cur != null && cur.moveToNext()) {
+                    Conv x = perId.get(cur.getLong(0));
+                    if (x != null) x.lastText = Gesprekken.kort(cur.getString(1));
+                }
+            }
+        }
+        return cv;
+    }
+
     // ---------- JSON voor de app ----------
 
     static String conversationsJson(Context c) throws Exception {
-        List<Conv> cv = conversations(c, read(c));
+        List<Conv> cv = conversationsLicht(c);
         JSONArray a = new JSONArray();
         for (Conv x : cv) {
             JSONObject o = new JSONObject();
@@ -154,7 +225,9 @@ final class Sms {
         }
         JSONObject r = new JSONObject();
         r.put("conversations", a);
-        r.put("total", countTotal(c));
+        int totaal = 0;
+        for (Conv x : cv) totaal += x.count;
+        r.put("total", totaal); // al geteld: niet nog eens alle sms'jes opvragen
         return r.toString();
     }
 
@@ -175,7 +248,7 @@ final class Sms {
     }
 
     static String messagesJson(Context c, long threadId) throws Exception {
-        List<Msg> all = read(c);
+        List<Msg> all = read(c, "thread_id=?", new String[]{String.valueOf(threadId)}); // alleen dit gesprek, niet alle sms'jes
         JSONArray a = new JSONArray();
         for (Msg m : all) if (m.threadId == threadId) a.put(msgJson(m));
         return a.toString();
