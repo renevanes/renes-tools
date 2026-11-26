@@ -307,7 +307,57 @@ public class BlokkenTest {
         File[] traagFs = traagDir.listFiles();
         check(e4 == null && tw.nieuw == 1 && tw.terugOpnieuw == 1 && terugKeer[0] == 2 && traagFs.length == 1 && !traagFs[0].getName().endsWith(".part"),
                 "teruglezen eerst onvolledig, daarna goed: toch apart bewaard (" + e4 + ")");
-        check(Blokken.Schrijver.TERUG_WACHT.length == 2 && terugKeer[0] <= 1 + Blokken.Schrijver.TERUG_WACHT.length, "hooguit zo vaak opnieuw als er wachttijden zijn");
+
+        // Blijft teruglezen onvolledig: na de wachttijden opgeven (niet bewaard, tijdelijk bestand weg); ander wachtwoord: meteen
+        File altijdDir = Files.createTempDirectory("altijd").toFile();
+        final int[] altijdKeer = {0};
+        final Vault.Key[] terugMet = {k};
+        Blokken.Opslag altijd = new Blokken.Opslag() {
+            public Map<String, Long> lijst() { return new HashMap<>(); }
+            public Blokken.Schrijf maak(String naam) throws IOException {
+                final File p = new File(altijdDir, naam + ".part");
+                return new Schrijf(p, new File(altijdDir, naam)) {
+                    @Override public InputStream terug() throws IOException {
+                        altijdKeer[0]++;
+                        byte[] b = Files.readAllBytes(p.toPath());
+                        if (terugMet[0] != k) return new java.io.ByteArrayInputStream(Vault.seal(ruis(10, 1), terugMet[0]));
+                        return new java.io.ByteArrayInputStream(Arrays.copyOf(b, b.length - 5));
+                    }
+                };
+            }
+            public InputStream open(String naam) throws IOException { throw new IOException("nee"); }
+            public void weg(String naam) { }
+        };
+        Blokken.Schrijver aw = new Blokken.Schrijver(altijd, k);
+        String e7 = null;
+        try { aw.bewaar("x/z.bin", tmp2, 70_000, AppData.hex(AppData.sha256().digest(ruis(70_000, 11)))); } catch (Blokken.OpslagFout e) { e7 = e.getMessage(); }
+        check(e7 != null && altijdKeer[0] == 1 + Blokken.Schrijver.TERUG_WACHT.length && aw.terugOpnieuw == 0 && altijdDir.list().length == 0
+                && Blokken.reden(new Blokken.OpslagFout(e7, null)).equals("onvolledig teruggelezen"), "teruglezen blijft onvolledig: na " + altijdKeer[0] + " keer opgegeven, niets achtergebleven");
+        terugMet[0] = anders; altijdKeer[0] = 0;
+        String e8 = null;
+        try { new Blokken.Schrijver(altijd, k).bewaar("x/z.bin", tmp2, 70_000, AppData.hex(AppData.sha256().digest(ruis(70_000, 11)))); } catch (Blokken.OpslagFout e) { e8 = e.getMessage(); }
+        check(e8 != null && e8.contains("ander wachtwoord") && altijdKeer[0] == 1, "ander wachtwoord bij teruglezen: niet wachten (" + altijdKeer[0] + ")");
+        terugMet[0] = k; altijdKeer[0] = 0;
+        Blokken.Schrijver gs = new Blokken.Schrijver(altijd, k);
+        gs.gestopt = () -> true;
+        try { gs.bewaar("x/z.bin", tmp2, 70_000, AppData.hex(AppData.sha256().digest(ruis(70_000, 11)))); } catch (Blokken.OpslagFout ignored) { }
+        check(altijdKeer[0] == 1, "backup gestopt: niet meer wachten op teruglezen");
+        long tegoed = Blokken.Schrijver.WACHT_TEGOED;
+        Blokken.Schrijver.WACHT_TEGOED = 1; altijdKeer[0] = 0;
+        Blokken.Schrijver ts = new Blokken.Schrijver(altijd, k);
+        try { ts.bewaar("x/z.bin", tmp2, 70_000, AppData.hex(AppData.sha256().digest(ruis(70_000, 11)))); } catch (Blokken.OpslagFout ignored) { }
+        try { ts.bewaar("x/z.bin", tmp2, 70_000, AppData.hex(AppData.sha256().digest(ruis(70_000, 11)))); } catch (Blokken.OpslagFout ignored) { }
+        check(altijdKeer[0] == 3 && ts.gewacht == 1, "wachttegoed op: daarna niet meer wachten (" + altijdKeer[0] + ")");
+        Blokken.Schrijver.WACHT_TEGOED = tegoed;
+
+        // Waarom het niet lukte: vaste woorden, nooit de melding van de mappen-app (die kan de naam van de backup-map noemen)
+        check(Blokken.reden(new Blokken.OpslagFout("Een groot bestand opslaan lukt niet: Missing file for primary:Mijn map/Versleuteld/x.blok.part at /storage/x", new java.io.FileNotFoundException("Missing file for primary:Mijn map")))
+                .equals("niet gevonden")
+                && Blokken.reden(new Blokken.OpslagFout("Een groot bestand opslaan lukt niet: Connection reset", new IOException("Connection reset"))).equals("verbinding of opslag")
+                && Blokken.reden(new Blokken.OpslagFout("De map " + Blokken.DIR + " is niet te lezen", new IOException("x"))).equals("map niet te lezen")
+                && Blokken.reden(new Blokken.OpslagFout("Een groot bestand opslaan lukt niet: Groot bestand beschadigd", null)).equals("beschadigd teruggelezen")
+                && Blokken.reden(new Blokken.OpslagFout("Een groot bestand opslaan lukt niet", new SecurityException("primary:Mijn map"))).equals("geen toegang")
+                && Blokken.reden(null).equals("onbekend"), "reden van apart opslaan: vaste woorden");
 
         // Eén bestand lukt apart niet (verbinding): dat ene in het archief, de volgende gewoon weer apart
         File halfDir = Files.createTempDirectory("half").toFile();

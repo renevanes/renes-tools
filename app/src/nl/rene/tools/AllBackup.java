@@ -198,9 +198,10 @@ final class AllBackup {
                                     .put("archief", zip.archiefBytes());
                             // Apart opslaan lukte niet: de rest zit in het archief zelf (compleet, alleen groter)
                             if (zip.blokFout != null) {
-                                g.put("fout", AppData.safeMsg(zip.blokFout, "mislukt")).put("fouten", zip.blokFouten);
+                                String waarom = Blokken.reden(zip.blokFout);
+                                g.put("fout", waarom).put("fouten", zip.blokFouten);
                                 App.log(c, "BACKUP", "grote bestanden apart: " + zip.blokFouten + " keer mislukt"
-                                        + (zip.blokFouten >= Blokken.MAX_FOUTEN ? " (de rest in het archief)" : "") + ", laatste: " + AppData.safeMsg(zip.blokFout, "mislukt"));
+                                        + (zip.blokFouten >= Blokken.MAX_FOUTEN ? " (de rest in het archief)" : "") + ", laatste: " + waarom);
                             }
                             if (zip.blok.terugOpnieuw > 0) g.put("terugOpnieuw", zip.blok.terugOpnieuw);
                             res.put("blok", g);

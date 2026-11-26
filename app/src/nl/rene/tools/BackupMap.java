@@ -69,6 +69,9 @@ final class BackupMap {
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("backupmap", Context.MODE_PRIVATE); }
 
+    /** Hoe ver het vanzelf opruimen is (al nagelopen mappen, laatste eenmalige poging): apart, niet in backups, niet bij het opstarten geladen. */
+    static SharedPreferences voortgang(Context c) { return c.getSharedPreferences("backupmap_voortgang", Context.MODE_PRIVATE); }
+
     /** Elke nacht vanzelf opruimen (standaard aan). */
     static boolean auto(Context c) { return prefs(c).getBoolean("auto", true); }
 
@@ -114,8 +117,20 @@ final class BackupMap {
         String stopReden = "", stopMap = "";
         /** Mappen die deze ronde (over meer keren heen) al helemaal nagelopen zijn: de volgende keer overslaan. */
         Set<String> klaar = new HashSet<>();
-        /** Na elke afgeronde map: de voortgang bewaren (stopt Android de app, dan gaat de volgende keer verder). */
+        /** Sinds wanneer deze ronde loopt; vol = er past niets meer bij (de volgende keer weer vooraan). */
+        long klaarSinds;
+        boolean vol;
+        /** Na afgeronde mappen: de voortgang bewaren (stopt Android de app, dan gaat de volgende keer verder). */
         Runnable bewaar;
+        private int nietBewaard;
+        private long bewaardOp;
+
+        /** Een map is helemaal nagelopen. Bewaart de voortgang hooguit eens per 20 mappen of 15 seconden. */
+        void mapKlaar(String p) {
+            if (!klaarErbij(klaar, p)) { vol = true; return; }
+            long nu = System.currentTimeMillis();
+            if (bewaar != null && (++nietBewaard >= 20 || nu - bewaardOp >= 15_000L)) { bewaar.run(); nietBewaard = 0; bewaardOp = nu; }
+        }
 
         void fout(String waarom) { errors++; Integer n = redenen.get(waarom); redenen.put(waarom, n == null ? 1 : n + 1); }
 
@@ -143,7 +158,7 @@ final class BackupMap {
         int problems() { return dupDirs + dupFiles + temps; }
 
         JSONObject json() throws Exception {
-            return new JSONObject().put("t", t).put("repair", repair).put("stopped", stopped).put("dirs", dirs).put("files", files)
+            return new JSONObject().put("t", t).put("repair", repair).put("stopped", stopped).put("dirs", dirs).put("files", files).put("overgeslagen", overgeslagen)
                     .put("dupDirs", dupDirs).put("dupFiles", dupFiles).put("temps", temps).put("merged", merged).put("removed", removed)
                     .put("renamed", renamed).put("cleaned", cleaned).put("errors", errors).put("problems", problems())
                     .put("items", items).put("unknown", unknown);
@@ -171,11 +186,14 @@ final class BackupMap {
             r.taak = tot > 0;
             // Vanzelf opruimen gaat verder waar de vorige keer stopte; een controle of opruimen met de hand loopt alles na
             // (wat Rene ziet bij een controle moet opruimen ook echt aanpakken)
+            final String map = tree.toString();
             if (repair && auto) {
-                final String map = tree.toString();
-                r.klaar = klaarLees(prefs(c).getString("klaar", null), map);
+                long nu = System.currentTimeMillis();
+                String oud = voortgang(c).getString("klaar", null);
+                r.klaar = klaarLees(oud, map, nu);
+                r.klaarSinds = r.klaar.isEmpty() ? nu : klaarSinds(oud, nu);
                 final Report rr = r;
-                r.bewaar = () -> prefs(c).edit().putString("klaar", klaarJson(rr.klaar, map)).apply();
+                r.bewaar = () -> voortgang(c).edit().putString("klaar", klaarJson(rr.klaar, map, rr.klaarSinds)).apply();
             }
             long deadline = System.currentTimeMillis() + (auto ? 15 : 60) * 60_000L;
             if (tot > 0) deadline = Math.min(deadline, tot);
@@ -197,9 +215,11 @@ final class BackupMap {
             SharedPreferences.Editor e = prefs(c).edit().putString("last", o.toString());
             // Helemaal nagelopen (ook met fouten: die probeert de nachtelijke ronde opnieuw): eenmalig is klaar, en de
             // volgende ronde begint weer vooraan
-            if (repair && !r.stopped) e.putInt("doneVersion", VERSION).remove("klaar");
-            else if (repair && auto) e.putString("klaar", klaarJson(r.klaar, tree.toString()));
+            String af = afloop(repair, auto, r.stopped, r.vol);
+            if (repair && !r.stopped) e.putInt("doneVersion", VERSION);
             e.apply();
+            if (af.equals("vooraan")) voortgang(c).edit().remove("klaar").apply();
+            else if (af.equals("bewaar")) voortgang(c).edit().putString("klaar", klaarJson(r.klaar, map, r.klaarSinds)).apply();
             App.log(c, "BACKUP", r.regel());
             if (auto && repair) notifyChanged(c, r);
             return o;
@@ -245,6 +265,9 @@ final class BackupMap {
         if (m.startsWith("Kopiëren lukt niet")) return "kopiëren lukt niet";
         if (m.startsWith("Map maken lukt niet")) return "map maken lukt niet";
         if (m.contains("nog aan het laden")) return "map laadt nog";
+        if (m.startsWith("Kies eerst een backup-map")) return "geen backup-map";
+        if (m.startsWith("De backup-map wordt al gecontroleerd")) return "loopt al";
+        if (m.startsWith("Er loopt nu iets anders")) return "iets anders loopt";
         if (e instanceof SecurityException) return "geen toegang";
         if (e instanceof java.io.FileNotFoundException) return "niet gevonden";
         if (e instanceof UnsupportedOperationException) return "niet ondersteund";
@@ -256,23 +279,59 @@ final class BackupMap {
     /** Hoeveel nagelopen mappen hij hooguit onthoudt (daarna begint de ronde weer vooraan). */
     static final int MAX_KLAAR = 5000;
 
-    /** De al nagelopen mappen, alleen als ze bij deze backup-map horen (een andere gekozen map begint vooraan). Zuiver. */
-    static Set<String> klaarLees(String json, String map) {
+    /** Na zoveel dagen begint een ronde die maar niet afkomt toch weer vooraan (anders worden mappen nooit meer nagelopen). */
+    static final long KLAAR_MAX_MS = 7L * 24 * 3_600_000L;
+
+    /**
+     * De al nagelopen mappen, alleen als ze bij deze backup-map horen (een andere gekozen map begint vooraan) en de ronde
+     * niet te oud is. Zuiver.
+     */
+    static Set<String> klaarLees(String json, String map, long nu) {
         Set<String> s = new HashSet<>();
         if (json == null || json.isEmpty()) return s;
         try {
             JSONObject o = new JSONObject(json);
-            if (!String.valueOf(map).equals(o.optString("map"))) return s;
+            long sinds = o.optLong("sinds", 0);
+            if (!String.valueOf(map).equals(o.optString("map")) || sinds <= 0 || sinds > nu || nu - sinds > KLAAR_MAX_MS) return s;
             JSONArray a = o.getJSONArray("paden");
             for (int i = 0; i < a.length() && i < MAX_KLAAR; i++) s.add(a.getString(i));
         } catch (Exception ignored) { s.clear(); }
         return s;
     }
 
-    static String klaarJson(Set<String> s, String map) {
+    static long klaarSinds(String json, long nu) {
+        try { long v = new JSONObject(json).optLong("sinds", nu); return v > 0 && v <= nu ? v : nu; } catch (Exception e) { return nu; }
+    }
+
+    static String klaarJson(Set<String> s, String map, long sinds) {
         JSONArray a = new JSONArray();
         for (String p : s) { if (a.length() >= MAX_KLAAR) break; a.put(p); }
-        try { return new JSONObject().put("map", String.valueOf(map)).put("paden", a).toString(); } catch (Exception e) { return "{}"; }
+        try { return new JSONObject().put("map", String.valueOf(map)).put("sinds", sinds).put("paden", a).toString(); } catch (Exception e) { return "{}"; }
+    }
+
+    /**
+     * Map p is helemaal nagelopen: erbij, en wat eronder lag eruit (p dekt dat al), zodat alleen de grens blijft.
+     * false als er niets meer bij past. Zuiver.
+     */
+    static boolean klaarErbij(Set<String> s, String p) {
+        String onder = p + "/";
+        s.removeIf(x -> x.startsWith(onder));
+        if (s.contains(p)) return true;
+        if (s.size() >= MAX_KLAAR) return false;
+        s.add(p);
+        return true;
+    }
+
+    /**
+     * Wat er na een ronde met de voortgang gebeurt: "vooraan" (af, of vol: de volgende keer vooraan), "bewaar" (vanzelf
+     * opruimen kwam niet af: de volgende keer verder) of "niets" (controleren, of met de hand: laat de voortgang van het
+     * vanzelf opruimen staan). Met de hand helemaal opgeruimd telt wel als af. Zuiver.
+     */
+    static String afloop(boolean repair, boolean auto, boolean stopped, boolean vol) {
+        if (!repair) return "niets";
+        if (!stopped) return "vooraan";
+        if (!auto) return "niets";
+        return vol ? "vooraan" : "bewaar";
     }
 
     static Uri doc(WaBackup.Dest dest, String id) { return DocumentsContract.buildDocumentUriUsingTree(dest.tree, id); }
@@ -362,7 +421,7 @@ final class BackupMap {
                 if (r.klaar.contains(p)) { r.overgeslagen++; continue; }
                 try {
                     walk(dest, sub(dest, ch, p), p, depth + 1, r, repair, deadline);
-                    if (!r.stopped && r.klaar.size() < MAX_KLAAR && r.klaar.add(p) && r.bewaar != null) r.bewaar.run();
+                    if (!r.stopped && r.bewaar != null) r.mapKlaar(p);
                 }
                 catch (Exception ex) { r.fout("map niet te lezen: " + soort(ex)); r.item(p, Taal.T("Map niet te lezen"), false); }
             }
@@ -518,7 +577,11 @@ final class BackupMap {
         return md.digest();
     }
 
-    /** Oudere indelingen omzetten naar de huidige. Versie 1 is de eerste: nog niets om te verplaatsen. */
+    /**
+     * Oudere indelingen omzetten naar de huidige. Versie 1 is de eerste: nog niets om te verplaatsen. Let op: doneVersion
+     * wordt gezet zodra een ronde helemaal nagelopen is, ook met fouten. Krijgt dit echte inhoud, laat het dan teruggeven
+     * of het lukte en zet doneVersion alleen dan.
+     */
     static void migrate(Context c, WaBackup.Dest dest, WaBackup.DestDir root, Report r) {
         // Voorbeeld voor later: map "Oud" → "Nieuw": samenvoegen met mergeDir, dan VERSION omhoog.
     }
@@ -557,7 +620,7 @@ final class BackupMap {
     static void nightly(Context c, long tot) {
         if (!auto(c) || WaBackup.destUri(c) == null || Herstel.blocked(c) != null) return;
         if (tot > 0 && tot - System.currentTimeMillis() < 60_000L) return; // geen tijd meer: de volgende nacht
-        try { run(c, true, true, tot); } catch (Throwable t) { App.log(c, "BACKUP", "backup-map opruimen: " + AppData.safeMsg(t, "mislukt")); }
+        try { run(c, true, true, tot); } catch (Throwable t) { App.log(c, "BACKUP", "backup-map opruimen niet begonnen: " + soort(t)); }
     }
 
     /** Hoe vaak het eenmalige opruimen na het opstarten hooguit begint (anders bij elke start van de app opnieuw). */
@@ -569,17 +632,16 @@ final class BackupMap {
     /** Eenmalig na een update met een nieuwe indeling (of de eerste keer): even na het opstarten, op de achtergrond. */
     static void startOnce(Context c) {
         if (prefs(c).getInt("doneVersion", 0) >= VERSION) return;
-        if (!onceMag(prefs(c).getLong("onceTry", 0), System.currentTimeMillis())) return;
         final Context app = c.getApplicationContext();
         new Thread(() -> {
             try {
                 Thread.sleep(90_000); // het opstarten niet ophouden
                 if (prefs(app).getInt("doneVersion", 0) >= VERSION) return;
-                if (!onceMag(prefs(app).getLong("onceTry", 0), System.currentTimeMillis())) return;
+                if (!onceMag(voortgang(app).getLong("onceTry", 0), System.currentTimeMillis())) return;
                 if (!auto(app) || WaBackup.destUri(app) == null || Herstel.blocked(app) != null || busy() != null) return;
-                prefs(app).edit().putLong("onceTry", System.currentTimeMillis()).apply();
+                voortgang(app).edit().putLong("onceTry", System.currentTimeMillis()).apply();
                 run(app, true, true); // gaat 's nachts verder binnen de nachtelijke taak (AllBackupJob)
-            } catch (Throwable t) { App.log(app, "BACKUP", "backup-map eerste keer: " + AppData.safeMsg(t, "mislukt")); }
+            } catch (Throwable t) { App.log(app, "BACKUP", "backup-map eerste keer niet begonnen: " + soort(t)); }
         }, "backupmap-once").start();
     }
 

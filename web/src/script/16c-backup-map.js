@@ -40,6 +40,7 @@ function bmRender(){
     h += row(t('Dubbele bestanden'), fmtNum(l.dupFiles || 0), l.dupFiles ? 'bad' : 'good');
     h += row(t('Achtergebleven tijdelijke bestanden'), fmtNum(l.temps || 0), l.temps ? 'bad' : 'good');
   }
+  if (l.overgeslagen) h += '<p class="note">' + esc(tn(l.overgeslagen, 'Eén map was deze ronde al eerder nagelopen.', '{n} mappen waren deze ronde al eerder nagelopen.')) + '</p>';
   if (l.stopped) h += '<p class="note warn">' + esc(t('Gestopt voordat alles was nagelopen; de volgende keer gaat het verder.')) + '</p>';
   const items = (l.items || []).filter(i => !l.repair || !i.done);
   if (items.length) h += '<p class="note" style="margin-bottom:4px">' + esc(t(l.repair ? 'Bleef staan:' : 'Gevonden:')) + '</p>' +

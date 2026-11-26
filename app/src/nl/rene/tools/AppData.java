@@ -89,6 +89,7 @@ final class AppData {
         m.put("update", "toestand van de updates van deze installatie");
         m.put("alarm_dp", "kopie van de radiowekker voor na een herstart (wordt opnieuw gemaakt)");
         m.put("notewidget", "koppeling met widgets (die moet je opnieuw plaatsen)");
+        m.put("backupmap_voortgang", "hoe ver het vanzelf opruimen van deze backup-map is (begint op een nieuwe telefoon gewoon vooraan)");
         m.put("facturen_geheim", "wachtwoorden voor Facturen, versleuteld met de sleutel van deze telefoon (opnieuw invullen)");
         PREFS_SKIP = Collections.unmodifiableMap(m);
     }
@@ -100,7 +101,7 @@ final class AppData {
     static {
         Map<String, Set<String>> k = new HashMap<>();
         k.put("allbackup", set("next", "pogingen", "pogingSinds")); // pogingen: mislukte nachtelijke backups van deze nacht
-        k.put("backupmap", set("last", "doneVersion", "bezig", "klaar", "onceTry")); // uitkomst van de controle van deze backup-map
+        k.put("backupmap", set("last", "doneVersion", "bezig")); // uitkomst van de controle van deze backup-map
         k.put("transcribe", set("status", "dlModel"));
         k.put("lock", set("fails", "waitUntil", "waitElapsed", "waitBoot", "waitServed", "lastTry", "keyMismatch", "bioRenew"));
         // De backup-map is net opnieuw gekozen; de leesbare WhatsApp-database gaat niet mee (wordt opnieuw gemaakt)

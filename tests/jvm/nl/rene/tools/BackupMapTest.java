@@ -111,18 +111,32 @@ public class BackupMapTest {
         check(Logboek.probleem("BACKUP", regel) && !Logboek.probleem("BACKUP", leeg.regel()), "met fouten een probleem in het logboek, zonder niet");
 
         // Verder waar het opruimen stopte: alleen voor dezelfde backup-map
+        long nu = 1_800_000_000_000L;
         java.util.Set<String> klaar = new java.util.HashSet<>(java.util.Arrays.asList("Notities", "WhatsApp backup/Media"));
-        String kj = BackupMap.klaarJson(klaar, "content://drive/tree/A");
-        check(BackupMap.klaarLees(kj, "content://drive/tree/A").equals(klaar), "nagelopen mappen terug te lezen");
-        check(BackupMap.klaarLees(kj, "content://drive/tree/B").isEmpty(), "andere backup-map: vooraan beginnen");
-        check(BackupMap.klaarLees("{kapot", "content://drive/tree/A").isEmpty() && BackupMap.klaarLees(null, "x").isEmpty()
-                && BackupMap.klaarLees("[\"Notities\"]", "x").isEmpty(), "onleesbaar of oud formaat: vooraan beginnen");
+        String kj = BackupMap.klaarJson(klaar, "content://drive/tree/A", nu - 3_600_000L);
+        check(BackupMap.klaarLees(kj, "content://drive/tree/A", nu).equals(klaar) && BackupMap.klaarSinds(kj, nu) == nu - 3_600_000L, "nagelopen mappen terug te lezen, met het begin van de ronde");
+        check(BackupMap.klaarLees(kj, "content://drive/tree/B", nu).isEmpty(), "andere backup-map: vooraan beginnen");
+        check(BackupMap.klaarLees(kj, "content://drive/tree/A", nu - 3_600_000L + BackupMap.KLAAR_MAX_MS + 1).isEmpty()
+                && BackupMap.klaarLees(kj, "content://drive/tree/A", nu - 7_200_000L).isEmpty(), "ronde ouder dan een week (of klok terug): vooraan beginnen");
+        check(BackupMap.klaarLees("{kapot", "content://drive/tree/A", nu).isEmpty() && BackupMap.klaarLees(null, "x", nu).isEmpty()
+                && BackupMap.klaarLees("[\"Notities\"]", "x", nu).isEmpty(), "onleesbaar of oud formaat: vooraan beginnen");
+        java.util.Set<String> grens = new java.util.HashSet<>(java.util.Arrays.asList("WhatsApp backup/Media/a", "WhatsApp backup/Media/b", "WhatsApp backup/Mediaal", "Notities"));
+        check(BackupMap.klaarErbij(grens, "WhatsApp backup/Media") && grens.equals(new java.util.HashSet<>(java.util.Arrays.asList("WhatsApp backup/Media", "WhatsApp backup/Mediaal", "Notities"))),
+                "een afgeronde map vervangt wat eronder lag (alleen echte onderliggende mappen)");
         java.util.Set<String> veel = new java.util.HashSet<>();
-        for (int i = 0; i < BackupMap.MAX_KLAAR + 50; i++) veel.add("Notities/" + i);
-        check(BackupMap.klaarLees(BackupMap.klaarJson(veel, "m"), "m").size() == BackupMap.MAX_KLAAR, "hooguit MAX_KLAAR mappen onthouden");
+        boolean allesErbij = true;
+        for (int i = 0; i < BackupMap.MAX_KLAAR; i++) allesErbij &= BackupMap.klaarErbij(veel, "Notities/" + i);
+        check(allesErbij && !BackupMap.klaarErbij(veel, "Kluis") && veel.size() == BackupMap.MAX_KLAAR, "vol: er past niets meer bij");
+        check(BackupMap.klaarErbij(veel, "Notities") && veel.size() == 1, "maar de bovenliggende map maakt weer ruimte");
+        check(BackupMap.afloop(true, true, false, false).equals("vooraan") && BackupMap.afloop(true, true, true, false).equals("bewaar")
+                && BackupMap.afloop(true, true, true, true).equals("vooraan") && BackupMap.afloop(true, false, true, false).equals("niets")
+                && BackupMap.afloop(true, false, false, false).equals("vooraan") && BackupMap.afloop(false, false, false, false).equals("niets")
+                && BackupMap.afloop(false, true, true, false).equals("niets"),
+                "afloop: af = vooraan; vanzelf gestopt = verder; vol = vooraan; met de hand gestopt of controleren: voortgang blijft");
+        check(BackupMap.soort(new Exception("Kies eerst een backup-map")).equals("geen backup-map") && BackupMap.soort(new Exception("De backup-map wordt al gecontroleerd")).equals("loopt al")
+                && BackupMap.soort(new Exception("Er loopt nu iets anders in de backup-map; opruimen kan zo meteen")).equals("iets anders loopt"), "niet begonnen: waarom, in vaste woorden");
 
         // Eenmalig opruimen na het opstarten: niet bij elke start van de app opnieuw
-        long nu = 1_800_000_000_000L;
         check(BackupMap.onceMag(0, nu) && BackupMap.onceMag(nu - BackupMap.ONCE_PAUZE, nu) && !BackupMap.onceMag(nu - 60_000L, nu)
                 && BackupMap.onceMag(nu + 3_600_000L, nu), "eenmalig opruimen: hooguit eens per zes uur (klok terug: mag)");
 

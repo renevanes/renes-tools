@@ -55,6 +55,7 @@
     <exclude domain="file" path="web/" />
     <exclude domain="sharedpref" path="notification_history.xml" />
     <exclude domain="sharedpref" path="wabackup.xml" />
+    <exclude domain="sharedpref" path="backupmap_voortgang.xml" />
     <exclude domain="sharedpref" path="music.xml" />
     <exclude domain="sharedpref" path="secure.xml" />
     <exclude domain="sharedpref" path="txmeta.xml" />

@@ -61,6 +61,32 @@ final class Blokken {
     static final long MIN = 32 * 1024;
     /** Na zoveel keer apart opslaan mislukt gaan de volgende grote bestanden van die backup in het archief zelf. */
     static final int MAX_FOUTEN = 3;
+
+    /**
+     * Waarom apart opslaan niet lukte, in vaste woorden: de meldingen zelf kunnen van de mappen-app komen en de naam van
+     * de backup-map bevatten (die hoort niet in het foutlogboek). Zuiver.
+     */
+    static String reden(Throwable e) {
+        if (e == null) return "onbekend";
+        String m = String.valueOf(e.getMessage());
+        Throwable oorzaak = e instanceof OpslagFout && e.getCause() != null ? e.getCause() : e;
+        if (m.contains(ONVOLLEDIG)) return "onvolledig teruggelezen";
+        if (m.contains("onvolledig geschreven")) return "onvolledig geschreven";
+        if (m.contains("ander wachtwoord")) return "ander wachtwoord";
+        if (m.contains(AFGEKAPT) || m.contains("Groot bestand beschadigd")) return "beschadigd teruggelezen";
+        if (m.contains("De map " + DIR + " is niet te lezen")) return "map niet te lezen";
+        if (m.contains("nog aan het laden")) return "map laadt nog";
+        if (m.contains("Bestand maken lukt niet") || m.contains("Map maken lukt niet")) return "maken lukt niet";
+        if (m.contains("Schrijven lukt niet")) return "schrijven lukt niet";
+        if (m.contains("Teruglezen lukt niet")) return "teruglezen lukt niet";
+        if (m.contains("Hernoemen lukt niet") || m.contains("opzij zetten lukt niet")) return "hernoemen lukt niet";
+        if (m.contains("Kopie onvolledig")) return "kopie onvolledig";
+        if (oorzaak instanceof SecurityException) return "geen toegang";
+        if (oorzaak instanceof java.io.FileNotFoundException) return "niet gevonden";
+        if (oorzaak instanceof IOException) return "verbinding of opslag";
+        String n = oorzaak.getClass().getSimpleName();
+        return n.isEmpty() ? "onbekend" : n;
+    }
     /** sleutel-id (8 hex) - inhoud-id (32 hex) .blok */
     static final Pattern NAME = Pattern.compile("([0-9a-f]{8})-([0-9a-f]{32})\\.blok");
     static final int MAX_ITEMS = 500_000;
@@ -447,17 +473,24 @@ final class Blokken {
          * nog niet helemaal klaarstaan; een tel later wel. Zonder wachten ging de rest van de backup in het archief zelf.
          */
         static long[] TERUG_WACHT = {2_000L, 10_000L};
+        /** Hoeveel er per backup in totaal op teruglezen gewacht mag worden (de nachtelijke taak heeft niet veel tijd). */
+        static long WACHT_TEGOED = 180_000L;
         /** Hoe vaak teruglezen pas bij een volgende poging klopte. */
         int terugOpnieuw;
+        long gewacht;
+        /** Is de backup gestopt? Dan niet meer wachten (null = nooit). */
+        java.util.function.BooleanSupplier gestopt;
 
         private void terugControle(Schrijf s, boolean z, long n, String sha) throws IOException {
             for (int i = 0; ; i++) {
                 try { leesHelemaal(lees(s.terug(), key, z, n, sha)); if (i > 0) terugOpnieuw++; return; }
                 catch (IOException e) {
                     // Een ander wachtwoord wordt niet beter van wachten; te kort of (nog) niet kloppend misschien wel
-                    if (i >= TERUG_WACHT.length || "Groot bestand hoort bij een ander wachtwoord".equals(e.getMessage())) throw e;
+                    if (i >= TERUG_WACHT.length || "Groot bestand hoort bij een ander wachtwoord".equals(e.getMessage())
+                            || gewacht + TERUG_WACHT[i] > WACHT_TEGOED || (gestopt != null && gestopt.getAsBoolean())) throw e;
                     try { Thread.sleep(TERUG_WACHT[i]); }
                     catch (InterruptedException x) { Thread.currentThread().interrupt(); throw e; }
+                    gewacht += TERUG_WACHT[i];
                 }
             }
         }

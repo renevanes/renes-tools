@@ -400,6 +400,7 @@ final class Secure {
                 zip.tmpDir = AppBackup.grootTmp(c);
                 zip.blok = new Blokken.Schrijver(blokken, k);
                 zip.blok.bekend.putAll(BlokOpslag.bekend(c));
+                zip.blok.gestopt = () -> AllBackup.stop;
             }
             return zip;
         } catch (Exception e) {
