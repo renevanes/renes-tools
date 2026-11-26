@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.267",
+    "date": "2026-11-26",
+    "changes": [
+      "Stamgegevens: bij het bewerken van een kaartfoto zie je eerst voor en na naast elkaar; pas daarna wordt de foto vervangen.",
+      "Stamgegevens: de vorige kaartfoto blijft bewaard (hooguit vijf per kant). Op het documentkaartje staat Eerdere versies: bekijk er een naast de foto van nu en zet hem terug."
+    ]
+  },
+  {
     "version": "1.266",
     "date": "2026-11-26",
     "changes": [

@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.266",
-  "versionCode": 267,
-  "nativeLevel": 230,
+  "versionName": "1.267",
+  "versionCode": 268,
+  "nativeLevel": 231,
   "web": "index.html",
-  "webSha256": "b3237c19b18f585573f875daf212ef6bce376ece47649de95bc6b98deae183e7",
+  "webSha256": "caa3c61918aa72768be51d9cc4358212b03027da1f4d7de2a11e4b7d8c0349bc",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "21a6dd133ea59eb0736136efba230d89924f72035d9a193a3523367f3738a5d9",
+  "apkSha256": "17054f98d336e512bb3720f82e98351e98dbaf6c8c2eccb20fde433f7a588ac5",
   "changelog": [
+    {
+      "version": "1.267",
+      "date": "2026-11-26",
+      "changes": [
+        "Stamgegevens: bij het bewerken van een kaartfoto zie je eerst voor en na naast elkaar; pas daarna wordt de foto vervangen.",
+        "Stamgegevens: de vorige kaartfoto blijft bewaard (hooguit vijf per kant). Op het documentkaartje staat Eerdere versies: bekijk er een naast de foto van nu en zet hem terug."
+      ]
+    },
     {
       "version": "1.266",
       "date": "2026-11-26",
@@ -172,15 +180,7 @@
         "Nieuw: Publiceren en tests (Instellingen → Versie en updates): wat er op GitHub loopt en wat mislukte, per taak, met recente runs en open punten; een tik opent het op GitHub",
         "Signalen: nieuwe bron Publiceren en tests, voor een melding als een run op main mislukt (aan te zetten op het scherm Publiceren en tests)"
       ]
-    },
-    {
-      "version": "1.247",
-      "date": "2026-11-24",
-      "changes": [
-        "Foutlogboek gaat vanzelf (opgeschoond) naar je eigen privé GitHub-repository, zodat Claude kan meezoeken bij een probleem; uit te zetten bij Instellingen → Foutrapport en statistieken.",
-        "Fouten in de interface die nergens werden opgevangen, komen nu ook in het foutlogboek."
-      ]
     }
   ],
-  "webSig2": "LDpqjSYcucQYvQOy+2PCOo67CxvHb/SYqrmidpf3XPXxUh46nTvDw5Vz+tKHFPVPUcDn1iWb2aPMXEpRrwxiwnSDGLR24hHaSq/ShKh2sFpSwgaOLkCxe2hRLRVqJ7YxXPkU3vwkDbnlL+QIQjsN5kwVNoIdd3ksdqXnXXF7UNyd6xv9DkFhpMxP01/kBoQvHB12r9yJd8zhWDiW2dKR/njnIO4nv95xZA2V2OARWxwd+VK4la4fPyU+CG7oVaEP+I6y+bZ+CYfZXXJIunY5bXRPdxnsx/GS4oatA0KVd/uJq7VjDTVvD0XgRUgJTdo8hsl6dosVyqEmjBPgOyo19pMUGoX/7nOW2ZAjpVeCZcw8G8hS/s7YaLLWvgTDU6qxTU0NTcK2srE16uuUbf9Jop1QN3nKPt8L4X933r1ea8BH73I96t3iEoFP2ijxfETwquMkMDwJSSUovzuDCvoWZ+BeJSBp7BRJzlpvZpbHsboKuG53QGvAjpbSjKXWZXf6"
+  "webSig2": "S9zG26JrjK/xTEu4xjLrx8S90+oWbnLgsR4My53KzX5fQYIrMc5qZjPqzTV+ZHrN0yp49ySLButbKQSl3wMg5D3odOHSGC9QvnvQP3/M/gXZjiIsY6dohHtwOzwktml3FmGbuiOSqA1JQodjhY9OOqOLxHjIvgH7KJFQG17g4+HeRnAH5YvMe7e1Jct8WPnmmMTlw8OVYs6XkTAOQe1EyxPBjVPI+wGZcwYQKZFwIQAXfZc6wympwHTWlSuTr+yfiYIxO71kI6oQHAuNh+4R0IICkiVaQjnMhaOt3/ms1OTUITNFrJhens0wIRHpdB9sjS5J9J/y3BaCiOfmcPDJvxRpZxf33iDaUdCURHvetlr1M6AV7gKrtRebJLWt9eOyY1q43OuUIWaDYGAwYDDzkybPVN/5123NpJ9keTtcAfpzpTWZcoacu9LrGjkow5Uv1f4kpEg80OLIzgEVrkwGFE4z+g2/+Ea2QZ+2xWc81ycJj9QGTTKaXTB5DZPEjI1N"
 }
