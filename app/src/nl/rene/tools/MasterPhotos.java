@@ -132,8 +132,12 @@ final class MasterPhotos {
             fotos=job.keuze;
         }
         boolean kant=!"scan".equals(job.side); // de voor- of achterkant van een bestaand document: precies één foto
-        JSONArray gekozen;
-        try{gekozen=new JSONArray(gekozenJson==null?"":gekozenJson);}catch(Exception e){throw new MasterError(kant?Taal.T("Kies één foto"):Taal.T("Kies één of twee foto's"));}
+        JSONArray gekozen;boolean vast=false;
+        // Een lijst nummers, of {fotos:[…], vast:true}: Rene gaf zelf aan wat de voor- en wat de achterkant is (de eerste is de voorkant)
+        try{String g=gekozenJson==null?"":gekozenJson.trim();
+            if(g.startsWith("{")){JSONObject o=new JSONObject(g);gekozen=o.getJSONArray("fotos");vast=o.optBoolean("vast");}
+            else gekozen=new JSONArray(g);
+        }catch(Exception e){throw new MasterError(kant?Taal.T("Kies één foto"):Taal.T("Kies één of twee foto's"));}
         if(gekozen.length()<1||gekozen.length()>(kant?1:2))throw new MasterError(kant?Taal.T("Kies één foto"):Taal.T("Kies één of twee foto's"));
         java.util.List<DocumentFotos.Foto> kies=new java.util.ArrayList<>();
         for(int i=0;i<gekozen.length();i++){
@@ -153,18 +157,28 @@ final class MasterPhotos {
           try{
             v.tijd("herkennen",MasterDocumentImages.SEARCH_MS);
             if(kant){
-                found=MasterDocumentImages.herkenFoto(activity,kies.get(0).jpeg,today,zoekt);
+                MrzOcr.Spoor spoor=new MrzOcr.Spoor();MrzOcr.volg(spoor);
+                try{found=MasterDocumentImages.herkenFoto(activity,kies.get(0).jpeg,today,zoekt);}finally{MrzOcr.volg(null);}
+                if(found==null)App.log(activity,"STAMGEGEVENS","document, kaartfoto gekozen: niet herkend; "+spoor.tekst());
                 images.put(job.side,normalize(kies.get(0).jpeg));
             }else if(kies.size()==1){
-                found=MasterDocumentImages.herkenFoto(activity,kies.get(0).jpeg,today,zoekt);
+                MrzOcr.Spoor spoor=new MrzOcr.Spoor();MrzOcr.volg(spoor);
+                try{found=MasterDocumentImages.herkenFoto(activity,kies.get(0).jpeg,today,zoekt);}finally{MrzOcr.volg(null);}
+                if(found==null)App.log(activity,"STAMGEGEVENS","document, één foto gekozen: niet herkend; "+spoor.tekst());
                 String type=found==null?job.soort:found.getJSONObject("document").optString("documentsoort",job.soort);
                 images.put(MasterSchema.scanSide(type,found),normalize(kies.get(0).jpeg));
             }else{
-                JSONObject a=MasterDocumentImages.herkenFoto(activity,kies.get(0).jpeg,today,zoekt);
-                JSONObject b=MasterDocumentImages.herkenFoto(activity,kies.get(1).jpeg,today,zoekt);
-                MasterDocumentImages.Pair p=MasterDocumentImages.pair(kies.get(0).jpeg,a,kies.get(1).jpeg,b,job.soort);
+                // Eerst de strook op beide foto's (snel), pas daarna de tekst van een rijbewijs (langzaam): anders gaat alle tijd
+                // naar de eerste foto en komt de tweede (vaak de kant met de strook) niet meer aan bod
+                MrzOcr.Spoor spoor=new MrzOcr.Spoor();MrzOcr.volg(spoor);
+                JSONObject a,b;
+                try{a=MasterDocumentImages.herken(activity,kies.get(0).jpeg,today,zoekt,false);b=MasterDocumentImages.herken(activity,kies.get(1).jpeg,today,zoekt,false);}
+                finally{MrzOcr.volg(null);}
+                if(a==null&&b==null&&zoekt.getAsBoolean()){a=MasterDocumentImages.herken(activity,kies.get(0).jpeg,today,zoekt,true);if(a==null)b=MasterDocumentImages.herken(activity,kies.get(1).jpeg,today,zoekt,true);}
+                MasterDocumentImages.Pair p=vast?MasterDocumentImages.pairVast(kies.get(0).jpeg,a,kies.get(1).jpeg,b):MasterDocumentImages.pair(kies.get(0).jpeg,a,kies.get(1).jpeg,b,job.soort);
                 // Alleen vaste woorden en ja/nee: nooit tekst uit het document
-                App.log(activity,"STAMGEGEVENS","document, twee foto's gekozen: herkend "+(a!=null?"ja":"nee")+"/"+(b!=null?"ja":"nee")+(p==null?", verschillend":""));
+                App.log(activity,"STAMGEGEVENS","document, twee foto's gekozen"+(vast?" (volgorde van Rene)":"")+": herkend "+(a!=null?"ja":"nee")+"/"+(b!=null?"ja":"nee")+(p==null?", verschillend":"")
+                    +(a==null&&b==null?"; "+spoor.tekst():""));
                 if(p==null)throw new MasterError(Taal.T("De twee foto's lijken van verschillende ID-bewijzen te zijn. Kies de voor- en achterkant van hetzelfde ID-bewijs."));
                 images.put("front",normalize(p.front)).put("back",normalize(p.back));found=p.fields;
             }

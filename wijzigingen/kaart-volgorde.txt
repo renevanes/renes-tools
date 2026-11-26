@@ -1,0 +1,3 @@
+Stamgegevens: kies je twee foto's uit een document, dan is de eerste de voorkant en de tweede de achterkant; met een knop wissel je ze om.
+Stamgegevens: op het kaartje van een ID-bewijs staan nu de knoppen Gegevens herkennen en Voor- en achterkant omwisselen.
+Stamgegevens: bij twee foto's zoekt de app eerst op beide naar de strook, zodat de tweede foto niet zonder tijd blijft.

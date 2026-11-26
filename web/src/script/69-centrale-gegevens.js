@@ -45,7 +45,7 @@ function cmEl(tag,text,cls){const e=document.createElement(tag);if(text!==undefi
 function cmData(e){e.setAttribute('translate','no');return e;}
 function cmRequest(method,args,done,publicRequest=false,fail=null){
   const request='cm-'+(++cm.seq),token=cm.token;
-  cm.pending.set(request,{done,token,publicRequest,fail,mutation:['masterSave','masterScanSave','masterDelete','masterPhotoDelete'].includes(method)});
+  cm.pending.set(request,{done,token,publicRequest,fail,mutation:['masterSave','masterScanSave','masterDelete','masterPhotoDelete','masterPhotoSwap'].includes(method)});
   Android[method](...(publicRequest?args:[token,...args]),request);return request;
 }
 window.onMasterReply=function(r){

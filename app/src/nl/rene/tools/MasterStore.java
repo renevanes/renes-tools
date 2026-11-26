@@ -507,6 +507,20 @@ final class MasterStore {
             append(db,k,h,value==null?"photo_delete":"photo_add","masterdata","",r,new JSONArray().put(side));return new JSONObject().put("id",id).put("revision",next);
         },commit);
     }
+    /** Voor- en achterkant omwisselen (staat er maar één, dan gaat die naar de andere kant). */
+    static JSONObject photoSwap(Context c,SecretKey key,MasterSession session,String token,String id,long revision)throws Exception{
+        return transaction(c,key,session,token,(db,k,h)->{
+            JSONObject r=record(db,k,id);if(!r.getString("type").equals("identiteit"))throw new MasterError(Taal.T("Kaartfoto’s horen bij een identiteitsdocument"));
+            if(r.getLong("revision")!=revision)throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
+            JSONObject images=r.optJSONObject("images");if(images==null)images=new JSONObject();
+            String voor=images.optString("front",""),achter=images.optString("back","");
+            if(voor.isEmpty()&&achter.isEmpty())throw new MasterError(Taal.T("Voeg eerst een foto van het document toe"));
+            images.remove("front");images.remove("back");if(!achter.isEmpty())images.put("front",achter);if(!voor.isEmpty())images.put("back",voor);
+            long next=revision+1;r.put("images",images).put("revision",next).put("updated",System.currentTimeMillis());
+            ContentValues v=new ContentValues();v.put("rev",next);v.put("body",MasterCipher.encrypt(k,"record/"+id+"/"+next,bytes(r)));db.update("records",v,"id=?",new String[]{id});
+            append(db,k,h,"photo_add","masterdata","",r,new JSONArray().put("front").put("back"));return new JSONObject().put("id",id).put("revision",next);
+        });
+    }
     /**
      * Kaartfoto's van een identiteitsdocument als bron voor ID-kopie afschermen. Elke gelezen kant staat in Activiteiten als
      * Kaartfoto bekeken door ID-kopie afschermen. Geeft {sides:[{side,image}], soort} (alleen de documentsoort, geen nummers).

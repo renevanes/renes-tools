@@ -67,6 +67,19 @@ final class MasterDocumentImages {
     }
 
     /**
+     * Zoals pair, maar in de volgorde die Rene zelf aangaf (eerste = voorkant): niets wordt verwisseld. Twee herkende zijden
+     * moeten nog steeds bij hetzelfde document horen. Zuiver, getest.
+     */
+    static Pair pairVast(byte[] front, JSONObject a, byte[] back, JSONObject b) {
+        if (a != null && b != null) {
+            JSONObject d1 = a.optJSONObject("document"), d2 = b.optJSONObject("document");
+            String n1 = d1 == null ? "" : d1.optString("document"), n2 = d2 == null ? "" : d2.optString("document");
+            if (!n1.isEmpty() && !n2.isEmpty() && !n1.equals(n2)) return null;
+        }
+        return new Pair(front, back, a != null ? a : b);
+    }
+
+    /**
      * Eén zijde herkennen, ook als de kaart klein op een grote foto of pagina staat: het hele beeld en stukken ervan
      * (zoals bij een PDF-pagina). rijbewijs = de tekst van een rijbewijs (langzaam), anders alleen de strook (snel).
      */
