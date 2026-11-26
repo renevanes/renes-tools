@@ -1545,7 +1545,7 @@ if (!window.Android) window.Android = (function(){
     _diag: { items: [], auto: false, sent: [], n: 0 },
     diagnoseStaat(){ const d = this._diag, s = this._stat; return JSON.stringify({ items: d.items.map(i => ({ id: i.id, tool: i.tool, titel: i.titel, tijd: i.tijd, tekens: this.diagnoseTekst(i.id).length, verstuurd: i.verstuurd || 0 })), auto: d.auto, kan: true, repo: s.repo, klaar: !!(s.repo && s.token), verstuurd: d.sent }); },
     diagnoseTekst(id){ const i = this._diag.items.find(x => x.id === id); return i ? 'Diagnose Tools test\nTool: ' + i.tool + '\nWat: ' + i.titel + '\n\n' + i.tekst : ''; },
-    diagnoseLeg(tool, titel, tekst){ const d = this._diag, id = 'd' + (++d.n); d.items.unshift({ id, tool: String(tool), titel: String(titel), tekst: String(tekst), tijd: Date.now() }); d.items.length = Math.min(d.items.length, 12); if (d.auto && this._stat.repo && this._stat.token) this._diagWeg(id); },
+    diagnoseLeg(tool, titel, tekst){ if (!this._fout.diagLeg) return; const d = this._diag, id = 'd' + (++d.n); d.items.unshift({ id, tool: String(tool), titel: String(titel), tekst: String(tekst), tijd: Date.now() }); d.items.length = Math.min(d.items.length, 12); if (d.auto && this._stat.repo && this._stat.token) this._diagWeg(id); },
     _diagWeg(id){ const d = this._diag, i = d.items.find(x => x.id === id); if (!i || i.verstuurd) return; i.verstuurd = Date.now(); d.sent.unshift({ t: i.verstuurd, tool: i.tool, n: this.diagnoseTekst(id).length }); },
     diagnoseWis(){ this._diag.items = []; },
     diagnoseAuto(on){ this._diag.auto = !!on; },
@@ -1556,6 +1556,14 @@ if (!window.Android) window.Android = (function(){
     logboekAan(on){ this._log.aan = !!on; },
     logboekVoorbeeld(){ return this._log.voorbeeld; },
     logboekNu(){ const l = this._log, s = this._stat; setTimeout(() => { if (!(s.repo && s.token)) { window.onLogboek('Stel eerst de repository en de sleutel in'); return; } if (!l.voorbeeld) { window.onLogboek('Niets nieuws om te versturen'); return; } l.verstuurd++; l.laatst = Date.now(); l.resultaat = 'ok'; this._diag.sent.unshift({ t: l.laatst, tool: 'logboek', n: l.voorbeeld.length }); l.voorbeeld = ''; window.onLogboek(''); }, 30); },
+    /* Keuzes van Foutrapport en statistieken (FoutInstellingen): alleen bekende waarden, zoals Java */
+    _fout: { elke: 7, wifi: false, tempo: 'snel', diagLeg: true, diagBewaar: 60, getest: 0 },
+    foutInstellingen(){ return JSON.stringify(this._fout); },
+    foutZet(k, v){ const ok = { elke: ['1', '7', '30'], wifi: ['true', 'false'], tempo: ['snel', 'uur', 'dag'], diagLeg: ['true', 'false'], diagBewaar: ['15', '60', '240'] }[k];
+      if (!ok || !ok.includes(String(v))) return 'Onbekende keuze'; const f = this._fout; f[k] = k === 'elke' || k === 'diagBewaar' ? +v : k === 'wifi' || k === 'diagLeg' ? v === 'true' : String(v);
+      if (k === 'diagLeg' && v === 'false') this._diag.items = []; return ''; },
+    statTest(){ const s = this._stat, f = this._fout; setTimeout(() => { if (!(s.repo && s.token)) { window.onStatTest('Stel eerst de repository en de sleutel in'); return; } if (s.testFout) { window.onStatTest(s.testFout); return; }
+      f.getest++; this._diag.sent.unshift({ t: Date.now(), tool: 'verbinding', n: 0 }); window.onStatTest(''); }, 40); },
     statState(){ const s = this._stat; return JSON.stringify({ on: s.on, repo: s.repo, token: s.token, since: s.since, lastSent: s.lastSent, lastResult: s.lastResult }); },
     statOn(on){ this._stat.on = !!on; if (!on) this._stat.tags = {}; },
     statDest(repo, token){ const s = this._stat; if (repo !== s.repo || token) this._diag.auto = false; if (!repo && !token) { s.repo = ''; s.token = false; return ''; }

@@ -69,7 +69,7 @@ final class AppData {
      * terugzetten oude waarden opruimt). Andere bestanden gaan ook mee: die vindt de app in shared_prefs/.
      */
     static final List<String> PREFS_KNOWN = Collections.unmodifiableList(Arrays.asList(
-            "agenda", "allbackup", "alarm", "apparaten", "backupmap", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "facturen", "gebruik", "launcher",
+            "agenda", "allbackup", "alarm", "apparaten", "backupmap", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "facturen", "foutrapport", "gebruik", "launcher",
             "voorlezen", "localai", "lock", "mockloc", "models", "music", "notepins", "notification_history", "notifcenter", "pdf",
             "pdfview", "pinned_shortcuts", "player", "podcast", "podcast_dl", "radio", "redial", "redialplan", "regio", "reminders",
             "sleeptalk", "sms", "solo", "spotify", "toolslot", "tracks", "transcribe", "txdur", "txmeta", "ui", "vpn", "wabackup",

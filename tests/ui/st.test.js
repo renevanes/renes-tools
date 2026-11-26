@@ -27,7 +27,7 @@ const { chromium } = require('playwright');
     await pg.waitForTimeout(600);
     console.log('unlocked', !(await pg.evaluate(() => document.querySelector('#lockscr').classList.contains('on'))));
     // a confirm dialog after what's-new must show its cancel button again
-    await pg.evaluate(() => show('setcrash')); await pg.waitForTimeout(150);
+    await pg.evaluate(() => show('setcrashrap')); await pg.waitForTimeout(150);
     await pg.click('#st-crash ~ .row button:has-text("Wissen")'); await pg.waitForTimeout(100);
     console.log('cancel visible', await pg.isVisible('#modal-cancel')); await pg.click('#modal-cancel');
     await pg.evaluate(() => setTimeout(() => { nonexistentFn(); }, 0)); await pg.waitForTimeout(100);

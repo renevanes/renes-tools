@@ -2555,6 +2555,18 @@ public class MainActivity extends Activity {
             }, "statistiek").start();
         }
 
+        // ----- Keuzes van Foutrapport en statistieken (FoutInstellingen) -----
+
+        /** {elke, wifi, tempo, diagLeg, diagBewaar} */
+        @JavascriptInterface public String foutInstellingen() { return FoutInstellingen.staat(ctx).toString(); }
+        /** Eén keuze bewaren; "" bij succes, anders de reden. Niet vanuit een losse app (die slaat het app-slot over). */
+        @JavascriptInterface public String foutZet(String sleutel, String waarde) { return a.isSolo() ? "Kan alleen vanuit de gewone app" : FoutInstellingen.zet(ctx, sleutel, waarde); }
+        /** Verbinding testen: repository bestaat, is privé en de sleutel mag schrijven. Uitkomst via onStatTest("" of de reden). */
+        @JavascriptInterface public void statTest() {
+            if (a.isSolo()) { a.js("onStatTest", JSONObject.quote("Kan alleen vanuit de gewone app")); return; }
+            new Thread(App.veilig(() -> a.js("onStatTest", JSONObject.quote(Statistiek.test(ctx))), () -> a.js("onStatTest", JSONObject.quote("Versturen lukte niet"))), "statistiek-test").start();
+        }
+
         // ----- Diagnose: wat een tool vastlegde om een probleem na te zoeken; alleen in het geheugen, versturen op Rene's keuze -----
 
         @JavascriptInterface public String diagnoseStaat() { return Diagnose.staat(ctx).toString(); }

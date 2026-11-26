@@ -1,6 +1,6 @@
 /* ---------- Instellingen ----------
  * Een overzicht in groepen (met per onderwerp een korte stand van zaken) en per onderwerp een eigen scherm. */
-const ST_SUBS = ['setnotif', 'setlook', 'setregio', 'setskin', 'setlock', 'setslot', 'setsolo', 'setperm', 'setmusic', 'setcrash', 'spraak', 'setkopp'];
+const ST_SUBS = ['setnotif', 'setlook', 'setregio', 'setskin', 'setlock', 'setslot', 'setsolo', 'setperm', 'setmusic', 'setcrash', 'setcrashdoel', 'setcrashlog', 'setcrashstat', 'setcrashdiag', 'setcrashrap', 'setcrashweg', 'spraak', 'setkopp'];
 const stOn = () => current === 'settings' || ST_SUBS.includes(current);
 function stJson(s){ try { return JSON.parse(s); } catch(e){ return {}; } }
 function stSum(id, tt){ const e = $('#st-sum-' + id); if (e) e.textContent = tt; }
@@ -79,7 +79,9 @@ function enterSettings(){
   $('#st-crash').textContent = i.crashes ? tn(i.crashes, '{n} fout vastgelegd.', '{n} fouten vastgelegd.') : t('Er zijn geen fouten vastgelegd. ✓');
   stStatRender();
   stLogRender();
-  dg.vrij = ''; dg.open = ''; dgRender(); // een vrijgave na het slotscherm geldt tot je dit scherm opnieuw opent
+  if (current !== 'setcrashdiag' || !dg.vrij) { dg.vrij = ''; dg.open = ''; } // een vrijgave na het slotscherm geldt tot je Diagnose verlaat
+  dgRender();
+  fcRender(i);
   stSummaries(i);
 }
 function stHomeRender(){
@@ -123,32 +125,32 @@ function stCodeClear(){
 }
 /* Statistieken voor verbeteringen: standaard aan, maar er gaat pas iets weg als er een repository en sleutel zijn */
 function stStatRender(){
-  if (typeof Android.statState !== 'function') { $('#st-stat').style.display = 'none'; return; }
+  if (typeof Android.statState !== 'function') return; // fcRender verbergt de rijen
   const s = stJson(Android.statState()), on = s.on !== false, b = $('#st-stat-on');
   b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
   const r = $('#st-stat-repo'); if (document.activeElement !== r) r.value = s.repo || '';
-  $('#st-stat-token').placeholder = s.token ? 'Sleutel is ingesteld (leeg laten = houden)' : 'Fine-grained GitHub-sleutel (github_pat_…)';
-  $('#st-stat-sub').textContent = !on ? 'Uit: er wordt niets geteld of verstuurd' : !(s.repo && s.token) ? 'Aan, maar nog geen bestemming: er gaat niets weg' :
-    s.lastResult && s.lastResult !== 'ok' ? t('Laatste poging: {uitkomst}', { uitkomst: t(s.lastResult) }) : s.lastSent ? t('Laatst verstuurd: {wanneer}', { wanneer: fmtD(s.lastSent) }) : t('Wordt deze week voor het eerst verstuurd');
+  $('#st-stat-token').placeholder = s.token ? t('Sleutel is ingesteld (leeg laten = houden)') : t('Fine-grained GitHub-sleutel (github_pat_…)');
+  $('#st-stat-sub').textContent = !on ? t('Uit: er wordt niets geteld of verstuurd') : !(s.repo && s.token) ? t('Aan, maar nog geen bestemming: er gaat niets weg') :
+    s.lastResult && s.lastResult !== 'ok' ? t('Laatste poging: {uitkomst}', { uitkomst: t(s.lastResult) }) : s.lastSent ? t('Laatst verstuurd: {wanneer}', { wanneer: fmtD(s.lastSent) }) : t('Wordt binnenkort voor het eerst verstuurd');
   $('#st-stat-send').disabled = !(on && s.repo && s.token);
   $('#st-stat-preview').textContent = Android.statPreview();
 }
-function stStatOn(on){ Android.statOn(on); stStatRender(); toast(on ? 'Statistieken staan aan' : 'Statistieken staan uit; de tellingen zijn gewist'); }
+function stStatOn(on){ Android.statOn(on); stStatRender(); fcRender(); toast(on ? 'Statistieken staan aan' : 'Statistieken staan uit; de tellingen zijn gewist'); }
 function stStatSave(){
   const tt = $('#st-stat-token'), e = Android.statDest($('#st-stat-repo').value.trim(), tt.value.trim());
   if (e) { toast(e); return; }
-  tt.value = ''; stStatRender(); dgRender(); toast($('#st-stat-repo').value.trim() ? 'Bestemming bewaard' : 'Bestemming verwijderd');
+  tt.value = ''; $('#fc-test-uit').textContent = ''; stStatRender(); dgRender(); fcRender(); toast($('#st-stat-repo').value.trim() ? 'Bestemming bewaard' : 'Bestemming verwijderd');
 }
 function stStatSend(){ const b = $('#st-stat-send'); b.disabled = true; b.textContent = 'Versturen…'; Android.statSend(); }
 /* Diagnose: wat tools vastlegden om een probleem na te zoeken. Alleen in het geheugen; versturen of kopiëren per stuk. */
 const dg = { open: '', vrij: '', bezig: '' };
-function dgToolNaam(tool){ return tool === 'logboek' ? t('Foutlogboek') : TOOLS[tool] ? t(TOOLS[tool][0]) : tool; }
+function dgToolNaam(tool){ return tool === 'logboek' ? t('Foutlogboek') : tool === 'verbinding' ? t('Verbindingstest') : TOOLS[tool] ? t(TOOLS[tool][0]) : tool; }
 function dgDicht(it){ return dg.vrij !== it.id && typeof tsVerborgen === 'function' && !!TOOLS[it.tool] && tsVerborgen(it.tool); }
 function dgRender(){
   const kaart = $('#st-diag');
   if (typeof Android.diagnoseStaat !== 'function') { kaart.style.display = 'none'; return; }
   const s = stJson(Android.diagnoseStaat()), items = s.items || [], lijst = $('#st-diag-lijst');
-  $('#st-diag-waar').textContent = s.klaar ? t('Versturen gaat naar je eigen privé repository {repo}, map diagnose.', { repo: s.repo }) : t('Nog geen bestemming: stel hierboven bij Statistieken je repository en sleutel in. Kopiëren kan wel.');
+  $('#st-diag-waar').textContent = s.klaar ? t('Versturen gaat naar je eigen privé repository {repo}, map diagnose.', { repo: s.repo }) : t('Nog geen bestemming: stel bij Bestemming je repository en sleutel in. Kopiëren kan wel.');
   if (!items.find(i => i.id === dg.open)) dg.open = '';
   lijst.innerHTML = items.length ? '' : '<p class="note">' + esc(t('Nog niets vastgelegd. Doe in de tool opnieuw wat niet goed ging en kom dan hier terug.')) + '</p>';
   items.forEach(it => {
@@ -182,24 +184,24 @@ function dgRender(){
   $('#st-diag-wis').disabled = !items.length;
   const weg = $('#st-diag-verstuurd'), v = s.verstuurd || [];
   weg.textContent = '';
-  if (!v.length) weg.textContent = t('Nog niets. Hier staat straks wanneer welke diagnose verstuurd is.');
-  v.forEach(x => { const p = document.createElement('p'); p.textContent = fmtDT(x.t) + ' · ' + dgToolNaam(x.tool) + ' · ' + tn(x.n, 'Eén teken', '{n} tekens'); weg.appendChild(p); });
+  if (!v.length) weg.textContent = t('Nog niets. Hier staat straks wanneer wat verstuurd is.');
+  v.forEach(x => { const p = document.createElement('p'); p.textContent = fmtDT(x.t) + ' · ' + dgToolNaam(x.tool) + (x.n ? ' · ' + tn(x.n, 'Eén teken', '{n} tekens') : ''); weg.appendChild(p); });
 }
 function dgStuur(it, s){
   askConfirm(t('Diagnose versturen?'), t('De hele tekst die je bij Bekijken ziet ({n} tekens) gaat naar je privé repository {repo}. Er kunnen namen, adressen en nummers in staan.', { n: it.tekens, repo: s.repo }), t('Versturen'), () => {
     dg.bezig = it.id; dgRender(); Android.diagnoseStuur(it.id);
   });
 }
-window.onDiagnose = function(e){ dg.bezig = ''; toast(e ? t(e) : t('Verstuurd ✓')); if (current === 'setcrash') dgRender(); };
+window.onDiagnose = function(e){ dg.bezig = ''; toast(e ? t(e) : t('Verstuurd ✓')); if (stOn()) { dgRender(); fcRender(); } };
 function dgAuto(knop){
   const aan = !knop.classList.contains('on'), s = stJson(Android.diagnoseStaat());
-  if (!aan) { Android.diagnoseAuto(false); dgRender(); return; }
+  if (!aan) { Android.diagnoseAuto(false); dgRender(); fcRender(); return; }
   askConfirm(t('Diagnose vanzelf sturen?'), t('Elke nieuwe diagnose gaat dan zonder vraag naar je privé repository {repo}, met de inhoud erbij (zoals de gelezen tekst van een rekening). Je kunt het hier altijd weer uitzetten.', { repo: s.repo || '…' }), t('Aanzetten'), () => {
-    Android.diagnoseAuto(true); dgRender();
+    Android.diagnoseAuto(true); dgRender(); fcRender();
   });
 }
-function dgWis(){ Android.diagnoseWis(); dg.open = ''; dg.vrij = ''; dgRender(); toast(t('Diagnose gewist')); }
-window.onStatSent = function(e){ const b = $('#st-stat-send'); if (b) b.textContent = 'Nu versturen'; toast(e || 'Verstuurd ✓'); if (current === 'setcrash') stStatRender(); };
+function dgWis(){ Android.diagnoseWis(); dg.open = ''; dg.vrij = ''; dgRender(); fcRender(); toast(t('Diagnose gewist')); }
+window.onStatSent = function(e){ const b = $('#st-stat-send'); if (b) b.textContent = t('Nu versturen'); toast(e ? t(e) : t('Verstuurd ✓')); if (stOn()) { stStatRender(); fcRender(); } };
 /* Foutlogboek vanzelf naar de eigen privé repository (Logboek.java): standaard aan zodra repository en sleutel er zijn */
 function stLogRender(){
   const kaart = $('#st-log'); if (!kaart) return;
@@ -207,14 +209,79 @@ function stLogRender(){
   const s = stJson(Android.logboekStaat());
   for (const id of ['#st-log', '#st-log-uitleg', '#st-log-nu', '#st-log-wat']) $(id).style.display = s.kan === false ? 'none' : '';
   const knop = $('#st-log-aan'); knop.classList.toggle('on', !!s.aan); knop.setAttribute('aria-checked', s.aan ? 'true' : 'false');
-  $('#st-log-sub').textContent = !s.aan ? t('Uit: het logboek blijft op de telefoon') : !s.klaar ? t('Aan, maar nog geen repository en sleutel (hieronder bij Statistieken): er gaat niets weg')
+  $('#st-log-sub').textContent = !s.aan ? t('Uit: het logboek blijft op de telefoon') : !s.klaar ? t('Aan, maar nog geen repository en sleutel (bij Bestemming): er gaat niets weg')
     : s.resultaat && s.resultaat !== 'ok' ? t('Laatste poging: {uitkomst}', { uitkomst: t(s.resultaat) }) : s.laatst ? t('Laatst bijgewerkt: {wanneer}', { wanneer: fmtD(s.laatst) }) : t('Aan: nieuwe meldingen gaan vanzelf mee');
   $('#st-log-nu').disabled = !(s.aan && s.klaar);
   $('#st-log-voorbeeld').textContent = Android.logboekVoorbeeld() || t('Niets nieuws sinds de vorige keer.');
 }
-function stLogAan(knop){ const aan = !knop.classList.contains('on'); Android.logboekAan(aan); stLogRender(); toast(aan ? t('Foutlogboek gaat vanzelf mee') : t('Foutlogboek blijft op de telefoon')); }
+function stLogAan(knop){ const aan = !knop.classList.contains('on'); Android.logboekAan(aan); stLogRender(); fcRender(); toast(aan ? t('Foutlogboek gaat vanzelf mee') : t('Foutlogboek blijft op de telefoon')); }
 function stLogNu(){ const b = $('#st-log-nu'); b.disabled = true; uiWachtTekst($('#st-log-sub'), t('Versturen…')); Android.logboekNu(); }
-window.onLogboek = function(e){ toast(e ? t(e) : t('Logboek verstuurd ✓')); if (current === 'setcrash') { stLogRender(); dgRender(); } };
+window.onLogboek = function(e){ toast(e ? t(e) : t('Logboek verstuurd ✓')); if (stOn()) { stLogRender(); dgRender(); fcRender(); } };
+/* ---------- Foutrapport en statistieken: het overzicht (wat er vanzelf gaat) en de keuzes (FoutInstellingen.java) ---------- */
+function fcStaat(){ return typeof Android.foutInstellingen === 'function' ? stJson(Android.foutInstellingen()) : {}; }
+const FC_ELKE = () => ({ 1: t('elke dag'), 7: t('elke week'), 30: t('elke maand') });
+const FC_TEMPO = () => ({ snel: t('snel'), uur: t('hooguit eens per uur'), dag: t('hooguit eens per dag') });
+function fcTg(el, aan){ el.classList.toggle('on', !!aan); el.setAttribute('aria-checked', aan ? 'true' : 'false'); }
+function fcRender(i){
+  const kaart = $('#fc-kaart'); if (!kaart) return;
+  const heeft = f => typeof Android[f] === 'function', f = fcStaat(), keuzes = f.elke !== undefined; // een oudere app kent de keuzes nog niet
+  const s = heeft('statState') ? stJson(Android.statState()) : {}, l = heeft('logboekStaat') ? stJson(Android.logboekStaat()) : {}, d = heeft('diagnoseStaat') ? stJson(Android.diagnoseStaat()) : {};
+  const kan = heeft('statState') && l.kan !== false, doel = !!(s.repo && s.token);
+  for (const id of ['setcrashdoel', 'setcrashlog', 'setcrashstat', 'setcrashdiag', 'setcrashweg']) { const r = $('#fc-lijst [onclick="show(\'' + id + '\')"]'); if (r) r.hidden = !kan && id !== 'setcrashdiag' || (id === 'setcrashdiag' && !heeft('diagnoseStaat')); }
+  kaart.hidden = !kan;
+  $('#fc-wifi-rij').style.display = keuzes ? '' : 'none';
+  for (const [id, k] of [['#fc-tempo', 'tempo'], ['#fc-elke', 'elke'], ['#fc-bewaar', 'diagBewaar']]) { const e = $(id); e.style.display = keuzes ? '' : 'none'; const lb = e.previousElementSibling; if (lb && lb.tagName === 'LABEL') lb.style.display = e.style.display; if (keuzes) e.value = String(f[k]); }
+  $('#fc-leg-rij').style.display = keuzes ? '' : 'none'; $('#fc-test').style.display = heeft('statTest') ? '' : 'none';
+  if (keuzes) { fcTg($('#fc-wifi'), f.wifi); fcTg($('#fc-leg'), f.diagLeg); }
+  $('#fc-wifi-sub').textContent = f.wifi ? t('Aan: vanzelf versturen wacht op wifi; met de hand kan altijd') : t('Uit: ook via mobiele data');
+  $('#fc-leg-sub').textContent = f.diagLeg === false ? t('Uit: tools leggen niets vast') : t('Aan: tools leggen in het geheugen vast wat er misging');
+  // De regels onder elk onderwerp
+  const sum = (id, tekst) => { const e = $('#fc-sum-' + id); if (e) e.textContent = tekst; };
+  sum('doel', !doel ? (s.repo ? t('{repo} · nog geen sleutel: er gaat niets weg', { repo: s.repo }) : t('Niet ingesteld: er gaat niets weg')) : t('{repo} · sleutel ingesteld', { repo: s.repo }));
+  const logAan = l.aan !== false, statAan = s.on !== false, tempo = FC_TEMPO()[f.tempo] || t('snel'), elke = FC_ELKE()[f.elke] || t('elke week');
+  sum('log', !logAan ? t('Uit: het logboek blijft op de telefoon') : [t('Aan, {tempo}', { tempo }), l.laatst ? t('laatst {wanneer}', { wanneer: fmtD(l.laatst) }) : '', l.resultaat && l.resultaat !== 'ok' ? t('laatste poging mislukt') : ''].filter(Boolean).join(' · '));
+  sum('stat', !statAan ? t('Uit: er wordt niets geteld of verstuurd') : [t('Aan, {elke}', { elke }), s.lastSent ? t('laatst {wanneer}', { wanneer: fmtD(s.lastSent) }) : '', s.lastResult && s.lastResult !== 'ok' ? t('laatste poging mislukt') : ''].filter(Boolean).join(' · '));
+  const n = (d.items || []).length;
+  sum('diag', [f.diagLeg === false ? t('Vastleggen uit') : (n ? tn(n, 'Eén stuk in het geheugen', '{n} stukken in het geheugen') : t('Niets in het geheugen')), d.auto ? t('vanzelf sturen aan') : t('versturen alleen met de hand')].join(' · '));
+  if (i && i.crashes !== undefined) sum('rap', i.crashes ? tn(i.crashes, '{n} fout vastgelegd', '{n} fouten vastgelegd') : t('Geen fouten vastgelegd ✓'));
+  const v = (d.verstuurd || [])[0];
+  sum('weg', v ? t('Laatst: {wanneer} · {wat}', { wanneer: fmtDT(v.t), wat: dgToolNaam(v.tool) }) : t('Nog niets'));
+  // Wat er vanzelf gaat, in één zin per soort
+  const regels = [];
+  if (!doel) regels.push(t('Er gaat niets weg: stel eerst een bestemming in.'));
+  else {
+    const wat = [];
+    if (logAan) wat.push(t('het foutlogboek ({tempo})', { tempo }));
+    if (statAan) wat.push(t('statistieken ({elke})', { elke }));
+    if (d.auto) wat.push(t('elke nieuwe diagnose'));
+    regels.push(wat.length ? t('Vanzelf naar {repo}: {wat}.', { repo: s.repo, wat: wat.join(', ') }) : t('Er gaat niets vanzelf weg.'));
+    if (!d.auto) regels.push(t('Een diagnose gaat alleen weg als jij op Versturen tikt.'));
+    if (f.wifi && wat.length) regels.push(t('Alleen via wifi.'));
+  }
+  const samen = $('#fc-samen'); samen.setAttribute('translate', 'no'); samen.textContent = regels.join(' ');
+  $('#fc-doel-stand').textContent = doel ? t('Ingesteld: {repo}. De sleutel staat versleuteld op de telefoon.', { repo: s.repo }) : t('Nog niet ingesteld: zonder repository en sleutel verlaat er niets de telefoon.');
+}
+function fcZet(sleutel, waarde){
+  if (typeof Android.foutZet !== 'function') return;
+  const e = Android.foutZet(sleutel, String(waarde));
+  if (e) toast(t(e)); else if (sleutel === 'wifi') toast(waarde ? t('Vanzelf versturen alleen via wifi') : t('Vanzelf versturen ook via mobiele data'));
+  stLogRender(); dgRender(); fcRender();
+}
+function fcLeg(knop){
+  const aan = !knop.classList.contains('on'), n = (stJson(Android.diagnoseStaat()).items || []).length;
+  if (aan || !n) { fcZet('diagLeg', aan); return; }
+  askConfirm(t('Vastleggen uitzetten?'), tn(n, 'Het stuk dat nu in het geheugen staat, wordt gewist.', 'De {n} stukken die nu in het geheugen staan, worden gewist.'), t('Uitzetten'), () => { dg.open = ''; dg.vrij = ''; fcZet('diagLeg', false); });
+}
+function fcTest(){
+  const s = stJson(Android.statState());
+  if (!(s.repo && s.token)) { $('#fc-test-uit').textContent = t('Vul eerst de repository en de sleutel in en tik op Opslaan.'); return; }
+  $('#fc-test').disabled = true; uiWachtTekst($('#fc-test-uit'), t('Verbinding testen…')); Android.statTest();
+}
+window.onStatTest = function(e){
+  const b = $('#fc-test'); if (b) b.disabled = false;
+  const uit = $('#fc-test-uit'); if (uit) uit.textContent = e ? t('Niet gelukt: {reden}', { reden: t(e) }) : t('✓ In orde: de repository is privé en de sleutel mag erin schrijven.');
+  if (stOn()) { dgRender(); fcRender(); }
+};
 function stCrashClear(){ askConfirm('Foutrapport wissen?', 'De vastgelegde foutmeldingen worden verwijderd.', 'Wissen', () => { Android.crashClear(); enterSettings(); }); }
 
 

@@ -81,8 +81,10 @@ final class Logboek {
             SharedPreferences p = Statistiek.prefs(c);
             long nu = System.currentTimeMillis(), tik = android.os.SystemClock.elapsedRealtime(), op = geplandOp;
             if (op < 0) geplandOp = op = p.getLong("logPlan", 0);
-            if (op > nu + UUR + 60_000) op = 0; // klok teruggezet: het bewaarde moment klopt niet meer
-            long wacht = dringend ? WACHT_MS : wachtTijd(laatstGeprobeerd(p), nu, mis);
+            if (op > nu + FoutInstellingen.DAG + 60_000) op = 0; // klok teruggezet: het bewaarde moment klopt niet meer
+            String tempo = FoutInstellingen.tempo(c);
+            if (!"snel".equals(tempo)) { mis = mis || dringend; dringend = false; } // eens per uur of per dag: ook een vastloper wacht
+            long wacht = dringend ? WACHT_MS : wachtTijd(laatstGeprobeerd(p), nu, mis, tempo);
             boolean opTijd = op != 0 && op <= nu + wacht + 60_000;
             if (opTijd && nu < op - 30_000) return; // de taak die er staat komt nog, en op tijd: deze melding gaat mee
             if (!dringend && tik < gevraagdTot && (op == 0 || opTijd)) return; // net nagevraagd: er staat een taak (wacht op internet of loopt)
@@ -112,7 +114,23 @@ final class Logboek {
 
     private static JobInfo taak(Context c, long wacht) {
         return new JobInfo.Builder(JOB_ID, new ComponentName(c, Care.class)).setMinimumLatency(wacht)
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true).build();
+                .setRequiredNetworkType(FoutInstellingen.wifi(c) ? JobInfo.NETWORK_TYPE_UNMETERED : JobInfo.NETWORK_TYPE_ANY).setPersisted(true).build();
+    }
+
+    /** Tempo of "alleen via wifi" veranderd: de taak die er staat opnieuw plannen met de nieuwe keuze. */
+    static void herplan(Context c) {
+        try {
+            JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+            if (js != null) js.cancel(JOB_ID);
+            zetPlan(c, 0);
+            if (aan(c)) {
+                String n = nieuw(lees(c), Statistiek.prefs(c).getString("logTot", ""))[0];
+                if (!n.isEmpty() && js != null) {
+                    long wacht = wachtTijd(laatstGeprobeerd(Statistiek.prefs(c)), System.currentTimeMillis(), probleemIn(n), FoutInstellingen.tempo(c));
+                    if (js.schedule(taak(c, wacht)) == JobScheduler.RESULT_SUCCESS) zetPlan(c, System.currentTimeMillis() + wacht);
+                }
+            }
+        } catch (Throwable ignored) { }
     }
 
     private static void zetPlan(Context c, long op) {
@@ -122,8 +140,11 @@ final class Logboek {
     }
 
     /** Hoe lang wachten na een melding: minstens WACHT_MS, en hooguit eens per UUR versturen (iets wat misging: per KWARTIER). */
-    static long wachtTijd(long laatst, long nu, boolean mis) {
-        long per = mis ? KWARTIER : UUR;
+    static long wachtTijd(long laatst, long nu, boolean mis) { return wachtTijd(laatst, nu, mis, FoutInstellingen.TEMPO); }
+
+    /** Zo ook bij een ander tempo (FoutInstellingen.tempo: snel, uur of dag). */
+    static long wachtTijd(long laatst, long nu, boolean mis, String tempo) {
+        long per = FoutInstellingen.per(tempo, mis);
         long w = laatst <= 0 || laatst > nu ? WACHT_MS : laatst + per - nu;
         return Math.max(WACHT_MS, Math.min(per, w));
     }
@@ -137,7 +158,7 @@ final class Logboek {
             if (n.isEmpty()) return;
             JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
             if (js == null) return;
-            long wacht = wachtTijd(laatstGeprobeerd(Statistiek.prefs(c)), System.currentTimeMillis(), probleemIn(n));
+            long wacht = wachtTijd(laatstGeprobeerd(Statistiek.prefs(c)), System.currentTimeMillis(), probleemIn(n), FoutInstellingen.tempo(c));
             // Rechtstreeks: de taak die net klaar is kan nog als gepland tellen; dezelfde id vervangt hem
             if (js.schedule(taak(c, wacht)) == JobScheduler.RESULT_SUCCESS) zetPlan(c, System.currentTimeMillis() + wacht);
         } catch (Throwable ignored) { }

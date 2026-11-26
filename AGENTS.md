@@ -73,7 +73,16 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   tellingen en versies: per vaste logsoort (`App.log`-naam zoals BACKUP) een aantal, en bij een vastloper het soort fout en
   de plek in de eigen code. Nooit foutteksten, namen, nummers, berichten, bestandsnamen, adressen of locaties
   (`StatistiekTest` controleert dat). Iets toevoegen aan het rapport = eerst Rene vragen en de test uitbreiden.
-  **Foutlogboek** (`Logboek.java`, schakelaar op de kaart Foutrapport; `LogboekTest`, `tests/ui/logboek.test.js`): wens
+  **Scherm Foutrapport en statistieken** (`s-setcrash`, wens van Rene 26-11-2026): een overzicht ("Wat er vanzelf gaat",
+  `fcRender`, met Alleen via wifi) en rijen naar eigen schermen: Bestemming (`setcrashdoel`, met Verbinding testen:
+  `Statistiek.test`, een klein bestand in `verbinding/`), Foutlogboek (`setcrashlog`), Statistieken (`setcrashstat`),
+  Diagnose (`setcrashdiag`), Foutrapport op deze telefoon (`setcrashrap`) en Wat de telefoon verliet (`setcrashweg`).
+  Rene's keuzes staan in `FoutInstellingen` (instellingenbestand `foutrapport`, gaat mee in de backup; `FoutInstellingenTest`,
+  `tests/ui/foutrapport-overzicht.test.js`): statistieken elke dag/week/maand, het tempo van het foutlogboek (snel/uur/dag),
+  alleen via wifi (`netOk`, taak `NETWORK_TYPE_UNMETERED`), diagnose vastleggen aan/uit en hoe lang bewaren. De toestand
+  en de sleutel blijven in `statistiek` (gaat bewust niet mee). Nieuwe keuze = `FoutInstellingen.normaal`/`standaard`, het
+  scherm, `fcRender`, de testbrug (`_fout`) en het register (`58-instellingen-register.js`).
+  **Foutlogboek** (`Logboek.java`, scherm Foutrapport en statistieken → Foutlogboek; `LogboekTest`, `tests/ui/logboek.test.js`): wens
   van Rene, zodat Claude kan meezoeken. Wat nieuw is in het logboek (`App.log`, crash.log) gaat een paar minuten later,
   hooguit eens per uur (na een melding over iets wat misging, `Logboek.probleem`, hooguit eens per kwartier; CRASH altijd
   na een paar minuten; job 4312 via `Care`), opgeschoond (`Logboek.schoon`: e-mail, telefoon-,
@@ -85,7 +94,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   Zet in een melding over iets wat misging ook de reden, in vaste woorden uit de code (zoals `FacturenRun.reden`): anders
   kan wie het logboek naloopt (zie "Foutlogboek nalopen") er niets mee. Woorden die "misging" betekenen staan in `Logboek.MIS` en precies zo in
   `tools/logboek/analyse.py` (`tests/logboek` vergelijkt ze).
-  **Diagnose** (`Diagnose.java`, kaart Diagnose op hetzelfde scherm; `DiagnoseTest`, `tests/ui/diagnose.test.js`) is
+  **Diagnose** (`Diagnose.java`, scherm Foutrapport en statistieken → Diagnose; `DiagnoseTest`, `tests/ui/diagnose.test.js`) is
   de centrale plek voor wat wél inhoud bevat en nodig is om een probleem na te zoeken (bijv. de gelezen tekst van een
   rekening): een tool roept `Diagnose.leg(ctx, "tool", "Wat", tekst)` aan (interface: `Android.diagnoseLeg`). Alleen in
   het geheugen (hooguit `MAX` stukken, weg als de app stopt; nooit in een bestand, het logboek, de statistieken of een

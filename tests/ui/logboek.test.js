@@ -1,4 +1,4 @@
-// Foutlogboek vanzelf naar de eigen privé repository (Instellingen → Foutrapport en statistieken, Logboek.java):
+// Foutlogboek vanzelf naar de eigen privé repository (Instellingen → Foutrapport en statistieken → Foutlogboek, Logboek.java):
 // standaard aan, zonder repository en sleutel gaat er niets weg; uit te zetten; vooraf te bekijken; zichtbaar wat er wegging.
 const { chromium } = require('playwright');
 (async () => {
@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
     const pg = await b.newPage({ viewport: { width: 390, height: 844 }, colorScheme: scheme });
     pg.on('pageerror', e => { if (!String(e.message).includes('proef-belofte')) errs.push(e.message); });
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
-    await pg.evaluate(() => show('setcrash')); await pg.waitForTimeout(200);
+    await pg.evaluate(() => show('setcrashlog')); await pg.waitForTimeout(200);
     ok(await pg.isVisible('#st-log') && (await pg.getAttribute('#st-log-aan', 'aria-checked')) === 'true', 'schakelaar staat er, standaard aan');
     ok((await pg.textContent('#st-log-sub')).includes('er gaat niets weg') && await pg.isDisabled('#st-log-nu'), 'zonder repository en sleutel: zichtbaar dat er niets weggaat, versturen kan niet');
     const uitleg = await pg.textContent('#st-log-uitleg');
@@ -22,6 +22,11 @@ const { chromium } = require('playwright');
     ok((await pg.evaluate(() => Android._log.verstuurd)) === 1 && (await pg.textContent('#st-log-sub')).includes('Laatst bijgewerkt'), 'verstuurd; de stand staat erbij');
     ok((await pg.textContent('#st-log-voorbeeld')).includes('Niets nieuws'), 'daarna: niets nieuws meer');
     ok((await pg.textContent('#st-diag-verstuurd')).includes('Foutlogboek'), 'staat bij wat de telefoon verliet, als Foutlogboek');
+    // Hoe vaak: snel, per uur of per dag
+    ok((await pg.inputValue('#fc-tempo')) === 'snel', 'tempo: standaard snel');
+    await pg.selectOption('#fc-tempo', 'dag'); await pg.waitForTimeout(60);
+    ok((await pg.evaluate(() => Android._fout.tempo)) === 'dag', 'tempo: per dag bewaard');
+    await pg.selectOption('#fc-tempo', 'snel'); await pg.waitForTimeout(60);
     await pg.click('#st-log-nu'); await pg.waitForTimeout(200);
     ok((await pg.evaluate(() => Android._log.verstuurd)) === 1, 'niets nieuws: er gaat niets');
     // Uitzetten

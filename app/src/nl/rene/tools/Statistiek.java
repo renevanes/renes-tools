@@ -212,11 +212,13 @@ final class Statistiek {
 
     // ---------- versturen ----------
 
-    /** Vanuit het dagelijkse onderhoud (Care): eens per week versturen, als het aan staat en is ingesteld. */
+    /** Vanuit het dagelijkse onderhoud (Care): elke dag, week of maand versturen (FoutInstellingen.elke), als het aan staat en
+     *  is ingesteld; met "alleen via wifi" niet over mobiele data (dan de volgende dag opnieuw). */
     static void daily(Context c) {
         SharedPreferences p = prefs(c);
         if (!p.getBoolean("on", true) || p.getString("repo", "").isEmpty() || p.getString("token", "").isEmpty()) return;
-        if (System.currentTimeMillis() - p.getLong("lastSent", 0) < WEEK) return;
+        if (!FoutInstellingen.statAanDeBeurt(p.getLong("lastSent", 0), System.currentTimeMillis(), FoutInstellingen.elke(c))) return;
+        if (!FoutInstellingen.netOk(c)) return;
         send(c);
     }
 
@@ -275,7 +277,7 @@ final class Statistiek {
      */
     static String zet(Context c, String path, String tekst, String bericht) {
         if (!PlayPolicy.allows(c, "statistiek")) return PlayPolicy.unavailable(c);
-        if (path == null || !path.matches("(?:diagnose|logboek)/[A-Za-z0-9T_-]{1,120}\\.txt")) return "Versturen lukte niet";
+        if (path == null || !path.matches("(?:diagnose|logboek|verbinding)/[A-Za-z0-9T_-]{1,120}\\.txt")) return "Versturen lukte niet";
         SharedPreferences p = prefs(c);
         String repo = p.getString("repo", ""), sealed = p.getString("token", "");
         if (!validRepo(repo) || sealed.isEmpty()) return "Stel eerst de repository en de sleutel in";
@@ -292,6 +294,20 @@ final class Statistiek {
             return code == 200 || code == 201 ? "" : code == 401 || code == 403 ? "De sleutel werkt niet (meer), of mag niet in deze repository schrijven"
                     : code == 404 ? "Repository niet gevonden (of de sleutel mag er niet bij)" : "Versturen lukte niet (HTTP " + code + ")";
         } catch (Exception e) { return "Versturen lukte niet (geen verbinding?)"; }
+    }
+
+    /**
+     * Verbinding testen (knop bij de bestemming): bestaat de repository, meldt GitHub hem als privé, en mag de sleutel erin
+     * schrijven? Schrijft daarvoor een klein bestand in verbinding/ met alleen de tijd en de versie (geen gegevens). "" = alles
+     * in orde, anders de reden (dezelfde zinnen als bij versturen). Niet op de hoofdthread.
+     */
+    static String test(Context c) {
+        long nu = System.currentTimeMillis();
+        String naam = path(nu, installId(c));
+        naam = "verbinding/" + naam.substring(naam.lastIndexOf('/') + 1).replace(".json", "") + ".txt";
+        String r = zet(c, naam, "Verbindingstest van Tools " + Version.NAME + " op " + iso(nu) + "\n", "Verbinding getest");
+        if (r.isEmpty()) Diagnose.noteer(c, nu, "verbinding", 0);
+        return r;
     }
 
     /** Bestandsnaam van een nieuw rapport: tot op de seconde, dus nooit dezelfde als een eerder rapport. */

@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
     ok((await pg.evaluate(() => window.testPrivacyUrl)).endsWith('/privacybeleid.md'), 'privacybeleid opent de openbare pagina');
     // Elk onderwerp opent zijn eigen scherm, terug = het overzicht
     const subs = [['Meldingen', 'setnotif', '#st-notif-mute'], ['Weergave', 'setlook', '#st-zoom'], ['Regio en taal', 'setregio', '#rg-clock'], ['Telefoon-skin', 'setskin', '#st-home-btn'], ['App-slot', 'setlock', '#st-lock-btn'],
-      ['Extra ontgrendelen', 'setslot', '#st-slot-list'], ['Losse apps', 'setsolo', '#st-solo-list'], ['Toestemmingen', 'setperm', '#st-perms'], ['Backup-map', 'bkset', '#st-dest', 'Automatisch en versleutelen'], ['Muziek herkennen', 'setmusic', '#st-audd', 'AudD-sleutel'], ['Foutrapport en statistieken', 'setcrash', '#st-crash']];
+      ['Extra ontgrendelen', 'setslot', '#st-slot-list'], ['Losse apps', 'setsolo', '#st-solo-list'], ['Toestemmingen', 'setperm', '#st-perms'], ['Backup-map', 'bkset', '#st-dest', 'Automatisch en versleutelen'], ['Muziek herkennen', 'setmusic', '#st-audd', 'AudD-sleutel'], ['Foutrapport en statistieken', 'setcrash', '#fc-lijst']];
     for (const [t, scr, el, h1] of subs) {
       await pg.click('#s-settings .strow:has(.sttxt b:text-is("' + t + '"))'); await pg.waitForTimeout(120);
       const good = await pg.evaluate(s => current === s, scr) && await pg.isVisible(el) && (await pg.textContent('#s-' + scr + ' h1')) === (h1 || t);

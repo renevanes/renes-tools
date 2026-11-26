@@ -108,34 +108,37 @@ Bij elke dienst geldt het privacybeleid van die dienst zelf.
 ### Statistieken voor verbeteringen
 
 Staat standaard aan, maar er gaat niets weg tot je zelf een eigen (privé) GitHub-repository en sleutel instelt. Dan
-stuurt de app eens per week een rapport naar **jouw eigen** repository, met alleen: per soort logregel een aantal, bij
+stuurt de app eens per week (of elke dag of maand, wat je kiest) een rapport naar **jouw eigen** repository, met alleen: per soort logregel een aantal, bij
 een vastloper het soort fout en de plek in de code van de app, de versie van de app, het merk en model van de
 telefoon, de Android-versie, de periode, of de app op de achtergrond beperkt wordt, en een willekeurige code van 8
 tekens voor deze installatie. Nooit namen, berichten, telefoonnummers, bestandsnamen, adressen of locaties. Je zet het
-uit bij Instellingen → Foutrapport en statistieken.
+uit bij Instellingen → Foutrapport en statistieken → Statistieken. Met "Alleen via wifi" (op het overzicht van dat
+scherm) gaat er vanzelf niets via mobiele data. "Verbinding testen" (bij Bestemming) zet een klein bestand met alleen de
+tijd en de versie van de app in de map `verbinding` van die repository.
 
 ### Foutlogboek
 
 Het foutlogboek van de app (technische meldingen: welke actie, wat er misging en waar in de code) gaat, zodra je die
 repository en sleutel hebt ingesteld, een paar minuten na een nieuwe melding naar dezelfde eigen (privé) repository, in
 de map `logboek`, zodat je samen met Claude een probleem kunt nazoeken. Alleen wat nieuw is sinds de vorige keer, hooguit
-eens per uur (als er iets misging hooguit eens per kwartier, na een vastloper na een paar minuten). Claude leest de map
+eens per uur (als er iets misging hooguit eens per kwartier, na een vastloper na een paar minuten; je kunt ook kiezen
+voor hooguit eens per uur of eens per dag). Claude leest de map
 alleen met leesrechten (bij het wekelijkse onderhoud of als je erom vraagt) en lost op wat er misgaat; in de openbare
 repository komen daaruit alleen soorten meldingen en aantallen, nooit de tekst. Vooraf zo goed mogelijk opgeschoond: e-mailadressen, telefoon- en
 rekeningnummers, lange nummers, sleutels, webadressen, paden, bestandsnamen, IP-adressen, postcodes en gelezen inhoud
 (zoals de tekst van een beschadigd bestand) gaan eruit; logregels van de app horen zulke gegevens bovendien niet te bevatten.
 Tools verstuurt alleen als GitHub die repository als privé meldt. Staat standaard aan; uit te zetten bij Instellingen →
-Foutrapport en statistieken (Vanzelf naar je repository). Daar zie je ook vooraf wat er de volgende keer meegaat en, bij
+Foutrapport en statistieken → Foutlogboek (Vanzelf naar je repository). Daar zie je ook vooraf wat er de volgende keer meegaat en, bij
 Diagnose, wanneer er iets verstuurd is. De Play-versie verstuurt het foutlogboek niet.
 
 ### Diagnose
 
 Om een probleem na te zoeken legt een tool vast wat er bij een actie gebeurde, bijvoorbeeld de tekst die Betalen uit
 een rekening las en wat daaruit herkend is. Dat bevat inhoud (namen, adressen, nummers). Het staat alleen in het
-geheugen van de app, hooguit een uur, en is weg zodra de app stopt; het komt niet in een bestand of backup. Het verlaat de telefoon
+geheugen van de app, hooguit een uur (of een kwartier of vier uur, wat je kiest), en is weg zodra de app stopt; vastleggen kun je ook helemaal uitzetten; het komt niet in een bestand of backup. Het verlaat de telefoon
 alleen als je bij Instellingen → Foutrapport en statistieken → Diagnose zelf een stuk kopieert of verstuurt (na een
 vraag), of als je daar "Vanzelf sturen" aanzet (staat uit; aanzetten vraagt eerst). Versturen gaat naar dezelfde eigen
-(privé) GitHub-repository als de statistieken, in de map `diagnose`; Tools verstuurt alleen als GitHub die repository als privé meldt. Webadressen in de gelezen tekst van een rekening (zoals een betaallink) laat Betalen zo veel mogelijk weg. Op hetzelfde scherm staat wat er verstuurd is
+(privé) GitHub-repository als de statistieken, in de map `diagnose`; Tools verstuurt alleen als GitHub die repository als privé meldt. Webadressen in de gelezen tekst van een rekening (zoals een betaallink) laat Betalen zo veel mogelijk weg. Bij "Wat de telefoon verliet" staat wat er verstuurd is
 (tijd, tool en omvang). De Play-versie verstuurt geen diagnose.
 
 ## Backups

@@ -24,6 +24,8 @@ final class Diagnose {
     static final int MAX = 12, MAX_TEKENS = 120_000, MAX_VERSTUURD = 20;
     /** Zo lang blijft een stuk hooguit in het geheugen (de app kan dagen blijven draaien door radio of VPN). */
     static final long HOUDBAAR = 60 * 60_000L;
+    /** Wat Rene koos (FoutInstellingen.diagBewaar); tot het eerste lezen de standaard. */
+    static volatile long houdbaar = HOUDBAAR;
     private static final Object LOCK = new Object();
     private static final List<Item> ITEMS = new ArrayList<>();
     private static long teller;
@@ -43,8 +45,12 @@ final class Diagnose {
 
     /** Legt iets vast (alleen in het geheugen). Geeft het id. Zonder context: nooit vanzelf sturen. */
     static String leg(Context c, String tool, String titel, String tekst) {
+        if (c != null) {
+            if (!FoutInstellingen.diagLeg(c)) return ""; // Rene zette vastleggen uit
+            houdbaar = FoutInstellingen.diagBewaar(c) * 60_000L;
+        }
         String id = legAlleen(tool, titel, tekst, System.currentTimeMillis());
-        if (c != null && auto(c)) {
+        if (c != null && auto(c) && FoutInstellingen.netOk(c)) {
             final Context app = c.getApplicationContext();
             new Thread(App.veilig(() -> stuur(app, id)), "diagnose").start();
         }
@@ -97,7 +103,8 @@ final class Diagnose {
 
     /** Onder LOCK: wat ouder is dan HOUDBAAR gaat weg. */
     private static void verlopen(long nu) {
-        for (int i = ITEMS.size() - 1; i >= 0; i--) if (nu - ITEMS.get(i).tijd > HOUDBAAR || ITEMS.get(i).tijd - nu > HOUDBAAR) ITEMS.remove(i);
+        long h = houdbaar;
+        for (int i = ITEMS.size() - 1; i >= 0; i--) if (nu - ITEMS.get(i).tijd > h || ITEMS.get(i).tijd - nu > h) ITEMS.remove(i);
     }
 
     static String tekst(String id) { Item i = item(id); return i == null ? "" : inhoud(i); }
@@ -125,6 +132,7 @@ final class Diagnose {
         JSONObject uit = new JSONObject();
         try {
             JSONArray a = new JSONArray();
+            houdbaar = FoutInstellingen.diagBewaar(c) * 60_000L;
             synchronized (LOCK) {
                 verlopen(System.currentTimeMillis());
                 for (Item i : ITEMS) a.put(new JSONObject().put("id", i.id).put("tool", i.tool).put("titel", i.titel).put("tijd", i.tijd)
