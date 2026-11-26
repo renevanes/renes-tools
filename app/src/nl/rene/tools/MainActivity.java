@@ -276,6 +276,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle b) {
+        opstart = Opstart.nu();
+        final long voorAf = Math.max(0, android.os.SystemClock.uptimeMillis() - android.os.Process.getStartUptimeMillis());
         super.onCreate(b);
         // Meteen in de kleur van het gekozen thema (ook automatisch 's avonds donker): geen witte flits bij het opstarten
         final int bg0 = Thema.bg(this);
@@ -308,6 +310,7 @@ public class MainActivity extends Activity {
         Kluis.cleanTmp(getApplicationContext());
         { Context app = getApplicationContext(); new Thread(() -> { try { PdfTools.opruimKluisIn(app); } catch (Throwable ignored) { } }, "pdf-kluis-oud").start(); }
         PlayPolicy.sanitizePreferences(getApplicationContext());
+        opstart.stap("opruimen");
         if (!Updater.viaPlay(this)) {
             RedialService.createChannel(this);
             WaBackupService.createChannel(this);
@@ -328,12 +331,14 @@ public class MainActivity extends Activity {
             final Context app = getApplicationContext();
             new Thread(() -> { try { Herstel.afterRestart(app); Herstel.resumeModels(app); } catch (Throwable t) { App.log(app, "HERSTEL", "na start: " + t); } }, "herstel-start").start();
         }
+        opstart.stap("taken");
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         topBar = new View(this);
         bottomBar = new View(this);
         web = new PrivWeb(this);
+        opstart.stap("webview");
         root.addView(topBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
         // De WebView met daarover een dichte laag: met app-slot blijft die liggen tot het slotscherm echt getekend is.
         android.widget.FrameLayout holder = new android.widget.FrameLayout(this);
@@ -375,6 +380,7 @@ public class MainActivity extends Activity {
         web.setWebChromeClient(new Chrome(this));
         web.addJavascriptInterface(new Bridge(this), "Android");
         web.setBackgroundColor(bg0);
+        opstart.stap("scherm");
 
         if (Build.VERSION.SDK_INT >= 33) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
@@ -393,8 +399,11 @@ public class MainActivity extends Activity {
             coverOn();
             h.postDelayed(() -> { if (!uiReady) showUi(); }, 4000); // vangnet als de pagina het niet meldt
         }
+        opstart.stap("overig");
         loadUi();
+        Opstart.log(opstart.regel("onCreate") + " proces=" + voorAf);
     }
+    private Opstart opstart;
 
     /** Pagina klaar (slotscherm al getekend als de app op slot is): nu pas tonen. */
     void showUi() {
@@ -417,7 +426,10 @@ public class MainActivity extends Activity {
         webGeladen = w == null ? 0 : w.code;
         webGemeld = false; webUitBeeld = false;
         final int ronde = ++webRonde;
-        web.loadDataWithBaseURL(BASE_URL, w == null ? readAsset("index.html") : w.html, "text/html", "utf-8", null);
+        String html = w == null ? readAsset("index.html") : w.html;
+        if (opstart != null) opstart.stap("html");
+        web.loadDataWithBaseURL(BASE_URL, html, "text/html", "utf-8", null);
+        if (opstart != null) opstart.stap("laden");
         if (webGeladen > 0 && !isSolo()) h.postDelayed(() -> webNietGestart(ronde), WebStart.WACHT_MS);
     }
 
@@ -2653,7 +2665,10 @@ public class MainActivity extends Activity {
         /** De pagina is opgebouwd (en toont het slotscherm als dat moet). */
         @JavascriptInterface public void uiReady() {
             a.webGemeld = true;
-            a.h.post(() -> { if (!a.isSolo()) WebStart.gemeld(ctx, a.webGeladen); });
+            a.h.post(() -> {
+                if (!a.isSolo()) WebStart.gemeld(ctx, a.webGeladen);
+                if (a.opstart != null) { Opstart.log("uiReady na=" + a.opstart.sinds()); a.opstart = null; }
+            });
             a.h.postDelayed(a::showUi, 50);
         }
         /** Losse app: welke tool ("" in de gewone app). */
