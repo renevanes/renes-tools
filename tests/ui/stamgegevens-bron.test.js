@@ -90,9 +90,35 @@ for(const colorScheme of ['light','dark']){
   assert.deepEqual(await p.evaluate(()=>Android._cm.gekozen),[1]);
   assert.equal(await p.evaluate(doc=>!!Android._cm.records.find(r=>r.id===doc).images?.front,doc),true,'de gekozen foto is de voorkant');
   await p.evaluate(()=>{Android._cm.kaartFotos=null;});
+  // Op het kaartje: voor- en achterkant omwisselen (staat er één, dan naar de andere kant) en zelf laten herkennen
+  await T.kaart(doc);await p.waitForSelector('#cmc-wissel');
+  assert.equal(await p.textContent('#cmc-wissel'),'Naar de achterkant verplaatsen');assert.equal(await p.isVisible('#cmc-herken'),true);
+  await p.click('#cmc-wissel');await p.waitForFunction(()=>/andere kant/.test($('#cm-kaart-status').textContent));
+  assert.equal(await p.evaluate(doc=>{const i=Android._cm.records.find(r=>r.id===doc).images;return !i.front&&!!i.back;},doc),true,'de foto staat nu achter');
+  await p.waitForFunction(()=>$('#cmc-wissel')?.textContent==='Naar de voorkant verplaatsen');
+  await p.click('#cmc-herken');await p.waitForFunction(doc=>current==='cmedit'&&cm.edit?.id===doc&&cm.tab==='fotos',doc);
+  await p.waitForFunction(()=>!cmh.scanBusy&&!cm.mutating);
+  await p.evaluate(()=>{cm.dirty=false;goBack();});await p.waitForFunction(()=>current==='cmkaart'&&!cm.mutating);
   // Een oudere app (zonder masterKaartDocument): bij een kaartfoto alleen foto's, zoals die app het aankan
   await p.evaluate(()=>{window.__kd=Android.masterKaartDocument;Android.masterKaartDocument=undefined;cmcPhotoPick('back');});await p.waitForSelector('#sheet.on');
   assert.deepEqual(await keuzes(),['Bestand op de telefoon','Uit de documentenkluis']);await p.evaluate(()=>{closeSheet();Android.masterKaartDocument=window.__kd;});
+
+  // Twee foto's uit een document: wat je eerst kiest is de voorkant, de tweede de achterkant; wisselen kan
+  await p.evaluate(()=>{Android._cm.scanFotos=[{pagina:1},{pagina:2}];Android._cm.photoDelay=200;Android._cm.herkend=null;});
+  await T.kaart(kid);await p.click('#cmc-doc-add');await kies('Paspoort');await p.waitForFunction(()=>$('#sheet-title').textContent==='Paspoort');
+  await kies('Foto of document kiezen');await kies('Bestand op de telefoon');
+  await p.waitForFunction(()=>$('#modal.on')&&!$('#cmh-keuze').hidden&&$('#modal-title').textContent==='Kies de foto van het ID-bewijs');
+  assert.match(await p.textContent('#modal-text'),/eerst op de voorkant en dan op de achterkant/);
+  const tags=()=>p.$$eval('#cmh-keuze .cmh-tag',x=>x.map(e=>e.textContent));
+  const foto=n=>p.locator('#cmh-keuze .cmh-foto').nth(n);
+  assert.equal(await p.isVisible('#cmh-keuze-wissel'),false);
+  await foto(1).click();await foto(0).click();assert.deepEqual(await tags(),['Achterkant','Voorkant']);
+  assert.equal(await p.isVisible('#cmh-keuze-wissel'),true);await p.click('#cmh-keuze-wissel');assert.deepEqual(await tags(),['Voorkant','Achterkant']);
+  await p.click('#modal-ok');await p.waitForFunction(()=>Android._cm.gekozen&&!cm.mutating&&!$('#modal.on'));
+  assert.deepEqual(await p.evaluate(()=>[Android._cm.gekozen,Android._cm.vast]),[[0,1],true],'de volgorde van Rene gaat mee');
+  await p.evaluate(()=>{Android._cm.scanFotos=null;});
+  await p.waitForFunction(()=>(current==='cmedit'||current==='cmkaart')&&!cm.mutating&&!cm.pending.size);
+  await p.evaluate(()=>{cm.dirty=false;if($('#modal').classList.contains('on'))closeModal(null);});await T.kaart(kid);
 
   // 4. De handtekening: het menu ligt boven het venster
   await p.evaluate(()=>sigTeken({}));await p.waitForSelector('#sigdlg.on');await p.click('#sig-foto');await p.waitForSelector('#sheet.on');

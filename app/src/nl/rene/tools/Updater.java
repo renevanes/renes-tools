@@ -340,12 +340,21 @@ final class Updater {
      * Downloadt de nieuwe APK (of gebruikt de al gedownloade) en start de installatie. Geeft null of een foutmelding
      * terug ("busy": al bezig).
      */
-    static String downloadAndInstall(Context c, Progress pr) {
+    static String downloadAndInstall(Context c, Progress pr) { return haal(c, pr, true); }
+
+    /**
+     * Alleen downloaden en klaarzetten, niet installeren (Nieuwe app vanzelf downloaden): dezelfde controles als bij
+     * Installeren (ondertekende updatelijst, controlegetal), daarna staat hij klaar en hoeft Installeren alleen nog te
+     * installeren. Geeft null (klaar, ook als hij al klaarstond), "uptodate", "busy" of een foutmelding.
+     */
+    static String downloadVanzelf(Context c, Progress pr) { return haal(c, pr, false); }
+
+    private static String haal(Context c, Progress pr, boolean installeren) {
         if (viaPlay(c)) return "Updates komen via Google Play";
         if (!APK_BUSY.compareAndSet(false, true)) return "busy";
         try {
             pr.step("start", 0, 0);
-            if (Build.VERSION.SDK_INT >= 26 && !c.getPackageManager().canRequestPackageInstalls()) {
+            if (installeren && Build.VERSION.SDK_INT >= 26 && !c.getPackageManager().canRequestPackageInstalls()) {
                 return "needs-permission";
             }
             JSONObject bewaard = klaar(c);
@@ -354,14 +363,14 @@ final class Updater {
             catch (java.io.IOException offline) {
                 // Geen verbinding (geen antwoord van de server), maar de nieuwe app staat al klaar: gewoon installeren.
                 // Een fout antwoord (HTTP-fout, onleesbare lijst) telt niet: dan eerst een goede updatelijst.
-                if (bewaard != null) return installeer(c, bewaard, pr);
+                if (bewaard != null) return installeren ? installeer(c, bewaard, pr) : null;
                 throw offline;
             }
             String sha = m.optString("apkSha256", "").toLowerCase(java.util.Locale.ROOT);
             if (!sha.matches("[0-9a-f]{64}") || !signatureOk(c, m)) return "De update is niet ondertekend; niet geïnstalleerd";
             if (m.optInt("nativeLevel", 0) <= Version.NATIVE_LEVEL) { klaarWeg(c); return "uptodate"; }
             // Al gedownload (dezelfde app als in de updatelijst): niet opnieuw
-            if (bewaard != null && sha.equals(bewaard.optString("sha256"))) return installeer(c, bewaard, pr);
+            if (bewaard != null && sha.equals(bewaard.optString("sha256"))) return installeren ? installeer(c, bewaard, pr) : null;
             klaarWeg(c); // een oudere download: weg, de nieuwste ophalen
             if (!validName(m.optString("versionName"))) return "Onverwachte versienaam; niet geïnstalleerd";
             File dir = klaarDir(c);
@@ -379,10 +388,103 @@ final class Updater {
             if (!part.renameTo(klaarApk(c)) || !metaTmp.renameTo(klaarMeta(c))) { klaarWeg(c); return "Update mislukt: de download kon niet bewaard worden"; }
             JSONObject k = klaar(c);
             if (k == null) { klaarWeg(c); return "Update mislukt: de download kon niet bewaard worden"; }
-            return installeer(c, k, pr);
+            return installeren ? installeer(c, k, pr) : null;
         } catch (Exception e) {
             return "Update mislukt: " + e.getMessage();
         } finally { APK_BUSY.set(false); }
+    }
+
+    // ---------- nieuwe app vanzelf downloaden (wens van Rene, 26-11-2026) ----------
+
+    /** Eigen instellingen (gaan mee in backups; "update" zelf is toestand van deze installatie). */
+    static final String KEUZE = "update_keuze";
+    static SharedPreferences keuze(Context c) { return c.getSharedPreferences(KEUZE, Context.MODE_PRIVATE); }
+    /** Standaard aan: een nieuwe app vanzelf downloaden, installeren doet Rene zelf. */
+    static boolean vanzelf(Context c) { return keuze(c).getBoolean("vanzelf", true); }
+    /** Standaard alleen via wifi (de app is tientallen MB's). */
+    static boolean vanzelfWifi(Context c) { return keuze(c).getBoolean("wifi", true); }
+    static void vanzelfZet(Context c, boolean aan, boolean wifi) { keuze(c).edit().putBoolean("vanzelf", aan).putBoolean("wifi", wifi).apply(); }
+
+    /** Mag er nu vanzelf gedownload worden? Zuiver (getest in UpdaterVanzelfTest). */
+    static boolean magVanzelf(boolean aan, boolean alleenWifi, boolean betaaldNet, boolean play) {
+        return aan && !play && (!alleenWifi || !betaaldNet);
+    }
+    static boolean magVanzelf(Context c) { return magVanzelf(vanzelf(c), vanzelfWifi(c), betaaldNet(c), viaPlay(c)) && heeftNet(c); }
+
+    /** Is er nu een netwerk? Zonder netwerk niet proberen (de dagelijkse taak wacht niet op internet). */
+    @SuppressWarnings("deprecation")
+    static boolean heeftNet(Context c) {
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
+            android.net.NetworkInfo n = cm == null ? null : cm.getActiveNetworkInfo();
+            return n != null && n.isConnected();
+        } catch (Throwable t) { return false; }
+    }
+
+    /**
+     * Kost dit netwerk mogelijk geld (mobiele data)? Onbekend telt als ja. Alleen een verbonden wifi- of kabelnetwerk
+     * zonder datalimiet telt als gratis: een VPN (ook de eigen, die zich als onbeperkt meldt) telt niet mee, zodat
+     * "Alleen via wifi" niet over mobiele data loopt als de VPN aan staat.
+     */
+    @SuppressWarnings("deprecation")
+    static boolean betaaldNet(Context c) {
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null || cm.isActiveNetworkMetered()) return true;
+            for (android.net.Network n : cm.getAllNetworks()) {
+                android.net.NetworkCapabilities nc = cm.getNetworkCapabilities(n);
+                android.net.NetworkInfo ni = cm.getNetworkInfo(n);
+                if (nc == null || ni == null || !ni.isConnected()) continue;
+                boolean vast = nc.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) || nc.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET);
+                if (vast && !nc.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)
+                        && nc.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) return false;
+            }
+            return true;
+        } catch (Throwable t) { return true; }
+    }
+
+    /** Na een mislukte poging een tijd niet opnieuw vanzelf (Installeren met de hand kan altijd). */
+    static final long PAUZE_NA_FOUT_MS = 12L * 3600_000L;
+    /** Zuiver: mag er weer geprobeerd worden? */
+    static boolean pauzeVoorbij(long misluktOp, long nu) { return misluktOp <= 0 || nu < misluktOp || nu - misluktOp >= PAUZE_NA_FOUT_MS; }
+
+    /** Een vaste reden voor het logboek (geen adressen of foutteksten van buiten). Zuiver. */
+    static String vanzelfReden(String probleem) {
+        if (probleem == null) return "klaar";
+        if (probleem.contains("ondertekend")) return "handtekening";
+        if (probleem.contains("Controlegetal") || probleem.contains("versienaam")) return "controle";
+        if (probleem.contains("bewaard") || probleem.contains("ruimte")) return "opslaan";
+        if (probleem.contains("geheugen")) return "geheugen";
+        if (probleem.equals("bezig")) return "bezig";
+        return "download";
+    }
+
+    /**
+     * Vanzelf downloaden als het mag en er nog niets klaarstaat; null als er niets te doen was of het klaar is, "bezig"
+     * als er al een download loopt (dan niets melden: die meldt zelf), anders de reden in vaste woorden. Voor de
+     * dagelijkse taak (Care) en na een controle met de app open (UpdateController).
+     */
+    static String vanzelfNu(Context c, Progress pr) {
+        if (!magVanzelf(c) || !pauzeVoorbij(prefs(c).getLong("vzMis", 0), System.currentTimeMillis())) return null;
+        String r;
+        try { r = downloadVanzelf(c, pr); }
+        catch (OutOfMemoryError e) { r = "Update mislukt: te weinig geheugen"; }
+        catch (Throwable t) { r = "Update mislukt"; }
+        if (r == null) {
+            JSONObject k = klaar(c);
+            prefs(c).edit().remove("vzMis").apply();
+            if (k != null && prefs(c).getInt("vzGemeld", 0) != k.optInt("versionCode")) {
+                prefs(c).edit().putInt("vzGemeld", k.optInt("versionCode")).apply();
+                App.log(c, "UPDATE", "nieuwe app vanzelf gedownload: versie " + k.optString("versionName"));
+            }
+            return null;
+        }
+        if ("uptodate".equals(r)) return null;
+        if ("busy".equals(r)) return "bezig";
+        prefs(c).edit().putLong("vzMis", System.currentTimeMillis()).apply();
+        String reden = vanzelfReden(r);
+        App.log(c, "UPDATE", "vanzelf downloaden mislukt (" + reden + ")");
+        return reden;
     }
 
     /**

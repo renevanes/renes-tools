@@ -13,6 +13,10 @@
     <div class="banner" id="upd-banner2"><div class="upd-body"><div id="upd-text2">Nieuwe versie beschikbaar</div><div class="upd-prog" id="upd-prog2" role="progressbar" aria-label="Voortgang van de update" aria-valuemin="0" aria-valuemax="100" hidden><i></i></div></div><button id="upd-btn2" onclick="installUpdate()">Installeren</button></div>
     <button class="big" id="chk-btn" onclick="checkUpdates()">Controleren op updates</button>
     <p class="hint">De app zoekt zelf naar updates als je hem opent.</p>
+    <div class="card" id="i-vz" hidden>
+      <div class="sw"><span>Nieuwe app vanzelf downloaden<small>Alvast klaarzetten; installeren doe je zelf</small></span><button class="tg" id="i-vz-aan" role="switch" aria-checked="true" onclick="updVz('aan')" aria-label="Nieuwe app vanzelf downloaden"></button></div>
+      <div class="sw" id="i-vz-wifi-rij"><span>Alleen via wifi</span><button class="tg" id="i-vz-wifi" role="switch" aria-checked="true" onclick="updVz('wifi')" aria-label="Alleen via wifi downloaden"></button></div>
+    </div>
     <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>Kleine updates worden meteen toegepast; voor een nieuwe versie van de app zelf vraagt Android om te bevestigen.</p></div></details>
     <div class="card stlist" id="i-gh-kaart">
       <button class="strow" onclick="show('github')"><span class="stic"><span class="ui-icon" data-icon="refresh" aria-hidden="true"></span></span><span class="sttxt"><b>Publiceren en tests</b><small id="i-gh-sub">Wat er op GitHub loopt en wat mislukte</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>

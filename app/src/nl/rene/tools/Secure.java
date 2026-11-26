@@ -146,8 +146,12 @@ final class Secure {
         Blokken.Schrijver blok;
         /** Voor grote bestanden die nog geschreven worden (in de cache van de app). */
         java.io.File tmpDir;
-        /** Apart opslaan lukte niet (map, verbinding): de rest van deze ronde gaan grote bestanden in het archief zelf. */
+        /**
+         * Apart opslaan lukte niet (map, verbinding): dat bestand gaat in het archief zelf. Na {@link Blokken#MAX_FOUTEN}
+         * keer gaan ook de volgende grote bestanden van deze ronde in het archief (niet steeds opnieuw proberen).
+         */
         volatile Exception blokFout;
+        volatile int blokFouten;
         /** Hoeveel inhoud er in totaal door dit archief ging (ook de grote bestanden), en hoeveel er het archief zelf in ging. */
         long ruw = 0;
         final Blokken.Teller uit;
@@ -327,11 +331,11 @@ final class Secure {
                 if (fo == null) { byte[] b = mem.toByteArray(); zip.inline(path, b, b.length, level, sha); return; }
                 fo.close();
                 fo = null;
-                // Apart, behalve wat altijd in het archief hoort; lukte apart opslaan eerder deze ronde niet, dan niet steeds
-                // opnieuw proberen: dan gaat het in het archief zelf (groter, maar compleet)
-                if (Blokken.apart(path) && zip.blokFout == null) {
+                // Apart, behalve wat altijd in het archief hoort. Lukt dat niet, dan dit bestand in het archief zelf (groter,
+                // maar compleet); één keer mislukken (verbinding) houdt de rest niet tegen, een paar keer wel
+                if (Blokken.apart(path) && zip.blokFouten < Blokken.MAX_FOUTEN) {
                     try { zip.blok.bewaar(path, f, n, sha); zip.record(path, n, sha); return; }
-                    catch (Exception e) { zip.blokFout = e; }
+                    catch (Exception e) { zip.blokFout = e; zip.blokFouten++; }
                 }
                 zip.inlineFile(path, f, n, level, sha);
             } finally {
@@ -396,6 +400,7 @@ final class Secure {
                 zip.tmpDir = AppBackup.grootTmp(c);
                 zip.blok = new Blokken.Schrijver(blokken, k);
                 zip.blok.bekend.putAll(BlokOpslag.bekend(c));
+                zip.blok.gestopt = () -> AllBackup.stop;
             }
             return zip;
         } catch (Exception e) {

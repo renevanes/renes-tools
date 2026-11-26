@@ -72,7 +72,7 @@ final class AppData {
             "agenda", "allbackup", "alarm", "apparaten", "backupmap", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "facturen", "foutrapport", "gebruik", "launcher",
             "voorlezen", "localai", "lock", "mockloc", "models", "music", "notepins", "notification_history", "notifcenter", "pdf",
             "pdfview", "pinned_shortcuts", "player", "podcast", "podcast_dl", "radio", "redial", "redialplan", "regio", "reminders",
-            "sleeptalk", "sms", "solo", "spotify", "toolslot", "tracks", "transcribe", "txdur", "txmeta", "ui", "vpn", "wabackup",
+            "sleeptalk", "sms", "solo", "spotify", "toolslot", "tracks", "transcribe", "txdur", "txmeta", "ui", "update_keuze", "vpn", "wabackup",
             "webstore", "workspace"));
 
     /** Instellingen die bewust niet meegaan, met de reden. */
@@ -89,6 +89,7 @@ final class AppData {
         m.put("update", "toestand van de updates van deze installatie");
         m.put("alarm_dp", "kopie van de radiowekker voor na een herstart (wordt opnieuw gemaakt)");
         m.put("notewidget", "koppeling met widgets (die moet je opnieuw plaatsen)");
+        m.put("backupmap_voortgang", "hoe ver het vanzelf opruimen van deze backup-map is (begint op een nieuwe telefoon gewoon vooraan)");
         m.put("facturen_geheim", "wachtwoorden voor Facturen, versleuteld met de sleutel van deze telefoon (opnieuw invullen)");
         PREFS_SKIP = Collections.unmodifiableMap(m);
     }
