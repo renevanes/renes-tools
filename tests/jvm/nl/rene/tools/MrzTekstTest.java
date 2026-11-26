@@ -77,6 +77,47 @@ public class MrzTekstTest {
         q=nl();r=lees(q[0].substring(1),q[1]);
         check(r!=null&&r.line(1).equals(q[1])&&r.naamTwijfel&&!r.sure(),"zonder P: herkend, namen in twijfel");
 
+        // Voornamen van letters die ook een gelezen < kunnen zijn (KEES, CEES) blijven staan; rommel na de namen niet
+        String kees="P<NLDDE<VRIES<<JAN<KEES<<<<<<<<<<<<<<<<<<<<<<";kees=kees.substring(0,44);
+        check(MrzTekst.naam(kees,5).equals(kees),"KEES blijft: "+MrzTekst.naam(kees,5));
+        String cees="P<NLDJANSEN<<CEES<<<<<<<<<<<<<<<<<<<<<<<<<<<<".substring(0,44);
+        check(MrzTekst.naam(cees,5).equals(cees),"CEES blijft");
+        String jm="P<NLDDE<VRIES<<JOHANNA<MARIA";
+        check(MrzTekst.naam(jm+"<C<<<<KKKKKKKEKKK",5).equals(jm+Mrz.rep('<',17)),"losse C en KKK na de namen worden <");
+        check(MrzTekst.naam(jm+"<<<KS5565E55KKS<",5).equals(jm+Mrz.rep('<',16)),"na <<< alleen nog <");
+        q=nl();q[0]="P<NLDDE<VRIES<<JAN<KEES<<<<<<<<<<<<<<<<<<<<<<".substring(0,44);
+        r=lees(q);
+        check(r!=null&&r.sure()&&"Jan Kees".equals(Mrz.fields(r,"2026-11-26").getJSONObject("persoon").getString("voornamen")),"Jan Kees blijft zeker en heel");
+
+        // Een verwisseling die het controlecijfer niet ziet (G/6, L/1, K/<): bij één lezing is het documentnummer een voorstel,
+        // twee lezingen die het eens zijn bevestigen het
+        String doc="NX61R7K12",geb="850315",verv="310728",r2=doc+Mrz.digit(doc)+"NLD"+geb+Mrz.digit(geb)+"F"+verv+Mrz.digit(verv)+"<<<<<<<<<<<<<<<";
+        r2=r2+Mrz.digit(r2.substring(0,10)+r2.substring(13,20)+r2.substring(21,43));
+        Mrz.Result goed=lees(nl()[0],r2),verwisseld=lees(nl()[0],r2.replace("NX61","NXG1"));
+        check(goed!=null&&verwisseld!=null&&Mrz.digit("NXG1R7K12")==Mrz.digit(doc),"G/6 verandert het controlecijfer niet");
+        Mrz.Result eenmaal=MrzTekst.kies(new ArrayList<>(Arrays.asList(verwisseld)));
+        check(eenmaal.repaired.contains("doc")&&!eenmaal.sure(),"één lezing met G of 6 in het nummer: in twijfel");
+        Mrz.Result oneens=MrzTekst.kies(new ArrayList<>(Arrays.asList(lees(nl()[0],r2.replace("NX61","NXG1")),lees(nl()[0],r2))));
+        check(oneens.repaired.contains("doc"),"twee lezingen die verschillen: in twijfel");
+        Mrz.Result eens=MrzTekst.kies(new ArrayList<>(Arrays.asList(lees(nl()[0],r2),lees(nl()[0],r2))));
+        check(eens.sure()&&"NX61R7K12".equals(Mrz.fields(eens,"2026-11-26").getJSONObject("document").getString("document")),"twee lezingen die het eens zijn: zeker");
+        check(MrzTekst.bevestigd(Arrays.asList(lees(nl()[0],r2),lees(nl()[0],r2)))&&!MrzTekst.bevestigd(Arrays.asList(goed,verwisseld)),"bevestigd alleen bij hetzelfde nummer");
+
+        // ID-kaart (TD1, drie regels van 30), ook met fouten van de tekstherkenning
+        String[] td1={"I<UTOD231458907<<<<<<<<<<<<<<<","7408122F1204159UTO<<<<<<<<<<<6","ERIKSSON<<ANNA<MARIA<<<<<<<<<<"};
+        r=lees(td1);
+        check(r!=null&&r.format==Mrz.TD1&&r.sure(),"ID-kaart precies gelezen: zeker");
+        r=lees("I<UTOD23145890 7«<<<<<<<<<<<<","74O8122F1204159UTO<<<<<<<<<<<6","ERIKSSON«ANNA<MARIA<<<<<<<<<<<KK");
+        check(r!=null&&r.format==Mrz.TD1&&"D23145890".equals(Mrz.fields(r,"2026-11-26").getJSONObject("document").getString("document")),"ID-kaart met fouten: herkend");
+
+        // Twee regels onder elkaar die op een strook lijken: paar; een losse regel (zoals op een rijbewijs) niet
+        MrzTekst.Telling tp=new MrzTekst.Telling();MrzTekst.beste(Arrays.asList("NAAM","4a. 01.02.2015 4b. 01.02.2025 <<","iets"),tp);
+        check(!tp.paar,"een losse regel is geen paar");
+        tp=new MrzTekst.Telling();MrzTekst.beste(Arrays.asList(R1,R2.replace('7','#')),tp);
+        check(tp.paar,"twee strookregels onder elkaar zijn een paar");
+        // Stoppen als de tijd op is
+        check(MrzTekst.beste(Arrays.asList(R1,R2),new MrzTekst.Telling(),()->false)==null,"tijd op: niets");
+
         // Willekeurige regels van de juiste lengte: nooit een strook
         Random rnd=new Random(7);int vals=0;String abc=Mrz.ALPHABET;
         for(int n=0;n<3000;n++){

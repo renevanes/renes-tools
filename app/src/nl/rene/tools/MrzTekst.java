@@ -24,7 +24,7 @@ final class MrzTekst {
         Stuk(String tekst,int links,int boven,int rechts,int onder){this.tekst=tekst==null?"":tekst;this.links=links;this.boven=boven;this.rechts=rechts;this.onder=onder;}
     }
     /** Hoeveel regels op een strookregel leken en hoeveel lezingen geprobeerd zijn (voor het logboek; nooit de tekst). */
-    static final class Telling {int kandidaten,lezingen;boolean gevonden;}
+    static final class Telling {int kandidaten,lezingen;boolean gevonden,paar;}
 
     /** De tekens die in een strook kunnen staan (voor de tekstherkenning). */
     static final String TEKENS="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<";
@@ -34,8 +34,10 @@ final class MrzTekst {
     static final int MAX_WEG=2;
     /** Kosten van een verwisseling die de tekstherkenning vaak maakt (O/0, S/5, …): genoeg twijfel om te mogen verbeteren. */
     static final double VERWISSEL=4;
-    /** Hooguit zoveel lezingen per keer (rekentijd op de telefoon). */
-    static final int MAX_LEZINGEN=20000;
+    /** Hooguit zoveel lezingen per keer, en per regel waar een strook kan beginnen (rekentijd op de telefoon). */
+    static final int MAX_LEZINGEN=20000,MAX_PER_BEGIN=6000;
+    /** Tekens in een documentnummer waarvan de verwisseling (G/6, L/1, K/&lt;) het controlecijfer niet verandert. */
+    static final String ONZICHTBAAR="G6L1K<";
 
     /** Stukken op dezelfde hoogte (tekstherkenning in losse woorden) worden één regel, van links naar rechts; van boven naar onder. */
     static List<String> regels(List<Stuk> stukken){
@@ -80,13 +82,26 @@ final class MrzTekst {
         return new String(t);
     }
     /**
-     * De naamregel: in het stuk aan het eind met alleen &lt;, K, C, E, S, X en cijfers (die horen nooit in een naam) is alles
-     * vanaf de eerste &lt; een &lt;.
+     * De naamregel opschonen: namen zijn woorden van letters, gescheiden door één &lt; (achternaam en voornamen door &lt;&lt;).
+     * Vanaf het eerste stuk dat daar niet in past (een woord na drie of meer &lt;, een tweede &lt;&lt;, een cijfer, of een losse
+     * K, C, E, S of X: een gelezen &lt;) is alles &lt;. Zo blijft een voornaam als KEES staan.
      */
     static String naam(String s,int van){
-        int e=s.length();while(e>van&&"<KCESX0123456789".indexOf(s.charAt(e-1))>=0)e--;
-        int q=s.indexOf('<',Math.max(e,van));if(q<0)return s;
-        return s.substring(0,q)+Mrz.rep('<',s.length()-q);
+        char[] t=s.toCharArray();int i=van;boolean dubbel=false;int stop=-1;
+        while(i<t.length&&stop<0){
+            int vul=0;while(i<t.length&&t[i]=='<'){vul++;i++;}
+            if(i>=t.length)break;
+            int begin=i;while(i<t.length&&t[i]!='<')i++;
+            String woord=new String(t,begin,i-begin);
+            boolean letters=woord.matches("[A-Z]+");
+            boolean eerste=begin==van;
+            boolean goed=letters&&(eerste||vul==1||vul==2&&!dubbel)&&!(woord.length()==1&&"KCESX".indexOf(woord.charAt(0))>=0);
+            if(vul==2&&!eerste)dubbel=true;
+            if(!goed)stop=begin-vul;
+        }
+        if(stop<0)return s;
+        stop=Math.max(stop,van);
+        return s.substring(0,stop)+Mrz.rep('<',s.length()-stop);
     }
 
     /** Lijkt dit op een regel van de strook? (lang genoeg en een &lt; of veel cijfers) */
@@ -200,8 +215,10 @@ final class MrzTekst {
     }
 
     /** Beste bruikbare strook in deze regels, of null: drie controlecijfers kloppen, echte datums en de juiste documentcode. */
-    static Mrz.Result beste(List<String> ruw,Telling telling){
-        List<Lezing> alle=lees(ruw,telling);
+    static Mrz.Result beste(List<String> ruw,Telling telling){return beste(ruw,telling,null);}
+    /** doorgaan (mag null): nee = stoppen (tijd op of afgebroken). */
+    static Mrz.Result beste(List<String> ruw,Telling telling,java.util.function.BooleanSupplier doorgaan){
+        List<Lezing> alle=lees(ruw,telling,doorgaan);
         Lezing best=null;for(Lezing l:alle)if(beter(l,best))best=l;
         if(best==null)return null;
         Mrz.Result r=best.r;
@@ -219,13 +236,16 @@ final class MrzTekst {
         return r;
     }
 
-    static List<Lezing> lees(List<String> ruw,Telling telling){
+    static List<Lezing> lees(List<String> ruw,Telling telling,java.util.function.BooleanSupplier doorgaan){
         List<String[]> rs=new ArrayList<>();
         for(String s:ruw)rs.add(new String[]{schoon(s,ALS_VUL),schoon(s,WEG),schoon(s,ALS_CIJFER)});
-        List<Lezing> uit=new ArrayList<>();int[] teller={0};
-        for(String[] s:rs)if(eenKandidaat(s)&&telling!=null)telling.kandidaten++;
-        for(int i=0;i<rs.size();i++){
+        List<Lezing> uit=new ArrayList<>();int[] teller={0,0};
+        for(int i=0;i<rs.size();i++)if(eenKandidaat(rs.get(i))){if(telling!=null){telling.kandidaten++;if(i+1<rs.size()&&eenKandidaat(rs.get(i+1)))telling.paar=true;}}
+        // Van onder naar boven: de strook staat onderaan, rommel bovenaan mag de rekentijd niet opmaken
+        for(int i=rs.size()-1;i>=0;i--){
             if(!eenKandidaat(rs.get(i)))continue;
+            if(doorgaan!=null&&!doorgaan.getAsBoolean())break;
+            teller[1]=0;
             for(Mrz.Format f:Mrz.FORMATS){
                 if(i+f.lines>rs.size())continue;
                 List<List<Variant>> v=new ArrayList<>();boolean ok=true;
@@ -235,16 +255,17 @@ final class MrzTekst {
                     ok=!lijst.isEmpty();v.add(lijst);
                 }
                 if(!ok)continue;
-                combineer(f,v,0,new String[f.lines],0,rs.get(i+naamRegel(f))[0],uit,telling,teller);
+                combineer(f,v,0,new String[f.lines],0,rs.get(i+naamRegel(f))[0],uit,telling,teller,doorgaan);
             }
         }
         return uit;
     }
     private static boolean eenKandidaat(String[] s){for(String x:s)if(kandidaat(x))return true;return false;}
-    private static void combineer(Mrz.Format f,List<List<Variant>> v,int l,String[] gekozen,int weg,String naamRuw,List<Lezing> uit,Telling telling,int[] teller){
-        if(teller[0]>=MAX_LEZINGEN)return;
+    private static void combineer(Mrz.Format f,List<List<Variant>> v,int l,String[] gekozen,int weg,String naamRuw,List<Lezing> uit,Telling telling,int[] teller,java.util.function.BooleanSupplier doorgaan){
+        if(teller[0]>=MAX_LEZINGEN||teller[1]>=MAX_PER_BEGIN)return;
         if(l==f.lines){
-            teller[0]++;if(telling!=null)telling.lezingen++;
+            teller[0]++;teller[1]++;if(telling!=null)telling.lezingen++;
+            if((teller[0]&255)==0&&doorgaan!=null&&!doorgaan.getAsBoolean()){teller[0]=MAX_LEZINGEN;return;}
             Mrz.Result r=Mrz.decode(f,posities(f,gekozen));
             if(r==null||!r.usable()||!r.plausibel())return;
             // Met iets weggelaten alleen als de drie controlecijfers zonder verbetering kloppen
@@ -254,7 +275,40 @@ final class MrzTekst {
             uit.add(new Lezing(r,weg,netjes,netjes&&naamRuw.equals(r.line(nr))));
             return;
         }
-        for(Variant s:v.get(l)){gekozen[l]=s.tekst;combineer(f,v,l+1,gekozen,weg+s.weg,naamRuw,uit,telling,teller);}
+        for(Variant s:v.get(l)){gekozen[l]=s.tekst;combineer(f,v,l+1,gekozen,weg+s.weg,naamRuw,uit,telling,teller,doorgaan);}
+    }
+
+    static String veld(Mrz.Result r,Mrz.Check c){return Mrz.field(r.text,c);}
+    /** Lezen twee lezingen (los van elkaar) hetzelfde documentnummer, dezelfde geboortedatum en vervaldatum? */
+    static boolean eens(Mrz.Result a,Mrz.Result b){
+        return a.format==b.format&&veld(a,a.format.doc).equals(veld(b,b.format.doc))&&veld(a,a.format.birth).equals(veld(b,b.format.birth))&&veld(a,a.format.expiry).equals(veld(b,b.format.expiry));
+    }
+    static boolean bevestigd(List<Mrz.Result> rs){
+        for(int i=0;i<rs.size();i++)for(int j=i+1;j<rs.size();j++)if(eens(rs.get(i),rs.get(j)))return true;
+        return false;
+    }
+    /**
+     * De lezing om te gebruiken uit lezingen van dezelfde foto (gewone tekstherkenning en alleen de tekens van de strook).
+     * Twee die het eens zijn: bevestigd. Anders: wat verschilt is een voorstel, en een documentnummer met een teken waarvan de
+     * verwisseling het controlecijfer niet ziet (G/6, L/1, K/&lt;) ook.
+     */
+    static Mrz.Result kies(List<Mrz.Result> rs){
+        if(rs.isEmpty())return null;
+        Mrz.Result best=null;
+        for(int i=0;i<rs.size();i++)for(int j=i+1;j<rs.size();j++)if(eens(rs.get(i),rs.get(j))){
+            Mrz.Result a=rs.get(i),b=rs.get(j),r=b.repaired.size()<a.repaired.size()?b:a;
+            if(best==null||r.repaired.size()<best.repaired.size())best=r;
+        }
+        if(best!=null)return best;
+        Mrz.Result r=rs.get(0);
+        for(Mrz.Result o:rs){
+            if(o.format!=r.format||!veld(o,o.format.doc).equals(veld(r,r.format.doc)))r.repaired.add("doc");
+            if(o.format!=r.format||!veld(o,o.format.birth).equals(veld(r,r.format.birth)))r.repaired.add("birth");
+            if(o.format!=r.format||!veld(o,o.format.expiry).equals(veld(r,r.format.expiry)))r.repaired.add("expiry");
+        }
+        String doc=veld(r,r.format.doc);
+        for(char c:doc.toCharArray())if(ONZICHTBAAR.indexOf(c)>=0){r.repaired.add("doc");break;}
+        return r;
     }
 
     /** Minder weggelaten gaat voor, dan minder verbeterd, dan zeker, een precies gelezen naamregel, meer kloppende controles, minder afwijking. */
