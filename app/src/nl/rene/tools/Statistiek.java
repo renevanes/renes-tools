@@ -34,7 +34,6 @@ final class Statistiek {
 
     private Statistiek() { }
 
-    static final long WEEK = 7 * 86_400_000L;
     static final int MAX_TAGS = 80, MAX_CRASHES = 30;
     private static final Pattern REPO = Pattern.compile("[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}");
     /** Alleen een fine-grained sleutel (github_pat_…): die kan beperkt worden tot één repository. */
@@ -305,8 +304,9 @@ final class Statistiek {
         long nu = System.currentTimeMillis();
         String naam = path(nu, installId(c));
         naam = "verbinding/" + naam.substring(naam.lastIndexOf('/') + 1).replace(".json", "") + ".txt";
-        String r = zet(c, naam, "Verbindingstest van Tools " + Version.NAME + " op " + iso(nu) + "\n", "Verbinding getest");
-        if (r.isEmpty()) Diagnose.noteer(c, nu, "verbinding", 0);
+        String tekst = "Verbindingstest van Tools " + Version.NAME + " op " + iso(nu) + "\n";
+        String r = zet(c, naam, tekst, "Verbinding getest");
+        if (r.isEmpty()) Diagnose.noteer(c, nu, "verbinding", tekst.length());
         return r;
     }
 

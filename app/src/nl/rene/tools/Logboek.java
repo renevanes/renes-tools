@@ -81,8 +81,8 @@ final class Logboek {
             SharedPreferences p = Statistiek.prefs(c);
             long nu = System.currentTimeMillis(), tik = android.os.SystemClock.elapsedRealtime(), op = geplandOp;
             if (op < 0) geplandOp = op = p.getLong("logPlan", 0);
-            if (op > nu + FoutInstellingen.DAG + 60_000) op = 0; // klok teruggezet: het bewaarde moment klopt niet meer
             String tempo = FoutInstellingen.tempo(c);
+            if (op > nu + FoutInstellingen.per(tempo, false) + 60_000) op = 0; // klok teruggezet: het bewaarde moment klopt niet meer
             if (!"snel".equals(tempo)) { mis = mis || dringend; dringend = false; } // eens per uur of per dag: ook een vastloper wacht
             long wacht = dringend ? WACHT_MS : wachtTijd(laatstGeprobeerd(p), nu, mis, tempo);
             boolean opTijd = op != 0 && op <= nu + wacht + 60_000;

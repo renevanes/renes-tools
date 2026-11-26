@@ -931,6 +931,7 @@
  "Aan: nieuwe meldingen gaan vanzelf mee": "On: new messages are sent automatically",
  "Aan: ook het geluid van snurken en andere geluiden blijft bewaard": "On: the sound of snoring and other noises is kept too",
  "Aan: tools leggen in het geheugen vast wat er misging": "On: tools record in memory what went wrong",
+ "Aan: vanzelf versturen alleen via wifi (een diagnose op mobiele data gaat dan niet vanzelf); met de hand kan altijd": "On: automatic sending only via wifi (a diagnostic on mobile data is then not sent automatically); by hand always works",
  "Aan: vanzelf versturen wacht op wifi; met de hand kan altijd": "On: automatic sending waits for wifi; by hand always works",
  "Aan<small>Uit: de plekken van deze bron tellen niet mee</small>": "On<small>Off: the places from this source don't count</small>",
  "Aan<small>Uit: Signalen kijkt niet meer naar deze bron</small>": "On<small>Off: Signals no longer checks this source</small>",

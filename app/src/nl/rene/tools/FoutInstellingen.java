@@ -99,7 +99,8 @@ final class FoutInstellingen {
         if (!wifi(c)) return true;
         try {
             android.net.ConnectivityManager cm = (android.net.ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
-            return cm != null && cm.getActiveNetworkInfo() != null && !cm.isActiveNetworkMetered();
+            android.net.NetworkInfo ni = cm == null ? null : cm.getActiveNetworkInfo();
+            return ni != null && ni.isConnected() && !cm.isActiveNetworkMetered();
         } catch (Throwable t) { return false; }
     }
 }

@@ -79,8 +79,7 @@ function enterSettings(){
   $('#st-crash').textContent = i.crashes ? tn(i.crashes, '{n} fout vastgelegd.', '{n} fouten vastgelegd.') : t('Er zijn geen fouten vastgelegd. ✓');
   stStatRender();
   stLogRender();
-  if (current !== 'setcrashdiag' || !dg.vrij) { dg.vrij = ''; dg.open = ''; } // een vrijgave na het slotscherm geldt tot je Diagnose verlaat
-  dgRender();
+  dg.vrij = ''; dg.open = ''; dgRender(); // een vrijgave na het slotscherm geldt tot het scherm opnieuw getekend wordt (ook na terugkomen in de app)
   fcRender(i);
   stSummaries(i);
 }
@@ -135,13 +134,13 @@ function stStatRender(){
   $('#st-stat-send').disabled = !(on && s.repo && s.token);
   $('#st-stat-preview').textContent = Android.statPreview();
 }
-function stStatOn(on){ Android.statOn(on); stStatRender(); fcRender(); toast(on ? 'Statistieken staan aan' : 'Statistieken staan uit; de tellingen zijn gewist'); }
+function stStatOn(on){ Android.statOn(on); stStatRender(); fcRender(); toast(on ? t('Statistieken staan aan') : t('Statistieken staan uit; de tellingen zijn gewist')); }
 function stStatSave(){
   const tt = $('#st-stat-token'), e = Android.statDest($('#st-stat-repo').value.trim(), tt.value.trim());
   if (e) { toast(e); return; }
   tt.value = ''; $('#fc-test-uit').textContent = ''; stStatRender(); dgRender(); fcRender(); toast($('#st-stat-repo').value.trim() ? 'Bestemming bewaard' : 'Bestemming verwijderd');
 }
-function stStatSend(){ const b = $('#st-stat-send'); b.disabled = true; b.textContent = 'Versturen…'; Android.statSend(); }
+function stStatSend(){ const b = $('#st-stat-send'); b.disabled = true; b.textContent = t('Versturen…'); Android.statSend(); }
 /* Diagnose: wat tools vastlegden om een probleem na te zoeken. Alleen in het geheugen; versturen of kopiëren per stuk. */
 const dg = { open: '', vrij: '', bezig: '' };
 function dgToolNaam(tool){ return tool === 'logboek' ? t('Foutlogboek') : tool === 'verbinding' ? t('Verbindingstest') : TOOLS[tool] ? t(TOOLS[tool][0]) : tool; }
@@ -229,11 +228,11 @@ function fcRender(i){
   const kan = heeft('statState') && l.kan !== false, doel = !!(s.repo && s.token);
   for (const id of ['setcrashdoel', 'setcrashlog', 'setcrashstat', 'setcrashdiag', 'setcrashweg']) { const r = $('#fc-lijst [onclick="show(\'' + id + '\')"]'); if (r) r.hidden = !kan && id !== 'setcrashdiag' || (id === 'setcrashdiag' && !heeft('diagnoseStaat')); }
   kaart.hidden = !kan;
-  $('#fc-wifi-rij').style.display = keuzes ? '' : 'none';
-  for (const [id, k] of [['#fc-tempo', 'tempo'], ['#fc-elke', 'elke'], ['#fc-bewaar', 'diagBewaar']]) { const e = $(id); e.style.display = keuzes ? '' : 'none'; const lb = e.previousElementSibling; if (lb && lb.tagName === 'LABEL') lb.style.display = e.style.display; if (keuzes) e.value = String(f[k]); }
+  $('#fc-wifi-rij').style.display = keuzes && kan ? '' : 'none';
+  for (const [id, k] of [['#fc-tempo', 'tempo'], ['#fc-elke', 'elke'], ['#fc-bewaar', 'diagBewaar']]) { const e = $(id); e.style.display = keuzes && (kan || k === 'diagBewaar') ? '' : 'none'; const lb = e.previousElementSibling; if (lb && lb.tagName === 'LABEL') lb.style.display = e.style.display; if (keuzes) e.value = String(f[k]); }
   $('#fc-leg-rij').style.display = keuzes ? '' : 'none'; $('#fc-test').style.display = heeft('statTest') ? '' : 'none';
   if (keuzes) { fcTg($('#fc-wifi'), f.wifi); fcTg($('#fc-leg'), f.diagLeg); }
-  $('#fc-wifi-sub').textContent = f.wifi ? t('Aan: vanzelf versturen wacht op wifi; met de hand kan altijd') : t('Uit: ook via mobiele data');
+  $('#fc-wifi-sub').textContent = f.wifi ? t('Aan: vanzelf versturen alleen via wifi (een diagnose op mobiele data gaat dan niet vanzelf); met de hand kan altijd') : t('Uit: ook via mobiele data');
   $('#fc-leg-sub').textContent = f.diagLeg === false ? t('Uit: tools leggen niets vast') : t('Aan: tools leggen in het geheugen vast wat er misging');
   // De regels onder elk onderwerp
   const sum = (id, tekst) => { const e = $('#fc-sum-' + id); if (e) e.textContent = tekst; };
