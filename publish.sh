@@ -20,6 +20,11 @@
 #  4. versienummer bepalen vanaf main (NATIVE_LEVEL gaat vanzelf omhoog als iets in de APK veranderde)
 #  5. wijzigingslog schrijven, bouwen, alle tests, "Versie X.Y" committen en naar main pushen
 #  6. versie, main en unieke versietags atomair vastleggen; bij een botsing opnieuw vanaf stap 3
+#
+# Alleen de geteste bron (op GitHub, TESTED_SOURCE_SHA): ging main tijdens het testen verder met nieuwe bron, dan wordt
+# niet die nieuwe (ongeteste) bron samengevoegd en ook niet overgeslagen, maar precies de geteste bron gepubliceerd; de
+# versiecommit komt met tools/publicatie-samenvoegen.sh op main (zonder iets van main terug te draaien). De nieuwe bron
+# test en publiceert de volgende run. Staat de geteste bron al in een nieuwere versie, dan gebeurt er niets.
 set -euo pipefail
 cd "$(dirname "$0")"
 LOCK=refs/heads/publiceren-slot
@@ -31,10 +36,12 @@ EMPTY_TREE=$(git hash-object -t tree /dev/null)
 WHO=${AGENT:-$([ -n "${CLAUDE_SESSION_URL:-}" ] && echo Claude || echo "$(git config user.name 2>/dev/null || echo onbekend)")}
 TOKEN="$WHO $$@$(hostname 2>/dev/null || echo host)-$RANDOM"
 if [ "${GITHUB_ACTIONS:-}" = "true" ]; then # publicatie door GitHub zelf (.github/workflows/publiceren.yml)
-  GIT_ID=(-c user.name=renes-tools-release -c "user.email=41898282+github-actions[bot]@users.noreply.github.com")
+  GIT_NAAM=renes-tools-release; GIT_MAIL="41898282+github-actions[bot]@users.noreply.github.com"
 else
-  GIT_ID=(-c user.name=renevanes -c user.email=rene.van.es@esape.nl)
+  GIT_NAAM=renevanes; GIT_MAIL=rene.van.es@esape.nl
 fi
+GIT_ID=(-c "user.name=$GIT_NAAM" -c "user.email=$GIT_MAIL")
+SOURCE_PATHS=(. ':!VERSION' ':!changelog.json' ':!update' ':!wijzigingen') # zoals tools/check-publish-source.sh
 mkdir -p build wijzigingen
 
 VOORBEREIDEN=${VOORBEREIDEN:-}
@@ -98,7 +105,15 @@ for try in 1 2 3 4 5; do
   git fetch -q origin main
   if [ "$(git rev-parse --is-shallow-repository)" = true ]; then git fetch -q --unshallow origin main; fi
   BASE=$(git rev-parse FETCH_HEAD)
-  if ! git merge-base --is-ancestor "$BASE" HEAD; then
+  GETEST=""
+  if [[ ${TESTED_SOURCE_SHA:-} =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "$TESTED_SOURCE_SHA^{commit}" 2>/dev/null \
+    && ! git merge-base --is-ancestor "$BASE" HEAD && git merge-base --is-ancestor "$TESTED_SOURCE_SHA" "$BASE" \
+    && git diff --quiet "$TESTED_SOURCE_SHA" HEAD -- "${SOURCE_PATHS[@]}" \
+    && ! git diff --quiet "$TESTED_SOURCE_SHA" "$BASE" -- "${SOURCE_PATHS[@]}"; then
+    # Main ging verder met nieuwe bron: alleen de geteste bron publiceren (zie boven), met versie en wijzigingslog van main
+    GETEST=1
+    echo "Main ging tijdens het testen verder; alleen de geteste bron ($(git rev-parse --short "$TESTED_SOURCE_SHA")) wordt gepubliceerd. Het nieuwere werk publiceert de volgende run."
+  elif ! git merge-base --is-ancestor "$BASE" HEAD; then
     git "${GIT_ID[@]}" merge -q --no-edit -m "Samenvoegen met main" "$BASE" || {
       git merge --abort 2>/dev/null || true
       echo "Je werk botst met wat er intussen op main staat. Los het op (git merge origin/main), test, en publiceer opnieuw."; exit 1; }
@@ -110,9 +125,26 @@ for try in 1 2 3 4 5; do
   check_nep # ook regels die via main (pull requests) binnenkwamen
   # Vorige versie = laatste commit die update/update.json veranderde (dat doet alleen dit script)
   LASTREL=$(git log -1 --format=%H "$BASE" -- update/update.json)
+  # Een nieuwere versie bevat deze bron al (een latere run was eerder klaar): niets te doen
+  if [ -n "$LASTREL" ] && [[ ${TESTED_SOURCE_SHA:-} =~ ^[0-9a-f]{40}$ ]] && git merge-base --is-ancestor "$TESTED_SOURCE_SHA" "$LASTREL"; then
+    echo "Deze bron staat al in een nieuwere versie; niets te publiceren"
+    [ -n "$VOORBEREIDEN" ] && voorbereid geen
+    exit 0
+  fi
+  if [ -n "$GETEST" ]; then
+    DIRTY=1
+    # Versie en wijzigingslog van main (daar staan de eerdere versies in), en alleen de wijzigingsregels van de geteste
+    # bron die main nog heeft (een regel die main al niet meer heeft, zat in een eerdere versie)
+    git checkout -q "$BASE" -- VERSION changelog.json
+    for f in wijzigingen/*.txt; do
+      [ -e "$f" ] || continue
+      git cat-file -e "$BASE:$f" 2>/dev/null || { git rm -q --cached --ignore-unmatch -- "$f" > /dev/null; rm -f "$f"; }
+    done
+  fi
   if git diff --quiet "$LASTREL" HEAD -- app web tools build.sh; then
     # Alleen documentatie, tests of instellingen: zonder nieuwe versie naar main
     [ -n "$VOORBEREIDEN" ] && voorbereid geen
+    if [ -n "$GETEST" ]; then echo "Niets nieuws om te publiceren in de geteste bron (main staat al verder)"; exit 0; fi
     if ! git diff --quiet "$BASE" HEAD; then
       git push -q origin HEAD:main && { echo "Zonder nieuwe versie naar main gezet (geen wijziging aan de app)"; exit 0; }
       continue
@@ -184,7 +216,14 @@ $(python3 -c "import json;print('\n'.join('- '+c for c in json.load(open('change
 ${TRAILER:+
 $TRAILER}"
   DIRTY=""
-  if tools/publicatie-push.sh "$BASE" "$(git rev-parse HEAD)" "$NAME" "$CODE" "$SLOT_TIP" "$TOKEN"; then echo "Gepubliceerd: versie $NAME"; exit 0; fi
+  DOEL=$(git rev-parse HEAD)
+  if [ -n "$GETEST" ]; then
+    DOEL=$(GIT_AUTHOR_NAME=$GIT_NAAM GIT_AUTHOR_EMAIL=$GIT_MAIL GIT_COMMITTER_NAME=$GIT_NAAM GIT_COMMITTER_EMAIL=$GIT_MAIL \
+      tools/publicatie-samenvoegen.sh "$BASE" "$DOEL" "$(git log -1 --format=%B HEAD)
+
+Gebouwd van de geteste bron $(git rev-parse --short "$TESTED_SOURCE_SHA"); het nieuwere werk op main publiceert de volgende run.")
+  fi
+  if tools/publicatie-push.sh "$BASE" "$DOEL" "$NAME" "$CODE" "$SLOT_TIP" "$TOKEN"; then echo "Gepubliceerd: versie $NAME"; exit 0; fi
   echo "Iemand publiceerde net buiten het slot om; opnieuw samenvoegen en bouwen (poging $((try+1)))"
   git reset -q --hard HEAD~1 # alleen de eigen, niet-gepubliceerde versiecommit; de werkmap was schoon
 done

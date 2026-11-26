@@ -22,10 +22,8 @@ on:
         type: boolean
         default: false
 
-concurrency:
-  group: publiceren
-  cancel-in-progress: false
-
+# Geen slot op de hele run: de tests van elke push beginnen meteen, ook als er nog een publicatie loopt. Alleen de taak
+# publiceren gaat één tegelijk (zie daar). Wacht er al een, dan neemt de nieuwste zijn plaats in: die bevat alles.
 permissions:
   contents: write
 
@@ -58,6 +56,11 @@ jobs:
     runs-on: ubuntu-24.04  # vast: een nieuwe Ubuntu mag de publicatie niet ineens stukmaken
     timeout-minutes: 60
     environment: publiceren
+    # Eén publicatie tegelijk. Een wachtende publicatie maakt plaats voor een nieuwere (die bevat dezelfde wijzigingen en
+    # meer); een lopende wordt nooit afgebroken. Daarnaast bewaakt het publicatieslot (publish.sh) dat er nooit twee tegelijk pushen.
+    concurrency:
+      group: publiceren
+      cancel-in-progress: false
     env:
       TOOLS: ${{ github.workspace }}/../toolchain
       TESTED_SOURCE_SHA: ${{ github.sha }}
@@ -67,31 +70,15 @@ jobs:
         id: gate
         env:
           PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
-          GH_TOKEN: ${{ github.token }}
-          EVENT: ${{ github.event_name }}
         run: |
           if [ -z "$PASSPHRASE" ]; then
             echo "::warning::Het geheim SIGNING_PASSPHRASE ontbreekt in de omgeving publiceren: niet gepubliceerd."
             echo "ok=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # Ging main tijdens het testen verder met andere bron, dan keurt tools/check-publish-source.sh deze run
-          # straks toch af: die bron is niet getest. De push die main verder bracht, startte zelf een run die alles
-          # test en publiceert. Sla deze dan over in plaats van rood te eindigen. Lukt de vraag niet, dan gewoon door:
-          # de controle onder het publicatieslot blijft beslissen.
-          # Alleen bij een push: een run die Rene met de hand start (allow_grow, major) eindigt dan gewoon rood,
-          # anders raakt zijn keuze ongemerkt kwijt.
-          verder=""
-          tip=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha 2>/dev/null || echo "")
-          [ "$EVENT" = "push" ] && [[ "$tip" =~ ^[0-9a-f]{40}$ ]] && verder=$(gh api "repos/$GITHUB_REPOSITORY/compare/$GITHUB_SHA...$tip" \
-            --jq '[.files[]?.filename | select(. != "VERSION" and . != "changelog.json" and (startswith("update/") | not) and (startswith("wijzigingen/") | not))] | length' 2>/dev/null || echo "")
-          if [[ "$verder" =~ ^[0-9]+$ ]] && [ "$verder" -gt 0 ]; then
-            echo "::notice title=Overgeslagen::Niet gepubliceerd: main is intussen verder gegaan. Controleer de volgende run; die test en publiceert ook deze wijziging."
-            echo "Niet gepubliceerd: main is intussen verder gegaan. Controleer de volgende run van Publiceren." >> "$GITHUB_STEP_SUMMARY"
-            echo "ok=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ok=true" >> "$GITHUB_OUTPUT"
-          fi
+          # Ging main tijdens het testen verder met nieuwe bron, dan publiceert publish.sh precies de geteste bron
+          # ("alleen de geteste bron"); het nieuwere werk test en publiceert de run van die push. Niets overslaan dus.
+          echo "ok=true" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: steps.gate.outputs.ok == 'true'
@@ -105,6 +92,7 @@ jobs:
           bash tests/publicatie-bron.sh
           bash tests/publicatie-voorbereiden.sh
           bash tests/publicatie-gelijktijdig.sh
+          bash tests/publicatie-geteste-bron.sh
 
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         if: steps.gate.outputs.ok == 'true'

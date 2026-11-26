@@ -372,6 +372,13 @@ en push opnieuw. Alleen `allow_grow` (APK meer dan 10% groter) en `major` (hoofd
    die tags nooit. Bij een botsing haalt het script
    de nieuwste main en registraties op en bepaalt het een nieuw nummer; een verloren of onleesbaar slot stopt de
    publicatie. Testvoorbereiding (`VOORBEREIDEN`) reserveert niets en mag hetzelfde toekomstige nummer tonen.
+   **Alleen de geteste bron** (op GitHub, `TESTED_SOURCE_SHA`): ging main tijdens het testen verder met nieuwe bron, dan
+   wordt die niet samengevoegd (die is niet getest) en de run ook niet overgeslagen: de versie wordt gebouwd van precies
+   de geteste bron, met versienummer en wijzigingslog van main, en `tools/publicatie-samenvoegen.sh` zet hem op main met
+   een samenvoegcommit die alleen `VERSION`, `changelog.json`, `update/` en de verwerkte wijzigingsregels verandert
+   (niets van main teruggedraaid). De volgende run ziet het nieuwere werk als nieuw; een oudere run die pas later klaar
+   is, publiceert niets meer ("al in een nieuwere versie"). Test: `tests/publicatie-geteste-bron.sh`. Zo gaat er geen
+   run meer verloren als agents vlak na elkaar pushen, en staat een wijziging meestal binnen ±20 minuten live.
    Op GitHub draaien de interfacetests naast de telefoontest (`interfacetests.yml`, met `VOORBEREIDEN=…
    ./publish.sh`: dezelfde merge, versie en wijzigingslog, zonder sleutel of push; daarna bouwen met een testsleutel,
    Java-tests en interfacetests, in dezelfde volgorde als `publish.sh`). De taak publiceren slaat de interfacetests alleen
@@ -657,11 +664,12 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
    hierboven zegt (na een mislukking buiten je wijziging, hooguit twee keer); `allow_grow` en `major` start alleen Rene.
 6. **Na de push naar main:** zoek de run Publiceren die je commit bevat
    (`gh api "repos/renevanes/renes-tools/actions/workflows/publiceren.yml/runs?branch=main&per_page=10" --jq '.workflow_runs[]|[.id,.head_sha,.status,.conclusion]|@tsv'`
-   en `git merge-base --is-ancestor <jouw commit> <head_sha>`). Ging main tijdens het testen verder, dan slaat
-   een run na een push het publiceren over (melding "Overgeslagen", de run blijft groen; gebeurt het tijdens de
-   interfacetests of het publiceren zelf, of startte Rene de run met de hand, dan eindigt hij rood met "De bron is sinds
-   de telefoontest veranderd"): de volgende run publiceert het, controleer die. Groen is dus nog niet gepubliceerd: kijk
-   of er na je commit een commit "Versie X.Y" op main staat. Mislukte hij buiten je wijziging om, start hem dan zelf
+   en `git merge-base --is-ancestor <jouw commit> <head_sha>`). Elke push krijgt meteen een eigen run (tests naast
+   elkaar); alleen de taak publiceren gaat één tegelijk. Ging main tijdens het testen verder, dan publiceert de run
+   precies de geteste bron ("alleen de geteste bron", zie hieronder) en het nieuwere werk komt met de volgende run.
+   Een wachtende taak publiceren maakt plaats voor een nieuwere (run "cancelled"): die bevat jouw werk ook. Groen is
+   nog niet gepubliceerd: kijk of er na je commit een commit "Versie X.Y" op main staat (bij "alleen de geteste bron"
+   een samenvoegcommit "Versie X.Y" met de versiecommit als tweede ouder). Mislukte hij buiten je wijziging om, start hem dan zelf
    opnieuw ("Altijd zelf publiceren") en wacht tot er een versie is. Groeit de APK meer dan 10%, dan
    weigert Publiceren: nooit omzeilen, maar Rene vragen Publiceren met de hand te starten met `allow_grow`, met de reden
    van de groei. Dan staan ook de publicaties van anderen stil: zet dat bovenaan je bericht.

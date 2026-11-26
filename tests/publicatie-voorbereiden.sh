@@ -59,9 +59,14 @@ grep -q '^VERSION_NAME=2.0$' "$tmp/m/VERSION" || fout "MAJOR=1 zette geen hoofdv
 [ "$m" != "$c" ] || fout "MAJOR=1 gaf dezelfde vingerafdruk"
 
 echo drie >> app/bron.txt  # main gaat verder met een andere bron dan die getest wordt
-git commit -qam "Ander werk" && git push -q origin HEAD:main
-if probeer "$tmp/verder"; then fout "voorbereiden ging door terwijl main een andere bron kreeg"; fi
-grep -q "De bron is sinds de telefoontest veranderd" "$tmp/verder.log" || { cat "$tmp/verder.log"; fout "main verder: verkeerde melding"; }
+echo "Nieuw: later werk" > wijzigingen/later.txt
+git add -A && git commit -qm "Ander werk" && git push -q origin HEAD:main
+# Dan alleen de geteste bron: niets van het nieuwere werk erin, en dezelfde vingerafdruk als zonder dat werk
+probeer "$tmp/verder" || { cat "$tmp/verder.log"; fout "voorbereiden met alleen de geteste bron mislukt"; }
+grep -q "alleen de geteste bron" "$tmp/verder.log" || { cat "$tmp/verder.log"; fout "main verder: geen melding over de geteste bron"; }
+! grep -q drie "$tmp/verder/app/bron.txt" || fout "ongeteste bron meegenomen"
+[ ! -e "$tmp/verder/wijzigingen/later.txt" ] && python3 -c "import json,sys; e=json.load(open(sys.argv[1]))[0]; assert e['changes']==['Nieuw: iets anders'], e" "$tmp/verder/changelog.json" || fout "wijzigingsregel van later werk meegenomen"
+[ "$(cat "$tmp/verder/build/voorbereid.txt")" = "$c" ] || fout "alleen de geteste bron gaf een andere vingerafdruk"
 
 echo "uitleg" > LEESMIJ.txt
 git add -A && git commit -qm "Versie 1.11" && git push -q origin HEAD:main  # alsof er net gepubliceerd is: update/ onveranderd,
