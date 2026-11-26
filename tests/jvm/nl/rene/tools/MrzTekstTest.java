@@ -82,6 +82,10 @@ public class MrzTekstTest {
         check(MrzTekst.naam(kees,5).equals(kees),"KEES blijft: "+MrzTekst.naam(kees,5));
         String cees="P<NLDJANSEN<<CEES<<<<<<<<<<<<<<<<<<<<<<<<<<<<".substring(0,44);
         check(MrzTekst.naam(cees,5).equals(cees),"CEES blijft");
+        String gr="P<NLDS<GRAVESANDE<<PIETER<<<<<<<<<<<<<<<<<<<<";gr=gr.substring(0,44);
+        check(MrzTekst.naam(gr,5).equals(gr),"S<GRAVESANDE blijft");
+        String vgr="P<NLDVAN<S<GRAVESANDE<<PIETER<<<<<<<<<<<<<<<<";
+        check(MrzTekst.naam(vgr,5).equals(vgr),"VAN<S<GRAVESANDE blijft");
         String jm="P<NLDDE<VRIES<<JOHANNA<MARIA";
         check(MrzTekst.naam(jm+"<C<<<<KKKKKKKEKKK",5).equals(jm+Mrz.rep('<',17)),"losse C en KKK na de namen worden <");
         check(MrzTekst.naam(jm+"<<<KS5565E55KKS<",5).equals(jm+Mrz.rep('<',16)),"na <<< alleen nog <");

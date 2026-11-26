@@ -112,6 +112,9 @@ final class RijbewijsOcr {
                             strookRegels=Math.max(strookRegels,telling.kandidaten);}
                         finally{if(bw!=null)bw.recycle();if(groot!=null&&groot!=page)groot.recycle();}
                     }
+                }catch(Throwable e){
+                    // Te weinig geheugen of een fout in deze ronde: wat ronde 1 al las, blijft
+                    if(stroken.isEmpty())throw e;
                 }finally{api.setVariable("tessedit_char_whitelist","");if(page!=image)page.recycle();}
             }
             if(!stroken.isEmpty()){

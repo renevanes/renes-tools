@@ -84,7 +84,7 @@ final class MrzTekst {
     /**
      * De naamregel opschonen: namen zijn woorden van letters, gescheiden door één &lt; (achternaam en voornamen door &lt;&lt;).
      * Vanaf het eerste stuk dat daar niet in past (een woord na drie of meer &lt;, een tweede &lt;&lt;, een cijfer, of een losse
-     * K, C, E, S of X: een gelezen &lt;) is alles &lt;. Zo blijft een voornaam als KEES staan.
+     * K, C, E, S of X zonder naam erachter: een gelezen &lt;) is alles &lt;. Zo blijven KEES en S&lt;GRAVESANDE staan.
      */
     static String naam(String s,int van){
         char[] t=s.toCharArray();int i=van;boolean dubbel=false;int stop=-1;
@@ -95,7 +95,13 @@ final class MrzTekst {
             String woord=new String(t,begin,i-begin);
             boolean letters=woord.matches("[A-Z]+");
             boolean eerste=begin==van;
-            boolean goed=letters&&(eerste||vul==1||vul==2&&!dubbel)&&!(woord.length()==1&&"KCESX".indexOf(woord.charAt(0))>=0);
+            boolean los=woord.length()==1&&"KCESX".indexOf(woord.charAt(0))>=0;
+            if(los){ // een losse letter is alleen een naam(deel) als er nog een naam achter komt (zoals S<GRAVESANDE)
+                int j=i,n=0;while(j<t.length&&t[j]=='<'){n++;j++;}
+                int k=j;while(k<t.length&&t[k]>='A'&&t[k]<='Z')k++;
+                los=!(n>=1&&n<=2&&k-j>=2&&(k==t.length||t[k]=='<'));
+            }
+            boolean goed=letters&&(eerste||vul==1||vul==2&&!dubbel)&&!los;
             if(vul==2&&!eerste)dubbel=true;
             if(!goed)stop=begin-vul;
         }
@@ -300,7 +306,7 @@ final class MrzTekst {
             if(best==null||r.repaired.size()<best.repaired.size())best=r;
         }
         if(best!=null)return best;
-        Mrz.Result r=rs.get(0);
+        Mrz.Result r=rs.get(0);for(Mrz.Result o:rs)if(o.repaired.size()<r.repaired.size())r=o;
         for(Mrz.Result o:rs){
             if(o.format!=r.format||!veld(o,o.format.doc).equals(veld(r,r.format.doc)))r.repaired.add("doc");
             if(o.format!=r.format||!veld(o,o.format.birth).equals(veld(r,r.format.birth)))r.repaired.add("birth");
