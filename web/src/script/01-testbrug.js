@@ -1789,6 +1789,8 @@ if (!window.Android) window.Android = (function(){
     /* Zoals Java: open na het slotscherm (_tslot.net; telt in _cm.vragen) of met extra ontgrendelen uit (telt in _cm.vanzelf;
      * _cm.lang = de telefoon is te lang geleden ontgrendeld: {vraag:'tijd'}); anders {vraag:'slot'} */
     masterKaartDocument(){return true;},
+    // Zoals MasterStore.photoSwap: voor- en achterkant omwisselen
+    masterPhotoSwap(token,id,revision,request){this._cmReply(token,request,()=>{const r=this._cm.records.find(r=>r.id===id);if(!r||r.type!=='identiteit')throw Error('Kaartfoto’s horen bij een identiteitsdocument');if(r.revision!==revision)throw Error('Deze gegevens zijn intussen gewijzigd; laad ze opnieuw');const i=r.images||{};if(!i.front&&!i.back)throw Error('Voeg eerst een foto van het document toe');r.images={};if(i.back)r.images.front=i.back;if(i.front)r.images.back=i.front;r.revision++;this._cm.swaps=(this._cm.swaps||0)+1;this._cmEvent('photo_swap','masterdata',r,Object.keys(r.images));return {id,revision:r.revision};});},
     masterBuiten(token,kind){(this._cm.buiten=this._cm.buiten||[]).push([token,kind]);},
     masterTijd(wat,totaal,ontgrendelen,lijst,tekenen){(this._cm.tijden=this._cm.tijden||[]).push([wat,totaal,ontgrendelen,lijst,tekenen]);},
     masterOpen(request){const m=this._cm;if(!m.view){setTimeout(()=>onMasterReply({request}),10);return;}const net=this._tsNeem('masterdata');
@@ -1866,7 +1868,7 @@ if (!window.Android) window.Android = (function(){
     masterScanChoose(token,id,gekozen,request){this._cmReply(token,request,()=>{
       const m=this._cm,job=m.keuzeReview;
       if(!job||id!==job.reviewId)throw Error('Kies het bestand opnieuw.');
-      const k=JSON.parse(gekozen);if(job.side!=='scan'&&Array.isArray(k)&&k.length>1)throw Error('Kies één foto');if(!Array.isArray(k)||k.length<1||k.length>2||new Set(k).size!==k.length||k.some(n=>!(n>=0&&n<job.fotos.length)))throw Error("Kies één of twee foto's");
+      let k=JSON.parse(gekozen);m.vast=false;if(k&&!Array.isArray(k)&&typeof k==='object'){m.vast=k.vast===true;k=k.fotos;}if(job.side!=='scan'&&Array.isArray(k)&&k.length>1)throw Error('Kies één foto');if(!Array.isArray(k)||k.length<1||k.length>2||new Set(k).size!==k.length||k.some(n=>!(n>=0&&n<job.fotos.length)))throw Error("Kies één of twee foto's");
       m.keuzeReview=null;m.gekozen=k;job.confirmed=true;job.both=k.length===2;
       job.image=job.fotos[k[0]].src;job.images=job.both?{front:job.fotos[k[0]].src,back:job.fotos[k[1]].src}:null;
       m.photo=job;return this._cmPhoto();
