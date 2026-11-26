@@ -125,7 +125,9 @@ final class Mrz {
         /** Gelezen in een afwijkend lettertype: wat geen controlecijfer heeft (namen, landen) is dan niet zeker. */
         boolean afwijkend(){return mean>=LIMIT;}
         /** Zeker: alles klopt zonder dat er iets verbeterd hoefde te worden. */
-        boolean sure(){return usable()&&!afwijkend()&&compositeOk&&extraOk&&repaired.isEmpty();}
+        boolean sure(){return usable()&&!afwijkend()&&!naamTwijfel&&compositeOk&&extraOk&&repaired.isEmpty();}
+        /** Namen en landen (zonder controlecijfer) moesten rechtgezet worden (MrzTekst): een voorstel om na te kijken. */
+        boolean naamTwijfel;
         String line(int i){return new String(text[i]);}
     }
 
@@ -262,7 +264,7 @@ final class Mrz {
         org.json.JSONArray twijfel=new org.json.JSONArray();
         if(r.repaired.contains("doc"))twijfel.put("document");if(r.repaired.contains("birth"))twijfel.put("geboortedatum");if(r.repaired.contains("expiry"))twijfel.put("geldig");
         // Afwijkend lettertype: wat geen controlecijfer heeft, is een voorstel om na te kijken (niet vooraf aangevinkt)
-        if(r.afwijkend())for(String v:new String[]{"naam","voornamen","nationaliteit","uitgifteland","geslacht"})twijfel.put(v);
+        if(r.afwijkend()||r.naamTwijfel)for(String v:new String[]{"naam","voornamen","nationaliteit","uitgifteland","geslacht"})twijfel.put(v);
         return new JSONObject().put("document",doc).put("persoon",person).put("soort",f.name).put("zeker",r.sure()).put("twijfel",twijfel).put("afwijkend",r.afwijkend());
     }
 }

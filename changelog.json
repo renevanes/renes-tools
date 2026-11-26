@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.262",
+    "date": "2026-11-26",
+    "changes": [
+      "Sneller opstarten: de app leest de interface en plant zijn taken op de achtergrond terwijl het scherm wordt opgebouwd",
+      "SMS-backup: de lijst met gesprekken opent sneller en toont er eerst 200 (met Meer tonen); een gesprek openen leest alleen dat gesprek",
+      "Notities: een lange lijst opent nog iets sneller"
+    ]
+  },
+  {
+    "version": "1.261",
+    "date": "2026-11-26",
+    "changes": [
+      "Achter de schermen: nieuwe versies komen sneller online, ook als er veel tegelijk aan de app gewerkt wordt; in de app verandert er niets."
+    ]
+  },
+  {
     "version": "1.260",
     "date": "2026-11-26",
     "changes": [

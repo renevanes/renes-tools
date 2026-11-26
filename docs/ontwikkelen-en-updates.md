@@ -8,7 +8,7 @@
 - **Batterijcontrole** (elke week): beperkt Android (ColorOS) Tools op de achtergrond, dan een melding met de weg naar de oplossing (zelftest).
 
 ## Versies en updates
-- `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git één eigen commit met de naam "Versie X.Y".
+- `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git een commit met de naam "Versie X.Y" (met de tags `versie-X.Y` en `versiecode-N`). Ging main tijdens het testen verder, dan zijn het er twee met die naam: de versiecommit op de geteste bron en een samenvoegcommit op main (met de tags), die alleen `VERSION`, `changelog.json`, `update/` en de verwerkte wijzigingsregels verandert.
 - `changelog.json` bevat het wijzigingslog. De app toont dit onder *Versie en updates*.
 - De app leest `update/update.json` van GitHub wanneer je hem opent, hooguit eens per 30 minuten. Via de GitHub-API zoekt hij eerst de nieuwste commit op, zodat een nieuwe versie direct zichtbaar is:
   - **Ondertekend**: `build.sh` ondertekent versie en controlegetallen met dezelfde sleutel als de APK (`webSig2`, SHA256withRSA). De app controleert die handtekening met zijn eigen certificaat en weigert een interface-update zonder geldige handtekening (`Updater.signatureOk`, test: `WebSigTest`).

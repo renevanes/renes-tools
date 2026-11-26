@@ -328,13 +328,14 @@ Nieuwe functie = ook een test in `tests/ui/` (en bij logica in `tests/jvm/`). Ee
 `tests/ui/prestaties.test.js` bewaakt wat vast te tellen is, met ruimte voor groei (stand 19-11-2026 tussen haakjes):
 `web/index.html` zonder testbrug hooguit 4,5 MB (3,43 MB), na het starten hooguit 10.000 elementen (7.783) en
 100 brugaanroepen (51). Lange lijsten tekenen niet alles tegelijk: Notities 100 rijen met Meer tonen, Contacten 600,
-Meldingsgeschiedenis 200, Nieuws 60 (gemeten met 5000 items in de testbrug). Een nieuwe lijst die duizenden items kan
+Meldingsgeschiedenis 200, Nieuws 60, SMS-backup 200 gesprekken met Meer tonen (gemeten met 5000 items in de testbrug). Een nieuwe lijst die duizenden items kan
 krijgen doet hetzelfde en komt in die test. Tijden alleen met een zeer ruime grens (start tot `uiReady` 5 s, Notities
 openen met 5000 notities 3 s; zo'n 10× de gemeten waarde, want de test draait naast veel andere) en nooit in de
 telefoontest. Raakt een telgrens op: kijk eerst wat er groeide en of het lichter kan; verhoog hem alleen bewust, met de
 reden in het logboek. De telefoontest (`rooktest.sh`) legt per API-niveau vast: starttijd per scherm (`TotalTime`),
 overgeslagen beelden (Choreographer), geheugen (`dumpsys meminfo`, PSS) en haperingen (`dumpsys gfxinfo`) na het starten
-en na alle schermen; in de uitvoer onder "Metingen" en in de samenvatting van de run. Dat is alleen vastleggen: een
+en na alle schermen, en de tijd per stap van `MainActivity.onCreate` en tot `uiReady` (regel `opstart:`; de app zet die
+met `Opstart` in logcat onder `ToolsStart`, alleen vaste stapnamen en milliseconden); in de uitvoer onder "Metingen" en in de samenvatting van de run. Dat is alleen vastleggen: een
 meetwaarde laat de telefoontest nooit falen. De emulator tekent in software: vergelijk alleen hetzelfde API-niveau.
 
 ## Tegelijk werken met andere agents
@@ -372,6 +373,13 @@ en push opnieuw. Alleen `allow_grow` (APK meer dan 10% groter) en `major` (hoofd
    die tags nooit. Bij een botsing haalt het script
    de nieuwste main en registraties op en bepaalt het een nieuw nummer; een verloren of onleesbaar slot stopt de
    publicatie. Testvoorbereiding (`VOORBEREIDEN`) reserveert niets en mag hetzelfde toekomstige nummer tonen.
+   **Alleen de geteste bron** (op GitHub, `TESTED_SOURCE_SHA`): ging main tijdens het testen verder met nieuwe bron, dan
+   wordt die niet samengevoegd (die is niet getest) en de run ook niet overgeslagen: de versie wordt gebouwd van precies
+   de geteste bron, met versienummer en wijzigingslog van main, en `tools/publicatie-samenvoegen.sh` zet hem op main met
+   een samenvoegcommit die alleen `VERSION`, `changelog.json`, `update/` en de verwerkte wijzigingsregels verandert
+   (niets van main teruggedraaid). De volgende run ziet het nieuwere werk als nieuw; een oudere run die pas later klaar
+   is, publiceert niets meer ("al in een nieuwere versie"). Test: `tests/publicatie-geteste-bron.sh`. Zo gaat er geen
+   run meer verloren als agents vlak na elkaar pushen, en staat een wijziging meestal binnen ±20 minuten live.
    Op GitHub draaien de interfacetests naast de telefoontest (`interfacetests.yml`, met `VOORBEREIDEN=…
    ./publish.sh`: dezelfde merge, versie en wijzigingslog, zonder sleutel of push; daarna bouwen met een testsleutel,
    Java-tests en interfacetests, in dezelfde volgorde als `publish.sh`). De taak publiceren slaat de interfacetests alleen
@@ -657,11 +665,16 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
    hierboven zegt (na een mislukking buiten je wijziging, hooguit twee keer); `allow_grow` en `major` start alleen Rene.
 6. **Na de push naar main:** zoek de run Publiceren die je commit bevat
    (`gh api "repos/renevanes/renes-tools/actions/workflows/publiceren.yml/runs?branch=main&per_page=10" --jq '.workflow_runs[]|[.id,.head_sha,.status,.conclusion]|@tsv'`
-   en `git merge-base --is-ancestor <jouw commit> <head_sha>`). Ging main tijdens het testen verder, dan slaat
-   een run na een push het publiceren over (melding "Overgeslagen", de run blijft groen; gebeurt het tijdens de
-   interfacetests of het publiceren zelf, of startte Rene de run met de hand, dan eindigt hij rood met "De bron is sinds
-   de telefoontest veranderd"): de volgende run publiceert het, controleer die. Groen is dus nog niet gepubliceerd: kijk
-   of er na je commit een commit "Versie X.Y" op main staat. Mislukte hij buiten je wijziging om, start hem dan zelf
+   en `git merge-base --is-ancestor <jouw commit> <head_sha>`). Elke push krijgt meteen een eigen run (tests naast
+   elkaar); alleen de taak publiceren gaat één tegelijk. Ging main tijdens het testen verder, dan publiceert de run
+   precies de geteste bron ("alleen de geteste bron", zie hieronder) en het nieuwere werk komt met de volgende run.
+   Wachtende taken publiceren staan in een wachtrij (`queue: max`); een run waarvan de bron al in een nieuwere versie
+   staat, stopt meteen ("Al gepubliceerd"). Groen is nog niet gepubliceerd, en een commit "Versie X.Y" ná de jouwe
+   ook niet (bij "alleen de geteste bron" kan die versie ouder werk bevatten dan het jouwe). Gepubliceerd = je commit
+   zit in de laatste versie: `git fetch origin && git merge-base --is-ancestor <jouw commit> "$(git log -1 --format=%H origin/main -- update/update.json)"`. Dat geldt
+   voor werk aan de app (`app/`, `web/`, `tools/`, `build.sh`); alleen documentatie, tests of workflows komt zonder nieuwe versie op main.
+   Elke push start de hele reeks tests (emulators, Play-controle, interfacetests); vlak na elkaar pushen kost dus veel
+   runners en kan Bouwen en testen even laten wachten. Mislukte hij buiten je wijziging om, start hem dan zelf
    opnieuw ("Altijd zelf publiceren") en wacht tot er een versie is. Groeit de APK meer dan 10%, dan
    weigert Publiceren: nooit omzeilen, maar Rene vragen Publiceren met de hand te starten met `allow_grow`, met de reden
    van de groei. Dan staan ook de publicaties van anderen stil: zet dat bovenaan je bericht.
