@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.265",
-  "versionCode": 266,
+  "versionName": "1.266",
+  "versionCode": 267,
   "nativeLevel": 230,
   "web": "index.html",
-  "webSha256": "1bb774fac7193cab08a9604d5808e3ef45f260de5ceaa8e8518910f78cca6bf6",
+  "webSha256": "b3237c19b18f585573f875daf212ef6bce376ece47649de95bc6b98deae183e7",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "eb8cb64705cb532f463c91be5f81ae3f91a6ba8cf6ba19ae007422c69ffe4570",
+  "apkSha256": "21a6dd133ea59eb0736136efba230d89924f72035d9a193a3523367f3738a5d9",
   "changelog": [
+    {
+      "version": "1.266",
+      "date": "2026-11-26",
+      "changes": [
+        "Stamgegevens: een bestaande kaartfoto bewerk je nu ook vanaf het bewerkscherm (blok Foto’s): Voorzijde bewerken en Achterzijde bewerken."
+      ]
+    },
     {
       "version": "1.265",
       "date": "2026-11-26",
@@ -173,20 +180,7 @@
         "Foutlogboek gaat vanzelf (opgeschoond) naar je eigen privé GitHub-repository, zodat Claude kan meezoeken bij een probleem; uit te zetten bij Instellingen → Foutrapport en statistieken.",
         "Fouten in de interface die nergens werden opgevangen, komen nu ook in het foutlogboek."
       ]
-    },
-    {
-      "version": "1.246",
-      "date": "2026-11-23",
-      "changes": [
-        "Backups veel kleiner: grote bestanden (gespreksopnames, documenten, foto's) staan nog maar één keer, versleuteld, in Versleuteld/Grote bestanden; elke nachtelijke backup verwijst ernaar in plaats van alles opnieuw te bewaren",
-        "Alles back-uppen laat per onderdeel zien hoe groot het is en hoeveel er nieuw bij kwam, en hoeveel grote bestanden nieuw zijn of al bewaard waren",
-        "Grote bestanden die geen backup meer gebruikt worden vanzelf opgeruimd, en elke nacht wordt een deel helemaal nagelezen",
-        "Oude, volledige backups weghalen met één knop (Automatisch en versleutelen → Oude backups opruimen); de nieuwste blijft als vangnet staan",
-        "ontsleutelen.html leest ook de grote bestanden: kies op de computer naast het .rtb-bestand ook de bestanden uit de map Grote bestanden",
-        "Backup-map opruimen (dubbele mappen, zoals de WhatsApp-mappen, samenvoegen) loopt nu binnen de nachtelijke taak en gaat door als het scherm uitgaat, zodat het afkomt; één map die niet te lezen is houdt de rest niet meer tegen",
-        "Ontbreekt een groot bestand of is het beschadigd, dan zetten terugzetten, uitpakken en ontsleutelen.html de rest toch terug en zeggen ze welke ontbraken"
-      ]
     }
   ],
-  "webSig2": "CgdkYXFFCOJEU80osOkrCOpx6ax8IvrUpvVbwekFrv09ja4j/wd3X1GPMULjXiutsSzRh6PIyAHGkYYH+qm55W6dkHBN7ZcCdaFgrpHOH29A/T3wKIDE1Csh+FyO0qe06pFbiri5V87GnwDWR/csOQ3b56AxmK85kmlS1ARniSc++R3u9HxdGnpLSBnc0lvoB5eUIZWeCoRW0xlfQky34udQK8ClQAjDd0S6qtpXnT6iDe200GabC+ZCqAdhVOJLkBKvHwx4Mcz3NcL2wmxArA2++BviV8UyIy1AMpLN4UOk+MFi3Y+S+R07HpO1LeA8RPz1s3zhja3J4TFR7s7p6rt0kKCgxej+upzsC3GYmzS0Xs/K6P36aOSPMJa85owSRmRdVEoeppC9SNdt2FCKGon6xfuQaVNWOAJFTDAaAVyLgencBiV+d6IvlcSorkz/7An/q1OiJsU4qIDXS4GIsJoiDuw06tADem0KW+WddydzFr9AI0Lovf0E/LvKky5u"
+  "webSig2": "LDpqjSYcucQYvQOy+2PCOo67CxvHb/SYqrmidpf3XPXxUh46nTvDw5Vz+tKHFPVPUcDn1iWb2aPMXEpRrwxiwnSDGLR24hHaSq/ShKh2sFpSwgaOLkCxe2hRLRVqJ7YxXPkU3vwkDbnlL+QIQjsN5kwVNoIdd3ksdqXnXXF7UNyd6xv9DkFhpMxP01/kBoQvHB12r9yJd8zhWDiW2dKR/njnIO4nv95xZA2V2OARWxwd+VK4la4fPyU+CG7oVaEP+I6y+bZ+CYfZXXJIunY5bXRPdxnsx/GS4oatA0KVd/uJq7VjDTVvD0XgRUgJTdo8hsl6dosVyqEmjBPgOyo19pMUGoX/7nOW2ZAjpVeCZcw8G8hS/s7YaLLWvgTDU6qxTU0NTcK2srE16uuUbf9Jop1QN3nKPt8L4X933r1ea8BH73I96t3iEoFP2ijxfETwquMkMDwJSSUovzuDCvoWZ+BeJSBp7BRJzlpvZpbHsboKuG53QGvAjpbSjKXWZXf6"
 }
