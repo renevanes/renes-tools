@@ -86,6 +86,18 @@ for l in open(path, encoding='utf-8', errors='replace'):
 print(n)
 PY
 }
+# opstartregels <logcat> <pid>: de regels van de app zelf onder ToolsStart (Opstart.java: alleen stappen en ms), op één regel
+opstartregels() {
+  python3 - "$1" "${2:-}" <<'PY'
+import re, sys
+path, pid = sys.argv[1], sys.argv[2]
+uit = []
+for l in open(path, encoding='utf-8', errors='replace'):
+    m = re.match(r'\d\d-\d\d \d\d:\d\d:\d\d\.\d+\s+(\d+)\s+\d+\s+\w\s+ToolsStart\s*:\s*([\w=\s]+?)\s*$', l)
+    if m and (not pid or m.group(1) == pid): uit.append(m.group(2))
+print(' | '.join(uit))
+PY
+}
 # geheugen <dumpsys meminfo>: totaal PSS in kB (Android 7 heeft een regel "TOTAL  12345 …", nieuwere ook "TOTAL PSS: 12345")
 geheugen() {
   python3 - "$1" <<'PY'
@@ -158,6 +170,12 @@ EOF
 EOF
   [ "$(overgeslagen "$d/frames.txt" 4321)" = 35 ] || { echo "zelftest: overgeslagen beelden verkeerd geteld"; fout=1; }
   [ "$(overgeslagen "$d/frames.txt" "")" = - ] || { echo "zelftest: zonder proces moet het - zijn"; fout=1; }
+  cat > "$d/opstart.txt" <<'EOF'
+10-24 10:00:01.000  4321  4321 I ToolsStart: onCreate opruimen=3 webview=180 totaal=200 proces=90
+10-24 10:00:01.500  5555  5555 I ToolsStart: onCreate webview=999 totaal=999 proces=1
+10-24 10:00:02.000  4321  4321 I ToolsStart: uiReady na=1500
+EOF
+  [ "$(opstartregels "$d/opstart.txt" 4321)" = "onCreate opruimen=3 webview=180 totaal=200 proces=90 | uiReady na=1500" ] || { echo "zelftest: opstarttijden niet gelezen"; fout=1; }
   printf 'Applications Memory Usage (in Kilobytes):\n** MEMINFO in pid 4321 [nl.rene.tools] **\n           TOTAL   123456    100000\n' > "$d/mem24.txt"
   printf '               TOTAL PSS:   234567            TOTAL RSS:   300000       TOTAL SWAP PSS:       12\n' > "$d/mem36.txt"
   [ "$(geheugen "$d/mem24.txt")" = 123456 ] && [ "$(geheugen "$d/mem36.txt")" = 234567 ] || { echo "zelftest: geheugen niet gelezen"; fout=1; }
@@ -238,6 +256,8 @@ stap() {
   tijd=$(sed -n 's/^TotalTime: *//p' "$UIT/$naam-am.txt" | head -1)
   pid=$(adb shell pidof "$PKG" 2>/dev/null | tr -d '\r' | awk '{print $1}')
   echo "$naam starttijd_ms=${tijd:--} overgeslagen_beelden=$(overgeslagen "$UIT/logcat-$naam.txt" "$pid")" >> "$METINGEN" || true
+  local op; op=$(opstartregels "$UIT/logcat-$naam.txt" "$pid" 2>/dev/null) || true
+  if [ -n "$op" ]; then echo "  opstart: $op" >> "$METINGEN" || true; fi
   local crash; crash=$(crashregels "$UIT/logcat-$naam.txt" "$PKG")
   if [ -n "$crash" ]; then
     echo "!! $naam: crash"; echo "$crash"

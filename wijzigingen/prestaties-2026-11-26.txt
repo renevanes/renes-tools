@@ -1,0 +1,3 @@
+Sneller opstarten: de app leest de interface en plant zijn taken op de achtergrond terwijl het scherm wordt opgebouwd
+SMS-backup: de lijst met gesprekken opent sneller en toont er eerst 200 (met Meer tonen); een gesprek openen leest alleen dat gesprek
+Notities: een lange lijst opent nog iets sneller

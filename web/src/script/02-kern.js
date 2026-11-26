@@ -159,7 +159,7 @@ function show(name){
   if (WA_SCR.includes(name)) enterWa(name); else stopWaPoll();
   if (name==='chats') enterChats();
   if (name==='tracks') enterTracks(); else stopTrackPoll();
-  if (name==='sms') enterSms(); else stopSmsPoll();
+  if (name==='sms') { if (current_prev !== 'smschat' && current_prev !== 'sms') smsToon = SMS_TOON; enterSms(); } else stopSmsPoll(); // terug uit een gesprek houdt Meer tonen
   if (name==='recorder') enterRecorder(); else stopRecorderPoll();
   if (name==='sleep') enterSleep(); else if (name==='sleepnight') enterSleepNight(); else if (typeof stopSleepPoll === 'function') stopSleepPoll();
   if (name==='sleepset') enterSleepSet();

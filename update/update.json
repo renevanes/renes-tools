@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.260",
-  "versionCode": 261,
+  "versionName": "1.261",
+  "versionCode": 262,
   "nativeLevel": 226,
   "web": "index.html",
-  "webSha256": "b94bdd231627aab3303ecd8673b6d582ac7811fd2e26ce40f3a2b784f9e31e47",
+  "webSha256": "590a1668f8af1c67b6dffbecfd4285864ee4d1ad05359881f349dc750665cbe0",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "fa98ed568063c7aad762c20eb3c145f5551398dcf41fd4a5b7beb7a22a2c2208",
+  "apkSha256": "326161e21fbe08645d7cc36235e230eca3d0cfb6ec050762aa5b7e8e4db9db71",
   "changelog": [
+    {
+      "version": "1.261",
+      "date": "2026-11-26",
+      "changes": [
+        "Achter de schermen: nieuwe versies komen sneller online, ook als er veel tegelijk aan de app gewerkt wordt; in de app verandert er niets."
+      ]
+    },
     {
       "version": "1.260",
       "date": "2026-11-26",
@@ -180,15 +187,7 @@
         "Alle appgegevens terugzetten gaat door als het CPAP-logboek in de backup niet te lezen is",
         "Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"
       ]
-    },
-    {
-      "version": "1.241",
-      "date": "2026-11-20",
-      "changes": [
-        "Muziek herkennen: de grote knop staat bovenaan met meteen eronder wat er naar AudD gaat; sleutel wijzigen en het aantal herkenningen staan nu onder ⋯ rechtsboven, en boven de herkende nummers staat een kop met het aantal (zoeken pas bij een langere lijst)",
-        "Muziek herkennen: beter met TalkBack (de knop zegt Stoppen tijdens het luisteren, de stand wordt voorgelezen) en een te korte sleutel geeft een melding bij het veld"
-      ]
     }
   ],
-  "webSig2": "QpT8YOBX51upF4X0ptvrWCCxiLKDru7IJne04salysjiNXqN9od7lODHSuu7NX4kCsJdnTY+sBzzSPIHUSFqjJJGlku0Jqyp2GMQg54yEtzK0ugEJEOPAiS18TUoSiZmeabIyVz9jDLfNZ3lwui/i44Yp3+kbs6hQ8IY+mAE9qwlG7XBIg37VCDDuV8mj3ic5SDgKii8Ar0zNxWeIsLzPQhSsAbm7MlX2tgDhxcq1z/SBclJfUKplR1VL7IbVwuTDFORJ2x5BJPyNH5yoDdb0o/2oA1RYbvQKJcYhNCEQjC02GUDlinF/seWl22C2u31tjFGkY3jTUQKPjaBK4ZtGZlVDY/oI9JGO4bSotZ59BmkyUTmnHmGwJgqcWTqlacKmn+vGGvQMwE5u3kfraU8rf9i2XpJDmY3Xab4m3Wzw9x4Qwhhf2bMUeGxMiTpwVbKZL2MD19J/+QHYOPqwa5dRJHCqwYUiOp3n7TJ9XC5ffN6RNCrKCZx+YofdjOK1gn9"
+  "webSig2": "LPLe8mId0/oi67NSgV7x9WUyJpKFXPl7VwiTThLh/iti0NL2uxYoyLTXiHE1VxV88FoTUVNE1fW16eX7cIwQNTYpS7fwm29AvmMPWATydAKtShSFymQH16lrfvW2VRwIEq5Lpf4H7RF6m2QlndnJiwXfrR9jnGIwFLE08fC53QlhWhT9+O3lPMYLrnxm3AhNST85jgc1pEErIPushYWKKfQKHDqeNW7AW9m7LoMr7ErPFdLXq+EFa0ek0M3hi6BgvsING/444nO+/X/vwBfQMIMiVBPYHdfHuHZ91CwsCaw5jAhbneSr0Ry2UjzkrZEJTVKmw/VfXVCrfNPzacBZMd6tSTp4HpMbFAyLb3hjBiEbv2UntTvB9ZduunWUqeXDSO5jGIkH7TpNPa0KO/aVfuPrgHjHsH0hFpBQjffpEDWFvvKp7H2tyzSd1c3icwEu/EtK4AA0SOVuhugDHxeyVihnGE0rpYep2CJcU6166zrKbByZ7HUSH3vfmafAdD9X"
 }
