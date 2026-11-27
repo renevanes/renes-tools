@@ -1,0 +1,17 @@
+{
+  "uitleg": "Vaste adressen zonder versleuteling (http://, ws://, ftp:// met een naam erachter) in de code van de app, met de reden. Gecontroleerd door tests/adressen/controle.py (vanuit tests/run-ui.sh). Een nieuw vast adres hoort https te zijn; alleen wat nooit over het netwerk gaat of op het toestel zelf blijft, mag hier.",
+  "namen": {
+    "schemas.android.com": { "reden": "XML-namespace van Android (manifest en resources); een naam, geen adres dat opgehaald wordt" },
+    "www.w3.org": { "reden": "XML-namespaces van SVG, XLink, MathML en XML zelf; worden nooit opgehaald" },
+    "www.idpf.org": { "reden": "Namespaces van EPUB (ops, lettertype-versleuteling); worden nooit opgehaald" },
+    "ns.adobe.com": { "reden": "Naam van de Adobe-lettertypeversleuteling in EPUB (encryption.xml); wordt nooit opgehaald" },
+    "www.topografix.com": { "reden": "XML-namespace van GPX bij het exporteren van routes; wordt nooit opgehaald" },
+    "xml.org": { "reden": "Namen van SAX-parserinstellingen (externe entiteiten uit); worden nooit opgehaald" },
+    "apache.org": { "reden": "Naam van de parserinstelling die externe DTD's niet laadt; wordt nooit opgehaald" },
+    "127.0.0.1": { "reden": "Het toestel zelf: terugkeeradres van de koppelingen (Spotify, Google Drive; RFC 8252) en de lokale server van Timeshift. Verlaat de telefoon niet" }
+  },
+  "plekken": [
+    { "bestand": "app/src/nl/rene/tools/Apparaten.java", "naam": "192.168.1.20", "reden": "Voorbeeld in codecommentaar van een LOCATION-adres van een apparaat in het thuisnetwerk" },
+    { "bestand": "app/src/nl/rene/tools/Nieuws.java", "naam": "www.aireport.nl", "reden": "Codecommentaar: legt uit dat de site na het inloggen naar http terugstuurt en de app dat via https laadt" }
+  ]
+}
