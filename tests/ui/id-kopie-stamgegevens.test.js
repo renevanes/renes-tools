@@ -26,14 +26,18 @@ for(const colorScheme of ['light','dark']){
   await p.waitForFunction(()=>current==='idcopy'&&idc.pages.length===1&&!idc.loading&&!idc.busy);
   assert.equal(await p.isVisible('#id-bron'),true);assert.equal(await p.textContent('#id-bron-naam'),'Paspoort Rene');
   assert.equal(await p.evaluate(()=>Android._idc.master),true,'foto kwam uit Stamgegevens (niet via de interface)');
-  assert.equal(await p.evaluate(()=>idc.pages[0].rects.length),5,'vijf vlakken voorgesteld voor een paspoort');
+  await p.waitForFunction(()=>idc.pages[0].herken==='klaar');
+  // Paspoort uit Stamgegevens: burgerservicenummer en strook herkend, de rest (pasfoto, documentnummer, handtekening) met een geschatte plek
+  assert.deepEqual(await p.evaluate(()=>idc.pages[0].velden.map(v=>v.veld+':'+v.bron).sort()),['bsn:herkend','documentnummer:geschat','handtekening:geschat','pasfoto:geschat','strook:herkend']);
+  assert.equal(await p.evaluate(()=>idCopyVlakken(idc.pages[0]).length),5,'vijf vlakken voor een paspoort');
   assert.equal(await p.evaluate(()=>idc.pages[0].checked),false,'voorstel is niet gecontroleerd');
-  assert.match(await p.textContent('#id-status'),/Voorstel: zwarte vlakken/);
+  assert.match(await p.textContent('#id-velden-status'),/2 herkend, 3 met een geschatte plek/);assert.match(await p.textContent('#id-velden'),/Niet herkend: plek geschat/);
   assert.equal(await p.evaluate(()=>cmOpen()),false,'stamgegevens weer op slot na het verlaten');
   const log=await p.evaluate(()=>Android._cm.events.filter(e=>e.action==='photo_view').map(e=>e.source));assert.equal(log.filter(x=>x==='idcopy').length,1,'in Activiteiten: één keer door ID-kopie (het kaartje toont de foto zelf ook)');
-  // Ook bij een gekozen bestand: vlakken voorstellen
+  // Het soort document zelf kiezen
   await p.click('#id-voorstel');await p.locator('#sheet-acts').getByRole('button',{name:'Rijbewijs, voorkant',exact:true}).click();
-  assert.equal(await p.evaluate(()=>idc.pages[0].rects.length),4);
+  assert.deepEqual(await p.evaluate(()=>idc.pages[0].velden.filter(v=>v.bron==='geschat').map(v=>v.veld).sort()),['documentnummer','handtekening','overig','pasfoto'],'ander soort document: andere geschatte vlakken, herkende blijven');
+  assert.equal(await p.evaluate(()=>idCopyVlakken(idc.pages[0]).length),6);
   await p.click('#id-voorstel');await p.locator('#sheet-acts').getByRole('button',{name:'Paspoort (fotopagina)',exact:true}).click();
   // Maken en bewaren: in de kluis, gekoppeld aan het paspoort, met ontvanger, doel en datum
   await p.fill('#id-recipient','Verhuurder <b>');await p.fill('#id-purpose','Huurcontract');await p.check('#id-checked');

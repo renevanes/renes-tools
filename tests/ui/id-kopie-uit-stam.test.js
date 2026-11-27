@@ -36,7 +36,8 @@ for(const colorScheme of ['light','dark']){
   await p.waitForFunction(()=>current==='idcopy'&&idc.pages.length===1&&!idc.loading&&!idc.busy);
   assert.equal(await p.textContent('#id-bron-naam'),'Paspoort Rene');
   assert.equal(await p.evaluate(()=>Android._idc.master),true,'foto kwam uit Stamgegevens (niet via de interface)');
-  assert.equal(await p.evaluate(()=>idc.pages[0].rects.length),5,'voorstel voor een paspoort');
+  await p.waitForFunction(()=>idc.pages[0].herken==='klaar');
+  assert.equal(await p.evaluate(()=>idCopyVlakken(idc.pages[0]).length),5,'voorstel voor een paspoort');
   // Er staat al een pagina: dan niet aangeboden (dat zou het werk wissen)
   await p.click('#id-pick');assert.equal(await p.isVisible('#sheet-acts >> text=Uit Stamgegevens'),false);await p.evaluate(()=>closeSheet());
   await p.close();
