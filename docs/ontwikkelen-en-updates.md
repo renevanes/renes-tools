@@ -34,6 +34,11 @@ git restore -- update
 ./bump.sh "Wat er voor de gebruiker veranderd is"
 ```
 
+In een cloudsessie van een agent (een proxy die Maven Central of de download van Chromium weigert):
+`./tests/cloudsessie/voorbereiden.sh` en, als `./build.sh` daardoor vóór javac stopt, `./tests/cloudsessie/java-bouwen.sh`
+(alleen de Java-code, geen APK). Zie [tests/cloudsessie/LEESMIJ.md](../tests/cloudsessie/LEESMIJ.md). Het hele
+stappenplan van branch tot publicatie staat in [AGENTS.md](../AGENTS.md), "Van begin tot gepubliceerd".
+
 `bump.sh` schrijft een wijzigingsbestand; het versienummer wordt alleen door `publish.sh` bepaald. Commit en push je werk volgens [AGENTS.md](../AGENTS.md). Op main test Publiceren eerst precies die broncommit in emulatoren op API 24, 35 en 36. Die jobs hebben geen ondertekeningssleutel. Daarna controleert de publicatiestap onder het publicatieslot opnieuw of de bron nog gelijk is. Nieuwere appcode of testcode vereist een nieuwe emulatorcontrole; alleen gegenereerde publicatiebestanden mogen intussen verschillen.
 
 Het publicatieslot laat één uitgever tegelijk toe. Een onleesbaar of verloren slot, of een mislukte vernieuwing, stopt de publicatie. Direct vóór het vastleggen wordt het slot opnieuw vernieuwd. Een uitgever die na een verlopen slot verder werkt, kan daardoor niet alsnog publiceren.

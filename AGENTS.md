@@ -310,7 +310,12 @@ het ergens anders wilt), Java 17+ (javac; CI gebruikt 25), Python 3, Node 22+ (C
 - `./build.sh` — bouwen (heeft een sleutel in `keys/` nodig, zie onder). Zonder de echte sleutel: maak een tijdelijke
   testsleutel zoals in `.github/workflows/bouwen-en-testen.yml`. `./publish.sh` weigert die (vingerafdruk-controle).
   `./build.sh` schrijft ook in `update/`: zet dat na het testen terug met `git checkout -- update` en commit het nooit.
-- `./tests/run-jvm.sh` — Java-logicatests (na `./build.sh`).
+- **In een cloudsessie** (een proxy die Maven Central of de download van Chromium weigert):
+  `./tests/cloudsessie/voorbereiden.sh` zet alles klaar en zegt wat er ontbreekt; stopt `./build.sh` daardoor vóór javac,
+  dan compileert `./tests/cloudsessie/java-bouwen.sh` alleen de Java-code (geen APK). Zie `tests/cloudsessie/LEESMIJ.md`.
+- `./tests/run-jvm.sh` — Java-logicatests (na `./build.sh` of `java-bouwen.sh`). Zonder `ant-codecs.jar` (cloudsessie) slaat
+  hij `VoiceArchiveTest` en `WebSigTest` over en zegt dat; in CI draaien ze altijd. `WebSigTest` heeft een volledige
+  `./build.sh` nodig (die ondertekent `update/update.json` met je testsleutel).
 - `./tests/run-ui.sh` — alle interfacetests (Playwright, licht en donker), veel tegelijk (`UI_JOBS`, standaard 3 per
   processorkern, max 12: de tests wachten vooral; ±4 min op 4 kernen), de langste eerst (`tests/ui/duur.txt`; na een
   flinke verandering bijwerken met `UI_DUUR_BIJWERKEN=1 ./tests/run-ui.sh`). Een mislukte test krijgt één herkansing met twee keer zo lange wachttijden
@@ -337,6 +342,46 @@ overgeslagen beelden (Choreographer), geheugen (`dumpsys meminfo`, PSS) en haper
 en na alle schermen, en de tijd per stap van `MainActivity.onCreate` en tot `uiReady` (regel `opstart:`; de app zet die
 met `Opstart` in logcat onder `ToolsStart`, alleen vaste stapnamen en milliseconden); in de uitvoer onder "Metingen" en in de samenvatting van de run. Dat is alleen vastleggen: een
 meetwaarde laat de telefoontest nooit falen. De emulator tekent in software: vergelijk alleen hetzelfde API-niveau.
+
+## Van begin tot gepubliceerd (stappenplan voor elke agent)
+Dit is de hele weg, in volgorde. De details staan in de secties waarnaar verwezen wordt; dit lijstje zorgt dat je niets
+overslaat. Lange stappen (`run-ui.sh` ±10 minuten, wachten op GitHub ±10–20 minuten) start je op de achtergrond, of met een
+ruime tijdslimiet; lees daarna het logbestand na in plaats van te gokken.
+1. **Ophalen.** Een kloon in een cloudsessie is meestal ondiep (`git rev-parse --is-shallow-repository`). Haal main bij met
+   een diepte (`git fetch --depth=50 origin main`), niet met een kale `git fetch origin main`: die kan gigabytes aan oude
+   versies (APK's) binnenhalen. Moet je weten of een commit al op main staat (`merge-base --is-ancestor`, stap 11), ga dan
+   dieper (`git fetch --deepen=200 origin main`) tot dat werkt, en alleen als dat niet lukt `git fetch --unshallow origin`.
+2. **Eigen branch** vanaf de nieuwste main: `claude/<onderwerp>` (Codex `codex/…`, geplande taken hun eigen naam, zie
+   "Werkwijze voor geplande taken"). Kijk eerst of een andere agent hetzelfde al doet (open branches en pull requests).
+3. **Klaarzetten:** `./setup-tools.sh && npm ci && npx playwright install chromium`; in een cloudsessie
+   `./tests/cloudsessie/voorbereiden.sh` (weigert de proxy Maven Central, dan probeert `setup-tools.sh` het ±10 minuten).
+4. **Bouwen:** een testsleutel in `keys/` (zie `CONTRIBUTING.md`; nooit committen) en `./build.sh`; stopt die vóór javac
+   omdat een download geweigerd werd, dan `./tests/cloudsessie/java-bouwen.sh`. Daarna `git checkout -- update`.
+5. **Testen:** `./tests/run-jvm.sh`, `python3 tools/check-bridge.py`, `node tools/taal.js --ontbrekend` (nieuwe teksten in
+   `en.json`, gesorteerd) en `./tests/run-ui.sh` (draait ook de manifest- en adrescontrole). Een mislukte test eerst los
+   opnieuw (`./tests/ui-een.sh naam`). Nieuwe functie = nieuwe tests (zie "Bouwen en testen").
+6. **Onafhankelijke review:** een tweede agent die de wijziging niet schreef, met de lijst van gewijzigde bestanden, de
+   regels uit dit bestand en de **beveiligingslijst** (zie "Beveiliging"). Los de bevindingen op en laat dezelfde reviewer
+   de oplossingen nakijken, tot er niets ernstigs meer is. Wat bewust blijft liggen: een `openstaand`-issue.
+7. **Afmaken:** een wijzigingsregel in `wijzigingen/<onderwerp>.txt`; de sectie van de tool in dit bestand bijgewerkt;
+   bij een nieuwe toestemming of verbinding naar buiten ook `docs/privacybeleid*.md` en `docs/play-data-safety.md`.
+8. **Branch pushen** (`git -c push.negotiate=true push -u origin <branch>`) en wachten tot `Bouwen en testen` voor precies
+   die commit groen is (`gh api "repos/renevanes/renes-tools/actions/runs?branch=<branch>&per_page=10" --jq
+   '.workflow_runs[]|[.name,.head_sha[0:7],.status,.conclusion]|@tsv'`, vergelijk met `git rev-parse --short HEAD`).
+   Die bouwt de APK (met een testsleutel) en draait alles wat lokaal niet kon, ook de telefoontest.
+9. **Main samenvoegen:** `git fetch --depth=50 origin main && git merge origin/main` (merge, nooit rebase). Daarna de tests
+   van je eigen onderwerp, `check-bridge.py` en `taal.js` nog één keer; push de branch opnieuw en wacht weer tot
+   `Bouwen en testen` voor die samenvoegcommit groen is.
+10. **Naar main:** `git push origin HEAD:main`. Geweigerd omdat main verder is: stap 9 opnieuw. **Geweigerd door de sessie
+    zelf** (een toestemming of controle van de omgeving van de agent, niet door GitHub): niet omzeilen. Open dan een pull
+    request via de REST-API (`gh api -X POST repos/renevanes/renes-tools/pulls -f title=… -f head=<branch> -f base=main -f
+    body=…`), zet in de beschrijving dat de push naar main geweigerd werd en welke controles groen zijn, en vraag Rene in
+    je bericht om de pull request samen te voegen, of om de sessie toestemming te geven om naar main te pushen. Op dat punt,
+    en bij `allow_grow` en `major`, blijft publiceren bij Rene liggen; verder niet ("Altijd zelf publiceren").
+11. **Publicatie volgen:** zoek de run `Publiceren` met je commit en controleer dat je commit in de laatste versie zit
+    (stap 6 van "Werkwijze voor geplande taken"). Mislukt hij buiten je wijziging om: zelf opnieuw starten.
+12. **Bericht aan Rene** (zie "Berichten aan Rene"): wat er anders is, waar hij het vindt, of er een nieuwe APK nodig is
+    (alles in `app/`), en wat er niet lukte, met de naam van de branch of pull request.
 
 ## Tegelijk werken met andere agents
 **Publiceren gaat vanzelf (zoals bij renes-spelletjes):** elke push naar main die de app verandert, wordt door de
@@ -387,7 +432,8 @@ en push opnieuw. Alleen `allow_grow` (APK meer dan 10% groter) en `major` (hoofd
    Java-tests draait hij altijd (`WebSigTest` controleert de echte handtekening). `tests/publicatie-voorbereiden.sh` bewaakt dat.
    Een interfacetest die iets van de Java-tests nodig heeft (archieven in `herstel`, `sec`) slaat lokaal over als dat
    ontbreekt, maar faalt in CI (`process.env.CI`): daar draaien de Java-tests altijd eerst.
-5. **Kun je zelf niet pushen** (bijv. Codex in de cloud): open een pull request met je wijziging en een bestand in
+5. **Kun je zelf niet pushen** (bijv. Codex in de cloud, of weigert je sessie de push naar main; zie stap 10 van
+   "Van begin tot gepubliceerd"): open een pull request met je wijziging en een bestand in
    `wijzigingen/`, zonder `VERSION`, `changelog.json` of `update/` (de CI keurt dat af). Na het samenvoegen publiceert
    de workflow het vanzelf. **Kun je wel pushen** (ook Cursor-agents in de cloud), dan is een pull request niet genoeg:
    push het na geslaagde tests en review zelf naar main (vaste opdracht van Rene).
@@ -653,9 +699,11 @@ De taken staan bij Rene's Claude-account (niet in de repository); de Takencheck 
    `takencheck/`, `beveiliging/` (pushen buiten `claude/` werkt; lukt het toch niet, dan `claude/<taak>-JJJJ-MM-DD`). Push na elke
    commit, zodat een volgende run verder kan; behalve bij een gevonden kwetsbaarheid (zie "Beveiliging").
 3. **Lokaal bouwen kan in een cloudsessie deels mislukken.** Weigert de proxy een download van
-   `tools/voorlezen/deps.py`, dan stopt `./build.sh` al vóór javac en kan `run-jvm.sh` niet draaien; struikelt de
-   reserve-d8 (34.0.4) over geneste enums, dan zijn de classes er wel en draait `run-jvm.sh` gewoon. Ga door met wat
-   wel kan (`run-jvm.sh` als de classes er zijn; `run-ui.sh` altijd, die maakt zelf de testpagina). **Push altijd pas
+   `tools/voorlezen/deps.py`, dan stopt `./build.sh` al vóór javac: gebruik dan `./tests/cloudsessie/java-bouwen.sh`
+   (alleen Java, geen APK) en daarna `run-jvm.sh` (slaat dan `VoiceArchiveTest` en `WebSigTest` over); struikelt de
+   reserve-d8 (34.0.4) over geneste enums, dan zijn de classes er wel en draait `run-jvm.sh` gewoon. Weigert de proxy de
+   Chromium van Playwright, dan zet `./tests/cloudsessie/voorbereiden.sh` er een uit het image neer. `run-ui.sh` draait
+   altijd (die maakt zelf de testpagina). **Push altijd pas
    naar main als de run "Bouwen en testen" op je gepushte branch groen is** (die start vanzelf bij elke push).
 4. **Interfacetests:** loopt de machine vol (time-outs, weinig geheugen), draai dan met `UI_JOBS=2`; om wankele tests op
    te sporen juist ook met het standaardaantal, zoals in CI. Draai een mislukte test eerst los opnieuw
