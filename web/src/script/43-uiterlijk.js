@@ -61,12 +61,14 @@ if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => 
 
 /* Tabbalk onderin op de hoofdschermen */
 let TABS = ['home', 'search', 'ai', 'backup', 'settings']; // de onderbalk (43b-onderbalk.js) zet de echte indeling
+// Een begin (geen terugknop): de vaste tabbladen. Een andere tool in de balk houdt zijn pijl: hij kan eigen stappen terug hebben (Kluis, Stamgegevens).
+const TAB_BEGIN = ['home', 'search', 'ai', 'backup', 'settings'];
 function uiShown(name){
   const on = !SOLO && TABS.includes(name);
   // Via een sprong (bijv. zelftest → toestemmingen) blijft de terugknop zichtbaar
   const viaJump = jumpTo.busy || (jumpStack.length && jumpStack[jumpStack.length - 1].to === name);
   document.body.classList.toggle('tabs-on', on);
-  document.body.classList.toggle('tab-root', on && !viaJump);
+  document.body.classList.toggle('tab-root', on && !viaJump && TAB_BEGIN.includes(name));
   document.querySelectorAll('#tabs button').forEach(b => { const me = b.dataset.t === name; b.classList.toggle('on', me); if (me) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   navSync();
   uiFit(); bars(); if (on) tabsFit();

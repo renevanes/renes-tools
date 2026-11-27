@@ -9,7 +9,7 @@ const OB_STD = ['search', 'ai', 'backup', 'settings'];
 const OB_SCHERM = { search: 'Zoeken', settings: 'Instellingen' }; // vaste schermen die geen tool zijn
 // Korte namen voor de balk (de volle naam staat in aria-label)
 const OB_KORT = { ai: 'Assistent', backup: 'Backup', wc: 'Toiletten', recorder: 'Opnemen', transcripts: 'Uitschrijven', history: 'Meldingen',
-  music: 'Herkennen', spotify: 'Spotify', sms: 'SMS', wa: 'WhatsApp', tracks: 'Routes', auto: 'Automatisch', loc: 'Locatie', cpap: 'CPAP',
+  music: 'Herkennen', spotify: 'Spotify', sms: 'SMS', wa: 'WhatsApp', tracks: 'Routes', loc: 'Locatie', cpap: 'CPAP',
   foto: 'Foto', redial: 'Redial', car: 'Auto', masterdata: 'Stamgegevens', apparaten: 'Apparaten', ereader: 'E-reader', contacts: 'Contacten' };
 // De vaste pictogrammen van de oude balk (zodat hij er hetzelfde uitziet)
 const OB_SVG = {
@@ -44,7 +44,9 @@ function obRender(){
   const ids = ['home'].concat(obItems());
   TABS = ids.slice();
   const inst = document.getElementById('home-inst'); if (inst) inst.hidden = ids.includes('settings'); // Instellingen blijft altijd bereikbaar
-  nav.innerHTML = ids.map(id => '<button type="button" data-t="' + esc(id) + '"' + (id === 'home' ? ' data-vast="1"' : '') + ' aria-label="' + esc(obNaam(id)) + '"><span class="ti" aria-hidden="true">' + obIcoon(id) + '</span><span aria-hidden="true">' + esc(obKort(id)) + '</span></button>').join('');
+  // De zichtbare (korte) naam staat vooraan in de naam voor de schermlezer, zodat ook "tik op Backup" (Voice Access) werkt
+  const label = id => obKort(id) === obNaam(id) ? '' : ' aria-label="' + esc(t('{kort}, {naam}', { kort: obKort(id), naam: obNaam(id) })) + '"';
+  nav.innerHTML = ids.map(id => '<button type="button" data-t="' + esc(id) + '"' + (id === 'home' ? ' data-vast="1"' : '') + label(id) + '><span class="ti" aria-hidden="true">' + obIcoon(id) + '</span><span>' + esc(obKort(id)) + '</span></button>').join('');
   if (typeof current !== 'undefined' && typeof uiShown === 'function') uiShown(current);
 }
 
@@ -104,15 +106,16 @@ function obKies(){
     openSheet(t('Welke plek vervangen?'), obNaam(id), obItems().map((o, k) => [t('In plaats van {naam}', { naam: obNaam(o) }), () => { obZetMeld(id, k); obEditRender(); }]));
   }]));
 }
-function obAanpassen(){ show('homeedit'); setTimeout(() => { if (typeof heTab === 'function') heTab('weer'); const k = document.getElementById('he-ob'); if (k) k.scrollIntoView({ block: 'start' }); }, 60); }
+function obAanpassen(){ jumpTo('homeedit'); setTimeout(() => { if (typeof heTab === 'function') heTab('weer'); const k = document.getElementById('he-ob'); if (k) k.scrollIntoView({ block: 'start' }); }, 60); }
 
-/* Startscherm aanpassen → Weergave → Onderbalk: dezelfde balk als lijst met pijlen (zonder slepen) */
+/* Startscherm aanpassen → Weergave → Onderbalk: dezelfde balk als lijst met pijlen (zonder slepen); boven = links */
+function obMv(id, dir, uit){ return '<button class="mv" data-id="' + esc(id) + '" data-dir="' + dir + '"' + (uit ? ' disabled' : '') + ' aria-label="' + esc(dir < 0 ? t('{naam} naar links', { naam: obNaam(id) }) : t('{naam} naar rechts', { naam: obNaam(id) })) + '">' + (dir < 0 ? '↑' : '↓') + '</button>'; }
 function obEditRender(){
   const box = document.getElementById('he-ob-list'); if (!box) return;
   const l = obItems(), n = l.length;
   box.innerHTML = '<div class="herow heov ob-vast"><span class="stic">' + uiIcon('grid') + '</span><span class="nm">' + esc(t('Start')) + '<small>' + esc(t('Staat altijd links')) + '</small></span></div>' +
     l.map((id, i) => '<div class="herow heov" data-id="' + esc(id) + '"><span class="stic">' + (OB_SVG[id] ? '<span class="ui-icon" aria-hidden="true">' + OB_SVG[id] + '</span>' : uiToolIcon(id)) + '</span><span class="nm">' + esc(obNaam(id)) + '</span>' +
-      heMv(id, -1, i === 0, obNaam(id)) + heMv(id, 1, i === n - 1, obNaam(id)) +
+      obMv(id, -1, i === 0) + obMv(id, 1, i === n - 1) +
       '<button class="mv" data-weg="1" data-id="' + esc(id) + '" aria-label="' + esc(t('{naam} uit de onderbalk halen', { naam: obNaam(id) })) + '">' + uiIcon('close') + '</button></div>').join('');
   $('#he-ob-stand').textContent = tn(OB_MAX - n, 'Nog {n} plek vrij', 'Nog {n} plekken vrij');
   $('#he-ob-stand').hidden = n >= OB_MAX;
@@ -132,19 +135,21 @@ function obEditRender(){
 /* ---------- Slepen (zoals Android): een tegel naar de balk, of een plek in de balk verschuiven of eruit ---------- */
 let obSleep = null; // { id, van: 'tegel'|'balk', bron, x0, y0, timer, op, sleept, geest, doel }
 const OB_HOUD = 500, OB_SLAP = 10;
-let obNaKlik = 0; // de tik die bij het loslaten hoort, opent niets
+let obNaKlik = 0, obLosTijd = 0; // de tik en het contextmenu die bij het loslaten horen, doen niets
 function obSolo(){ return typeof SOLO !== 'undefined' && SOLO; }
 /* Bij pointerdown. Na OB_HOUD ms stil houden is hij opgepakt; loslaten zonder schuiven = het menu, schuiven = slepen. */
 function obPak(e, id, van, bron){
   if (obSolo() || e.button > 0 || !obMag(id)) return false;
   obLos();
   const s = obSleep = { id, van, bron, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, op: false, sleept: false, pid: e.pointerId };
-  s.timer = setTimeout(() => {
-    if (obSleep !== s) return;
-    s.op = true; bron.classList.add('ob-op'); document.body.classList.add('ob-klaar');
-    if (navigator.vibrate) navigator.vibrate(15);
-  }, OB_HOUD);
+  s.timer = setTimeout(() => obOp(s), OB_HOUD);
   return true;
+}
+function obOp(s){
+  if (obSleep !== s || s.op) return;
+  clearTimeout(s.timer);
+  s.op = true; s.bron.classList.add('ob-op'); document.body.classList.add('ob-klaar');
+  if (navigator.vibrate) navigator.vibrate(15);
 }
 function obBeweeg(e){
   const s = obSleep; if (!s || e.pointerId !== s.pid) return;
@@ -169,7 +174,9 @@ function obStart(s){
 /* Waar laat je los? In (of vlak boven) de balk: die plek; is hij vol, dan de plek die hij vervangt.
    Vanuit de balk ver genoeg omhoog: weghalen. */
 function obDoel(s){
-  const nav = document.getElementById('tabs'), r = nav.getBoundingClientRect();
+  const nav = document.getElementById('tabs');
+  if (!nav.getClientRects().length) { s.doel = null; return; } // balk niet in beeld: nergens heen
+  const r = nav.getBoundingClientRect();
   const kn = [...nav.querySelectorAll('button[data-t]')].filter(b => !b.dataset.vast && b.dataset.t !== s.id);
   nav.querySelectorAll('button').forEach(b => b.classList.remove('ob-hier', 'ob-vervang'));
   nav.classList.remove('ob-boven', 'ob-eind');
@@ -195,7 +202,7 @@ function obLaat(e){
   const { sleept, op, doel, id, van } = s;
   obLos();
   if (!op) return; // gewone tik: de knop of tegel doet zijn eigen werk
-  obNaKlik = Date.now();
+  obNaKlik = obLosTijd = Date.now();
   if (!sleept) { if (van === 'balk') obMenu(id); else if (typeof toolMenu === 'function') toolMenu(id); return; } // stil vastgehouden: het menu
   if (doel && doel.soort === 'zet') obZetMeld(id, doel.pos);
   else if (doel && doel.soort === 'weg') obWegMeld(id);
@@ -214,14 +221,21 @@ document.addEventListener('pointermove', obBeweeg, { passive: false });
 document.addEventListener('pointerup', obLaat);
 document.addEventListener('pointercancel', e => { if (obSleep && e.pointerId === obSleep.pid) obLos(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) obLos(); });
-// Opgepakt: de pagina scrolt niet mee, en het lang-indrukken-menu van de WebView doen we zelf
-document.addEventListener('touchmove', e => { if (obSleep && obSleep.op && e.cancelable) e.preventDefault(); }, { passive: false });
-document.addEventListener('contextmenu', e => { if (obSleep) e.preventDefault(); }, true);
-document.addEventListener('click', e => { if (Date.now() - obNaKlik < 450) { e.stopImmediatePropagation(); e.preventDefault(); obNaKlik = 0; } }, true);
+// Opgepakt: de pagina scrolt niet mee (alleen op wat je oppakt, niet op het hele document: elders blijft scrollen vlot)
+function obGeenScroll(el){ el.addEventListener('touchmove', e => { if (obSleep && obSleep.op && e.cancelable) e.preventDefault(); }, { passive: false }); }
+// Het lang-indrukken-menu van de WebView doen we zelf; komt het (Android 12+ na 400 ms) vóór OB_HOUD, dan is hij nu opgepakt.
+// Komt het pas na het loslaten, of volgt er nog een tik: niets (anders twee keer het menu)
+document.addEventListener('contextmenu', e => {
+  if (obSleep) { e.preventDefault(); obOp(obSleep); return; }
+  if (Date.now() - obLosTijd < 600) { e.preventDefault(); e.stopImmediatePropagation(); }
+}, true);
+document.addEventListener('pointerdown', () => { obNaKlik = 0; }, true); // een nieuwe aanraking telt gewoon
+document.addEventListener('click', e => { if (obNaKlik && Date.now() - obNaKlik < 450) { e.stopImmediatePropagation(); e.preventDefault(); obNaKlik = 0; } }, true);
 
 /* De balk zelf: tikken opent, ingedrukt houden pakt op (behalve Start); het contextmenu (rechtsklik, toets) geeft het menu */
 (function(){
   const nav = document.getElementById('tabs'); if (!nav) return;
+  obGeenScroll(nav);
   nav.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button[data-t]'); if (b) tabGo(b.dataset.t); });
   nav.addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('button[data-t]'); if (b && !b.dataset.vast) obPak(e, b.dataset.t, 'balk', b); });
   nav.addEventListener('contextmenu', e => { const b = e.target.closest && e.target.closest('button[data-t]'); if (!b || b.dataset.vast) return; e.preventDefault(); if (!obSleep && !obSolo()) obMenu(b.dataset.t); });

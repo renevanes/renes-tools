@@ -270,7 +270,7 @@ function navStap(name){
 function navTab(name){
   if (typeof SOLO !== 'undefined' && SOLO) return false;
   const tabs = (typeof TABS !== 'undefined' && TABS) || ['home', 'search', 'ai', 'backup', 'settings'];
-  return tabs.includes(name);
+  return tabs.includes(name) && (typeof TAB_BEGIN === 'undefined' || TAB_BEGIN.includes(name));
 }
 /* Start tonen als één stap terug nog niet het begin van deze app is. */
 function navThuisZicht(name){

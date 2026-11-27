@@ -26,7 +26,8 @@ const path = require('path');
     await pg.waitForTimeout(150 * W);
 
     ok((await balk()) === 'home,search,ai,backup,settings', 'standaard: Start, Zoeken, Assistent, Backup, Instellingen');
-    ok(await pg.evaluate(() => [...document.querySelectorAll('#tabs button')].every(b => b.getBoundingClientRect().height >= 44 && b.getAttribute('aria-label'))), 'plekken minstens 44 px hoog en met een naam');
+    ok(await pg.evaluate(() => [...document.querySelectorAll('#tabs button')].every(b => b.getBoundingClientRect().height >= 44 && b.textContent.trim())), 'plekken minstens 44 px hoog en met een naam');
+    ok(await pg.evaluate(() => document.querySelector('#tabs button[data-t="backup"]').getAttribute('aria-label') === 'Backup, Alles back-uppen' && !document.querySelector('#tabs button[data-t="search"]').hasAttribute('aria-label')), 'naam voor de schermlezer begint met wat je ziet');
     ok(await pg.$eval('#home-inst', e => e.hidden), 'Instellingen staat in de balk: geen extra knop rechtsboven');
 
     // Opgeschoond: onbekend, dubbel, Start, de skin en te veel vallen weg
@@ -40,8 +41,9 @@ const path = require('path');
     // Een tool in de balk werkt als tabblad: opent, balk blijft staan, geen terugknop
     await pg.evaluate(() => { store.set('onderbalk', { v: 1, items: ['search', 'radio'] }); obRender(); });
     await pg.click('#tabs button[data-t="radio"]'); await pg.waitForTimeout(150 * W);
-    ok(await pg.evaluate(() => current === 'radio' && document.body.classList.contains('tabs-on') && document.body.classList.contains('tab-root')
-      && document.querySelector('#tabs button[data-t="radio"]').getAttribute('aria-current') === 'page'), 'Radio uit de balk: tabblad met de balk eronder');
+    ok(await pg.evaluate(() => current === 'radio' && document.body.classList.contains('tabs-on')
+      && document.querySelector('#tabs button[data-t="radio"]').getAttribute('aria-current') === 'page'), 'Radio uit de balk: met de balk eronder');
+    ok(await pg.evaluate(() => !document.body.classList.contains('tab-root') && getComputedStyle(document.querySelector('#s-radio .hdr .back')).display !== 'none'), 'een tool in de balk houdt zijn terugpijl');
     await pg.click('#tabs button[data-t="home"]'); await pg.waitForTimeout(150 * W);
 
     // Slepen: een tegel naar de balk (er is plek)
@@ -102,6 +104,16 @@ const path = require('path');
     await pg.evaluate(() => toolMenu('pdf')); await pg.waitForTimeout(80 * W);
     await pg.locator('#sheet-acts button', { hasText: /Uit de onderbalk halen|Remove from the bottom bar/ }).click(); await pg.waitForTimeout(80 * W);
     ok((await balk()) === 'home,search,notes,backup', 'via het menu weer eruit');
+    // Contextmenu (toets of schermlezer) op een plek in de balk: precies één menu
+    await pg.evaluate(() => { window._n = 0; const o = openSheet; window.openSheet = function(){ window._n++; return o.apply(this, arguments); }; document.querySelector('#tabs button[data-t="notes"]').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); });
+    ok(await pg.evaluate(() => _n === 1 && document.getElementById('sheet').classList.contains('on')), 'contextmenu op de balk: één menu');
+    await pg.evaluate(() => { closeSheet(); _n = 0; document.getElementById('tile-pdf').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); });
+    ok(await pg.evaluate(() => _n === 1), 'contextmenu op een tegel: één menu');
+    await pg.evaluate(() => closeSheet());
+    // Kluis (eigen stap terug, Extra ontgrendelen) in de balk: het slotscherm komt eerst, en de pijl blijft
+    await pg.evaluate(() => { obZet('kluis'); }); await pg.click('#tabs button[data-t="kluis"]'); await pg.waitForTimeout(150 * W);
+    ok(await pg.evaluate(() => current !== 'kluis' || getComputedStyle(document.querySelector('#s-kluis .hdr .back')).display !== 'none'), 'Kluis uit de balk: slot of terugpijl');
+    await pg.evaluate(() => { obWeg('kluis'); show('home'); }); await pg.waitForTimeout(100 * W);
 
     // Startscherm aanpassen → Weergave → Onderbalk
     await pg.evaluate(() => { show('homeedit'); heTab('weer'); }); await pg.waitForTimeout(120 * W);
@@ -142,12 +154,12 @@ const path = require('path');
 
     // Engels: korte namen in de balk, volle naam voor de schermlezer
     await pg.evaluate(() => { store.set('onderbalk', { v: 1, items: ['ai', 'wc'] }); obRender(); });
-    ok(await pg.evaluate(() => { const b = document.querySelector('#tabs button[data-t="wc"]'); return b.getAttribute('aria-label') === 'Toiletten en douches' && b.textContent === 'Toiletten'; }), 'korte naam in de balk, volle naam als label');
+    ok(await pg.evaluate(() => { const b = document.querySelector('#tabs button[data-t="wc"]'); return b.getAttribute('aria-label') === 'Toiletten, Toiletten en douches' && b.textContent === 'Toiletten'; }), 'korte naam in de balk, volle naam erbij voor de schermlezer');
 
     // Engels: de balk volgt de taal
     await pg.evaluate(() => show('setregio')); await pg.waitForTimeout(100 * W);
     await pg.selectOption('#rg-lang', 'en'); await pg.waitForTimeout(200 * W);
-    ok(await pg.evaluate(() => { const b = document.querySelector('#tabs button[data-t="wc"]'), h = document.querySelector('#tabs button[data-t="home"]'); return b.getAttribute('aria-label') === 'Toilets and showers' && b.textContent === 'Toilets' && h.textContent === 'Start'; }), 'Engels: Toilets in de balk');
+    ok(await pg.evaluate(() => { const b = document.querySelector('#tabs button[data-t="wc"]'), h = document.querySelector('#tabs button[data-t="home"]'); return b.getAttribute('aria-label') === 'Toilets, Toilets and showers' && b.textContent === 'Toilets' && h.textContent === 'Start'; }), 'Engels: Toilets in de balk');
     await pg.selectOption('#rg-lang', 'nl'); await pg.waitForTimeout(200 * W);
     await pg.evaluate(() => show('home')); await pg.waitForTimeout(100 * W);
     // Kort aanraken en meteen schuiven = scrollen, niet oppakken
@@ -157,6 +169,13 @@ const path = require('path');
     ok(await pg.evaluate(() => !obSleep || !obSleep.op), 'meteen schuiven: niets opgepakt');
     await raak('touchEnd'); await pg.waitForTimeout(100 * W);
     ok((await balk()) === 'home,ai,wc', 'en de balk is niet veranderd');
+    // Play-versie: alleen wat daar bestaat (geen Assistent of Backup)
+    const pp = await browser.newPage({ viewport: { width: 390, height: 844 }, colorScheme: scheme });
+    pp.on('pageerror', e => errors.push('play: ' + e.message));
+    await pp.addInitScript(() => { window.__testPlay = true; });
+    await pp.goto('file://' + path.join(__dirname, 'ui', 'index.html')); await pp.waitForTimeout(200 * W);
+    ok((await pp.$$eval('#tabs button', x => x.map(b => b.dataset.t).join())) === 'home,search,settings', 'Play-versie: Start, Zoeken, Instellingen');
+    await pp.close();
     await pg.screenshot({ path: path.join(__dirname, 'ui', 'onderbalk-' + scheme + '.png') });
     console.log('errors', errors);
     await pg.close();

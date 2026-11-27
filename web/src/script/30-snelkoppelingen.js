@@ -24,6 +24,7 @@ function toolPress(el, tool){
   const ob = () => typeof obPak === 'function' && obMag(tool) && !(typeof SOLO !== 'undefined' && SOLO);
   let timer = null, fired = false, touching = false, sx = 0, sy = 0;
   el.addEventListener('pointerdown', e => { if (ob()) obPak(e, tool, 'tegel', el); });
+  obGeenScroll(el); // opgepakt: de pagina scrolt niet mee (43b-onderbalk.js)
   el.addEventListener('touchstart', e => { fired = false; touching = true; if (ob()) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY;
     timer = setTimeout(() => { fired = true; if (navigator.vibrate) navigator.vibrate(15); toolMenu(tool); }, 550); }, { passive: true });
   el.addEventListener('touchmove', e => { if (Math.abs(e.touches[0].clientX - sx) > 10 || Math.abs(e.touches[0].clientY - sy) > 10) clearTimeout(timer); }, { passive: true });
