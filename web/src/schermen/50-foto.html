@@ -6,10 +6,10 @@
     <p class="note warn" id="fob-oud" hidden>Foto bewerken kan pas met de nieuwe app. Installeer eerst de nieuwste versie (Instellingen → Versie en updates).</p>
     <div id="fob-leeg"></div>
     <div class="card" id="fob-kaart" hidden>
-      <img id="fob-beeld" class="fob-voorbeeld" alt="Voorbeeld van de foto">
+      <div class="fob-kijk" id="fob-kijk"><img id="fob-beeld" class="fob-voorbeeld" alt="Voorbeeld van de foto"></div>
+      <div id="fob-zoom"></div>
       <p class="note fob-naam" id="fob-naam" translate="no"></p>
       <p class="note" id="fob-stand" role="status" aria-live="polite"></p>
-      <button class="big tonal" id="fob-bewerk" type="button" onclick="fobBewerk()" data-icon="crop">Bewerken</button>
       <label class="f" for="fob-naamin">Naam van de nieuwe foto</label>
       <input class="search" id="fob-naamin" maxlength="60" autocomplete="off" translate="no">
       <button class="big" id="fob-bewaar" type="button" onclick="fobBewaar()" data-icon="save">Bewaren</button>

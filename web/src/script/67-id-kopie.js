@@ -8,7 +8,7 @@ function idCopyReset(secure=true){
   $('#id-image').removeAttribute('src'); const c=$('#id-layer'); c.getContext('2d').clearRect(0,0,c.width,c.height); $('#id-work').hidden=true;
   ['id-recipient','id-purpose','id-date'].forEach(id=>$('#'+id).value='');
   ['id-x','id-y','id-w','id-h'].forEach((id,i)=>$('#'+id).value=fmtNumIn([10,10,40,10][i]));
-  $('#id-zoom').value=100;idCopyZoom(100);$('#id-pan').checked=false;idCopyPan();
+  idc.bz.leeg();$('#id-pan').checked=false;idCopyPan();
   document.querySelectorAll('#s-idcopy [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);
 }
 function idCopyLeave(){
@@ -33,7 +33,7 @@ window.onIdCopyPicked=function(r){
 };
 function idCopyLoad(){
   if(!idc.revision||!idc.pages[idc.page])return;
-  idc.loading=true; idc.meta=null; idc.point=null; idc.draft=null; $('#id-image').removeAttribute('src');
+  idc.loading=true; idc.meta=null; idc.point=null; idc.draft=null; $('#id-image').removeAttribute('src'); idc.bz.leeg();
   const c=$('#id-layer');c.getContext('2d').clearRect(0,0,c.width,c.height);
   uiWachtTekst($('#id-status'),t('Pagina laden…'));idCopyControls();
   // Met een bewerking uit Foto bewerken (bijsnijden, rechtzetten; 82-foto-bewerken.js) via idCopyPreviewBewerkt
@@ -91,8 +91,9 @@ function idCopyAdd(rect){
 function idCopyManual(){idCopyAdd(['id-x','id-y','id-w','id-h'].map(id=>parseNum($('#'+id).value)/100));}
 function idCopyUndo(){if(idc.busy||idc.loading)return;const p=idc.pages[idc.page];if(!p)return;p.rects.pop();p.checked=false;idCopyPaint();idCopyControls();}
 function idCopyChecked(on){if(idc.pages[idc.page])idc.pages[idc.page].checked=on;idCopyControls();}
-function idCopyZoom(value){$('#id-paper').style.width=value+'%';}
-function idCopyPan(){$('#id-layer').style.touchAction=$('#id-pan').checked?'auto':'none';}
+function idCopyPan(){$('#id-layer').style.touchAction=$('#id-pan').checked?'pan-y':'none';}
+// De vaste set bij een foto (02-beeldzoom.js): vergroten met de knoppen of twee vingers; één vinger tekent een vlak, tenzij Verschuiven aan staat
+idc.bz=beeldZoom($('#id-scroll'),{inhoud:$('#id-paper'),balk:$('#id-zoom'),id:'id-zoom',rand:4,max:5,eenVinger:()=>$('#id-pan').checked,gebaar:()=>{idc.point=null;idc.draft=null;idCopyPaint();}});
 function idCopyPoint(e){const b=$('#id-layer').getBoundingClientRect();return [Math.max(0,Math.min(1,(e.clientX-b.left)/b.width)),Math.max(0,Math.min(1,(e.clientY-b.top)/b.height))];}
 $('#id-layer').addEventListener('pointerdown',e=>{
   if(idc.busy||idc.loading||!idc.meta||$('#id-pan').checked)return;

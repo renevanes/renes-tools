@@ -12,8 +12,8 @@
       <div class="card">
         <h2>Afschermen</h2>
         <div class="row"><button class="mini" id="id-prev" onclick="idCopyPage(-1)" aria-label="Vorige pagina" data-icon="chevron-left"></button><span id="id-page"></span><button class="mini" id="id-next" onclick="idCopyPage(1)" aria-label="Volgende pagina" data-icon="play"></button><button class="mini" id="id-turn" onclick="idCopyTurn()">Draaien</button><button class="mini" id="id-bewerk" onclick="idCopyBewerk()" data-icon="crop" hidden>Bijsnijden en rechtzetten</button></div>
-        <p class="note">Staat er nog iets wat weg moet? Sleep er een rechthoek over om het zwart te maken. Vergroot het voorbeeld voor kleine tekst.</p>
-        <label class="f" for="id-zoom">Voorbeeld vergroten</label><input id="id-zoom" type="range" min="100" max="300" step="25" value="100" oninput="idCopyZoom(this.value)">
+        <p class="note">Staat er nog iets wat weg moet? Sleep er een rechthoek over om het zwart te maken. Vergroot het voorbeeld voor kleine tekst: met − en + of met twee vingers.</p>
+        <div id="id-zoom"></div>
         <label class="chk"><input type="checkbox" id="id-pan" onchange="idCopyPan()">Voorbeeld verschuiven in plaats van afschermen</label>
         <div id="id-scroll" class="idcopyscroll"><div id="id-paper" class="idcopypaper"><img id="id-image" alt="Gekozen pagina van je ID-kopie" draggable="false"><canvas id="id-layer" aria-label="Sleep over de gegevens die je wilt afschermen"></canvas></div></div>
         <p class="note" id="id-masks" aria-live="polite"></p>

@@ -6,6 +6,8 @@
  * rechtop en verbetert de belichting. Ook bij een nieuwe kaartfoto in Stamgegevens (een voorstel op het documentkaartje,
  * met Toepassen) en bij ID-kopie (meteen toegepast; Bijsnijden en rechtzetten om het aan te passen of terug te draaien). */
 const fob = { sessie: '', naam: '', src: '', ops: null, uit: '', bezig: false, nr: 0 };
+// De vaste set bij een foto (02-beeldzoom.js): vergroten en Bewerken
+fob.bz = beeldZoom($('#fob-kijk'), { balk: $('#fob-zoom'), id: 'fob-zoom', knoppen: [{ id: 'fob-bewerk', tekst: t('Bewerken'), icoon: 'crop', actie: () => fobBewerk() }] });
 function fobVoorstelAan(){ return store.get('fotoVoorstel', true) !== false; }
 function fobSoort(){ const v = store.get('fotoSoort', 'doc'); return ['doc', 'idkaart', 'paspoort', 'foto'].includes(v) ? v : 'doc'; }
 function fobEnter(name, prev){
@@ -40,7 +42,7 @@ window.onFotoGekozen = function(r){
   if (r.error) { fobRender(); toast(t(r.error)); return; }
   fob.sessie = r.sessie; fob.naam = r.naam || t('Foto'); fob.src = r.image; fob.ops = null; fob.uit = '';
   $('#fob-naamin').value = t('{naam} bewerkt', { naam: fob.naam }).slice(0, 60);
-  $('#fob-klaar').hidden = true; $('#fob-beeld').src = r.image;
+  $('#fob-klaar').hidden = true; fob.bz.leeg(); $('#fob-beeld').src = r.image;
   fobRender(); fobBewerk(true);
 };
 async function fobBewerk(nieuw){
@@ -56,7 +58,7 @@ async function fobVoorbeeld(){
   const nr = fob.nr, img = new Image();
   img.onload = async () => {
     const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img, 0, 0);
-    try { const u = await fbRender(c, fob.ops, 900); if (nr === fob.nr) $('#fob-beeld').src = u.toDataURL('image/jpeg', 0.85); } catch (e) { }
+    try { const u = await fbRender(c, fob.ops, 900); if (nr === fob.nr) { fob.bz.leeg(); $('#fob-beeld').src = u.toDataURL('image/jpeg', 0.85); } } catch (e) { }
   };
   img.src = fob.src;
 }
