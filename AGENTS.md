@@ -779,7 +779,13 @@ telefoon en versleuteld; de sleutel zit in de Android Keystore.
   staat en niet herkend is, krijgt een geschat vlak (`ID_VOORSTEL`, `idCopyGeschat`; soort uit Stamgegevens, de gelezen
   tekst of Soort document kiezen). De lijst (`#id-velden`, `idCopyVeldenToon`) noemt elk veld met herkend of geschat en een
   schakelaar, en zegt het als burgerservicenummer of strook niet gevonden is. Alles blijft een voorstel: elke pagina moet
-  nog steeds aangevinkt worden. Nieuw veld = `ID_VELD`, `IdVelden` (met een voorbeeld met verzonnen gegevens in de test),
+  nog steeds aangevinkt worden. **Rechtop en welke pagina** (wens van Rene, 27-11-2026: een paspoort op zijn kant of
+  opengeklapt ging mis): vindt de gezichtsherkenning rechtop geen gezicht en na een kwartslag wel, dan geeft `IdCopy.herken`
+  alleen `draai` terug en zet de interface de pagina één keer vanzelf rechtop (`p.rechtop`; niet na zelf draaien of met eigen
+  vlakken) en zoekt opnieuw. `IdVelden.pagina` leidt uit de strook af waar de pagina met de gegevens ligt (breedte van de
+  strook, vorm van het document: twee regels = paspoort, drie = kaart); `idCopyGeschat` zet de vaste indeling op die pagina
+  in plaats van op de hele foto, en bij een opengeklapt paspoort (pagina begint onder `ID_OPEN`) komt de bovenste pagina
+  erbij als veld `anderepagina` (kan weg, staat aan). Nieuw veld = `ID_VELD`, `IdVelden` (met een voorbeeld met verzonnen gegevens in de test),
   de testbrug (`idCopyHerken`) en `tests/ui/id-kopie.test.js`.
 - **Brief scannen** (`web/src/script/49c-brief-scannen.js`, `KluisScan`; kaart `#kl-scan` in plaats van de lijst, camera
   `#kl-cam` in `TS_LAGEN`): foto's met de camera in de interface (`kluisScanCamera`, zoals Betalen; `camFoto` is gedeeld),

@@ -79,7 +79,7 @@ function idCopyControls(){
 function idCopyPage(delta){if(idc.busy||idc.loading)return;idc.page=Math.max(0,Math.min(idc.pages.length-1,idc.page+delta));idCopyLoad();}
 function idCopyTurn(){
   if(idc.busy||idc.loading||!idc.meta)return;
-  const turn=()=>{const p=idc.pages[idc.page];p.turn=(p.turn+1)%4;p.rects=[];p.velden=[];p.veldKey='';p.herken='';p.checked=false;idCopyLoad();};
+  const turn=()=>{const p=idc.pages[idc.page];p.turn=(p.turn+1)%4;p.rechtop='zelf';p.rects=[];p.velden=[];p.veldKey='';p.herken='';p.checked=false;idCopyLoad();};
   if(idc.pages[idc.page].rects.length)askConfirm('Pagina draaien?','De afschermvlakken van deze pagina worden gewist. Plaats ze opnieuw na het draaien.','Draaien',turn);else turn();
 }
 function idCopyAdd(rect){
@@ -165,7 +165,7 @@ function idCopyStamHalen(){
  * Alles staat aan; Rene zet uit wat de ontvanger nodig heeft en controleert elke pagina, zoals altijd. */
 const ID_VELD=()=>({
   bsn:{naam:t('Burgerservicenummer'),moet:true},strook:{naam:t('Machineleesbare strook'),moet:true},qr:{naam:t('QR-code'),moet:true},
-  pasfoto:{naam:t('Pasfoto'),moet:false},handtekening:{naam:t('Handtekening'),moet:false},documentnummer:{naam:t('Documentnummer'),moet:false},overig:{naam:t('Overige gegevens'),moet:false}});
+  pasfoto:{naam:t('Pasfoto'),moet:false},handtekening:{naam:t('Handtekening'),moet:false},documentnummer:{naam:t('Documentnummer'),moet:false},overig:{naam:t('Overige gegevens'),moet:false},anderepagina:{naam:t('Andere pagina van het paspoort'),moet:false}});
 /* Vaste indeling (op de kaart of fotopagina, liggend; links, boven, breedte, hoogte als deel van het geheel). Ruim genomen:
  * liever iets te veel zwart dan te weinig. Alleen als de foto precies het document toont; daarom "plek geschat". */
 const ID_VOORSTEL={
@@ -187,7 +187,7 @@ function idCopyVeldKey(p){return idc.revision+'|'+p.turn+'|'+JSON.stringify(p.op
 function idCopyHerkenStart(){
   const p=idc.pages[idc.page];if(current!=='idcopy'||!p||!idc.meta||idc.loading||p.autoBezig)return;
   const key=idCopyVeldKey(p);if(p.veldKey===key){idCopyVeldenToon();return;}
-  p.veldKey=key;p.velden=[];p.checked=false;p.herken='bezig';p.hvolg=idc.hvolg=(idc.hvolg||0)+1;idCopyVeldenToon();idCopyPaint();idCopyControls();
+  p.veldKey=key;p.velden=[];p.pagina=null;p.checked=false;p.herken='bezig';p.hvolg=idc.hvolg=(idc.hvolg||0)+1;idCopyVeldenToon();idCopyPaint();idCopyControls();
   idCopyQr(p,key,idc.meta.image);
   const volg=p.hvolg;setTimeout(()=>{if(p.hvolg===volg&&p.herken==='bezig'&&idc.pages.includes(p))idCopyHerkend(p,{velden:[],soort:'',fout:true});},90000); // geen antwoord: verder zonder
   if(idCopyKanHerkennen())Android.idCopyHerken(idc.revision,idc.page,p.turn,p.ops?JSON.stringify(p.ops):'',p.hvolg);
@@ -200,7 +200,14 @@ window.onIdCopyHerkend=function(r){
 };
 function idCopyRechtOk(r){return Array.isArray(r)&&r.length===4&&r.every(Number.isFinite)&&r[0]>=0&&r[1]>=0&&r[2]>0&&r[3]>0&&r[0]+r[2]<=1.0000001&&r[1]+r[3]<=1.0000001;}
 function idCopyHerkend(p,r){
+  // De foto staat op zijn kant of op zijn kop (de pasfoto zegt het): eerst rechtop zetten en dan opnieuw zoeken. Eén keer per pagina.
+  const k=+r.draai;
+  if((k===1||k===2||k===3)&&!p.rechtop&&!p.rects.length&&p===idc.pages[idc.page]&&!idc.busy){
+    p.rechtop='vanzelf';p.turn=(p.turn+k)%4;p.ops=null;p.auto=undefined;p.velden=[];p.veldKey='';p.herken='';p.checked=false;idCopyLoad();return;
+  }
   const kan=ID_VELD();
+  // waar de pagina met de gegevens ligt (uit de strook): de foto kan meer tonen, zoals een opengeklapt paspoort
+  const pg=r.pagina,pr=pg&&[+pg.x,+pg.y,+pg.w,+pg.h];p.pagina=pr&&idCopyRechtOk(pr)?{rect:pr,soort:idCopySoort(pg.soort)}:null;
   for(const v of (r.velden||[]).slice(0,20)){const rect=[+v.x,+v.y,+v.w,+v.h];if(Object.prototype.hasOwnProperty.call(kan,v.veld)&&idCopyRechtOk(rect))p.velden.push({veld:v.veld,rect,bron:'herkend',aan:true});}
   if(!p.soort)p.soort=idCopySoort(r.soort);
   p.herken=r.fout?'fout':'klaar';idCopyGeschat(p);p.checked=false;
@@ -214,8 +221,15 @@ function idCopyGeschat(p){
   const gedekt=(veld,g)=>p.velden.some(x=>{if(x.veld!==veld||x.bron!=='herkend')return false;const r=x.rect,bx=Math.max(0,Math.min(r[0]+r[2],g[0]+g[2])-Math.max(r[0],g[0])),by=Math.max(0,Math.min(r[1]+r[3],g[1]+g[3])-Math.max(r[1],g[1]));return bx*by>=r[2]*r[3]*.5;});
   // welke kant: uit Stamgegevens bekend, anders een achterkant als er een strook of QR-code staat en geen pasfoto
   const zijde=p.zijde||(p.soort==='idkaart'&&(heeft('strook')||heeft('qr'))&&!heeft('pasfoto')?'back':'front');
-  for(const [veld,rect] of (ID_VOORSTEL[p.soort]||{})[zijde]||[])if(!gedekt(veld,rect))p.velden.push({veld,rect:rect.slice(),bron:'geschat',aan:true});
+  // de vaste indeling geldt voor de pagina met de gegevens; ligt die ergens in de foto, dan de vlakken daarheen
+  const pg=p.pagina&&p.pagina.soort===p.soort&&(ID_VOORSTEL[p.soort]||{})[zijde]&&ID_VOORSTEL[p.soort][zijde].some(x=>x[0]==='strook')?p.pagina.rect:null;
+  const naar=r=>{if(!pg)return r.slice();const x=Math.min(1,pg[0]+r[0]*pg[2]),y=Math.min(1,pg[1]+r[1]*pg[3]);return [x,y,Math.min(1-x,r[2]*pg[2]),Math.min(1-y,r[3]*pg[3])];};
+  for(const [veld,rect] of (ID_VOORSTEL[p.soort]||{})[zijde]||[]){const g=naar(rect);if(idCopyRechtOk(g)&&!gedekt(veld,g))p.velden.push({veld,rect:g,bron:'geschat',aan:true});}
+  // een opengeklapt paspoort: boven de pagina met de gegevens ligt nog een pagina; de ontvanger heeft die zelden nodig
+  if(pg&&p.soort==='paspoort'&&pg[1]>=ID_OPEN)p.velden.push({veld:'anderepagina',rect:[0,0,1,pg[1]],bron:'geschat',aan:true});
 }
+/** Vanaf dit deel van de hoogte boven de pagina met de gegevens telt een paspoort als opengeklapt (twee pagina's). */
+const ID_OPEN=.3;
 /** QR-code op de pagina (op een nieuwe identiteitskaart staat het burgerservicenummer erin). */
 function idCopyQr(p,key,src){
   const zoek=()=>{const img=new Image();img.onload=()=>{
@@ -262,6 +276,8 @@ function idCopyVeldenToon(){
   // wat weg moet en hier niet gevonden is: zeg het, zodat Rene zelf kijkt
   const mist=[['bsn',t('Burgerservicenummer: niet gevonden op deze pagina. Staat het er wel, sleep er dan zelf een vlak over.')],['strook',t('Machineleesbare strook: niet gevonden op deze pagina. Staat hij er wel (onderaan), sleep er dan zelf een vlak over.')]];
   for(const [veld,zin] of mist)if(!p.velden.some(v=>v.veld===veld)){const n=document.createElement('p');n.className='note idveld-mist';n.dataset.veld=veld;n.textContent=zin;el.append(n);}
+  if(p.rechtop==='vanzelf'){const n=document.createElement('p');n.className='note idveld-recht';n.textContent=t('De pagina is vanzelf rechtop gezet. Klopt dat niet, tik dan op Draaien.');el.prepend(n);}
+  if(p.velden.some(v=>v.veld==='anderepagina')){const n=document.createElement('p');n.className='note idveld-open';n.textContent=t('Dit lijkt een opengeklapt paspoort: twee pagina\'s. De bovenste pagina is afgeschermd; zet dat uit als de ontvanger hem nodig heeft.');el.prepend(n);}
   const herkend=p.velden.filter(v=>v.bron==='herkend').length,geschat=p.velden.length-herkend;
   st.textContent=!p.velden.length?(idCopyKanHerkennen()?t('Geen velden herkend. Kies het soort document voor een voorstel, of sleep zelf vlakken over wat weg moet.'):t('Kies het soort document voor een voorstel, of sleep zelf vlakken over wat weg moet.'))
     :geschat?t('{n} herkend, {m} met een geschatte plek. Controleer vooral de geschatte vlakken.',{n:herkend,m:geschat})

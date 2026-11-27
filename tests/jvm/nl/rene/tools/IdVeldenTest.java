@@ -49,6 +49,17 @@ public class IdVeldenTest {
         // alleen de tweede regel van de strook gelezen: het vlak reikt ook over de regel erboven en tot de onderrand
         IdVelden.Veld half = een(IdVelden.uit(java.util.Arrays.asList(w("SPECI20142NLD6503101F2403096999999990<<<<<84", 0.03, 0.9, 0.94, 1)), null, 1.42), IdVelden.STROOK);
         check(half != null && half.y <= 0.84 && half.y + half.h == 1, "strook half gelezen: ook de regel erboven weg");
+        // De pagina uit de strook: een fotopagina die de hele foto vult, en een opengeklapt paspoort (staand, twee pagina's boven elkaar)
+        IdVelden.Pagina pg = IdVelden.pagina(p, 1.42);
+        check(pg != null && pg.soort.equals("paspoort") && pg.x < 0.03 && pg.w > 0.97 && pg.y < 0.08 && pg.y + pg.h > 0.97, "één pagina: de pagina is de hele foto");
+        List<IdVelden.Woord> open = new ArrayList<>();
+        open.add(w("Handtekening", 0.1, 0.2, 0.3, 1)); open.add(w("P<NLDDE<BRUIJN<<WILLEKE<LISELOTTE<<<<<<<<<<<", 0.05, 0.9, 0.9, 2)); open.add(new IdVelden.Woord("SPECI20142NLD6503101F2403096999999990<<<<<84", 0.05, 0.94, 0.95, 0.97, 3));
+        pg = IdVelden.pagina(open, 0.71);
+        check(pg != null && pg.soort.equals("paspoort") && pg.x < 0.03 && pg.w > 0.97 && pg.y > 0.45 && pg.y < 0.55 && pg.y + pg.h > 0.98, "opengeklapt: alleen de onderste helft is de pagina met de gegevens");
+        check("paspoort".equals(IdVelden.soort(open)) && IdVelden.pagina(g, 1.5) == null, "soort uit de vorm van de strook; geen strook = geen pagina");
+        pg = IdVelden.pagina(k, 1.58);
+        check(pg != null && pg.soort.equals("idkaart") && pg.y < 0.1 && pg.h > 0.9, "achterkant van een kaart: drie regels, de kaart vult de foto");
+        check(IdVelden.pagina(java.util.Arrays.asList(w("I<NLDSPECI20142<<<<<<<<<<<<<<<", 0.4, 0.5, 0.2, 1)), 1.5) == null, "te weinig van de strook gelezen: geen schatting");
         check("rijbewijs".equals(IdVelden.soort(java.util.Arrays.asList(w("RIJBEWIJS", 0, 0, 0.2, 1)))), "soort: rijbewijs");
         // Grenzen: alles blijft binnen de pagina
         v = IdVelden.uit(java.util.Arrays.asList(w("111222333", 0.9, 0.97, 0.1, 1)), new double[][]{{0.02, 0.02, 0.1}}, 1.5);

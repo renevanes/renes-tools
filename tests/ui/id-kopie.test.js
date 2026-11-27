@@ -53,6 +53,21 @@ const path=require('path');
   await p.evaluate(()=>{Android._idc.velden=(page,turn)=>turn?[{veld:'pasfoto',x:.1,y:.1,w:.2,h:.3},{veld:'onbekend',x:0,y:0,w:1,h:1},{veld:'bsn',x:.9,y:.9,w:.5,h:.5}]:[];Android._idc.soort='';});
   await p.evaluate(()=>{idc.pages[0].velden=[];idCopyTurn();});await p.waitForFunction(()=>idc.pages[0].turn===1&&idc.pages[0].herken==='klaar'&&!idc.loading);
   assert.deepEqual(await p.evaluate(()=>idc.pages[0].velden.filter(v=>v.bron==='herkend').map(v=>v.veld)),['pasfoto'],'alleen bekende velden met een geldig vlak');
+  // Een opengeklapt paspoort dat op zijn kant gefotografeerd is: vanzelf rechtop (één keer), daarna de vaste indeling op de
+  // pagina met de gegevens (de onderste helft) en de bovenste pagina als eigen veld
+  await p.evaluate(()=>show('pdf'));await p.evaluate(()=>show('idcopy'));
+  await p.evaluate(()=>{const s=Android._idc;s.herkend=[];s.draai=(page,turn)=>turn===0?1:0;s.velden=[{veld:'strook',x:0,y:.88,w:1,h:.12}];s.soort='paspoort';s.pagina={x:0,y:.5,w:1,h:.5,soort:'paspoort'};window.__testIdPages=1;});
+  await p.click('#id-pick');await (async()=>{if(await p.isVisible('#sheet.on'))await p.click('#sheet-acts >> text=Bestand op de telefoon');})();await p.waitForFunction(()=>idc.pages.length===1&&idc.pages[0].herken==='klaar'&&!idc.loading);
+  assert.equal(await p.evaluate(()=>idc.pages[0].turn),1,'een kwartslag gedraaid');assert.deepEqual(await p.evaluate(()=>Android._idc.herkend.map(h=>h.turn)),[0,1],'na het draaien opnieuw gezocht, één keer');
+  assert.match(await p.textContent('#id-velden .idveld-recht'),/vanzelf rechtop gezet/);assert.match(await p.textContent('#id-velden .idveld-open'),/opengeklapt paspoort/);
+  const pv=await p.evaluate(()=>idc.pages[0].velden.map(v=>({veld:v.veld,bron:v.bron,rect:v.rect})));
+  assert.deepEqual(pv.map(v=>v.veld+':'+v.bron).sort(),['anderepagina:geschat','bsn:geschat','documentnummer:geschat','handtekening:geschat','pasfoto:geschat','strook:herkend']);
+  assert.ok(pv.filter(v=>v.bron==='geschat'&&v.veld!=='anderepagina').every(v=>v.rect[1]>=.5&&v.rect[1]+v.rect[3]<=1.0001),'de geschatte vlakken liggen op de pagina met de gegevens');
+  assert.deepEqual(pv.find(v=>v.veld==='anderepagina').rect,[0,0,1,.5]);assert.match(await p.textContent('#id-velden'),/Andere pagina van het paspoort/);
+  // Zelf draaien daarna: de app draait niet nog eens terug
+  await p.evaluate(()=>{Android._idc.draai=()=>3;idc.pages[0].velden=[];idCopyTurn();});await p.waitForFunction(()=>idc.pages[0].herken==='klaar'&&!idc.loading);
+  assert.equal(await p.evaluate(()=>idc.pages[0].turn),2,'na zelf draaien blijft de pagina zo');assert.equal(await p.locator('#id-velden .idveld-recht').count(),0);
+  await p.evaluate(()=>{delete Android._idc.draai;delete Android._idc.pagina;});
   await p.evaluate(()=>show('pdf'));
   await p.close();
  }

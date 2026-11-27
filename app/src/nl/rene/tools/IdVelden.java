@@ -64,7 +64,46 @@ final class IdVelden {
         if (s.contains("IDENTITEITSKAART") || s.contains("IDENTITY CARD")) return "idkaart";
         if (s.contains("PASPOORT") || s.contains("PASSPORT") || s.contains("P<NLD")) return "paspoort";
         if (s.contains("I<NLD") || s.contains("IDNLD")) return "idkaart";
-        return "";
+        // geen opschrift gelezen: de vorm van de strook zegt het (twee lange regels = paspoort, drie korte = kaart)
+        Strook st = strook(regels(woorden));
+        return st == null ? "" : st.soort();
+    }
+
+    /** De strook in de gelezen regels: welke regels, waar (ook links en rechts) en hoe lang de langste regel is. */
+    static final class Strook {
+        boolean[] in; double y0 = 2, y1 = -1, x0 = 2, x1 = -1, hoog; int regels, tekens;
+        /** Een paspoort heeft twee regels van 44 tekens, een kaart drie van 30. */
+        String soort() { return regels >= 3 || regels < 2 && tekens < 38 ? "idkaart" : "paspoort"; }
+    }
+    static Strook strook(List<List<Woord>> regels) {
+        Strook s = new Strook(); s.in = new boolean[regels.size()];
+        for (int i = 0; i < regels.size(); i++) {
+            List<Woord> r = regels.get(i); StringBuilder t = new StringBuilder(); double y0 = 2, y1 = -1, x0 = 2, x1 = -1;
+            for (Woord w : r) { t.append(w.t.toUpperCase(Locale.ROOT)); y0 = Math.min(y0, w.y0); y1 = Math.max(y1, w.y1); x0 = Math.min(x0, w.x0); x1 = Math.max(x1, w.x1); }
+            if (!strookRegel(t.toString())) continue;
+            s.in[i] = true; s.regels++; s.tekens = Math.max(s.tekens, t.toString().replace(" ", "").length());
+            s.y0 = Math.min(s.y0, y0); s.y1 = Math.max(s.y1, y1); s.x0 = Math.min(s.x0, x0); s.x1 = Math.max(s.x1, x1); s.hoog = Math.max(s.hoog, y1 - y0);
+        }
+        return s.regels == 0 ? null : s;
+    }
+
+    /** Waar de pagina met de gegevens ligt, als deel van de foto, met het soort document. */
+    static final class Pagina {
+        final double x, y, w, h; final String soort;
+        Pagina(double x, double y, double w, double h, String soort) { this.x = x; this.y = y; this.w = w; this.h = h; this.soort = soort; }
+    }
+    /**
+     * De pagina afgeleid uit de strook: die loopt over bijna de hele breedte en staat onderaan. Zo klopt de vaste indeling
+     * ook als de foto meer toont dan die ene pagina: een opengeklapt paspoort (twee pagina's boven elkaar) of een kaart
+     * met tafel eromheen. verhouding = breedte / hoogte van de foto. null als er geen bruikbare strook is.
+     */
+    static Pagina pagina(List<Woord> woorden, double verhouding) {
+        Strook s = strook(regels(woorden)); if (s == null || verhouding <= 0) return null;
+        double tekst = s.x1 - s.x0; if (tekst < 0.25) return null; // te weinig van de strook gelezen om de breedte te schatten
+        String soort = s.soort(); double vorm = soort.equals("paspoort") ? 125.0 / 88.0 : 85.6 / 54.0;
+        double w = Math.min(1, tekst / 0.9), midden = (s.x0 + s.x1) / 2, x0 = Math.max(0, midden - w / 2), x1 = Math.min(1, midden + w / 2);
+        w = x1 - x0; double h = w * verhouding / vorm, onder = Math.min(1, s.y1 + h * 0.05), boven = Math.max(0, onder - h);
+        return new Pagina(x0, boven, w, onder - boven, soort);
     }
 
     /**
@@ -75,14 +114,9 @@ final class IdVelden {
         List<Veld> uit = new ArrayList<>();
         if (verhouding <= 0) verhouding = 1.5;
         // 1. de strook: opeenvolgende regels die eruitzien als MRZ; over de hele breedte
-        List<List<Woord>> regels = regels(woorden); double sy0 = 2, sy1 = -1, hoog = 0;
-        boolean[] inStrook = new boolean[regels.size()];
-        for (int i = 0; i < regels.size(); i++) {
-            List<Woord> r = regels.get(i); StringBuilder t = new StringBuilder(); double y0 = 2, y1 = -1;
-            for (Woord w : r) { t.append(w.t.toUpperCase(Locale.ROOT)); y0 = Math.min(y0, w.y0); y1 = Math.max(y1, w.y1); }
-            if (!strookRegel(t.toString())) continue;
-            inStrook[i] = true; sy0 = Math.min(sy0, y0); sy1 = Math.max(sy1, y1); hoog = Math.max(hoog, y1 - y0);
-        }
+        List<List<Woord>> regels = regels(woorden); Strook st = strook(regels);
+        boolean[] inStrook = st == null ? new boolean[regels.size()] : st.in;
+        double sy0 = st == null ? 2 : st.y0, sy1 = st == null ? -1 : st.y1, hoog = st == null ? 0 : st.hoog;
         Veld strook = null;
         // ruim: een regel die slecht gelezen is (erboven of eronder) moet ook weg; de strook staat onderaan, dus daar tot de rand
         if (sy1 > sy0) { strook = new Veld(STROOK, 0, sy0 - hoog * 1.6, 1, sy1 > 0.55 ? 1 : sy1 + hoog * 1.6); uit.add(strook); }

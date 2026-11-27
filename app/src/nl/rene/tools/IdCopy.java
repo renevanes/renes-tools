@@ -176,33 +176,58 @@ final class IdCopy {
         Bitmap b; synchronized (this) { check(token); b = bewerkt(render(page, turn, 1800), ops, 1800); }
         try {
             int w = b.getWidth(), h = b.getHeight();
+            // Staat de foto op zijn kant of op zijn kop? Het gezicht op de pasfoto zegt het: dan eerst rechtop, daarna pas lezen.
+            int[] draai = new int[1]; double[][] gezichten = gezichten(b, draai);
+            if (draai[0] != 0) return new JSONObject().put("revision", token).put("page", page).put("turn", turn).put("draai", draai[0]).put("velden", new JSONArray()).put("soort", "").put("gelezen", false);
             int[] maat = new int[2];
             List<OcrIndeling.Woord> gelezen = RijbewijsOcr.pageWoorden(c, b, () -> !closed && volg == herkenVolg && android.os.SystemClock.elapsedRealtime() < eind, maat);
             if (volg != herkenVolg) throw new Exception(Taal.T("Kies de ID-kopie opnieuw"));
             List<IdVelden.Woord> woorden = new ArrayList<>();
             if (maat[0] > 0 && maat[1] > 0) for (OcrIndeling.Woord x : gelezen) woorden.add(new IdVelden.Woord(x.tekst, (double) x.x0 / maat[0], (double) x.y0 / maat[1], (double) x.x1 / maat[0], (double) x.y1 / maat[1], x.regel));
-            double[][] gezichten = gezichten(b);
             synchronized (this) { check(token); }
             JSONArray velden = new JSONArray();
             for (IdVelden.Veld v : IdVelden.uit(woorden, gezichten, (double) w / h)) velden.put(new JSONObject().put("veld", v.veld).put("x", v.x).put("y", v.y).put("w", v.w).put("h", v.h));
-            return new JSONObject().put("revision", token).put("page", page).put("turn", turn).put("velden", velden).put("soort", IdVelden.soort(woorden)).put("gelezen", !woorden.isEmpty());
+            JSONObject uit = new JSONObject().put("revision", token).put("page", page).put("turn", turn).put("velden", velden).put("soort", IdVelden.soort(woorden)).put("gelezen", !woorden.isEmpty());
+            IdVelden.Pagina pg = IdVelden.pagina(woorden, (double) w / h);
+            if (pg != null) uit.put("pagina", new JSONObject().put("x", pg.x).put("y", pg.y).put("w", pg.w).put("h", pg.h).put("soort", pg.soort));
+            return uit;
         } finally { b.recycle(); }
     }
-    /** Gezichten (midden tussen de ogen en de afstand tussen de ogen, als deel van breedte en hoogte); leeg als het niet lukt. */
-    private static double[][] gezichten(Bitmap bron) {
+    /**
+     * Gezichten (midden tussen de ogen en de afstand tussen de ogen, als deel van breedte en hoogte); leeg als het niet lukt.
+     * Staat er rechtop geen gezicht en na een of meer kwartslagen (met de klok mee) wel, dan komt dat aantal in draai[0].
+     */
+    private static double[][] gezichten(Bitmap bron, int[] draai) {
         Bitmap klein = null;
         try {
             float f = Math.min(1f, 900f / Math.max(bron.getWidth(), bron.getHeight()));
-            int w = Math.max(2, Math.round(bron.getWidth() * f)) & ~1, h = Math.max(2, Math.round(bron.getHeight() * f));
+            int w = Math.max(2, Math.round(bron.getWidth() * f)), h = Math.max(2, Math.round(bron.getHeight() * f));
             klein = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
             new Canvas(klein).drawBitmap(bron, null, new android.graphics.Rect(0, 0, w, h), new Paint(Paint.FILTER_BITMAP_FLAG));
+            double[][] recht = gezichtenIn(klein);
+            if (recht.length > 0) return recht;
+            for (int k = 1; k <= 3; k++) {
+                Matrix m = new Matrix(); m.postRotate(k * 90);
+                Bitmap gedraaid = Bitmap.createBitmap(klein, 0, 0, w, h, m, true);
+                try { if (gezichtenIn(gedraaid).length > 0) { draai[0] = k; break; } } finally { if (gedraaid != klein) gedraaid.recycle(); }
+            }
+            return recht;
+        } catch (Throwable e) { return new double[0][]; }
+        finally { if (klein != null) klein.recycle(); }
+    }
+    /** De gezichtsherkenning van Android wil RGB_565 en een even breedte; ze vindt alleen gezichten die rechtop staan. */
+    private static double[][] gezichtenIn(Bitmap b) {
+        Bitmap even = null;
+        try {
+            int w = b.getWidth() & ~1, h = b.getHeight(); if (w < 2 || h < 2) return new double[0][];
+            even = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565); new Canvas(even).drawBitmap(b, 0, 0, null);
             android.media.FaceDetector.Face[] gevonden = new android.media.FaceDetector.Face[3];
-            int n = new android.media.FaceDetector(w, h, gevonden.length).findFaces(klein, gevonden);
+            int n = new android.media.FaceDetector(w, h, gevonden.length).findFaces(even, gevonden);
             List<double[]> uit = new ArrayList<>(); android.graphics.PointF m = new android.graphics.PointF();
             for (int i = 0; i < n; i++) { if (gevonden[i] == null || gevonden[i].confidence() < 0.4f) continue; gevonden[i].getMidPoint(m); uit.add(new double[]{m.x / w, m.y / h, gevonden[i].eyesDistance() / w}); }
             return uit.toArray(new double[0][]);
         } catch (Throwable e) { return new double[0][]; }
-        finally { if (klein != null) klein.recycle(); }
+        finally { if (even != null) even.recycle(); }
     }
 
     synchronized File save(Context c, String token, String json) throws Exception {
