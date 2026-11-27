@@ -1156,7 +1156,7 @@ de app zelf doet. **De bewerker** (`web/src/script/02-fotobewerken.js`, venster 
 verhoudingen ID-1, ID-3, A4, vierkant), Draaien (kwartslag, rechtzetten tot 45°), Licht (helderheid, contrast, zwart-wit,
 automatisch: `fbNiveau`) en Afdekken (zwarte vlakken; uit met `afdekken: false`; verandert de uitsnede, dan gaan ze weg met
 een melding, `fbVlakkenWeg`; een kwartslag draait ze mee; JS en Java nemen dezelfde marge, `fbVlakPix`/`FotoBewerk.vlak`). Ongedaan maken, Origineel, Automatisch
-verbeteren. Hij geeft alleen de **bewerking** terug (`ops`, zelfde vorm als `FotoOps.java`: draai, q, verhouding, licht,
+verbeteren. Onder de foto staat steeds het voorbeeld "Zo wordt hij" (`fbStraks`, `#fb-straks`; niet op Afdekken, daar toont de foto zelf de uitkomst). Hij geeft alleen de **bewerking** terug (`ops`, zelfde vorm als `FotoOps.java`: draai, q, verhouding, licht,
 contrast, niveau, grijs, vlakken); Java past die toe op de foto zelf (`FotoBewerk`: `Matrix.setPolyToPoly`, `ColorMatrix`),
 zodat de volle resolutie blijft en een kaartfoto niet als pixels door de interface terug hoeft. `fbRender` rekent het
 voorbeeld op dezelfde manier (zelfde `fbMaat`/`fbKleurAB` als `FotoOps.maat`/`kleur`; `FotoOpsTest`).

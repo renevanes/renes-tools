@@ -78,6 +78,12 @@ const { chromium } = require('playwright'); const path = require('path');
     // Annuleren met wijzigingen vraagt eerst; terug (goBack) doet hetzelfde
     await pg.evaluate(() => { window.__fb2 = 'open'; fotoBewerk({ src: Android._foBeeld().toDataURL('image/jpeg', 0.9) }).then(x => window.__fb2 = x); });
     await until(() => $('#fbdlg').classList.contains('on'));
+    // Onder de foto staat meteen hoe hij wordt: na bijsnijden even breed/hoog als de uitsnede, op Afdekken weg
+    await pg.evaluate(() => { fbHeel(); fb.ops.q = [[0.25, 0.25], [0.75, 0.25], [0.75, 0.5], [0.25, 0.5]]; fbTeken(); });
+    await until(() => { const d = $('#fb-straks-doek'), g = fbGedraaid(fb.foto, fb.ops.draai, fb.cache); return d.width > 1 && Math.abs(d.width / d.height - 2 * g.width / g.height) < 0.05; });
+    ok(await pg.evaluate(() => !$('#fb-straks').hidden && $('#fb-straks').getBoundingClientRect().height > 40), 'bijsnijden: voorbeeld van de uitkomst onder de foto');
+    await pg.screenshot({ path: __dirname + '/shots/foto-bewerken-bijsnijden-' + scheme + '.png' });
+    ok(await pg.evaluate(() => { fbTab('vlak'); const weg = $('#fb-straks').hidden; fbTab('snij'); fbHeel(); return weg && !$('#fb-straks').hidden; }), 'Afdekken: geen tweede voorbeeld');
     // Zwarte vlakken gaan weg (met een melding) als de uitsnede verandert: anders liggen ze op iets anders
     ok(await pg.evaluate(() => { fb.ops.vlakken = [[0.1, 0.1, 0.1, 0.1]]; fbVerhouding(String(85.6 / 54)); return !fb.ops.vlakken.length && /zwarte vlakken zijn weg/.test($('#fb-status').textContent); }), 'uitsnede veranderd: zwarte vlakken weg, met een melding');
     ok(await pg.evaluate(() => { fb.ops.vlakken = [[0.1, 0.1, 0.1, 0.1]]; fbDraai(1); fbDraai(-1); return fb.ops.vlakken.length === 1 && Math.abs(fb.ops.vlakken[0][0] - 0.1) < 1e-9; }), 'een kwartslag draait de vlakken mee');

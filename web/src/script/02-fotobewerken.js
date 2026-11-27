@@ -231,6 +231,7 @@ function fbSluit(uitkomst = null){
   const k = fb.klaar; fb.klaar = null; fb.foto = null; fb.cache = {}; fb.uit = null; fb.toon = null; fb.modus = 'bewerk';
   $('#fb-verg-voor').removeAttribute('src'); $('#fb-verg-na').removeAttribute('src'); fbVergToon(false);
   const c = $('#fb-doek'); c.width = 1; c.height = 1; $('#fb-vlak').innerHTML = '';
+  clearTimeout(fb.straksT); fb.straksNr = (fb.straksNr || 0) + 1; const sd = $('#fb-straks-doek'); sd.width = 1; sd.height = 1;
   if (k) k(uitkomst);
 }
 function fbAnnuleer(){
@@ -305,7 +306,7 @@ function fbTab(tab){
   fb.tab = tab;
   document.querySelectorAll('#fbdlg .pctabs [role=tab]').forEach(b => { const on = b.dataset.tab === tab; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
   document.querySelectorAll('#fbdlg .fb-paneel').forEach(p => p.hidden = p.id !== 'fb-p-' + tab);
-  if (fb.open) fbTeken();
+  if (fb.open) { fbTeken(); fbStraks(); }
 }
 /** Het vlak in pixels van de gedraaide foto. */
 function fbPix(q){ const g = fbGedraaid(fb.foto, fb.ops.draai, fb.cache); return q.map(([x, y]) => [x * g.width, y * g.height]); }
@@ -323,7 +324,22 @@ function fbKnoppen(bezig){
 function fbTeken(){
   if (!fb.open || fb.modus !== 'bewerk') return;
   fbKnoppen(); if (fb.teken) return;
-  fb.teken = requestAnimationFrame(async () => { fb.teken = 0; if (!fb.open || fb.modus !== 'bewerk') return; fbKnoppen(); if (fb.tab === 'vlak') await fbTekenUitkomst(); else fbTekenFoto(); });
+  fb.teken = requestAnimationFrame(async () => { fb.teken = 0; if (!fb.open || fb.modus !== 'bewerk') return; fbKnoppen(); if (fb.tab === 'vlak') await fbTekenUitkomst(); else fbTekenFoto(); fbStraks(); });
+}
+/** Onder de foto: zo wordt hij (bijgesneden, gedraaid, belicht). Op het tabblad Afdekken toont de foto zelf de uitkomst al. */
+function fbStraks(){
+  const el = $('#fb-straks'); clearTimeout(fb.straksT);
+  if (fb.tab === 'vlak') { el.hidden = true; return; }
+  el.hidden = false;
+  fb.straksT = setTimeout(async () => {
+    if (!fb.open || fb.modus !== 'bewerk' || fb.tab === 'vlak') return;
+    const nr = fb.straksNr = (fb.straksNr || 0) + 1, foto = fb.foto;
+    let c = null; try { if (fbGeldig(fb.ops.q, fbPix(fb.ops.q))) c = await fbRender(foto, fb.ops, 600, fb.cache); } catch (e) { c = null; }
+    if (!fb.open || nr !== fb.straksNr || fb.foto !== foto) return;
+    const d = $('#fb-straks-doek'); el.classList.toggle('leeg', !c);
+    if (!c) { d.width = 1; d.height = 1; return; }
+    d.width = c.width; d.height = c.height; d.getContext('2d').drawImage(c, 0, 0);
+  }, 120);
 }
 function fbTekenFoto(){
   const g = fbGedraaid(fb.foto, fb.ops.draai, fb.cache), s = Math.min(1, FB_MAX_TOON / Math.max(g.width, g.height));
