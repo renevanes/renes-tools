@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.274",
-  "versionCode": 275,
-  "nativeLevel": 234,
+  "versionName": "1.275",
+  "versionCode": 276,
+  "nativeLevel": 235,
   "web": "index.html",
-  "webSha256": "9bfa254c9fa9e068f8962e73aaa51617dc4da2337d84453e5691ea456719bee0",
+  "webSha256": "194ddd210a68885fed9643b8e43e0aa9c697b688336fee8cb66ceb57940f0cf5",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "11c7903b6b0799b5203db08ade6816b8749c61c63cdd94f1bfbf495995d92c82",
+  "apkSha256": "be934d4c8661bd671d2552b5baff6854f33bd2d620b513ea44859daf19c9a1dc",
   "changelog": [
+    {
+      "version": "1.275",
+      "date": "2026-11-27",
+      "changes": [
+        "ID-kopie afschermen: een paspoort wordt beter herkend. Staat de foto op zijn kant of op zijn kop, dan zet de app hem eerst vanzelf rechtop",
+        "ID-kopie afschermen: een opengeklapt paspoort (twee pagina's) wordt herkend: de vlakken komen op de pagina met je gegevens en de andere pagina wordt afgeschermd (uit te zetten)"
+      ]
+    },
     {
       "version": "1.274",
       "date": "2026-11-27",
@@ -167,15 +175,7 @@
         "Stamgegevens: een adres is nu alleen een adres (straat, postcode, plaats en land). Een naam geef je via Andere naam in het overzicht, een telefoonnummer hoort bij een persoon. Een bestaande naam blijft de naam in het overzicht; een telefoonnummer gaat eenmalig naar wie er woont. Een adres waar niemand woont maar met een telefoonnummer (zoals een camping of hotel) wordt een organisatie, zodat er niets verloren gaat.",
         "Stamgegevens: als openen traag gaat, komt per stap de duur in het foutlogboek (alleen tijden), zodat het gericht sneller kan."
       ]
-    },
-    {
-      "version": "1.255",
-      "date": "2026-11-25",
-      "changes": [
-        "Podcasts: afleveringen die afliepen terwijl de slaaptimer liep, kun je weer als niet beluisterd markeren (verder vanaf waar je nog wakker was). Podcasts vraagt het op Luisteren, of doet het vanzelf; in te stellen bij Instellingen van Podcasts → Na de slaaptimer.",
-        "Nieuwe app installeren: annuleer je de installatie (ook per ongeluk), dan blijft de download bewaard. Installeren installeert dan meteen, zonder opnieuw te downloaden; ook na het opnieuw openen van Tools staat \"Versie … is gedownload\" klaar"
-      ]
     }
   ],
-  "webSig2": "SOJqz2PMit9G2NZpTUjmdOuYATUbG9v981ul2TM+jeig3/h2njsD4wYGuz24wzqIiDGWGI0LYR+YE0krkSV5lg7r43mRlmoUhAP7iQFtCS3ce2v5sNyaLEA0hfOXEoyTcaSXTCJ25LtMoMP3sWzTt/4B2JjBJR4k7CztK/nT9NxWZjvyKd9I/GWL28QfRJPLYTg/e6Uc7UeCCm/TUQTYKzE/4QDhM3HFILNTxcQw+Y2/1GdQ0zin+J3AZA7xE13NCApBZSqqcdP6F49Up9XBk0QVwZaUA6euaTjTOphFhAYie5WEITAyJjJXEOMjX8oVRujEffUSd5RD/nL+aCLvx0rLUxAhJdwWVUe2dsGmH3y/xF77ddKtczG9BtwCrIrxkQCNyKSigbwO1EP4DraFQGN0GaMYLh7ico0bpYx5FDUMUQJ/xCPYPNrE4F0X/LD54GEeTDbKvHHStAxOM3gMeUE8XI7U4vrDe232N3PBJ1F5TJpcOlbZXWaT4w3sdRuo"
+  "webSig2": "s9cxDn9Nd/2OTk2O3pz+VkMQPNS92QiHcBiY77EBfn9vfVaci3hxerDdcVD1+HzBXre66sGIOzEh3VkARcDxiTSBgBVEx3t3N7mpU/CGay/uHWIxJr2zP4EVHgDhLfbfb2lAy8le2za2See8HPgWdaf04KpavLRlRUTjwkVp+3IlFRE6MvrdER9598+tsFl2k6OVXktqFF2gJ3cZKUrC2fU6tLcAnXeTGgzCYt0uoAB9aMutQVoJQAwSahnCVmElLcHgr9zVU03pmkNJcf8dcfB2W/ppqNTq/187RAgaOeyATDdanxIGAvw8pKSiQVFOkLT7PewHTl1vdq7pmKF7ag+/ZjR+1/Lz/5WnwR0zTJaJPrY2C0EismYgYqUXIOdW2b7RXtpg2zMM1mV1p/w+XCgtlFH9QC4r0KIX9q9M/wW4Y+l5AlWrGfQY02mynWJ0xzy0+NS36zFzwLLXDeC+hwiN2mPhzYxE4LEWRJM5XmKYJ1Pvvq5qijHhIe4XlrGa"
 }

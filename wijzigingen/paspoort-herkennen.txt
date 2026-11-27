@@ -1,2 +1,0 @@
-ID-kopie afschermen: een paspoort wordt beter herkend. Staat de foto op zijn kant of op zijn kop, dan zet de app hem eerst vanzelf rechtop
-ID-kopie afschermen: een opengeklapt paspoort (twee pagina's) wordt herkend: de vlakken komen op de pagina met je gegevens en de andere pagina wordt afgeschermd (uit te zetten)
