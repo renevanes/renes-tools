@@ -263,3 +263,11 @@ details.card.setup>summary .setup-h{flex:1;min-width:0;font-size:15px;font-weigh
 /* Diagnose (Instellingen → Foutrapport en statistieken): een stuk per regel, met de tekst uitklapbaar */
 .dg-item{padding:10px 0;border-top:1px solid var(--line)}.dg-kop{margin:0 0 8px}.dg-kop small{display:block;color:var(--muted);margin-top:2px}
 .dg-item .mini{min-height:44px}.dg-tekst{white-space:pre-wrap;word-break:break-word;font-size:12px;max-height:50vh;overflow:auto;margin:8px 0 0}
+
+/* Beeld vergroten (script/02-beeldzoom.js): het kader, de inhoud en de balk met − / 1× / + */
+.bz-kijk{max-width:100%;scrollbar-width:none;touch-action:pan-y}.bz-kijk::-webkit-scrollbar{display:none}
+.bz-kijk.zoom{overflow:auto;touch-action:none;border-radius:6px;background:var(--hi)}
+.bz-kijk.zoom .bz-inhoud{max-width:none;flex:none}
+.bz-kijk.zoom img.bz-inhoud,.bz-kijk.zoom canvas.bz-inhoud,.bz-kijk.zoom .bz-inhoud>img,.bz-kijk.zoom .bz-inhoud>canvas{width:100%;max-width:none;max-height:none;height:auto}
+.bz-balk{display:flex;justify-content:center;align-items:center;gap:6px;margin:4px 0 0;flex-wrap:wrap}
+.bz-balk .icon-btn{min-width:44px;min-height:44px;font-size:22px;line-height:1}.bz-balk .mini{min-width:52px;min-height:44px;margin:0}

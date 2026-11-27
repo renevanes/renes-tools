@@ -285,6 +285,13 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   `PdfDoc.soort`) openen in de eigen viewer (`PdfViewActivity`, met `PdfDoc`; via `PdfProvider`, geen kopie buiten de app).
   Een kluisdocument via `kluisOpen` (Java kiest aan de inhoud), een bestand onder Gemaakt via `pdfOpen`. Alleen wat de viewer niet
   kan tonen (bijv. Word) gaat naar een andere app. Nieuwe plek die een document toont = deze viewer, geen eigen weergave.
+- **Foto's: één vaste set om te vergroten en te bewerken** (wens van Rene, 27-11-2026): `beeldZoom(kijk, {…})` in
+  `web/src/script/02-beeldzoom.js` (opmaak `.bz-kijk`/`.bz-balk` in `ontwerp.css`): de balk − / 1× / + (met eigen knoppen
+  erbij, zoals Bewerken), knijpen met twee vingers en, vergroot, schuiven. De gastheer houdt één vinger zelf
+  (`eenVinger: false` en `bz.schuif(e)`) als hij ermee tekent of sleept; `gebaar` breekt dat af zodra een tweede vinger
+  knijpt. Nu bij Foto bewerken (de bewerker, voor en na, en de tool) en het voorbeeld van ID-kopie afschermen. Een nieuwe
+  plek die een foto toont gebruikt dit onderdeel, geen eigen zoomknoppen of schuif. Test: `tests/ui/foto-bewerken.test.js`,
+  `tests/ui/id-kopie.test.js`.
 - **Lege lijst**: `uiEmpty('mic', t('Nog geen opnames.'), t('Knoptekst'), 'actie()')`: pictogram, één regel en hooguit één (tonale) knop.
 - **Eenmalig instellen**: een kaart `class="card setup"` die weg gaat als het klaar is (`<div … hidden>`), of inklapt als er
   ook later nog iets in staat (`<details class="card setup"><summary><span class="setup-h" role="heading" aria-level="2">Eenmalig instellen</span><small id="…">stand</small></summary>…</details>`;
@@ -1181,7 +1188,7 @@ de app zelf doet. **De bewerker** (`web/src/script/02-fotobewerken.js`, venster 
 verhoudingen ID-1, ID-3, A4, vierkant), Draaien (kwartslag, rechtzetten tot 45°), Licht (helderheid, contrast, zwart-wit,
 automatisch: `fbNiveau`) en Afdekken (zwarte vlakken; uit met `afdekken: false`; verandert de uitsnede, dan gaan ze weg met
 een melding, `fbVlakkenWeg`; een kwartslag draait ze mee; JS en Java nemen dezelfde marge, `fbVlakPix`/`FotoBewerk.vlak`). Ongedaan maken, Origineel, Automatisch
-verbeteren. Onder de foto staat steeds het voorbeeld "Zo wordt hij" (`fbStraks`, `#fb-straks`; niet op Afdekken, daar toont de foto zelf de uitkomst). Vergroten (`fbZoomZet`, `fbZoomPas`, `#fb-kijk`; tot `FB_ZOOM_MAX`): knoppen − en + onder de foto of knijpen met twee vingers; vergroot schuif je met twee vingers of met één vinger naast de hoeken; een ander tabblad zet de zoom terug. Hij geeft alleen de **bewerking** terug (`ops`, zelfde vorm als `FotoOps.java`: draai, q, verhouding, licht,
+verbeteren. Onder de foto staat steeds het voorbeeld "Zo wordt hij" (`fbStraks`, `#fb-straks`; niet op Afdekken, daar toont de foto zelf de uitkomst). Het grote kader toont Bewerken of Zo wordt hij (`fbKijk`, `#fb-kijk-bewerk`/`#fb-kijk-uit`; een tik op het kleine voorbeeld of de knop toont de uitkomst groot, `fbTekenResultaat`; een tabblad kiezen = weer bewerken). Vergroten gaat overal met het gedeelde onderdeel `beeldZoom` (zie "Interface-patronen"): in beide weergaven en bij voor en na (één balk, beide foto's lopen samen). Indeling van boven naar beneden: foto, weergave en zoom, het kleine voorbeeld, de melding, de tabbladen met hun paneel, en onderaan wat voor de hele foto geldt (Automatisch verbeteren, Ongedaan maken, Origineel). Hij geeft alleen de **bewerking** terug (`ops`, zelfde vorm als `FotoOps.java`: draai, q, verhouding, licht,
 contrast, niveau, grijs, vlakken); Java past die toe op de foto zelf (`FotoBewerk`: `Matrix.setPolyToPoly`, `ColorMatrix`),
 zodat de volle resolutie blijft en een kaartfoto niet als pixels door de interface terug hoeft. `fbRender` rekent het
 voorbeeld op dezelfde manier (zelfde `fbMaat`/`fbKleurAB` als `FotoOps.maat`/`kleur`; `FotoOpsTest`).

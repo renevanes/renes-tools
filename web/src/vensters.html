@@ -94,23 +94,22 @@
   <div class="fb-midden" id="fb-verg" hidden>
     <p class="hint" id="fb-verg-uitleg"></p>
     <div class="fb-verg">
-      <figure><figcaption id="fb-verg-voor-t">Zo is hij nu</figcaption><img id="fb-verg-voor" alt="De foto zoals hij nu is"></figure>
-      <figure><figcaption id="fb-verg-na-t">Zo wordt hij</figcaption><img id="fb-verg-na" alt="De foto zoals hij wordt"></figure>
+      <figure><figcaption id="fb-verg-voor-t">Zo is hij nu</figcaption><div class="fb-verg-kijk" id="fb-verg-voor-kijk"><img id="fb-verg-voor" alt="De foto zoals hij nu is"></div></figure>
+      <figure><figcaption id="fb-verg-na-t">Zo wordt hij</figcaption><div class="fb-verg-kijk" id="fb-verg-na-kijk"><img id="fb-verg-na" alt="De foto zoals hij wordt"></div></figure>
     </div>
+    <div id="fb-verg-zoom"></div>
     <p class="note" id="fb-verg-status" role="status" aria-live="polite"></p>
     <button class="big ghost" id="fb-verg-terug" type="button" onclick="fbVergTerug()">Verder bewerken</button>
   </div>
   <div class="fb-midden" id="fb-werk">
     <p class="hint" id="fb-uitleg"></p>
     <div class="fb-kijk" id="fb-kijk"><div class="fb-beeld"><canvas id="fb-doek" width="1" height="1" aria-hidden="true"></canvas><svg id="fb-vlak" role="group" preserveAspectRatio="none"></svg></div></div>
-    <div class="fb-zoom" role="group" aria-label="Vergroten"><button class="icon-btn" id="fb-zoom-min" type="button" onclick="fbZoomStap(-1)" aria-label="Uitzoomen">−</button><button class="mini" id="fb-zoom-n" type="button" onclick="fbZoomZet(1)" aria-label="Zoom terugzetten" translate="no">1×</button><button class="icon-btn" id="fb-zoom-plus" type="button" onclick="fbZoomStap(1)" aria-label="Inzoomen">+</button></div>
-    <figure class="fb-straks" id="fb-straks"><figcaption>Zo wordt hij</figcaption><canvas id="fb-straks-doek" width="1" height="1" role="img" aria-label="Voorbeeld van de uitkomst"></canvas></figure>
-    <p class="note" id="fb-status" role="status" aria-live="polite"></p>
-    <div class="row fb-acties">
-      <button class="mini" id="fb-auto" type="button" onclick="fbAuto()" data-icon="sparkle">Automatisch verbeteren</button>
-      <button class="mini" id="fb-ongedaan" type="button" onclick="fbOngedaan()" data-icon="refresh">Ongedaan maken</button>
-      <button class="mini" id="fb-orig" type="button" onclick="fbOrigineel()">Origineel</button>
+    <div class="fb-balk">
+      <div class="fb-kijkkeuze" role="group" aria-label="Wat je ziet"><button class="mini on" id="fb-kijk-bewerk" type="button" aria-pressed="true" onclick="fbKijk('bewerk')">Bewerken</button><button class="mini" id="fb-kijk-uit" type="button" aria-pressed="false" onclick="fbKijk('uit')">Zo wordt hij</button></div>
+      <div id="fb-zoom"></div>
     </div>
+    <button class="fb-straks" id="fb-straks" type="button" onclick="fbKijk('uit')" aria-label="Zo wordt hij: tik om groot te bekijken en te vergroten"><span class="fb-straks-t">Zo wordt hij · tik om te vergroten</span><canvas id="fb-straks-doek" width="1" height="1" aria-hidden="true"></canvas></button>
+    <p class="note" id="fb-status" role="status" aria-live="polite"></p>
     <div class="pctabs fb-tabs" role="tablist" aria-label="Bewerken">
       <button role="tab" id="fb-tab-snij" data-tab="snij" aria-controls="fb-p-snij" aria-selected="true" tabindex="0" type="button" onclick="fbTab('snij')">Bijsnijden</button>
       <button role="tab" id="fb-tab-draai" data-tab="draai" aria-controls="fb-p-draai" aria-selected="false" tabindex="-1" type="button" onclick="fbTab('draai')">Draaien</button>
@@ -139,6 +138,11 @@
     <div class="fb-paneel" id="fb-p-vlak" role="tabpanel" aria-labelledby="fb-tab-vlak" hidden>
       <p class="hint">Sleep over wat niemand hoeft te zien (bijvoorbeeld een nummer): dat wordt zwart, ook in de foto zelf.</p>
       <div class="row"><button class="mini" id="fb-vlak-weg" type="button" onclick="fbVlakWeg(false)">Laatste vlak weg</button><button class="mini" id="fb-vlak-alles" type="button" onclick="fbVlakWeg(true)">Alle vlakken weg</button></div>
+    </div>
+    <div class="row fb-acties">
+      <button class="mini" id="fb-auto" type="button" onclick="fbAuto()" data-icon="sparkle">Automatisch verbeteren</button>
+      <button class="mini" id="fb-ongedaan" type="button" onclick="fbOngedaan()" data-icon="refresh">Ongedaan maken</button>
+      <button class="mini" id="fb-orig" type="button" onclick="fbOrigineel()">Origineel</button>
     </div>
   </div>
 </div>

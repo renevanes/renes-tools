@@ -58,6 +58,7 @@ const { chromium } = require('playwright'); const path = require('path');
     await pg.mouse.move(greep[0], greep[1]); await pg.mouse.down(); await pg.mouse.move(greep[0] + 30, greep[1] + 20, { steps: 4 }); await pg.mouse.up();
     const na = await pg.evaluate(() => fb.ops.q[0].slice());
     ok(na[0] > voor[0] && na[1] > voor[1], 'hoek gesleept');
+    await pg.waitForTimeout(120); // na het loslaten tekent de bewerker de hoeken opnieuw en zet hij de focus terug: daarna pas verder
     await pg.focus('#fb-vlak .fb-greep[data-i="1"]'); const k0 = await pg.evaluate(() => fb.ops.q[1][0]); await pg.keyboard.press('ArrowLeft');
     ok(await pg.evaluate(k => Math.abs(fb.ops.q[1][0] - (k - 0.01)) < 1e-6, k0), 'hoek met de pijltjes');
     await pg.click('#fb-tab-draai'); await pg.click('#fb-p-draai button:has-text("Kwartslag naar rechts")');
@@ -94,7 +95,19 @@ const { chromium } = require('playwright'); const path = require('path');
       try { ev('pointerdown', 0); ev('pointermove', 30); ev('pointerup', 30); } catch (e) { return 'fout ' + e; }
       return l > 20 && Math.abs(k.scrollLeft - (l - 30)) < 2; }) === true, 'vergroot: met één vinger naast de hoeken schuif je de foto');
     await pg.screenshot({ path: __dirname + '/shots/foto-bewerken-zoom-' + scheme + '.png' });
-    ok(await pg.evaluate(() => { fbZoomZet(1); const k = $('#fb-kijk'); return !k.classList.contains('zoom') && !$('#fb-doek').style.width && $('#fb-zoom-min').disabled; }), 'zoom terugzetten');
+    ok(await pg.evaluate(() => { fbZoomZet(1); const k = $('#fb-kijk'); return !k.classList.contains('zoom') && !$('.fb-beeld').style.width && $('#fb-zoom-min').disabled; }), 'zoom terugzetten');
+    // Zo wordt hij, groot: het voorbeeld onder de foto of de knop wisselt het grote kader naar de uitkomst, en daar werkt dezelfde zoom
+    await pg.evaluate(() => { fb.ops.q = [[0.25, 0.25], [0.75, 0.25], [0.75, 0.5], [0.25, 0.5]]; fbTeken(); });
+    await pg.click('#fb-straks');
+    await until(() => { const d = $('#fb-doek'), g = fbGedraaid(fb.foto, fb.ops.draai, fb.cache); return fb.kijk === 'uit' && Math.abs(d.width / d.height - 2 * g.width / g.height) < 0.05 && !$('#fb-vlak').children.length; });
+    ok(await pg.evaluate(() => $('#fb-kijk-uit').getAttribute('aria-pressed') === 'true' && $('#fb-straks').getBoundingClientRect().height === 0), 'Zo wordt hij: de uitkomst groot, zonder hoeken; het kleine voorbeeld is dan weg');
+    await pg.click('#fb-zoom-plus'); await pg.click('#fb-zoom-plus');
+    await until(() => $('#fb-kijk').classList.contains('zoom') && $('#fb-doek').width > 1);
+    ok(await pg.evaluate(() => { const k = $('#fb-kijk'); return k.scrollWidth > k.clientWidth + 20 && !$('#fb-vlak').children.length && fb.kijk === 'uit'; }), 'de uitkomst vergroten met dezelfde knoppen');
+    await pg.screenshot({ path: __dirname + '/shots/foto-bewerken-uitkomst-' + scheme + '.png' });
+    await pg.click('#fb-kijk-bewerk');
+    await until(() => fb.kijk === 'bewerk' && $('#fb-vlak .fb-greep') && !$('#fb-kijk').classList.contains('zoom'));
+    ok(await pg.evaluate(() => { fbKijk('uit'); fbTab('draai'); return fb.kijk === 'bewerk' && !$('#fb-straks').hidden; }) && await pg.evaluate(() => { fbTab('snij'); fbHeel(); return true; }), 'een tabblad kiezen = weer bewerken');
     // Zwarte vlakken gaan weg (met een melding) als de uitsnede verandert: anders liggen ze op iets anders
     ok(await pg.evaluate(() => { fb.ops.vlakken = [[0.1, 0.1, 0.1, 0.1]]; fbVerhouding(String(85.6 / 54)); return !fb.ops.vlakken.length && /zwarte vlakken zijn weg/.test($('#fb-status').textContent); }), 'uitsnede veranderd: zwarte vlakken weg, met een melding');
     ok(await pg.evaluate(() => { fb.ops.vlakken = [[0.1, 0.1, 0.1, 0.1]]; fbDraai(1); fbDraai(-1); return fb.ops.vlakken.length === 1 && Math.abs(fb.ops.vlakken[0][0] - 0.1) < 1e-9; }), 'een kwartslag draait de vlakken mee');
@@ -113,6 +126,11 @@ const { chromium } = require('playwright'); const path = require('path');
     await pg.click('#fb-ok');
     ok(await until(() => !$('#fob-bewaar').disabled), 'terug op de tool, Bewaren kan');
     ok((await pg.inputValue('#fob-naamin')).startsWith('Testfoto'), 'naam voorgesteld');
+    // De vaste set bij de foto: vergroten en Bewerken
+    await pg.click('#fob-zoom-plus');
+    ok(await pg.evaluate(() => $('#fob-kijk').classList.contains('zoom') && $('#fob-kijk').scrollWidth > $('#fob-kijk').clientWidth + 20 && $('#fob-bewerk').closest('.bz-balk') === $('#fob-zoom')), 'tool: foto vergroten, Bewerken in dezelfde balk');
+    await pg.click('#fob-zoom-min'); ok(await pg.evaluate(() => !$('#fob-kijk').classList.contains('zoom')), 'tool: zoom terug');
+    await pg.screenshot({ path: __dirname + '/shots/foto-bewerken-tool-' + scheme + '.png' });
     await pg.click('#fob-bewaar');
     await until(() => tsZichtbaar() && ts.tool === 'kluis' && !$('#ts-open').disabled || !$('#fob-klaar').hidden, null, 3000);
     if (await pg.evaluate(() => tsZichtbaar())) await pg.click('#ts-open');
@@ -138,6 +156,13 @@ const { chromium } = require('playwright'); const path = require('path');
     // Eerst voor en na naast elkaar; pas na nog een keer Bewaren wordt de foto vervangen
     ok(await until(() => !$('#fb-verg').hidden && !!$('#fb-verg-na').getAttribute('src') && !$('#fb-ok').disabled) && await pg.evaluate(() => !(Android._cm.bewerkt || []).length && $('#fb-werk').hidden), 'eerst een voorbeeld: voor en na naast elkaar, nog niets bewaard');
     ok(/Eerdere versies/.test(await pg.textContent('#fb-verg-uitleg')), 'zegt dat de foto van nu bewaard blijft');
+    // Voor en na vergroten: één balk, beide foto's lopen samen
+    const vn0 = await pg.evaluate(() => [$('#fb-verg-voor').getBoundingClientRect().width, $('#fb-verg-na').getBoundingClientRect().width]);
+    await pg.click('#fb-verg-zoom-plus');
+    ok(await pg.evaluate(w => $('#fb-verg-na-kijk').classList.contains('zoom') && $('#fb-verg-voor-kijk').classList.contains('zoom')
+      && Math.abs($('#fb-verg-voor').getBoundingClientRect().width / w[0] - 1.5) < 0.05 && Math.abs($('#fb-verg-na').getBoundingClientRect().width / w[1] - 1.5) < 0.05, vn0), 'voor en na: samen vergroten, het getal klopt met wat je ziet');
+    await pg.click('#fb-verg-zoom-n');
+    ok(await pg.evaluate(() => !$('#fb-verg-na-kijk').classList.contains('zoom') && !$('#fb-verg-voor-kijk').classList.contains('zoom')), 'voor en na: zoom terug');
     await pg.screenshot({ path: __dirname + '/shots/foto-bewerken-controle-' + scheme + '.png' });
     await pg.click('#fb-verg-terug'); ok(await pg.evaluate(() => $('#fb-verg').hidden && !$('#fb-werk').hidden && fb.ops.draai === 90), 'Verder bewerken: terug in de bewerker, niets kwijt');
     await pg.click('#fb-ok'); await until(() => !$('#fb-verg').hidden && !$('#fb-ok').disabled); await pg.click('#fb-ok');

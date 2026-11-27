@@ -22,6 +22,9 @@ const path=require('path');
   assert.equal(await p.evaluate(()=>idCopyVlakken(idc.pages[0]).length),2);assert.match(await p.textContent('#id-masks'),/2 afschermvlakken/);
   await p.locator('#id-velden input[data-veld=strook]').uncheck();assert.equal(await p.evaluate(()=>idCopyVlakken(idc.pages[0]).length),1,'veld uitgezet: niet meer afgeschermd');
   await p.locator('#id-velden input[data-veld=strook]').check();
+  // De vaste set bij een foto: vergroten met de knoppen (de schuif is weg)
+  await p.click('#id-zoom-plus');assert.equal(await p.evaluate(()=>$('#id-scroll').classList.contains('zoom')&&$('#id-scroll').scrollWidth>$('#id-scroll').clientWidth+20),true,'voorbeeld vergroot');
+  await p.click('#id-zoom-n');assert.equal(await p.evaluate(()=>$('#id-scroll').classList.contains('zoom')),false);
   await p.locator('#id-layer').scrollIntoViewIfNeeded();
   const box=await p.locator('#id-layer').boundingBox();await p.mouse.move(box.x+box.width*.1,box.y+box.height*.2);await p.mouse.down();await p.mouse.move(box.x+box.width*.6,box.y+box.height*.4,{steps:4});await p.mouse.up();
   assert.equal(await p.evaluate(()=>idc.pages[0].rects.length),1);
