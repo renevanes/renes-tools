@@ -56,7 +56,7 @@ const path=require('path');
   // Een opengeklapt paspoort dat op zijn kant gefotografeerd is: vanzelf rechtop (één keer), daarna de vaste indeling op de
   // pagina met de gegevens (de onderste helft) en de bovenste pagina als eigen veld
   await p.evaluate(()=>show('pdf'));await p.evaluate(()=>show('idcopy'));
-  await p.evaluate(()=>{const s=Android._idc;s.herkend=[];s.draai=(page,turn)=>turn===0?1:0;s.velden=[{veld:'strook',x:0,y:.88,w:1,h:.12}];s.soort='paspoort';s.pagina={x:0,y:.5,w:1,h:.5,soort:'paspoort'};window.__testIdPages=1;});
+  await p.evaluate(()=>{const s=Android._idc;s.herkend=[];s.draaiGemeld={};s.draai=(page,turn)=>turn===0?1:0;s.velden=[{veld:'strook',x:0,y:.88,w:1,h:.12}];s.soort='paspoort';s.pagina={x:0,y:.5,w:1,h:.5,soort:'paspoort'};window.__testIdPages=1;});
   await p.click('#id-pick');await (async()=>{if(await p.isVisible('#sheet.on'))await p.click('#sheet-acts >> text=Bestand op de telefoon');})();await p.waitForFunction(()=>idc.pages.length===1&&idc.pages[0].herken==='klaar'&&!idc.loading);
   assert.equal(await p.evaluate(()=>idc.pages[0].turn),1,'een kwartslag gedraaid');assert.deepEqual(await p.evaluate(()=>Android._idc.herkend.map(h=>h.turn)),[0,1],'na het draaien opnieuw gezocht, één keer');
   assert.match(await p.textContent('#id-velden .idveld-recht'),/vanzelf rechtop gezet/);assert.match(await p.textContent('#id-velden .idveld-open'),/opengeklapt paspoort/);
@@ -65,8 +65,14 @@ const path=require('path');
   assert.ok(pv.filter(v=>v.bron==='geschat'&&v.veld!=='anderepagina').every(v=>v.rect[1]>=.5&&v.rect[1]+v.rect[3]<=1.0001),'de geschatte vlakken liggen op de pagina met de gegevens');
   assert.deepEqual(pv.find(v=>v.veld==='anderepagina').rect,[0,0,1,.5]);assert.match(await p.textContent('#id-velden'),/Andere pagina van het paspoort/);
   // Zelf draaien daarna: de app draait niet nog eens terug
-  await p.evaluate(()=>{Android._idc.draai=()=>3;idc.pages[0].velden=[];idCopyTurn();});await p.waitForFunction(()=>idc.pages[0].herken==='klaar'&&!idc.loading);
+  await p.evaluate(()=>{Android._idc.draai=()=>3;Android._idc.draaiGemeld={};Android._idc.herkend=[];idc.pages[0].velden=[];idCopyTurn();});await p.waitForFunction(()=>idc.pages[0].herken==='klaar'&&!idc.loading);
   assert.equal(await p.evaluate(()=>idc.pages[0].turn),2,'na zelf draaien blijft de pagina zo');assert.equal(await p.locator('#id-velden .idveld-recht').count(),0);
+  assert.deepEqual(await p.evaluate(()=>Android._idc.herkend.map(h=>h.turn)),[2,2],'niet gedraaid: opnieuw gevraagd, dan leest de app gewoon');
+  assert.ok(await p.evaluate(()=>idc.pages[0].velden.some(v=>v.veld==='strook'&&v.bron==='herkend')),'de strook is ook dan herkend');
+  // Een bewerking met een eigen kwartslag telt mee bij het rechtop zetten
+  await p.evaluate(()=>{const q=idc.pages[0];Android._idc.draai=()=>0;q.turn=0;q.rechtop='';q.draaiOver=false;q.ops={v:1,draai:90};q.opsTurn=0;q.herken='bezig';idCopyHerkend(q,{draai:1,velden:[]});});
+  await p.waitForFunction(()=>idc.pages[0].herken==='klaar'&&!idc.loading&&idc.pages[0].rechtop==='vanzelf');
+  assert.equal(await p.evaluate(()=>idc.pages[0].turn),2,'kwartslag van de bewerking plus die van de herkenning');
   await p.evaluate(()=>{delete Android._idc.draai;delete Android._idc.pagina;});
   await p.evaluate(()=>show('pdf'));
   await p.close();

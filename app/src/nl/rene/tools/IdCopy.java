@@ -23,6 +23,8 @@ import java.util.List;
 final class IdCopy {
     static final int MAX_PAGES = 4, EDGE = 2400;
     private final List<Source> pages = new ArrayList<>();
+    /** Pagina's waarvoor al is gekeken of ze gedraaid staan (herken). */
+    private final java.util.Set<Integer> draaiGemeld = new java.util.HashSet<>();
     private File dir;
     private String revision = "";
     private volatile boolean closed;
@@ -178,7 +180,9 @@ final class IdCopy {
             int w = b.getWidth(), h = b.getHeight();
             // Staat de foto op zijn kant of op zijn kop? Het gezicht op de pasfoto zegt het: dan eerst rechtop, daarna pas lezen.
             int[] draai = new int[1]; double[][] gezichten = gezichten(b, draai);
-            if (draai[0] != 0) return new JSONObject().put("revision", token).put("page", page).put("turn", turn).put("draai", draai[0]).put("velden", new JSONArray()).put("soort", "").put("gelezen", false);
+            // Eén keer per pagina: draait de interface niet (Rene draaide zelf, of tekende al vlakken), dan vraagt ze opnieuw en wordt er gewoon gelezen.
+            boolean eerst; synchronized (this) { check(token); eerst = draaiGemeld.add(page); }
+            if (draai[0] != 0 && eerst) return new JSONObject().put("revision", token).put("page", page).put("turn", turn).put("draai", draai[0]).put("velden", new JSONArray()).put("soort", "").put("gelezen", false);
             int[] maat = new int[2];
             List<OcrIndeling.Woord> gelezen = RijbewijsOcr.pageWoorden(c, b, () -> !closed && volg == herkenVolg && android.os.SystemClock.elapsedRealtime() < eind, maat);
             if (volg != herkenVolg) throw new Exception(Taal.T("Kies de ID-kopie opnieuw"));
@@ -206,11 +210,15 @@ final class IdCopy {
             new Canvas(klein).drawBitmap(bron, null, new android.graphics.Rect(0, 0, w, h), new Paint(Paint.FILTER_BITMAP_FLAG));
             double[][] recht = gezichtenIn(klein);
             if (recht.length > 0) return recht;
+            // Alleen draaien bij een duidelijk gezicht in precies één stand: een toevallige treffer mag een goede foto niet draaien.
+            int gevonden = 0, stand = 0;
             for (int k = 1; k <= 3; k++) {
                 Matrix m = new Matrix(); m.postRotate(k * 90);
                 Bitmap gedraaid = Bitmap.createBitmap(klein, 0, 0, w, h, m, true);
-                try { if (gezichtenIn(gedraaid).length > 0) { draai[0] = k; break; } } finally { if (gedraaid != klein) gedraaid.recycle(); }
+                try { for (double[] g : gezichtenIn(gedraaid)) if (g[3] >= 0.5 && g[2] >= 0.04) { gevonden++; stand = k; break; } }
+                finally { if (gedraaid != klein) gedraaid.recycle(); }
             }
+            if (gevonden == 1) draai[0] = stand;
             return recht;
         } catch (Throwable e) { return new double[0][]; }
         finally { if (klein != null) klein.recycle(); }
@@ -224,7 +232,7 @@ final class IdCopy {
             android.media.FaceDetector.Face[] gevonden = new android.media.FaceDetector.Face[3];
             int n = new android.media.FaceDetector(w, h, gevonden.length).findFaces(even, gevonden);
             List<double[]> uit = new ArrayList<>(); android.graphics.PointF m = new android.graphics.PointF();
-            for (int i = 0; i < n; i++) { if (gevonden[i] == null || gevonden[i].confidence() < 0.4f) continue; gevonden[i].getMidPoint(m); uit.add(new double[]{m.x / w, m.y / h, gevonden[i].eyesDistance() / w}); }
+            for (int i = 0; i < n; i++) { if (gevonden[i] == null || gevonden[i].confidence() < 0.4f) continue; gevonden[i].getMidPoint(m); uit.add(new double[]{m.x / w, m.y / h, gevonden[i].eyesDistance() / w, gevonden[i].confidence()}); }
             return uit.toArray(new double[0][]);
         } catch (Throwable e) { return new double[0][]; }
         finally { if (even != null) even.recycle(); }

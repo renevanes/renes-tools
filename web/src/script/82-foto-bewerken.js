@@ -246,7 +246,7 @@ async function idCopyBewerk(){
   const res = await fotoBewerk({ src, bron: 'id', titel: t('Pagina bewerken'), knop: t('Gebruiken'), soort: idfSoort(), ops: p.ops || undefined, afdekken: false,
     voorstel: !p.ops && fobVoorstelAan(), uitleg: t('Zwart maken doe je daarna met de afschermvlakken.') });
   if (!res || idc.revision !== rev || idc.page !== page || current !== 'idcopy') return;
-  p.ops = res.gewijzigd ? res.ops : null; p.opsTurn = p.turn; p.auto = true; p.checked = false;
+  p.ops = res.gewijzigd ? res.ops : null; p.opsTurn = p.turn; p.auto = true; p.checked = false; if (res.gewijzigd) p.rechtop = 'zelf'; // zelf bewerkt: niet meer vanzelf draaien
   idc.melding = p.rects.length ? t('Pagina aangepast. Controleer of de afschermvlakken nog goed liggen.') : t('Pagina aangepast.');
   idCopyLoad();
 }

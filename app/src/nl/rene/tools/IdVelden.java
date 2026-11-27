@@ -65,15 +65,16 @@ final class IdVelden {
         if (s.contains("PASPOORT") || s.contains("PASSPORT") || s.contains("P<NLD")) return "paspoort";
         if (s.contains("I<NLD") || s.contains("IDNLD")) return "idkaart";
         // geen opschrift gelezen: de vorm van de strook zegt het (twee lange regels = paspoort, drie korte = kaart)
+        // alleen bij een duidelijke vorm: een half gelezen strook zegt te weinig
         Strook st = strook(regels(woorden));
-        return st == null ? "" : st.soort();
+        return st == null ? "" : st.regels >= 3 ? "idkaart" : st.regels == 2 && st.tekens >= 38 ? "paspoort" : "";
     }
 
     /** De strook in de gelezen regels: welke regels, waar (ook links en rechts) en hoe lang de langste regel is. */
     static final class Strook {
         boolean[] in; double y0 = 2, y1 = -1, x0 = 2, x1 = -1, hoog; int regels, tekens;
         /** Een paspoort heeft twee regels van 44 tekens, een kaart drie van 30. */
-        String soort() { return regels >= 3 || regels < 2 && tekens < 38 ? "idkaart" : "paspoort"; }
+        String soort() { return regels >= 3 ? "idkaart" : tekens >= 38 ? "paspoort" : tekens <= 32 ? "idkaart" : regels == 2 ? "paspoort" : "idkaart"; }
     }
     static Strook strook(List<List<Woord>> regels) {
         Strook s = new Strook(); s.in = new boolean[regels.size()];
@@ -100,8 +101,10 @@ final class IdVelden {
     static Pagina pagina(List<Woord> woorden, double verhouding) {
         Strook s = strook(regels(woorden)); if (s == null || verhouding <= 0) return null;
         double tekst = s.x1 - s.x0; if (tekst < 0.25) return null; // te weinig van de strook gelezen om de breedte te schatten
-        String soort = s.soort(); double vorm = soort.equals("paspoort") ? 125.0 / 88.0 : 85.6 / 54.0;
-        double w = Math.min(1, tekst / 0.9), midden = (s.x0 + s.x1) / 2, x0 = Math.max(0, midden - w / 2), x1 = Math.min(1, midden + w / 2);
+        String soort = s.soort(); boolean pas = soort.equals("paspoort"); double vorm = pas ? 125.0 / 88.0 : 85.6 / 54.0;
+        // de strook vult 0,9 van de breedte als hij helemaal gelezen is; een duidelijk te korte regel = geen schatting
+        double deel = Math.min(1, s.tekens / (pas ? 44.0 : 30.0)); if (deel < 0.8) return null;
+        double w = Math.min(1, tekst / (0.9 * deel)), midden = (s.x0 + s.x1) / 2, x0 = Math.max(0, midden - w / 2), x1 = Math.min(1, midden + w / 2);
         w = x1 - x0; double h = w * verhouding / vorm, onder = Math.min(1, s.y1 + h * 0.05), boven = Math.max(0, onder - h);
         return new Pagina(x0, boven, w, onder - boven, soort);
     }

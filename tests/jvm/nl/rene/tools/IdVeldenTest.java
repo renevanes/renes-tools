@@ -56,7 +56,16 @@ public class IdVeldenTest {
         open.add(w("Handtekening", 0.1, 0.2, 0.3, 1)); open.add(w("P<NLDDE<BRUIJN<<WILLEKE<LISELOTTE<<<<<<<<<<<", 0.05, 0.9, 0.9, 2)); open.add(new IdVelden.Woord("SPECI20142NLD6503101F2403096999999990<<<<<84", 0.05, 0.94, 0.95, 0.97, 3));
         pg = IdVelden.pagina(open, 0.71);
         check(pg != null && pg.soort.equals("paspoort") && pg.x < 0.03 && pg.w > 0.97 && pg.y > 0.45 && pg.y < 0.55 && pg.y + pg.h > 0.98, "opengeklapt: alleen de onderste helft is de pagina met de gegevens");
-        check("paspoort".equals(IdVelden.soort(open)) && IdVelden.pagina(g, 1.5) == null, "soort uit de vorm van de strook; geen strook = geen pagina");
+        check("paspoort".equals(IdVelden.soort(open)) && IdVelden.pagina(g, 1.5) == null, "soort uit de strook; geen strook = geen pagina");
+        // zonder opschrift of landcode vooraan: alleen een duidelijke vorm geeft een soort
+        List<IdVelden.Woord> vorm = java.util.Arrays.asList(w("XXDEBRUIJN<<WILLEKE<LISELOTTE<<<<<<<<<<<<<<<", 0.05, 0.9, 0.9, 1), w("SPECI20142XXX6503101F2403096999999990<<<<<84", 0.05, 0.95, 0.9, 2));
+        check("paspoort".equals(IdVelden.soort(vorm)), "twee lange regels = paspoort");
+        List<IdVelden.Woord> kort = java.util.Arrays.asList(w("SPECI20142<<<<<<<<<<<<<<<<<<<<", 0.05, 0.9, 0.9, 1), w("6503101F2403096XXX<<<<<<<<<<<8", 0.05, 0.95, 0.9, 2));
+        check("".equals(IdVelden.soort(kort)), "twee korte regels (een kaart waarvan een regel mislukte): geen soort geraden");
+        pg = IdVelden.pagina(kort, 1.58); check(pg != null && pg.soort.equals("idkaart"), "korte regels: de pagina is een kaart, geen paspoort");
+        check(IdVelden.pagina(java.util.Arrays.asList(w("XXDEBRUIJN<<WILLEKE<LISELOTTE<<<<<", 0.05, 0.9, 0.7, 1), w("SPECI20142XXX6503101F2403096999999", 0.05, 0.95, 0.7, 2)), 1.42) == null, "strook van een paspoort maar voor driekwart gelezen: geen schatting");
+        pg = IdVelden.pagina(java.util.Arrays.asList(w("XXDEBRUIJN<<WILLEKE<LISELOTTE<<<<<<<<<<<", 0.05, 0.9, 0.8, 1), w("SPECI20142XXX6503101F2403096999999990<<<", 0.05, 0.95, 0.8, 2)), 1.42);
+        check(pg != null && pg.w > 0.95, "strook net niet helemaal gelezen: de breedte wordt naar de hele strook omgerekend");
         pg = IdVelden.pagina(k, 1.58);
         check(pg != null && pg.soort.equals("idkaart") && pg.y < 0.1 && pg.h > 0.9, "achterkant van een kaart: drie regels, de kaart vult de foto");
         check(IdVelden.pagina(java.util.Arrays.asList(w("I<NLDSPECI20142<<<<<<<<<<<<<<<", 0.4, 0.5, 0.2, 1)), 1.5) == null, "te weinig van de strook gelezen: geen schatting");

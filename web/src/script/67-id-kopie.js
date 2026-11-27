@@ -202,8 +202,15 @@ function idCopyRechtOk(r){return Array.isArray(r)&&r.length===4&&r.every(Number.
 function idCopyHerkend(p,r){
   // De foto staat op zijn kant of op zijn kop (de pasfoto zegt het): eerst rechtop zetten en dan opnieuw zoeken. Eén keer per pagina.
   const k=+r.draai;
-  if((k===1||k===2||k===3)&&!p.rechtop&&!p.rects.length&&p===idc.pages[idc.page]&&!idc.busy){
-    p.rechtop='vanzelf';p.turn=(p.turn+k)%4;p.ops=null;p.auto=undefined;p.velden=[];p.veldKey='';p.herken='';p.checked=false;idCopyLoad();return;
+  if(k===1||k===2||k===3){
+    const hier=p===idc.pages[idc.page]&&!idc.busy&&!idc.loading&&!(typeof fbAan==='function'&&fbAan());
+    if(hier&&!p.rechtop&&!p.rects.length){
+      // een bewerking kan zelf al een kwartslag bevatten: de app keek naar de bewerkte pagina
+      const eigen=p.ops&&p.opsTurn===p.turn?Math.round((+p.ops.draai||0)/90):0;
+      p.rechtop='vanzelf';p.turn=(p.turn+k+eigen)%4;p.ops=null;p.auto=undefined;p.velden=[];p.veldKey='';p.herken='';p.checked=false;idCopyLoad();return;
+    }
+    // niet draaien (zelf gedraaid of bewerkt, eigen vlakken, pagina niet in beeld): opnieuw zoeken, dan leest de app gewoon. Eén keer.
+    if(!p.draaiOver){p.draaiOver=true;p.veldKey='';p.herken='';p.velden=[];if(p===idc.pages[idc.page])idCopyHerkenStart();return;}
   }
   const kan=ID_VELD();
   // waar de pagina met de gegevens ligt (uit de strook): de foto kan meer tonen, zoals een opengeklapt paspoort
@@ -226,10 +233,10 @@ function idCopyGeschat(p){
   const naar=r=>{if(!pg)return r.slice();const x=Math.min(1,pg[0]+r[0]*pg[2]),y=Math.min(1,pg[1]+r[1]*pg[3]);return [x,y,Math.min(1-x,r[2]*pg[2]),Math.min(1-y,r[3]*pg[3])];};
   for(const [veld,rect] of (ID_VOORSTEL[p.soort]||{})[zijde]||[]){const g=naar(rect);if(idCopyRechtOk(g)&&!gedekt(veld,g))p.velden.push({veld,rect:g,bron:'geschat',aan:true});}
   // een opengeklapt paspoort: boven de pagina met de gegevens ligt nog een pagina; de ontvanger heeft die zelden nodig
-  if(pg&&p.soort==='paspoort'&&pg[1]>=ID_OPEN)p.velden.push({veld:'anderepagina',rect:[0,0,1,pg[1]],bron:'geschat',aan:true});
+  if(pg&&p.soort==='paspoort'&&pg[1]>=ID_OPEN*pg[3])p.velden.push({veld:'anderepagina',rect:[0,0,1,pg[1]],bron:'geschat',aan:true});
 }
-/** Vanaf dit deel van de hoogte boven de pagina met de gegevens telt een paspoort als opengeklapt (twee pagina's). */
-const ID_OPEN=.3;
+/** Is er boven de pagina met de gegevens ruimte voor dit deel van nog zo'n pagina, dan telt een paspoort als opengeklapt. */
+const ID_OPEN=.75;
 /** QR-code op de pagina (op een nieuwe identiteitskaart staat het burgerservicenummer erin). */
 function idCopyQr(p,key,src){
   const zoek=()=>{const img=new Image();img.onload=()=>{
