@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.273",
-  "versionCode": 274,
-  "nativeLevel": 233,
+  "versionName": "1.274",
+  "versionCode": 275,
+  "nativeLevel": 234,
   "web": "index.html",
-  "webSha256": "a91b7c634a1adf4c0e0ee0db5e98be4d1c4396ce65bd48cb6f01f4d8b7c87dca",
+  "webSha256": "9bfa254c9fa9e068f8962e73aaa51617dc4da2337d84453e5691ea456719bee0",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "08f6df9580f4ec5c722d36bffb8b0e2b0553d7db8261cb88f4d560a8d112d209",
+  "apkSha256": "11c7903b6b0799b5203db08ade6816b8749c61c63cdd94f1bfbf495995d92c82",
   "changelog": [
+    {
+      "version": "1.274",
+      "date": "2026-11-27",
+      "changes": [
+        "Nieuws: AI Report werkt weer; de site heeft zijn artikelen verhuisd van /p/ naar /artikel/."
+      ]
+    },
     {
       "version": "1.273",
       "date": "2026-11-27",
@@ -168,15 +175,7 @@
         "Podcasts: afleveringen die afliepen terwijl de slaaptimer liep, kun je weer als niet beluisterd markeren (verder vanaf waar je nog wakker was). Podcasts vraagt het op Luisteren, of doet het vanzelf; in te stellen bij Instellingen van Podcasts → Na de slaaptimer.",
         "Nieuwe app installeren: annuleer je de installatie (ook per ongeluk), dan blijft de download bewaard. Installeren installeert dan meteen, zonder opnieuw te downloaden; ook na het opnieuw openen van Tools staat \"Versie … is gedownload\" klaar"
       ]
-    },
-    {
-      "version": "1.254",
-      "date": "2026-11-25",
-      "changes": [
-        "Documentenkluis: Brief scannen. Fotografeer een of meer pagina's met de camera in de app; Tools zoekt de hoeken van het papier (bij te stellen), zet de pagina recht, maakt de achtergrond wit en de tekst scherp, en bewaart alles als één PDF versleuteld in de kluis, in de map waar je staat. Niets komt in je galerij.",
-        "Documentenkluis: een map hernoemen gaat nu in één keer, ook met veel documenten erin; foutmeldingen zeggen \"map\" in plaats van \"categorie\"."
-      ]
     }
   ],
-  "webSig2": "b/9sTGyKuEmHeNsoMioMaIt/V/6/mfYspnmBqAVKdgcxowK/fDr0KEQCiUGUWzr54MTNvuZvHftrW9ZhA8qw90OVtgURl9UPuDIPq8Ibde5UeQOpk6dMF5hAduZJK3Z6j4HIYuWdHN4ADqIzzNFjc3sXwpRoonfLCpJVjBuF5xQks47mtsYkQzHlDjwuk2WLbCUjGl8TkhSUYiqstY7nSJhDTqwlzayA3SAcvFZjGemalvwEQOAD/SStkRARG+Ou3xrcd+4q1njUJuowHms95+DzeEDZhM19kt16CkpxduQIz8I4+s3ULFbPDZxTqPk0CR+P1rivpOmpUmc3GJUZoJDF5J7wuvYPNygJlfLvsKQIE5wtKJER88wk7F1nXUJ7+L4JQFRBM4tML8/EEDA2UCv0UdWodk5elP1QAENaeQaQVNsms5qgwlUrcFBI0+Um8z/oyp5PzLRl6cdTg8h6K9ScnUfJrGu4VAZ3AS8SHay4o4R4FDBeILwgNOYe1Oyz"
+  "webSig2": "SOJqz2PMit9G2NZpTUjmdOuYATUbG9v981ul2TM+jeig3/h2njsD4wYGuz24wzqIiDGWGI0LYR+YE0krkSV5lg7r43mRlmoUhAP7iQFtCS3ce2v5sNyaLEA0hfOXEoyTcaSXTCJ25LtMoMP3sWzTt/4B2JjBJR4k7CztK/nT9NxWZjvyKd9I/GWL28QfRJPLYTg/e6Uc7UeCCm/TUQTYKzE/4QDhM3HFILNTxcQw+Y2/1GdQ0zin+J3AZA7xE13NCApBZSqqcdP6F49Up9XBk0QVwZaUA6euaTjTOphFhAYie5WEITAyJjJXEOMjX8oVRujEffUSd5RD/nL+aCLvx0rLUxAhJdwWVUe2dsGmH3y/xF77ddKtczG9BtwCrIrxkQCNyKSigbwO1EP4DraFQGN0GaMYLh7ico0bpYx5FDUMUQJ/xCPYPNrE4F0X/LD54GEeTDbKvHHStAxOM3gMeUE8XI7U4vrDe232N3PBJ1F5TJpcOlbZXWaT4w3sdRuo"
 }
