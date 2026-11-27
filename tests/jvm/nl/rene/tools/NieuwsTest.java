@@ -755,6 +755,17 @@ public class NieuwsTest {
                 && "geen artikelen na het filter".equals(Nieuws.logReden(new Nieuws.Fout("In deze feed staat nu geen nieuws")))
                 && "geen feed".equals(Nieuws.logReden(new NieuwsFeed.GeenFeed())) && "geen verbinding".equals(Nieuws.logReden(new java.net.UnknownHostException("www.aireport.nl"))), "reden voor het logboek");
         check("fout Fout".equals(Nieuws.logReden(new Nieuws.Fout("Deze feed staat er al als Mijn geheime bron"))) && "fout IllegalStateException".equals(Nieuws.logReden(new IllegalStateException("https://x.example.org/geheim"))), "onbekende tekst: alleen de soort fout");
+        check("artikelpagina's niet te lezen".equals(Nieuws.logReden(new Nieuws.Fout("De artikelpagina's van deze site zijn niet te lezen")))
+                && "doorverwezen naar http".equals(Nieuws.logReden(new Nieuws.Fout("Alleen https-adressen")))
+                && "te veel doorverwijzingen".equals(Nieuws.logReden(new Nieuws.Fout("Te veel doorverwijzingen")))
+                && "te groot".equals(Nieuws.logReden(new java.io.IOException("Feed is te groot")))
+                && "onveilige opbouw".equals(Nieuws.logReden(new NieuwsFeed.Onveilig()))
+                && "fout IOException".equals(Nieuws.logReden(new java.io.IOException("Connection reset by https://x.example.org/"))), "bekende fouten in vaste woorden, ook zonder het soort Fout");
+        // Dezelfde regel hooguit eens per LOG_OPNIEUW; een andere reden of weer gelukt: meteen
+        long t0l = 1_000_000L;
+        check(Nieuws.logNu("tst", "tst (http 403)", t0l) && !Nieuws.logNu("tst", "tst (http 403)", t0l + 60_000)
+                && Nieuws.logNu("tst", "tst (te traag)", t0l + 120_000) && Nieuws.logNu("tst", "tst (te traag)", t0l + 120_000 + Nieuws.LOG_OPNIEUW)
+                && !Nieuws.logNu("tst", null, t0l + 200_000) && Nieuws.logNu("tst", "tst (te traag)", t0l + 300_000 + Nieuws.LOG_OPNIEUW), "logboek: niet elk kwartier dezelfde regel");
         check("aireport".equals(Nieuws.logBron("aireport")) && "eigen bron".equals(Nieuws.logBron("e123abc")), "bron in het logboek: vaste id of eigen bron");
 
         // Afbeeldingen in de sitemap (Yoast): image:loc en image:title zijn niet het artikel
