@@ -737,7 +737,16 @@ public class NieuwsTest {
         check("Nieuws & meer".equals(f.artikelen.get(2).titel), "news:title wordt de titel");
         Nieuws.filterOp("aireport.nl/p/", "https://www.aireport.nl/sitemap.xml", f);
         check(f.artikelen.size() == 4, "alleen /p/: de podcast valt weg");
-        check("aireport.nl/p/".equals(Nieuws.alleen("aireport")) && "https://www.aireport.nl/sitemap.xml".equals(Nieuws.standaard("aireport")[2]), "AI Report: de sitemap, alleen de artikelen");
+        check("aireport.nl/artikel/".equals(Nieuws.alleen("aireport")) && "https://www.aireport.nl/sitemap.xml".equals(Nieuws.standaard("aireport")[2]), "AI Report: de sitemap, alleen de artikelen");
+        // De nieuwe site van AI Report (nov. 2026): artikelen onder /artikel/, daarnaast podcast, masterclasses en rubrieken
+        NieuwsFeed.Feed nieuweSite = Nieuws.uitKaart(NieuwsFeed.sitemap(tekst("<urlset>"
+                + "<url><loc>https://www.aireport.nl/podcast/aflevering-x</loc><lastmod>2026-11-27</lastmod></url>"
+                + "<url><loc>https://www.aireport.nl/artikel/claude-getest</loc><lastmod>2026-11-26</lastmod></url>"
+                + "<url><loc>https://www.aireport.nl/masterclasses/thema/prompten</loc><lastmod>2026-11-26</lastmod></url>"
+                + "<url><loc>https://www.aireport.nl/nieuws/anthropic</loc></url>"
+                + "<url><loc>https://www.aireport.nl/artikel/gemini-in-de-praktijk</loc><lastmod>2026-11-24</lastmod></url></urlset>"), null), "https://www.aireport.nl/sitemap.xml");
+        Nieuws.filterOp(Nieuws.alleen("aireport"), "https://www.aireport.nl/sitemap.xml", nieuweSite);
+        check(nieuweSite.artikelen.size() == 2 && nieuweSite.artikelen.get(0).link.endsWith("/artikel/claude-getest"), "AI Report nieuwe site: alleen /artikel/ (" + nieuweSite.artikelen.size() + ")");
         // Veel recent bijgewerkte pagina's van een ander soort bovenaan de sitemap: de artikelen blijven (eerst filteren, dan inkorten)
         StringBuilder groot = new StringBuilder("<urlset>");
         for (int i = 0; i < 300; i++) groot.append("<url><loc>https://www.aireport.nl/podcast/s/a/").append(i).append("</loc><lastmod>2026-11-26</lastmod></url>");

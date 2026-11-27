@@ -75,7 +75,7 @@ final class Nieuws {
         {"bbc", "BBC News", "https://feeds.bbci.co.uk/news/rss.xml", "", "bbc.co.uk bbc.com bbc.co.uk/news bbc.com/news"},
         {"guardian", "The Guardian", "https://www.theguardian.com/world/rss", "", "theguardian.com theguardian.com/world"},
         // Geen RSS (beehiiv zet die alleen aan als de uitgever het kiest): de sitemap, alleen de artikelen (/p/), niet de podcast
-        {"aireport", "AI Report", "https://www.aireport.nl/sitemap.xml", "1", "aireport.nl", "aireport.nl/p/"},
+        {"aireport", "AI Report", "https://www.aireport.nl/sitemap.xml", "1", "aireport.nl", "aireport.nl/artikel/"}, // sinds de nieuwe site (nov. 2026) /artikel/, daarvoor /p/ (beehiiv)
     };
 
     /**

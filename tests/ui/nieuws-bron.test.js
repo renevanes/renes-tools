@@ -32,7 +32,7 @@ const path = require('path');
     ok(await page.evaluate(() => current === 'nieuwsbron') && await tekst('#nwb-titel') === 'AI Report', 'scherm van de bron');
     ok(await aan('#nwb-aan') && await aan('#nwb-inlog') && !(await aan('#nwb-pagina')) && await aan('#nwb-derden'), 'aan, inloggen aan (met cookies van andere sites), geen afbeeldingen van de pagina');
     ok((await tekst('#nwb-derden-n')).includes('Die diensten kunnen je in dit venster herkennen'), 'zichtbaar wat cookies van andere sites betekent');
-    ok(await page.inputValue('#nwb-naam') === 'AI Report' && await page.inputValue('#nwb-url') === 'https://www.aireport.nl/sitemap.xml' && await page.inputValue('#nwb-alleen') === 'aireport.nl/p/', 'naam, adres en welke artikelen');
+    ok(await page.inputValue('#nwb-naam') === 'AI Report' && await page.inputValue('#nwb-url') === 'https://www.aireport.nl/sitemap.xml' && await page.inputValue('#nwb-alleen') === 'aireport.nl/artikel/', 'naam, adres en welke artikelen');
     ok(await page.locator('#nwb-inlog-deel').isVisible() && await page.inputValue('#nwb-start') === 'https://www.aireport.nl/' && await page.inputValue('#nwb-sites') === 'aireport.nl *.aireport.nl *.beehiiv.com'
       && await page.inputValue('#nwb-lezen') === 'app', 'inloggen: inlogpagina, toegestane sites, lezen in Tools');
     ok(await tekst('#nwb-inlog-st') === 'Nog niet ingelogd.' && await page.locator('#nwb-uitloggen').isDisabled(), 'nog niet ingelogd: uitloggen kan niet');
