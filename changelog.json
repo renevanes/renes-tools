@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.276",
+    "date": "2026-11-27",
+    "changes": [
+      "Nieuws: AI Report toont de artikelen ook als hun pagina's (nog) niet te lezen zijn, met de titel uit het adres; Tools leest van een artikelpagina nu de hele kop en het foutlogboek zegt per pagina waarom het niet lukte."
+    ]
+  },
+  {
     "version": "1.275",
     "date": "2026-11-27",
     "changes": [
