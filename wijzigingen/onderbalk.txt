@@ -1,3 +1,0 @@
-De onderbalk is nu zelf in te delen, zoals op een Android-startscherm: houd een tegel op het startscherm ingedrukt en sleep hem naar de balk. Elke tool kan erin; Start blijft links staan, daarnaast passen er 4.
-In de onderbalk zelf: ingedrukt houden en schuiven om de volgorde te veranderen, omhoog slepen om een plek weg te halen. Zonder slepen kan het ook bij Startscherm aanpassen → Weergave → Onderbalk, of via het menu van een tegel.
-Staat Instellingen niet in de onderbalk, dan staat er rechtsboven op het startscherm een knop voor.
