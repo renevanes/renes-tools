@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.272",
-  "versionCode": 273,
-  "nativeLevel": 232,
+  "versionName": "1.273",
+  "versionCode": 274,
+  "nativeLevel": 233,
   "web": "index.html",
-  "webSha256": "8e9fad666834fd216d634a7598031690a772b33ebf4815908fc883763fd84863",
+  "webSha256": "a91b7c634a1adf4c0e0ee0db5e98be4d1c4396ce65bd48cb6f01f4d8b7c87dca",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "4609e7e03d66a2cec63122e90316162c06d16070bd24041f965d9a6b4aa21d54",
+  "apkSha256": "08f6df9580f4ec5c722d36bffb8b0e2b0553d7db8261cb88f4d560a8d112d209",
   "changelog": [
+    {
+      "version": "1.273",
+      "date": "2026-11-27",
+      "changes": [
+        "Nieuws: een bron zonder feed (zoals AI Report) bleef soms leeg als bovenaan de sitemap veel andere pagina's stonden; nu blijven de artikelen staan. Het foutlogboek noemt voortaan welke bron niet bijwerkt en waarom."
+      ]
+    },
     {
       "version": "1.272",
       "date": "2026-11-27",
@@ -169,16 +176,7 @@
         "Documentenkluis: Brief scannen. Fotografeer een of meer pagina's met de camera in de app; Tools zoekt de hoeken van het papier (bij te stellen), zet de pagina recht, maakt de achtergrond wit en de tekst scherp, en bewaart alles als één PDF versleuteld in de kluis, in de map waar je staat. Niets komt in je galerij.",
         "Documentenkluis: een map hernoemen gaat nu in één keer, ook met veel documenten erin; foutmeldingen zeggen \"map\" in plaats van \"categorie\"."
       ]
-    },
-    {
-      "version": "1.253",
-      "date": "2026-11-25",
-      "changes": [
-        "Nachtelijke backup: lukte hij niet omdat Google Drive nog aan het laden was, dan probeert Tools het dezelfde nacht nog een paar keer (na een half uur, een uur en anderhalf uur) voordat je een melding krijgt; Alles back-uppen toont dan wanneer de nieuwe poging is",
-        "Nachtelijke backup naar Google Drive of een andere clouddienst wacht op een internetverbinding",
-        "Backup-map opruimen na de nachtelijke backup stopt op tijd, zodat het niet halverwege wordt afgebroken"
-      ]
     }
   ],
-  "webSig2": "gsRGtOIiOV/ZgZSsRLjHWAc0Q8pnaNgR2+1pusf8rrq0Vnffc7oGcz1nFklzVfmgCry+FF8ijeNDyXCzCIe5yHiQHxfX5xG8J/g1A/xFjcYpPSzY4k2+38qebBG/i0HlieR1cyiVAgxHHnr8VHshg3q+f8cEyURVirX9rWPGOhQP8DwRD9Aq3ASFfNq01NklNVlfoD2DmCkW1nwp/Z+1oAZRpSrM27BOtIWXhGe+RuXU/en0y0z6tBnQ5jMfjUBI9XYHXG3jFgyz79P1Z4594SbcDBtyoraD65jNg+pyt5Oi+cGIPec8O6YRb3OMyv7cmA379DIG4mVxYT7W06dAdsVaxYygwZQ1IjJuX9vA4bE8hpu5WY7a8wcjv1kP9xSzIs4tN15nQrT0yF37Kl+0g2Ifo18pXsjbbMN/mWHKJMEALGNW1cEu2+GLwfHKiCLG9nQkxlL2zhl8fK6VivrKpbuy1t4PcxvEhPiDicFbE3mSMmx1/PuEm/cJ8FI1z8El"
+  "webSig2": "b/9sTGyKuEmHeNsoMioMaIt/V/6/mfYspnmBqAVKdgcxowK/fDr0KEQCiUGUWzr54MTNvuZvHftrW9ZhA8qw90OVtgURl9UPuDIPq8Ibde5UeQOpk6dMF5hAduZJK3Z6j4HIYuWdHN4ADqIzzNFjc3sXwpRoonfLCpJVjBuF5xQks47mtsYkQzHlDjwuk2WLbCUjGl8TkhSUYiqstY7nSJhDTqwlzayA3SAcvFZjGemalvwEQOAD/SStkRARG+Ou3xrcd+4q1njUJuowHms95+DzeEDZhM19kt16CkpxduQIz8I4+s3ULFbPDZxTqPk0CR+P1rivpOmpUmc3GJUZoJDF5J7wuvYPNygJlfLvsKQIE5wtKJER88wk7F1nXUJ7+L4JQFRBM4tML8/EEDA2UCv0UdWodk5elP1QAENaeQaQVNsms5qgwlUrcFBI0+Um8z/oyp5PzLRl6cdTg8h6K9ScnUfJrGu4VAZ3AS8SHay4o4R4FDBeILwgNOYe1Oyz"
 }
