@@ -7,7 +7,14 @@
 .fb-midden{flex:1;overflow-y:auto;padding:10px 16px 24px;max-width:720px;width:100%;margin:0 auto;box-sizing:border-box}
 .fb-midden .hint:empty{display:none}
 .fb-beeld{position:relative;width:fit-content;max-width:100%;margin:4px auto;line-height:0;user-select:none;-webkit-user-select:none;touch-action:none}
-.fb-beeld canvas{display:block;max-width:100%;max-height:52vh;width:auto;height:auto;border-radius:6px;background:var(--hi)}
+.fb-beeld canvas{display:block;max-width:100%;max-height:40vh;width:auto;height:auto;border-radius:6px;background:var(--hi)}
+.fb-straks{margin:8px 0 0;text-align:center}.fb-straks.leeg canvas{visibility:hidden}.fb-straks figcaption{font-size:13px;color:var(--muted);margin-bottom:4px}
+.fb-straks canvas{display:block;width:100%;height:22vh;object-fit:contain;border-radius:6px}
+.fb-kijk{max-width:100%;scrollbar-width:none}.fb-kijk::-webkit-scrollbar{display:none}
+.fb-kijk.zoom{overflow:auto;padding:14px;box-sizing:border-box;border-radius:6px;background:var(--hi)}
+.fb-kijk.zoom .fb-beeld{max-width:none;margin:0 auto}.fb-kijk.zoom .fb-beeld canvas{max-width:none;max-height:none;border-radius:0}
+.fb-zoom{display:flex;justify-content:center;align-items:center;gap:6px;margin:4px 0 0}
+.fb-zoom .icon-btn{min-width:44px;min-height:44px;font-size:22px;line-height:1}.fb-zoom .mini{min-width:56px;min-height:44px;margin:0}
 .fb-beeld svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .fb-beeld .ks-poly{fill:none}
 .fb-buiten{fill:rgba(0,0,0,.5)}

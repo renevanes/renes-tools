@@ -1333,6 +1333,7 @@ body.talk-on #s-ai main{padding-bottom:200px}
 
 /* Tijdelijke ID-kopie: verplaatsen en afschermen werken ook bij een vergroot voorbeeld. */
 .idcopyscroll { overflow:auto; max-height:65vh; border:1px solid var(--outline); border-radius:12px; padding:4px; margin:10px 0; }
+.idveld-kop{font-size:16px;margin:14px 0 2px}.idveld{align-items:flex-start;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.idveld span{display:block;min-width:0}.idveld small{display:block;color:var(--muted);font-size:13px;margin-top:2px}.idveld-mist{margin:8px 0 0}
 .idcopypaper { position:relative; width:100%; line-height:0; background:var(--card); }
 .idcopypaper img { display:block; width:100%; height:auto; user-select:none; }
 .idcopypaper canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair; }

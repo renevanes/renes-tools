@@ -1,0 +1,2 @@
+ID-kopie afschermen: de app zegt nu duidelijk wat weg moet (je burgerservicenummer, ook in de strook onderaan en in de QR-code) en wat weg kan (pasfoto, handtekening, documentnummer).
+ID-kopie afschermen: de app zoekt die velden zelf op de foto en maakt ze zwart. Per veld zie je of het herkend is of dat de plek geschat is, en je zet met een schakelaar uit wat de ontvanger wel nodig heeft. Niet gevonden? Dan zegt de app dat erbij.

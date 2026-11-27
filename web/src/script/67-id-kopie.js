@@ -4,7 +4,7 @@ const idc = {volg:0, session:'',revision:'', pages:[], page:0, busy:false, loadi
 function idCopyEnter(){ if(!idc.session)idc.session=Date.now()+'-'+(++idCopyCounter)+'-'+Math.random().toString(36).slice(2); Android.idCopySecure(true,idc.session); if (!$('#id-date').value) $('#id-date').value = rgToday(); idCopyControls(); idCopyStamHalen(); }
 function idCopyReset(secure=true){
   if(secure){idc.session=Date.now()+'-'+(++idCopyCounter)+'-'+Math.random().toString(36).slice(2);Android.idCopySecure(true,idc.session);}
-  Android.idCopyClear(); idc.revision=''; idc.pages=[]; idc.page=0; idc.point=null; idc.draft=null; idc.meta=null;
+  Android.idCopyClear(); idc.revision=''; idc.pages=[]; idc.page=0; idc.point=null; idc.draft=null; idc.meta=null; idCopyVeldenToon();
   $('#id-image').removeAttribute('src'); const c=$('#id-layer'); c.getContext('2d').clearRect(0,0,c.width,c.height); $('#id-work').hidden=true;
   ['id-recipient','id-purpose','id-date'].forEach(id=>$('#'+id).value='');
   ['id-x','id-y','id-w','id-h'].forEach((id,i)=>$('#'+id).value=fmtNumIn([10,10,40,10][i]));
@@ -25,7 +25,8 @@ window.onIdCopyPicked=function(r){
   if(r.error){$('#id-status').textContent=t(r.error);idCopyControls();return;}
   if(r.cancelled){$('#id-status').textContent='';idCopyControls();return;}
   const previous=idc.pages.length; idc.revision=r.revision;
-  while(idc.pages.length<r.pages)idc.pages.push({turn:0,rects:[],checked:false});
+  while(idc.pages.length<r.pages)idc.pages.push({turn:0,rects:[],velden:[],checked:false});
+  idc.pages.forEach(q=>{q.veldKey='';q.herken='';q.velden=[];}); // nieuwe werkbestanden: per pagina opnieuw zoeken zodra hij in beeld komt
   if(r.master&&idc.bron)idCopyStamVoorstel(previous);
   idc.pages.forEach(p=>p.checked=false); idc.page=Math.min(previous,r.pages-1); idc.result=''; $('#id-result').hidden=true; $('#id-work').hidden=false;
   idCopyLoad();
@@ -46,6 +47,7 @@ window.onIdCopyPreview=function(r){
   if(r.error){idc.loading=false;$('#id-status').textContent=t(r.error);idCopyControls();return;}
   idc.loading=false;idc.meta=r;$('#id-image').width=r.w;$('#id-image').height=r.h;$('#id-image').src=r.image;$('#id-layer').width=r.w;$('#id-layer').height=r.h;
   $('#id-status').textContent=idc.melding||t('Voeg ook de achterkant toe als die nodig is.');idc.melding='';idCopyPaint();idCopyControls();
+  setTimeout(idCopyHerkenStart,0); // na de andere luisteraars (82-foto-bewerken.js stelt eerst bijsnijden voor)
 };
 function idCopyWatermark(){
   const who=$('#id-recipient').value.trim(), why=$('#id-purpose').value.trim(), date=$('#id-date').value;
@@ -55,7 +57,8 @@ function idCopyWatermarkChanged(){idc.pages.forEach(p=>p.checked=false);idCopyPa
 function idCopyPaint(){
   const c=$('#id-layer'),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);if(!idc.meta)return;
   ctx.fillStyle='#000000';ctx.globalAlpha=1;
-  const p=idc.pages[idc.page];for(const r of p.rects.concat(idc.draft?[idc.draft]:[]))ctx.fillRect(Math.floor(r[0]*c.width),Math.floor(r[1]*c.height),Math.ceil(r[2]*c.width)+1,Math.ceil(r[3]*c.height)+1);
+  const p=idc.pages[idc.page];for(const r of idCopyVlakken(p).concat(idc.draft?[idc.draft]:[]))ctx.fillRect(Math.floor(r[0]*c.width),Math.floor(r[1]*c.height),Math.ceil(r[2]*c.width)+1,Math.ceil(r[3]*c.height)+1);
+  idCopyPaintNamen(ctx,c,p);ctx.fillStyle='#000000';
   const lines=idCopyWatermark().split('\n');let size=Math.min(c.width,c.height)*.045;ctx.font='bold '+size+'px sans-serif';
   const longest=Math.max(1,...lines.map(s=>ctx.measureText(s).width));size=Math.min(size,size*c.width*.9/longest);
   ctx.save();ctx.translate(c.width/2,c.height/2);ctx.rotate(-25*Math.PI/180);ctx.fillStyle='rgba(160,25,25,.8)';ctx.font='bold '+size+'px sans-serif';ctx.textAlign='center';
@@ -66,21 +69,22 @@ function idCopyControls(){
   $('#id-pick').disabled=blocked||idc.pages.length>=4;
   $('#id-prev').disabled=blocked||idc.page<=0;$('#id-next').disabled=blocked||idc.page>=idc.pages.length-1;
   $('#id-page').textContent=p?t('Pagina {n} van {totaal}',{n:idc.page+1,totaal:idc.pages.length}):'';
-  $('#id-masks').textContent=p?tn(p.rects.length,'Eén afschermvlak','{n} afschermvlakken'):'';
-  ['id-turn','id-add','id-checked','id-voorstel'].forEach(id=>$('#'+id).disabled=blocked||!idc.meta);
+  $('#id-masks').textContent=p?tn(idCopyVlakken(p).length,'Eén afschermvlak','{n} afschermvlakken'):'';
+  const zoekt=!!p&&p.herken==='bezig'; // eerst weten wat er zwart wordt, dan pas controleren
+  ['id-turn','id-add','id-voorstel'].forEach(id=>$('#'+id).disabled=blocked||!idc.meta);$('#id-checked').disabled=blocked||!idc.meta||zoekt;
   $('#id-undo').disabled=blocked||!p||!p.rects.length;$('#id-checked').checked=!!(p&&p.checked);
   const fields=['id-recipient','id-purpose','id-date'];fields.forEach(id=>$('#'+id).disabled=idc.busy);
-  $('#id-save').disabled=blocked||!idc.pages.length||!idc.pages.every(q=>q.checked)||!idc.pages.some(q=>q.rects.length)||fields.some(id=>!$('#'+id).value.trim());
+  $('#id-save').disabled=blocked||idc.pages.some(q=>q.herken==='bezig')||!idc.pages.length||!idc.pages.every(q=>q.checked)||!idc.pages.some(q=>idCopyVlakken(q).length)||fields.some(id=>!$('#'+id).value.trim());
 }
 function idCopyPage(delta){if(idc.busy||idc.loading)return;idc.page=Math.max(0,Math.min(idc.pages.length-1,idc.page+delta));idCopyLoad();}
 function idCopyTurn(){
   if(idc.busy||idc.loading||!idc.meta)return;
-  const turn=()=>{const p=idc.pages[idc.page];p.turn=(p.turn+1)%4;p.rects=[];p.checked=false;idCopyLoad();};
+  const turn=()=>{const p=idc.pages[idc.page];p.turn=(p.turn+1)%4;p.rects=[];p.velden=[];p.veldKey='';p.herken='';p.checked=false;idCopyLoad();};
   if(idc.pages[idc.page].rects.length)askConfirm('Pagina draaien?','De afschermvlakken van deze pagina worden gewist. Plaats ze opnieuw na het draaien.','Draaien',turn);else turn();
 }
 function idCopyAdd(rect){
   const p=idc.pages[idc.page];if(!p||!idc.meta||idc.busy||idc.loading)return;
-  if(p.rects.length>=60){toast(t('Maximaal 60 vlakken per pagina'));return;}
+  if(idCopyVlakken(p).length>=60){toast(t('Maximaal 60 vlakken per pagina'));return;}
   if(rect.some(n=>!Number.isFinite(n))||rect[0]<0||rect[1]<0||rect[2]<=0||rect[3]<=0||rect[0]+rect[2]>1.0000001||rect[1]+rect[3]>1.0000001){toast(t('Ongeldig afschermvlak'));return;}
   p.rects.push(rect);p.checked=false;idCopyPaint();idCopyControls();
 }
@@ -100,7 +104,7 @@ $('#id-layer').addEventListener('pointermove',e=>{
 });
 $('#id-layer').addEventListener('pointerup',()=>{const r=idc.draft;idc.point=null;idc.draft=null;if(r&&r[2]>.002&&r[3]>.002)idCopyAdd(r);else idCopyPaint();});
 $('#id-layer').addEventListener('pointercancel',()=>{idc.point=null;idc.draft=null;idCopyPaint();});
-function idCopySave(){if($('#id-save').disabled)return;idc.laatste={ontvanger:$('#id-recipient').value.trim(),doel:$('#id-purpose').value.trim(),datum:$('#id-date').value};idc.busy=true;uiWachtTekst($('#id-status'),t('Afgeschermde kopie maken…'));idCopyControls();Android.idCopySave(idc.revision,JSON.stringify({pages:idc.pages,watermark:idCopyWatermark()}));}
+function idCopySave(){if($('#id-save').disabled)return;idc.laatste={ontvanger:$('#id-recipient').value.trim(),doel:$('#id-purpose').value.trim(),datum:$('#id-date').value};idc.busy=true;uiWachtTekst($('#id-status'),t('Afgeschermde kopie maken…'));idCopyControls();Android.idCopySave(idc.revision,JSON.stringify({pages:idc.pages.map(p=>({turn:p.turn,checked:!!p.checked,rects:idCopyVlakken(p),ops:p.ops||undefined})),watermark:idCopyWatermark()}));}
 window.onIdCopySaved=function(r){
   if(current!=='idcopy'||r.session!==idc.session||r.revision!==idc.revision)return;idc.busy=false;
   if(r.error){$('#id-status').textContent=t(r.error);idCopyControls();return;}
@@ -153,24 +157,124 @@ function idCopyStamHalen(){
   $('#id-bron').hidden=false;$('#id-bron-naam').textContent=bron.label||t('Identiteitsdocument');
   idCopyControls();Android.idCopyTakeMaster();
 }
+/* ---------- Velden: wat moet of kan er weg, herkennen en afschermen ----------
+ * Per pagina een lijst velden (p.velden: {veld, rect, bron: 'herkend' | 'geschat', aan}). Java herkent ze op de foto zelf
+ * (idCopyHerken → IdVelden: burgerservicenummer, strook, documentnummer, pasfoto), de QR-code zoekt de interface (jsQR).
+ * Wat niet herkend is en wel op dit soort document staat, krijgt een geschat vlak volgens de vaste indeling (ID_VOORSTEL).
+ * Alles staat aan; Rene zet uit wat de ontvanger nodig heeft en controleert elke pagina, zoals altijd. */
+const ID_VELD=()=>({
+  bsn:{naam:t('Burgerservicenummer'),moet:true},strook:{naam:t('Machineleesbare strook'),moet:true},qr:{naam:t('QR-code'),moet:true},
+  pasfoto:{naam:t('Pasfoto'),moet:false},handtekening:{naam:t('Handtekening'),moet:false},documentnummer:{naam:t('Documentnummer'),moet:false},overig:{naam:t('Overige gegevens'),moet:false}});
 /* Vaste indeling (op de kaart of fotopagina, liggend; links, boven, breedte, hoogte als deel van het geheel). Ruim genomen:
- * liever iets te veel zwart dan te weinig. Alleen een voorstel; de pagina blijft "niet gecontroleerd" tot Rene het aanvinkt. */
+ * liever iets te veel zwart dan te weinig. Alleen als de foto precies het document toont; daarom "plek geschat". */
 const ID_VOORSTEL={
-  paspoort:{front:[[.02,.16,.34,.66],[.58,.06,.40,.16],[.34,.58,.46,.12],[.34,.70,.46,.12],[0,.79,1,.21]]},
-  idkaart:{front:[[.02,.14,.36,.80],[.52,.02,.46,.18],[.36,.76,.46,.20]],back:[[.02,.02,.66,.24],[0,.58,1,.42]]},
-  rijbewijs:{front:[[.02,.18,.32,.70],[.34,.56,.50,.14],[.34,.68,.50,.12],[.34,.80,.50,.16]],back:[]}
+  paspoort:{front:[['pasfoto',[.02,.16,.34,.66]],['documentnummer',[.58,.06,.40,.16]],['bsn',[.34,.58,.46,.12]],['handtekening',[.34,.70,.46,.12]],['strook',[0,.79,1,.21]]]},
+  idkaart:{front:[['pasfoto',[.02,.14,.36,.80]],['documentnummer',[.52,.02,.46,.18]],['handtekening',[.36,.76,.46,.20]]],back:[['bsn',[.02,.02,.66,.24]],['strook',[0,.58,1,.42]]]},
+  rijbewijs:{front:[['pasfoto',[.02,.18,.32,.70]],['documentnummer',[.34,.56,.50,.14]],['handtekening',[.34,.68,.50,.12]],['overig',[.34,.80,.50,.16]]],back:[]}
 };
 function idCopySoort(s){s=String(s||'').toLowerCase();return /paspoort/.test(s)?'paspoort':/rijbewijs/.test(s)?'rijbewijs':/identiteitskaart|id-kaart|idkaart/.test(s)?'idkaart':'';}
+/** Alle zwarte vlakken van een pagina: de velden die aan staan en wat Rene zelf tekende. */
+function idCopyVlakken(p){return p?(p.velden||[]).filter(v=>v.aan).map(v=>v.rect).concat(p.rects):[];}
+function idCopyKanHerkennen(){return typeof Android.idCopyHerken==='function';}
+/** Uit Stamgegevens weet de app al welk document en welke kant het is. */
 function idCopyStamVoorstel(vanaf){
-  const soort=idCopySoort(idc.bron&&idc.bron.soort),sides=String(idc.bron&&idc.bron.sides||'').split(',');let n=0;
-  for(let k=vanaf;k<idc.pages.length;k++){const v=(ID_VOORSTEL[soort]||{})[sides[k-vanaf]||'front']||[];idc.pages[k].rects=v.map(r=>r.slice());n+=v.length;}
-  idc.melding=n?t('Voorstel: zwarte vlakken op de pasfoto, de nummers, de handtekening en de machineleesbare strook. Controleer elke pagina en pas aan waar nodig.'):t('Geen voorstel voor dit soort document: scherm zelf af wat de ontvanger niet nodig heeft.');
+  const soort=idCopySoort(idc.bron&&idc.bron.soort),sides=String(idc.bron&&idc.bron.sides||'').split(',');
+  for(let k=vanaf;k<idc.pages.length;k++){idc.pages[k].soort=soort;idc.pages[k].zijde=sides[k-vanaf]||'front';}
 }
-/** Ook bij een gekozen foto of PDF: vlakken voorstellen voor deze pagina */
+function idCopyVeldKey(p){return idc.revision+'|'+p.turn+'|'+JSON.stringify(p.ops||null);}
+/** Na het laden van een pagina: velden zoeken (één keer per stand van de pagina). */
+function idCopyHerkenStart(){
+  const p=idc.pages[idc.page];if(current!=='idcopy'||!p||!idc.meta||idc.loading||p.autoBezig)return;
+  const key=idCopyVeldKey(p);if(p.veldKey===key){idCopyVeldenToon();return;}
+  p.veldKey=key;p.velden=[];p.checked=false;p.herken='bezig';p.hvolg=idc.hvolg=(idc.hvolg||0)+1;idCopyVeldenToon();idCopyPaint();idCopyControls();
+  idCopyQr(p,key,idc.meta.image);
+  const volg=p.hvolg;setTimeout(()=>{if(p.hvolg===volg&&p.herken==='bezig'&&idc.pages.includes(p))idCopyHerkend(p,{velden:[],soort:'',fout:true});},90000); // geen antwoord: verder zonder
+  if(idCopyKanHerkennen())Android.idCopyHerken(idc.revision,idc.page,p.turn,p.ops?JSON.stringify(p.ops):'',p.hvolg);
+  else idCopyHerkend(p,{velden:[],soort:''});
+}
+window.onIdCopyHerkend=function(r){
+  if(!r||r.session!==idc.session||r.revision!==idc.revision)return;
+  const p=idc.pages[r.page];if(!p||p.hvolg!==r.volg||p.herken!=='bezig'||(r.turn!=null&&r.turn!==p.turn))return;
+  idCopyHerkend(p,r.error?{velden:[],soort:'',fout:true}:r);
+};
+function idCopyRechtOk(r){return Array.isArray(r)&&r.length===4&&r.every(Number.isFinite)&&r[0]>=0&&r[1]>=0&&r[2]>0&&r[3]>0&&r[0]+r[2]<=1.0000001&&r[1]+r[3]<=1.0000001;}
+function idCopyHerkend(p,r){
+  const kan=ID_VELD();
+  for(const v of (r.velden||[]).slice(0,20)){const rect=[+v.x,+v.y,+v.w,+v.h];if(Object.prototype.hasOwnProperty.call(kan,v.veld)&&idCopyRechtOk(rect))p.velden.push({veld:v.veld,rect,bron:'herkend',aan:true});}
+  if(!p.soort)p.soort=idCopySoort(r.soort);
+  p.herken=r.fout?'fout':'klaar';idCopyGeschat(p);p.checked=false;
+  if(p===idc.pages[idc.page]){idCopyVeldenToon();idCopyPaint();idCopyControls();}
+}
+/** Wat op dit soort document staat en niet herkend is: een geschat vlak volgens de vaste indeling. */
+function idCopyGeschat(p){
+  p.velden=p.velden.filter(v=>v.bron!=='geschat');if(!p.soort)return;
+  const heeft=v=>p.velden.some(x=>x.veld===v);
+  // een herkend veld vervangt het geschatte vlak alleen als het er grotendeels in ligt: anders blijft het geschatte staan (liever te veel zwart)
+  const gedekt=(veld,g)=>p.velden.some(x=>{if(x.veld!==veld||x.bron!=='herkend')return false;const r=x.rect,bx=Math.max(0,Math.min(r[0]+r[2],g[0]+g[2])-Math.max(r[0],g[0])),by=Math.max(0,Math.min(r[1]+r[3],g[1]+g[3])-Math.max(r[1],g[1]));return bx*by>=r[2]*r[3]*.5;});
+  // welke kant: uit Stamgegevens bekend, anders een achterkant als er een strook of QR-code staat en geen pasfoto
+  const zijde=p.zijde||(p.soort==='idkaart'&&(heeft('strook')||heeft('qr'))&&!heeft('pasfoto')?'back':'front');
+  for(const [veld,rect] of (ID_VOORSTEL[p.soort]||{})[zijde]||[])if(!gedekt(veld,rect))p.velden.push({veld,rect:rect.slice(),bron:'geschat',aan:true});
+}
+/** QR-code op de pagina (op een nieuwe identiteitskaart staat het burgerservicenummer erin). */
+function idCopyQr(p,key,src){
+  const zoek=()=>{const img=new Image();img.onload=()=>{
+    if(p.veldKey!==key||!window.jsQR)return;
+    const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;const x=c.getContext('2d');x.drawImage(img,0,0);
+    let code=null;try{code=jsQR(x.getImageData(0,0,c.width,c.height).data,c.width,c.height);}catch(e){code=null;}
+    c.width=1;c.height=1;if(!code||!code.location)return;
+    const l=code.location,xs=[l.topLeftCorner,l.topRightCorner,l.bottomRightCorner,l.bottomLeftCorner].map(q=>q.x/img.naturalWidth),ys=[l.topLeftCorner,l.topRightCorner,l.bottomRightCorner,l.bottomLeftCorner].map(q=>q.y/img.naturalHeight);
+    const m=.02,x0=Math.max(0,Math.min(...xs)-m),y0=Math.max(0,Math.min(...ys)-m),x1=Math.min(1,Math.max(...xs)+m),y1=Math.min(1,Math.max(...ys)+m),rect=[x0,y0,x1-x0,y1-y0];
+    if(!idCopyRechtOk(rect)||p.velden.some(v=>v.veld==='qr'&&v.bron==='herkend'))return;
+    p.velden=p.velden.filter(v=>v.veld!=='qr');p.velden.push({veld:'qr',rect,bron:'herkend',aan:true});p.checked=false;
+    if(p.herken==='klaar')idCopyGeschat(p);
+    if(p===idc.pages[idc.page]){idCopyVeldenToon();idCopyPaint();idCopyControls();}
+  };img.src=src;};
+  if(window.jsQR)zoek();else{const s=document.createElement('script');s.src='vendor/jsQR.js';s.onload=zoek;s.onerror=()=>{};document.head.appendChild(s);}
+}
+/** De naam van het veld in het zwarte vlak (alleen in het voorbeeld). */
+function idCopyPaintNamen(ctx,c,p){
+  const kan=ID_VELD();ctx.save();ctx.fillStyle='#ffffff';ctx.textAlign='center';ctx.textBaseline='middle';
+  for(const v of (p.velden||[]).filter(v=>v.aan)){
+    const w=v.rect[2]*c.width,h=v.rect[3]*c.height,naam=kan[v.veld].naam;let size=Math.min(h*.5,c.width*.035);ctx.font='bold '+size+'px sans-serif';
+    const breed=ctx.measureText(naam).width;if(breed>w*.92)size*=w*.92/breed;if(size<7)continue;
+    ctx.font='bold '+size+'px sans-serif';ctx.fillText(naam,v.rect[0]*c.width+w/2,v.rect[1]*c.height+h/2);
+  }
+  ctx.restore();
+}
+function idCopyVeldTekst(v,moet){
+  if(v.bron==='herkend')return moet?t('Herkend. Afschermen, tenzij de ontvanger het wettelijk nodig heeft.'):t('Herkend. Afschermen als de ontvanger het niet nodig heeft.');
+  return moet?t('Niet herkend: plek geschat, controleer het vlak. Afschermen, tenzij de ontvanger het wettelijk nodig heeft.'):t('Niet herkend: plek geschat, controleer het vlak. Afschermen als de ontvanger het niet nodig heeft.');
+}
+/** De lijst velden van deze pagina, met per veld een schakelaar. */
+function idCopyVeldenToon(){
+  const el=$('#id-velden'),st=$('#id-velden-status'),p=idc.pages[idc.page];if(!el)return;
+  el.textContent='';
+  if(!p){st.textContent='';return;}
+  if(p.herken==='bezig'){uiWachtTekst(st,t('Velden zoeken op deze pagina…'));return;}
+  const kan=ID_VELD(),blok=idc.busy||idc.loading;
+  p.velden.forEach((v,i)=>{
+    const rij=document.createElement('label');rij.className='chk idveld';
+    const sw=document.createElement('input');sw.type='checkbox';sw.className='switch';sw.setAttribute('role','switch');sw.checked=!!v.aan;sw.disabled=blok;sw.dataset.veld=v.veld;sw.onchange=()=>idCopyVeld(i,sw.checked);
+    const tekst=document.createElement('span'),b=document.createElement('b'),k=document.createElement('small');b.textContent=kan[v.veld].naam;k.textContent=idCopyVeldTekst(v,kan[v.veld].moet);
+    tekst.append(b,k);rij.append(sw,tekst);el.append(rij);
+  });
+  // wat weg moet en hier niet gevonden is: zeg het, zodat Rene zelf kijkt
+  const mist=[['bsn',t('Burgerservicenummer: niet gevonden op deze pagina. Staat het er wel, sleep er dan zelf een vlak over.')],['strook',t('Machineleesbare strook: niet gevonden op deze pagina. Staat hij er wel (onderaan), sleep er dan zelf een vlak over.')]];
+  for(const [veld,zin] of mist)if(!p.velden.some(v=>v.veld===veld)){const n=document.createElement('p');n.className='note idveld-mist';n.dataset.veld=veld;n.textContent=zin;el.append(n);}
+  const herkend=p.velden.filter(v=>v.bron==='herkend').length,geschat=p.velden.length-herkend;
+  st.textContent=!p.velden.length?(idCopyKanHerkennen()?t('Geen velden herkend. Kies het soort document voor een voorstel, of sleep zelf vlakken over wat weg moet.'):t('Kies het soort document voor een voorstel, of sleep zelf vlakken over wat weg moet.'))
+    :geschat?t('{n} herkend, {m} met een geschatte plek. Controleer vooral de geschatte vlakken.',{n:herkend,m:geschat})
+    :tn(herkend,'Eén veld herkend en afgeschermd. Controleer de pagina.','{n} velden herkend en afgeschermd. Controleer de pagina.');
+}
+function idCopyVeld(i,aan){
+  const p=idc.pages[idc.page];if(!p||!p.velden[i]||idc.busy||idc.loading){idCopyVeldenToon();return;}
+  p.velden[i].aan=!!aan;p.checked=false;idCopyPaint();idCopyControls();
+}
+/** Het soort document zelf kiezen: geschatte vlakken voor wat niet herkend is. */
 function idCopyVoorstelKiezen(){
   if(idc.busy||idc.loading||!idc.meta)return;
-  const zet=(soort,side)=>{const p=idc.pages[idc.page];p.rects=(ID_VOORSTEL[soort][side]||[]).map(r=>r.slice());p.checked=false;idCopyPaint();idCopyControls();$('#id-status').textContent=t('Voorstel geplaatst. Controleer of de vlakken precies goed liggen.');};
-  openSheet(t('Vlakken voorstellen'),t('Ligt de foto recht en zie je alleen het document? Dan passen de vlakken het best.'),[
+  const zet=(soort,zijde)=>{const p=idc.pages[idc.page];p.soort=soort;p.zijde=zijde;idCopyGeschat(p);p.checked=false;idCopyVeldenToon();idCopyPaint();idCopyControls();$('#id-status').textContent=t('Voorstel geplaatst. Controleer of de vlakken precies goed liggen.');};
+  openSheet(t('Soort document'),t('Ligt de foto recht en zie je alleen het document? Dan passen de geschatte vlakken het best.'),[
     [t('Paspoort (fotopagina)'),()=>zet('paspoort','front')],[t('ID-kaart, voorkant'),()=>zet('idkaart','front')],[t('ID-kaart, achterkant'),()=>zet('idkaart','back')],[t('Rijbewijs, voorkant'),()=>zet('rijbewijs','front')]]);
 }
 

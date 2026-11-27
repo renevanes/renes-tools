@@ -438,6 +438,9 @@ kijkt per gebied naar de hele app, ook naar code die al lang bestaat.
   `docs/play-data-safety.md`. De reden staat in `tests/manifest/lijst.json`: `tests/manifest/controle.py` (vanuit
   `run-ui.sh`) faalt op elke toestemming, elk geëxporteerd onderdeel (met acties en data), `android:permission`,
   `grantUriPermissions`, `<queries>`-item of instelling op `<application>` die niet (zo) op die lijst staat.
+  Vaste adressen in de code van de app (`app/`, `web/`) zijn https: `tests/adressen/controle.py` (vanuit `run-ui.sh`)
+  faalt op elk vast onversleuteld adres (`http://`, `ws://`, `ftp://`, `rtsp://` e.d.) met een naam die niet met een reden in `tests/adressen/lijst.json`
+  staat (XML-namespaces; 127.0.0.1 per plek, zodat een nieuwe lokale server opvalt). Adressen die Rene zelf kiest, vallen er niet onder.
 - **WebView-instellingen**: geen `file://`- of `content://`-toegang, geen mixed content; `setWebContentsDebuggingEnabled`
   alleen zoals bij Meekijken in Nieuws (na een waarschuwing, zichtbaar, en vanzelf weer uit). Vensters met websites van buiten (Bank, Facturen, Nieuws-inloggen) krijgen nooit de brug
   `Android`, hooguit een eigen kleine brug (`BrBrug`, `FrBrug`) die alleen doet wat dat venster nodig heeft, en laden
@@ -758,6 +761,19 @@ telefoon en versleuteld; de sleutel zit in de Android Keystore.
   Activiteiten-regel "Kaartfoto bekeken" door ID-kopie) alleen via het geheugen van `MainActivity` (`idMasterTake`, een
   minuut) naar `IdCopy.addImages` (`idCopyTakeMaster`); nooit door de interface. Voorgestelde vlakken: `ID_VOORSTEL` in
   `67-id-kopie.js` (ruim genomen; de pagina blijft "niet gecontroleerd" tot Rene het aanvinkt).
+- **ID-kopie: velden herkennen** (wens van Rene, 27-11-2026: duidelijk welke velden weg moeten of kunnen, en ze vanzelf
+  goed afschermen): per pagina `p.velden` (`{veld, rect, bron: herkend|geschat, aan}`; `ID_VELD`: burgerservicenummer, strook
+  en QR-code "moet weg", pasfoto, handtekening en documentnummer "kan weg", naar het advies van de Rijksoverheid) naast
+  de eigen vlakken `p.rects`; samen `idCopyVlakken(p)`. Na het laden van een pagina (en na draaien of bijsnijden) zoekt
+  `idCopyHerken` (Java `IdCopy.herken` → `IdVelden`, zuiver, `IdVeldenTest`): de strook, het burgerservicenummer (elfproef,
+  of het nummer achter het opschrift) en het documentnummer uit de lokale tekstherkenning (`RijbewijsOcr.pageWoorden`), de
+  pasfoto met de gezichtsherkenning van Android (`android.media.FaceDetector`); de QR-code zoekt de interface (jsQR).
+  Alleen plekken en het soort document komen terug, nooit de gelezen tekst; niets in het logboek. Wat op dat soort document
+  staat en niet herkend is, krijgt een geschat vlak (`ID_VOORSTEL`, `idCopyGeschat`; soort uit Stamgegevens, de gelezen
+  tekst of Soort document kiezen). De lijst (`#id-velden`, `idCopyVeldenToon`) noemt elk veld met herkend of geschat en een
+  schakelaar, en zegt het als burgerservicenummer of strook niet gevonden is. Alles blijft een voorstel: elke pagina moet
+  nog steeds aangevinkt worden. Nieuw veld = `ID_VELD`, `IdVelden` (met een voorbeeld met verzonnen gegevens in de test),
+  de testbrug (`idCopyHerken`) en `tests/ui/id-kopie.test.js`.
 - **Brief scannen** (`web/src/script/49c-brief-scannen.js`, `KluisScan`; kaart `#kl-scan` in plaats van de lijst, camera
   `#kl-cam` in `TS_LAGEN`): foto's met de camera in de interface (`kluisScanCamera`, zoals Betalen; `camFoto` is gedeeld),
   hoeken zoeken (`ksHoekenUit`: Otsu, grootste lichte vlak, omhullende, vier hoeken; met de hand bij te stellen, ook met
@@ -1165,7 +1181,7 @@ de app zelf doet. **De bewerker** (`web/src/script/02-fotobewerken.js`, venster 
 verhoudingen ID-1, ID-3, A4, vierkant), Draaien (kwartslag, rechtzetten tot 45°), Licht (helderheid, contrast, zwart-wit,
 automatisch: `fbNiveau`) en Afdekken (zwarte vlakken; uit met `afdekken: false`; verandert de uitsnede, dan gaan ze weg met
 een melding, `fbVlakkenWeg`; een kwartslag draait ze mee; JS en Java nemen dezelfde marge, `fbVlakPix`/`FotoBewerk.vlak`). Ongedaan maken, Origineel, Automatisch
-verbeteren. Hij geeft alleen de **bewerking** terug (`ops`, zelfde vorm als `FotoOps.java`: draai, q, verhouding, licht,
+verbeteren. Onder de foto staat steeds het voorbeeld "Zo wordt hij" (`fbStraks`, `#fb-straks`; niet op Afdekken, daar toont de foto zelf de uitkomst). Vergroten (`fbZoomZet`, `fbZoomPas`, `#fb-kijk`; tot `FB_ZOOM_MAX`): knoppen − en + onder de foto of knijpen met twee vingers; vergroot schuif je met twee vingers of met één vinger naast de hoeken; een ander tabblad zet de zoom terug. Hij geeft alleen de **bewerking** terug (`ops`, zelfde vorm als `FotoOps.java`: draai, q, verhouding, licht,
 contrast, niveau, grijs, vlakken); Java past die toe op de foto zelf (`FotoBewerk`: `Matrix.setPolyToPoly`, `ColorMatrix`),
 zodat de volle resolutie blijft en een kaartfoto niet als pixels door de interface terug hoeft. `fbRender` rekent het
 voorbeeld op dezelfde manier (zelfde `fbMaat`/`fbKleurAB` als `FotoOps.maat`/`kleur`; `FotoOpsTest`).
