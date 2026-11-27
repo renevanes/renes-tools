@@ -10,7 +10,9 @@ function agEnter(name){
     if (!agKlaar) { agView = agStaat.view || 'week'; agAnker = rgToday(); agKlaar = true; }
     const z = $('#ag-zoek'); if (z && !z.value.trim()) agLaad(); else agZoekNu();
     agBalk();
+    if (typeof agSyncRegel === 'function') { agSyncRegel(); agSyncBijOpenen(); }
   } else if (name === 'agaset') agSetRender();
+  else if (name === 'agsync') agsRender();
   else if (name === 'agafspraak') { if (!agEdit) agNieuwKlaar(); agFormRender(); }
 }
 function agOud(){
@@ -153,7 +155,9 @@ function agOpen(id){
 function agNieuw(){ agNieuwKlaar(); show('agafspraak'); }
 function agNieuwKlaar(){
   const dag = agAnker && agAnker.length === 10 ? agAnker : rgToday();
-  agEdit = { id: '', titel: '', dag, eind: dag, van: '09:00', tot: '10:00', heleDag: false, herhaal: '', totDag: '', plek: '', notitie: '', kalender: (agStaat && agStaat.standaard) || '', ext: 0 };
+  // synchroniseren naar Google staat aan en er is geen standaardagenda: een nieuwe afspraak gaat meteen mee
+  const sync = agStaat && agStaat.sync, kal = (agStaat && agStaat.standaard) || (sync && sync.aan && sync.naar && sync.kal) || '';
+  agEdit = { id: '', titel: '', dag, eind: dag, van: '09:00', tot: '10:00', heleDag: false, herhaal: '', totDag: '', plek: '', notitie: '', kalender: kal, ext: 0 };
 }
 function agFormRender(){
   const it = agEdit || {};
@@ -184,16 +188,22 @@ function agTotZien(){
   $('#agf-totdag').hidden = !aan; $('#agf-tot-l').hidden = !aan;
 }
 function agKals(){ return (agStaat && agStaat.kalenders) || []; }
+function agSyncNaar(){ const s = agStaat && agStaat.sync; return s && s.aan && s.naar ? String(s.kal || '') : ''; }
 function agKalVul(){
-  const sel = $('#agf-kal'), cur = agEdit && agEdit.kalender || '';
-  const opts = ['<option value="">' + esc(t('Alleen in Tools')) + '</option>'].concat(agKals().map(k =>
+  const sel = $('#agf-kal'), sk = agSyncNaar();
+  let cur = agEdit && agEdit.kalender || '';
+  // staat alleen in Tools maar gaat bij de volgende ronde naar Google: laat dat zien
+  if (!cur && sk && agEdit && agEdit.id && !agEdit.lokaal) cur = sk;
+  const leeg = sk ? t('Alleen in Tools (niet synchroniseren)') : t('Alleen in Tools');
+  const opts = ['<option value="">' + esc(leeg) + '</option>'].concat(agKals().map(k =>
     '<option value="' + esc(k.id) + '">' + esc(k.naam || k.id) + (k.schrijf ? '' : ' (' + t('Alleen lezen') + ')') + '</option>'));
   sel.innerHTML = opts.join('');
   sel.value = [...sel.options].some(o => o.value === cur) ? cur : '';
 }
 function agKalHint(){
-  const id = $('#agf-kal').value, k = agKals().find(x => x.id === id);
+  const id = $('#agf-kal').value, k = agKals().find(x => x.id === id), sk = agSyncNaar();
   $('#agf-google').hidden = !(k && k.google);
+  $('#agf-lokaal').hidden = !(sk && !id);
   const had = agEdit && agEdit.ext > 0 && agEdit.kalender;
   $('#agf-los').hidden = !(had && !id);
   const her = $('#agf-herhaal').value;
@@ -209,6 +219,7 @@ function agBewaar(){
     herhaal: $('#agf-herhaal').value, totDag: $('#agf-herhaal').value ? $('#agf-totdag').value : '',
     kalender: $('#agf-kal').value, ext: agEdit && agEdit.ext || 0
   };
+  if (!it.kalender) it.lokaal = !!agSyncNaar() || !!(agEdit && agEdit.lokaal);
   const r = rdJson(Android.agendaBewaar(JSON.stringify(it)), {});
   if (!r || !r.ok) { toast((r && r.fout) || t('Opslaan lukte niet.')); return; }
   if (r.los) toast(t('De kopie in de agenda van je telefoon blijft staan.'));
@@ -216,7 +227,10 @@ function agBewaar(){
 }
 function agWis(){
   const id = agEdit && agEdit.id; if (!id || String(id).charAt(0) === 'x') return;
-  askConfirm(t('Afspraak verwijderen?'), t('Dit haalt de afspraak ook uit de agenda van je telefoon als hij daar stond.'), t('Verwijderen'), () => {
+  const s = agStaat && agStaat.sync, inSync = s && s.aan && agEdit.ext > 0 && String(agEdit.kalender || '') === String(s.kal || '');
+  const uitleg = inSync && !s.wisGoogle ? t('De afspraak blijft in {agenda} staan. Dat kun je instellen bij Synchroniseren.', { agenda: s.kalNaam || t('je agenda') })
+    : t('Dit haalt de afspraak ook uit de agenda van je telefoon als hij daar stond.');
+  askConfirm(t('Afspraak verwijderen?'), uitleg, t('Verwijderen'), () => {
     const r = rdJson(Android.agendaWis(id), {});
     if (!r || !r.ok) { toast((r && r.fout) || t('Opslaan lukte niet.')); return; }
     agEdit = null; goBack();
@@ -227,6 +241,9 @@ function agSync(){
   if (typeof Android.agendaSync !== 'function') return;
   const r = rdJson(Android.agendaSync(), {});
   if (!r || r.ok === false) { toast((r && r.fout) || t('Opslaan lukte niet.')); return; }
+  const s = agStaat && agStaat.sync;
+  // synchroniseren staat aan: die ronde meldt zelf wat er veranderde (onAgendaSync)
+  if (s && s.aan && typeof agsNu === 'function') { agsNu(); if (current === 'agenda') agLaad(); return; }
   const n = (+r.bijgewerkt || 0) + (+r.los || 0);
   toast(n ? t('Agenda bijgewerkt') : t('Niets nieuws in de agenda'));
   if (current === 'agenda') agLaad(); else if (current === 'agaset') agSetRender();
@@ -246,6 +263,7 @@ function agSetRender(){
   sel.innerHTML = ['<option value="">' + esc(t('Alleen in Tools')) + '</option>'].concat(kals.filter(k => k.schrijf).map(k => '<option value="' + esc(k.id) + '">' + esc(k.naam || k.id) + '</option>')).join('');
   const st = agStaat && agStaat.standaard || '';
   sel.value = [...sel.options].some(o => o.value === st) ? st : '';
+  const som = $('#ag-sum-sync'); if (som && typeof agsSamen === 'function') { som.textContent = agsSamen(agStaat && agStaat.sync); $('#ag-syncrij').hidden = typeof Android.agendaSyncStaat !== 'function'; }
   const ai = $('#ag-ai'), aan = !!(agStaat && agStaat.ai);
   ai.classList.toggle('on', aan); ai.setAttribute('aria-checked', aan ? 'true' : 'false');
 }
@@ -267,7 +285,7 @@ function agAi(){
   $('#ag-ai').classList.toggle('on', aan); $('#ag-ai').setAttribute('aria-checked', aan ? 'true' : 'false');
 }
 (function(){ const prev = window.onSettingsChanged; window.onSettingsChanged = function(msg){ if (typeof prev === 'function') prev(msg);
-  if (current === 'agenda' || current === 'agaset' || current === 'agafspraak') agEnter(current); }; })();
+  if (current === 'agenda' || current === 'agaset' || current === 'agafspraak' || current === 'agsync') agEnter(current); }; })();
 
 /* ---------- spiegel voor de tests (op de telefoon doet Java dit) ---------- */
 function agDagOk(key){
@@ -402,6 +420,7 @@ function agSpiegelBewaar(st, inn){
     van: inn.heleDag ? '' : (inn.van || '09:00'), tot: inn.heleDag ? '' : (inn.tot || '10:00'), heleDag: !!inn.heleDag,
     herhaal: ['d', 'w', 'm', 'y'].includes(inn.herhaal) ? inn.herhaal : '', totDag: inn.totDag || '', kalender: kal,
     ext: kal ? (inn.ext > 0 ? inn.ext : 9000 + (st.items || []).length) : 0, naam: '', kleur: '' };
+  if (!kal && inn.lokaal) it.lokaal = true;
   if (kal) { const k = st.kalenders.find(x => String(x.id) === kal); it.naam = k.naam || ''; it.kleur = k.kleur || ''; }
   st.items = (st.items || []).filter(x => x.id !== it.id).concat([it]);
   if (kal && it.ext > 0) {

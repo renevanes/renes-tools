@@ -41,6 +41,7 @@ final class NotifCenter {
         {"auto-call-recording", Taal.T("Automatische gespreksopname"), Taal.T("Als een automatische opname niet kon starten"), "3"},
         {ApparatenJob.CHANNEL, Taal.T("Apparaten: onbekende tracker"), Taal.T("Als een onbekende tracker (AirTag, SmartTag, Tile …) een tijd met je meereist"), "4"},
         {Facturen.CHANNEL, Taal.T("Facturen"), Taal.T("Als er nieuwe facturen zijn opgehaald, of als inloggen bij een leverancier niet lukt"), "3"},
+        {AgendaSync.CHANNEL, Taal.T("Agenda synchroniseren"), Taal.T("Als synchroniseren met Google een conflict vindt, niet lukt of wil verwijderen"), "3"},
         {Signalen.CHANNEL, Taal.T("Signalen"), Taal.T("Als een bron die je volgt iets nieuws heeft, het dagoverzicht, of als een bron niet meer werkt"), "3"},
         {CheckinNotify.CHANNEL, Taal.T("Check-in"), Taal.T("De vraag op het moment dat je koos, met knoppen om meteen te antwoorden (één melding per moment, nooit opnieuw)"), "3"},
         {SleepReminder.CHANNEL, Taal.T("Slaappraat: bedtijd"), Taal.T("Een herinnering op bedtijd om Slaappraat aan te zetten (als je die aanzet)"), "3"},

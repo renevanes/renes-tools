@@ -40,7 +40,7 @@ Alles in deze tabel blijft op de telefoon, behalve wat onder "Wanneer er iets de
 | Locatie, ook op de achtergrond | Mijn routes, Mijn auto (parkeerplek en ritten), het weer op het startscherm, automatiseringen op een plek, Apparaten, Locatie kiezen. Op de achtergrond alleen als je een automatisering op een plek of Apparaten aanzet |
 | Microfoon | Muziekherkenning, spraaknotities, de assistent, Slaappraat |
 | Camera | QR-codes scannen (bijvoorbeeld voor de VPN), een foto van een rekening maken in Betalen en een brief scannen in de Documentenkluis; het beeld wordt alleen op de telefoon gelezen en (bij Betalen als je dat aan laat) versleuteld in je documentenkluis bewaard, nooit in je galerij |
-| Agenda (lezen en schrijven) | Check-in, de agenda-widget en de tool Agenda: afspraken uit de agenda's van de telefoon tonen en, als je dat kiest, een afspraak in zo'n agenda zetten. Zet je een afspraak in een Google-agenda, dan stuurt de agenda-app van de telefoon hem naar Google; Tools praat zelf niet met Google |
+| Agenda (lezen en schrijven) | Check-in, de agenda-widget en de tool Agenda: afspraken uit de agenda's van de telefoon tonen en, als je dat kiest, een afspraak in zo'n agenda zetten. Zet je een afspraak in een Google-agenda, dan stuurt de agenda-app van de telefoon hem naar Google; Tools praat zelf niet met Google. Zet je Synchroniseren aan (Agenda → Instellingen), dan zet Tools ook je eigen afspraken in de agenda die je kiest en/of haalt het de afspraken uit die agenda op, zo vaak als je kiest; ook dat gaat alleen via de agenda van de telefoon |
 | Telefoon (status, bellen) | Bellen vanuit de app en herkennen of er een gesprek is |
 | Apparaten in de buurt (Bluetooth, wifi) | Het overzicht van apparaten in de buurt |
 | Meldingen lezen (meldingstoegang) | Meldingsgeschiedenis: een overzicht van meldingen op je telefoon, dus ook berichten van anderen. Alleen voor jezelf, op de telefoon |
@@ -186,7 +186,7 @@ Heb je een klacht over hoe met persoonsgegevens wordt omgegaan, dan kun je ook t
 Rene's Tools has no server and no account. The developer does not collect, sell or share personal data, and the app
 contains no ads or third-party analytics. The app processes data on the phone (contacts, location including background
 location for place-based automations, microphone, calendar (read and write, for the Agenda tool; appointments you
-put in a Google calendar are synced by the phone's own calendar app), notifications history, files of other apps for WhatsApp
+put in a Google calendar, also through the optional Agenda sync, are synced by the phone's own calendar app), notifications history, files of other apps for WhatsApp
 backup and call transcription, usage stats, and, in the GitHub version only, SMS, call log, call recording and an
 optional silent front-camera photo on (failed) unlock). Data leaves the phone only for services you use: AudD (short
 audio clip), Spotify, Google (read-only Gmail search for invoices, Drive, sending invoices), your own mail server or

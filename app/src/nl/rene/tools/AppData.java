@@ -90,6 +90,7 @@ final class AppData {
         m.put("alarm_dp", "kopie van de radiowekker voor na een herstart (wordt opnieuw gemaakt)");
         m.put("notewidget", "koppeling met widgets (die moet je opnieuw plaatsen)");
         m.put("backupmap_voortgang", "hoe ver het vanzelf opruimen van deze backup-map is (begint op een nieuwe telefoon gewoon vooraan)");
+        m.put("agenda_sync", "toestand van Agenda synchroniseren op deze telefoon (laatste ronde, logboek, conflicten, id's uit de agenda van deze telefoon); de instellingen zelf staan in agenda en gaan mee");
         m.put("facturen_geheim", "wachtwoorden voor Facturen, versleuteld met de sleutel van deze telefoon (opnieuw invullen)");
         PREFS_SKIP = Collections.unmodifiableMap(m);
     }

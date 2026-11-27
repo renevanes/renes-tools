@@ -14,7 +14,7 @@ const DETAIL = ['github', 'snitem', 'snset', 'snbron', 'setkopp', 'podset', 'spr
   'cpapnacht', 'sleepset', 'sleepnight', 'checkined', 'checkinq', 'checkincmp', 'setnotif', 'setlook', 'setregio', 'setcrash', 'setcrashdoel', 'setcrashlog', 'setcrashstat', 'setcrashdiag', 'setcrashrap', 'setcrashweg', 'setslot', 'facstuk', 'facgoogle', 'idcopy', 'formulieren',
   'pdfedit', 'pdfimg', 'pdfsplit', 'pdffoto', 'pdftext', 'pdfmade', 'bkparts', 'bkset', 'bkrestore', 'bkmap', 'wasel', 'waauto', 'warestore',
   'wcplek', 'wcbewerk', 'wcdeel', 'wcset', 'wcbronnen', 'wcbron', 'wceigen', 'wcgedeeld', 'cmedit', 'cmlog', 'cmwis', 'cmlijst', 'cmkaart', 'cmai',
-  'nieuwsart', 'nieuwsset', 'nieuwsbron', 'agafspraak', 'agaset'];
+  'nieuwsart', 'nieuwsset', 'nieuwsbron', 'agafspraak', 'agaset', 'agsync'];
 // Meer dan één gevulde hoofdknop: bewust (met de reden)
 const MEER_PRIMAIR = {
 };
