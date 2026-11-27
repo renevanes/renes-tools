@@ -11,7 +11,7 @@ const FB_MAX_TOON = 1000; // zo groot tekent de bewerker de foto op het scherm
 const FB_DOC = { idkaart: 85.6 / 54, rijbewijs: 85.6 / 54, paspoort: 125 / 88 };
 const FB_VERH = () => [['0', t('Vrij')], [String(85.6 / 54), t('ID-kaart of rijbewijs')], [String(125 / 88), t('Paspoort (fotopagina)')],
   [String(297 / 210), t('A4 liggend')], [String(210 / 297), t('A4 staand')], ['1', t('Vierkant')]];
-const fb = { open: false, foto: null, ops: null, terug: [], klaar: null, opts: {}, modus: 'bewerk', sleep: -1, vlak: null, tab: 'snij', hoek: 0, hoekBasis: null, cache: {}, teken: 0, toon: null, uit: null, zoek: 0, render: 0, lichtStap: false };
+const fb = { open: false, foto: null, ops: null, terug: [], klaar: null, opts: {}, modus: 'bewerk', sleep: -1, vlak: null, tab: 'snij', hoek: 0, hoekBasis: null, cache: {}, teken: 0, toon: null, uit: null, zoek: 0, render: 0, lichtStap: false, zoom: 1, vingers: new Map(), knijp: null, schuif: null };
 
 /* ---------- rekenwerk, zonder scherm ---------- */
 function fbLeeg(){ return { draai: 0, q: [[0, 0], [1, 0], [1, 1], [0, 1]], verhouding: 0, licht: 0, contrast: 0, niveau: [0, 255], grijs: false, vlakken: [] }; }
@@ -214,7 +214,7 @@ function fotoBewerk(opts = {}){
 }
 function fbStart(foto, opts, klaar){
   fbVergToon(false);
-  Object.assign(fb, { modus: 'bewerk', open: true, foto, opts, klaar, ops: opts.ops ? fbKopie(opts.ops) : fbLeeg(), terug: [], tab: 'snij', hoek: 0, hoekBasis: null, cache: {}, sleep: -1, vlak: null, uit: null, lichtStap: false });
+  Object.assign(fb, { modus: 'bewerk', open: true, foto, opts, klaar, ops: opts.ops ? fbKopie(opts.ops) : fbLeeg(), terug: [], tab: 'snij', hoek: 0, hoekBasis: null, cache: {}, sleep: -1, vlak: null, uit: null, lichtStap: false, zoom: 1, vingers: new Map(), knijp: null, schuif: null });
   $('#fb-titel').textContent = opts.titel || t('Foto bewerken');
   $('#fb-ok').textContent = opts.knop || t('Klaar');
   $('#fb-tab-vlak').hidden = opts.afdekken === false;
@@ -231,6 +231,7 @@ function fbSluit(uitkomst = null){
   const k = fb.klaar; fb.klaar = null; fb.foto = null; fb.cache = {}; fb.uit = null; fb.toon = null; fb.modus = 'bewerk';
   $('#fb-verg-voor').removeAttribute('src'); $('#fb-verg-na').removeAttribute('src'); fbVergToon(false);
   const c = $('#fb-doek'); c.width = 1; c.height = 1; $('#fb-vlak').innerHTML = '';
+  fb.zoom = 1; fb.knijp = null; fb.schuif = null; if (fb.vingers) fb.vingers.clear(); fbZoomPas();
   clearTimeout(fb.straksT); fb.straksNr = (fb.straksNr || 0) + 1; const sd = $('#fb-straks-doek'); sd.width = 1; sd.height = 1;
   if (k) k(uitkomst);
 }
@@ -303,6 +304,7 @@ async function fbAuto(start){
 }
 function fbTab(tab){
   if (tab === 'vlak' && fb.opts.afdekken === false) tab = 'snij';
+  if (fb.tab !== tab) fb.zoom = 1;
   fb.tab = tab;
   document.querySelectorAll('#fbdlg .pctabs [role=tab]').forEach(b => { const on = b.dataset.tab === tab; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
   document.querySelectorAll('#fbdlg .fb-paneel').forEach(p => p.hidden = p.id !== 'fb-p-' + tab);
@@ -342,12 +344,12 @@ function fbStraks(){
   }, 120);
 }
 function fbTekenFoto(){
-  const g = fbGedraaid(fb.foto, fb.ops.draai, fb.cache), s = Math.min(1, FB_MAX_TOON / Math.max(g.width, g.height));
+  const g = fbGedraaid(fb.foto, fb.ops.draai, fb.cache), s = Math.min(1, fbToonMax() / Math.max(g.width, g.height));
   const c = $('#fb-doek'), w = Math.max(1, Math.round(g.width * s)), h = Math.max(1, Math.round(g.height * s));
   if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
   const x = c.getContext('2d'); x.drawImage(g, 0, 0, w, h);
   if (!fbKleurLeeg(fb.ops)) x.putImageData(fbKleur(x.getImageData(0, 0, w, h), fb.ops), 0, 0);
-  fbTekenVlak();
+  fbZoomPas(); fbTekenVlak();
 }
 const FB_NAMEN = () => [t('Hoek linksboven'), t('Hoek rechtsboven'), t('Hoek rechtsonder'), t('Hoek linksonder'), t('Bovenkant'), t('Rechterkant'), t('Onderkant'), t('Linkerkant')];
 const FB_KANT = [[0, 1], [1, 2], [2, 3], [3, 0]];
@@ -368,10 +370,10 @@ function fbTekenVlak(){
 }
 async function fbTekenUitkomst(){
   const nr = ++fb.render, o = fbKopie(fb.ops), vl = o.vlakken; o.vlakken = [];
-  let c; try { c = await fbRender(fb.foto, o, FB_MAX_TOON, fb.cache); } catch (e) { fbStatus(t('Dit vlak lukt niet. Zet de hoeken op de hoeken van wat je wilt houden.')); return; }
+  let c; try { c = await fbRender(fb.foto, o, fbToonMax(), fb.cache); } catch (e) { fbStatus(t('Dit vlak lukt niet. Zet de hoeken op de hoeken van wat je wilt houden.')); return; }
   if (!fb.open || nr !== fb.render) return;
   fb.uit = c; const d = $('#fb-doek'); d.width = c.width; d.height = c.height; d.getContext('2d').drawImage(c, 0, 0);
-  fbTekenVlakken(vl);
+  fbZoomPas(); fbTekenVlakken(vl);
 }
 function fbTekenVlakken(vl, extra){
   const d = $('#fb-doek'), svg = $('#fb-vlak'), W = d.width, H = d.height;
@@ -429,6 +431,36 @@ async function fbAutoLicht(){
 function fbVlakWeg(alles){ if (!fb.ops.vlakken.length) return; fbBewaarStap(); if (alles) fb.ops.vlakken = []; else fb.ops.vlakken.pop(); fbTeken(); }
 
 /* Slepen: grepen van het vlak, of zwarte vlakken trekken */
+/* ---------- vergroten: knoppen, knijpen met twee vingers, schuiven ---------- */
+const FB_ZOOM_MAX = 6;
+/** Vergroot tekent de bewerker de foto scherper. */
+function fbToonMax(){ return (fb.zoom || 1) > 1.2 ? FB_MAX_TOON * 2 : FB_MAX_TOON; }
+/** De maat van de foto op het scherm bij de zoom van nu; zonder zoom regelt de opmaak het zelf. */
+function fbZoomPas(){
+  const k = $('#fb-kijk'), c = $('#fb-doek'), z = fb.open ? fb.zoom || 1 : 1, aan = z > 1.001;
+  $('#fb-zoom-n').textContent = t('{n}×', { n: fmtNum(Math.round(z * 10) / 10) });
+  $('#fb-zoom-min').disabled = !aan; $('#fb-zoom-n').disabled = !aan; $('#fb-zoom-plus').disabled = z >= FB_ZOOM_MAX - 0.001;
+  if (!aan) { if (k.classList.contains('zoom')) { k.classList.remove('zoom'); k.style.height = ''; c.style.width = ''; k.scrollLeft = 0; k.scrollTop = 0; } return; }
+  // de maat zonder zoom: zo breed als past, hooguit 40% van de hoogte van het scherm
+  const breed = (k.parentElement.clientWidth || 340) - 32, hoog = innerHeight * 0.4, n = Math.min(1, FB_MAX_TOON / Math.max(c.width, c.height));
+  const f = Math.min(1, breed / (c.width * n), hoog / (c.height * n)), bw = c.width * n * f, bh = c.height * n * f;
+  k.classList.add('zoom'); k.style.height = Math.round(bh + 28) + 'px'; c.style.width = Math.round(bw * z) + 'px';
+}
+/** Zoom zetten; het punt (x, y) op het scherm blijft op zijn plek (anders het midden). */
+function fbZoomZet(z, x, y){
+  if (!fb.open || fb.modus !== 'bewerk') return;
+  z = Math.max(1, Math.min(FB_ZOOM_MAX, +z || 1)); if (Math.abs(z - fb.zoom) < 0.001) return;
+  const k = $('#fb-kijk'), svg = $('#fb-vlak'), kr = k.getBoundingClientRect(), r = svg.getBoundingClientRect();
+  if (x == null) { x = kr.left + kr.width / 2; y = kr.top + kr.height / 2; }
+  const fx = (x - r.left) / (r.width || 1), fy = (y - r.top) / (r.height || 1), was = fb.zoom;
+  fb.zoom = z; fbZoomPas();
+  const r2 = svg.getBoundingClientRect(); k.scrollLeft += r2.left + fx * r2.width - x; k.scrollTop += r2.top + fy * r2.height - y;
+  if (was <= 1.001 && z > 1) fbStatus(t('Vergroot. Schuif met twee vingers, of met één vinger naast de hoeken.'));
+  fbTeken();
+}
+function fbZoomStap(stap){ fbZoomZet(stap > 0 ? Math.min(FB_ZOOM_MAX, fb.zoom * 1.5) : fb.zoom / 1.5 < 1.1 ? 1 : fb.zoom / 1.5); }
+function fbVang(svg, e){ try { svg.setPointerCapture(e.pointerId); } catch (x) {} }
+function fbKnijpStand(){ const [a, b] = [...fb.vingers.values()]; return { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
 function fbPunt(e){ const r = $('#fb-vlak').getBoundingClientRect(); return [Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))]; }
 function fbZet(i, p){
   const q = fbKopie(fb.ops.q);
@@ -442,16 +474,39 @@ function fbEvents(){
   const svg = $('#fb-vlak'); if (svg.dataset.fb) return; svg.dataset.fb = '1';
   svg.addEventListener('pointerdown', e => {
     if (!fb.open) return; if (fb.opts.actief) fb.opts.actief();
-    if (fb.tab === 'vlak') { fb.vlak = { van: fbPunt(e) }; svg.setPointerCapture(e.pointerId); e.preventDefault(); return; }
+    fb.vingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (fb.vingers.size >= 2) { // tweede vinger: knijpen en schuiven, wat de eerste vinger deed stopt
+      if (fb.sleep >= 0 && fb.terug.length) fb.ops = fb.terug.pop();
+      fb.sleep = -1; fb.vlak = null; fb.schuif = null; fbVang(svg, e); e.preventDefault();
+      if (fb.vingers.size === 2) { const st = fbKnijpStand(); fb.knijp = { d: st.d, x: st.x, y: st.y, zoom: fb.zoom }; fbTeken(); }
+      return;
+    }
+    if (fb.knijp) return;
+    if (fb.tab === 'vlak') { fb.vlak = { van: fbPunt(e) }; fbVang(svg, e); e.preventDefault(); return; }
     const g = e.target.closest('.fb-greep'); let i = g ? +g.dataset.i : -1;
-    if (i < 0) { const p = fbPunt(e); let best = Infinity; fbGrepen().forEach((q, k) => { const d = Math.hypot(q[0] - p[0], q[1] - p[1]); if (d < best) { best = d; i = k; } }); if (best > 0.18) return; }
-    fbBewaarStap(); fb.sleep = i; svg.setPointerCapture(e.pointerId); e.preventDefault();
+    if (i < 0) { const p = fbPunt(e); let best = Infinity; fbGrepen().forEach((q, k) => { const d = Math.hypot(q[0] - p[0], q[1] - p[1]); if (d < best) { best = d; i = k; } }); if (best > 0.18 / fb.zoom) i = -1; }
+    if (i < 0) { // naast de hoeken: vergroot schuif je de foto
+      if (fb.zoom > 1.001) { const k = $('#fb-kijk'); fb.schuif = { x: e.clientX, y: e.clientY, l: k.scrollLeft, t: k.scrollTop }; fbVang(svg, e); e.preventDefault(); }
+      return;
+    }
+    fbBewaarStap(); fb.sleep = i; fbVang(svg, e); e.preventDefault();
   });
   svg.addEventListener('pointermove', e => {
+    if (fb.vingers.has(e.pointerId)) fb.vingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (fb.knijp) {
+      if (fb.vingers.size !== 2) return;
+      const st = fbKnijpStand(), k = $('#fb-kijk');
+      k.scrollLeft -= st.x - fb.knijp.x; k.scrollTop -= st.y - fb.knijp.y; fb.knijp.x = st.x; fb.knijp.y = st.y;
+      fbZoomZet(fb.knijp.zoom * st.d / fb.knijp.d, st.x, st.y); return;
+    }
+    if (fb.schuif) { const k = $('#fb-kijk'); k.scrollLeft = fb.schuif.l - (e.clientX - fb.schuif.x); k.scrollTop = fb.schuif.t - (e.clientY - fb.schuif.y); return; }
     if (fb.vlak) { const a = fb.vlak.van, b = fbPunt(e); fb.vlak.r = [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1])]; fbTekenVlakken(fb.ops.vlakken, fb.vlak.r); return; }
     if (fb.sleep >= 0) fbZet(fb.sleep, fbPunt(e));
   });
-  const los = () => {
+  const los = e => {
+    fb.vingers.delete(e.pointerId);
+    if (fb.knijp) { if (!fb.vingers.size) fb.knijp = null; return; }
+    if (fb.schuif) { fb.schuif = null; return; }
     if (fb.vlak) { const r = fb.vlak.r; fb.vlak = null; if (r && r[2] > 0.005 && r[3] > 0.005 && fb.ops.vlakken.length < 60) { fbBewaarStap(); fb.ops.vlakken.push(r); } fbTeken(); return; }
     if (fb.sleep >= 0) { const i = fb.sleep; fb.sleep = -1; fbTeken(); requestAnimationFrame(() => { const g = svg.querySelector('.fb-greep[data-i="' + i + '"]'); if (g) g.focus({ preventScroll: true }); }); }
   };
