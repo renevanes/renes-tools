@@ -330,11 +330,11 @@ function fbTeken(){
 function fbStraks(){
   const el = $('#fb-straks'); clearTimeout(fb.straksT);
   if (fb.tab === 'vlak') { el.hidden = true; return; }
-  el.hidden = false;
+  el.hidden = false; const nr = fb.straksNr = (fb.straksNr || 0) + 1;
   fb.straksT = setTimeout(async () => {
-    if (!fb.open || fb.modus !== 'bewerk' || fb.tab === 'vlak') return;
-    const nr = fb.straksNr = (fb.straksNr || 0) + 1, foto = fb.foto;
-    let c = null; try { if (fbGeldig(fb.ops.q, fbPix(fb.ops.q))) c = await fbRender(foto, fb.ops, 600, fb.cache); } catch (e) { c = null; }
+    if (!fb.open || fb.modus !== 'bewerk' || fb.tab === 'vlak' || nr !== fb.straksNr) return;
+    const foto = fb.foto, o = fbKopie(fb.ops);
+    let c = null; try { if (fbGeldig(o.q, fbPix(o.q))) c = await fbRender(foto, o, 600, fb.cache); } catch (e) { c = null; }
     if (!fb.open || nr !== fb.straksNr || fb.foto !== foto) return;
     const d = $('#fb-straks-doek'); el.classList.toggle('leeg', !c);
     if (!c) { d.width = 1; d.height = 1; return; }
