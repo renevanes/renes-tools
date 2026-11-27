@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.270",
-  "versionCode": 271,
+  "versionName": "1.271",
+  "versionCode": 272,
   "nativeLevel": 232,
   "web": "index.html",
-  "webSha256": "cf0435ce52f1ceb00b94e1839b5e16c1ccd9e58cc2700e0916fcacd1d6509725",
+  "webSha256": "4ab66e9afdcf9ff2c3ece8e725c02c513e39c966d643b27aca358f54fdb570b3",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "941e9910836e8e596a0b9f0d039974a1ef55e1428fbac63df9db88862218ea29",
+  "apkSha256": "1830baa6e56484b7a5173484ac71bc55eb7631e7c7ff12466f7723f346585231",
   "changelog": [
+    {
+      "version": "1.271",
+      "date": "2026-11-27",
+      "changes": [
+        "De onderbalk is nu zelf in te delen, zoals op een Android-startscherm: houd een tegel op het startscherm ingedrukt en sleep hem naar de balk. Elke tool kan erin; Start blijft links staan, daarnaast passen er 4.",
+        "In de onderbalk zelf: ingedrukt houden en schuiven om de volgorde te veranderen, omhoog slepen om een plek weg te halen. Zonder slepen kan het ook bij Startscherm aanpassen → Weergave → Onderbalk, of via het menu van een tegel.",
+        "Staat Instellingen niet in de onderbalk, dan staat er rechtsboven op het startscherm een knop voor."
+      ]
+    },
     {
       "version": "1.270",
       "date": "2026-11-27",
@@ -168,14 +177,7 @@
         "Stamgegevens: een persoon woont nu op een adres uit Adressen (Woont op), in plaats van een eigen los adres. Gezinsleden delen hetzelfde adres; pas je het adres aan, dan verandert het bij iedereen die er woont. Bij een adres zie je wie er woont. Bestaande adressen bij personen worden eenmalig vanzelf gekoppeld, en gelijke adressen worden één adres.",
         "Stamgegevens: als het laden of bewaren traag gaat, komt de duur (zonder gegevens) in het foutlogboek, zodat het sneller gemaakt kan worden."
       ]
-    },
-    {
-      "version": "1.251",
-      "date": "2026-11-24",
-      "changes": [
-        "Stamgegevens: de strook van een paspoort of ID-bewijs met dunne of bleke tekens (zoals de gelaserde strook van een nieuwer paspoort op een foto) wordt nu beter herkend."
-      ]
     }
   ],
-  "webSig2": "Sb3rtlTrAKdnzOGGZwJhv83FTUDObzb0rGaP9rBQwWbewvwQVrUh7O1ZFkKZB3FMUHK+SqI5a91UZkg1MIHZVe7oqAzQYXiG+OBIuh4mqNfSVJ7FFyNRXHXLygwzqhd8zVarZa/0tGjRf/2rYce/MX1xfnYyxpbnyQPcEn+GRzoo/+vhKBV4AFC9+2t75g0qOTR0niheH3mKtnokRjNRZ0J7mKOor1X2MNXGaiYJxdJdlK1VmhqoNTXstFE6S0w8OadldV+mkiOMDU9y2L1hC0l5EB9NIA1I3rBWIZOrviYXl6yW2fzACVhYTl99YdV1uE5AfokUa3WnMgrX0M11j4Ls3QjJMiefkNmx6Fflh7R9Rr2yIcCBShGp3QgaGESu9gSWDqvZHqTzBi0B67kN2/6AzyHjWVkCauBo71Bdc8rAgDaLUB+L+wYDqk40010A19cC2wki9FtwTvlHfkHU+bhFCTowmnJtQsXRwemX7rQSC0LVWxH6C5JAoq7vJYQv"
+  "webSig2": "k/o4Qljzll6iFEdAr8M3wDKllngxb3zbuF12KRxYFzo9yfkFL61I0j3Xos1zE7bWieVhdIHO4ProFw0Pxk2ykxUP4jEZY0zSQzPonBARvMDD2c2mj8MHXZM6lqOpBjWYPH9ZqmV2WsQeXRh4hm8uU0PlXDLPESHRYjcuiSZSIfj9y8II/6kQEIHs8/kI8ze9JKf1aSw+r2z3j2tcYlTaA6uQE3UFrdR0U8PpUNQD912Y+CaP6bMzVGEqD/m2DhQ6YLQdkOuQde4aP1qiR8fWwjSRt/jMcsd33UAbPAJwArm4d5IvYCQAGQtTL91Nmj5Ei6SWBhvVzBw0m3zoTQP4DaLL3Lidjke6UDUA7htn5xvb72CIC8GJvai6qGx8LTAEXGiWe37DsfJ4R0CZ5ivdWdiQx473UavaJyiFjFKZmqQsZ80TEmB7E+0wPNCjW49dd5/CwzbeHvrd6EUjkH9ynS07cw01og/Nu7JciGVX7znMIciyL/QNUrePm4mLAmDp"
 }
