@@ -829,18 +829,29 @@ public class NieuwsTest {
         List<String> opgehaald = new ArrayList<>();
         Nieuws.aanvullen("aireport", g, null, System.currentTimeMillis() + 10_000, (u, tot) -> {
             opgehaald.add(u);
-            if (u.endsWith("/oud")) return "<head><meta name=\"robots\" content=\"x\"></head>"; // geen titel: valt weg
+            if (u.endsWith("/oud")) return "<head><meta name=\"robots\" content=\"x\"></head>"; // geen titel: de titel uit het adres
             return "<head><meta property=\"og:title\" content=\"Over " + u.substring(u.lastIndexOf('/') + 1) + "\"><meta property=\"og:description\" content=\"Begin.\"></head>";
         });
-        check(opgehaald.size() == 4 && g.artikelen.size() == 3 && "Over nieuw".equals(g.artikelen.get(0).titel) && g.artikelen.get(0).ingekort
-                && "Begin.".equals(g.artikelen.get(0).blokken.get(0).tekst), "aangevuld: titel en begin, pagina zonder titel weg (" + g.artikelen.size() + ")");
+        NieuwsFeed.Artikel oudA = null;
+        for (NieuwsFeed.Artikel x : g.artikelen) if (x.link.endsWith("/oud")) oudA = x;
+        check(opgehaald.size() == 4 && g.artikelen.size() == 4 && "Over nieuw".equals(g.artikelen.get(0).titel) && g.artikelen.get(0).ingekort && !g.artikelen.get(0).titelUitAdres
+                && "Begin.".equals(g.artikelen.get(0).blokken.get(0).tekst), "aangevuld: titel en begin (" + g.artikelen.size() + ")");
+        check(oudA != null && "Oud".equals(oudA.titel) && oudA.titelUitAdres && g.paginaLog.startsWith("3 van 4 gelezen (geen titel in de kop: 1)"), "pagina zonder titel: de titel uit het adres, en het logboek telt het: " + g.paginaLog);
         Nieuws.bewaarFeed(cache, "aireport", "https://www.aireport.nl/sitemap.xml", g, System.currentTimeMillis());
         JSONObject oud = new JSONObject(new String(Files.readAllBytes(Nieuws.cacheBestand(cache, "aireport").toPath()), StandardCharsets.UTF_8));
         NieuwsFeed.Feed h = Nieuws.uitKaart(k, "https://www.aireport.nl/sitemap.xml");
         Nieuws.filterOp("aireport.nl/p/", "https://www.aireport.nl/sitemap.xml", h);
         opgehaald.clear();
         Nieuws.aanvullen("aireport", h, oud, System.currentTimeMillis() + 10_000, (u, tot) -> { opgehaald.add(u); return "<head></head>"; });
-        check(opgehaald.size() == 1 && opgehaald.get(0).endsWith("/oud") && h.artikelen.size() == 3 && "Over nieuw".equals(h.artikelen.get(0).titel), "volgende ronde: bekende pagina's uit de cache, alleen de rest opnieuw");
+        check(opgehaald.size() == 1 && opgehaald.get(0).endsWith("/oud") && h.artikelen.size() == 4 && "Over nieuw".equals(h.artikelen.get(0).titel), "volgende ronde: bekende pagina's uit de cache, een titel uit het adres opnieuw proberen");
+        Nieuws.bewaarFeed(cache, "aireport", "https://www.aireport.nl/sitemap.xml", h, System.currentTimeMillis());
+        JSONObject oud2 = new JSONObject(new String(Files.readAllBytes(Nieuws.cacheBestand(cache, "aireport").toPath()), StandardCharsets.UTF_8));
+        NieuwsFeed.Feed h2 = Nieuws.uitKaart(k, "https://www.aireport.nl/sitemap.xml");
+        Nieuws.filterOp("aireport.nl/p/", "https://www.aireport.nl/sitemap.xml", h2);
+        Nieuws.aanvullen("aireport", h2, oud2, System.currentTimeMillis() + 10_000, (u, tot) -> "<head><meta property=\"og:title\" content=\"Toch gelezen\"></head>");
+        NieuwsFeed.Artikel oudB = null;
+        for (NieuwsFeed.Artikel x : h2.artikelen) if (x.link.endsWith("/oud")) oudB = x;
+        check(oudB != null && "Toch gelezen".equals(oudB.titel) && !oudB.titelUitAdres, "lukt de pagina later wel: de echte titel");
         // De datum van de pagina blijft, ook als de sitemap later een nieuwere lastmod geeft (een bewerking)
         NieuwsFeed.Feed met = Nieuws.uitKaart(NieuwsFeed.sitemap(tekst("<urlset><url><loc>https://www.aireport.nl/p/a</loc><lastmod>2026-11-01</lastmod></url></urlset>"), null), "https://www.aireport.nl/sitemap.xml");
         Nieuws.aanvullen("e9", met, null, System.currentTimeMillis() + 10_000, (u, tot) -> "<head><meta property=\"og:title\" content=\"A\"><meta property=\"article:published_time\" content=\"2026-10-30T09:00:00Z\"></head>");
@@ -863,7 +874,22 @@ public class NieuwsTest {
         check(n[0] == Nieuws.MAX_PAGINAS && veel.artikelen.size() == Nieuws.MAX_PAGINAS, "hooguit " + Nieuws.MAX_PAGINAS + " pagina's per ronde");
         NieuwsFeed.Feed muur = Nieuws.uitKaart(k, "https://www.aireport.nl/sitemap.xml");
         muur.artikelen.removeIf(a -> !a.titel.isEmpty());
-        check(geeftFout(() -> Nieuws.aanvullen("aireport", muur, null, System.currentTimeMillis() + 10_000, (u, tot) -> { throw new Nieuws.HttpFout(403); })), "geen enkele pagina te lezen: een fout bij de bron");
+        Nieuws.aanvullen("aireport", muur, null, System.currentTimeMillis() + 10_000, (u, tot) -> { throw new Nieuws.HttpFout(403); });
+        boolean allemaalAdres = !muur.artikelen.isEmpty();
+        for (NieuwsFeed.Artikel x : muur.artikelen) allemaalAdres &= x.titelUitAdres && !x.titel.isEmpty();
+        check(allemaalAdres && muur.paginaLog.startsWith("0 van ") && muur.paginaLog.contains("http 403"), "geen enkele pagina te lezen: toch de artikelen, met de titel uit het adres; het logboek zegt waarom: " + muur.paginaLog);
+        NieuwsFeed.Feed cijfers = new NieuwsFeed.Feed();
+        cijfers.uitSitemap = true;
+        for (int i = 0; i < 3; i++) { NieuwsFeed.Artikel a = new NieuwsFeed.Artikel(); a.link = "https://x.example.org/p/" + i; a.sleutel = a.link; cijfers.artikelen.add(a); }
+        check(geeftFout(() -> Nieuws.aanvullen("e1", cijfers, null, System.currentTimeMillis() + 10_000, (u, tot) -> { throw new Nieuws.HttpFout(403); })), "geen pagina te lezen en geen bruikbaar adres: een fout bij de bron");
+        // Titel uit het adres
+        check("Claude whiteboards getest zo brainstorm je visueel met ai".equals(Nieuws.titelUitAdres("https://www.aireport.nl/artikel/claude-whiteboards-getest-zo-brainstorm-je-visueel-met-ai"))
+                && "Zo bouwde jasper een koffie app".equals(Nieuws.titelUitAdres("https://www.aireport.nl/artikel/zo-bouwde-jasper-een-koffie-app-1/"))
+                && "Café open".equals(Nieuws.titelUitAdres("https://x.example.org/artikel/caf%C3%A9-open")) && "".equals(Nieuws.titelUitAdres("https://x.example.org/p/12"))
+                && "".equals(Nieuws.titelUitAdres("geen adres")), "titel uit het adres");
+        // Van een artikelpagina alleen de kop: klaar bij </head>
+        byte[] stuk = "<html><head><title>x</title></HEAD><body>".getBytes(StandardCharsets.UTF_8);
+        check(Nieuws.kopKlaar(stuk, stuk.length) && !Nieuws.kopKlaar("<html><head><title>x".getBytes(StandardCharsets.UTF_8), 20), "kop klaar bij </head>");
         NieuwsFeed.Feed rssFeed = rss();
         int voor = rssFeed.artikelen.size();
         Nieuws.aanvullen("nos", rssFeed, null, System.currentTimeMillis() + 10_000, (u, tot) -> { throw new AssertionError("niet ophalen"); });

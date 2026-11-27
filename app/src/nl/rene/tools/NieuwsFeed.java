@@ -40,6 +40,8 @@ final class NieuwsFeed {
         boolean ingekort;
         /** De artikelpagina is nagekeken en heeft geen afbeelding ({@link Nieuws#beelden}). */
         boolean zonderBeeld;
+        /** De titel komt (nog) uit het adres, niet van de pagina: een volgende ronde probeert de pagina opnieuw ({@link Nieuws#aanvullen}). */
+        boolean titelUitAdres;
     }
 
     static final class Feed {
@@ -51,6 +53,8 @@ final class NieuwsFeed {
         final List<Artikel> artikelen = new ArrayList<>();
         /** Uit een sitemap: de artikelen hebben alleen een adres en datum; titel en tekst komen van de pagina ({@link Nieuws#aanvullen}). */
         boolean uitSitemap;
+        /** Hoe het lezen van de artikelpagina's ging, per reden geteld in vaste woorden (voor het logboek), of "". */
+        String paginaLog = "";
     }
 
     /** Geen nieuwsfeed (bijv. een gewone webpagina): dan kan de aanroeper op die pagina naar een feed zoeken. */
