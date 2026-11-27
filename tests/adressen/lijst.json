@@ -1,17 +1,82 @@
 {
-  "uitleg": "Vaste adressen zonder versleuteling (http://, ws://, ftp:// met een naam erachter) in de code van de app, met de reden. Gecontroleerd door tests/adressen/controle.py (vanuit tests/run-ui.sh). Een nieuw vast adres hoort https te zijn; alleen wat nooit over het netwerk gaat of op het toestel zelf blijft, mag hier.",
+  "uitleg": "Vaste adressen zonder versleuteling (http://, ws://, ftp://, rtsp://, rtmp://, mms://, icy:// met een naam erachter) in de code van de app, met de reden. Gecontroleerd door tests/adressen/controle.py (vanuit tests/run-ui.sh). Een nieuw vast adres hoort https te zijn; alleen wat nooit over het netwerk gaat of op het toestel zelf blijft, mag hier.",
   "namen": {
-    "schemas.android.com": { "reden": "XML-namespace van Android (manifest en resources); een naam, geen adres dat opgehaald wordt" },
-    "www.w3.org": { "reden": "XML-namespaces van SVG, XLink, MathML en XML zelf; worden nooit opgehaald" },
-    "www.idpf.org": { "reden": "Namespaces van EPUB (ops, lettertype-versleuteling); worden nooit opgehaald" },
-    "ns.adobe.com": { "reden": "Naam van de Adobe-lettertypeversleuteling in EPUB (encryption.xml); wordt nooit opgehaald" },
-    "www.topografix.com": { "reden": "XML-namespace van GPX bij het exporteren van routes; wordt nooit opgehaald" },
-    "xml.org": { "reden": "Namen van SAX-parserinstellingen (externe entiteiten uit); worden nooit opgehaald" },
-    "apache.org": { "reden": "Naam van de parserinstelling die externe DTD's niet laadt; wordt nooit opgehaald" },
-    "127.0.0.1": { "reden": "Het toestel zelf: terugkeeradres van de koppelingen (Spotify, Google Drive; RFC 8252) en de lokale server van Timeshift. Verlaat de telefoon niet" }
+    "schemas.android.com": {
+      "reden": "XML-namespace van Android (manifest en resources); een naam, geen adres dat opgehaald wordt"
+    },
+    "www.w3.org": {
+      "reden": "XML-namespaces van SVG, XLink, MathML en XML zelf; worden nooit opgehaald"
+    },
+    "www.idpf.org": {
+      "reden": "Namespaces van EPUB (ops, lettertype-versleuteling); worden nooit opgehaald"
+    },
+    "ns.adobe.com": {
+      "reden": "Naam van de Adobe-lettertypeversleuteling in EPUB (encryption.xml); wordt nooit opgehaald"
+    },
+    "www.topografix.com": {
+      "reden": "XML-namespace van GPX bij het exporteren van routes; wordt nooit opgehaald"
+    },
+    "xml.org": {
+      "reden": "Namen van SAX-parserinstellingen (externe entiteiten uit); worden nooit opgehaald"
+    },
+    "apache.org": {
+      "reden": "Naam van de parserinstelling die externe DTD's niet laadt; wordt nooit opgehaald"
+    }
   },
   "plekken": [
-    { "bestand": "app/src/nl/rene/tools/Apparaten.java", "naam": "192.168.1.20", "reden": "Voorbeeld in codecommentaar van een LOCATION-adres van een apparaat in het thuisnetwerk" },
-    { "bestand": "app/src/nl/rene/tools/Nieuws.java", "naam": "www.aireport.nl", "reden": "Codecommentaar: legt uit dat de site na het inloggen naar http terugstuurt en de app dat via https laadt" }
+    {
+      "bestand": "app/src/nl/rene/tools/Apparaten.java",
+      "naam": "192.168.1.20",
+      "regel": "Host van een LOCATION-adres",
+      "reden": "Voorbeeld in codecommentaar van een LOCATION-adres van een apparaat in het thuisnetwerk"
+    },
+    {
+      "bestand": "app/src/nl/rene/tools/Nieuws.java",
+      "naam": "www.aireport.nl",
+      "regel": "zoals beehiiv na het inloggen terugstuurt",
+      "reden": "Codecommentaar: legt uit dat de site na het inloggen naar http terugstuurt en de app dat via https laadt"
+    },
+    {
+      "bestand": "app/src/nl/rene/tools/Spotify.java",
+      "naam": "127.0.0.1",
+      "regel": "terugkomen via http://127.0.0.1:poort/callback",
+      "reden": "Het toestel zelf (verlaat de telefoon niet); codecommentaar over het terugkeeradres van de Spotify-koppeling"
+    },
+    {
+      "bestand": "app/src/nl/rene/tools/Spotify.java",
+      "naam": "127.0.0.1",
+      "regel": "static final String REDIRECT =",
+      "reden": "Het toestel zelf (verlaat de telefoon niet); terugkeeradres van de Spotify-koppeling (PKCE, RFC 8252); Spotify eist http op 127.0.0.1"
+    },
+    {
+      "bestand": "app/src/nl/rene/tools/Spotify.java",
+      "naam": "127.0.0.1",
+      "regel": "Uri u = Uri.parse(\"http://127.0.0.1\" + target)",
+      "reden": "Het toestel zelf (verlaat de telefoon niet); het verzoek dat bij de eigen terugkeerserver binnenkwam als adres lezen"
+    },
+    {
+      "bestand": "app/src/nl/rene/tools/Timeshift.java",
+      "naam": "127.0.0.1",
+      "regel": "String url(long pos)",
+      "reden": "Het toestel zelf (verlaat de telefoon niet); de lokale server van Timeshift waar de speler van de app de opgenomen radio leest"
+    },
+    {
+      "bestand": "app/src/nl/rene/tools/FacturenDrive.java",
+      "naam": "127.0.0.1",
+      "regel": "static final String REDIRECT =",
+      "reden": "Het toestel zelf (verlaat de telefoon niet); terugkeeradres van de Google-koppeling via de browser (PKCE, RFC 8252)"
+    },
+    {
+      "bestand": "web/src/schermen/29-spotify.html",
+      "naam": "127.0.0.1",
+      "regel": "Bij <b>Redirect URIs</b>",
+      "reden": "Het toestel zelf (verlaat de telefoon niet); uitleg welk terugkeeradres Rene bij Spotify invult"
+    },
+    {
+      "bestand": "web/src/taal/en.json",
+      "naam": "127.0.0.1",
+      "regel": "Under <b>Redirect URIs</b>",
+      "reden": "Het toestel zelf (verlaat de telefoon niet); Engelse vertaling van de uitleg op het Spotify-scherm"
+    }
   ]
 }

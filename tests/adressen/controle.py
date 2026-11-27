@@ -5,9 +5,11 @@ Zoekt in de broncode van de app (app/ en web/, zonder web/vendor/ en het gegener
 adres met een onversleuteld schema (http://, ws://, ftp://) en een vaste naam erachter. Zo'n adres mag alleen als het
 met een reden in tests/adressen/lijst.json staat:
 - "namen": een naam die overal mag (XML-namespaces en parserinstellingen die nooit opgehaald worden, het toestel zelf);
-- "plekken": één naam in één bestand (bijv. een voorbeeld in codecommentaar).
+- "plekken": één naam in één bestand, alleen op de regel waar "regel" (een stuk tekst) in staat (bijv. een voorbeeld in
+  codecommentaar). Lokale servers op 127.0.0.1 staan hier per plek: elke app op de telefoon kan die bereiken
+  (AGENTS.md, Beveiliging, gebied 5), dus een nieuwe valt zo op.
 
-Niet gecontroleerd (bewust): een los schema zonder naam ("http://" om een adres te herkennen of aan te vullen) en
+Niet gecontroleerd (bewust): adressen die in de code aan elkaar geplakt worden ("http://" + naam), een los schema zonder naam ("http://" om een adres te herkennen of aan te vullen) en
 adressen die Rene zelf kiest (radiozenders, podcasts, apparaten in het thuisnetwerk); daarvoor staat
 usesCleartextTraffic aan (AGENTS.md, Beveiliging, gebied 6).
 
@@ -27,8 +29,17 @@ LIJST = Path(__file__).resolve().parent / 'lijst.json'
 MAPPEN = ('app', 'web')
 SOORTEN = {'.java', '.kt', '.js', '.mjs', '.html', '.htm', '.css', '.json', '.xml', '.svg'}
 OVERSLAAN = ('web/vendor/', 'web/index.html')
-# Schema zonder versleuteling, gevolgd door een naam (letters, cijfers, punt, streepje) of een IPv6-adres
-ADRES = re.compile(r'(?i)\b(http|ws|ftp)://(\[[0-9a-f:.]+\]|[a-z0-9][a-z0-9.-]*)')
+# Schema zonder versleuteling (ook http:\/\/ zoals in JSON), gevolgd door het hele adresdeel tot pad, vraag of einde
+SCHEMAS = ('http', 'ws', 'ftp', 'rtsp', 'rtmp', 'mms', 'icy')
+ADRES = re.compile(r'(?i)\b(' + '|'.join(SCHEMAS) + r'):\\?/\\?/([^\s/\\?#"\'`<>()]*)')
+NAAM = re.compile(r'(?i)^(\[[0-9a-f:.%]+\]|[a-z0-9][a-z0-9.-]*)')
+
+
+def naam_uit(deel):
+    """De naam van de server uit het adresdeel: na een eventuele gebruiker@ en zonder poort ('' = geen vaste naam)."""
+    deel = deel.rsplit('@', 1)[-1]
+    m = NAAM.match(deel)
+    return m.group(1).lower().rstrip('.-') if m else ''
 
 
 def bestanden(root):
@@ -46,7 +57,7 @@ def bestanden(root):
 
 
 def vondsten(root):
-    """[(bestand, regelnummer, schema, naam)] voor elk vast onversleuteld adres."""
+    """[(bestand, regelnummer, schema, naam, regel)] voor elk vast onversleuteld adres."""
     uit = []
     for rel, p in bestanden(root):
         try:
@@ -55,9 +66,9 @@ def vondsten(root):
             continue
         for nr, regel in enumerate(tekst.splitlines(), 1):
             for m in ADRES.finditer(regel):
-                naam = m.group(2).lower().rstrip('.-')
+                naam = naam_uit(m.group(2))
                 if naam:
-                    uit.append((rel, nr, m.group(1).lower(), naam))
+                    uit.append((rel, nr, m.group(1).lower(), naam, regel))
     return uit
 
 
@@ -74,14 +85,16 @@ def controleer(root, lijst):
         if not _reden(item):
             fouten.append('namen.' + naam + ': geen (duidelijke) reden in tests/adressen/lijst.json')
     for i, item in enumerate(plekken):
-        if not _reden(item) or not item.get('bestand') or not item.get('naam'):
-            fouten.append('plekken[' + str(i) + ']: bestand, naam en een duidelijke reden zijn nodig')
+        if not _reden(item) or not item.get('bestand') or not item.get('naam') or len(str(item.get('regel', '')).strip()) < 8:
+            fouten.append('plekken[' + str(i) + ']: bestand, naam, regel (een stuk van die regel) en een duidelijke reden zijn nodig')
     gebruikt_naam, gebruikt_plek = set(), set()
-    for rel, nr, schema, naam in vondsten(root):
+    for rel, nr, schema, naam, regel in vondsten(root):
         if naam in namen:
             gebruikt_naam.add(naam)
             continue
-        plek = next((i for i, x in enumerate(plekken) if x.get('bestand') == rel and str(x.get('naam', '')).lower() == naam), None)
+        # Een plek geldt alleen voor de regel waar dat stuk tekst in staat, niet voor de hele rest van het bestand
+        plek = next((i for i, x in enumerate(plekken) if x.get('bestand') == rel and str(x.get('naam', '')).lower() == naam
+                     and len(str(x.get('regel', '')).strip()) >= 8 and str(x.get('regel')) in regel), None)
         if plek is not None:
             gebruikt_plek.add(plek)
             continue
@@ -105,8 +118,8 @@ def zelftest():
         (r / 'web/vendor').mkdir(parents=True)
         bron = r / 'app/src/A.java'
         lijst = {'namen': {'www.w3.org': {'reden': 'XML-namespace, wordt nooit opgehaald'}},
-                 'plekken': [{'bestand': 'app/src/A.java', 'naam': '192.168.1.20', 'reden': 'Voorbeeld in commentaar'}]}
-        goed = ('String ns = "http://www.w3.org/2000/svg"; // http://192.168.1.20/x\n'
+                 'plekken': [{'bestand': 'app/src/A.java', 'naam': '192.168.1.20', 'regel': '// voorbeeld:', 'reden': 'Voorbeeld in commentaar'}]}
+        goed = ('String ns = "http://www.w3.org/2000/svg"; // voorbeeld: http://192.168.1.20/x\n'
                 'String a = "https://example.org/", b = "http://" + host; if (u.startsWith("http://")) {}\n')
         bron.write_text(goed, encoding='utf-8')
         (r / 'web/vendor/x.js').write_text('var u = "http://vendor.example/";', encoding='utf-8')
@@ -114,12 +127,16 @@ def zelftest():
         assert controleer(r, lijst) == [], controleer(r, lijst)
         for slecht in ('URL u = new URL("http://api.example.org/v1");', "fetch('HTTP://Example.org')",
                        'new WebSocket("ws://chat.example.org")', 'x = "ftp://files.example.org/a"',
-                       'y = "http://[::1]:8080/"'):
+                       'y = "http://[::1]:8080/"', 'z = "http://www.w3.org@evil.example.org/"',
+                       '{"u": "http:\\/\\/api.example.org\\/v1"}', 'r = "rtsp://cam.example.org/live"',
+                       's = "http://192.168.1.20/echt"', 't = "http://user:pw@host.example.org/"'):
             bron.write_text(goed + slecht + '\n', encoding='utf-8')
             assert any('vast adres zonder versleuteling' in f for f in controleer(r, lijst)), slecht
         (r / 'web/b.json').write_text('{"url": "http://feed.example.org/rss"}', encoding='utf-8')
         assert any('web/b.json' in f for f in controleer(r, lijst))
         (r / 'web/b.json').unlink()
+        bron.write_text(goed + 't = "http://user:pw@host.example.org/"\n', encoding='utf-8')
+        assert any('host.example.org' in x for x in controleer(r, lijst)), 'naam na gebruiker@'
         bron.write_text('String ns = "http://www.w3.org/2000/svg";\n', encoding='utf-8')
         assert any('komt niet meer voor' in f for f in controleer(r, lijst))
         bron.write_text(goed, encoding='utf-8')
