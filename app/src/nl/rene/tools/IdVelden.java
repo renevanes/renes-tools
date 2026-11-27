@@ -12,7 +12,7 @@ import java.util.Locale;
 final class IdVelden {
     private IdVelden() {}
     static final String STROOK = "strook", BSN = "bsn", NUMMER = "documentnummer", FOTO = "pasfoto";
-    static final int MAX = 12;
+    static final int MAX = 20;
 
     static final class Woord {
         final String t; final double x0, y0, x1, y1; final int regel;
@@ -84,13 +84,14 @@ final class IdVelden {
             inStrook[i] = true; sy0 = Math.min(sy0, y0); sy1 = Math.max(sy1, y1); hoog = Math.max(hoog, y1 - y0);
         }
         Veld strook = null;
-        if (sy1 > sy0) { strook = new Veld(STROOK, 0, sy0 - hoog * 0.6, 1, sy1 + hoog * 0.6 > 0.9 ? 1 : sy1 + hoog * 0.6); uit.add(strook); }
+        // ruim: een regel die slecht gelezen is (erboven of eronder) moet ook weg; de strook staat onderaan, dus daar tot de rand
+        if (sy1 > sy0) { strook = new Veld(STROOK, 0, sy0 - hoog * 1.6, 1, sy1 > 0.55 ? 1 : sy1 + hoog * 1.6); uit.add(strook); }
         // 2. nummers buiten de strook
         for (int i = 0; i < regels.size(); i++) {
             if (inStrook[i]) continue; List<Woord> r = regels.get(i);
             for (int a = 0; a < r.size() && uit.size() < MAX; a++) {
                 Woord w = r.get(a); String s = kaal(w.t).toUpperCase(Locale.ROOT);
-                if (elfproef(s)) { uit.add(om(BSN, w.x0, w.y0, w.x1, w.y1)); continue; }
+                if (elfproef(s) || s.length() > 9 && !Character.isDigit(s.charAt(s.length() - 10)) && elfproef(s.substring(s.length() - 9))) { uit.add(om(BSN, w.x0, w.y0, w.x1, w.y1)); continue; } // ook "BSN:111222333" als één woord
                 if (nummer(s)) { uit.add(om(NUMMER, w.x0, w.y0, w.x1, w.y1)); continue; }
                 // negen cijfers in stukjes ("1234 56 789")
                 if (!cijfers(s) || s.length() >= 9) continue;
@@ -119,7 +120,7 @@ final class IdVelden {
         if (gezichten != null) for (double[] g : gezichten) {
             if (g == null || g.length < 3 || g[2] <= 0 || uit.size() >= MAX) continue;
             double d = g[2], dy = d * verhouding; // de afstand tussen de ogen als deel van de hoogte
-            Veld v = new Veld(FOTO, g[0] - d * 1.45, g[1] - dy * 1.9, g[0] + d * 1.45, g[1] + dy * 2.3);
+            Veld v = new Veld(FOTO, g[0] - d * 1.9, g[1] - dy * 2.4, g[0] + d * 1.9, g[1] + dy * 2.8); // ook haar, oren en kin
             if (strook != null && v.y + v.h > strook.y) v = new Veld(FOTO, v.x, v.y, v.x + v.w, Math.max(v.y, strook.y));
             if (v.w > 0.02 && v.h > 0.02) uit.add(v);
         }

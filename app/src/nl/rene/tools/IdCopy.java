@@ -25,7 +25,10 @@ final class IdCopy {
     private final List<Source> pages = new ArrayList<>();
     private File dir;
     private String revision = "";
-    private boolean closed;
+    private volatile boolean closed;
+    /** De laatste opdracht om velden te herkennen: een oudere stopt (na draaien of bijsnijden telt alleen de nieuwste). */
+    private volatile int herkenVolg;
+    static final long HERKEN_MAX_MS = 45000;
     private static boolean CLEANED;
     private static final java.util.Set<File> PENDING = new java.util.HashSet<>();
 
@@ -169,11 +172,13 @@ final class IdCopy {
      * tellen) erbuiten, zodat bladeren niet wacht.
      */
     JSONObject herken(Context c, String token, int page, int turn, FotoOps ops) throws Exception {
+        final int volg = ++herkenVolg; final long eind = android.os.SystemClock.elapsedRealtime() + HERKEN_MAX_MS;
         Bitmap b; synchronized (this) { check(token); b = bewerkt(render(page, turn, 1800), ops, 1800); }
         try {
             int w = b.getWidth(), h = b.getHeight();
             int[] maat = new int[2];
-            List<OcrIndeling.Woord> gelezen = RijbewijsOcr.pageWoorden(c, b, () -> !closed && token.equals(revision), maat);
+            List<OcrIndeling.Woord> gelezen = RijbewijsOcr.pageWoorden(c, b, () -> !closed && volg == herkenVolg && android.os.SystemClock.elapsedRealtime() < eind, maat);
+            if (volg != herkenVolg) throw new Exception(Taal.T("Kies de ID-kopie opnieuw"));
             List<IdVelden.Woord> woorden = new ArrayList<>();
             if (maat[0] > 0 && maat[1] > 0) for (OcrIndeling.Woord x : gelezen) woorden.add(new IdVelden.Woord(x.tekst, (double) x.x0 / maat[0], (double) x.y0 / maat[1], (double) x.x1 / maat[0], (double) x.y1 / maat[1], x.regel));
             double[][] gezichten = gezichten(b);

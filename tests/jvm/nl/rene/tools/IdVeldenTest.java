@@ -45,6 +45,10 @@ public class IdVeldenTest {
         List<IdVelden.Woord> g = new ArrayList<>();
         g.add(w("KONINKRIJK", 0.1, 0.1, 0.3, 1)); g.add(w("NEDERLAND", 0.5, 0.1, 0.3, 1)); g.add(w("10", 0.1, 0.3, 0.04, 2)); g.add(w("03", 0.15, 0.3, 0.04, 2)); g.add(w("1965", 0.2, 0.3, 0.08, 2)); g.add(w("123456789", 0.5, 0.3, 0.2, 2));
         check(IdVelden.uit(g, new double[0][], 1.5).isEmpty() && IdVelden.soort(g).isEmpty(), "gewone tekst, een datum en negen cijfers zonder elfproef: geen velden");
+        check(IdVelden.uit(java.util.Arrays.asList(w("BSN:111222333", 0.1, 0.1, 0.3, 1)), null, 1.5).size() == 1, "opschrift en nummer als één woord");
+        // alleen de tweede regel van de strook gelezen: het vlak reikt ook over de regel erboven en tot de onderrand
+        IdVelden.Veld half = een(IdVelden.uit(java.util.Arrays.asList(w("SPECI20142NLD6503101F2403096999999990<<<<<84", 0.03, 0.9, 0.94, 1)), null, 1.42), IdVelden.STROOK);
+        check(half != null && half.y <= 0.84 && half.y + half.h == 1, "strook half gelezen: ook de regel erboven weg");
         check("rijbewijs".equals(IdVelden.soort(java.util.Arrays.asList(w("RIJBEWIJS", 0, 0, 0.2, 1)))), "soort: rijbewijs");
         // Grenzen: alles blijft binnen de pagina
         v = IdVelden.uit(java.util.Arrays.asList(w("111222333", 0.9, 0.97, 0.1, 1)), new double[][]{{0.02, 0.02, 0.1}}, 1.5);
