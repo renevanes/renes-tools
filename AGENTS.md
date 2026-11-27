@@ -438,6 +438,9 @@ kijkt per gebied naar de hele app, ook naar code die al lang bestaat.
   `docs/play-data-safety.md`. De reden staat in `tests/manifest/lijst.json`: `tests/manifest/controle.py` (vanuit
   `run-ui.sh`) faalt op elke toestemming, elk geëxporteerd onderdeel (met acties en data), `android:permission`,
   `grantUriPermissions`, `<queries>`-item of instelling op `<application>` die niet (zo) op die lijst staat.
+  Vaste adressen in de code van de app (`app/`, `web/`) zijn https: `tests/adressen/controle.py` (vanuit `run-ui.sh`)
+  faalt op elk vast onversleuteld adres (`http://`, `ws://`, `ftp://`, `rtsp://` e.d.) met een naam die niet met een reden in `tests/adressen/lijst.json`
+  staat (XML-namespaces; 127.0.0.1 per plek, zodat een nieuwe lokale server opvalt). Adressen die Rene zelf kiest, vallen er niet onder.
 - **WebView-instellingen**: geen `file://`- of `content://`-toegang, geen mixed content; `setWebContentsDebuggingEnabled`
   alleen zoals bij Meekijken in Nieuws (na een waarschuwing, zichtbaar, en vanzelf weer uit). Vensters met websites van buiten (Bank, Facturen, Nieuws-inloggen) krijgen nooit de brug
   `Android`, hooguit een eigen kleine brug (`BrBrug`, `FrBrug`) die alleen doet wat dat venster nodig heeft, en laden
