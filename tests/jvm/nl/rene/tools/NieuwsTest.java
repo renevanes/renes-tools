@@ -575,6 +575,16 @@ public class NieuwsTest {
         check(ai != null && ai.optBoolean("aan") && ai.optBoolean("inlog") && "app".equals(ai.optString("lezen")) && "https://www.aireport.nl/".equals(ai.optString("inlogStart"))
                 && "aireport.nl *.aireport.nl *.beehiiv.com".equals(ai.optString("inlogSites")) && !ai.optBoolean("aangepast"), "AI Report: bekende bron, aan, inloggen aan: " + ai);
         check("aireport".equals(Nieuws.bekendeSite("https://www.aireport.nl/")) && "aireport".equals(Nieuws.bekendeSite("aireport.nl")), "aireport.nl intikken: de bekende bron");
+        // Zelf al op de (latere) standaard gezet: werkt, en telt niet als aangepast; een andere waarde wel
+        File dirZelf = tmp("inst-zelf");
+        java.nio.file.Files.write(new File(dirZelf, "bronnen.json").toPath(), new JSONObject().put("v", 2).put("instellingen",
+                new JSONObject().put("aireport", new JSONObject().put("alleen", "aireport.nl/artikel/"))).toString().getBytes(StandardCharsets.UTF_8));
+        JSONObject zelf = bron(Nieuws.bronnen(dirZelf), "aireport");
+        check("aireport.nl/artikel/".equals(zelf.optString("alleen")) && !zelf.optBoolean("aangepast"), "alleen gelijk aan de standaard: niet aangepast: " + zelf);
+        java.nio.file.Files.write(new File(dirZelf, "bronnen.json").toPath(), new JSONObject().put("v", 2).put("instellingen",
+                new JSONObject().put("aireport", new JSONObject().put("alleen", "aireport.nl/p/"))).toString().getBytes(StandardCharsets.UTF_8));
+        zelf = bron(Nieuws.bronnen(dirZelf), "aireport");
+        check("aireport.nl/p/".equals(zelf.optString("alleen")) && zelf.optBoolean("aangepast"), "een andere alleen: aangepast");
         for (String[] il : Nieuws.INLOG_STANDAARD) check(Nieuws.standaard(il[0]) != null && Nieuws.siteMag(il[2], il[1]) && il[2].equals(geen(() -> Nieuws.sitesNetjes(il[2]))), "inlog " + il[0] + ": bekende bron, inlogpagina bij de sites");
         // Elke bron heeft dezelfde velden
         for (int i = 0; i < bs.length(); i++) {
