@@ -218,16 +218,16 @@ window.onIdCopyPreview = function(r){
   idfPreview0(r);
   const p = idc.pages[idc.page];
   if (!r || r.error || !p || !idfKan() || !fobVoorstelAan() || p.ops || p.auto !== undefined || r.page !== idc.page) return;
-  p.auto = false; idfVoorstel(p, r.image);
+  p.auto = false; p.autoBezig = true; // velden zoeken wacht tot duidelijk is of de pagina nog bijgesneden wordt
+  idfVoorstel0(p, r.image).then(toegepast => toegepast, () => false).then(toegepast => { p.autoBezig = false; if (!toegepast && typeof idCopyHerkenStart === 'function') idCopyHerkenStart(); });
 };
-async function idfVoorstel(p, src){
-  const rev = idc.revision, page = idc.page, turn = p.turn, vlakken = JSON.stringify(p.rects), c = await fbCanvas(src); if (!c) return;
+async function idfVoorstel0(p, src){
+  const rev = idc.revision, page = idc.page, turn = p.turn, vlakken = JSON.stringify(p.rects), c = await fbCanvas(src); if (!c) return false;
   let v = null; try { v = await fbVoorstel(c, idfSoort(), ''); } catch (e) { v = null; }
-  if (!fbVormVoorstel(v) || current !== 'idcopy' || idc.revision !== rev || idc.page !== page || p.turn !== turn || p.ops || idc.busy || idc.loading || JSON.stringify(p.rects) !== vlakken) return;
-  p.ops = fbSchoon(v.ops); p.opsTurn = p.turn; p.auto = true; p.checked = false;
-  idc.melding = p.rects.length ? t('Voorstel toegepast: {wat}, met zwarte vlakken op de plekken die meestal afgeschermd worden. Controleer elke pagina; niet goed? Tik op Bijsnijden en rechtzetten.', { wat: fbRedenTekst(v.redenen) })
-    : t('Voorstel toegepast: {wat}. Niet goed? Tik op Bijsnijden en rechtzetten.', { wat: fbRedenTekst(v.redenen) });
-  idCopyLoad();
+  if (!fbVormVoorstel(v) || current !== 'idcopy' || idc.revision !== rev || idc.page !== page || p.turn !== turn || p.ops || idc.busy || idc.loading || JSON.stringify(p.rects) !== vlakken) return false;
+  p.autoBezig = false; p.ops = fbSchoon(v.ops); p.opsTurn = p.turn; p.auto = true; p.checked = false;
+  idc.melding = t('Voorstel toegepast: {wat}. Niet goed? Tik op Bijsnijden en rechtzetten.', { wat: fbRedenTekst(v.redenen) });
+  idCopyLoad(); return true;
 }
 function idfSoort(){ return (typeof idCopySoort === 'function' && idCopySoort(idc.bron && idc.bron.soort)) || 'doc'; }
 /** De pagina zonder bewerking (om in de bewerker te openen). */

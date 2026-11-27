@@ -2,7 +2,7 @@
   <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">ID-kopie afschermen</h1></div>
   <main>
     <div class="card">
-      <p class="note">Scherm af wat de ontvanger niet nodig heeft, zoals BSN, documentnummer, handtekening of pasfoto. Controleer ook de achterkant en de machineleesbare strook. De app herkent deze velden niet automatisch.</p>
+      <p class="note">Scherm af wat de ontvanger niet nodig heeft. Tools zoekt de velden zelf op de foto en maakt ze zwart; jij controleert elke pagina en zet uit wat de ontvanger wel nodig heeft.</p>
       <p class="note" id="id-bron" hidden><span class="ui-icon" data-icon="user" aria-hidden="true"></span> Uit Stamgegevens: <b id="id-bron-naam" translate="no"></b></p>
       <button class="big" id="id-pick" onclick="idCopyChoose()">Foto of PDF kiezen</button>
       <p class="note">Maximaal vier pagina's. Alles wordt op je telefoon verwerkt. Bij teruggaan wordt het werkbestand gewist; je oorspronkelijke bestand blijft behouden.</p>
@@ -12,12 +12,16 @@
       <div class="card">
         <h2>Afschermen</h2>
         <div class="row"><button class="mini" id="id-prev" onclick="idCopyPage(-1)" aria-label="Vorige pagina" data-icon="chevron-left"></button><span id="id-page"></span><button class="mini" id="id-next" onclick="idCopyPage(1)" aria-label="Volgende pagina" data-icon="play"></button><button class="mini" id="id-turn" onclick="idCopyTurn()">Draaien</button><button class="mini" id="id-bewerk" onclick="idCopyBewerk()" data-icon="crop" hidden>Bijsnijden en rechtzetten</button></div>
-        <p class="note">Sleep een rechthoek over gegevens om ze zwart te maken. Vergroot het voorbeeld voor kleine tekst.</p>
+        <p class="note">Staat er nog iets wat weg moet? Sleep er een rechthoek over om het zwart te maken. Vergroot het voorbeeld voor kleine tekst.</p>
         <label class="f" for="id-zoom">Voorbeeld vergroten</label><input id="id-zoom" type="range" min="100" max="300" step="25" value="100" oninput="idCopyZoom(this.value)">
         <label class="chk"><input type="checkbox" id="id-pan" onchange="idCopyPan()">Voorbeeld verschuiven in plaats van afschermen</label>
         <div id="id-scroll" class="idcopyscroll"><div id="id-paper" class="idcopypaper"><img id="id-image" alt="Gekozen pagina van je ID-kopie" draggable="false"><canvas id="id-layer" aria-label="Sleep over de gegevens die je wilt afschermen"></canvas></div></div>
         <p class="note" id="id-masks" aria-live="polite"></p>
-        <div class="row"><button class="mini" id="id-undo" onclick="idCopyUndo()">Laatste vlak verwijderen</button><button class="mini" id="id-voorstel" onclick="idCopyVoorstelKiezen()">Vlakken voorstellen</button></div>
+        <h3 class="idveld-kop">Velden op deze pagina</h3>
+        <p class="note"><b>Moet weg</b>, tenzij de ontvanger het wettelijk nodig heeft (zoals je werkgever, de bank of de overheid): je burgerservicenummer, ook in de strook met tekens onderaan en in de QR-code.<br><b>Kan weg</b> als de ontvanger het niet nodig heeft: pasfoto, handtekening en documentnummer.</p>
+        <p class="note" id="id-velden-status" role="status" aria-live="polite"></p>
+        <div id="id-velden"></div>
+        <div class="row"><button class="mini" id="id-undo" onclick="idCopyUndo()">Laatste vlak verwijderen</button><button class="mini" id="id-voorstel" onclick="idCopyVoorstelKiezen()">Soort document kiezen</button></div>
         <details><summary>Vlak invoeren zonder te tekenen</summary><div class="row" style="flex-wrap:wrap">
           <label>Links (%)<input class="search" id="id-x" inputmode="decimal" value="10"></label><label>Boven (%)<input class="search" id="id-y" inputmode="decimal" value="10"></label>
           <label>Breedte (%)<input class="search" id="id-w" inputmode="decimal" value="40"></label><label>Hoogte (%)<input class="search" id="id-h" inputmode="decimal" value="10"></label>

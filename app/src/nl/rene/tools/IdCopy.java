@@ -163,6 +163,43 @@ final class IdCopy {
         } finally { b.recycle(); }
     }
 
+    /**
+     * Velden herkennen op een pagina (IdVelden): de tekst met de lokale tekstherkenning, de pasfoto met de gezichtsherkenning
+     * van Android. Alles op de telefoon; de uitkomst is een voorstel. Het tekenen gebeurt onder het slot, het lezen (een paar
+     * tellen) erbuiten, zodat bladeren niet wacht.
+     */
+    JSONObject herken(Context c, String token, int page, int turn, FotoOps ops) throws Exception {
+        Bitmap b; synchronized (this) { check(token); b = bewerkt(render(page, turn, 1800), ops, 1800); }
+        try {
+            int w = b.getWidth(), h = b.getHeight();
+            int[] maat = new int[2];
+            List<OcrIndeling.Woord> gelezen = RijbewijsOcr.pageWoorden(c, b, () -> !closed && token.equals(revision), maat);
+            List<IdVelden.Woord> woorden = new ArrayList<>();
+            if (maat[0] > 0 && maat[1] > 0) for (OcrIndeling.Woord x : gelezen) woorden.add(new IdVelden.Woord(x.tekst, (double) x.x0 / maat[0], (double) x.y0 / maat[1], (double) x.x1 / maat[0], (double) x.y1 / maat[1], x.regel));
+            double[][] gezichten = gezichten(b);
+            synchronized (this) { check(token); }
+            JSONArray velden = new JSONArray();
+            for (IdVelden.Veld v : IdVelden.uit(woorden, gezichten, (double) w / h)) velden.put(new JSONObject().put("veld", v.veld).put("x", v.x).put("y", v.y).put("w", v.w).put("h", v.h));
+            return new JSONObject().put("revision", token).put("page", page).put("turn", turn).put("velden", velden).put("soort", IdVelden.soort(woorden)).put("gelezen", !woorden.isEmpty());
+        } finally { b.recycle(); }
+    }
+    /** Gezichten (midden tussen de ogen en de afstand tussen de ogen, als deel van breedte en hoogte); leeg als het niet lukt. */
+    private static double[][] gezichten(Bitmap bron) {
+        Bitmap klein = null;
+        try {
+            float f = Math.min(1f, 900f / Math.max(bron.getWidth(), bron.getHeight()));
+            int w = Math.max(2, Math.round(bron.getWidth() * f)) & ~1, h = Math.max(2, Math.round(bron.getHeight() * f));
+            klein = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
+            new Canvas(klein).drawBitmap(bron, null, new android.graphics.Rect(0, 0, w, h), new Paint(Paint.FILTER_BITMAP_FLAG));
+            android.media.FaceDetector.Face[] gevonden = new android.media.FaceDetector.Face[3];
+            int n = new android.media.FaceDetector(w, h, gevonden.length).findFaces(klein, gevonden);
+            List<double[]> uit = new ArrayList<>(); android.graphics.PointF m = new android.graphics.PointF();
+            for (int i = 0; i < n; i++) { if (gevonden[i] == null || gevonden[i].confidence() < 0.4f) continue; gevonden[i].getMidPoint(m); uit.add(new double[]{m.x / w, m.y / h, gevonden[i].eyesDistance() / w}); }
+            return uit.toArray(new double[0][]);
+        } catch (Throwable e) { return new double[0][]; }
+        finally { if (klein != null) klein.recycle(); }
+    }
+
     synchronized File save(Context c, String token, String json) throws Exception {
         return save(c,token,json,false);
     }

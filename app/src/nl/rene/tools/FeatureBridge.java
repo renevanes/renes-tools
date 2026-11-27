@@ -168,6 +168,26 @@ public class FeatureBridge {
         }, "id-copy-preview").start();
     }
     /**
+     * Velden herkennen op een pagina (burgerservicenummer, strook, documentnummer, pasfoto), met dezelfde bewerking als het
+     * voorbeeld. Alleen plekken en de soort komen terug, nooit de gelezen tekst. Antwoord onIdCopyHerkend.
+     */
+    @JavascriptInterface public void idCopyHerken(String revision, int page, int turn, String ops, int volg) {
+        final IdCopy store = a.idCopy; final String session = a.idSession;
+        if (!a.idScreen) return;
+        new Thread(() -> {
+            String result;
+            try {
+                FotoOps o = FotoOps.lees(ops);
+                if (o.vlakken.length > 0) throw new Exception(Taal.T("Ongeldige bewerking"));
+                result = store.herken(ctx, revision, page, turn, o).put("volg", volg).toString();
+            } catch (Throwable e) {
+                try { result = new JSONObject(PdfTools.err(e)).put("page", page).put("turn", turn).put("volg", volg).toString(); }
+                catch (Throwable ignored) { result = "{}"; }
+            }
+            if (store == a.idCopy && a.idScreen) a.js("onIdCopyHerkend", idAnswer(result, session, revision));
+        }, "id-copy-herken").start();
+    }
+    /**
      * Een ID-kopie of formulier met gegevens uit Stamgegevens alleen maken terwijl de app in beeld is (bij de aanroep en nu):
      * tijdens het kiezen van een kaartfoto is de sessie nog even open, maar dan mag er niets met die gegevens gebeuren.
      */

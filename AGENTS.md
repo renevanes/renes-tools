@@ -749,6 +749,19 @@ telefoon en versleuteld; de sleutel zit in de Android Keystore.
   Activiteiten-regel "Kaartfoto bekeken" door ID-kopie) alleen via het geheugen van `MainActivity` (`idMasterTake`, een
   minuut) naar `IdCopy.addImages` (`idCopyTakeMaster`); nooit door de interface. Voorgestelde vlakken: `ID_VOORSTEL` in
   `67-id-kopie.js` (ruim genomen; de pagina blijft "niet gecontroleerd" tot Rene het aanvinkt).
+- **ID-kopie: velden herkennen** (wens van Rene, 27-11-2026: duidelijk welke velden weg moeten of kunnen, en ze vanzelf
+  goed afschermen): per pagina `p.velden` (`{veld, rect, bron: herkend|geschat, aan}`; `ID_VELD`: burgerservicenummer, strook
+  en QR-code "moet weg", pasfoto, handtekening en documentnummer "kan weg", naar het advies van de Rijksoverheid) naast
+  de eigen vlakken `p.rects`; samen `idCopyVlakken(p)`. Na het laden van een pagina (en na draaien of bijsnijden) zoekt
+  `idCopyHerken` (Java `IdCopy.herken` → `IdVelden`, zuiver, `IdVeldenTest`): de strook, het burgerservicenummer (elfproef,
+  of het nummer achter het opschrift) en het documentnummer uit de lokale tekstherkenning (`RijbewijsOcr.pageWoorden`), de
+  pasfoto met de gezichtsherkenning van Android (`android.media.FaceDetector`); de QR-code zoekt de interface (jsQR).
+  Alleen plekken en het soort document komen terug, nooit de gelezen tekst; niets in het logboek. Wat op dat soort document
+  staat en niet herkend is, krijgt een geschat vlak (`ID_VOORSTEL`, `idCopyGeschat`; soort uit Stamgegevens, de gelezen
+  tekst of Soort document kiezen). De lijst (`#id-velden`, `idCopyVeldenToon`) noemt elk veld met herkend of geschat en een
+  schakelaar, en zegt het als burgerservicenummer of strook niet gevonden is. Alles blijft een voorstel: elke pagina moet
+  nog steeds aangevinkt worden. Nieuw veld = `ID_VELD`, `IdVelden` (met een voorbeeld met verzonnen gegevens in de test),
+  de testbrug (`idCopyHerken`) en `tests/ui/id-kopie.test.js`.
 - **Brief scannen** (`web/src/script/49c-brief-scannen.js`, `KluisScan`; kaart `#kl-scan` in plaats van de lijst, camera
   `#kl-cam` in `TS_LAGEN`): foto's met de camera in de interface (`kluisScanCamera`, zoals Betalen; `camFoto` is gedeeld),
   hoeken zoeken (`ksHoekenUit`: Otsu, grootste lichte vlak, omhullende, vier hoeken; met de hand bij te stellen, ook met

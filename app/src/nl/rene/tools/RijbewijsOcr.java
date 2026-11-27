@@ -175,7 +175,9 @@ final class RijbewijsOcr {
      * Zoals pageText, maar per woord met zijn plek op de pagina (voor OcrIndeling: brieven en rekeningen met kolommen). Een
      * kleine foto wordt eerst vergroot (de tekstherkenning leest kleine letters slecht). Leeg als het niet lukt.
      */
-    static synchronized List<OcrIndeling.Woord> pageWoorden(Context context,Bitmap page,BooleanSupplier active) {
+    static List<OcrIndeling.Woord> pageWoorden(Context context,Bitmap page,BooleanSupplier active) { return pageWoorden(context,page,active,null); }
+    /** maat (twee getallen) krijgt de breedte en hoogte van het beeld waarin de plekken van de woorden gelden. */
+    static synchronized List<OcrIndeling.Woord> pageWoorden(Context context,Bitmap page,BooleanSupplier active,int[] maat) {
         List<OcrIndeling.Woord> uit=new ArrayList<>();
         TessBaseAPI api=null;TessBaseAPI[] current=new TessBaseAPI[1];Bitmap groot=null;
         try {
@@ -190,6 +192,7 @@ final class RijbewijsOcr {
             if(side<2000){float f=Math.min(2.5f,2400f/side);groot=Bitmap.createScaledBitmap(page,Math.max(1,Math.round(page.getWidth()*f)),Math.max(1,Math.round(page.getHeight()*f)),true);bron=groot;}
             Bitmap bw=binary(bron,2400);
             try{
+                if(maat!=null&&maat.length>=2){maat[0]=bw.getWidth();maat[1]=bw.getHeight();}
                 api.setImage(bw);String t=api.getUTF8Text();
                 if(t==null||!active.getAsBoolean())return uit;
                 ResultIterator iterator=api.getResultIterator();if(iterator==null)return uit;
