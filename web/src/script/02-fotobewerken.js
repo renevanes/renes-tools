@@ -461,6 +461,7 @@ function fbGebaarStop(){
 /** Wat je ziet: 'bewerk' (de foto met de hoeken of vlakken) of 'uit' (zo wordt hij, groot en te vergroten). */
 function fbKijk(k){
   if (!fb.open || fb.modus !== 'bewerk') return; k = k === 'uit' ? 'uit' : 'bewerk'; if (fb.kijk === k) return;
+  if (k === 'uit' && document.activeElement === $('#fb-straks')) $('#fb-kijk-uit').focus({ preventScroll: true }); // de knop waar de focus op stond verdwijnt
   fb.kijk = k; fb.sleep = -1; fb.vlak = null; fb.bz.leeg(); fbKijkToon(); fbTeken(); fbStraks();
   fbStatus(k === 'uit' ? t('Zo wordt de foto. Vergroot met − en + of met twee vingers; tik op Bewerken om verder te gaan.') : '');
 }
@@ -487,6 +488,10 @@ function fbEvents(){
   // Voor en na: één balk, de foto van nu loopt mee
   fb.bzVoor = beeldZoom($('#fb-verg-voor-kijk'), { balk: false, aan: fbAan, naZoom: z => fb.bzNa.zet(z) });
   fb.bzNa = beeldZoom($('#fb-verg-na-kijk'), { balk: $('#fb-verg-zoom'), id: 'fb-verg-zoom', aan: fbAan, naZoom: z => fb.bzVoor.zet(z) });
+  // schuiven loopt ook samen: dezelfde plek in beide foto's
+  const samen = (van, naar) => van.addEventListener('scroll', () => { if (fb.samen === naar) return; fb.samen = van; const bx = van.scrollWidth - van.clientWidth, by = van.scrollHeight - van.clientHeight;
+    naar.scrollLeft = bx > 0 ? van.scrollLeft / bx * (naar.scrollWidth - naar.clientWidth) : 0; naar.scrollTop = by > 0 ? van.scrollTop / by * (naar.scrollHeight - naar.clientHeight) : 0; requestAnimationFrame(() => { fb.samen = null; }); });
+  samen($('#fb-verg-voor-kijk'), $('#fb-verg-na-kijk')); samen($('#fb-verg-na-kijk'), $('#fb-verg-voor-kijk'));
   svg.addEventListener('pointerdown', e => {
     if (!fb.open) return; if (fb.opts.actief) fb.opts.actief();
     if (fb.kijk === 'uit') { fb.bz.schuif(e); return; } // alleen kijken: vergroot schuif je

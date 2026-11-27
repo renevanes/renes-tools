@@ -58,6 +58,7 @@ const { chromium } = require('playwright'); const path = require('path');
     await pg.mouse.move(greep[0], greep[1]); await pg.mouse.down(); await pg.mouse.move(greep[0] + 30, greep[1] + 20, { steps: 4 }); await pg.mouse.up();
     const na = await pg.evaluate(() => fb.ops.q[0].slice());
     ok(na[0] > voor[0] && na[1] > voor[1], 'hoek gesleept');
+    await pg.waitForTimeout(120); // na het loslaten tekent de bewerker de hoeken opnieuw en zet hij de focus terug: daarna pas verder
     await pg.focus('#fb-vlak .fb-greep[data-i="1"]'); const k0 = await pg.evaluate(() => fb.ops.q[1][0]); await pg.keyboard.press('ArrowLeft');
     ok(await pg.evaluate(k => Math.abs(fb.ops.q[1][0] - (k - 0.01)) < 1e-6, k0), 'hoek met de pijltjes');
     await pg.click('#fb-tab-draai'); await pg.click('#fb-p-draai button:has-text("Kwartslag naar rechts")');
@@ -156,8 +157,10 @@ const { chromium } = require('playwright'); const path = require('path');
     ok(await until(() => !$('#fb-verg').hidden && !!$('#fb-verg-na').getAttribute('src') && !$('#fb-ok').disabled) && await pg.evaluate(() => !(Android._cm.bewerkt || []).length && $('#fb-werk').hidden), 'eerst een voorbeeld: voor en na naast elkaar, nog niets bewaard');
     ok(/Eerdere versies/.test(await pg.textContent('#fb-verg-uitleg')), 'zegt dat de foto van nu bewaard blijft');
     // Voor en na vergroten: één balk, beide foto's lopen samen
+    const vn0 = await pg.evaluate(() => [$('#fb-verg-voor').getBoundingClientRect().width, $('#fb-verg-na').getBoundingClientRect().width]);
     await pg.click('#fb-verg-zoom-plus');
-    ok(await pg.evaluate(() => $('#fb-verg-na-kijk').classList.contains('zoom') && $('#fb-verg-voor-kijk').classList.contains('zoom') && $('#fb-verg-na-kijk').scrollWidth > $('#fb-verg-na-kijk').clientWidth + 20), 'voor en na: samen vergroten');
+    ok(await pg.evaluate(w => $('#fb-verg-na-kijk').classList.contains('zoom') && $('#fb-verg-voor-kijk').classList.contains('zoom')
+      && Math.abs($('#fb-verg-voor').getBoundingClientRect().width / w[0] - 1.5) < 0.05 && Math.abs($('#fb-verg-na').getBoundingClientRect().width / w[1] - 1.5) < 0.05, vn0), 'voor en na: samen vergroten, het getal klopt met wat je ziet');
     await pg.click('#fb-verg-zoom-n');
     ok(await pg.evaluate(() => !$('#fb-verg-na-kijk').classList.contains('zoom') && !$('#fb-verg-voor-kijk').classList.contains('zoom')), 'voor en na: zoom terug');
     await pg.screenshot({ path: __dirname + '/shots/foto-bewerken-controle-' + scheme + '.png' });

@@ -38,7 +38,7 @@ function beeldZoom(kijk, o = {}){
   const vang = e => { try { kijk.setPointerCapture(e.pointerId); } catch (x) {} };
   const toon = () => {
     if (!balk) return; const aan = st.z > 1.001, vol = st.z >= max - 0.001, act = document.activeElement;
-    kn.n.textContent = t('{n}×', { n: fmtNum(Math.round(st.z * 10) / 10) });
+    kn.n.textContent = t('{n}×', { n: fmtNum(Math.round(st.z * 10) / 10) }); kn.n.setAttribute('aria-label', t('Zoom terugzetten')); // de knop is translate="no" (een getal): het label hier, in de taal van nu
     // een knop die uitgaat terwijl hij de focus heeft: de focus naar de andere, anders raakt hij zoek
     if (!aan && (act === kn.min || act === kn.n)) kn.plus.focus({ preventScroll: true }); else if (vol && act === kn.plus) kn.min.focus({ preventScroll: true });
     kn.min.disabled = !aan; kn.n.disabled = !aan; kn.plus.disabled = vol;
