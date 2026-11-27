@@ -881,6 +881,23 @@ body.tabs-on:has(input:focus,textarea:focus:not(#ai-in),select:focus) .tabs{disp
 .tabs button.on{color:var(--ink);font-weight:700}.tabs button.on .ti{background:var(--chip);color:var(--on-chip)}
 .tabs button:active .ti{background:color-mix(in srgb,var(--ink) 10%,transparent)}
 body.tabs-on main{padding-bottom:100px}
+/* Onderbalk indelen (43b-onderbalk.js): oppakken, slepen, waar hij komt */
+.tabs button,.tile,.hrtool{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.tile.ob-op,.hrtool.ob-op{transform:scale(1.04);box-shadow:0 6px 18px rgba(0,0,0,.18);transition:transform .15s,box-shadow .15s}
+.tabs button.ob-op .ti{background:var(--chip);color:var(--on-chip)}
+body.ob-klaar .tabs{box-shadow:inset 0 0 0 2px var(--primary)}
+.tabs.ob-boven{background:color-mix(in srgb,var(--primary) 12%,var(--hi))}
+.tabs button.ob-hier{box-shadow:inset 3px 0 0 var(--primary)}
+.tabs.ob-eind button:last-child{box-shadow:inset -3px 0 0 var(--primary)}
+.tabs button.ob-vervang .ti{background:var(--primary);color:var(--on-primary)}
+.tabs button.ob-leeg{opacity:.3}
+.ob-geest{position:fixed;left:0;top:0;z-index:2000;pointer-events:none;width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border-radius:16px;background:var(--card);color:var(--ink);box-shadow:0 8px 24px rgba(0,0,0,.28);font-size:12px;font-weight:600}
+.ob-geest .ti{width:40px;height:32px;display:grid;place-items:center;border-radius:16px;background:var(--chip);color:var(--on-chip)}
+.ob-geest span:last-child{max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.ob-weg .ob-geest{background:var(--bad);color:var(--on-bad)}
+body.ob-sleept{cursor:grabbing}
+.hdr.home #home-inst{order:3}
+#he-ob .ob-vast .nm small{color:var(--muted)}
 body.tabs-on .plbar{bottom:88px}
 body.tabs-on.has-plbar main{padding-bottom:172px}
 body.tabs-on .toast,body.tabs-on .undo{bottom:96px}

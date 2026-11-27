@@ -61,6 +61,19 @@
         <div class="sw"><span>Tip onderaan<small>Over snelkoppelingen op het startscherm van je telefoon</small></span><button class="tg" id="he-tip" role="switch" aria-checked="true" aria-label="Tip onderaan" onclick="heSet('tip', !this.classList.contains('on'))"></button></div>
         <button class="big ghost" style="margin-top:10px" onclick="heBlokStandaard()">Standaardvolgorde</button>
       </div>
+      <div class="card" id="he-ob">
+        <h2>Onderbalk</h2>
+        <p class="hint">Start staat altijd links; daarnaast passen er 4. Houd een tegel op het startscherm ingedrukt en sleep hem naar de balk.</p>
+        <details class="help in"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+          <p>Elke tool kan in de onderbalk, ook Zoeken en Instellingen. Is de balk vol, dan vervangt de tool die je erheen sleept de plek waar je hem loslaat.</p>
+          <p>In de balk zelf: houd een plek ingedrukt en schuif hem naar links of rechts. Sleep hem omhoog om hem eruit te halen. Laat je los zonder te schuiven, dan krijg je een menu.</p>
+          <p>Zonder slepen kan het hier met de pijlen, of via het menu van een tegel (ingedrukt houden): In de onderbalk zetten. Staat Instellingen niet in de balk, dan staat hij rechtsboven op het startscherm.</p>
+        </div></details>
+        <div class="he-oplijst" id="he-ob-list" role="group" aria-label="Onderbalk"></div>
+        <p class="note" id="he-ob-stand" hidden></p>
+        <button class="big tonal" id="he-ob-add" onclick="obKies()">Tool toevoegen</button>
+        <button class="big ghost" style="margin-top:8px" onclick="obStandaard()">Onderbalk standaard</button>
+      </div>
     </div>
   </main>
 </section>

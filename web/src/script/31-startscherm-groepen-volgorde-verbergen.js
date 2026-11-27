@@ -293,7 +293,7 @@ function enterHomeEdit(){
   const c = homeCfg();
   $('#he-v1').style.display = homeV1() ? '' : 'none';
   { const on = c.dash !== false, b = $('#he-dash'); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
-  heOvRender(c); heWeerRender(c); // tabbladen Overzicht en Weergave (31b-startscherm-aanpassen.js)
+  heOvRender(c); heWeerRender(c); if (typeof obEditRender === 'function') obEditRender(); // tabbladen Overzicht en Weergave (31b-startscherm-aanpassen.js)
   $('#he-fav').innerHTML = '<h2>★ Favorieten</h2>' + (c.fav.length ? '<div class="helist" data-fav="1" role="list" aria-label="Favorieten">' + c.fav.map(tk => heRow(c, tk, true)).join('') + '</div>'
     : '<p class=note style="margin:0">Tik op ☆ bij een tool (hieronder, of houd de tegel ingedrukt) om hem bovenaan te zetten.</p>');
   const n = c.groups.length;

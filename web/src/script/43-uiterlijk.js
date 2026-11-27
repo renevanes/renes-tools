@@ -60,7 +60,7 @@ addEventListener('resize', () => uiFit());
 if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => uiFit()); document.querySelectorAll('.hdr > h1').forEach(h => ro.observe(h)); }
 
 /* Tabbalk onderin op de hoofdschermen */
-const TABS = ['home', 'search', 'ai', 'backup', 'settings'];
+let TABS = ['home', 'search', 'ai', 'backup', 'settings']; // de onderbalk (43b-onderbalk.js) zet de echte indeling
 function uiShown(name){
   const on = !SOLO && TABS.includes(name);
   // Via een sprong (bijv. zelftest → toestemmingen) blijft de terugknop zichtbaar

@@ -707,6 +707,14 @@ de tegels) en `recentN`. Nieuwe regel in het overzicht = een rij in `HE_OV()` en
 nieuw onderdeel = `HE_BLOK()` en het element in `homeBlokPas`. De lijsten zijn functies (geen `const`): `renderHome` gebruikt ze
 al tijdens het laden. Een schakelaar op een ander tabblad maakt `uiOpenTo` zichtbaar (kiest het tabblad via `aria-controls`).
 
+**Onderbalk** (wens van Rene, 27-11-2026; `43b-onderbalk.js`, test `tests/ui/onderbalk.test.js`): de tabbalk `#tabs` wordt
+getekend uit store `onderbalk` (`{v, items}`; `obItems` schoont op): Start altijd links, daarnaast hooguit `OB_MAX` (4) tools
+(`TOOLS`, niet de skin of wat `playWeg` weglaat) of `OB_SCHERM` (Zoeken, Instellingen). `TABS` (43-uiterlijk.js) volgt mee: die
+schermen tonen de balk en zijn een begin. Slepen gaat met pointer-events (`obPak` bij pointerdown, na `OB_HOUD` stil houden
+opgepakt; loslaten zonder schuiven = het menu: `toolMenu` of `obMenu`); een tegel doet mee via `toolPress`. Zonder slepen: het
+menu van een tegel (`obMenuItems`) en Startscherm aanpassen → Weergave → Onderbalk (`obEditRender`, `obKies`). Staat Instellingen
+niet in de balk, dan toont het startscherm `#home-inst`. Korte namen voor de balk in `OB_KORT` (ook in `en.json`).
+
 ## Documentenkluis: centrale opslag, versies en vergelijken
 De Documentenkluis (`Kluis`, scherm `s-kluis`) is de centrale opslag van de PDF-tools (wens van Rene). Alles blijft op de
 telefoon en versleuteld; de sleutel zit in de Android Keystore.
