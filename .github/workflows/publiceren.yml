@@ -23,7 +23,7 @@ on:
         default: false
 
 # Geen slot op de hele run: de tests van elke push beginnen meteen, ook als er nog een publicatie loopt. Alleen de taak
-# publiceren gaat één tegelijk (zie daar). Wacht er al een, dan neemt de nieuwste zijn plaats in: die bevat alles.
+# publiceren gaat één tegelijk, in een wachtrij (zie daar: queue: max); geen wachtende wordt afgebroken.
 permissions:
   contents: write
 
