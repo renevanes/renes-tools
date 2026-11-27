@@ -896,7 +896,7 @@ final class Nieuws {
         if (!a.beeld.isEmpty()) o.put("beeld", a.beeld);
         else if (a.zonderBeeld) o.put("zonderBeeld", true);
         if (a.ingekort) o.put("ingekort", true);
-        if (a.titelUitAdres) o.put("titelUitAdres", true);
+        if (a.titelUitAdres) o.put("titelUitAdres", true).put("pogingen", a.pogingen).put("poging", a.poging);
         return o;
     }
 
@@ -1211,11 +1211,12 @@ final class Nieuws {
         } catch (Exception x) { return false; }
     }
 
-    /** Staat er "</head" in dit stuk (ook als het over de grens van twee stukken valt, telt de volgende keer)? */
+    /** Is de kop hier af: staat er "</head" of "<body" in dit stuk (met de staart van het vorige erbij)? */
     static boolean kopKlaar(byte[] b, int n) {
         for (int i = 0; i + 5 < n; i++) {
-            if (b[i] != '<' || b[i + 1] != '/') continue;
-            if ((b[i + 2] | 0x20) == 'h' && (b[i + 3] | 0x20) == 'e' && (b[i + 4] | 0x20) == 'a' && (b[i + 5] | 0x20) == 'd') return true;
+            if (b[i] != '<') continue;
+            if (b[i + 1] == '/' && (b[i + 2] | 0x20) == 'h' && (b[i + 3] | 0x20) == 'e' && (b[i + 4] | 0x20) == 'a' && (b[i + 5] | 0x20) == 'd') return true;
+            if ((b[i + 1] | 0x20) == 'b' && (b[i + 2] | 0x20) == 'o' && (b[i + 3] | 0x20) == 'd' && (b[i + 4] | 0x20) == 'y' && (b[i + 5] == '>' || b[i + 5] == ' ' || b[i + 5] == '\n' || b[i + 5] == '\t' || b[i + 5] == '\r')) return true;
         }
         return false;
     }
@@ -1277,13 +1278,19 @@ final class Nieuws {
                 if (m.find()) a.charset = m.group(1);
                 ByteArrayOutputStream out = new ByteArrayOutputStream(lengte > 0 ? (int) Math.min(lengte, max) : 65536);
                 try (InputStream in = new PodcastFeed.Limited(h.getInputStream(), max)) {
-                    byte[] buf = new byte[16384];
+                    byte[] buf = new byte[16384], staart = new byte[0];
                     int n;
                     while ((!pagina || out.size() < max) && (n = in.read(buf)) > 0) {
                         out.write(buf, 0, n);
                         rest(tot);
                         // van een artikelpagina is alleen de kop nodig: klaar zodra die er helemaal is
-                        if (pagina && kopKlaar(buf, n)) break;
+                        if (pagina) {
+                            byte[] z = new byte[staart.length + n];
+                            System.arraycopy(staart, 0, z, 0, staart.length);
+                            System.arraycopy(buf, 0, z, staart.length, n);
+                            if (kopKlaar(z, z.length)) break;
+                            staart = Arrays.copyOfRange(z, Math.max(0, z.length - 6), z.length); // een "</head" over twee stukken
+                        }
                     }
                 }
                 a.data = out.toByteArray();
@@ -1490,7 +1497,9 @@ final class Nieuws {
     /**
      * Artikelen uit een sitemap aanvullen met titel, samenvatting, afbeelding en datum van de pagina zelf ({@code p}, met de
      * cookies van de inlog). Wat de vorige ronde al vond, komt uit de cache ({@code oud}); daarna hooguit MAX_PAGINAS nieuwe
-     * pagina's, nieuwste eerst. Een pagina zonder titel (geen artikel, of een muur) valt weg. Lukt geen enkele, dan een fout.
+     * pagina's, nieuwste eerst. Lukt een pagina niet (geen titel, een muur, te traag), dan staat het artikel er met een titel uit
+     * het adres ({@link #uitAdres}); die pagina probeert Tools later opnieuw, hooguit ADRES_POGINGEN keer en eens per
+     * ADRES_WACHT. Een pagina die weg is (404, 410) valt weg. Blijft er niets over, dan een fout.
      */
     static void aanvullen(String bron, NieuwsFeed.Feed f, JSONObject oud, long tot, Pagina p) throws Fout {
         if (!f.uitSitemap) return;
@@ -1506,7 +1515,9 @@ final class Nieuws {
             JSONObject o = bekend.get(artikelId(bron, a.sleutel));
             boolean inCache = o != null && !o.optString("titel").isEmpty();
             // een titel uit het adres probeert Tools later nog van de pagina te halen, zolang daar ruimte voor is
-            boolean opnieuw = inCache && o.optBoolean("titelUitAdres");
+            long nu = System.currentTimeMillis();
+            boolean opnieuw = inCache && o.optBoolean("titelUitAdres") && o.optInt("pogingen") < ADRES_POGINGEN
+                    && (nu - o.optLong("poging") >= ADRES_WACHT || o.optLong("poging") > nu);
             if (inCache && (!opnieuw || stop || gehaald >= MAX_PAGINAS || System.currentTimeMillis() >= tot)) { vanCache(a, o); uit.add(a); continue; }
             if (stop || gehaald >= MAX_PAGINAS || System.currentTimeMillis() >= tot || !https(a.link)) {
                 if (uitAdres(a)) uit.add(a);
@@ -1515,10 +1526,11 @@ final class Nieuws {
             gehaald++;
             long paginaTot = Math.min(tot, System.currentTimeMillis() + MAX_PER_PAGINA);
             String mis = null;
+            boolean weg = false;
             try {
                 String html = p.haal(a.link, paginaTot);
                 Kop k = paginaKop(html, a.link);
-                if (k.titel.isEmpty()) mis = artikelKop(html) || KOP_EIND.matcher(html).find() ? "geen titel in de kop" : "kop niet compleet";
+                if (k.titel.isEmpty()) mis = KOP_EIND.matcher(html).find() ? "geen titel in de kop" : "kop niet compleet";
                 if (!k.titel.isEmpty()) a.titel = k.titel;
                 if (!k.tekst.isEmpty()) a.blokken.add(new NieuwsFeed.Blok(k.tekst, false));
                 a.auteur = k.auteur;
@@ -1528,16 +1540,17 @@ final class Nieuws {
                 if (k.datum > 0) a.datum = k.datum;
             } catch (Doorverwezen e) { mis = "naar een andere site";
             } catch (Elders e) { mis = "naar een andere pagina";
-            } catch (HttpFout e) { mis = "http " + e.code;
+            } catch (HttpFout e) { mis = "http " + e.code; if (e.code == 404 || e.code == 410) weg = true;
             } catch (Throwable e) {
                 if (e instanceof TeTraag || e instanceof java.net.SocketTimeoutException) { stop = true; mis = "te traag"; }
                 else mis = logReden(e);
             }
             a.ingekort = true;
             if (mis != null) redenen.merge(mis, 1, Integer::sum); else gelezen++;
-            if (!a.titel.isEmpty()) uit.add(a);
-            else if (opnieuw) { vanCache(a, o); uit.add(a); } // de pagina lukte weer niet: zoals de vorige keer
-            else if (uitAdres(a)) uit.add(a);
+            if (mis == null && !a.titel.isEmpty()) uit.add(a);
+            else if (weg) continue; // de pagina is er niet meer: geen artikel
+            else if (opnieuw) { vanCache(a, o); a.pogingen = o.optInt("pogingen") + 1; a.poging = nu; uit.add(a); } // weer niet: zoals de vorige keer
+            else if (uitAdres(a)) { a.pogingen = 1; a.poging = nu; uit.add(a); }
         }
         StringBuilder log = new StringBuilder();
         for (Map.Entry<String, Integer> r : redenen.entrySet()) log.append(log.length() > 0 ? ", " : "").append(r.getKey()).append(": ").append(r.getValue());
@@ -1553,10 +1566,13 @@ final class Nieuws {
      * getest"), zodat het artikel toch in de lijst staat; Lees op de website opent de echte pagina. Een volgende ronde probeert
      * de pagina opnieuw. Geeft false als het adres geen bruikbare naam heeft.
      */
+    static final int ADRES_POGINGEN = 5;
+    static final long ADRES_WACHT = 6 * 3_600_000L;
+
     static boolean uitAdres(NieuwsFeed.Artikel a) {
         String t = titelUitAdres(a.link);
-        if (t.isEmpty()) return false;
-        a.titel = t;
+        if (t.isEmpty() && a.titel.isEmpty()) return false;
+        if (a.titel.isEmpty()) a.titel = t; // een titel uit de sitemap (news:title) gaat voor
         a.titelUitAdres = true;
         a.ingekort = true;
         return true;
@@ -1567,10 +1583,10 @@ final class Nieuws {
         try { pad = zonderSlash(new URL(link).getPath()); } catch (Exception e) { return ""; }
         String s = pad.substring(pad.lastIndexOf('/') + 1);
         try { s = java.net.URLDecoder.decode(s.replace("+", "%2B"), "UTF-8"); } catch (Exception ignored) { }
-        s = s.replaceFirst("\\.[a-zA-Z]{2,5}$", "").replaceFirst("-\\d{1,3}$", "").replace('-', ' ').replace('_', ' ').trim();
+        s = NieuwsFeed.regel(s.replaceFirst("(?i)\\.(html?|php|aspx?)$", "").replace('-', ' ').replace('_', ' ')).trim();
         int letters = 0;
         for (int i = 0; i < s.length(); i++) if (Character.isLetter(s.charAt(i))) letters++;
-        if (letters < 3 || s.length() > 200) return "";
+        if (letters < 3 || s.length() > 300) return "";
         return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
@@ -1581,6 +1597,8 @@ final class Nieuws {
         a.beeld = o.optString("beeld");
         a.zonderBeeld = o.optBoolean("zonderBeeld");
         a.titelUitAdres = o.optBoolean("titelUitAdres");
+        a.pogingen = o.optInt("pogingen");
+        a.poging = o.optLong("poging");
         a.ingekort = true;
         // de datum van de vorige ronde (van de pagina zelf): een nieuwere lastmod (een bewerking) zet het artikel niet opnieuw bovenaan
         long d = o.optLong("datum");
@@ -1714,8 +1732,9 @@ final class Nieuws {
     static synchronized boolean logNu(String id, String regel, long nu) {
         Object[] was = GELOGD.get(id);
         if (regel == null) { GELOGD.remove(id); return false; } // weer gelukt: de volgende keer meteen
-        if (was != null && regel.equals(was[0]) && nu - (Long) was[1] < LOG_OPNIEUW && nu >= (Long) was[1]) return false;
-        GELOGD.put(id, new Object[]{regel, nu});
+        String vorm = regel.replaceAll("\\d+", "#"); // andere aantallen = dezelfde regel
+        if (was != null && vorm.equals(was[0]) && nu - (Long) was[1] < LOG_OPNIEUW && nu >= (Long) was[1]) return false;
+        GELOGD.put(id, new Object[]{vorm, nu});
         return true;
     }
 

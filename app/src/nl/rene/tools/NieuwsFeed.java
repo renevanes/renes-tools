@@ -42,6 +42,9 @@ final class NieuwsFeed {
         boolean zonderBeeld;
         /** De titel komt (nog) uit het adres, niet van de pagina: een volgende ronde probeert de pagina opnieuw ({@link Nieuws#aanvullen}). */
         boolean titelUitAdres;
+        /** Bij een titel uit het adres: hoe vaak de pagina al mislukte en wanneer het laatst geprobeerd ({@link Nieuws#aanvullen}). */
+        int pogingen;
+        long poging;
     }
 
     static final class Feed {
