@@ -438,8 +438,10 @@ function fbToonMax(){ return (fb.zoom || 1) > 1.2 ? FB_MAX_TOON * 2 : FB_MAX_TOO
 /** De maat van de foto op het scherm bij de zoom van nu; zonder zoom regelt de opmaak het zelf. */
 function fbZoomPas(){
   const k = $('#fb-kijk'), c = $('#fb-doek'), z = fb.open ? fb.zoom || 1 : 1, aan = z > 1.001;
-  $('#fb-zoom-n').textContent = t('{n}×', { n: fmtNum(Math.round(z * 10) / 10) });
-  $('#fb-zoom-min').disabled = !aan; $('#fb-zoom-n').disabled = !aan; $('#fb-zoom-plus').disabled = z >= FB_ZOOM_MAX - 0.001;
+  $('#fb-zoom-n').textContent = t('{n}×', { n: fmtNum(Math.round(z * 10) / 10) }); $('#fb-zoom-n').setAttribute('aria-label', t('Zoom terugzetten'));
+  const act = document.activeElement, max = z >= FB_ZOOM_MAX - 0.001;
+  if (fb.open && act && (!aan && (act.id === 'fb-zoom-min' || act.id === 'fb-zoom-n') || max && act.id === 'fb-zoom-plus')) $(max ? '#fb-zoom-min' : '#fb-zoom-plus').focus({ preventScroll: true });
+  $('#fb-zoom-min').disabled = !aan; $('#fb-zoom-n').disabled = !aan; $('#fb-zoom-plus').disabled = max;
   if (!aan) { if (k.classList.contains('zoom')) { k.classList.remove('zoom'); k.style.height = ''; c.style.width = ''; k.scrollLeft = 0; k.scrollTop = 0; } return; }
   // de maat zonder zoom: zo breed als past, hooguit 40% van de hoogte van het scherm
   const breed = (k.parentElement.clientWidth || 340) - 32, hoog = innerHeight * 0.4, n = Math.min(1, FB_MAX_TOON / Math.max(c.width, c.height));
@@ -474,11 +476,12 @@ function fbEvents(){
   const svg = $('#fb-vlak'); if (svg.dataset.fb) return; svg.dataset.fb = '1';
   svg.addEventListener('pointerdown', e => {
     if (!fb.open) return; if (fb.opts.actief) fb.opts.actief();
+    if (e.isPrimary) { fb.vingers.clear(); fb.knijp = null; fb.schuif = null; } // wat bleef hangen (muis buiten de foto losgelaten) telt niet mee
     fb.vingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (fb.vingers.size >= 2) { // tweede vinger: knijpen en schuiven, wat de eerste vinger deed stopt
       if (fb.sleep >= 0 && fb.terug.length) fb.ops = fb.terug.pop();
       fb.sleep = -1; fb.vlak = null; fb.schuif = null; fbVang(svg, e); e.preventDefault();
-      if (fb.vingers.size === 2) { const st = fbKnijpStand(); fb.knijp = { d: st.d, x: st.x, y: st.y, zoom: fb.zoom }; fbTeken(); }
+      if (fb.vingers.size === 2) { const st = fbKnijpStand(); fb.knijp = { d: st.d, x: st.x, y: st.y, zoom: fb.zoom, paar: [...fb.vingers.keys()].join() }; fbTeken(); }
       return;
     }
     if (fb.knijp) return;
@@ -494,8 +497,9 @@ function fbEvents(){
   svg.addEventListener('pointermove', e => {
     if (fb.vingers.has(e.pointerId)) fb.vingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (fb.knijp) {
-      if (fb.vingers.size !== 2) return;
-      const st = fbKnijpStand(), k = $('#fb-kijk');
+      if (fb.vingers.size !== 2) { fb.knijp.paar = ''; return; }
+      const st = fbKnijpStand(), k = $('#fb-kijk'), paar = [...fb.vingers.keys()].join();
+      if (fb.knijp.paar !== paar) fb.knijp = { d: st.d, x: st.x, y: st.y, zoom: fb.zoom, paar }; // een ander paar vingers: opnieuw meten
       k.scrollLeft -= st.x - fb.knijp.x; k.scrollTop -= st.y - fb.knijp.y; fb.knijp.x = st.x; fb.knijp.y = st.y;
       fbZoomZet(fb.knijp.zoom * st.d / fb.knijp.d, st.x, st.y); return;
     }
@@ -510,10 +514,10 @@ function fbEvents(){
     if (fb.vlak) { const r = fb.vlak.r; fb.vlak = null; if (r && r[2] > 0.005 && r[3] > 0.005 && fb.ops.vlakken.length < 60) { fbBewaarStap(); fb.ops.vlakken.push(r); } fbTeken(); return; }
     if (fb.sleep >= 0) { const i = fb.sleep; fb.sleep = -1; fbTeken(); requestAnimationFrame(() => { const g = svg.querySelector('.fb-greep[data-i="' + i + '"]'); if (g) g.focus({ preventScroll: true }); }); }
   };
-  svg.addEventListener('pointerup', los); svg.addEventListener('pointercancel', los);
+  svg.addEventListener('pointerup', los); svg.addEventListener('pointercancel', los); svg.addEventListener('lostpointercapture', los);
   svg.addEventListener('keydown', e => {
     const g = e.target.closest('.fb-greep'); if (!g || !fb.open) return;
-    const st = (e.shiftKey ? 5 : 1) / 100, d = { ArrowLeft: [-st, 0], ArrowRight: [st, 0], ArrowUp: [0, -st], ArrowDown: [0, st] }[e.key];
+    const st = (e.shiftKey ? 5 : 1) / 100 / (fb.zoom || 1), d = { ArrowLeft: [-st, 0], ArrowRight: [st, 0], ArrowUp: [0, -st], ArrowDown: [0, st] }[e.key];
     if (!d) return; e.preventDefault(); const i = +g.dataset.i, p = fbGrepen()[i];
     fbBewaarStap(); fbZet(i, [Math.max(0, Math.min(1, p[0] + d[0])), Math.max(0, Math.min(1, p[1] + d[1]))]);
     requestAnimationFrame(() => { const n = svg.querySelector('.fb-greep[data-i="' + i + '"]'); if (n) n.focus({ preventScroll: true }); });
