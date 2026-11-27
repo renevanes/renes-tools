@@ -387,13 +387,13 @@ ruime tijdslimiet; lees daarna het logbestand na in plaats van te gokken.
 **Hoe agents elkaar niet in de weg zitten (de publicatiewachtrij, sinds 26-11-2026).** Je zet je werk zelf op main; het
 publiceren (testen, bouwen, ondertekenen) doet GitHub, één tegelijk. Meerdere agents mogen dus vlak na elkaar pushen:
 - **Elke push naar main start meteen zijn eigen tests** (telefoontest, Play-controle, interfacetests), ook als er nog een
-  publicatie loopt. Er wacht dus geen test op een andere agent.
+  publicatie loopt (behalve als alleen `VERSION`, `changelog.json`, `update/` of `wijzigingen/` veranderden: dan geen run). Er wacht dus geen test op een andere agent.
 - **Alleen de stap publiceren gaat één tegelijk**, in de wachtrij van GitHub Actions (`concurrency: publiceren`,
   `queue: max`, tot 100 wachtenden; geen wachtende wordt afgebroken). Daarbinnen bewaakt het publicatieslot (branch
   `publiceren-slot`, `tools/publicatie-slot.sh`) dat er nooit twee tegelijk naar main pushen.
 - **Alleen de geteste bron gaat live:** ging main tijdens jouw tests verder, dan publiceert jouw run precies wat getest is
   en komt het nieuwere werk met de run van die push. Een run waarvan het werk al in een nieuwere versie staat, stopt
-  meteen ("Al gepubliceerd?"). Zo gaat er geen werk verloren en komt er nooit ongeteste code op een telefoon.
+  zodra hij aan de beurt is ("Al gepubliceerd?"). Zo gaat er geen werk verloren en komt er nooit ongeteste code op een telefoon.
 - **Wat jij doet:** branch groen, main samenvoegen (merge), `git push origin HEAD:main`, en daarna nakijken of jouw commit
   in de laatste versie zit (stap 6 van "Werkwijze voor geplande taken"). Wordt de push geweigerd omdat main net verder is:
   opnieuw samenvoegen en pushen. Lokaal `./publish.sh` (alleen met de echte sleutel, zie regel 4) neemt hetzelfde slot.
