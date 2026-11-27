@@ -35,7 +35,7 @@ final class AgendaCal {
         try (Cursor cur = c.getContentResolver().query(CalendarContract.Calendars.CONTENT_URI, new String[]{
                 CalendarContract.Calendars._ID, CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
                 CalendarContract.Calendars.ACCOUNT_NAME, CalendarContract.Calendars.ACCOUNT_TYPE,
-                CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CALENDAR_COLOR},
+                CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CALENDAR_COLOR, CalendarContract.Calendars.SYNC_EVENTS, CalendarContract.Calendars._SYNC_ID},
                 null, null, CalendarContract.Calendars.CALENDAR_DISPLAY_NAME + " COLLATE NOCASE")) {
             if (cur == null) return a;
             while (cur.moveToNext() && a.length() < 40) {
@@ -48,8 +48,11 @@ final class AgendaCal {
                 k.put("naam", cur.getString(1) == null ? "" : cur.getString(1));
                 k.put("account", cur.getString(2) == null ? "" : cur.getString(2));
                 k.put("google", google(type));
+                k.put("type", type);
                 k.put("schrijf", level >= CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR);
                 k.put("kleur", kleur(cur, 5));
+                k.put("syncEvents", cur.isNull(6) || cur.getInt(6) != 0); // uit = de telefoon synchroniseert deze agenda niet
+                k.put("gid", cur.isNull(7) ? "" : cur.getString(7)); // het id van de agenda bij Google: blijft gelijk als hij een andere naam krijgt
                 a.put(k);
             }
         } catch (Throwable t) {
@@ -184,6 +187,75 @@ final class AgendaCal {
         }
     }
 
+    /**
+     * Voor Synchroniseren: alle afspraken (een reeks één keer, zonder losse uitzonderingen op een reeks) uit één agenda die
+     * het bereik raken, per id. null = lezen mislukt. Een reeks die vóór het bereik begint telt mee zolang hij doorloopt.
+     */
+    static java.util.Map<Long, JSONObject> vanAgenda(Context c, String kal, String van, String tot, int max) {
+        java.util.Map<Long, JSONObject> uit = new java.util.LinkedHashMap<>();
+        if (!lezen(c) || kal == null || !kal.matches("[1-9]\\d{0,17}") || !Agenda.dagOk(van) || !Agenda.dagOk(tot)) return null;
+        JSONArray kals = kalenders(c);
+        TimeZone z = Regio.zone(c);
+        long begin = Regio.toMillis(z, Regio.dayAdd(van, -1), "00:00");
+        long end = Regio.toMillis(z, Regio.dayAdd(tot, 2), "00:00");
+        if (begin == -1 || end == -1 || end <= begin) return null;
+        String sel = "(" + CalendarContract.Events.DELETED + " IS NULL OR " + CalendarContract.Events.DELETED + "=0) AND "
+                + CalendarContract.Events.CALENDAR_ID + "=? AND " + CalendarContract.Events.ORIGINAL_ID + " IS NULL AND (("
+                + CalendarContract.Events.RRULE + " IS NOT NULL AND " + CalendarContract.Events.RRULE + "!='' AND (" + CalendarContract.Events.LAST_DATE
+                + " IS NULL OR " + CalendarContract.Events.LAST_DATE + "=0 OR " + CalendarContract.Events.LAST_DATE + ">=?) AND "
+                + CalendarContract.Events.DTSTART + "<?) OR ((" + CalendarContract.Events.RRULE + " IS NULL OR " + CalendarContract.Events.RRULE + "='') AND "
+                + CalendarContract.Events.DTSTART + "<? AND (" + CalendarContract.Events.DTEND + " IS NULL OR " + CalendarContract.Events.DTEND + ">=?)))";
+        String[] args = {kal, String.valueOf(begin), String.valueOf(end), String.valueOf(end), String.valueOf(begin)};
+        String[] proj = {CalendarContract.Events.TITLE, CalendarContract.Events.EVENT_LOCATION, CalendarContract.Events.DESCRIPTION,
+                CalendarContract.Events.DTSTART, CalendarContract.Events.DTEND, CalendarContract.Events.ALL_DAY,
+                CalendarContract.Events.CALENDAR_ID, CalendarContract.Events.RRULE, CalendarContract.Events.DURATION,
+                CalendarContract.Events._ID, CalendarContract.Events.EVENT_COLOR, CalendarContract.Events._SYNC_ID, CalendarContract.Events.EXDATE};
+        java.util.Set<Long> metUitzondering = new java.util.HashSet<>();
+        // reeksen met een verplaatste of losse keer: Tools kan die niet zelf uitvouwen
+        try (Cursor cur = c.getContentResolver().query(CalendarContract.Events.CONTENT_URI, new String[]{CalendarContract.Events.ORIGINAL_ID},
+                CalendarContract.Events.CALENDAR_ID + "=? AND " + CalendarContract.Events.ORIGINAL_ID + " IS NOT NULL", new String[]{kal}, null)) {
+            if (cur == null) return null;
+            while (cur.moveToNext()) if (!cur.isNull(0)) metUitzondering.add(cur.getLong(0));
+        } catch (Throwable t) {
+            App.log(c, "AGENDA", "sync uitzonderingen: " + t.getClass().getSimpleName());
+            return null;
+        }
+        try (Cursor cur = c.getContentResolver().query(CalendarContract.Events.CONTENT_URI, proj, sel, args, CalendarContract.Events.DTSTART + " ASC")) {
+            if (cur == null) return null;
+            while (cur.moveToNext() && uit.size() < max) {
+                try {
+                    JSONObject it = vanGebeurtenis(c, cur, kals);
+                    if (it == null) continue;
+                    it.put("gid", cur.isNull(11) ? "" : cur.getString(11));
+                    String ex = cur.isNull(12) ? "" : cur.getString(12);
+                    if (!ex.trim().isEmpty() || metUitzondering.contains(it.optLong("ext"))) it.put("ingewikkeld", true);
+                    uit.put(it.optLong("ext"), it);
+                } catch (Exception e) { /* een kapotte rij slaat de rest niet plat */ }
+            }
+            return uit;
+        } catch (Throwable t) {
+            App.log(c, "AGENDA", "sync lezen: " + t.getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    /** Vraag de telefoon om de agenda nu met het account (bijv. Google) te synchroniseren. Geeft false als het niet kon. */
+    static boolean nuBijwerken(Context c, JSONObject kal) {
+        if (kal == null) return false;
+        String naam = kal.optString("account"), type = kal.optString("type");
+        if (naam.isEmpty() || type.isEmpty() || "LOCAL".equalsIgnoreCase(type)) return false;
+        try {
+            android.os.Bundle b = new android.os.Bundle();
+            b.putBoolean(android.content.ContentResolver.SYNC_EXTRAS_MANUAL, true);
+            b.putBoolean(android.content.ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+            android.content.ContentResolver.requestSync(new android.accounts.Account(naam, type), CalendarContract.AUTHORITY, b);
+            return true;
+        } catch (Throwable t) {
+            App.log(c, "AGENDA", "sync vragen: " + t.getClass().getSimpleName());
+            return false;
+        }
+    }
+
     /** Eén afspraak uit de agenda van de telefoon. null = weg. {"fout":true} = niet kunnen kijken. */
     static JSONObject event(Context c, long id) {
         if (id <= 0) return null;
@@ -193,7 +265,7 @@ final class AgendaCal {
                 CalendarContract.Events.TITLE, CalendarContract.Events.EVENT_LOCATION, CalendarContract.Events.DESCRIPTION,
                 CalendarContract.Events.DTSTART, CalendarContract.Events.DTEND, CalendarContract.Events.ALL_DAY,
                 CalendarContract.Events.CALENDAR_ID, CalendarContract.Events.RRULE, CalendarContract.Events.DELETED,
-                CalendarContract.Events.DURATION}, null, null, null)) {
+                CalendarContract.Events.DURATION, CalendarContract.Events._SYNC_ID}, null, null, null)) {
             if (cur == null) return fout();
             if (!cur.moveToNext() || cur.getInt(8) == 1) return null;
             long begin = cur.getLong(3), end = cur.getLong(4);
@@ -218,8 +290,8 @@ final class AgendaCal {
             o.put("titel", leeg(c, cur.getString(0))).put("plek", cur.getString(1) == null ? "" : cur.getString(1));
             o.put("notitie", cur.getString(2) == null ? "" : cur.getString(2));
             o.put("dag", d).put("eind", e).put("van", van).put("tot", tot).put("heleDag", all);
-            o.put("herhaal", Agenda.herhaalCode(rule)).put("totDag", Agenda.totUitRrule(rule));
-            o.put("kalender", kal).put("ext", id);
+            o.put("herhaal", Agenda.herhaalCode(rule)).put("totDag", Agenda.totUitRrule(rule)).put("rrule", rule);
+            o.put("kalender", kal).put("ext", id).put("gid", cur.isNull(10) ? "" : cur.getString(10));
             if (k != null) {
                 o.put("naam", k.optString("naam"));
                 if (Agenda.kleurOk(k.optString("kleur"))) o.put("kleur", k.optString("kleur"));
@@ -242,7 +314,11 @@ final class AgendaCal {
             ContentValues cv = waarden(c, it, kal);
             if (cv == null) return -1;
             long ext = it.optLong("ext");
-            if (ext > 0) {
+            // alleen bijwerken als die afspraak echt in deze agenda staat (na terugzetten kan het id bij iets anders horen)
+            String eigen = ext > 0 ? agendaVan(c, ext) : "";
+            if (eigen == null) return -1; // niet kunnen nakijken: niet nog een keer zetten
+            if (ext > 0 && kal.equals(eigen)) {
+                cv.remove(CalendarContract.Events.HAS_ALARM); // herinneringen van die afspraak laten staan
                 int n = c.getContentResolver().update(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, ext), cv, null, null);
                 if (n > 0) return ext;
             }
@@ -252,6 +328,61 @@ final class AgendaCal {
             App.log(c, "AGENDA", "schrijven: " + t.getClass().getSimpleName());
             return -1;
         }
+    }
+
+    /** Een afspraak in deze agenda op het id van Google (_SYNC_ID), op elke datum. null = niet gevonden, {"fout":true} = niet kunnen kijken. */
+    static JSONObject opGid(Context c, String kal, String gid) {
+        if (gid == null || gid.isEmpty() || kal == null || kal.isEmpty()) return null;
+        if (!lezen(c)) return fout();
+        try (Cursor cur = c.getContentResolver().query(CalendarContract.Events.CONTENT_URI, new String[]{CalendarContract.Events._ID},
+                CalendarContract.Events.CALENDAR_ID + "=? AND " + CalendarContract.Events._SYNC_ID + "=? AND (" + CalendarContract.Events.DELETED
+                        + " IS NULL OR " + CalendarContract.Events.DELETED + "=0)", new String[]{kal, gid}, null)) {
+            if (cur == null) return fout();
+            if (!cur.moveToNext()) return null;
+            return event(c, cur.getLong(0));
+        } catch (Throwable t) {
+            App.log(c, "AGENDA", "sync gid: " + t.getClass().getSimpleName());
+            return fout();
+        }
+    }
+
+    /** De agenda waarin deze afspraak staat, "" als hij er niet (meer) is, of null als het lezen mislukte. */
+    static String agendaVan(Context c, long id) {
+        if (id <= 0) return "";
+        if (!lezen(c)) return null;
+        try (Cursor cur = c.getContentResolver().query(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id),
+                new String[]{CalendarContract.Events.CALENDAR_ID, CalendarContract.Events.DELETED}, null, null, null)) {
+            if (cur == null) return null;
+            if (!cur.moveToNext() || cur.getInt(1) == 1) return "";
+            return String.valueOf(cur.getLong(0));
+        } catch (Throwable t) { return null; }
+    }
+
+    /** Een reeks met een verplaatste of weggehaalde keer (Tools kan die niet goed bijwerken). Bij twijfel: ja. */
+    static boolean heeftUitzonderingen(Context c, long id) {
+        if (id <= 0) return false;
+        if (!lezen(c)) return true;
+        try (Cursor cur = c.getContentResolver().query(CalendarContract.Events.CONTENT_URI, new String[]{CalendarContract.Events._ID},
+                CalendarContract.Events.ORIGINAL_ID + "=?", new String[]{String.valueOf(id)}, null)) {
+            if (cur == null) return true;
+            if (cur.moveToNext()) return true;
+        } catch (Throwable t) { return true; }
+        try (Cursor cur = c.getContentResolver().query(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id),
+                new String[]{CalendarContract.Events.EXDATE}, null, null, null)) {
+            if (cur == null) return true;
+            return cur.moveToNext() && !cur.isNull(0) && !cur.getString(0).trim().isEmpty();
+        } catch (Throwable t) { return true; }
+    }
+
+    /** Alleen weghalen als de afspraak in deze agenda staat (kal leeg = niet nakijken). 1 = weg of stond er niet, 0 = geen toestemming, -1 = mislukt. */
+    static int wis(Context c, long id, String kal) {
+        if (id <= 0) return 1;
+        if (kal != null && !kal.isEmpty()) {
+            String eigen = agendaVan(c, id);
+            if (eigen == null) return lezen(c) ? -1 : 0;
+            if (!kal.equals(eigen)) return 1;
+        }
+        return wis(c, id);
     }
 
     /** 1 = weg (of stond er al niet), 0 = geen toestemming, -1 = mislukt. */
@@ -383,7 +514,7 @@ final class AgendaCal {
         o.put("titel", leeg(c, cur.getString(0))).put("plek", cur.getString(1) == null ? "" : cur.getString(1));
         o.put("notitie", cur.getString(2) == null ? "" : cur.getString(2));
         o.put("dag", d).put("eind", e).put("van", van).put("tot", tot).put("heleDag", all);
-        o.put("herhaal", Agenda.herhaalCode(rule)).put("totDag", Agenda.totUitRrule(rule));
+        o.put("herhaal", Agenda.herhaalCode(rule)).put("totDag", Agenda.totUitRrule(rule)).put("rrule", rule);
         o.put("kalender", kal).put("ext", ext).put("naam", k == null ? "" : k.optString("naam"));
         String kleur = kleur(cur, 10);
         if (!Agenda.kleurOk(kleur) && k != null) kleur = k.optString("kleur");

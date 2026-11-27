@@ -870,7 +870,72 @@ if (!window.Android) window.Android = (function(){
     },
     agendaStaat(){ const st = this._agInit(), uit = new Set(st.uit || []);
       return JSON.stringify({ perm: !!st.perm, schrijf: !!st.schrijf, view: st.view || 'week', standaard: st.standaard || '', ai: !!(this._ai.src && this._ai.src.agenda), aantal: (st.items || []).length,
-        kalenders: st.perm ? st.kalenders.map(k => Object.assign({}, k, { aan: !uit.has(String(k.id)) })) : [] }); },
+        kalenders: st.perm ? st.kalenders.map(k => Object.assign({}, k, { aan: !uit.has(String(k.id)) })) : [], sync: this._agsKort() }); },
+    // ----- Agenda synchroniseren: zoals AgendaSync, eenvoudig nagebootst -----
+    _agsInit(){ const st = this._agInit();
+      if (!st.sync) st.sync = { cfg: { richting: 'uit', kal: '', kalAccount: '', kalNaam: '', elke: 60, open: true, laden: false, googleNu: true, terug: 30, vooruit: -1, wissen: 'naar', conflict: 'vragen', rem: 10, meld: 'fouten' },
+        laatst: 0, log: [], conflicten: [], rem: 0, fout: '', weg: [], rondes: 0 };
+      return st.sync; },
+    _agsKort(){ const y = this._agsInit(), c = y.cfg, aan = c.richting !== 'uit';
+      return { aan, richting: c.richting, kal: c.kal, kalNaam: c.kalNaam, naar: c.richting === 'naar' || c.richting === 'beide', wisGoogle: (c.richting === 'naar' || c.richting === 'beide') && (c.wissen === 'naar' || c.wissen === 'beide'),
+        elke: c.elke, open: c.open, laatst: y.laatst, bezig: false, conflicten: y.conflicten.length, rem: y.rem, fout: y.fout,
+        remActie: (c.richting === 'van' || c.richting === 'beide') && (c.wissen === 'van' || c.wissen === 'beide') ? 'wis' : c.richting === 'naar' ? 'opnieuw' : 'los' }; },
+    agendaSyncStaat(){ const st = this._agInit(), y = this._agsInit(), c = y.cfg;
+      const venster = it => true;
+      return JSON.stringify({ cfg: Object.assign({}, c), kort: this._agsKort(), perm: !!st.perm, schrijf: !!st.schrijf,
+        kalenders: st.perm ? st.kalenders.map(k => ({ id: k.id, naam: k.naam, account: k.account, google: k.google, schrijf: k.schrijf })) : [],
+        kalOk: !!st.kalenders.find(k => String(k.id) === String(c.kal)), log: y.log.slice(),
+        conflicten: y.conflicten.map(k => { const it = (st.items || []).find(x => x.id === k.id), ev = it && (st.extern || []).find(x => x.ext === it.ext); return { id: k.id, sinds: k.sinds, tools: it || {}, google: ev || null }; }).filter(k => k.tools.id),
+        teVersturen: (st.items || []).filter(it => !it.kalender && !it.lokaal && venster(it)).length, weg: y.weg.length, elkeKeuzes: [0, 15, 30, 60, 180, 360, 720, 1440] }); },
+    agendaSyncZet(j){ const st = this._agInit(), y = this._agsInit(), inn = JSON.parse(j || '{}');
+      const mag = { richting: ['uit', 'naar', 'van', 'beide'], wissen: ['naar', 'van', 'beide', 'nooit'], conflict: ['vragen', 'tools', 'google'], meld: ['fouten', 'altijd', 'nooit'] };
+      Object.keys(inn).forEach(k => { if (!(k in y.cfg) || k === 'kalAccount' || k === 'kalNaam') return; if (mag[k] && !mag[k].includes(inn[k])) return; y.cfg[k] = inn[k]; });
+      if ('kal' in inn) { const k = st.kalenders.find(x => String(x.id) === String(inn.kal)); y.cfg.kal = k ? String(k.id) : ''; y.cfg.kalAccount = k ? k.account : ''; y.cfg.kalNaam = k ? k.naam : ''; y.conflicten = []; y.rem = 0; }
+      if (y.cfg.richting === 'uit') { y.conflicten = []; y.rem = 0; }
+      if (inn.bestaandLokaal) (st.items || []).forEach(it => { if (!it.kalender) it.lokaal = true; });
+      (this._agsZetten = this._agsZetten || []).push(inn);
+      return this.agendaSyncStaat(); },
+    agendaSyncNu(waarom, rem){ const st = this._agInit(), y = this._agsInit(), c = y.cfg;
+      if (this._agsBezig) return false;
+      this._agsBezig = true;
+      setTimeout(() => { this._agsBezig = false;
+        const n = { naarNieuw: 0, naarBij: 0, vanNieuw: 0, vanBij: 0, wegTools: 0, wegGoogle: 0, los: 0, conflict: 0, mislukt: 0, rem: 0 };
+        let fout = '';
+        if (c.richting === 'uit') { window.onAgendaSync({ ok: false, uit: true, waarom }); return; }
+        const k = st.kalenders.find(x => String(x.id) === String(c.kal));
+        if (!st.perm) fout = 'Geen toestemming om de agenda van je telefoon te lezen of te wijzigen.';
+        else if (!k) fout = 'De gekozen agenda staat niet meer op je telefoon. Kies hem opnieuw.';
+        if (!fout) {
+          const naar = c.richting === 'naar' || c.richting === 'beide', van = c.richting === 'van' || c.richting === 'beide';
+          if (naar) (st.items || []).forEach(it => { if (it.kalender || it.lokaal) return; it.kalender = k.id; it.ext = 7000 + (st._n = (st._n || 0) + 1); it.naam = k.naam; it.kleur = k.kleur;
+            st.extern.push(Object.assign({}, it, { id: 'x' + it.ext + '_' + it.dag })); n.naarNieuw++; });
+          if (van) (st.extern || []).forEach(ev => { if (String(ev.kalender) !== String(k.id) || (st.items || []).some(it => it.ext === ev.ext) || y.weg.includes(ev.ext)) return;
+            st.items.push(Object.assign({}, ev, { id: 'a' + Date.now().toString(16) + (st._n = (st._n || 0) + 1) })); n.vanNieuw++; });
+          if (this._agsConflict) { const it = (st.items || []).find(x => x.id === this._agsConflict); if (it) { y.conflicten = [{ id: it.id, sinds: Date.now() }]; n.conflict = 1; } this._agsConflict = null; }
+          if (this._agsWeg && !rem) { y.rem = this._agsWeg; n.rem = this._agsWeg; }
+          else if (this._agsWeg && rem === 'wis') { const a = this._agsKort().remActie; n[a === 'wis' ? 'wegTools' : a === 'opnieuw' ? 'naarNieuw' : 'los'] = this._agsWeg; y.rem = 0; this._agsWeg = 0; }
+          else if (this._agsWeg && rem === 'los') { n.los = this._agsWeg; y.rem = 0; this._agsWeg = 0; }
+          y.laatst = Date.now();
+        }
+        y.fout = fout; y.rondes++;
+        y.log.unshift(Object.assign({ tijd: Date.now(), waarom: waarom === 'open' ? 'open' : 'hand', duur: 12 }, n, fout ? { fout } : {}));
+        y.log = y.log.slice(0, 20);
+        const veranderd = n.naarNieuw + n.vanNieuw + n.wegTools + n.los > 0;
+        const d = [];
+        if (n.naarNieuw) d.push(n.naarNieuw + ' naar Google'); if (n.vanNieuw) d.push(n.vanNieuw + ' uit Google'); if (n.conflict) d.push(n.conflict + ' conflict');
+        if (n.rem) d.push(n.rem + ' wachten op je ok om te verwijderen');
+        window.onAgendaSync({ ok: !fout, bezig: false, waarom: waarom === 'open' ? 'open' : 'hand', fout, uit: false, samenvatting: d.join(' · ') || 'Niets veranderd', veranderd, conflicten: n.conflict, rem: n.rem });
+      }, 30);
+      return true; },
+    agendaSyncKies(id, keuze){ const st = this._agInit(), y = this._agsInit(), it = (st.items || []).find(x => x.id === id);
+      y.conflicten = y.conflicten.filter(k => k.id !== id);
+      if (!it) return JSON.stringify({ ok: false, fout: 'Die afspraak staat er niet.' });
+      const ev = (st.extern || []).find(x => x.ext === it.ext);
+      if (keuze === 'beide') st.items.push(Object.assign({}, it, { id: 'a' + Date.now().toString(16) + (st._n = (st._n || 0) + 1), kalender: '', ext: 0, naam: '', lokaal: true }));
+      if (keuze !== 'tools' && ev) ['titel', 'plek', 'notitie', 'dag', 'eind', 'van', 'tot', 'heleDag'].forEach(k => { it[k] = ev[k]; });
+      if (keuze === 'tools' && ev) ['titel', 'plek', 'notitie', 'dag', 'eind', 'van', 'tot', 'heleDag'].forEach(k => { ev[k] = it[k]; });
+      (this._agsKeuzes = this._agsKeuzes || []).push(keuze);
+      return JSON.stringify({ ok: true }); },
     agendaToon(view, anker, weekStart){ const st = this._agInit(); return JSON.stringify(agSpiegelToon(Object.assign({}, st, { extern: st.perm ? st.extern : [] }), view, anker, weekStart)); },
     agendaZoek(q, van, tot){ const st = this._agInit(); return JSON.stringify(agSpiegelZoek(Object.assign({}, st, { extern: st.perm ? st.extern : [] }), q, van, tot)); },
     agendaHaal(id){ const st = this._agInit(), s = String(id || '');
@@ -881,8 +946,10 @@ if (!window.Android) window.Android = (function(){
       if (!it) return JSON.stringify({ ok: false, fout: 'Die afspraak staat er niet.' });
       if (it.ext > 0 && !st.schrijf) return JSON.stringify({ ok: false, fout: 'Geen toestemming om de agenda van je telefoon te wijzigen.' });
       st.items = st.items.filter(x => x.id !== id);
-      if (it.ext > 0) st.extern = (st.extern || []).filter(x => x.ext !== it.ext);
-      return JSON.stringify({ ok: true, id }); },
+      const ks = this._agsKort(), houd = ks.aan && it.ext > 0 && String(it.kalender) === String(ks.kal) && !ks.wisGoogle;
+      if (houd) this._agsInit().weg.push(it.ext);
+      else if (it.ext > 0) st.extern = (st.extern || []).filter(x => x.ext !== it.ext);
+      return JSON.stringify({ ok: true, id, inGoogle: houd }); },
     agendaZet(j){ const st = this._agInit(), inn = JSON.parse(j || '{}');
       if (inn.view) st.view = ['dag', 'week', 'maand', 'lijst'].includes(inn.view) ? inn.view : 'week';
       if ('standaard' in inn) st.standaard = /^[1-9]\d{0,17}$/.test(String(inn.standaard || '')) ? String(inn.standaard) : '';

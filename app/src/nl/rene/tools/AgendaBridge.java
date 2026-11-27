@@ -1,5 +1,6 @@
 package nl.rene.tools;
 
+import android.content.SharedPreferences;
 import android.webkit.JavascriptInterface;
 
 import org.json.JSONArray;
@@ -30,6 +31,7 @@ public class AgendaBridge extends SignalenBridge {
             case "kalender": t = Taal.t(ctx, "Die agenda is alleen-lezen."); break;
             case "weg": t = Taal.t(ctx, "Die afspraak staat er niet."); break;
             case "recht": t = Taal.t(ctx, "Geen toestemming om de agenda van je telefoon te wijzigen."); break;
+            case "complex": t = Taal.t(ctx, "Deze herhaling is ingewikkelder dan Tools kan bewaren. Wijzig hem in de agenda-app van je telefoon."); break;
             default: t = Taal.t(ctx, "Opslaan lukte niet."); break;
         }
         try { return new JSONObject().put("ok", false).put("fout", t).toString(); }
@@ -56,6 +58,9 @@ public class AgendaBridge extends SignalenBridge {
             o.put("kalenders", net);
             JSONArray items = AgendaStore.items(ctx);
             o.put("aantal", items == null ? -1 : items.length());
+            JSONObject sk = syncKort();
+            o.put("sync", sk);
+            if (sk.optBoolean("aan")) a.h.post(() -> AgendaSyncJob.schedule(ctx)); // bijv. na het geven van toestemming
             return o.toString();
         } catch (Throwable t) {
             App.log(ctx, "AGENDA", "staat: " + t.getClass().getSimpleName());
@@ -129,7 +134,8 @@ public class AgendaBridge extends SignalenBridge {
             JSONArray nu = AgendaStore.items(ctx);
             if (nu == null) return fout("onleesbaar");
             String id = in.optString("id");
-            boolean nieuw = AgendaStore.vind(ctx, id) == null || id.startsWith("x");
+            JSONObject vorig = id.startsWith("x") ? null : AgendaStore.vind(ctx, id);
+            boolean nieuw = vorig == null || id.startsWith("x");
             if (id.startsWith("x")) in.remove("id");
             Agenda.Uitkomst u = Agenda.schoon(in, nu.length(), nieuw);
             if (!u.ok()) return fout(u.fout);
@@ -140,18 +146,39 @@ public class AgendaBridge extends SignalenBridge {
                 if (!AgendaCal.schrijven(ctx)) return fout("recht");
                 JSONObject k = AgendaCal.kalender(AgendaCal.kalenders(ctx), kal);
                 if (k == null || !k.optBoolean("schrijf")) return fout("lezen");
+                long oudExt = it.optLong("ext");
+                String oudKal = oudExt > 0 ? AgendaCal.agendaVan(ctx, oudExt) : "";
+                if (oudKal == null) return fout("telefoon");
+                // een herhaling die Tools niet precies kan tonen: niet overschrijven (dan gaat de herhaling in Google verloren)
+                if (oudExt > 0 && kal.equals(oudKal)) {
+                    JSONObject nu0 = AgendaCal.event(ctx, oudExt);
+                    String rr = nu0 == null ? "" : nu0.optString("rrule");
+                    if (!rr.isEmpty() && (AgendaSyncRegels.complex(rr, nu0.optString("dag")) || AgendaCal.heeftUitzonderingen(ctx, oudExt))) return fout("complex");
+                }
                 long ext = AgendaCal.schrijf(ctx, it);
                 if (ext == -3) return fout("recht");
                 if (ext == -2) return fout("lezen");
                 if (ext <= 0) return fout("telefoon");
+                // naar een andere agenda gezet: daar staat nu een nieuwe, de oude gaat weg (niet twee keer)
+                if (oudExt > 0 && ext != oudExt && !oudKal.isEmpty() && !oudKal.equals(kal)) AgendaCal.wis(ctx, oudExt, oudKal);
                 it.put("ext", ext);
                 it.put("naam", k.optString("naam"));
                 if (Agenda.kleurOk(k.optString("kleur"))) it.put("kleur", k.optString("kleur"));
+                if (AgendaSync.isSyncAgenda(ctx, kal)) {
+                    // net zelf naar Google gezet: de volgende ronde ziet dit niet als een wijziging aan beide kanten
+                    JSONObject terug = AgendaCal.event(ctx, ext);
+                    boolean goed = terug != null && !terug.optBoolean("fout");
+                    AgendaSync.meta(it, AgendaSyncRegels.vinger(it), AgendaSyncRegels.vinger(goed ? terug : it), goed ? terug.optString("gid") : "");
+                    AgendaSync.vergeetConflict(ctx, it.optString("id"));
+                }
             } else if (it.optLong("ext") > 0) {
+                if (vorig != null && AgendaSync.isSyncAgenda(ctx, vorig.optString("kalender"))) AgendaSync.onthoudWeg(ctx, vorig);
                 it.put("ext", 0);
                 it.put("naam", "");
                 los = true;
             }
+            // "Alleen in Tools" gekozen terwijl synchroniseren naar Google aan staat: deze blijft hier
+            if (kal.isEmpty() && (in.optBoolean("lokaal") || (vorig != null && vorig.optBoolean("lokaal") && !in.has("lokaal")))) it.put("lokaal", true);
             String e = AgendaStore.zetItem(ctx, it);
             if (!e.isEmpty()) return fout("vol".equals(e) ? "vol" : "onleesbaar".equals(e) ? "onleesbaar" : "opslaan");
             App.log(ctx, "AGENDA", "bewaard " + AgendaStore.items(ctx).length());
@@ -170,15 +197,18 @@ public class AgendaBridge extends SignalenBridge {
             JSONObject it = AgendaStore.vind(ctx, id);
             if (it == null) return fout("weg");
             long ext = it.optLong("ext");
-            if (ext > 0) {
-                int w = AgendaCal.wis(ctx, ext);
+            boolean houdInGoogle = ext > 0 && AgendaSync.isSyncAgenda(ctx, it.optString("kalender")) && !AgendaSyncRegels.wisInGoogle(AgendaSync.instellingen(ctx));
+            if (houdInGoogle) AgendaSync.onthoudWeg(ctx, it); // blijft in Google staan en komt niet terug in Tools
+            else if (ext > 0) {
+                int w = AgendaCal.wis(ctx, ext, it.optString("kalender"));
                 if (w == 0) return fout("recht");
                 if (w < 0) return fout("telefoon");
             }
             String e = AgendaStore.wis(ctx, id);
             if (!e.isEmpty()) return fout("onleesbaar".equals(e) ? "onleesbaar" : "weg");
+            AgendaSync.vergeetConflict(ctx, id);
             App.log(ctx, "AGENDA", "gewist");
-            return new JSONObject().put("ok", true).put("id", id).toString();
+            return new JSONObject().put("ok", true).put("id", id).put("inGoogle", houdInGoogle).toString();
         } catch (Throwable t) {
             App.log(ctx, "AGENDA", "wis: " + t.getClass().getSimpleName());
             return fout("opslaan");
@@ -221,7 +251,8 @@ public class AgendaBridge extends SignalenBridge {
                 JSONObject it = items.optJSONObject(i);
                 if (it == null) continue;
                 long ext = it.optLong("ext");
-                if (ext <= 0) { uit.put(it); continue; }
+                // de agenda van Synchroniseren doet de ronde zelf (agendaSyncNu), met de eigen regels
+                if (ext <= 0 || AgendaSync.isSyncAgenda(ctx, it.optString("kalender"))) { uit.put(it); continue; }
                 JSONObject ev = AgendaCal.event(ctx, ext);
                 if (ev != null && ev.optBoolean("fout")) { mis++; uit.put(it); continue; }
                 if (ev == null) {
@@ -242,6 +273,135 @@ public class AgendaBridge extends SignalenBridge {
         } catch (Throwable t) {
             App.log(ctx, "AGENDA", "sync: " + t.getClass().getSimpleName());
             return fout("telefoon");
+        }
+    }
+
+    // ---------------------------------------------------------------- Synchroniseren met Google
+
+    private JSONObject syncKort() throws Exception {
+        JSONObject cfg = AgendaSync.instellingen(ctx);
+        SharedPreferences st = AgendaSync.toestand(ctx);
+        return new JSONObject().put("aan", AgendaSyncRegels.aan(cfg)).put("richting", cfg.optString("richting")).put("kal", cfg.optString("kal"))
+                .put("kalNaam", cfg.optString("kalNaam")).put("naar", AgendaSyncRegels.naarGoogle(cfg)).put("wisGoogle", AgendaSyncRegels.wisInGoogle(cfg))
+                .put("elke", cfg.optInt("elke")).put("open", cfg.optBoolean("open", true)).put("laatst", st.getLong("laatst", 0))
+                .put("bezig", AgendaSync.BEZIG.get()).put("conflicten", AgendaSync.lijst(ctx, "conflicten").length())
+                .put("rem", st.getInt("rem", 0)).put("remActie", AgendaSync.verdwenenActie(cfg)).put("fout", AgendaSync.foutTekst(ctx, st.getString("fout", "")));
+    }
+
+    private static JSONObject kort(JSONObject it) throws Exception {
+        JSONObject o = new JSONObject();
+        if (it == null) return o;
+        for (String k : new String[]{"titel", "plek", "dag", "eind", "van", "tot", "herhaal", "totDag"}) o.put(k, it.optString(k));
+        return o.put("heleDag", it.optBoolean("heleDag")).put("notitie", Agenda.tekst(it.optString("notitie"), 200, false));
+    }
+
+    /** Alles voor het scherm Synchroniseren: instellingen, agenda's, stand, logboek en conflicten (met beide versies). */
+    @JavascriptInterface public String agendaSyncStaat() {
+        try {
+            JSONObject cfg = AgendaSync.instellingen(ctx);
+            SharedPreferences st = AgendaSync.toestand(ctx);
+            JSONObject o = new JSONObject().put("cfg", cfg).put("kort", syncKort());
+            o.put("perm", AgendaCal.lezen(ctx)).put("schrijf", AgendaCal.schrijven(ctx));
+            JSONArray kals = AgendaCal.kalenders(ctx), lijst = new JSONArray();
+            for (int i = 0; i < kals.length(); i++) {
+                JSONObject k = kals.optJSONObject(i);
+                if (k != null) lijst.put(new JSONObject().put("id", k.optString("id")).put("naam", k.optString("naam")).put("account", k.optString("account"))
+                        .put("google", k.optBoolean("google")).put("schrijf", k.optBoolean("schrijf")));
+            }
+            o.put("kalenders", lijst);
+            JSONObject kal = AgendaSyncRegels.aan(cfg) || !cfg.optString("kal").isEmpty() ? AgendaSync.kalender(ctx, AgendaSync.instellingen(ctx)) : null;
+            o.put("kalOk", kal != null);
+            JSONArray log = AgendaSync.lijst(ctx, "log"), net = new JSONArray();
+            for (int i = 0; i < log.length(); i++) {
+                JSONObject r = log.optJSONObject(i);
+                if (r == null) continue;
+                JSONObject k = new JSONObject(r.toString());
+                if (!r.optString("fout").isEmpty()) k.put("fout", AgendaSync.foutTekst(ctx, r.optString("fout")));
+                net.put(k);
+            }
+            o.put("log", net);
+            JSONArray con = AgendaSync.lijst(ctx, "conflicten"), cn = new JSONArray();
+            for (int i = 0; i < con.length(); i++) {
+                JSONObject k = con.optJSONObject(i);
+                if (k == null) continue;
+                JSONObject it = AgendaStore.vind(ctx, k.optString("id"));
+                if (it == null) continue;
+                JSONObject ev = AgendaCal.event(ctx, it.optLong("ext"));
+                cn.put(new JSONObject().put("id", k.optString("id")).put("sinds", k.optLong("sinds")).put("tools", kort(it))
+                        .put("google", ev == null || ev.optBoolean("fout") ? JSONObject.NULL : kort(ev)));
+            }
+            o.put("conflicten", cn).put("teVersturen", AgendaSync.teVersturen(ctx, cfg)).put("weg", AgendaSync.lijst(ctx, "weg").length());
+            JSONArray elke = new JSONArray();
+            for (int e : AgendaSyncRegels.ELKE) elke.put(e);
+            return o.put("elkeKeuzes", elke).toString();
+        } catch (Throwable t) {
+            App.log(ctx, "AGENDA", "sync staat: " + t.getClass().getSimpleName());
+            return "{}";
+        }
+    }
+
+    /**
+     * Instellingen wijzigen (alleen de velden die meekomen). bestaandLokaal: true = wat nu alleen in Tools staat, blijft
+     * alleen in Tools (alleen nieuwe afspraken gaan naar Google).
+     */
+    @JavascriptInterface public String agendaSyncZet(String json) {
+        try {
+            JSONObject in = new JSONObject(json == null ? "{}" : json);
+            JSONObject cfg = AgendaSync.instellingen(ctx);
+            for (java.util.Iterator<String> k = in.keys(); k.hasNext(); ) {
+                String n = k.next();
+                if (AgendaSyncRegels.standaard().has(n) && !"kalAccount".equals(n) && !"kalNaam".equals(n) && !"kalGid".equals(n)) cfg.put(n, in.get(n));
+            }
+            if (in.has("kal")) {
+                JSONObject k = AgendaCal.kalender(AgendaCal.kalenders(ctx), in.optString("kal"));
+                cfg.put("kalAccount", k == null ? "" : k.optString("account")).put("kalNaam", k == null ? "" : k.optString("naam")).put("kalGid", k == null ? "" : k.optString("gid"));
+                AgendaSync.toestand(ctx).edit().remove("kalKey").remove("conflicten").remove("nConflict").remove("rem").apply();
+            }
+            if ("uit".equals(cfg.optString("richting"))) AgendaSync.toestand(ctx).edit().remove("conflicten").remove("nConflict").remove("rem").apply();
+            AgendaSync.bewaarInstellingen(ctx, cfg);
+            if (in.optBoolean("bestaandLokaal")) AgendaSync.houdBestaandeLokaal(ctx);
+            App.log(ctx, "AGENDA", "sync ingesteld: " + AgendaSync.instellingen(ctx).optString("richting"));
+            a.h.post(() -> AgendaSyncJob.schedule(ctx));
+            return agendaSyncStaat();
+        } catch (Throwable t) {
+            App.log(ctx, "AGENDA", "sync zet: " + t.getClass().getSimpleName());
+            return "{}";
+        }
+    }
+
+    /**
+     * Nu synchroniseren, op de achtergrond; de uitkomst komt in onAgendaSync. waarom: hand of open.
+     * rem: "" (veiligheidsrem houdt verwijderen tegen), "wis" (toch verwijderen) of "los" (in Tools houden).
+     */
+    @JavascriptInterface public boolean agendaSyncNu(String waarom, String rem) {
+        if (AgendaSync.BEZIG.get()) return false;
+        final String w = "open".equals(waarom) ? "open" : "hand";
+        final String r = "wis".equals(rem) || "los".equals(rem) ? rem : "";
+        new Thread(App.veilig(() -> {
+            AgendaSync.Uit u = AgendaSync.ronde(ctx, w, r);
+            try {
+                JSONObject o = new JSONObject().put("ok", u.fout.isEmpty() && !u.bezig).put("bezig", u.bezig).put("waarom", w)
+                        .put("fout", AgendaSync.foutTekst(ctx, "uit".equals(u.fout) ? "" : u.fout)).put("uit", "uit".equals(u.fout))
+                        .put("samenvatting", AgendaSync.samenvatting(ctx, u.n)).put("veranderd", AgendaSyncRegels.gewijzigd(u.n))
+                        .put("conflicten", u.n[AgendaSync.CONFLICT]).put("rem", u.n[AgendaSync.REM]);
+                a.js("onAgendaSync", o.toString());
+            } catch (Exception ignored) { }
+        }, () -> a.js("onAgendaSync", "{\"ok\":false}")), "agenda-sync-nu").start();
+        return true;
+    }
+
+    /** Conflict oplossen: keuze tools, google of beide. */
+    @JavascriptInterface public String agendaSyncKies(String id, String keuze) {
+        try {
+            String k = "tools".equals(keuze) || "beide".equals(keuze) ? keuze : "google";
+            String e = AgendaSync.kies(ctx, id == null ? "" : id, k);
+            if ("kalender".equals(e) || "telefoon".equals(e) || "recht".equals(e))
+                return new JSONObject().put("ok", false).put("fout", AgendaSync.foutTekst(ctx, e)).toString();
+            if (!e.isEmpty()) return fout(e);
+            return new JSONObject().put("ok", true).toString();
+        } catch (Throwable t) {
+            App.log(ctx, "AGENDA", "sync kies: " + t.getClass().getSimpleName());
+            return fout("opslaan");
         }
     }
 }

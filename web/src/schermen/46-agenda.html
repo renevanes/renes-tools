@@ -5,6 +5,7 @@
     <button class="icon-btn hset" id="ag-set" data-to="agaset" aria-label="Instellingen van Agenda"></button>
   </div>
   <main>
+    <p class="hint" id="ag-syncregel" translate="no" hidden></p>
     <p class="hint" id="ag-priv">Afspraken die alleen in Tools staan blijven op je telefoon. Zet je een afspraak in een Google-agenda, dan stuurt de agenda-app van je telefoon hem naar Google.</p>
     <p class="note" id="ag-oud" hidden>Installeer de nieuwste versie van Tools om Agenda te gebruiken.</p>
     <button class="bar1" id="ag-perm" hidden onclick="agPerm()"><span><b id="ag-perm-t">Agenda van je telefoon</b><small id="ag-perm-s">Geef toestemming om agenda's op je telefoon te zien en er afspraken in te zetten.</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
@@ -65,6 +66,7 @@
     <textarea id="agf-notitie" maxlength="4000"></textarea>
     <label for="agf-kal">Agenda</label>
     <select class="sel" id="agf-kal" translate="no" onchange="agKalHint()"></select>
+    <p class="hint" id="agf-lokaal" hidden>Deze afspraak doet niet mee met synchroniseren en blijft alleen in Tools.</p>
     <p class="hint" id="agf-google" hidden>Deze afspraak gaat naar Google via de agenda-app van je telefoon.</p>
     <p class="hint" id="agf-los" hidden>De kopie in de agenda van je telefoon blijft staan.</p>
     <p class="hint" id="agf-reeks" hidden>Dit is een herhaling. Bewerken wijzigt de hele reeks in de agenda van je telefoon.</p>
@@ -83,12 +85,128 @@
     </div>
     <h2>Agenda's</h2>
     <div id="ag-kals"></div>
+    <div class="card stlist" id="ag-syncrij">
+      <button class="strow" id="ag-row-sync" onclick="show('agsync')"><span class="stic"><span class="ui-icon" data-icon="refresh" aria-hidden="true"></span></span><span class="sttxt"><b>Synchroniseren met Google</b><small id="ag-sum-sync" translate="no">Uit</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
     <label for="ag-standaard">Standaard voor een nieuwe afspraak</label>
     <select class="sel" id="ag-standaard" translate="no" onchange="agStandaard()"></select>
     <div class="sw"><span>Assistent mag afspraken doorzoeken<small>Standaard uit. Alles blijft op je telefoon. Zoeken in Agenda zelf kan altijd, ook als dit uit staat.</small></span><button type="button" class="tg" id="ag-ai" role="switch" aria-checked="false" aria-label="Assistent mag afspraken doorzoeken" onclick="agAi()"></button></div>
     <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
       <p>Een agenda uit zetten verbergt hem hier. Nieuwe agenda's op je telefoon komen er vanzelf bij en staan aan.</p>
       <p>Bijwerken haalt gekoppelde afspraken opnieuw op. Is een afspraak daar weg, dan blijft je kopie in Tools staan, zonder koppeling.</p>
+    </div></details>
+  </main>
+</section>
+<section class="screen" id="s-agsync">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1>Synchroniseren</h1></div>
+  <main>
+    <p class="hint">Tools zet afspraken in de agenda van je telefoon en leest ze daar. De agenda-app van je telefoon stuurt ze naar Google. Tools zelf praat niet met Google.</p>
+    <div class="card" id="ags-stand">
+      <h2>Stand</h2>
+      <p class="note" id="ags-stand-t" translate="no"></p>
+      <p class="note" id="ags-fout" hidden></p>
+      <div id="ags-rem" hidden>
+        <p class="note" id="ags-rem-t"></p>
+        <div class="row"><button class="big tonal" type="button" id="ags-rem-door" onclick="agsRem('wis')">Toch verwijderen</button><button class="big ghost" type="button" id="ags-rem-houd" onclick="agsRem('los')">In Tools houden</button></div>
+      </div>
+      <button class="big" type="button" id="ags-nu" onclick="agsNu()">Nu synchroniseren</button>
+    </div>
+    <div class="card" id="ags-toestem" hidden>
+      <p class="note">Geef Tools toegang tot de agenda van je telefoon om te synchroniseren.</p>
+      <button class="big tonal" type="button" onclick="agPerm()">Toegang geven</button>
+    </div>
+    <div class="card" id="ags-con" hidden>
+      <h2>Conflicten</h2>
+      <p class="hint">Deze afspraken zijn sinds de vorige keer aan beide kanten gewijzigd. Kies welke versie blijft.</p>
+      <div id="ags-con-lijst"></div>
+    </div>
+    <h2>Welke kant op</h2>
+    <div class="chips" id="ags-richting" role="radiogroup" aria-label="Welke kant op">
+      <button type="button" role="radio" data-v="uit" onclick="agsRichting('uit')">Uit</button>
+      <button type="button" role="radio" data-v="naar" onclick="agsRichting('naar')">Tools → Google</button>
+      <button type="button" role="radio" data-v="van" onclick="agsRichting('van')">Google → Tools</button>
+      <button type="button" role="radio" data-v="beide" onclick="agsRichting('beide')">Beide kanten</button>
+    </div>
+    <p class="hint" id="ags-richting-t"></p>
+    <label for="ags-kal">Agenda om mee te synchroniseren</label>
+    <select class="sel" id="ags-kal" translate="no" onchange="agsKalKies(this.value)"></select>
+    <p class="hint" id="ags-kal-t" hidden></p>
+    <h2>Wanneer</h2>
+    <label for="ags-elke">Hoe vaak vanzelf</label>
+    <select class="sel" id="ags-elke" onchange="agsZet({ elke: +this.value })">
+      <option value="0">Alleen met de hand</option>
+      <option value="15">Elk kwartier</option>
+      <option value="30">Elk half uur</option>
+      <option value="60">Elk uur</option>
+      <option value="180">Elke 3 uur</option>
+      <option value="360">Elke 6 uur</option>
+      <option value="720">Elke 12 uur</option>
+      <option value="1440">Elke dag</option>
+    </select>
+    <div class="sw"><span>Bij openen van Agenda<small>Synchroniseert als je Agenda opent (hooguit eens per 5 minuten).</small></span><button type="button" class="tg" id="ags-open" role="switch" aria-checked="false" aria-label="Bij openen van Agenda" onclick="agsSchakel('open', this)"></button></div>
+    <div class="sw"><span>Alleen tijdens het laden<small>Vanzelf synchroniseren alleen als de telefoon aan de lader ligt.</small></span><button type="button" class="tg" id="ags-laden" role="switch" aria-checked="false" aria-label="Alleen tijdens het laden" onclick="agsSchakel('laden', this)"></button></div>
+    <div class="sw"><span>Google meteen bijwerken<small>Vraagt de telefoon om meteen met Google te synchroniseren nadat Tools iets in de agenda zette. Anders doet de telefoon dat op zijn eigen moment.</small></span><button type="button" class="tg" id="ags-googlenu" role="switch" aria-checked="false" aria-label="Google meteen bijwerken" onclick="agsSchakel('googleNu', this)"></button></div>
+    <h2>Welke afspraken</h2>
+    <div class="row">
+      <label for="ags-terug">Terug</label>
+      <label for="ags-vooruit">Vooruit</label>
+    </div>
+    <div class="row">
+      <select class="sel" id="ags-terug" onchange="agsZet({ terug: +this.value })">
+        <option value="0">Vanaf vandaag</option>
+        <option value="7">Een week terug</option>
+        <option value="30">Een maand terug</option>
+        <option value="90">Drie maanden terug</option>
+        <option value="365">Een jaar terug</option>
+        <option value="-1">Alles</option>
+      </select>
+      <select class="sel" id="ags-vooruit" onchange="agsZet({ vooruit: +this.value })">
+        <option value="30">Een maand vooruit</option>
+        <option value="90">Drie maanden vooruit</option>
+        <option value="365">Een jaar vooruit</option>
+        <option value="730">Twee jaar vooruit</option>
+        <option value="-1">Alles</option>
+      </select>
+    </div>
+    <p class="hint">Afspraken daarbuiten blijven zoals ze zijn. Een herhaling telt mee zolang hij doorloopt.</p>
+    <h2>Verwijderen en conflicten</h2>
+    <label for="ags-wissen">Als je een afspraak verwijdert</label>
+    <select class="sel" id="ags-wissen" onchange="agsZet({ wissen: this.value })">
+      <option value="naar">Weg in Tools: ook weg in Google</option>
+      <option value="van">Weg in Google: ook weg in Tools</option>
+      <option value="beide">Beide kanten op</option>
+      <option value="nooit">Nooit aan de andere kant verwijderen</option>
+    </select>
+    <p class="hint" id="ags-wissen-t"></p>
+    <label for="ags-conflict">Aan beide kanten gewijzigd</label>
+    <select class="sel" id="ags-conflict" onchange="agsZet({ conflict: this.value })">
+      <option value="vragen">Mij laten kiezen</option>
+      <option value="tools">Tools gaat voor</option>
+      <option value="google">Google gaat voor</option>
+    </select>
+    <label for="ags-rem-k">Veiligheidsrem</label>
+    <select class="sel" id="ags-rem-k" onchange="agsZet({ rem: +this.value })">
+      <option value="5">Vragen bij meer dan 5 verwijderingen</option>
+      <option value="10">Vragen bij meer dan 10 verwijderingen</option>
+      <option value="25">Vragen bij meer dan 25 verwijderingen</option>
+      <option value="50">Vragen bij meer dan 50 verwijderingen</option>
+      <option value="0">Nooit vragen</option>
+    </select>
+    <p class="hint">Verdwijnen er in één keer veel afspraken uit Google, dan verwijdert Tools ze pas als jij dat zegt.</p>
+    <label for="ags-meld">Meldingen</label>
+    <select class="sel" id="ags-meld" onchange="agsZet({ meld: this.value })">
+      <option value="fouten">Bij een conflict of als het niet lukt</option>
+      <option value="altijd">Ook als er iets veranderde</option>
+      <option value="nooit">Nooit</option>
+    </select>
+    <h2>Logboek</h2>
+    <div id="ags-log"></div>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Tools → Google: wat in Tools staat, komt in de gekozen agenda. Google volgt Tools: wijzig of verwijder je daar een afspraak uit Tools, dan zet Tools hem de volgende keer terug. Andere afspraken in die agenda blijven zoals ze zijn.</p>
+      <p>Google → Tools: afspraken uit de gekozen agenda komen ook in Tools te staan, ook in je backups. Tools volgt Google.</p>
+      <p>Beide kanten: een wijziging aan de ene kant gaat naar de andere. Is een afspraak aan beide kanten gewijzigd, dan kies jij, of gaat de kant voor die je hierboven koos.</p>
+      <p>Een afspraak waarbij je "Alleen in Tools" kiest, doet niet mee. Bewaar je een afspraak in de gekozen agenda, dan gaat hij meteen mee.</p>
+      <p>Na een nieuwe telefoon of het terugzetten van een backup zoekt Tools de agenda op naam en account, en koppelt het afspraken die aan beide kanten hetzelfde zijn (titel, dag en tijd), zodat er niets dubbel komt.</p>
     </div></details>
   </main>
 </section>

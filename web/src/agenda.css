@@ -24,3 +24,9 @@
 .ag-form .row label{margin-top:0}
 #s-agaset h2{font-size:15px;margin:16px 0 8px}
 #ag-kals .strow{width:100%}
+/* Synchroniseren met Google */
+#ags-nu[hidden]{display:none}
+#ags-rem .row .big{margin-top:6px}
+.ags-con{margin:0 0 8px}
+.ags-con .row{gap:6px;flex-wrap:wrap}
+#ags-rem-houd[hidden]{display:none}

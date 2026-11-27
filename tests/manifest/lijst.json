@@ -380,6 +380,7 @@
         ".FacturenJob",
         ".ToilettenJob",
         ".SignalenJob",
+        ".AgendaSyncJob",
         ".WaBackupJob",
         ".Care",
         ".AllBackupJob",

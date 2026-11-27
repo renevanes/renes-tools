@@ -984,6 +984,29 @@ Zoeken kijkt in alle afspraken, ook van jaren geleden.
   Zet Rene een afspraak in een Google-agenda, dan stuurt de agenda-app van de telefoon hem naar Google. Dat staat zichtbaar
   op het scherm. Een afspraak zonder agenda blijft alleen in Tools. Haalt Bijwerken een gekoppelde afspraak niet meer op,
   dan blijft de kopie in Tools staan, zonder koppeling.
+- **Synchroniseren met Google** (wens van Rene 27-11-2026: één of twee kanten op, alles instelbaar en in te zien; scherm
+  `s-agsync` via Agenda → Instellingen, `76b-agenda-sync.js`; Java `AgendaSync` (ronde, conflicten), `AgendaSyncRegels`
+  (zuiver: instellingen, wie wint, bereik, herkennen; `AgendaSyncTest`), `AgendaSyncJob` (job 4901, periodiek of uit)). Ook
+  dit gaat alleen via `CalendarContract`, naar één gekozen agenda (`kal`, met `kalAccount`/`kalNaam` om hem na een nieuwe
+  telefoon terug te vinden; eerst op `kalGid`, het `_SYNC_ID` van de agenda). Instellingen in `agenda` → sleutel `sync` (gaat mee in backups): `richting` uit/naar/van/beide,
+  `elke` (minuten, 0 = met de hand), `open`, `laden`, `googleNu` (`ContentResolver.requestSync`, geen extra toestemming),
+  `terug`/`vooruit` (dagen, -1 = alles), `wissen` naar/van/beide/nooit, `conflict` vragen/tools/google, `rem`
+  (veiligheidsrem: meer verwijderingen in Tools dan dit wacht op Rene: Toch verwijderen of In Tools houden), `meld`.
+  Toestand van deze telefoon in `agenda_sync` (`PREFS_SKIP`): `laatst`, `log` (hooguit 20 rondes, alleen aantallen en
+  foutcodes), `conflicten`, `kalKey` (id|account), `zone`. In `agenda` → `syncWeg`: afspraken die in Tools weg of
+  losgemaakt zijn en in Google bleven (`{e, g}`, niet opnieuw ophalen; gaat mee in backups).
+  Een gekoppelde afspraak heeft `kalender` = de gekozen agenda, `ext` en `sync: {t, g, gid}` (vingerafdruk van Tools en
+  van Google na de vorige ronde in de vorm van Tools, `AgendaSyncRegels.vorm`/`vinger`, en het `_SYNC_ID` van Google);
+  zo ziet een ronde welke kant veranderde (`besluit`; niets veranderd sinds de vorige ronde = niets schrijven). `sync:
+  {vers: true}` = net gekoppeld met een conflict dat open staat. `lokaal: true` = Rene koos Alleen in Tools: doet niet mee.
+  Herhalingen die Tools niet precies kan tonen (`complex(rrule, dag)`, of met een uitzondering of EXDATE: `ingewikkeld`)
+  raakt een ronde niet aan en `agendaBewaar` weigert ze te overschrijven. De eerste ronde op een telefoon (andere
+  `kalKey`) houdt een koppeling alleen als het `_SYNC_ID` (of titel, dag en tijd) klopt, koppelt anders opnieuw in plaats
+  van dubbel te zetten, wacht bij een lege agenda (`leeg`) en telt in die ronde niets als verdwenen. Verdwenen afspraken
+  (ook op `_SYNC_ID` gezocht, `AgendaCal.opGid`) gaan altijd langs de veiligheidsrem; een afgekapte lezing telt niets
+  als verdwenen. `AgendaCal.schrijf`/`wis` raken alleen een afspraak in de eigen agenda aan. `agendaBewaar` werkt `sync` bij als hij zelf naar de gekozen
+  agenda schrijft (anders ziet de volgende ronde een conflict); `agendaWis` volgt `wissen`. Hele ronde onder het slot van
+  `AgendaStore`. Logsoort `AGENDA` alleen met aantallen en vaste woorden. Tests: `tests/ui/agenda-sync.test.js`.
 - **Assistent**: bron `agenda` staat standaard uit (`srcDefault`). Aan zetten kan bij Agenda → Instellingen of bij
   Assistent → Gegevens; de assistent zet hem niet zelf aan. Een afspraak van de assistent ("zet … in mijn agenda",
   "maak een afspraak …") gaat na Rene's tik rechtstreeks in de Agenda van Tools via `agendaBewaar` (`aiAgBewaar` in
@@ -1006,7 +1029,7 @@ Wens van Rene (26-11-2026): via één centrale functie opdrachten geven, zoals e
 - **Scherm Opdracht geven** (`s-aizeggen`, vanuit de suggesties en ⋯ van de assistent): de plekken hierboven en
   voorbeeldzinnen per onderwerp (`AI_ZEGGEN`, vast Nederlands: zo ontleedt de app ze). Nieuwe opdracht = ook een voorbeeld.
 - Tests: `tests/ui/opdracht-geven.test.js`, `tests/ui/ai-acties.test.js`; Java: `AiActionsTest`.
-- Tests: `tests/ui/agenda.test.js`; Java: `AgendaTest` (en een stuk in `AiDataTest`).
+- Tests: `tests/ui/agenda.test.js`, `tests/ui/agenda-sync.test.js`; Java: `AgendaTest`, `AgendaSyncTest` (en een stuk in `AiDataTest`).
 
 ## Signalen (bronnen volgen, één inbox, melden per bron)
 Signalen (schermen `s-signalen`, `s-snitem`, `s-snset`, `s-snbron`; `web/src/script/79-signalen.js`, `Signalen*.java`) loopt

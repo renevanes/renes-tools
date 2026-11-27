@@ -468,6 +468,35 @@ const SET_REG = [
     syn: 'agenda standaard kalender nieuwe afspraak google', synEn: 'calendar default new appointment google',
     get: () => (rdJson(Android.agendaStaat(), {}) || {}).standaard || '',
     set: v => { const s = rdJson(Android.agendaStaat(), {}) || {}; if (v && !(s.kalenders || []).some(k => String(k.id) === String(v) && k.schrijf)) return 'Die agenda staat er niet, of je mag er niet in schrijven'; Android.agendaZet(JSON.stringify({ standaard: v || '' })); if (typeof agStaat === 'object' && agStaat) agStaat.standaard = v || ''; setIf('agaset', agSetRender); return ''; } },
+  { id: 'agenda.sync.richting', scr: 'agsync', ctl: '#ags-richting', type: 'keuze', safe: 'privacy', weak: v => v !== 'uit',
+    why: 'Aanzetten zet je afspraken in een agenda die naar Google gaat, of haalt ze daar op; dat kies je zelf.',
+    vals: [['uit', 'Uit'], ['naar', 'Tools → Google'], ['van', 'Google → Tools'], ['beide', 'Beide kanten']],
+    label: 'Agenda synchroniseren met Google', desc: 'Welke kant op: uit, van Tools naar Google, van Google naar Tools, of beide kanten. Het gaat via de agenda van je telefoon; die stuurt het naar Google.',
+    syn: 'agenda synchroniseren sync google kalender twee kanten een kant richting', synEn: 'calendar sync synchronise google two-way one-way direction',
+    alias: { uit: 'uit', off: 'uit', naar: 'naar', van: 'van', beide: 'beide', both: 'beide', 'twee kanten': 'beide' },
+    get: () => ((rdJson(typeof Android.agendaSyncStaat === 'function' ? Android.agendaSyncStaat() : '{}', {}) || {}).cfg || {}).richting || 'uit',
+    set: v => { if (!['uit', 'naar', 'van', 'beide'].includes(v)) return 'Kies uit, Tools → Google, Google → Tools of beide kanten'; if (typeof Android.agendaSyncZet !== 'function') return 'Installeer de nieuwste versie van Tools om te synchroniseren.';
+      const s = rdJson(Android.agendaSyncStaat(), {}) || {}; if (v !== 'uit' && !(s.cfg || {}).kal) return 'Kies de agenda om mee te synchroniseren.';
+      agsZet({ richting: v }); setIf('agaset', agSetRender); return ''; } },
+  { id: 'agenda.sync.elke', scr: 'agsync', ctl: '#ags-elke', type: 'keuze',
+    vals: [['0', 'Alleen met de hand'], ['15', 'Elk kwartier'], ['30', 'Elk half uur'], ['60', 'Elk uur'], ['180', 'Elke 3 uur'], ['360', 'Elke 6 uur'], ['720', 'Elke 12 uur'], ['1440', 'Elke dag']],
+    label: 'Hoe vaak de agenda vanzelf synchroniseert', desc: 'Alleen met de hand, of elk kwartier tot elke dag.',
+    syn: 'agenda synchroniseren hoe vaak frequentie elk uur kwartier dag sync', synEn: 'calendar sync how often frequency every hour day',
+    get: () => String(((rdJson(typeof Android.agendaSyncStaat === 'function' ? Android.agendaSyncStaat() : '{}', {}) || {}).cfg || {}).elke ?? 60),
+    set: v => { if (!['0', '15', '30', '60', '180', '360', '720', '1440'].includes(String(v))) return 'Kies hoe vaak'; if (typeof Android.agendaSyncZet !== 'function') return 'Installeer de nieuwste versie van Tools om te synchroniseren.'; agsZet({ elke: +v }); return ''; } },
+  { id: 'agenda.sync.wissen', scr: 'agsync', ctl: '#ags-wissen', type: 'keuze', safe: 'privacy', weak: v => v === 'van' || v === 'beide',
+    why: 'Dan verwijdert Tools afspraken die uit Google verdwijnen; dat kies je zelf.',
+    vals: [['naar', 'Weg in Tools: ook weg in Google'], ['van', 'Weg in Google: ook weg in Tools'], ['beide', 'Beide kanten op'], ['nooit', 'Nooit aan de andere kant verwijderen']],
+    label: 'Agenda synchroniseren: wat verwijderen doet', desc: 'Of een afspraak die je aan de ene kant verwijdert, ook aan de andere kant weg gaat. Een veiligheidsrem vraagt eerst bij veel tegelijk.',
+    syn: 'agenda synchroniseren verwijderen wissen weg google', synEn: 'calendar sync delete remove google',
+    get: () => ((rdJson(typeof Android.agendaSyncStaat === 'function' ? Android.agendaSyncStaat() : '{}', {}) || {}).cfg || {}).wissen || 'naar',
+    set: v => { if (!['naar', 'van', 'beide', 'nooit'].includes(v)) return 'Kies wat verwijderen doet'; if (typeof Android.agendaSyncZet !== 'function') return 'Installeer de nieuwste versie van Tools om te synchroniseren.'; agsZet({ wissen: v }); return ''; } },
+  { id: 'agenda.sync.conflict', scr: 'agsync', ctl: '#ags-conflict', type: 'keuze',
+    vals: [['vragen', 'Mij laten kiezen'], ['tools', 'Tools gaat voor'], ['google', 'Google gaat voor']],
+    label: 'Agenda synchroniseren: aan beide kanten gewijzigd', desc: 'Wat er gebeurt als een afspraak aan beide kanten gewijzigd is: zelf kiezen, of Tools of Google gaat voor.',
+    syn: 'agenda synchroniseren conflict beide kanten gewijzigd voorrang', synEn: 'calendar sync conflict both sides changed priority',
+    get: () => ((rdJson(typeof Android.agendaSyncStaat === 'function' ? Android.agendaSyncStaat() : '{}', {}) || {}).cfg || {}).conflict || 'vragen',
+    set: v => { if (!['vragen', 'tools', 'google'].includes(v)) return 'Kies wat er bij een conflict gebeurt'; if (typeof Android.agendaSyncZet !== 'function') return 'Installeer de nieuwste versie van Tools om te synchroniseren.'; agsZet({ conflict: v }); return ''; } },
   /* ---------- E-reader: lezen en voorlezen (helderheid en filter gelden alleen in de e-reader) ---------- */
   { id: 'ereader.helderheid', scr: 'erset', type: 'keuze', vals: [['telefoon', 'Zoals de telefoon'], ['10', '10%'], ['25', '25%'], ['50', '50%'], ['75', '75%'], ['100', '100%']],
     label: 'Helderheid in de e-reader', desc: 'Een eigen helderheid van het scherm tijdens het lezen; buiten de e-reader volgt het scherm weer de telefoon. Ook te kiezen met Aa in een boek.',
@@ -557,6 +586,7 @@ const SET_NEED = [['wa.leesbaar', /whatsapp|whats app|leesba|chats/], ['wa.', /w
 
 /* Schakelaars en keuzes die bewust niet in het register staan, met de reden */
 const SET_EXCLUDE = [
+  ['#ags-kal, #ags-open, #ags-laden, #ags-googlenu, #ags-terug, #ags-vooruit, #ags-rem-k, #ags-meld', 'Fijnere keuzes van Agenda synchroniseren (welke agenda, bereik, rem, meldingen); die stel je op het scherm Synchroniseren in. Welke kant op, hoe vaak, verwijderen en conflicten staan wel in het register'],
   ['#pk-reclame, #pk-intro, #pk-outro', 'Overslaan per podcast; dat kies je op het scherm Overslaan van die podcast (algemeen: podcast.reclame)'],
   ['#he-ov-list, #he-nacht-list, #he-ov-bk, #he-ov-bkdagen, #he-recentn', 'Regels, volgorde en keuzes van het overzicht en de onderdelen op het startscherm (één voor één aan te passen bij Startscherm aanpassen)'],
   ['#er-font, #er-line, #er-margin, #er-align, #er-theme, #er-mode, #er-filters, #er-sort, #er-tabs', 'Navigatie en leesweergave in de boeklezer, geen algemene appinstellingen'],
