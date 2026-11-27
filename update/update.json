@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.267",
-  "versionCode": 268,
+  "versionName": "1.268",
+  "versionCode": 269,
   "nativeLevel": 231,
   "web": "index.html",
-  "webSha256": "caa3c61918aa72768be51d9cc4358212b03027da1f4d7de2a11e4b7d8c0349bc",
+  "webSha256": "8aa6aa4945a1bab3c28371d18d5373e0a421edf91fa122bc2bb1f4ff2c8be996",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "17054f98d336e512bb3720f82e98351e98dbaf6c8c2eccb20fde433f7a588ac5",
+  "apkSha256": "2a3fa5324b4053eaa2c985b85d69ddc65a53037a1695519bdccacac1b2560ed8",
   "changelog": [
+    {
+      "version": "1.268",
+      "date": "2026-11-27",
+      "changes": [
+        "Foto bewerken: onder de foto zie je nu meteen hoe hij wordt terwijl je bijsnijdt, draait of het licht aanpast."
+      ]
+    },
     {
       "version": "1.267",
       "date": "2026-11-26",
@@ -170,17 +177,7 @@
       "changes": [
         "Stamgegevens: een paspoort of ID-bewijs in een PDF (bijvoorbeeld een Google-document) wordt nu ook herkend als de foto klein op de pagina staat: Tools leest eerst de foto zelf op volle scherpte."
       ]
-    },
-    {
-      "version": "1.248",
-      "date": "2026-11-24",
-      "changes": [
-        "Alles back-uppen toont nu meteen hoe groot de laatste backup is en hoeveel ruimte hij erbij nam, zonder uitklappen",
-        "Ruimtegebruik splitst de map Versleuteld op in backups, grote bestanden en oude, volledige backups",
-        "Nieuw: Publiceren en tests (Instellingen → Versie en updates): wat er op GitHub loopt en wat mislukte, per taak, met recente runs en open punten; een tik opent het op GitHub",
-        "Signalen: nieuwe bron Publiceren en tests, voor een melding als een run op main mislukt (aan te zetten op het scherm Publiceren en tests)"
-      ]
     }
   ],
-  "webSig2": "S9zG26JrjK/xTEu4xjLrx8S90+oWbnLgsR4My53KzX5fQYIrMc5qZjPqzTV+ZHrN0yp49ySLButbKQSl3wMg5D3odOHSGC9QvnvQP3/M/gXZjiIsY6dohHtwOzwktml3FmGbuiOSqA1JQodjhY9OOqOLxHjIvgH7KJFQG17g4+HeRnAH5YvMe7e1Jct8WPnmmMTlw8OVYs6XkTAOQe1EyxPBjVPI+wGZcwYQKZFwIQAXfZc6wympwHTWlSuTr+yfiYIxO71kI6oQHAuNh+4R0IICkiVaQjnMhaOt3/ms1OTUITNFrJhens0wIRHpdB9sjS5J9J/y3BaCiOfmcPDJvxRpZxf33iDaUdCURHvetlr1M6AV7gKrtRebJLWt9eOyY1q43OuUIWaDYGAwYDDzkybPVN/5123NpJ9keTtcAfpzpTWZcoacu9LrGjkow5Uv1f4kpEg80OLIzgEVrkwGFE4z+g2/+Ea2QZ+2xWc81ycJj9QGTTKaXTB5DZPEjI1N"
+  "webSig2": "W8ghBkFNmek12gc3aJoWgco0ViYOdw139jHmjx1VEMefjdXb0uKZKmedUJxjvu0Q0z26SO5k0kopCGxL9x1X7be97acxoCqVHTgwT6IS9INdXVGSXZrzVHTIIurvwWo79XM+m2mxPNaqlr5cdfJqdmzkapzoINhjetmAxuRls4JOAA2iMMYPdwNbKPJ9OoSZ8K503JE8QzEt1QuAeucORDgQOYQDMaQbFy+uTjX3DKfhT6UiEU/fNLPOOoDq11mJiN/P0A/f6l5eF3NiMVkRI2QcojIr/AcMZp6ZYTPUcd5Qc/szJH4W+UXVq0iUULSjhwrKRRvM3AdsfMn4obzDijjcNiFtZ1adjMWNNRe8dgaVj6bVeauIUptggp3rsZLH43ajaLp8rFCiECk4hxyUSFsADvsjiguvJ5eY4FJh3gsAfqsa6G+UhbkgXhlirFX4uMsxKNKCXVZpSmJq54H6hlG2IXFLjOq7Z5YR+5Sqj5MpTcDdn/UHo+ac8fxi5qjC"
 }
