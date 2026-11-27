@@ -113,14 +113,20 @@ final class Nieuws {
 
     /** Zo ook met een eigen begin van de link ({@code alleen}, zoals in de instellingen van de bron; "" = alles). */
     static void filterOp(String alleen, String basis, NieuwsFeed.Feed f) throws Fout {
-        if (alleen == null || alleen.isEmpty() || f.artikelen.isEmpty()) return;
-        for (Iterator<NieuwsFeed.Artikel> it = f.artikelen.iterator(); it.hasNext(); ) {
-            NieuwsFeed.Artikel a = it.next();
-            String l;
-            try { l = norm(new URL(new URL(basis), a.link).toURI().normalize().toString()); } catch (Exception e) { l = ""; }
-            if (!l.startsWith(alleen)) it.remove();
+        if (alleen != null && !alleen.isEmpty() && !f.artikelen.isEmpty()) {
+            List<NieuwsFeed.Artikel> blijft = new ArrayList<>();
+            for (NieuwsFeed.Artikel a : f.artikelen) {
+                String l;
+                try { l = norm(new URL(new URL(basis), a.link).toURI().normalize().toString()); } catch (Exception e) { l = ""; }
+                if (l.startsWith(alleen)) blijft.add(a);
+            }
+            f.artikelen.clear();
+            f.artikelen.addAll(blijft);
+            if (f.artikelen.isEmpty()) throw new Fout(Taal.T("In deze feed staat nu geen nieuws"));
         }
-        if (f.artikelen.isEmpty()) throw new Fout(Taal.T("In deze feed staat nu geen nieuws"));
+        // Een sitemap pas ná het filter inkorten tot de nieuwste MAX_ITEMS: anders kunnen recent bijgewerkte pagina's van een
+        // ander soort (podcast, auteurs, tags) alle artikelen verdringen en blijft er niets over
+        if (f.uitSitemap) while (f.artikelen.size() > NieuwsFeed.MAX_ITEMS) f.artikelen.remove(f.artikelen.size() - 1);
     }
 
     /**
@@ -1388,7 +1394,10 @@ final class Nieuws {
     private static final Pattern NIEUWSACHTIG = Pattern.compile("(?i)post|news|nieuws|article|artikel|blog");
     private static boolean nieuwsachtig(String u) { return NIEUWSACHTIG.matcher(u).find(); }
 
-    /** Een sitemap als feed: de pagina's (niet de voorpagina), nieuwste eerst, hooguit NieuwsFeed.MAX_ITEMS; titel en tekst vult {@link #aanvullen} aan. */
+    /**
+     * Een sitemap als feed: de pagina's (niet de voorpagina), nieuwste eerst; titel en tekst vult {@link #aanvullen} aan.
+     * Nog niet ingekort: dat doet {@link #filterOp}, na het filter van de bron (hooguit NieuwsFeed.MAX_ITEMS).
+     */
     static NieuwsFeed.Feed uitKaart(NieuwsFeed.Sitemap kaart, String basis) {
         NieuwsFeed.Feed f = new NieuwsFeed.Feed();
         f.uitSitemap = true;
@@ -1404,7 +1413,7 @@ final class Nieuws {
             l.add(new Object[]{loc, u[1], u.length > 2 ? u[2] : ""});
         }
         Collections.sort(l, (x, y) -> Long.compare((Long) y[1], (Long) x[1]));
-        for (int i = 0; i < l.size() && f.artikelen.size() < NieuwsFeed.MAX_ITEMS; i++) {
+        for (int i = 0; i < l.size() && f.artikelen.size() < NieuwsFeed.MAX_SITEMAP; i++) {
             NieuwsFeed.Artikel a = new NieuwsFeed.Artikel();
             a.link = (String) l.get(i)[0];
             a.sleutel = a.link;
@@ -1584,12 +1593,39 @@ final class Nieuws {
             beelden(id, g.url, g.feed, oud, Math.min(nu + MAX_HAAL, eind), pagina, b.optBoolean("pagina"));
             synchronized (LOCK) { return zoekBron(bronnen(dir), id) != null ? bewaarFeed(cache, id, g.url, g.feed, nu) : -1; }
         } catch (Throwable e) {
+            REDEN.put(id, logReden(e));
             synchronized (LOCK) {
                 try { if (zoekBron(bronnen(dir), id) != null) bewaarFout(cache, id, kort(e), nu); } catch (Throwable ignored) { }
             }
             return -1;
         }
     }
+
+    /** Waarom een bron het laatst mislukte, voor het logboek (vaste woorden; per bron-id, alleen tijdens een ronde). */
+    static final Map<String, String> REDEN = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** De reden in vaste woorden, zonder adres, naam of tekst van de site (die gaat het logboek in). */
+    static String logReden(Throwable e) {
+        if (e instanceof HttpFout) return "http " + ((HttpFout) e).code;
+        if (e instanceof TeTraag || e instanceof java.net.SocketTimeoutException) return "te traag";
+        if (e instanceof java.net.UnknownHostException || e instanceof java.net.ConnectException || e instanceof java.net.NoRouteToHostException) return "geen verbinding";
+        if (e instanceof javax.net.ssl.SSLException) return "geen veilige verbinding";
+        if (e instanceof NieuwsFeed.GeenFeed) return "geen feed";
+        if (e instanceof org.xml.sax.SAXException) return "feed niet leesbaar";
+        if (e instanceof Fout) {
+            String m = String.valueOf(e.getMessage());
+            if (m.equals(Taal.T("In deze feed staat nu geen nieuws"))) return "geen artikelen na het filter";
+            if (m.equals(Taal.T("Feed is te groot"))) return "te groot";
+            if (m.startsWith("Op deze site staat geen nieuwsfeed of sitemap")) return "geen feed of sitemap";
+            if (m.equals("Deze feed wordt niet gelezen (onveilige opbouw)")) return "onveilige opbouw";
+            return "fout " + e.getClass().getSimpleName();
+        }
+        if (e instanceof InterruptedException) return "tijd op";
+        return "fout " + e.getClass().getSimpleName();
+    }
+
+    /** Hoe een bron in het logboek heet: de vaste id van een bekende bron, anders "eigen bron" (geen namen of adressen). */
+    static String logBron(String id) { return standaard(id) != null ? id : "eigen bron"; }
 
     /** Welke bronnen bijgewerkt moeten worden: die aan staan en ouder zijn dan VERS (alles = ook als ze net bijgewerkt zijn). */
     static List<String[]> teDoen(File dir, File cache, boolean alles, long nu) throws JSONException {
@@ -1648,6 +1684,7 @@ final class Nieuws {
             if (!todo.isEmpty()) {
                 ExecutorService ex = Executors.newFixedThreadPool(Math.min(4, todo.size()));
                 List<Future<Integer>> fs = new ArrayList<>();
+                List<String> ids = new ArrayList<>();
                 String ua = webUa(c);
                 Map<String, WebPagina> paginas = new HashMap<>();
                 JSONArray alle;
@@ -1666,17 +1703,25 @@ final class Nieuws {
                     // titel en tekst van de pagina's bij een sitemap: dezelfde cookies, maar zonder de keuze voor afbeeldingen
                     WebPagina kop = pagina != null ? pagina : web(pagK, ua);
                     String feedUa = inlog ? paginaUa(ua) : UA;
+                    REDEN.remove(t[0]);
+                    ids.add(t[0]);
                     fs.add(ex.submit(() -> haalBron(dir, cache, b, pagina, kop, feedK, feedUa, eind)));
                 }
                 ex.shutdown();
-                for (Future<Integer> f : fs) {
+                List<String> mis = new ArrayList<>();
+                for (int i = 0; i < fs.size(); i++) {
+                    Future<Integer> f = fs.get(i);
+                    String id = ids.get(i);
                     try {
                         int n = f.get(Math.max(1, start + MAX_DUUR - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
                         if (n >= 0) { ok++; nieuw += n; }
-                    } catch (Throwable e) { f.cancel(true); }
+                        else { String r = REDEN.remove(id); mis.add(logBron(id) + " (" + (r != null ? r : "bron weg") + ")"); }
+                    } catch (Throwable e) { f.cancel(true); REDEN.remove(id); mis.add(logBron(id) + " (tijd op)"); }
                 }
                 ex.shutdownNow();
                 App.log(c, "NIEUWS", "bijgewerkt: " + ok + " van " + todo.size() + " bronnen");
+                // Welke bron en waarom, in vaste woorden: zo is in het foutlogboek na te gaan wat er misgaat
+                for (String m : mis) App.log(c, "NIEUWS", "bijwerken mislukt: " + m);
                 if (beelden) for (String[] b : todo) if (paginas.containsKey(b[0])) {
                     JSONObject cb;
                     synchronized (LOCK) { cb = leesObject(cacheBestand(cache, b[0])); }

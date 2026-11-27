@@ -738,6 +738,24 @@ public class NieuwsTest {
         Nieuws.filterOp("aireport.nl/p/", "https://www.aireport.nl/sitemap.xml", f);
         check(f.artikelen.size() == 4, "alleen /p/: de podcast valt weg");
         check("aireport.nl/p/".equals(Nieuws.alleen("aireport")) && "https://www.aireport.nl/sitemap.xml".equals(Nieuws.standaard("aireport")[2]), "AI Report: de sitemap, alleen de artikelen");
+        // Veel recent bijgewerkte pagina's van een ander soort bovenaan de sitemap: de artikelen blijven (eerst filteren, dan inkorten)
+        StringBuilder groot = new StringBuilder("<urlset>");
+        for (int i = 0; i < 300; i++) groot.append("<url><loc>https://www.aireport.nl/podcast/s/a/").append(i).append("</loc><lastmod>2026-11-26</lastmod></url>");
+        for (int i = 0; i < 250; i++) groot.append("<url><loc>https://www.aireport.nl/p/artikel-").append(i).append("</loc><lastmod>2026-10-").append(10 + i % 20).append("</lastmod></url>");
+        NieuwsFeed.Feed vol = Nieuws.uitKaart(NieuwsFeed.sitemap(tekst(groot.append("</urlset>").toString()), null), "https://www.aireport.nl/sitemap.xml");
+        Nieuws.filterOp("aireport.nl/p/", "https://www.aireport.nl/sitemap.xml", vol);
+        boolean alleP = true;
+        for (NieuwsFeed.Artikel x : vol.artikelen) alleP &= x.link.contains("/p/");
+        check(vol.artikelen.size() == NieuwsFeed.MAX_ITEMS && alleP, "300 nieuwere podcastpagina's verdringen de artikelen niet: " + vol.artikelen.size());
+        NieuwsFeed.Feed zonder = Nieuws.uitKaart(NieuwsFeed.sitemap(tekst(groot.toString()), null), "https://www.aireport.nl/sitemap.xml");
+        Nieuws.filterOp("", "https://www.aireport.nl/sitemap.xml", zonder);
+        check(zonder.artikelen.size() == NieuwsFeed.MAX_ITEMS, "zonder filter: ook hooguit " + NieuwsFeed.MAX_ITEMS);
+        // Het logboek: welke bron en waarom, in vaste woorden (nooit een adres of naam)
+        check("http 403".equals(Nieuws.logReden(new Nieuws.HttpFout(403))) && "te traag".equals(Nieuws.logReden(new Nieuws.TeTraag()))
+                && "geen artikelen na het filter".equals(Nieuws.logReden(new Nieuws.Fout("In deze feed staat nu geen nieuws")))
+                && "geen feed".equals(Nieuws.logReden(new NieuwsFeed.GeenFeed())) && "geen verbinding".equals(Nieuws.logReden(new java.net.UnknownHostException("www.aireport.nl"))), "reden voor het logboek");
+        check("fout Fout".equals(Nieuws.logReden(new Nieuws.Fout("Deze feed staat er al als Mijn geheime bron"))) && "fout IllegalStateException".equals(Nieuws.logReden(new IllegalStateException("https://x.example.org/geheim"))), "onbekende tekst: alleen de soort fout");
+        check("aireport".equals(Nieuws.logBron("aireport")) && "eigen bron".equals(Nieuws.logBron("e123abc")), "bron in het logboek: vaste id of eigen bron");
 
         // Afbeeldingen in de sitemap (Yoast): image:loc en image:title zijn niet het artikel
         NieuwsFeed.Sitemap img = NieuwsFeed.sitemap(tekst("<urlset xmlns:image=\"http://www.google.com/schemas/sitemap-image/1.1\"><url><loc>https://ex.example.org/post/a/</loc><lastmod>2026-11-01</lastmod>"

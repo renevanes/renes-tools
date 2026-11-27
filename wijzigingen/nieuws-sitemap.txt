@@ -1,0 +1,1 @@
+Nieuws: een bron zonder feed (zoals AI Report) bleef soms leeg als bovenaan de sitemap veel andere pagina's stonden; nu blijven de artikelen staan. Het foutlogboek noemt voortaan welke bron niet bijwerkt en waarom.
