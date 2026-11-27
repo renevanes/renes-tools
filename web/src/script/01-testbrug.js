@@ -102,7 +102,7 @@ if (!window.Android) window.Android = (function(){
     _nwStd(b){
       const site = b.id === 'tweakers' ? 'tweakers.net' : b.id === 'aireport' ? 'aireport.nl' : new URL(b.url).hostname.replace(/^www\./, '').replace(/^(feeds?|rss)\.(?=[^.]+\.)/, '');
       const inlog = b.id === 'aireport';
-      return Object.assign(b, { alleen: b.id === 'tweakers' ? 'tweakers.net/nieuws/' : b.id === 'aireport' ? 'aireport.nl/p/' : '', pagina: b.id === 'tweakers', cookiekeuze: b.id === 'tweakers', inlog,
+      return Object.assign(b, { alleen: b.id === 'tweakers' ? 'tweakers.net/nieuws/' : b.id === 'aireport' ? 'aireport.nl/artikel/' : '', pagina: b.id === 'tweakers', cookiekeuze: b.id === 'tweakers', inlog,
         inlogStart: inlog ? 'https://www.aireport.nl/' : 'https://' + site + '/', inlogSites: inlog ? 'aireport.nl *.aireport.nl *.beehiiv.com' : site + ' *.' + site,
         lezen: inlog ? 'app' : 'browser', derden: inlog, aangepast: false });
     },

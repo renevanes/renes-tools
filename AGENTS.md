@@ -1099,7 +1099,7 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   veilige SAX; een sitemapindex: hooguit 3 delen van dezelfde site, nieuwsachtig eerst). `Nieuws.uitKaart` maakt er artikelen
   van (nieuwste eerst, zonder voorpagina); `Nieuws.aanvullen` haalt titel, begin, afbeelding, auteur en datum uit de kop van
   de pagina (`paginaKop`, og:/twitter:/article:, met de cookies van de inlog), hooguit `MAX_PAGINAS` nieuwe per ronde; wat al
-  bekend is komt uit de cache. Zet bij zo'n bron `alleen` op de artikelen (AI Report: `aireport.nl/p/`, niet de podcast).
+  bekend is komt uit de cache. Zet bij zo'n bron `alleen` op de artikelen (AI Report: `aireport.nl/artikel/`, niet de podcast; tot de nieuwe site van november 2026 was het `/p/`).
 - **Lezen** (`NieuwsFeed`, zuiver, getest in `NieuwsFeedTest`): SAX zonder externe entiteiten; een DOCTYPE met eigen
   declaraties weigert `PodcastFeed.EntityGuard` al vóór de parser (de parser van Android geeft declaraties niet door).
   Opschoonpatronen moeten lineair blijven (Android kan een zoekopdracht niet afbreken; `NieuwsFeedTest` meet het). HTML uit

@@ -74,8 +74,8 @@ final class Nieuws {
         {"tweakers", "Tweakers Nieuws", "https://tweakers.net/feeds/mixed.xml", "", "tweakers.net tweakers.net/nieuws", "tweakers.net/nieuws/"},
         {"bbc", "BBC News", "https://feeds.bbci.co.uk/news/rss.xml", "", "bbc.co.uk bbc.com bbc.co.uk/news bbc.com/news"},
         {"guardian", "The Guardian", "https://www.theguardian.com/world/rss", "", "theguardian.com theguardian.com/world"},
-        // Geen RSS (beehiiv zet die alleen aan als de uitgever het kiest): de sitemap, alleen de artikelen (/p/), niet de podcast
-        {"aireport", "AI Report", "https://www.aireport.nl/sitemap.xml", "1", "aireport.nl", "aireport.nl/p/"},
+        // Geen RSS (beehiiv zet die alleen aan als de uitgever het kiest): de sitemap, alleen de artikelen (/artikel/), niet de podcast
+        {"aireport", "AI Report", "https://www.aireport.nl/sitemap.xml", "1", "aireport.nl", "aireport.nl/artikel/"}, // sinds de nieuwe site (nov. 2026) /artikel/, daarvoor /p/ (beehiiv)
     };
 
     /**
@@ -548,7 +548,10 @@ final class Nieuws {
         if (sites.isEmpty() || !sites.equals(sitesOfLeeg(sites))) sites = il != null ? il[2] : standaardSites(start);
         String lezen = x.optString("lezen");
         if (!lezen.equals("app") && !lezen.equals("browser")) lezen = inlog ? "app" : "browser";
-        boolean aangepast = x.length() > 0;
+        // Een opgeslagen keuze die (inmiddels) gelijk is aan de standaard telt niet als aangepast (zoals "alleen" van AI Report
+        // dat Rene zelf al op /artikel/ zette voordat dat de standaard werd)
+        int eigen = x.length() - (x.has("alleen") && x.optString("alleen").equals(alleen(id)) ? 1 : 0);
+        boolean aangepast = eigen > 0;
         return b.put("alleen", alleen).put("pagina", x.has("pagina") ? x.optBoolean("pagina") : paginaBron(id) != null)
                 .put("cookiekeuze", paginaBron(id) != null).put("inlog", inlog).put("inlogStart", start).put("inlogSites", sites)
                 .put("lezen", lezen).put("derden", x.has("derden") ? x.optBoolean("derden") : derdenStandaard(id)).put("aangepast", aangepast);

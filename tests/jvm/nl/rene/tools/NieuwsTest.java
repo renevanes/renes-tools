@@ -575,6 +575,16 @@ public class NieuwsTest {
         check(ai != null && ai.optBoolean("aan") && ai.optBoolean("inlog") && "app".equals(ai.optString("lezen")) && "https://www.aireport.nl/".equals(ai.optString("inlogStart"))
                 && "aireport.nl *.aireport.nl *.beehiiv.com".equals(ai.optString("inlogSites")) && !ai.optBoolean("aangepast"), "AI Report: bekende bron, aan, inloggen aan: " + ai);
         check("aireport".equals(Nieuws.bekendeSite("https://www.aireport.nl/")) && "aireport".equals(Nieuws.bekendeSite("aireport.nl")), "aireport.nl intikken: de bekende bron");
+        // Zelf al op de (latere) standaard gezet: werkt, en telt niet als aangepast; een andere waarde wel
+        File dirZelf = tmp("inst-zelf");
+        java.nio.file.Files.write(new File(dirZelf, "bronnen.json").toPath(), new JSONObject().put("v", 2).put("instellingen",
+                new JSONObject().put("aireport", new JSONObject().put("alleen", "aireport.nl/artikel/"))).toString().getBytes(StandardCharsets.UTF_8));
+        JSONObject zelf = bron(Nieuws.bronnen(dirZelf), "aireport");
+        check("aireport.nl/artikel/".equals(zelf.optString("alleen")) && !zelf.optBoolean("aangepast"), "alleen gelijk aan de standaard: niet aangepast: " + zelf);
+        java.nio.file.Files.write(new File(dirZelf, "bronnen.json").toPath(), new JSONObject().put("v", 2).put("instellingen",
+                new JSONObject().put("aireport", new JSONObject().put("alleen", "aireport.nl/p/"))).toString().getBytes(StandardCharsets.UTF_8));
+        zelf = bron(Nieuws.bronnen(dirZelf), "aireport");
+        check("aireport.nl/p/".equals(zelf.optString("alleen")) && zelf.optBoolean("aangepast"), "een andere alleen: aangepast");
         for (String[] il : Nieuws.INLOG_STANDAARD) check(Nieuws.standaard(il[0]) != null && Nieuws.siteMag(il[2], il[1]) && il[2].equals(geen(() -> Nieuws.sitesNetjes(il[2]))), "inlog " + il[0] + ": bekende bron, inlogpagina bij de sites");
         // Elke bron heeft dezelfde velden
         for (int i = 0; i < bs.length(); i++) {
@@ -737,7 +747,16 @@ public class NieuwsTest {
         check("Nieuws & meer".equals(f.artikelen.get(2).titel), "news:title wordt de titel");
         Nieuws.filterOp("aireport.nl/p/", "https://www.aireport.nl/sitemap.xml", f);
         check(f.artikelen.size() == 4, "alleen /p/: de podcast valt weg");
-        check("aireport.nl/p/".equals(Nieuws.alleen("aireport")) && "https://www.aireport.nl/sitemap.xml".equals(Nieuws.standaard("aireport")[2]), "AI Report: de sitemap, alleen de artikelen");
+        check("aireport.nl/artikel/".equals(Nieuws.alleen("aireport")) && "https://www.aireport.nl/sitemap.xml".equals(Nieuws.standaard("aireport")[2]), "AI Report: de sitemap, alleen de artikelen");
+        // De nieuwe site van AI Report (nov. 2026): artikelen onder /artikel/, daarnaast podcast, masterclasses en rubrieken
+        NieuwsFeed.Feed nieuweSite = Nieuws.uitKaart(NieuwsFeed.sitemap(tekst("<urlset>"
+                + "<url><loc>https://www.aireport.nl/podcast/aflevering-x</loc><lastmod>2026-11-27</lastmod></url>"
+                + "<url><loc>https://www.aireport.nl/artikel/claude-getest</loc><lastmod>2026-11-26</lastmod></url>"
+                + "<url><loc>https://www.aireport.nl/masterclasses/thema/prompten</loc><lastmod>2026-11-26</lastmod></url>"
+                + "<url><loc>https://www.aireport.nl/nieuws/anthropic</loc></url>"
+                + "<url><loc>https://www.aireport.nl/artikel/gemini-in-de-praktijk</loc><lastmod>2026-11-24</lastmod></url></urlset>"), null), "https://www.aireport.nl/sitemap.xml");
+        Nieuws.filterOp(Nieuws.alleen("aireport"), "https://www.aireport.nl/sitemap.xml", nieuweSite);
+        check(nieuweSite.artikelen.size() == 2 && nieuweSite.artikelen.get(0).link.endsWith("/artikel/claude-getest"), "AI Report nieuwe site: alleen /artikel/ (" + nieuweSite.artikelen.size() + ")");
         // Veel recent bijgewerkte pagina's van een ander soort bovenaan de sitemap: de artikelen blijven (eerst filteren, dan inkorten)
         StringBuilder groot = new StringBuilder("<urlset>");
         for (int i = 0; i < 300; i++) groot.append("<url><loc>https://www.aireport.nl/podcast/s/a/").append(i).append("</loc><lastmod>2026-11-26</lastmod></url>");
