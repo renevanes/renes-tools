@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.271",
-  "versionCode": 272,
+  "versionName": "1.272",
+  "versionCode": 273,
   "nativeLevel": 232,
   "web": "index.html",
-  "webSha256": "4ab66e9afdcf9ff2c3ece8e725c02c513e39c966d643b27aca358f54fdb570b3",
+  "webSha256": "8e9fad666834fd216d634a7598031690a772b33ebf4815908fc883763fd84863",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1830baa6e56484b7a5173484ac71bc55eb7631e7c7ff12466f7723f346585231",
+  "apkSha256": "4609e7e03d66a2cec63122e90316162c06d16070bd24041f965d9a6b4aa21d54",
   "changelog": [
+    {
+      "version": "1.272",
+      "date": "2026-11-27",
+      "changes": [
+        "Foto bewerken: het voorbeeld \"Zo wordt hij\" kun je nu groot bekijken en vergroten: tik op het voorbeeld of op de knop Zo wordt hij; met Bewerken ga je terug.",
+        "Foto bewerken: het scherm is opnieuw ingedeeld: onder de foto kies je wat je ziet en hoe groot, daaronder de tabbladen, en onderaan Automatisch verbeteren, Ongedaan maken en Origineel.",
+        "Foto's vergroten werkt nu overal hetzelfde, met de knoppen − en + of met twee vingers: in Foto bewerken (ook bij voor en na) en bij ID-kopie afschermen."
+      ]
+    },
     {
       "version": "1.271",
       "date": "2026-11-27",
@@ -169,15 +178,7 @@
         "Nachtelijke backup naar Google Drive of een andere clouddienst wacht op een internetverbinding",
         "Backup-map opruimen na de nachtelijke backup stopt op tijd, zodat het niet halverwege wordt afgebroken"
       ]
-    },
-    {
-      "version": "1.252",
-      "date": "2026-11-24",
-      "changes": [
-        "Stamgegevens: een persoon woont nu op een adres uit Adressen (Woont op), in plaats van een eigen los adres. Gezinsleden delen hetzelfde adres; pas je het adres aan, dan verandert het bij iedereen die er woont. Bij een adres zie je wie er woont. Bestaande adressen bij personen worden eenmalig vanzelf gekoppeld, en gelijke adressen worden één adres.",
-        "Stamgegevens: als het laden of bewaren traag gaat, komt de duur (zonder gegevens) in het foutlogboek, zodat het sneller gemaakt kan worden."
-      ]
     }
   ],
-  "webSig2": "k/o4Qljzll6iFEdAr8M3wDKllngxb3zbuF12KRxYFzo9yfkFL61I0j3Xos1zE7bWieVhdIHO4ProFw0Pxk2ykxUP4jEZY0zSQzPonBARvMDD2c2mj8MHXZM6lqOpBjWYPH9ZqmV2WsQeXRh4hm8uU0PlXDLPESHRYjcuiSZSIfj9y8II/6kQEIHs8/kI8ze9JKf1aSw+r2z3j2tcYlTaA6uQE3UFrdR0U8PpUNQD912Y+CaP6bMzVGEqD/m2DhQ6YLQdkOuQde4aP1qiR8fWwjSRt/jMcsd33UAbPAJwArm4d5IvYCQAGQtTL91Nmj5Ei6SWBhvVzBw0m3zoTQP4DaLL3Lidjke6UDUA7htn5xvb72CIC8GJvai6qGx8LTAEXGiWe37DsfJ4R0CZ5ivdWdiQx473UavaJyiFjFKZmqQsZ80TEmB7E+0wPNCjW49dd5/CwzbeHvrd6EUjkH9ynS07cw01og/Nu7JciGVX7znMIciyL/QNUrePm4mLAmDp"
+  "webSig2": "gsRGtOIiOV/ZgZSsRLjHWAc0Q8pnaNgR2+1pusf8rrq0Vnffc7oGcz1nFklzVfmgCry+FF8ijeNDyXCzCIe5yHiQHxfX5xG8J/g1A/xFjcYpPSzY4k2+38qebBG/i0HlieR1cyiVAgxHHnr8VHshg3q+f8cEyURVirX9rWPGOhQP8DwRD9Aq3ASFfNq01NklNVlfoD2DmCkW1nwp/Z+1oAZRpSrM27BOtIWXhGe+RuXU/en0y0z6tBnQ5jMfjUBI9XYHXG3jFgyz79P1Z4594SbcDBtyoraD65jNg+pyt5Oi+cGIPec8O6YRb3OMyv7cmA379DIG4mVxYT7W06dAdsVaxYygwZQ1IjJuX9vA4bE8hpu5WY7a8wcjv1kP9xSzIs4tN15nQrT0yF37Kl+0g2Ifo18pXsjbbMN/mWHKJMEALGNW1cEu2+GLwfHKiCLG9nQkxlL2zhl8fK6VivrKpbuy1t4PcxvEhPiDicFbE3mSMmx1/PuEm/cJ8FI1z8El"
 }

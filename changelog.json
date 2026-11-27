@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.272",
+    "date": "2026-11-27",
+    "changes": [
+      "Foto bewerken: het voorbeeld \"Zo wordt hij\" kun je nu groot bekijken en vergroten: tik op het voorbeeld of op de knop Zo wordt hij; met Bewerken ga je terug.",
+      "Foto bewerken: het scherm is opnieuw ingedeeld: onder de foto kies je wat je ziet en hoe groot, daaronder de tabbladen, en onderaan Automatisch verbeteren, Ongedaan maken en Origineel.",
+      "Foto's vergroten werkt nu overal hetzelfde, met de knoppen − en + of met twee vingers: in Foto bewerken (ook bij voor en na) en bij ID-kopie afschermen."
+    ]
+  },
+  {
     "version": "1.271",
     "date": "2026-11-27",
     "changes": [
