@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.268",
-  "versionCode": 269,
+  "versionName": "1.269",
+  "versionCode": 270,
   "nativeLevel": 231,
   "web": "index.html",
-  "webSha256": "8aa6aa4945a1bab3c28371d18d5373e0a421edf91fa122bc2bb1f4ff2c8be996",
+  "webSha256": "5ce26584140ac2b66fe5842616bdc757c98fd40cda38988c39078e07a64ef1d6",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "2a3fa5324b4053eaa2c985b85d69ddc65a53037a1695519bdccacac1b2560ed8",
+  "apkSha256": "92ddff89db03a090ca45215a0346371f6e59d3ec8b16367f6513d585b7760893",
   "changelog": [
+    {
+      "version": "1.269",
+      "date": "2026-11-27",
+      "changes": [
+        "Foto bewerken: je kunt de foto vergroten om de hoeken precies te zetten: met de knoppen − en + onder de foto of door met twee vingers te knijpen. Vergroot schuif je met twee vingers, of met één vinger naast de hoeken."
+      ]
+    },
     {
       "version": "1.268",
       "date": "2026-11-27",
@@ -170,14 +177,7 @@
         "Stamgegevens: lukt het herkennen van een paspoort of ID-bewijs niet, dan staat in het foutlogboek nu (alleen met aantallen) waar het lezen van de strook bleef steken, ook bij een foto; zo kan het gericht verbeterd worden.",
         "Facturen: moet je bij een leverancier zelf inloggen (bijvoorbeeld omdat er geen wachtwoord is ingevuld), dan probeert Tools het op de achtergrond niet meer elke paar uur, maar hooguit eens per dag (meteen weer zodra je de leverancier aanpast)."
       ]
-    },
-    {
-      "version": "1.249",
-      "date": "2026-11-24",
-      "changes": [
-        "Stamgegevens: een paspoort of ID-bewijs in een PDF (bijvoorbeeld een Google-document) wordt nu ook herkend als de foto klein op de pagina staat: Tools leest eerst de foto zelf op volle scherpte."
-      ]
     }
   ],
-  "webSig2": "W8ghBkFNmek12gc3aJoWgco0ViYOdw139jHmjx1VEMefjdXb0uKZKmedUJxjvu0Q0z26SO5k0kopCGxL9x1X7be97acxoCqVHTgwT6IS9INdXVGSXZrzVHTIIurvwWo79XM+m2mxPNaqlr5cdfJqdmzkapzoINhjetmAxuRls4JOAA2iMMYPdwNbKPJ9OoSZ8K503JE8QzEt1QuAeucORDgQOYQDMaQbFy+uTjX3DKfhT6UiEU/fNLPOOoDq11mJiN/P0A/f6l5eF3NiMVkRI2QcojIr/AcMZp6ZYTPUcd5Qc/szJH4W+UXVq0iUULSjhwrKRRvM3AdsfMn4obzDijjcNiFtZ1adjMWNNRe8dgaVj6bVeauIUptggp3rsZLH43ajaLp8rFCiECk4hxyUSFsADvsjiguvJ5eY4FJh3gsAfqsa6G+UhbkgXhlirFX4uMsxKNKCXVZpSmJq54H6hlG2IXFLjOq7Z5YR+5Sqj5MpTcDdn/UHo+ac8fxi5qjC"
+  "webSig2": "l69Oo3Vxab+0dv1gMuJCqoIcmRvBreszlZYiL3WfoI2kpL/0lSVHKoe7Ktx+WP/W2+Y8Xo2q4mTYeHjUpvkoxHD/meIw7iHU3mefP91PxajBVa49ykybQW0jTerHjJWo/TR1DrkZRCy5QpqXFO57q/FAZ7hJY5qolhSY5m2i0PqwdaqvU9YX9lSK2CY+FRFJXxo9C6rZyB3Uil9gkWU8txfjXwX3cqGrQpBXvKMd25lWWLVimXfOq9AnsZhvu8CNAqYbosYCCR+Fx0A68YH07uDR4wadfR0EheSgMxRJkfx9/XsEbASyZkS9DPVt77/gmJvRMIe7LeZ7sve/AAOfkubcvZgYA38psJ7NTK+HOGs8m62Jc2bQ/swmo/Ni4hvqYDvIx4BMoItd8czbmRUE7x78rwsKc34s1Dc5UM0QyxB0kqAl1FD1buR7vWiW0p838pHZxaDKkmBuIG8ZbE8w8HCbwzPJcsMty6TjOb2r0hD9aHX1vkG8/QRHt4gT7y+b"
 }
