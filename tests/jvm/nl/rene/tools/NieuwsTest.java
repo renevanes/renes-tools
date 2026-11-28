@@ -929,6 +929,68 @@ public class NieuwsTest {
         int voor = rssFeed.artikelen.size();
         Nieuws.aanvullen("nos", rssFeed, null, System.currentTimeMillis() + 10_000, (u, tot) -> { throw new AssertionError("niet ophalen"); });
         check(rssFeed.artikelen.size() == voor, "een gewone feed: niets aangevuld");
+        inlogTests();
+    }
+
+    static void inlogTests() throws Exception {
+        // Na de bank: alleen wat er ontbreekt komt terug, één keer per naam, HttpOnly; op site.nl én www = een cookie van het domein
+        java.util.Map<String, String> voor = new java.util.LinkedHashMap<>(), na = new java.util.HashMap<>();
+        voor.put("https://www.aireport.nl/", "sid=abc; pref=1; sid=abc; csrftoken=t; alleenwww=1");
+        voor.put("https://aireport.nl/", "sid=abc; pref=1");
+        na.put("https://www.aireport.nl/", "pref=1"); na.put("https://aireport.nl/", "pref=1");
+        java.util.List<String[]> terug = Nieuws.terugZetten(voor, na);
+        java.util.List<String> tz = new java.util.ArrayList<>();
+        for (String[] t : terug) tz.add(t[0] + " " + t[1]);
+        check(tz.equals(java.util.Arrays.asList(
+                "https://aireport.nl/ sid=abc; Path=/; Secure; HttpOnly; Domain=aireport.nl",
+                "https://www.aireport.nl/ csrftoken=t; Path=/; Secure",
+                "https://www.aireport.nl/ alleenwww=1; Path=/; Secure; HttpOnly")), "na de bank: de weggehaalde inlog komt terug, met de juiste soort cookie " + tz);
+        java.util.Map<String, String> zelfde = new java.util.HashMap<>(); zelfde.put("https://x.nl/", "a=1");
+        check(Nieuws.terugZetten(zelfde, zelfde).isEmpty() && Nieuws.terugZetten(null, null).isEmpty(), "na de bank: niets dubbel");
+        java.util.List<String> bank = java.util.Arrays.asList("www.rabobank.nl", "rabobank.nl");
+        check(Nieuws.bankSite("https://bankieren.rabobank.nl/", bank) && Nieuws.bankSite("https://rabobank.nl/", bank)
+                && !Nieuws.bankSite("https://www.aireport.nl/", bank) && !Nieuws.bankSite("https://nietrabobank.nl/", bank)
+                && Nieuws.bankSite("geen adres", bank), "na de bank: op de sites van de bank komt niets terug");
+        // Uitgelogd herkennen aan de pagina's: niets gelezen en zeker de helft stuurde door of weigerde
+        NieuwsFeed.Feed f = new NieuwsFeed.Feed();
+        f.paginaGehaald = 4; f.paginaGelezen = 0; f.paginaRedenen.put("naar een andere pagina", 2); f.paginaRedenen.put("te traag", 2);
+        check(Nieuws.paginasUitgelogd(f), "uitgelogd: de pagina's sturen door");
+        f.paginaGelezen = 1;
+        check(!Nieuws.paginasUitgelogd(f), "uitgelogd: niet als er een pagina gelezen is");
+        f.paginaGelezen = 0; f.paginaRedenen.clear(); f.paginaRedenen.put("te traag", 4);
+        check(!Nieuws.paginasUitgelogd(f), "uitgelogd: niet bij een trage site");
+        f.paginaGehaald = 1; f.paginaRedenen.clear(); f.paginaRedenen.put("http 403", 1);
+        check(!Nieuws.paginasUitgelogd(f) && !Nieuws.paginasUitgelogd(null), "uitgelogd: niet op één pagina");
+        // De stand: pas uitgelogd als Tools de bron eerder ingelogd zag; één omslag, weer weg als het lukt
+        java.io.File cache = java.nio.file.Files.createTempDirectory("nwinlog").toFile();
+        java.io.File cf = Nieuws.cacheBestand(cache, "aireport");
+        cf.getParentFile().mkdirs();
+        java.nio.file.Files.write(cf.toPath(), "{\"t\":1,\"artikelen\":[]}".getBytes("UTF-8"));
+        check(!Nieuws.inlogStand(cache, "aireport", true) && !Nieuws.leesObject(cf).optBoolean("uitgelogd"), "uitgelogd: niet als je nooit ingelogd was");
+        check(!Nieuws.inlogStand(cache, "aireport", false) && Nieuws.leesObject(cf).optBoolean("ingelogdGezien"), "ingelogd gezien");
+        check(Nieuws.inlogStand(cache, "aireport", true) && Nieuws.leesObject(cf).optBoolean("uitgelogd"), "uitgelogd: de omslag telt");
+        check(!Nieuws.inlogStand(cache, "aireport", true), "uitgelogd: maar één melding");
+        NieuwsFeed.Feed leeg = new NieuwsFeed.Feed();
+        Nieuws.bewaarFeed(cache, "aireport", "https://www.aireport.nl/sitemap.xml", leeg, System.currentTimeMillis());
+        check(Nieuws.leesObject(cf).optBoolean("uitgelogd"), "uitgelogd: blijft na bijwerken");
+        check(!Nieuws.inlogStand(cache, "aireport", false) && !Nieuws.leesObject(cf).optBoolean("uitgelogd"), "weer ingelogd: de stand gaat weg");
+        // de pagina's: zeker ingelogd alleen met een gelezen pagina; uitloggen met de hand vergeet alles
+        check(!Nieuws.wissen(), "geen wis bezig");
+        check(Nieuws.inlogStand(cache, "aireport", true), "weer uitgelogd");
+        Nieuws.inlogVergeet(cache, "aireport", false);
+        check(!Nieuws.leesObject(cf).optBoolean("uitgelogd") && Nieuws.leesObject(cf).optBoolean("ingelogdGezien"), "opnieuw inloggen: de balk weg, ingelogd blijft gezien");
+        Nieuws.inlogVergeet(cache, "aireport", true);
+        check(!Nieuws.leesObject(cf).has("ingelogdGezien") && !Nieuws.inlogStand(cache, "aireport", true), "zelf uitgelogd: geen melding");
+        // Het besluit per ronde: alleen met bewijs, nooit tijdens een wis of als de tijd op was
+        check(Nieuws.inlogBesluit(true, null, false, null) == Boolean.TRUE && Nieuws.inlogBesluit(false, "uit", false, "http 500") == Boolean.TRUE
+                && Nieuws.inlogBesluit(false, "in", false, null) == Boolean.FALSE, "besluit: uitgelogd of ingelogd met bewijs");
+        check(Nieuws.inlogBesluit(false, null, false, null) == null && Nieuws.inlogBesluit(false, null, false, "Geen verbinding") == null
+                && Nieuws.inlogBesluit(true, "uit", true, null) == null && Nieuws.inlogBesluit(true, "uit", false, "tijd op") == null, "besluit: een rustige ronde, geen verbinding, een wis of tijd op zegt niets");
+        NieuwsFeed.Feed half = new NieuwsFeed.Feed();
+        half.paginaGehaald = 3; half.paginaGelezen = 1; half.paginaRedenen.put("naar een andere pagina", 2);
+        check(!Nieuws.paginasIngelogd(half) && !Nieuws.paginasIngelogd(new NieuwsFeed.Feed()), "ingelogd: niet als er ook pagina's doorsturen");
+        half.paginaRedenen.clear(); half.paginaRedenen.put("te traag", 2);
+        check(Nieuws.paginasIngelogd(half), "ingelogd: een gelezen pagina, de rest alleen traag");
     }
 
     static boolean geeftGeenFeed(Doe d) { try { d.doe(); return false; } catch (NieuwsFeed.GeenFeed e) { return true; } catch (Exception e) { return false; } }

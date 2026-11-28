@@ -58,6 +58,9 @@ final class NieuwsFeed {
         boolean uitSitemap;
         /** Hoe het lezen van de artikelpagina's ging, per reden geteld in vaste woorden (voor het logboek), of "". */
         String paginaLog = "";
+        /** Hoeveel artikelpagina's deze ronde opgehaald en gelezen zijn, en waarom de rest niet (vaste woorden). */
+        int paginaGehaald, paginaGelezen;
+        final java.util.Map<String, Integer> paginaRedenen = new java.util.TreeMap<>();
     }
 
     /** Geen nieuwsfeed (bijv. een gewone webpagina): dan kan de aanroeper op die pagina naar een feed zoeken. */

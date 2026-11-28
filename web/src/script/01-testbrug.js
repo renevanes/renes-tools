@@ -189,7 +189,7 @@ if (!window.Android) window.Android = (function(){
       }, 120);
     },
     _nwKoek: {},
-    nieuwsInloggen(id){ const s = this._nwInit(), b = s.bronnen.find(x => x.id === id); s.calls.push(['inloggen', id]); if (!b || !b.inlog) return 'Zet eerst Inloggen bij de website aan'; return ''; },
+    nieuwsInloggen(id){ const s = this._nwInit(), b = s.bronnen.find(x => x.id === id); s.calls.push(['inloggen', id]); if (!b || !b.inlog) return 'Zet eerst Inloggen bij de website aan'; if (s.stand[id]) delete s.stand[id].uitgelogd; return ''; },
     nieuwsLees(id, link){ const s = this._nwInit(), b = s.bronnen.find(x => x.id === id); s.calls.push(['lezen', id, link]);
       return b && b.inlog && b.lezen === 'app' && /^https:\/\/(www\.)?aireport\.nl\//.test(link) ? '' : 'extern'; },
     nieuwsUitloggen(id){ this._nwInit().calls.push(['uitloggen', id]); this._nwKoek[id] = 0; return ''; },

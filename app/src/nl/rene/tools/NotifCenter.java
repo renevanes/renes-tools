@@ -42,6 +42,7 @@ final class NotifCenter {
         {ApparatenJob.CHANNEL, Taal.T("Apparaten: onbekende tracker"), Taal.T("Als een onbekende tracker (AirTag, SmartTag, Tile …) een tijd met je meereist"), "4"},
         {Facturen.CHANNEL, Taal.T("Facturen"), Taal.T("Als er nieuwe facturen zijn opgehaald, of als inloggen bij een leverancier niet lukt"), "3"},
         {Signalen.CHANNEL, Taal.T("Signalen"), Taal.T("Als een bron die je volgt iets nieuws heeft, het dagoverzicht, of als een bron niet meer werkt"), "3"},
+        {Nieuws.CHANNEL, Taal.T("Nieuws: uitgelogd"), Taal.T("Als je bij een nieuwssite met inloggen (zoals AI Report) bent uitgelogd"), "3"},
         {CheckinNotify.CHANNEL, Taal.T("Check-in"), Taal.T("De vraag op het moment dat je koos, met knoppen om meteen te antwoorden (één melding per moment, nooit opnieuw)"), "3"},
         {SleepReminder.CHANNEL, Taal.T("Slaappraat: bedtijd"), Taal.T("Een herinnering op bedtijd om Slaappraat aan te zetten (als je die aanzet)"), "3"},
         {SleepService.CHANNEL, Taal.T("Slaappraat"), Taal.T("Zichtbaar zolang Slaappraat luistert of uitschrijft, met een stopknop; 's ochtends wat er gehoord is"), "2"},

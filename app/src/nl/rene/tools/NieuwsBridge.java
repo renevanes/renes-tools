@@ -132,6 +132,7 @@ public class NieuwsBridge extends EreaderBridge {
             JSONObject b = bron(id);
             if (!b.optBoolean("inlog")) return Taal.tx(ctx, "Zet eerst Inloggen bij de website aan");
             open(id, NieuwsInlogActivity.INLOGGEN, b.getString("inlogStart"));
+            Nieuws.inlogVergeet(ctx, id, false); // de balk en de melding weg: Rene logt nu zelf in
             return "";
         } catch (Throwable e) { return fout(e, Taal.T("Openen lukt niet")); }
     }
@@ -159,6 +160,7 @@ public class NieuwsBridge extends EreaderBridge {
         try {
             JSONObject b = bron(id);
             NieuwsInlogActivity.wis(Nieuws.uitlogAdressen(b.optString("inlogSites"), b.optString("inlogStart")));
+            Nieuws.inlogVergeet(ctx, id, true);
             App.log(ctx, "NIEUWS", "uitgelogd");
             return "";
         } catch (Throwable e) { return fout(e, Taal.T("Uitloggen lukt niet")); }

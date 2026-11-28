@@ -334,8 +334,16 @@ public class BankLinkActivity extends Activity {
             }
         }
         // Sessiecookies (zonder einddatum) van de bank weg, als er geen Facturen-run loopt die ze nodig heeft
-        if (FacturenRun.LOPEND.get() == null) try { cm.removeSessionCookies(null); } catch (Throwable ignored) { }
+        // (de inlog bij nieuwssites blijft: anders was je na de bank ook daar uitgelogd)
+        if (FacturenRun.LOPEND.get() == null) try { Nieuws.wisSessiesBehalveInlog(getApplicationContext(), cm, bankSites(alle, dom)); } catch (Throwable ignored) { }
         try { cm.flush(); } catch (Throwable ignored) { }
+    }
+
+    /** De hosts waar de bank was en de domeinen van de bank: daar komt na het wissen nooit iets terug. */
+    static java.util.List<String> bankSites(java.util.List<String> hosts, org.json.JSONArray dom) {
+        java.util.List<String> s = new java.util.ArrayList<>(hosts);
+        if (dom != null) for (int i = 0; i < dom.length(); i++) s.add(dom.optString(i));
+        return s;
     }
 
     // ---------- website ----------

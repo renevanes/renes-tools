@@ -130,6 +130,20 @@ const path = require('path');
     await page.evaluate(() => goBack()); await page.waitForTimeout(100);
     ok(await page.evaluate(() => current === 'nieuws'), 'terug: Nieuws');
 
+    // Uitgelogd bij AI Report: een balk op Nieuws die meteen naar inloggen gaat, en de stand bij de bronnen
+    await page.evaluate(() => { const s = Android._nwInit(); s.stand.aireport = Object.assign({}, s.stand.aireport, { uitgelogd: true }); show('nieuws'); });
+    await page.waitForTimeout(250);
+    ok(await page.locator('#nw-inlogbalk').isVisible() && await tekst('#nw-inlogbalk-t') === 'Uitgelogd bij AI Report', 'uitgelogd: balk op Nieuws');
+    await page.evaluate(() => show('nieuwsset')); await page.waitForTimeout(100);
+    ok((await tekst('#nws-bronnen .srow:has-text("AI Report") small')) === 'Uitgelogd: log opnieuw in', 'uitgelogd: ook bij de bronnen');
+    await page.evaluate(() => show('nieuws')); await page.waitForTimeout(200);
+    await leeg();
+    await page.click('#nw-inlogbalk');
+    ok((await calls()).includes('inloggen:aireport'), 'de balk opent inloggen');
+    await page.evaluate(() => { onResumeApp(); show('nieuws'); });
+    await page.waitForTimeout(300);
+    ok(await page.locator('#nw-inlogbalk').isHidden(), 'opnieuw ingelogd: de balk is weg');
+
     // Engels
     await page.evaluate(() => show('setregio')); await page.selectOption('#rg-lang', 'en');
     await page.evaluate(() => nwBronOpen('aireport')); await page.waitForTimeout(200);

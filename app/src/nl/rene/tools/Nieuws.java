@@ -222,7 +222,19 @@ final class Nieuws {
     interface Pagina { String haal(String url, long tot) throws Exception; }
 
     /** De cookies die bij een adres horen (de cookiekeuze die Rene in het venster maakte), of null. */
-    interface Koekjes { String voor(String url); }
+    interface Koekjes {
+        String voor(String url);
+        /** Mag wat de site op dit adres aan cookies terugstuurt in de WebView (alleen de inlog)? */
+        default boolean terug(String url) { return false; }
+    }
+
+    /** De cookies van de inlog (alleen naar de sites ervan), en bij de pagina's eventueel die van de cookiekeuze. */
+    static final class InlogKoekjes implements Koekjes {
+        final boolean inlog, keuze; final String sites;
+        InlogKoekjes(boolean inlog, String sites, boolean keuze) { this.inlog = inlog; this.sites = sites; this.keuze = keuze; }
+        @Override public String voor(String u) { return (inlog && siteMag(sites, u)) || (keuze && koekjesNaar(u)) ? koekjes(u) : null; }
+        @Override public boolean terug(String u) { return inlog && siteMag(sites, u); }
+    }
 
     /** Eén artikelpagina ophalen als {@code ua} (in de test zonder internet). */
     interface Haler { Antwoord haal(String url, long tot, String ua) throws Exception; }
@@ -940,6 +952,7 @@ final class Nieuws {
             JSONObject o = new JSONObject().put("t", nu).put("poging", nu).put("titel", f.titel).put("feed", basis).put("artikelen", arr);
             if (!f.beeldStand.isEmpty()) o.put("beeldStand", f.beeldStand);
             if (!f.beeldReden.isEmpty()) o.put("beeldReden", f.beeldReden);
+            if (oud != null) for (String k : new String[]{"ingelogdGezien", "uitgelogd"}) if (oud.optBoolean(k)) o.put(k, true); // de stand van de inlog blijft
             schrijf(cf, o.toString(), false);
             return oud == null ? 0 : nieuw;
         }
@@ -997,6 +1010,7 @@ final class Nieuws {
                     if (c.has("fout")) b.put("fout", c.optString("fout"));
                     if (c.has("beeldStand")) b.put("beeldStand", c.optString("beeldStand"));
                     if (c.has("beeldReden")) b.put("beeldReden", c.optString("beeldReden"));
+                    if (c.optBoolean("uitgelogd") && b.optBoolean("inlog")) b.put("uitgelogd", true);
                     JSONArray as = c.optJSONArray("artikelen");
                     if (as != null && b.optBoolean("aan")) for (int j = 0; j < as.length(); j++) {
                         JSONObject a = as.optJSONObject(j);
@@ -1256,6 +1270,9 @@ final class Nieuws {
                 String ck = k != null ? k.voor(u) : null;
                 if (ck != null && !ck.isEmpty()) h.setRequestProperty("Cookie", ck);
                 int code = h.getResponseCode();
+                // gingen er cookies van de inlog mee, dan ook de vernieuwde terug, zoals een browser: anders verloopt de inlog.
+                // Niet bij een fout (een weigering wist anders de inlog) en niet met de eigen naam van Tools (zie WebPagina).
+                if (ck != null && !ck.isEmpty() && code < 400 && !UA.equals(ua) && k.terug(u)) koekjesTerug(u, h.getHeaderFields());
                 if (code >= 300 && code < 400) {
                     String loc = h.getHeaderField("Location");
                     if (loc == null || loc.trim().isEmpty()) throw antwoord(code);
@@ -1552,6 +1569,10 @@ final class Nieuws {
             else if (opnieuw) { vanCache(a, o); a.pogingen = o.optInt("pogingen") + 1; a.poging = nu; uit.add(a); } // weer niet: zoals de vorige keer
             else if (uitAdres(a)) { a.pogingen = 1; a.poging = nu; uit.add(a); }
         }
+        f.paginaGehaald = gehaald;
+        f.paginaGelezen = gelezen;
+        f.paginaRedenen.clear();
+        f.paginaRedenen.putAll(redenen);
         StringBuilder log = new StringBuilder();
         for (Map.Entry<String, Integer> r : redenen.entrySet()) log.append(log.length() > 0 ? ", " : "").append(r.getKey()).append(": ").append(r.getValue());
         f.paginaLog = gehaald == 0 ? "" : gelezen + " van " + gehaald + " gelezen" + (log.length() > 0 ? " (" + log + ")" : "");
@@ -1685,9 +1706,11 @@ final class Nieuws {
             aanvullen(id, g.feed, oud, Math.min(nu + MAX_HAAL, eind), kop);
             // lukten niet alle artikelpagina's, dan zegt het logboek waarom (ook als de bron verder gelukt is)
             if (reden != null && reden.length > 1 && g.feed.paginaLog.contains("(")) reden[1] = g.feed.paginaLog;
+            if (reden != null && reden.length > 2 && b.optBoolean("inlog")) reden[2] = paginasUitgelogd(g.feed) ? "uit" : paginasIngelogd(g.feed) ? "in" : null;
             beelden(id, g.url, g.feed, oud, Math.min(nu + MAX_HAAL, eind), pagina, b.optBoolean("pagina"));
             synchronized (LOCK) { return zoekBron(bronnen(dir), id) != null ? bewaarFeed(cache, id, g.url, g.feed, nu) : -1; }
         } catch (Throwable e) {
+            if (reden != null && reden.length > 2 && b.optBoolean("inlog") && paginasUitgelogd(gelezen)) reden[2] = "uit";
             if (reden != null) reden[0] = logReden(e) + (kaart >= 0 ? ", " + kaart + " pagina's in de sitemap" : "")
                     + (gelezen != null && !gelezen.paginaLog.isEmpty() ? "; artikelpagina's " + gelezen.paginaLog : "");
             synchronized (LOCK) {
@@ -1775,11 +1798,233 @@ final class Nieuws {
         try { return android.webkit.CookieManager.getInstance().getCookie(url); } catch (Throwable e) { return null; }
     }
 
+    /**
+     * Wat de site bij een antwoord aan cookies terugstuurt (Set-Cookie: een vernieuwde of verlengde inlog, of juist weg na
+     * uitloggen) in de cookies van de WebView, voor precies dat adres. Alleen als Tools er zelf cookies van de inlog heen
+     * stuurde ({@link #haal}); de cookie zelf komt nooit in het logboek.
+     */
+    static void koekjesTerug(String url, Map<String, List<String>> koppen) {
+        if (koppen == null) return;
+        try {
+            android.webkit.CookieManager cm = android.webkit.CookieManager.getInstance();
+            for (Map.Entry<String, List<String>> e : koppen.entrySet()) {
+                if (e.getKey() == null || !e.getKey().equalsIgnoreCase("Set-Cookie") || e.getValue() == null) continue;
+                for (String v : e.getValue()) if (v != null && !v.isEmpty() && v.length() <= 8192) cm.setCookie(url, v);
+            }
+        } catch (Throwable ignored) { } // geen WebView (de tests): niets
+    }
+
+    // ---------- inlog: uitgelogd herkennen ----------
+
+    static final String CHANNEL = "nieuws";
+    static final String[] UITLOG_REDENEN = {"naar een andere pagina", "naar een andere site", "http 401", "http 403"};
+
+    /** Wijzen de artikelpagina's op uitgelogd: geen enkele gelezen, en zeker de helft stuurde door of weigerde? */
+    static boolean paginasUitgelogd(NieuwsFeed.Feed f) {
+        if (f == null || f.paginaGehaald < 2 || f.paginaGelezen > 0) return false;
+        int n = 0;
+        for (String k : UITLOG_REDENEN) { Integer v = f.paginaRedenen.get(k); if (v != null) n += v; }
+        return n * 2 >= f.paginaGehaald;
+    }
+
+    /** Heeft de site van de inlog nog cookies op de telefoon? Onbekend (geen WebView) = ja: dan niets beweren. */
+    static boolean heeftKoekjes(JSONObject b) {
+        try {
+            android.webkit.CookieManager cm = android.webkit.CookieManager.getInstance();
+            for (String u : uitlogAdressen(b.optString("inlogSites"), b.optString("inlogStart")))
+                if (!koekjesNamen(cm.getCookie(u)).isEmpty()) return true;
+            return false;
+        } catch (Throwable e) { return true; }
+    }
+
+    /** Loopt er net een wis van de sessiecookies (de bank)? Dan telt een ronde niet voor de stand van de inlog. */
+    static volatile long wissenTot;
+    /** Hoe vaak de bank de sessiecookies wiste: verandert het tijdens een ronde, dan telt die ronde niet. */
+    static final java.util.concurrent.atomic.AtomicInteger WIS_RONDE = new java.util.concurrent.atomic.AtomicInteger();
+
+    static boolean wissen() { return System.currentTimeMillis() < wissenTot; }
+
+    /**
+     * Wat een ronde zegt over de inlog: TRUE = uitgelogd, FALSE = zeker ingelogd, null = weet niet (de stand blijft).
+     * {@code p} = wat de pagina's zeiden ("uit", "in" of null), {@code r} = waarom de bron mislukte (null = gelukt).
+     */
+    static Boolean inlogBesluit(boolean leeg, String p, boolean gewist, String r) {
+        if (gewist || "tijd op".equals(r)) return null;
+        if (leeg || "uit".equals(p)) return Boolean.TRUE;
+        return "in".equals(p) ? Boolean.FALSE : null;
+    }
+
+    /** Ingelogd volgens de pagina's: er is er een gelezen en geen enkele stuurde door of weigerde. */
+    static boolean paginasIngelogd(NieuwsFeed.Feed f) {
+        if (f == null || f.paginaGelezen <= 0) return false;
+        for (String k : UITLOG_REDENEN) if (f.paginaRedenen.containsKey(k)) return false;
+        return true;
+    }
+
+    /**
+     * De sessiecookies van alle vensters weghalen (na de bank), maar de inlog bij nieuwssites houden: wat een site van een
+     * bron met inloggen vóór het wissen had en daarna mist, komt terug (alleen op die sites; nooit op een site in
+     * {@code nietTerug}, de bank). Zonder dit was je na elk bezoek aan de bank in Tools ook bij AI Report uitgelogd.
+     * Aanroepen op de hoofddraad (de terugroep van Android komt daar).
+     */
+    static void wisSessiesBehalveInlog(Context c, android.webkit.CookieManager cm, java.util.Collection<String> nietTerug) {
+        Map<String, String> voor = new java.util.LinkedHashMap<>();
+        try {
+            JSONArray alle;
+            synchronized (LOCK) { alle = c == null ? new JSONArray() : bronnen(dir(c)); }
+            for (int i = 0; i < alle.length(); i++) {
+                JSONObject b = alle.getJSONObject(i);
+                if (!b.optBoolean("aan") || !b.optBoolean("inlog")) continue;
+                for (String u : uitlogAdressen(b.optString("inlogSites"), b.optString("inlogStart"))) {
+                    if (bankSite(u, nietTerug)) continue;
+                    String k = cm.getCookie(u);
+                    if (k != null && !k.isEmpty()) voor.put(u, k);
+                }
+            }
+        } catch (Throwable ignored) { }
+        long tot = System.currentTimeMillis() + 30_000; // hooguit een halve minuut, ook als de terugroep nooit komt
+        wissenTot = tot;
+        WIS_RONDE.incrementAndGet();
+        cm.removeSessionCookies(ok -> {
+            try {
+                Map<String, String> na = new HashMap<>();
+                for (String u : voor.keySet()) na.put(u, cm.getCookie(u));
+                for (String[] t : terugZetten(voor, na)) cm.setCookie(t[0], t[1]);
+                cm.flush();
+            } catch (Throwable ignored) { }
+            if (wissenTot == tot) wissenTot = 0; // niet het venster van een volgende wis afsluiten
+            WIS_RONDE.incrementAndGet();
+        });
+    }
+
+    /** Hoort het adres bij een site uit de lijst (de host zelf of een subdomein ervan)? */
+    static boolean bankSite(String url, java.util.Collection<String> sites) {
+        if (sites == null) return false;
+        try {
+            String h = new URL(url).getHost().toLowerCase(Locale.ROOT);
+            for (String s : sites) {
+                if (s == null) continue;
+                String d = s.toLowerCase(Locale.ROOT);
+                if (d.startsWith(".")) d = d.substring(1);
+                if (d.isEmpty()) continue;
+                if (h.equals(d) || h.endsWith("." + d) || d.endsWith("." + h)) return true;
+            }
+        } catch (Exception e) { return true; } // onleesbaar adres: niet terugzetten
+        return false;
+    }
+
+    /**
+     * Welke cookies (naam=waarde uit de Cookie-kop, per adres vóór en na het wissen) terug moeten: {adres, Set-Cookie}.
+     * Stond dezelfde cookie op site.nl én www.site.nl, dan was het een cookie van het hele domein: één keer terug met
+     * Domain, zodat een latere vernieuwing van de site hem vervangt en er geen oude naast blijft staan. Anders alleen op de
+     * host waar hij stond. HttpOnly, want een sessiecookie hoort niet voor scripts op de pagina leesbaar te zijn (behalve
+     * de bekende tegen-CSRF-cookies, die een pagina juist zelf leest).
+     */
+    static List<String[]> terugZetten(Map<String, String> voor, Map<String, String> na) {
+        Map<String, Set<String>> waar = new java.util.LinkedHashMap<>(); // naam=waarde → hosts waar hij stond (en nu weg is)
+        if (voor != null) for (Map.Entry<String, String> e : voor.entrySet()) {
+            String host;
+            try { host = new URL(e.getKey()).getHost().toLowerCase(Locale.ROOT); } catch (Exception x) { continue; }
+            Set<String> nog = new HashSet<>(Arrays.asList(koekjesNamen(na == null ? null : na.get(e.getKey())).split(";")));
+            if (e.getValue() != null) for (String c : e.getValue().split(";")) {
+                int i = c.indexOf('=');
+                String naam = (i < 0 ? c : c.substring(0, i)).trim();
+                if (naam.isEmpty() || nog.contains(naam)) continue;
+                String paar = naam + "=" + (i < 0 ? "" : c.substring(i + 1).trim());
+                Set<String> hs = waar.get(paar);
+                if (hs == null) waar.put(paar, hs = new java.util.LinkedHashSet<>());
+                hs.add(host);
+            }
+        }
+        List<String[]> uit = new ArrayList<>();
+        Set<String> gedaan = new HashSet<>(); // naam@host: elke naam hooguit één keer per host
+        for (Map.Entry<String, Set<String>> e : waar.entrySet()) {
+            String paar = e.getKey(), naam = paar.substring(0, paar.indexOf('='));
+            String extra = "; Path=/; Secure" + (naam.toLowerCase(Locale.ROOT).matches(".*(csrf|xsrf).*") ? "" : "; HttpOnly");
+            Set<String> hs = e.getValue();
+            String domein = null;
+            for (String h : hs) if (hs.contains("www." + h)) { domein = h; break; }
+            if (domein != null && !naam.startsWith("__Host-")) {
+                if (gedaan.add(naam + "@" + domein) && gedaan.add(naam + "@www." + domein))
+                    uit.add(new String[]{"https://" + domein + "/", paar + extra + "; Domain=" + domein});
+                hs = new java.util.LinkedHashSet<>(hs); hs.remove(domein); hs.remove("www." + domein);
+            }
+            for (String h : hs) if (gedaan.add(naam + "@" + h)) uit.add(new String[]{"https://" + h + "/", paar + extra});
+        }
+        return uit;
+    }
+
+    /**
+     * De stand van de inlog na een ronde bewaren: {@code uit} = uitgelogd (geen cookies meer, of de pagina's sturen door naar
+     * inloggen). Pas als Tools deze bron eerder ingelogd zag, telt uitgelogd: dan een balk in Nieuws en één melding (tot het
+     * weer lukt). Geeft true als de stand net omsloeg naar uitgelogd.
+     */
+    static boolean inlogStand(File cache, String id, boolean uit) {
+        synchronized (LOCK) {
+            try {
+                File cf = cacheBestand(cache, id);
+                JSONObject o = leesObject(cf);
+                if (o == null) return false;
+                boolean was = o.optBoolean("uitgelogd"), gezien = o.optBoolean("ingelogdGezien");
+                if (!uit) { if (gezien && !was) return false; o.put("ingelogdGezien", true).remove("uitgelogd"); }
+                else if (gezien && !was) o.put("uitgelogd", true);
+                else return false;
+                schrijf(cf, o.toString(), false);
+                return uit;
+            } catch (Exception e) { return false; }
+        }
+    }
+
+    /**
+     * Rene doet het zelf: bij uitloggen ({@code alles}) vergeet Tools dat hij ingelogd was (dan geen melding over iets wat hij
+     * zelf deed), bij opnieuw inloggen gaat alleen de stand uitgelogd weg (blijkt hij nog steeds uitgelogd, dan komt die terug).
+     */
+    static void inlogVergeet(Context c, String id, boolean alles) {
+        inlogVergeet(cache(c), id, alles);
+        meldUitgelogd(c, id, "", false);
+    }
+
+    static void inlogVergeet(File cache, String id, boolean alles) {
+        synchronized (LOCK) {
+            try {
+                File cf = cacheBestand(cache, id);
+                JSONObject o = leesObject(cf);
+                if (o != null && (o.has("uitgelogd") || (alles && o.has("ingelogdGezien")))) {
+                    o.remove("uitgelogd");
+                    if (alles) o.remove("ingelogdGezien");
+                    schrijf(cf, o.toString(), false);
+                }
+            } catch (Exception ignored) { }
+        }
+    }
+
+    static void meldUitgelogd(Context c, String id, String naam, boolean aan) {
+        int nr = 4950 + Math.abs(id.hashCode() % 40);
+        try {
+            android.app.NotificationManager nm = (android.app.NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (!aan) { nm.cancel(nr); return; }
+            if (android.os.Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null) {
+                android.app.NotificationChannel ch = new android.app.NotificationChannel(CHANNEL, Taal.t(c, "Nieuws: uitgelogd"), android.app.NotificationManager.IMPORTANCE_DEFAULT);
+                ch.setDescription(Taal.t(c, "Als je bij een nieuwssite met inloggen (zoals AI Report) bent uitgelogd"));
+                nm.createNotificationChannel(ch);
+            }
+            String titel = Taal.fill(Taal.t(c, "Uitgelogd bij {naam}"), "naam", naam);
+            String tekst = Taal.t(c, "Tik om opnieuw in te loggen. Tot dan kan Tools de artikelen van deze site niet goed lezen.");
+            android.app.Notification.Builder b = android.os.Build.VERSION.SDK_INT >= 26
+                    ? new android.app.Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new android.app.Notification.Builder(c);
+            android.content.Intent i = new android.content.Intent(c, MainActivity.class).putExtra("open", "nieuws").addFlags(android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            Taal.keep(b, android.app.Notification.EXTRA_TITLE, android.app.Notification.EXTRA_TEXT, android.app.Notification.EXTRA_BIG_TEXT);
+            NotifCenter.post(c, nr, b.setSmallIcon(R.drawable.ic_notif).setContentTitle(titel).setContentText(tekst)
+                    .setStyle(new android.app.Notification.BigTextStyle().bigText(tekst)).setAutoCancel(true)
+                    .setContentIntent(android.app.PendingIntent.getActivity(c, nr, i, android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_UPDATE_CURRENT)).build());
+        } catch (Throwable ignored) { }
+    }
+
     /** De cookies van de inlog bij een bron, alleen naar de sites van die inlog; null als inloggen uit staat. */
     static Koekjes inlogKoekjes(JSONObject b) {
         if (!b.optBoolean("inlog")) return null;
         String sites = b.optString("inlogSites");
-        return u -> siteMag(sites, u) ? koekjes(u) : null;
+        return new InlogKoekjes(true, sites, false);
     }
 
     /** De User-Agent van de WebView op deze telefoon (die van het venster voor de cookiekeuze), of null. */
@@ -1801,6 +2046,9 @@ final class Nieuws {
                 List<Future<Integer>> fs = new ArrayList<>();
                 List<String> ids = new ArrayList<>();
                 List<String[]> redenen = new ArrayList<>();
+                List<JSONObject> inlogBron = new ArrayList<>(); // de bron als hij inloggen heeft, anders null
+                int wisRonde = WIS_RONDE.get();
+                boolean wisBegin = wissen();
                 String ua = webUa(c);
                 Map<String, WebPagina> paginas = new HashMap<>();
                 JSONArray alle;
@@ -1813,13 +2061,14 @@ final class Nieuws {
                     String sites = b.optString("inlogSites");
                     // Cookies alleen naar de sites van de inlog (feed en pagina's) en bij Tweakers naar de site met de cookiekeuze (pagina's)
                     Koekjes feedK = inlogKoekjes(b);
-                    Koekjes pagK = u -> (inlog && siteMag(sites, u)) || (keuze && koekjesNaar(u)) ? koekjes(u) : null;
+                    Koekjes pagK = new InlogKoekjes(inlog, sites, keuze);
                     WebPagina pagina = beelden && b.optBoolean("pagina") ? web(pagK, ua) : null;
                     if (pagina != null) paginas.put(t[0], pagina);
                     // titel en tekst van de pagina's bij een sitemap: dezelfde cookies, maar zonder de keuze voor afbeeldingen
                     WebPagina kop = pagina != null ? pagina : web(pagK, ua);
                     String feedUa = inlog ? paginaUa(ua) : UA;
-                    String[] reden = new String[2];
+                    String[] reden = new String[3];
+                    inlogBron.add(inlog ? b : null);
                     ids.add(t[0]);
                     redenen.add(reden);
                     fs.add(ex.submit(() -> haalBron(dir, cache, b, pagina, kop, feedK, feedUa, eind, reden)));
@@ -1838,7 +2087,19 @@ final class Nieuws {
                     } catch (Throwable e) { f.cancel(true); r = "tijd op"; }
                     String regel = r == null ? null : logBron(id) + " (" + r + ")";
                     if (logNu(id, regel, System.currentTimeMillis())) mis.add(regel);
+                    // de inlog: uitgelogd (na de ronde geen cookies meer, of de pagina's sturen door) of zeker ingelogd (een
+                    // pagina gelezen); weet Tools het niet (geen nieuwe pagina's, tijd op, de bank wiste net), dan blijft de stand
+                    JSONObject ib = inlogBron.get(i);
+                    if (ib != null) {
+                        boolean leeg = !heeftKoekjes(ib);
+                        Boolean uit = inlogBesluit(leeg, redenen.get(i)[2], wisBegin || wissen() || WIS_RONDE.get() != wisRonde, r);
+                        if (uit != null && inlogStand(cache, id, uit)) {
+                            App.log(c, "NIEUWS", "uitgelogd: " + logBron(id) + (leeg ? " (geen cookies meer)" : " (pagina's sturen door)"));
+                            meldUitgelogd(c, id, ib.optString("naam"), true);
+                        } else if (Boolean.FALSE.equals(uit)) meldUitgelogd(c, id, ib.optString("naam"), false);
+                    }
                 }
+                try { android.webkit.CookieManager.getInstance().flush(); } catch (Throwable ignored) { } // vernieuwde inlog bewaren
                 ex.shutdownNow();
                 App.log(c, "NIEUWS", "bijgewerkt: " + ok + " van " + fs.size() + " bronnen");
                 // Welke bron en waarom, in vaste woorden (dezelfde regel hooguit eens per LOG_OPNIEUW): zo is in het

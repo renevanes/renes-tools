@@ -89,6 +89,7 @@ function nwRij(a, namen, beelden){
 function nwRender(){
   if (!nw.data) return;
   nwStandBij();
+  nwInlogBalk();
   nwBeeldBalk();
   const ververs = $('#nw-ververs'); ververs.disabled = nw.bezig; ververs.classList.toggle('nw-draai', nw.bezig);
   const lijst = nwZichtbaar(), el = $('#nw-lijst'), alle = nw.data.artikelen || [];
@@ -225,6 +226,7 @@ function enterNieuwsSet(){
 }
 function nwSetStatus(tekst){ const e = $('#nws-status'); e.textContent = tekst || ''; e.hidden = !tekst; }
 function nwBronStand(b){
+  if (b.aan && b.inlog && b.uitgelogd) return t('Uitgelogd: log opnieuw in');
   if (b.fout && (b.poging || 0) >= (b.t || 0) && b.aan) return b.fout;
   if (!b.aan) return nwHost(b.url);
   if (!b.t) return t('Nog niet opgehaald');
@@ -233,7 +235,7 @@ function nwBronStand(b){
 function nwHost(url){ try { return new URL(url).hostname.replace(/^www\./, ''); } catch(e){ return ''; } }
 function nwSetRender(){
   const html = nwBronnen().map(b => {
-    const k = 'nws-b-' + b.id, fout = b.aan && b.fout && (b.poging || 0) >= (b.t || 0);
+    const k = 'nws-b-' + b.id, fout = b.aan && ((b.fout && (b.poging || 0) >= (b.t || 0)) || (b.inlog && b.uitgelogd));
     return '<div class="srow"><button class="nws-open" onclick="nwBronOpen(' + jsq(b.id) + ')"><span class="stxt"><b id="' + esc(k) + '" translate="no">' + esc(b.naam) + '</b><small translate="no"' + (fout ? ' class="nws-fout"' : '') + '>' + esc(nwBronStand(b)) + '</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>' +
       (b.eigen ? '<button class="icon-btn nws-weg" data-icon="trash" onclick="nwVerwijder(' + jsq(b.id) + ')" aria-label="' + esc(t('{naam} verwijderen', { naam: b.naam })) + '"></button>' : '') +
       '<button class="tg' + (b.aan ? ' on' : '') + '" role="switch" aria-checked="' + (b.aan ? 'true' : 'false') + '" aria-labelledby="' + esc(k) + '" translate="no" onclick="togUi(this); nwBronAan(' + jsq(b.id) + ', this.classList.contains(\'on\'))"></button></div>';
@@ -278,6 +280,21 @@ function nwBeeldBalk(){
   const titel = stand === 'cookiekeuze' ? t('Afbeeldingen van {naam}: eerst een cookiekeuze', { naam: b.naam }) : t('Afbeeldingen van {naam} ophalen lukte niet', { naam: b.naam });
   const sub = nw.bezig ? t('Nakijken…') : stand === 'cookiekeuze' ? t('Die maak je één keer zelf. Tik om te regelen.') : (nwBeeldReden(b) || t('Tik voor meer.'));
   [['#nw-beeldbalk-t', titel], ['#nw-beeldbalk-s', sub]].forEach(([s, v]) => { if ($(s).textContent !== v) $(s).textContent = v; });
+}
+/* Uitgelogd bij een bron met inloggen (Java ziet het aan de cookies of aan de pagina's): een balk die meteen naar inloggen gaat. */
+function nwUitgelogd(){ return nwBronnen().find(b => b.aan && b.inlog && b.uitgelogd) || null; }
+function nwInlogBalk(){
+  const el = $('#nw-inlogbalk'), b = nwUitgelogd();
+  el.style.display = b ? '' : 'none';
+  if (!b) return;
+  const titel = t('Uitgelogd bij {naam}', { naam: b.naam }), sub = t('Tik om opnieuw in te loggen. Tot dan kan Tools de artikelen van deze site niet goed lezen.');
+  [['#nw-inlogbalk-t', titel], ['#nw-inlogbalk-s', sub]].forEach(([s, v]) => { if ($(s).textContent !== v) $(s).textContent = v; });
+}
+function nwInlogBalkOpen(){
+  const b = nwUitgelogd(); if (!b) return;
+  const fout = Android.nieuwsInloggen(b.id);
+  if (fout) { toast(fout); return; }
+  nw.inlog = true;
 }
 /* De balk: naar de instellingen, met de kaart van de cookiekeuze open en in beeld (ook bij een fout, waar hij anders dicht blijft). */
 function nwBeeldBalkOpen(){
