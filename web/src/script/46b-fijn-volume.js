@@ -61,7 +61,7 @@ function psZachtRender(){
   const ls = $('#ps-zacht-ls'); ls.classList.toggle('on', !!i.luidspreker); ls.setAttribute('aria-checked', i.luidspreker ? 'true' : 'false');
   $('#ps-zacht-u').textContent = psZachtUitleg(i);
 }
-function psZachtZet(o){ const i = psZachtInfo(); if (!i) return; Android.podZachtZet(JSON.stringify(Object.assign({ wijze: i.wijze, van: i.van, tot: i.tot, pct: i.pct, luidspreker: !!i.luidspreker }, o))); psZachtRender(); }
+function psZachtZet(o){ const i = psZachtInfo(); if (!i) return; Android.podZachtZet(JSON.stringify(Object.assign({ wijze: i.wijze, van: i.van, tot: i.tot, pct: i.pct, luidspreker: !!i.luidspreker }, o))); if (current === 'podset') psZachtRender(); }
 function psZacht(){
   const i = psZachtInfo(); if (!i) return;
   psZachtZet({ wijze: $('#ps-zacht').value, van: psZachtMin($('#ps-zacht-van').value, i.van), tot: psZachtMin($('#ps-zacht-tot').value, i.tot), pct: +$('#ps-zacht-pct').value });

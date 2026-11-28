@@ -188,6 +188,9 @@ final class Player {
      * Een stap terug (dir −1) of weer vooruit (1) door wat er gespeeld is: {ep, pod} of null. De stand (PodcastTerug)
      * staat in de instellingen van Podcasts, zodat het ook na het herstarten van de app klopt.
      */
+    private static String stapKey;
+    private static long stapT;
+
     static synchronized JSONObject stap(Context c, String nu, int dir) {
         try {
             org.json.JSONArray a = Podcasts.recent(c);
@@ -200,10 +203,15 @@ final class Player {
                 keys.add(k); bij.put(k, r);
             }
             android.content.SharedPreferences pr = Podcasts.prefs(c);
-            PodcastTerug.Stand s = PodcastTerug.lees(pr.getString("terugRij", ""));
+            long nuT = System.currentTimeMillis(), was = pr.getLong("terugT", 0);
+            // Een rij van lang geleden telt niet meer (dan begint terug opnieuw en kiest de speler zelf wat er komt)
+            PodcastTerug.Stand s = was > nuT || nuT - was > PodcastTerug.GELDIG_MS ? null : PodcastTerug.lees(pr.getString("terugRij", ""));
+            // Snel achter elkaar: de speler is nog niet bij de vorige stap; reken vanaf daar
+            if (s != null && stapKey != null && android.os.SystemClock.elapsedRealtime() - stapT < 2500 && s.klopt(stapKey)) nu = stapKey;
             PodcastTerug.Stap st = dir < 0 ? PodcastTerug.terug(keys, nu, s) : PodcastTerug.vooruit(keys, nu, s);
-            if (st.key == null) return null;
-            pr.edit().putString("terugRij", PodcastTerug.json(st.stand)).apply();
+            if (st.key == null || bij.get(st.key) == null) return null;
+            pr.edit().putString("terugRij", PodcastTerug.json(st.stand)).putLong("terugT", nuT).apply();
+            stapKey = st.key; stapT = android.os.SystemClock.elapsedRealtime();
             JSONObject r = bij.get(st.key);
             return new JSONObject().put("ep", r.getJSONObject("ep")).put("pod", r.optJSONObject("pod") == null ? new JSONObject() : r.optJSONObject("pod")).put("nav", true);
         } catch (Exception e) { return null; }
@@ -217,12 +225,13 @@ final class Player {
         try {
             android.content.SharedPreferences pr = Podcasts.prefs(c);
             String was = pr.getString("terugRij", "");
+            long wasT = pr.getLong("terugT", 0);
             JSONObject r = stap(c, nu, -1);
             if (r == null) return false;
             JSONObject e = r.getJSONObject("ep"), p = Podcasts.progressOf(c, e.optString("key"));
             long duur = p != null && p.optLong("d") > 0 ? p.optLong("d") : e.optLong("dur") * 1000L;
             long at = PodcastTerug.plekAanEinde(duur, terugMs);
-            if (at < 0 || !Podcasts.httpUrl(e.optString("url"))) { pr.edit().putString("terugRij", was).apply(); return false; }
+            if (at < 0 || !Podcasts.httpUrl(e.optString("url"))) { pr.edit().putString("terugRij", was).putLong("terugT", wasT).apply(); stapKey = null; return false; }
             PodcastService.send(c, PodcastService.PLAY, r.put("at", at).toString());
             return true;
         } catch (Exception e) { return false; }

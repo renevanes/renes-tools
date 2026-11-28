@@ -84,7 +84,7 @@ public class PlayerBridge extends PodcastBridge {
     /** Volgende zender of aflevering (src = wat de speler toont: "radio" of "podcast"). Geeft "" of een melding. */
     @JavascriptInterface public String playerNext(String src) { return Player.step(ctx, src, 1); }
 
-    /** Vorige: bij een podcast na 10 s eerst terug naar het begin. Geeft "" of een melding. */
+    /** Vorige: bij een podcast wat hiervoor speelde (PodcastTerug). Geeft "" of een melding. */
     @JavascriptInterface public String playerPrev(String src) { return Player.step(ctx, src, -1); }
 
     // ---------- Hierna ----------

@@ -19,6 +19,8 @@ final class PodcastTerug {
     private PodcastTerug() { }
 
     static final int MAX = 40;
+    /** Zo lang na de laatste stap geldt de rij nog. */
+    static final long GELDIG_MS = 6 * 60 * 60_000L;
 
     static final class Stand {
         final List<String> rij; final int i;

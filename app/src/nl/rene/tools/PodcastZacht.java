@@ -101,7 +101,13 @@ final class PodcastZacht {
     /** Gaat het geluid nu naar de telefoon zelf (geen koptelefoon, Bluetooth of USB)? */
     private static boolean opLuidspreker(AudioManager am) {
         if (Build.VERSION.SDK_INT < 23) return true;
-        for (AudioDeviceInfo d : am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+        java.util.List<AudioDeviceInfo> l = null;
+        // Waar mediageluid nu heen gaat (Android 13+); daarvoor: alles wat aangesloten is
+        if (Build.VERSION.SDK_INT >= 33) try {
+            l = am.getAudioDevicesForAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build());
+        } catch (Throwable ignored) { }
+        if (l == null || l.isEmpty()) l = java.util.Arrays.asList(am.getDevices(AudioManager.GET_DEVICES_OUTPUTS));
+        for (AudioDeviceInfo d : l) {
             int t = d.getType();
             if (t != AudioDeviceInfo.TYPE_BUILTIN_SPEAKER && t != AudioDeviceInfo.TYPE_BUILTIN_EARPIECE && t != AudioDeviceInfo.TYPE_TELEPHONY
                     && (Build.VERSION.SDK_INT < 30 || t != AudioDeviceInfo.TYPE_BUILTIN_SPEAKER_SAFE) && t != AudioDeviceInfo.TYPE_REMOTE_SUBMIX) return false;
