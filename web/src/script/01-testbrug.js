@@ -95,7 +95,8 @@ if (!window.Android) window.Android = (function(){
         art('nos', 'Waterschappen waarschuwen voor hoog water in de rivieren', 2 * d, ['Door de regen van de afgelopen dagen stijgt het water in de grote rivieren. Uiterwaarden kunnen onderlopen.']),
         art('rijnmond', 'Fietspad langs de Maas wordt breder', 3 * d, ['Het fietspad langs de Maasboulevard wordt volgend jaar een meter breder. Fietsers krijgen zo meer ruimte.'])];
       const stand = {}; bronnen.forEach(b => { if (b.aan) stand[b.id] = { t: nu - 5 * m, poging: nu - 5 * m }; });
-      this._nw = { bronnen, artikelen, stand, gelezen: new Set([artikelen[5].id]), bewaard: [], calls: [], mislukt: {}, erbij: [], wacht: 200 };
+      this._nw = { bronnen, artikelen, stand, gelezen: new Set([artikelen[5].id]), bewaard: [], calls: [], mislukt: {}, erbij: [], wacht: 200,
+        oud: [], sitemap: { aireport: [] } }; // oud = het archief (Nieuws.oudBestand), sitemap = wat Ouder laden daar nog kan halen
       return this._nw;
     },
     /* De instellingen zoals Nieuws.bronnen ze geeft: standaard, en daarna wat de test of nieuwsInstellen erboven zet. */
@@ -116,8 +117,23 @@ if (!window.Android) window.Android = (function(){
       const artikelen = s.artikelen.filter(a => aan.has(a.bron)).sort((x, y) => y.datum - x.datum).map(a => this._nwKort(a));
       return JSON.stringify({ bronnen, artikelen, bewaard: s.bewaard.map(a => this._nwKort(a)), gelezen: [...s.gelezen], bezig: !!s.bezig });
     },
+    nieuwsOuder(bron, al, n){
+      const s = this._nwInit(), aan = new Set(s.bronnen.filter(b => b.aan && (!bron || b.id === bron)).map(b => b.id)), heb = new Set(JSON.parse(al || '[]'));
+      s.calls.push(['ouder', bron, heb.size]);
+      const l = s.oud.filter(a => aan.has(a.bron) && !heb.has(a.id)).sort((x, y) => y.datum - x.datum);
+      const halen = Object.keys(s.sitemap).some(id => aan.has(id) && s.sitemap[id].length);
+      return JSON.stringify({ artikelen: l.slice(0, n).map(a => this._nwKort(a)), meer: l.length > n, halen });
+    },
+    nieuwsOuderHalen(bron){
+      const s = this._nwInit(); s.calls.push(['ouderHalen', bron]);
+      setTimeout(() => {
+        let erbij = 0;
+        Object.keys(s.sitemap).forEach(id => { if (bron && bron !== id) return; const deel = s.sitemap[id].splice(0, 20); erbij += deel.length; s.oud.push(...deel); });
+        onNieuwsOuder({ erbij });
+      }, s.wacht);
+    },
     nieuwsArtikel(id){
-      const s = this._nwInit(), b = s.bewaard.find(a => a.id === id), a = b || s.artikelen.find(x => x.id === id);
+      const s = this._nwInit(), b = s.bewaard.find(a => a.id === id), a = b || s.artikelen.find(x => x.id === id) || s.oud.find(x => x.id === id);
       if (!a) return JSON.stringify({ error: 'Dit artikel is niet meer beschikbaar' });
       return JSON.stringify(Object.assign({ bronnaam: (s.bronnen.find(x => x.id === a.bron) || {}).naam }, a, { isBewaard: !!b, gelezen: s.gelezen.has(id) }));
     },

@@ -1146,7 +1146,16 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   `setWebContentsDebuggingEnabled` aan, en dat geldt voor de hele app: alleen na een waarschuwing, met een vaste regel in
   de balk, en uit na 15 minuten, bij `onStop` en bij sluiten (alleen door het venster dat het aanzette). Cookies van de WebView gaan nergens mee in backups: na terugzetten opnieuw inloggen. Eerste bron met inloggen: AI Report (aireport.nl, beehiiv).
 - **Opslag**: `nieuws/` (bronnen met instellingen, gelezen, bewaard) gaat mee in "Alle appgegevens", niet in de Android-backup; de opgehaalde
-  artikelen staan in de cache. Logsoort `NIEUWS` alleen met aantallen en vaste woorden.
+  artikelen staan in de cache. **Oudere berichten** (wens van Rene, 28-11-2026): wat uit een feed verdwijnt of niet meer in de
+  cache past (`MAX_PER_BRON`), gaat per bron in een archief (`oudBestand`: `cache/nieuws/<id>.oud.json`, nieuwste eerst,
+  hooguit `MAX_OUD`, bij een sitemap `MAX_OUD_SITEMAP`; alleen schrijven als er iets veranderde; staat het weer in de feed, dan eruit; weg samen met de cache: `wisCache`, `ruimOp`). Onderaan de lijst
+  (als alles getoond is, niet bij Bewaard of zoeken) staat Oudere berichten laden (`nwOuder`): `nieuwsOuder(bron, al, n)`
+  geeft de nieuwste uit het archief die de interface nog niet heeft (`al` = id's; zo valt niets weg bij gelijke datums of
+  een bron met een oude feed) (zonder de hele tekst; openen via `zoekCache`, die ook in het archief kijkt). Is
+  dat op en heeft een bron een sitemap (`sitemap` in de cache, zoals AI Report), dan haalt `nieuwsOuderHalen` →
+  `ouderHalen` de volgende `MAX_PAGINAS` onbekende artikelen uit de sitemap (`volgende`, met de inlog, net als bijwerken)
+  het archief in (antwoord `onNieuwsOuder`; zonder datum net vóór het oudste; één tegelijk: `OUDER_BEZIG`); niets meer (of niets wat nog past) = `sitemapOp` tot de volgende ronde. Een ander filter (`alleen`) wist cache en archief. Een andere bron of filter kiezen
+  begint opnieuw (`nwOuderWeg`). Tests: `NieuwsTest.ouderTests`, `tests/ui/nieuws-ouder.test.js`. Logsoort `NIEUWS` alleen met aantallen en vaste woorden.
 - **OPML** (ook voor Podcasts): menu ⋯ → importeren/exporteren. `Opml` (zuiver, `OpmlTest`) leest en schrijft, `OpmlWerk` voegt toe via
   `Nieuws.toevoegen` / `Podcasts.subscribe` (dezelfde controles als met de hand), brug `opmlImport`/`opmlExport(soort)` → `onOpml` met alleen aantallen.
   Logsoort `OPML` alleen met aantallen. Test: `tests/ui/opml.test.js`.

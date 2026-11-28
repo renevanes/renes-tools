@@ -50,6 +50,30 @@ public class NieuwsBridge extends EreaderBridge {
         }), "nieuws-bijwerken").start();
     }
 
+    /** Oudere artikelen uit het archief (bron "" = alle bronnen die aan staan); al = JSON-lijst met id's die er al staan. */
+    @JavascriptInterface public String nieuwsOuder(String bron, String al, int n) {
+        try {
+            java.util.Set<String> ids = new java.util.HashSet<>();
+            JSONArray l = new JSONArray(al == null || al.isEmpty() ? "[]" : al);
+            for (int i = 0; i < l.length() && i < 20_000; i++) ids.add(l.optString(i));
+            return Nieuws.ouder(Nieuws.dir(ctx), Nieuws.cache(ctx), bron, ids, n).toString();
+        }
+        catch (Throwable e) { return foutJson(e, Taal.T("Nieuws lezen lukt niet")); }
+    }
+
+    /** Verder terug in de sitemap van een bron. Antwoord via onNieuwsOuder({erbij} of {error}). */
+    @JavascriptInterface public void nieuwsOuderHalen(String bron) {
+        new Thread(Doorwerken.door("nieuws-ouder", () -> {
+            String r;
+            try {
+                int n = Nieuws.ouderHalen(ctx, bron);
+                if (n < 0) r = "{\"bezig\":true}";
+                else { App.log(ctx, "NIEUWS", "ouder opgehaald: " + n); r = new JSONObject().put("erbij", n).toString(); }
+            } catch (Throwable e) { r = foutJson(e, Taal.T("Ouder nieuws ophalen lukt niet")); }
+            a.js("onNieuwsOuder", r);
+        }), "nieuws-ouder").start();
+    }
+
     /** Een eigen bron (adres van een feed of van een nieuwssite). Antwoord via onNieuwsBron({bron} of {error}). */
     @JavascriptInterface public void nieuwsToevoegen(String adres) {
         new Thread(() -> {

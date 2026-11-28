@@ -1,6 +1,7 @@
 /* Nieuws: artikelen uit de nieuwsfeeds die Java ophaalt (Nieuws.java). Alles uit een feed is gegevens: altijd als tekst
  * (esc of textContent), nooit als HTML van de site. */
-const nw = { data: null, filter: 'alles', open: null, toon: 60, scroll: 0, bezig: false, nogEens: false, toevoegen: false, gelezen: new Set() };
+const nw = { data: null, filter: 'alles', open: null, toon: 60, scroll: 0, bezig: false, nogEens: false, toevoegen: false, gelezen: new Set(),
+  ouder: [], ouderOp: false, ouderBezig: false, ouderBron: '' }; // ouder = oudere artikelen uit het archief (Nieuws.ouder)
 function nwData(raw){ try { return JSON.parse(raw); } catch(e){ return { error: t('Nieuws lezen lukt niet') }; } }
 function nwKlaar(){ return typeof Android.nieuwsLijst === 'function'; }
 function nwBeeldenAan(){ return store.get('nwBeelden', true) !== false; }
@@ -39,7 +40,7 @@ function nwWanneer(ms){
 /* ---------- overzicht ---------- */
 function enterNieuws(prev){
   if (!nwKlaar()) { nwStand(t('Installeer de nieuwste APK om Nieuws te gebruiken')); $('#nw-lijst').innerHTML = ''; return; }
-  if (prev !== 'nieuwsart') nw.toon = 60;
+  if (prev !== 'nieuwsart') { nw.toon = 60; nwOuderWeg(); }
   if (!nwLaad()) return;
   nwRender();
   if (prev === 'nieuwsart') window.scrollTo(0, nw.scroll || 0);
@@ -55,7 +56,7 @@ function nwStandBij(){
   nwStand([laatst ? t('Bijgewerkt {wanneer}', { wanneer: nwWanneer(laatst) }) : '', mis ? tn(mis, 'Eén bron lukte niet', '{n} bronnen lukten niet') : ''].filter(Boolean).join(' · '));
 }
 function nwFilter(v){
-  nw.filter = v; nw.toon = 60;
+  nw.filter = v; nw.toon = 60; nwOuderWeg();
   document.querySelectorAll('#nw-filter button').forEach(b => { const on = b.dataset.v === v; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
   nwRender();
 }
@@ -70,9 +71,10 @@ function nwBronKeuze(lijst){
 }
 function nwZichtbaar(){
   const d = nw.data || {};
-  let lijst = nw.filter === 'bewaard' ? (d.bewaard || []) : (d.artikelen || []);
+  let lijst = nw.filter === 'bewaard' ? (d.bewaard || []) : nwMetOuder(d.artikelen || []);
   nwBronKeuze(lijst);
   const bron = $('#nw-bron').value, q = $('#nw-zoek').value.trim().toLowerCase();
+  if (bron !== nw.ouderBron) { nwOuderWeg(); nw.ouderBron = bron; lijst = nw.filter === 'bewaard' ? (d.bewaard || []) : (d.artikelen || []); }
   if (bron) lijst = lijst.filter(a => a.bron === bron);
   if (nw.filter === 'ongelezen') lijst = lijst.filter(a => !nw.gelezen.has(a.id));
   if (q) lijst = lijst.filter(a => (a.titel + ' ' + (a.sam || '')).toLowerCase().includes(q));
@@ -106,10 +108,50 @@ function nwRender(){
     return;
   }
   const namen = nwNamen(), beelden = nwBeeldenAan();
-  const meer = lijst.length > nw.toon ? '<button class="big ghost nw-verder" onclick="nwVerder()">' + esc(t('Meer tonen')) + '</button>' : '';
+  const meer = lijst.length > nw.toon ? '<button class="big ghost nw-verder" onclick="nwVerder()">' + esc(t('Meer tonen')) + '</button>' : nwOuderKnop();
   uiHtml(el, '<div class="card nw-lijst">' + lijst.slice(0, nw.toon).map(a => nwRij(a, namen, beelden)).join('') + '</div>' + meer);
 }
 function nwVerder(){ nw.toon += 60; nwRender(); }
+
+/* ---------- oudere berichten (het archief in Java, en bij een sitemap verder terug op de site) ---------- */
+function nwOuderWeg(){ nw.ouder = []; nw.ouderOp = false; }
+function nwOuderKan(){ return typeof Android.nieuwsOuder === 'function' && nw.filter !== 'bewaard' && !$('#nw-zoek').value.trim(); }
+/* De artikelen van nu met de oudere erachter (elk één keer: wat weer in de feed staat, telt daar). */
+function nwMetOuder(lijst){
+  if (!nw.ouder.length) return lijst;
+  const ids = new Set(lijst.map(a => a.id));
+  return lijst.concat(nw.ouder.filter(a => !ids.has(a.id))).sort((x, y) => (y.datum || 0) - (x.datum || 0));
+}
+function nwOuderKnop(){
+  if (!nwOuderKan()) return '';
+  if (nw.ouderBezig) return '<p class="hint nw-ouder-st wacht" role="status">' + esc(t('Oudere berichten ophalen…')) + '</p>';
+  if (nw.ouderOp) return '<p class="hint nw-ouder-st" role="status">' + esc(t('Geen oudere berichten. Tools bewaart voortaan wat uit een feed verdwijnt, zodat je later verder terug kunt.')) + '</p>';
+  return '<button class="big ghost nw-ouder" onclick="nwOuder()">' + esc(t('Oudere berichten laden')) + '</button>';
+}
+/* Het volgende stuk: de nieuwste uit het archief die er nog niet staan (Java slaat die over, dus niets valt weg). */
+function nwOuder(halen){
+  if (!nwOuderKan() || nw.ouderBezig) return;
+  const bron = $('#nw-bron').value, r = nwData(Android.nieuwsOuder(bron, JSON.stringify(nw.ouder.map(a => a.id)), 60));
+  if (r.error) { toast(r.error); return; }
+  const nieuw = (r.artikelen || []).filter(a => !nw.ouder.some(o => o.id === a.id));
+  nw.ouder = nw.ouder.concat(nieuw);
+  if (nieuw.length) nw.toon += 60;
+  // niets (meer) in het archief: een bron met een sitemap kan verder terug op de site zelf
+  if (nieuw.length < 60 && r.halen && halen !== false && typeof Android.nieuwsOuderHalen === 'function') {
+    nw.ouderBezig = true; nwRender();
+    Android.nieuwsOuderHalen(bron);
+    return;
+  }
+  if (!nieuw.length) nw.ouderOp = true;
+  nwRender();
+}
+window.onNieuwsOuder = function(r){
+  r = r || {};
+  nw.ouderBezig = false;
+  if (r.error || r.bezig) { if (r.error) toast(r.error); if (current === 'nieuws') nwRender(); return; } // de knop blijft: opnieuw proberen
+  if (current === 'nieuws') nwOuder(false); // wat erbij kwam staat nu in het archief
+  else if (current !== 'nieuwsart') nwOuderWeg();
+};
 function nwVerversen(alles){
   if (!nwKlaar()) return;
   if (nw.bezig) { nw.nogEens = alles || nw.nogEens === 'alles' ? 'alles' : true; return; } // bijv. een bron aangezet tijdens het bijwerken: daarna nog een ronde

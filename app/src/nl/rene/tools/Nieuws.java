@@ -50,6 +50,8 @@ import java.util.regex.Pattern;
 final class Nieuws {
     private Nieuws() { }
 
+    /** Het archief per bron: wat uit de feed verdween (of er niet meer bij paste), om verder terug te kunnen lezen. */
+    static final int MAX_OUD = 300, MAX_OUD_SITEMAP = 2000;
     static final int MAX_PER_BRON = 60, MAX_EIGEN = 30, MAX_BEWAARD = 300, MAX_GELEZEN = 5000, MAX_LIJST = 800;
     static final int MAX_FEED = 4 * 1024 * 1024, MAX_HOPS = 6, MAX_TEGELIJK = 6;
     static final long VERS = 15 * 60_000L, OPNIEUW_NA_FOUT = 2 * 60_000L, GELEZEN_BEWAREN = 60L * 86_400_000L, MAX_DUUR = 90_000L, MAX_HAAL = 60_000L;
@@ -112,14 +114,16 @@ final class Nieuws {
     static void filter(String id, String basis, NieuwsFeed.Feed f) throws Fout { filterOp(alleen(id), basis, f); }
 
     /** Zo ook met een eigen begin van de link ({@code alleen}, zoals in de instellingen van de bron; "" = alles). */
-    static void filterOp(String alleen, String basis, NieuwsFeed.Feed f) throws Fout {
+    static void filterOp(String alleen, String basis, NieuwsFeed.Feed f) throws Fout { filterOp(alleen, basis, f, NieuwsFeed.MAX_ITEMS); }
+
+    static void filterOp(String alleen, String basis, NieuwsFeed.Feed f, int max) throws Fout {
         if (alleen != null && !alleen.isEmpty() && !f.artikelen.isEmpty()) {
             List<NieuwsFeed.Artikel> blijft = new ArrayList<>();
             URL b;
             try { b = new URL(basis); } catch (Exception e) { b = null; }
             for (NieuwsFeed.Artikel a : f.artikelen) {
                 // een sitemap is al op datum gesorteerd: genoeg gevonden = klaar
-                if (f.uitSitemap && blijft.size() >= NieuwsFeed.MAX_ITEMS) break;
+                if (f.uitSitemap && blijft.size() >= max) break;
                 String l;
                 try { l = norm((b != null ? new URL(b, a.link) : new URL(a.link)).toURI().normalize().toString()); } catch (Exception e) { l = ""; }
                 if (l.startsWith(alleen)) blijft.add(a);
@@ -130,7 +134,7 @@ final class Nieuws {
         }
         // Een sitemap pas ná het filter inkorten tot de nieuwste MAX_ITEMS: anders kunnen recent bijgewerkte pagina's van een
         // ander soort (podcast, auteurs, tags) alle artikelen verdringen en blijft er niets over
-        if (f.uitSitemap && f.artikelen.size() > NieuwsFeed.MAX_ITEMS) f.artikelen.subList(NieuwsFeed.MAX_ITEMS, f.artikelen.size()).clear();
+        if (f.uitSitemap && f.artikelen.size() > max) f.artikelen.subList(max, f.artikelen.size()).clear();
     }
 
     /**
@@ -472,6 +476,67 @@ final class Nieuws {
         return new File(cache, id + ".json");
     }
 
+    /**
+     * Het archief van een bron: wat uit de feed verdween, om verder terug te lezen. In de cache (niet in backups): het zijn
+     * gegevens van de sites, geen invoer van Rene; Android mag ze opruimen.
+     */
+    static File oudBestand(File cache, String id) { cacheBestand(cache, id); return new File(cache, id + ".oud.json"); }
+
+    /** Cache en archief van een bron weg (ander adres, ander filter, bron verwijderd). */
+    static void wisCache(File cache, String id) { cacheBestand(cache, id).delete(); oudBestand(cache, id).delete(); }
+
+    /** Artikelen die bij verder terug lezen weg bleken (404/410): onthouden in het archief, zodat Tools ze niet steeds opnieuw vraagt. */
+    static void wegErbij(File cache, String id, List<String> ids) throws Exception {
+        File of = oudBestand(cache, id);
+        JSONObject o = leesObject(of);
+        if (o == null) o = new JSONObject().put("v", 1).put("artikelen", new JSONArray());
+        JSONArray w = o.optJSONArray("weg"), uit = new JSONArray();
+        Set<String> al = new java.util.LinkedHashSet<>(ids);
+        if (w != null) for (int i = 0; i < w.length(); i++) al.add(w.optString(i));
+        int n = 0;
+        for (String s : al) if (n++ < MAX_OUD_SITEMAP) uit.put(s);
+        Contacts.writeText(of, o.put("weg", uit).toString(), false);
+    }
+
+    /** Hoeveel artikelen het archief van een bron houdt: bij een sitemap (alleen titel en begin) meer. */
+    static int maxOud(boolean sitemap) { return sitemap ? MAX_OUD_SITEMAP : MAX_OUD; }
+
+    /**
+     * Artikelen in het archief zetten (nieuwste eerst, elk id één keer, hooguit {@link #maxOud}); wat nu in de feed staat
+     * ({@code nuIn}) gaat eruit. Schrijft alleen als er iets veranderde. Geeft hoeveel er nieuw in bleven. Binnen LOCK.
+     */
+    static int naarArchief(File cache, String id, List<JSONObject> erbij, Set<String> nuIn, int max) throws Exception {
+        File of = oudBestand(cache, id);
+        JSONObject o = leesObject(of);
+        JSONArray oa = o == null ? null : o.optJSONArray("artikelen");
+        if (erbij.isEmpty() && (oa == null || nuIn.isEmpty())) return 0;
+        Map<String, JSONObject> alle = new java.util.LinkedHashMap<>();
+        boolean anders = false;
+        if (oa != null) for (int i = 0; i < oa.length(); i++) {
+            JSONObject a = oa.optJSONObject(i);
+            if (a == null) continue;
+            String aid = a.optString("id");
+            if (nuIn.contains(aid)) { anders = true; continue; } // staat weer in de feed
+            if (!alle.containsKey(aid)) alle.put(aid, a);
+        }
+        Set<String> nieuw = new HashSet<>();
+        for (JSONObject a : erbij) {
+            String aid = a.optString("id");
+            if (nuIn.contains(aid) || alle.containsKey(aid)) continue;
+            alle.put(aid, a); nieuw.add(aid); anders = true;
+        }
+        if (!anders) return 0;
+        List<JSONObject> l = new ArrayList<>(alle.values());
+        nieuwsteEerst(l);
+        JSONArray arr = new JSONArray();
+        int bleef = 0;
+        for (int i = 0; i < l.size() && i < max; i++) { arr.put(l.get(i)); if (nieuw.contains(l.get(i).optString("id"))) bleef++; }
+        JSONObject uit = new JSONObject().put("v", 1).put("artikelen", arr);
+        if (o != null && o.has("weg")) uit.put("weg", o.get("weg"));
+        Contacts.writeText(of, uit.toString(), false);
+        return bleef;
+    }
+
     // ---------------------------------------------------------------- bestanden
 
     static JSONObject leesObject(File f) {
@@ -736,6 +801,7 @@ final class Nieuws {
             }
             if (in.has("alleen")) {
                 String a = alleenNetjes(in.optString("alleen"));
+                if (!a.equals(b.optString("alleen"))) andereFeed = true; // ander filter: cache en archief opnieuw (anders blijft wat er nu buiten valt)
                 if (a.equals(alleen(id))) x.remove("alleen"); else x.put("alleen", a);
             }
             if (in.has("pagina")) {
@@ -776,7 +842,7 @@ final class Nieuws {
             }
             if (x.length() > 0) inst.put(id, x); else inst.remove(id);
             bewaarBronnen(dir, bs, inst);
-            if (andereFeed || in.optBoolean("standaard")) cacheBestand(cache, id).delete();
+            if (andereFeed || in.optBoolean("standaard")) wisCache(cache, id);
             return new JSONObject(zoekBron(bronnen(dir), id).toString());
         }
     }
@@ -807,7 +873,7 @@ final class Nieuws {
             }
             if (!weg) throw new Fout(Taal.T("Deze bron bestaat niet meer"));
             bewaarBronnen(dir, rest);
-            cacheBestand(cache, id).delete();
+            wisCache(cache, id);
         }
     }
 
@@ -947,12 +1013,24 @@ final class Nieuws {
             }
             nieuwsteEerst(lijst);
             JSONArray arr = new JSONArray();
-            for (int i = 0; i < lijst.size() && i < MAX_PER_BRON; i++) arr.put(lijst.get(i));
+            Set<String> nuIn = new HashSet<>();
+            List<JSONObject> erbij = new ArrayList<>();
+            for (int i = 0; i < lijst.size(); i++) {
+                if (i < MAX_PER_BRON) { arr.put(lijst.get(i)); nuIn.add(lijst.get(i).optString("id")); }
+                else erbij.add(lijst.get(i));
+            }
+            // uit de feed verdwenen (of er niet meer bij gepast): naar het archief, zodat je verder terug kunt lezen
+            if (oa != null) for (int i = 0; i < oa.length(); i++) {
+                JSONObject a = oa.optJSONObject(i);
+                if (a != null && !nuIn.contains(a.optString("id"))) erbij.add(a);
+            }
+            try { naarArchief(cache, bron, erbij, nuIn, maxOud(f.uitSitemap)); } catch (Exception ignored) { } // het archief is bijzaak
             // het echte feedadres (een site waarop Tools de feed zocht): de volgende keer meteen daar
             JSONObject o = new JSONObject().put("t", nu).put("poging", nu).put("titel", f.titel).put("feed", basis).put("artikelen", arr);
             if (!f.beeldStand.isEmpty()) o.put("beeldStand", f.beeldStand);
             if (!f.beeldReden.isEmpty()) o.put("beeldReden", f.beeldReden);
             if (oud != null) for (String k : new String[]{"ingelogdGezien", "uitgelogd"}) if (oud.optBoolean(k)) o.put(k, true); // de stand van de inlog blijft
+            if (f.uitSitemap) o.put("sitemap", true); // dan kan Ouder laden verder terug in de sitemap
             schrijf(cf, o.toString(), false);
             return oud == null ? 0 : nieuw;
         }
@@ -1031,6 +1109,139 @@ final class Nieuws {
         }
     }
 
+    /**
+     * Oudere artikelen uit het archief: van de bronnen die aan staan (of alleen {@code bron}), de nieuwste {@code n} die de
+     * interface nog niet heeft ({@code al}). {@code meer} = er staat nog meer in het archief; {@code halen} = een bron met
+     * een sitemap kan nog verder terug ({@link #ouderHalen}). De archieven worden buiten LOCK gelezen (schrijven gaat in één keer).
+     */
+    static JSONObject ouder(File dir, File cache, String bron, Set<String> al, int n) throws Exception {
+        JSONArray bs;
+        synchronized (LOCK) { bs = bronnen(dir); }
+        List<JSONObject> items = new ArrayList<>();
+        boolean halen = false;
+        for (int i = 0; i < bs.length(); i++) {
+            JSONObject b = bs.getJSONObject(i);
+            String id = b.getString("id");
+            if (!b.optBoolean("aan") || (bron != null && !bron.isEmpty() && !bron.equals(id))) continue;
+            JSONObject c = leesObject(cacheBestand(cache, id));
+            if (c != null && c.optBoolean("sitemap") && !c.optBoolean("sitemapOp")) halen = true;
+            JSONObject o = leesObject(oudBestand(cache, id));
+            JSONArray as = o == null ? null : o.optJSONArray("artikelen");
+            if (as != null) for (int j = 0; j < as.length(); j++) {
+                JSONObject a = as.optJSONObject(j);
+                if (a != null && !al.contains(a.optString("id"))) items.add(a);
+            }
+        }
+        nieuwsteEerst(items);
+        JSONArray arts = new JSONArray();
+        int max = Math.max(1, Math.min(n, 200));
+        for (int i = 0; i < items.size() && i < max; i++) arts.put(kort(items.get(i)));
+        return new JSONObject().put("artikelen", arts).put("meer", items.size() > max).put("halen", halen);
+    }
+
+    static final AtomicBoolean OUDER_BEZIG = new AtomicBoolean();
+
+    /**
+     * Verder terug in de sitemap (zoals AI Report): de volgende {@link #MAX_PAGINAS} artikelen die Tools nog niet kent, met
+     * titel en begin van hun pagina (met de inlog), in het archief. Geeft hoeveel erbij kwamen; 0 = de sitemap is op.
+     */
+    static int ouderHalen(Context c, String bron) throws Exception {
+        if (!OUDER_BEZIG.compareAndSet(false, true)) return -1; // loopt al: het antwoord komt van die ronde
+        try { return ouderHalenNu(c, bron); }
+        finally {
+            OUDER_BEZIG.set(false);
+            try { android.webkit.CookieManager.getInstance().flush(); } catch (Throwable ignored) { } // een vernieuwde inlog bewaren
+        }
+    }
+
+    private static int ouderHalenNu(Context c, String bron) throws Exception {
+        File dir = dir(c), cache = cache(c);
+        String ua = webUa(c);
+        int erbij = 0;
+        Exception fout = null;
+        JSONArray bs;
+        synchronized (LOCK) { bs = bronnen(dir); }
+        for (int i = 0; i < bs.length(); i++) {
+            JSONObject b = bs.getJSONObject(i);
+            String id = b.getString("id");
+            if (!b.optBoolean("aan") || (bron != null && !bron.isEmpty() && !bron.equals(id))) continue;
+            try { erbij += ouderVan(dir, cache, b, ua); }
+            catch (Exception e) { fout = e; } // één bron die niet lukt houdt de andere niet tegen
+        }
+        if (erbij == 0 && fout != null) throw fout;
+        return erbij;
+    }
+
+    private static int ouderVan(File dir, File cache, JSONObject b, String ua) throws Exception {
+        String id = b.getString("id");
+        Set<String> bekend = new HashSet<>();
+        long oudste = Long.MAX_VALUE;
+        String url;
+        synchronized (LOCK) {
+            JSONObject cj = leesObject(cacheBestand(cache, id));
+            if (cj == null || !cj.optBoolean("sitemap") || cj.optBoolean("sitemapOp")) return 0;
+            url = https(cj.optString("feed")) ? cj.optString("feed") : b.optString("url");
+            for (File f : new File[]{cacheBestand(cache, id), oudBestand(cache, id)}) {
+                JSONObject o = leesObject(f);
+                JSONArray as = o == null ? null : o.optJSONArray("artikelen");
+                if (as != null) for (int j = 0; j < as.length(); j++) {
+                    JSONObject a = as.optJSONObject(j);
+                    if (a == null) continue;
+                    bekend.add(a.optString("id"));
+                    if (datum(a) > 1) oudste = Math.min(oudste, datum(a));
+                }
+                JSONArray weg = o == null ? null : o.optJSONArray("weg"); // pagina's die er niet meer zijn: niet opnieuw
+                if (weg != null) for (int j = 0; j < weg.length(); j++) bekend.add(weg.optString(j));
+            }
+        }
+        boolean inlog = b.optBoolean("inlog");
+        long tot = System.currentTimeMillis() + MAX_HAAL;
+        Gelezen g = lees(url, tot, inlogKoekjes(b), inlog ? paginaUa(ua) : UA);
+        if (!g.feed.uitSitemap) return 0;
+        filterOp(b.optString("alleen"), g.url, g.feed, MAX_OUD_SITEMAP);
+        NieuwsFeed.Feed deel = volgende(id, g.feed, bekend);
+        int bleef = 0;
+        if (!deel.artikelen.isEmpty()) {
+            List<String> gevraagd = new ArrayList<>();
+            for (NieuwsFeed.Artikel a : deel.artikelen) gevraagd.add(artikelId(id, a.sleutel));
+            try { aanvullen(id, deel, null, tot, web(new InlogKoekjes(inlog, b.optString("inlogSites"), false), ua)); }
+            catch (Fout allesWeg) { deel.artikelen.clear(); }
+            Set<String> kwam = new HashSet<>();
+            for (NieuwsFeed.Artikel a : deel.artikelen) kwam.add(artikelId(id, a.sleutel));
+            List<String> weg = new ArrayList<>();
+            for (String g2 : gevraagd) if (!kwam.contains(g2)) weg.add(g2);
+            if (!weg.isEmpty()) synchronized (LOCK) { wegErbij(cache, id, weg); }
+            long nu = System.currentTimeMillis(), stap = oudste == Long.MAX_VALUE ? nu : oudste;
+            List<JSONObject> l = new ArrayList<>();
+            // zonder datum: net vóór het oudste wat Tools al kent, in de volgorde van de sitemap
+            for (NieuwsFeed.Artikel a : deel.artikelen) {
+                long d = a.datum > 0 && a.datum <= nu ? a.datum : (stap = stap - 60_000L);
+                l.add(json(a, id, d, g.url));
+            }
+            synchronized (LOCK) {
+                if (zoekBron(bronnen(dir), id) == null) return 0;
+                bleef = naarArchief(cache, id, l, new HashSet<>(), maxOud(true));
+            }
+        }
+        if (bleef == 0) synchronized (LOCK) { // niets meer (of niets wat nog past): de knop zegt dat het op is
+            File cf = cacheBestand(cache, id);
+            JSONObject cj = leesObject(cf);
+            if (cj != null) schrijf(cf, cj.put("sitemapOp", true).toString(), false);
+        }
+        return bleef;
+    }
+
+    /** Uit een sitemap (nieuwste eerst) de volgende {@link #MAX_PAGINAS} artikelen die Tools nog niet kent. */
+    static NieuwsFeed.Feed volgende(String id, NieuwsFeed.Feed kaart, Set<String> bekend) {
+        NieuwsFeed.Feed deel = new NieuwsFeed.Feed();
+        deel.uitSitemap = true;
+        for (NieuwsFeed.Artikel a : kaart.artikelen) {
+            if (deel.artikelen.size() >= MAX_PAGINAS) break;
+            if (!bekend.contains(artikelId(id, a.sleutel))) deel.artikelen.add(a);
+        }
+        return deel;
+    }
+
     private static JSONObject zoekBewaard(File dir, String id) {
         JSONArray bw = leesLijst(new File(dir, "bewaard.json"));
         if (bw != null) for (int i = 0; i < bw.length(); i++) { JSONObject a = bw.optJSONObject(i); if (a != null && a.optString("id").equals(id)) return a; }
@@ -1039,13 +1250,15 @@ final class Nieuws {
 
     private static JSONObject zoekCache(File dir, File cache, String id) throws JSONException {
         JSONArray bs = bronnen(dir);
-        for (int i = 0; i < bs.length(); i++) {
-            JSONObject b = bs.getJSONObject(i);
-            JSONObject c = leesObject(cacheBestand(cache, b.getString("id")));
-            JSONArray as = c == null ? null : c.optJSONArray("artikelen");
-            if (as != null) for (int j = 0; j < as.length(); j++) {
-                JSONObject a = as.optJSONObject(j);
-                if (a != null && a.optString("id").equals(id)) return new JSONObject(a.toString()).put("bronnaam", b.optString("naam"));
+        for (int ronde = 0; ronde < 2 * bs.length(); ronde++) { // eerst alle caches, pas daarna de (grotere) archieven
+            JSONObject b = bs.getJSONObject(ronde % bs.length());
+            for (File f : new File[]{ronde < bs.length() ? cacheBestand(cache, b.getString("id")) : oudBestand(cache, b.getString("id"))}) {
+                JSONObject c = leesObject(f);
+                JSONArray as = c == null ? null : c.optJSONArray("artikelen");
+                if (as != null) for (int j = 0; j < as.length(); j++) {
+                    JSONObject a = as.optJSONObject(j);
+                    if (a != null && a.optString("id").equals(id)) return new JSONObject(a.toString()).put("bronnaam", b.optString("naam"));
+                }
             }
         }
         return null;
@@ -1787,7 +2000,7 @@ final class Nieuws {
         synchronized (LOCK) {
             Set<String> ids = new HashSet<>();
             JSONArray bs = bronnen(dir);
-            for (int i = 0; i < bs.length(); i++) ids.add(bs.getJSONObject(i).getString("id") + ".json");
+            for (int i = 0; i < bs.length(); i++) { String id = bs.getJSONObject(i).getString("id"); ids.add(id + ".json"); ids.add(id + ".oud.json"); }
             File[] fs = cache.listFiles();
             if (fs != null) for (File f : fs) if (!ids.contains(f.getName())) f.delete();
         }

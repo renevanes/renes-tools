@@ -930,6 +930,92 @@ public class NieuwsTest {
         Nieuws.aanvullen("nos", rssFeed, null, System.currentTimeMillis() + 10_000, (u, tot) -> { throw new AssertionError("niet ophalen"); });
         check(rssFeed.artikelen.size() == voor, "een gewone feed: niets aangevuld");
         inlogTests();
+        ouderTests();
+    }
+
+    /** Oudere berichten: wat uit de feed verdwijnt gaat het archief in, en is daar terug te lezen en te openen. */
+    static void ouderTests() throws Exception {
+        java.io.File tmp = java.nio.file.Files.createTempDirectory("nwouder").toFile();
+        java.io.File dir = new java.io.File(tmp, "nieuws"), cache = new java.io.File(tmp, "cache");
+        dir.mkdirs(); cache.mkdirs();
+        long nu = System.currentTimeMillis();
+        NieuwsFeed.Feed eerst = new NieuwsFeed.Feed();
+        for (int i = 0; i < 70; i++) eerst.artikelen.add(art("https://feeds.nos.nl/a/" + i, "Eerste " + i, nu - i * 60_000L));
+        Nieuws.bewaarFeed(cache, "nos", "https://feeds.nos.nl/nosnieuwsalgemeen", eerst, nu);
+        org.json.JSONObject arch = Nieuws.leesObject(Nieuws.oudBestand(cache, "nos"));
+        check(Nieuws.leesObject(Nieuws.cacheBestand(cache, "nos")).getJSONArray("artikelen").length() == Nieuws.MAX_PER_BRON
+                && arch != null && arch.getJSONArray("artikelen").length() == 10, "wat niet meer in de cache past gaat het archief in");
+        NieuwsFeed.Feed later = new NieuwsFeed.Feed();
+        for (int i = 0; i < 20; i++) later.artikelen.add(art("https://feeds.nos.nl/b/" + i, "Later " + i, nu + 60_000L + i * 1000L));
+        later.artikelen.add(art("https://feeds.nos.nl/a/65", "Eerste 65", nu - 65 * 60_000L)); // staat weer in de feed
+        Nieuws.bewaarFeed(cache, "nos", "https://feeds.nos.nl/nosnieuwsalgemeen", later, nu + 120_000L);
+        org.json.JSONArray oa = Nieuws.leesObject(Nieuws.oudBestand(cache, "nos")).getJSONArray("artikelen");
+        boolean dubbel = false; java.util.Set<String> ids = new java.util.HashSet<>();
+        for (int i = 0; i < oa.length(); i++) if (!ids.add(oa.getJSONObject(i).getString("id"))) dubbel = true;
+        String terugId = Nieuws.artikelId("nos", "https://feeds.nos.nl/a/65");
+        check(oa.length() == 69 && !dubbel && !ids.contains(terugId), "uit de feed verdwenen: in het archief, elk één keer, niet wat weer in de feed staat (" + oa.length() + ")");
+        boolean nieuwsteEerst = true;
+        for (int i = 1; i < oa.length(); i++) if (oa.getJSONObject(i).getLong("datum") > oa.getJSONObject(i - 1).getLong("datum")) nieuwsteEerst = false;
+        check(nieuwsteEerst, "het archief: nieuwste eerst");
+        // bron aan zetten zodat Nieuws.ouder hem leest (nos staat standaard aan)
+        java.util.Set<String> al = new java.util.HashSet<>();
+        org.json.JSONObject r = Nieuws.ouder(dir, cache, "", al, 25);
+        org.json.JSONArray ra = r.getJSONArray("artikelen");
+        check(ra.length() == 25 && r.getBoolean("meer") && !ra.getJSONObject(0).has("blokken"), "ouder: het nieuwste stuk uit het archief, zonder de hele tekst, en er is meer");
+        for (int i = 0; i < ra.length(); i++) al.add(ra.getJSONObject(i).getString("id"));
+        org.json.JSONArray rb = Nieuws.ouder(dir, cache, "", al, 100).getJSONArray("artikelen");
+        boolean geenDubbel = true;
+        for (int i = 0; i < rb.length(); i++) if (al.contains(rb.getJSONObject(i).getString("id"))) geenDubbel = false;
+        check(rb.length() == 69 - 25 && geenDubbel, "ouder: het volgende stuk sluit aan, niets dubbel en niets overgeslagen");
+        check(Nieuws.ouder(dir, cache, "rijnmond", new java.util.HashSet<>(), 25).getJSONArray("artikelen").length() == 0, "ouder: alleen van de gekozen bron");
+        // gelijke datums over de grens van een stuk: niets valt weg
+        NieuwsFeed.Feed rij = new NieuwsFeed.Feed();
+        for (int i = 0; i < 70; i++) rij.artikelen.add(art("https://www.rijnmond.nl/x/" + i, "Rij " + i, nu - 86_400_000L));
+        Nieuws.bewaarFeed(cache, "rijnmond", "https://www.rijnmond.nl/rss/index.xml", rij, nu);
+        java.util.Set<String> al2 = new java.util.HashSet<>();
+        int samen = 0;
+        for (int k = 0; k < 5; k++) {
+            org.json.JSONArray s = Nieuws.ouder(dir, cache, "rijnmond", al2, 3).getJSONArray("artikelen");
+            for (int i = 0; i < s.length(); i++) al2.add(s.getJSONObject(i).getString("id"));
+            samen += s.length();
+        }
+        check(samen == 10 && al2.size() == 10, "gelijke datums: in stukjes van 3 komen alle 10 langs");
+        // niets veranderd: het archief wordt niet opnieuw geschreven
+        java.util.List<org.json.JSONObject> zelfde = new java.util.ArrayList<>();
+        org.json.JSONArray hu = Nieuws.leesObject(Nieuws.oudBestand(cache, "rijnmond")).getJSONArray("artikelen");
+        for (int i = 0; i < hu.length(); i++) zelfde.add(hu.getJSONObject(i));
+        check(Nieuws.naarArchief(cache, "rijnmond", zelfde, new java.util.HashSet<>(), Nieuws.MAX_OUD) == 0, "niets nieuw: niets geschreven");
+        // het archief vol: wat niet past telt niet als erbij
+        java.util.List<org.json.JSONObject> oudjes = new java.util.ArrayList<>();
+        oudjes.add(Nieuws.json(art("https://www.rijnmond.nl/heel-oud", "Heel oud", 1000), "rijnmond", 1000, "https://www.rijnmond.nl/"));
+        check(Nieuws.naarArchief(cache, "rijnmond", oudjes, new java.util.HashSet<>(), 10) == 0, "vol archief: wat niet past telt niet");
+        check("Eerste 50".equals(Nieuws.artikel(dir, cache, Nieuws.artikelId("nos", "https://feeds.nos.nl/a/50")).optString("titel")), "een artikel uit het archief is te openen");
+        check(!Nieuws.ouder(dir, cache, "", new java.util.HashSet<>(), 5).getBoolean("halen"), "een gewone feed kan niet verder terug op de site");
+        // een sitemap: de volgende artikelen die Tools nog niet kent
+        NieuwsFeed.Feed kaart = new NieuwsFeed.Feed();
+        java.util.Set<String> bekend = new java.util.HashSet<>();
+        for (int i = 0; i < 50; i++) {
+            NieuwsFeed.Artikel a = art("https://www.aireport.nl/artikel/" + i, "", 0);
+            kaart.artikelen.add(a);
+            if (i < 10) bekend.add(Nieuws.artikelId("aireport", a.sleutel));
+        }
+        NieuwsFeed.Feed deel = Nieuws.volgende("aireport", kaart, bekend);
+        check(deel.uitSitemap && deel.artikelen.size() == Nieuws.MAX_PAGINAS && deel.artikelen.get(0).link.endsWith("/artikel/10"), "sitemap: de volgende 20 die nog niet bekend zijn");
+        // pagina's die weg bleken: onthouden, en het archief houdt ze bij het bijschrijven
+        Nieuws.wegErbij(cache, "rijnmond", java.util.Arrays.asList("n0000000000000001"));
+        Nieuws.naarArchief(cache, "rijnmond", java.util.Arrays.asList(Nieuws.json(art("https://www.rijnmond.nl/nieuw", "Nieuw", nu - 1000), "rijnmond", nu - 1000, "https://www.rijnmond.nl/")), new java.util.HashSet<>(), Nieuws.MAX_OUD);
+        org.json.JSONObject ar = Nieuws.leesObject(Nieuws.oudBestand(cache, "rijnmond"));
+        check(ar.getJSONArray("weg").length() == 1 && ar.getJSONArray("artikelen").length() == 11, "weg-lijst blijft bij het bijschrijven");
+        // cache en archief samen weg
+        Nieuws.wisCache(cache, "nos");
+        check(!Nieuws.oudBestand(cache, "nos").exists() && !Nieuws.cacheBestand(cache, "nos").exists(), "cache en archief samen weg");
+    }
+
+    static NieuwsFeed.Artikel art(String link, String titel, long datum) {
+        NieuwsFeed.Artikel a = new NieuwsFeed.Artikel();
+        a.link = link; a.sleutel = link; a.titel = titel; a.datum = datum;
+        a.blokken.add(new NieuwsFeed.Blok("Tekst van " + titel, false));
+        return a;
     }
 
     static void inlogTests() throws Exception {

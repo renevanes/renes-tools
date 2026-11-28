@@ -13,7 +13,8 @@
 .nw-rij[data-new] b{font-weight:650;color:var(--ink)}
 .nw-sam{color:var(--muted);font-size:14px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .nw-img{flex:none;width:84px;height:64px;object-fit:cover;border-radius:10px;background:var(--hi)}
-.nw-verder{margin-top:12px}
+.nw-verder,.nw-ouder{margin-top:12px}
+.nw-ouder-st{margin:12px 4px 0;text-align:center}
 @media (prefers-reduced-motion: no-preference){#nw-ververs.nw-draai::before{animation:nw-draai 1s linear infinite}}
 @keyframes nw-draai{to{transform:rotate(360deg)}}
 .nw-art{max-width:46rem;margin:auto}
