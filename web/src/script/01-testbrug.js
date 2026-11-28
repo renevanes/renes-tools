@@ -1193,15 +1193,20 @@ if (!window.Android) window.Android = (function(){
     _pcPos(){ const st = this._pc.st; return st.status === 'playing' ? Math.min(st.dur, st.pos + (Date.now() - st.at) * this._pc.speed) : st.pos; },
     podPlay(j){ const o = JSON.parse(j); if (!/^https?:/.test(o.ep.url || '')) return 'Deze aflevering heeft geen geldig adres';
       if (this._cast && this._cast.active) { Object.assign(this._cast, { src: 'podcast', title: o.ep.title, key: o.ep.key, ep: o.ep, pod: o.pod, pos: 0, dur: (o.ep.dur || 0) * 1000, playing: true, status: 'playing' }); return ''; } this._take('podcast'); this._pcSave(); this._pc.q = (this._pc.q || []).filter(r => r.ep.key !== o.ep.key);
-      const saved = this._pc.prog[o.ep.key], from = o.fromStart || !saved || saved.done ? 0 : saved.p;
-      this._pc.st = { status: 'connecting', ep: o.ep, pod: o.pod, pos: from, dur: (o.ep.dur || 0) * 1000, at: Date.now(), sleepAt: this._pc.st.sleepAt || 0, sleepEnd: !!this._pc.st.sleepEnd };
+      const saved = this._pc.prog[o.ep.key], from = o.at != null ? o.at : o.fromStart || !saved || saved.done ? 0 : saved.p;
+      if (!o.nav) this._pc.terug = null;
+      const meld = o.at != null ? { wat: 'terug', t: Date.now() } : this._pc.st.meld;
+      this._pc.st = { status: 'connecting', meld, ep: o.ep, pod: o.pod, pos: from, dur: (o.ep.dur || 0) * 1000, at: Date.now(), sleepAt: this._pc.st.sleepAt || 0, sleepEnd: !!this._pc.st.sleepEnd };
       this._pc.recent = [{ ep: o.ep, pod: o.pod, t: Date.now() }].concat(this._pc.recent.filter(r => r.ep.key !== o.ep.key));
       setTimeout(() => { if (this._pc.st.status === 'connecting') { this._pc.st.status = 'playing'; this._pc.st.at = Date.now(); } }, 150); return ''; },
     podPause(){ const st = this._pc.st; st.pos = this._pcPos(); st.status = 'paused'; this._pcSave(); },
     podResume(){ const st = this._pc.st; if (st.ep) { this._take('podcast'); st.status = 'playing'; st.at = Date.now(); } },
     podStop(){ this._pcSave(); this._pc.st = { status: 'stopped' }; },
     podSeek(ms){ const st = this._pc.st; st.pos = ms; st.at = Date.now(); this._pc.lastSeek = ms; },
-    podSkip(s){ const st = this._pc.st; st.pos = Math.max(0, this._pcPos() + s * 1000); st.at = Date.now(); this._pc.lastSkip = s; },
+    podSkip(s){ const st = this._pc.st;
+      // Terugspoelen aan het begin: het einde van wat hiervoor speelde (zoals PodcastTerug)
+      if (s < 0 && st.ep && this._pcPos() <= 3000) { const r = this._pcStap(-1); if (r && r.ep.dur >= 30) { this._pc.lastSkip = s; this.podPlay(JSON.stringify({ ep: r.ep, pod: r.pod, nav: true, at: r.ep.dur * 1000 + s * 1000 - 5000 })); return; } }
+      st.pos = Math.max(0, this._pcPos() + s * 1000); st.at = Date.now(); this._pc.lastSkip = s; },
     podSpeed(v){ this._pc.st.pos = this._pcPos(); this._pc.st.at = Date.now(); this._pc.speed = +v; },
     podSleep(m){ const st = this._pc.st; if (!st.ep) return m ? 'Start eerst een aflevering' : ''; st.sleepEnd = m === -1; st.sleepAt = m > 0 ? Date.now() + m * 6e4 : 0; this._pc.lastSleep = m; return ''; },
     podSleepAdd(m){ const st = this._pc.st; if (!st.ep) return 'Start eerst een aflevering'; st.sleepAt = Math.max(st.sleepAt || 0, Date.now()) + m * 6e4; st.sleepEnd = false; return ''; },
@@ -1248,9 +1253,20 @@ if (!window.Android) window.Android = (function(){
       if ((src || this._src) === 'radio') { const f = this._rd.favs; if (!f.length) return 'Zet zenders bij je favorieten (☆) om te wisselen';
         const cur = this._rd.st.station || this._rd.st.last || {}; let i = f.findIndex(s => s.url === cur.url); if (i < 0 && d < 0) i = 0; i = ((i + d) % f.length + f.length) % f.length; this.radioPlay(JSON.stringify(f[i])); this._lastStep = d; return ''; }
       const st = this._pc.st; this._lastStep = d;
-      if (d < 0) { if (st.ep) this.podSeek(0); return st.ep ? '' : 'Er speelde nog niets'; }
+      if (d < 0) { const r = this._pcStap(-1); if (!r) { if (st.ep) this.podSeek(0); return st.ep ? '' : 'Er speelde nog niets'; } return this.podPlay(JSON.stringify({ ep: r.ep, pod: r.pod, nav: true })); }
+      const v = this._pcStap(1); if (v) return this.podPlay(JSON.stringify({ ep: v.ep, pod: v.pod, nav: true }));
       const q = this._pc.q || []; if (!q.length) return 'Geen volgende aflevering. Zet er een in Hierna via ⋯ bij een aflevering.';
       const n = q.shift(); this.podPlay(JSON.stringify(n)); return ''; },
+    /* Terug en vooruit door wat er speelde (zoals PodcastTerug en Player.stap) */
+    _pcStap(d){ const P = this._pc, cur = P.st.ep ? P.st.ep.key : '', keys = P.recent.map(r => r.ep.key); let s = P.terug;
+      if (!(s && s.rij[s.i] === cur)) { if (d > 0) return null; s = { rij: [cur].concat(keys.filter(k => k !== cur)), i: 0 }; }
+      for (let j = s.i + (d < 0 ? 1 : -1); j >= 0 && j < s.rij.length; j += d < 0 ? 1 : -1) if (keys.includes(s.rij[j])) { P.terug = { rij: s.rij, i: j }; return P.recent.find(r => r.ep.key === s.rij[j]); }
+      return null; },
+    podEerder(){ const P = this._pc, cur = P.st.ep ? P.st.ep.key : ''; return JSON.stringify(P.recent.filter(r => r.ep.key !== cur).slice(0, 15).map(r => Object.assign({}, r, { done: !!(P.prog[r.ep.key] && P.prog[r.ep.key].done) }))); },
+    /* Zacht beginnen (zoals PodcastZacht) */
+    podZacht(){ const P = this._pc; P.zacht = P.zacht || { wijze: 'avond', van: 1200, tot: 420, pct: 7, luidspreker: false }; return JSON.stringify(Object.assign({ min: 1, max: 40, nuPct: P.nuPct == null ? 20 : P.nuPct }, P.zacht)); },
+    podZachtZet(j){ const o = JSON.parse(j), z = JSON.parse(this.podZacht()), ok = (v, std, a, b) => Number.isInteger(v) && v >= a && v <= b ? v : std;
+      this._pc.zacht = { wijze: ['avond', 'altijd', 'uit'].includes(o.wijze) ? o.wijze : 'avond', van: ok(o.van, z.van, 0, 1439), tot: ok(o.tot, z.tot, 0, 1439), pct: ok(o.pct, z.pct, 1, 40), luidspreker: !!o.luidspreker }; },
     podQueue(){ return JSON.stringify(this._pc.q || []); },
     // Na een aflevering (zoals PodcastNa en Podcasts.nextFor met take = false)
     podNa(){ const P = this._pc, st = P.st, na = ['stop', 'hierna', 'podcast', 'nieuw'].includes(P.na) ? P.na : 'podcast', slaap = P.naSlaap !== false;

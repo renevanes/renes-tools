@@ -184,8 +184,58 @@ final class Player {
         } catch (Exception ignored) { }
     }
 
-    private static long prevAt;
-    private static int prevDepth;
+    /**
+     * Een stap terug (dir −1) of weer vooruit (1) door wat er gespeeld is: {ep, pod} of null. De stand (PodcastTerug)
+     * staat in de instellingen van Podcasts, zodat het ook na het herstarten van de app klopt.
+     */
+    private static String stapKey;
+    private static long stapT;
+
+    static synchronized JSONObject stap(Context c, String nu, int dir) {
+        try {
+            org.json.JSONArray a = Podcasts.recent(c);
+            java.util.List<String> keys = new java.util.ArrayList<>();
+            java.util.Map<String, JSONObject> bij = new java.util.HashMap<>();
+            for (int i = 0; i < a.length(); i++) {
+                JSONObject r = a.optJSONObject(i), e = r == null ? null : r.optJSONObject("ep");
+                String k = e == null ? "" : e.optString("key");
+                if (k.isEmpty() || bij.containsKey(k)) continue;
+                keys.add(k); bij.put(k, r);
+            }
+            android.content.SharedPreferences pr = Podcasts.prefs(c);
+            long nuT = System.currentTimeMillis(), was = pr.getLong("terugT", 0);
+            // Een rij van lang geleden telt niet meer (dan begint terug opnieuw en kiest de speler zelf wat er komt)
+            PodcastTerug.Stand s = was > nuT || nuT - was > PodcastTerug.GELDIG_MS ? null : PodcastTerug.lees(pr.getString("terugRij", ""));
+            // Snel achter elkaar: de speler is nog niet bij de vorige stap; reken vanaf daar
+            if (s != null && stapKey != null && android.os.SystemClock.elapsedRealtime() - stapT < 2500 && s.klopt(stapKey)) nu = stapKey;
+            PodcastTerug.Stap st = dir < 0 ? PodcastTerug.terug(keys, nu, s) : PodcastTerug.vooruit(keys, nu, s);
+            if (st.key == null || bij.get(st.key) == null) return null;
+            pr.edit().putString("terugRij", PodcastTerug.json(st.stand)).putLong("terugT", nuT).apply();
+            stapKey = st.key; stapT = android.os.SystemClock.elapsedRealtime();
+            JSONObject r = bij.get(st.key);
+            return new JSONObject().put("ep", r.getJSONObject("ep")).put("pod", r.optJSONObject("pod") == null ? new JSONObject() : r.optJSONObject("pod")).put("nav", true);
+        } catch (Exception e) { return null; }
+    }
+
+    /**
+     * Terugspoelen aan het begin van een aflevering: verder in het einde van wat hiervoor speelde. Geeft false als dat
+     * niet kan (niets eerder, of de lengte is onbekend); dan gebeurt er niets.
+     */
+    static synchronized boolean naarEindeVorige(Context c, String nu, long terugMs) {
+        try {
+            android.content.SharedPreferences pr = Podcasts.prefs(c);
+            String was = pr.getString("terugRij", "");
+            long wasT = pr.getLong("terugT", 0);
+            JSONObject r = stap(c, nu, -1);
+            if (r == null) return false;
+            JSONObject e = r.getJSONObject("ep"), p = Podcasts.progressOf(c, e.optString("key"));
+            long duur = p != null && p.optLong("d") > 0 ? p.optLong("d") : e.optLong("dur") * 1000L;
+            long at = PodcastTerug.plekAanEinde(duur, terugMs);
+            if (at < 0 || !Podcasts.httpUrl(e.optString("url"))) { pr.edit().putString("terugRij", was).putLong("terugT", wasT).apply(); stapKey = null; return false; }
+            PodcastService.send(c, PodcastService.PLAY, r.put("at", at).toString());
+            return true;
+        } catch (Exception e) { return false; }
+    }
 
     /** Volgende (dir 1) of vorige (−1) zender of aflevering. Geeft "" of een melding. */
     static synchronized String step(Context c, String src, int dir) {
@@ -202,18 +252,16 @@ final class Player {
             Now n = cast ? Cast.now() : podcastNow(c);
             JSONObject ep = n == null ? null : n.ep, pod = n == null ? null : n.pod;
             if (dir < 0) {
-                if (ep != null && n.pos > 10_000) { podSeek(c, 0); return ""; }
-                // Vlak na elkaar ⏮: steeds een stap verder terug in wat je eerder luisterde
-                long now = System.currentTimeMillis();
-                prevDepth = now - prevAt < 30_000 ? prevDepth + 1 : 1;
-                prevAt = now;
-                JSONObject r = Podcasts.previous(c, ep == null ? "" : ep.optString("key"), prevDepth);
+                // Elke keer ⏮ een stap verder terug in wat er gespeeld is; de plek in deze aflevering blijft bewaard, en ⏭
+                // gaat dezelfde weg weer vooruit (PodcastTerug). Is er niets eerder: terug naar het begin.
+                JSONObject r = stap(c, ep == null ? "" : ep.optString("key"), -1);
                 if (r == null) { if (ep != null) podSeek(c, 0); return ep == null ? "Er speelde nog niets" : ""; }
                 if (cast) Cast.load(Cast.fromEpisode(c, r.getJSONObject("ep"), r.optJSONObject("pod"), false));
-                else PodcastService.send(c, PodcastService.PLAY, new JSONObject().put("ep", r.getJSONObject("ep")).put("pod", r.optJSONObject("pod")).toString());
+                else PodcastService.send(c, PodcastService.PLAY, r.toString());
                 return "";
             }
-            JSONObject nx = Podcasts.next(c, ep, pod);
+            JSONObject nx = stap(c, ep == null ? "" : ep.optString("key"), 1); // na ⏮: eerst weer vooruit door wat er speelde
+            if (nx == null) nx = Podcasts.next(c, ep, pod);
             if (nx == null) return "Geen volgende aflevering. Zet er een in Hierna via ⋯ bij een aflevering.";
             JSONObject ne = nx.optJSONObject("ep");
             if (ne != null) Podcasts.queueRemove(c, ne.optString("key"));

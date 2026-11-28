@@ -36,3 +36,44 @@ window.onFijnVolume = function(n, max){
   if (typeof plIsOpen !== 'undefined' && plIsOpen && $('#pl-volwrap').style.display !== 'none') { const r = $('#pl-vol'); r.max = max; r.value = n; if (typeof plVolTxt === 'function') plVolTxt(r); return; }
   toast(t('Volume {p}%', { p: fmtNum(Math.round(n / max * 100)) }));
 };
+
+/* Zacht beginnen (Java: PodcastZacht): een luisterbeurt in de avond begint op een zacht volume. Kaart op Instellingen van Podcasts. */
+function psZachtInfo(){ return typeof Android.podZacht === 'function' ? rdJson(Android.podZacht(), null) : null; } // oudere app: de kaart blijft weg
+function psZachtHm(m){ return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+function psZachtMin(v, std){ const m = /^(\d{1,2}):(\d{2})$/.exec(String(v || '')); return m && +m[1] < 24 && +m[2] < 60 ? +m[1] * 60 + +m[2] : std; }
+/** Uitleg bij de stand. Zuiver. */
+function psZachtUitleg(i){
+  if (i.wijze === 'uit') return t('Uit: de speler begint op het volume van je telefoon.');
+  const waar = i.luidspreker ? ' ' + t('Alleen op de luidspreker van de telefoon.') : '';
+  if (i.wijze === 'altijd') return t('Elke keer dat je begint met luisteren (na een half uur of langer niets) begint het zacht.') + waar;
+  return t('Begin je tussen {van} en {tot} met luisteren (na een half uur of langer niets), dan begint het zacht.', { van: fmtHm(psZachtHm(i.van)), tot: fmtHm(psZachtHm(i.tot)) }) + waar;
+}
+function psZachtTxt(){ $('#ps-zacht-pt').textContent = t('{p}% van het hoogste volume', { p: fmtNum(+$('#ps-zacht-pct').value) }); }
+function psZachtRender(){
+  const kaart = $('#ps-zk'); if (!kaart) return;
+  const i = psZachtInfo(); kaart.hidden = !i || !i.wijze; if (kaart.hidden) return;
+  $('#ps-zacht').value = i.wijze;
+  $('#ps-zacht-meer').hidden = i.wijze === 'uit'; $('#ps-zacht-tijd').style.display = i.wijze === 'avond' ? '' : 'none';
+  $('#ps-zacht-van').value = psZachtHm(i.van); $('#ps-zacht-tot').value = psZachtHm(i.tot);
+  const r = $('#ps-zacht-pct'); r.min = i.min || 1; r.max = i.max || 40; r.value = i.pct; psZachtTxt();
+  const nu = $('#ps-zacht-nu'), kan = i.nuPct >= (i.min || 1) && i.nuPct <= (i.max || 40) && i.nuPct !== i.pct;
+  nu.style.display = kan ? '' : 'none'; if (kan) nu.textContent = t('Het volume van nu gebruiken ({p}%)', { p: fmtNum(i.nuPct) });
+  const ls = $('#ps-zacht-ls'); ls.classList.toggle('on', !!i.luidspreker); ls.setAttribute('aria-checked', i.luidspreker ? 'true' : 'false');
+  $('#ps-zacht-u').textContent = psZachtUitleg(i);
+}
+function psZachtZet(o){ const i = psZachtInfo(); if (!i) return; Android.podZachtZet(JSON.stringify(Object.assign({ wijze: i.wijze, van: i.van, tot: i.tot, pct: i.pct, luidspreker: !!i.luidspreker }, o))); if (current === 'podset') psZachtRender(); }
+function psZacht(){
+  const i = psZachtInfo(); if (!i) return;
+  psZachtZet({ wijze: $('#ps-zacht').value, van: psZachtMin($('#ps-zacht-van').value, i.van), tot: psZachtMin($('#ps-zacht-tot').value, i.tot), pct: +$('#ps-zacht-pct').value });
+}
+function psZachtNu(){ const i = psZachtInfo(); if (i && i.nuPct > 0) psZachtZet({ pct: i.nuPct }); }
+function psZachtLs(){ const i = psZachtInfo(); if (i) psZachtZet({ luidspreker: !i.luidspreker }); }
+/** Korte melding van de speler (Java: PodcastService.melding): zacht begonnen, of terug in de vorige aflevering. Eén keer per melding. */
+let pcMeldT = 0;
+function pcMeldKort(st){
+  const m = st && st.meld; if (!m || !(m.t > pcMeldT)) return;
+  const eerste = !pcMeldT; pcMeldT = m.t;
+  if (eerste && Date.now() - m.t > 15000) return; // van voor het openen van de app
+  if (m.wat === 'zacht') toast(t('Zacht begonnen. Harder kan met de volumeknoppen.'));
+  else if (m.wat === 'terug') toast(t('Terug in de vorige aflevering. Met ⏭ ga je weer verder.'));
+}

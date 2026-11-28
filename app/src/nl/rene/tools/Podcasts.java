@@ -724,23 +724,6 @@ final class Podcasts {
         return i < 0 ? null : new JSONObject().put("ep", items.getJSONObject(i)).put("pod", pod);
     }
 
-    /**
-     * Wat er eerder speelde (uit de lijst van recent gestart, nieuwste eerst), of null. depth 1 = de vorige; vlak na
-     * elkaar teruggaan geeft depth 2, 3, … (wat je net terug-speelde staat dan zelf vooraan, de rest schuift op).
-     */
-    static JSONObject previous(Context c, String key, int depth) {
-        JSONArray a = recent(c);
-        int n = 0;
-        JSONObject last = null;
-        for (int i = 0; i < a.length(); i++) {
-            JSONObject r = a.optJSONObject(i);
-            if (r == null || r.optJSONObject("ep") == null || keyOf(r).equals(key)) continue;
-            last = r;
-            if (++n >= Math.max(1, depth)) return r;
-        }
-        return last; // niet zo ver terug: de oudste
-    }
-
     // ---------- snelkoppeling naar een podcast ----------
 
     /**

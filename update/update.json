@@ -1,15 +1,26 @@
 {
   "app": "Tools",
-  "versionName": "1.276",
-  "versionCode": 277,
-  "nativeLevel": 236,
+  "versionName": "1.277",
+  "versionCode": 278,
+  "nativeLevel": 237,
   "web": "index.html",
-  "webSha256": "ebbf74a3e07cc19cf41e2c2c81790ececba7ca4af6d9671b5810e36c949de04b",
+  "webSha256": "923df0b166617a6efc1af02835462f444bbabcfc952aafd8815268d7bc8c91fc",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "7023c4172140e3cd4c23cb449bd5f99f1bc231ba8bd27823484d32947bc88e22",
+  "apkSha256": "4f3b680605b054827d10c3c50c6089a66daeae4a5541c8582642af18b3938802",
   "changelog": [
+    {
+      "version": "1.277",
+      "date": "2026-11-28",
+      "changes": [
+        "Podcasts: zacht beginnen. Begin je in de avond of nacht met luisteren, dan staat het volume eerst zacht (nog net hoorbaar); tijden en hoe zacht stel je in bij Podcasts → Instellingen",
+        "Podcasts: ⏮ gaat nu meteen naar wat hiervoor speelde en elke keer een stap verder terug; ⏭ brengt je weer terug waar je was",
+        "Podcasts: terugspoelen aan het begin van een aflevering gaat door in het einde van de vorige",
+        "Podcasts: in de speler staat onder Hierna de lijst Eerder afgespeeld",
+        "Podcasts: na Afspelen zie je sneller dat het speelt, en een aflevering die je kort geleden luisterde start sneller opnieuw"
+      ]
+    },
     {
       "version": "1.276",
       "date": "2026-11-27",
@@ -163,16 +174,7 @@
         "Stamgegevens: bij de voorkant of achterkant van een ID-bewijs kun je nu ook een PDF of Word-document kiezen; Tools haalt de foto's eruit en jij kiest welke je bewaart.",
         "Podcasts: in het venster Slaaptimer kies je nu ook wat er gebeurt met afleveringen die aflopen terwijl de timer loopt (daarna vragen, niet beluisterd of beluisterd)."
       ]
-    },
-    {
-      "version": "1.257",
-      "date": "2026-11-25",
-      "changes": [
-        "Stamgegevens, handtekening en Vergelijken: een bestand kiezen gaat nu overal hetzelfde, met de keuze documentenkluis, Gemaakt of bestand op de telefoon.",
-        "ID-bewijs uit een document: tijdens het verwerken zie je een venster met wat er gebeurt en een balk, met Annuleren.",
-        "ID-bewijs uit een document: staan voor- en achterkant samen op één gescande pagina, dan haalt Tools ze er als twee losse foto's uit, zodat je beide kunt kiezen."
-      ]
     }
   ],
-  "webSig2": "ePqrDUgBP4pfxbGSvx72musERIjpvfIJ5mEEbCYEZcAGoe+6MPqMB3Wi8wWO6WquYaPWyFBPYtypD0Qgq/xlrb9/SdT9QxNt+pxBr9QIluZE4VL0hN1OyEZSSiWJRh9/XZOeZTZ/X1ZwPApggZFnCZEB4oECDVN3hv8FjfvQizGy+CbmixiGurxlB5/9zVZ4l0c9c5J5Je0hnFqrQp4WpLXyaZVSDd0vDWzqvjtDmbOM6QgEg6KNYpoclfFYhhHiaACRwLDUzu65hfHe7z0AONvMU2PZnvRvYkyRYJtSxjQ5zfRPZ192I8mUx08ktN3gz8M4xy5GM37QZZBUJLX9b6PMMWjoOj2kYJFpuiNec1MW4nh8Zn99g5fZjCFDSuF/pqWBbRWOvTLGj2aCLhi4KdrFpmv4RRrkbyHgMM1p6Ze33+QMiXFl2qZhFww16d9tBeM6tm1RygkJjG1DIoJnTwCJAhQ3vEwa071nWo81Ccqp1jOBxPHhZ+dKoEYT8BmF"
+  "webSig2": "bV1jsywGKxvGRT8HrutlRIfXyyoGagFcw7YG1prEjWoib5mUUTgjVid0P3NSELg9M2ZNR2HWSlm6zCcZZoBl0ScIDYs7YZMo9BR+mV9s7lB5rPMsp81fCLuRIssMajRgb0If0HA/RSE8e82fpDIncq0YjI4RcmV/Sl9Gp2HECJgdZXgktVK9p9pcjS1uGnWQrG21qhGYHrxnSq/ubgTYMyjoQ32tfrrY7XPSIDBWY79wLvJGNRVwuJ98qXDila6DcPnFk+Fonfsaxp9RIrurBU0pXhb8FiReQtuwkL5dchTYodYlAOyE38o5noy4S0HjpWxdXplQVyonVZXvBrrUyuN8EqzCE7h8GkBhhcHC63CFunur6GQlRP21M6tgTvTF7TMeLhLveMH1Jp2Hw8DMug0D8nvVM4VtZMIM59M7mQ3Wc+VaUggI/tZdIAhdu1bVuBcR6vMdc7AUY8hxr4nYBBcu9LIJ83+P+uSPxPqjuzljnLpiE+8eCYn+QORbSCXn"
 }

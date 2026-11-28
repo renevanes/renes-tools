@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 final class PodcastUrl {
     private PodcastUrl() { }
 
-    static final long KEEP_MS = 20 * 60_000L, KEEP_SIGNED_MS = 2 * 60_000L, WAIT_MS = 4000;
+    static final long KEEP_MS = 3 * 60 * 60_000L, KEEP_SIGNED_MS = 2 * 60_000L, WAIT_MS = 4000;
     private static final int HOPS = 8;
     private static final ConcurrentHashMap<String, String[]> CACHE = new ConcurrentHashMap<>();
 
