@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.278",
+    "date": "2026-11-28",
+    "changes": [
+      "Nieuws: je blijft langer ingelogd bij AI Report: een vernieuwde inlog wordt bewaard, en Bankzaken en Betalen loggen je daar niet meer uit",
+      "Nieuws: ben je toch uitgelogd bij een site met inloggen, dan zie je een balk op Nieuws en krijg je één melding; tik om opnieuw in te loggen"
+    ]
+  },
+  {
     "version": "1.277",
     "date": "2026-11-28",
     "changes": [

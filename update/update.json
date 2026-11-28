@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.277",
-  "versionCode": 278,
-  "nativeLevel": 237,
+  "versionName": "1.278",
+  "versionCode": 279,
+  "nativeLevel": 238,
   "web": "index.html",
-  "webSha256": "923df0b166617a6efc1af02835462f444bbabcfc952aafd8815268d7bc8c91fc",
+  "webSha256": "ace1c8d1285f39663c5de3602efb284c96ddddc40e99ba5c32212bb624e6c824",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "4f3b680605b054827d10c3c50c6089a66daeae4a5541c8582642af18b3938802",
+  "apkSha256": "3caf572a4cb7e2f2664c16eb9c4daac10e3e5a5e5c2e31749b22f6880a632d5a",
   "changelog": [
+    {
+      "version": "1.278",
+      "date": "2026-11-28",
+      "changes": [
+        "Nieuws: je blijft langer ingelogd bij AI Report: een vernieuwde inlog wordt bewaard, en Bankzaken en Betalen loggen je daar niet meer uit",
+        "Nieuws: ben je toch uitgelogd bij een site met inloggen, dan zie je een balk op Nieuws en krijg je één melding; tik om opnieuw in te loggen"
+      ]
+    },
     {
       "version": "1.277",
       "date": "2026-11-28",
@@ -166,15 +174,7 @@
       "changes": [
         "Stamgegevens: de strook van een paspoort met een afwijkende (gelaserde) letter wordt nu ook herkend als de controlecijfers kloppen; nummer, geboortedatum en vervaldatum worden dan voorgesteld, naam en nationaliteit staan erbij om na te kijken."
       ]
-    },
-    {
-      "version": "1.258",
-      "date": "2026-11-25",
-      "changes": [
-        "Stamgegevens: bij de voorkant of achterkant van een ID-bewijs kun je nu ook een PDF of Word-document kiezen; Tools haalt de foto's eruit en jij kiest welke je bewaart.",
-        "Podcasts: in het venster Slaaptimer kies je nu ook wat er gebeurt met afleveringen die aflopen terwijl de timer loopt (daarna vragen, niet beluisterd of beluisterd)."
-      ]
     }
   ],
-  "webSig2": "bV1jsywGKxvGRT8HrutlRIfXyyoGagFcw7YG1prEjWoib5mUUTgjVid0P3NSELg9M2ZNR2HWSlm6zCcZZoBl0ScIDYs7YZMo9BR+mV9s7lB5rPMsp81fCLuRIssMajRgb0If0HA/RSE8e82fpDIncq0YjI4RcmV/Sl9Gp2HECJgdZXgktVK9p9pcjS1uGnWQrG21qhGYHrxnSq/ubgTYMyjoQ32tfrrY7XPSIDBWY79wLvJGNRVwuJ98qXDila6DcPnFk+Fonfsaxp9RIrurBU0pXhb8FiReQtuwkL5dchTYodYlAOyE38o5noy4S0HjpWxdXplQVyonVZXvBrrUyuN8EqzCE7h8GkBhhcHC63CFunur6GQlRP21M6tgTvTF7TMeLhLveMH1Jp2Hw8DMug0D8nvVM4VtZMIM59M7mQ3Wc+VaUggI/tZdIAhdu1bVuBcR6vMdc7AUY8hxr4nYBBcu9LIJ83+P+uSPxPqjuzljnLpiE+8eCYn+QORbSCXn"
+  "webSig2": "anR+ZYxXsZfmWnN0QsHXcWTylLDWxRr/BtJ11ZIa3PwjvMxDy+HkDPR74UakwVRZ06SDwuH1oRHCopM51cdyQSiDWeHWsAkDjwRtDt6GbDV1xR4W1X2858s+ZnQrlBiMazcu0MIw1J1vQuNF28ilRtUTX36UzXq63L360rKJ4tcM0qRf3bdvKDbAf9me2U4wJ/cwh6s+YbQxQyKEDtWJtU7EFRq1yNNPJaJcBTN/vyJwopibfwtd5qx4A5Bw8G0ZvdoMbSVNjbmCEhu40s+amLKhU4YGXdPxPXHyyg6zcCnomcrLL6/LpFscwGm/LAFOATUceYCv/GsdUHTTb7DpDlOZCRGTPb5yxW2tyLzJdsGsVEA4oTYudUgrS5M64Blfo6rG13Q7pHsU0GcopuFUqs/8Mhd9UX0HDuWLp1BcAK3Q+p8faEMAlivIfA4TGNGp+nA6w2rD7WmtzngTMXk+spyy2pkjTvypiEIja4mKF6Whwc1BE466OrlDFy8cwH1g"
 }
