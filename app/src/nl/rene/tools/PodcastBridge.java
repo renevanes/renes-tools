@@ -144,6 +144,25 @@ public class PodcastBridge extends AiBridge {
 
     @JavascriptInterface public long podRefreshedAt() { return Podcasts.prefs(ctx).getLong("refreshedAt", 0); }
 
+    /** Zacht beginnen (PodcastZacht): de instelling, met het volume van nu als percentage. */
+    @JavascriptInterface public String podZacht() { try { return PodcastZacht.staat(ctx).toString(); } catch (Throwable e) { return "{}"; } }
+    @JavascriptInterface public void podZachtZet(String json) { try { PodcastZacht.zet(ctx, new JSONObject(json)); } catch (Throwable ignored) { } }
+
+    /** Wat er eerder gespeeld is (ook wat al beluisterd is), nieuwste eerst, zonder wat nu speelt: [{ep, pod, t, done}]. */
+    @JavascriptInterface public String podEerder() {
+        try {
+            JSONArray a = Podcasts.recent(ctx), out = new JSONArray();
+            String nu = PodcastService.ep == null ? "" : new JSONObject(PodcastService.ep).optString("key");
+            for (int i = 0; i < a.length() && out.length() < 15; i++) {
+                JSONObject r = a.optJSONObject(i), e = r == null ? null : r.optJSONObject("ep");
+                if (e == null || e.optString("key").equals(nu)) continue;
+                JSONObject p = Podcasts.progressOf(ctx, e.optString("key"));
+                out.put(r.put("done", p != null && p.optBoolean("done")));
+            }
+            return out.toString();
+        } catch (Throwable e) { return "[]"; }
+    }
+
     @JavascriptInterface public String podContinue() {
         try { return Podcasts.continueList(ctx).toString(); } catch (Exception e) { return "[]"; }
     }

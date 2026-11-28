@@ -133,6 +133,7 @@ function psRender(){
   tg('#ps-naslaap', n.naSlaap !== false); tg('#ps-wifi', !!pr.wifiOnly); tg('#ps-autodel', !!pr.autoDelete);
   $('#ps-next').textContent = psNextTxt(n);
   fvRender('ps');
+  if (typeof psZachtRender === 'function') psZachtRender();
   psOvRender();
   psPeriodeRender(pr);
   psSlpRender();

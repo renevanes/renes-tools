@@ -107,6 +107,7 @@ final class AppData {
         // De backup-map is net opnieuw gekozen; de leesbare WhatsApp-database gaat niet mee (wordt opnieuw gemaakt)
         k.put("wabackup", set("dest", "status", "waDbFrom", "waDbAt"));
         k.put("redial", set("status"));
+        k.put("podcast", set("speeldeTot", "terugRij")); // toestand van dit moment: wanneer er laatst speelde, en waar ⏮ in de rij is
         k.put("mockloc", set("active"));
         k.put("call_recordings", set("active", "autoSession", "lastPhoneState", "autoAttempted"));
         k.put("car", set("tripStart"));

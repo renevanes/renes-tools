@@ -240,7 +240,7 @@ function plRender(){
     back.disabled = !sh; fwd.disabled = !sh || atLive;
   }
   plSetHtml($('#pl-prev'), PL_IC.prev); plSetHtml($('#pl-next'), PL_IC.next);
-  $('#pl-prev').setAttribute('aria-label', m.src === 'radio' ? 'Vorige zender' : 'Vorige (of terug naar het begin)');
+  $('#pl-prev').setAttribute('aria-label', m.src === 'radio' ? 'Vorige zender' : 'Vorige aflevering (wat hiervoor speelde)');
   $('#pl-next').setAttribute('aria-label', m.src === 'radio' ? 'Volgende zender' : 'Volgende aflevering');
 
   // Waar het speelt
@@ -297,6 +297,18 @@ function plRenderQueue(m, force){
       p.textContent = auto ? t('Daarna vanzelf: {titel}', { titel: (auto.ep.title || t('aflevering')) + (auto.pod && auto.pod.title ? ' · ' + auto.pod.title : '') }) : t('Na deze aflevering stopt de speler.');
       box.append(p);
     }
+    // Eerder afgespeeld: terug naar wat er al gespeeld is, ook wat al beluisterd is (⏮ doet hetzelfde, stap voor stap)
+    plEerder = typeof Android.podEerder === 'function' ? rdJson(Android.podEerder(), []).filter(r => r && r.ep && r.ep.key).slice(0, PL_EERDER_N) : [];
+    if (plEerder.length) {
+      const kop = document.createElement('h3'); kop.className = 'pl-qkop'; kop.textContent = t('Eerder afgespeeld'); box.append(kop);
+      const lijst = document.createElement('div'); lijst.id = 'pl-eerder';
+      lijst.innerHTML = plEerder.map((r, i) => {
+        const e = r.ep, p = r.pod || {};
+        return '<div class="pl-qrow"><button class="pl-qb" onclick="plEerderPlay(' + i + ')">' + pcArt(e.image || p.image) +
+          '<span class="pltxt"><b translate="no">' + esc(e.title || t('Aflevering')) + '</b><small><span translate="no">' + esc(p.title || '') + '</span>' + (r.done ? (p.title ? ' · ' : '') + esc(t('beluisterd')) : '') + '</small></span></button></div>';
+      }).join('');
+      box.append(lijst);
+    }
   } else {
     plSetText($('#pl-qtitle'), 'Je zenders');
     $('#pl-qclear').style.display = 'none';
@@ -306,6 +318,10 @@ function plRenderQueue(m, force){
       '<p class="pl-empty">Tik op ☆ om zenders bij je favorieten te zetten; dan wissel je hier en met vegen op het logo snel tussen je zenders.</p>';
   }
 }
+/* Eerder afgespeeld (Java: podEerder) */
+let plEerder = [];
+const PL_EERDER_N = 8;
+function plEerderPlay(i){ const r = plEerder[i]; if (!r || !r.ep) return; pcPlayEp(r.ep, r.pod || {}); plQueueSig = ''; plRender(); setTimeout(plTick, 400); }
 function plQueuePlay(i){
   const r = plQueue[i]; if (!r || !r.ep) return;
   const e = Android.podQueuePlay(r.ep.key); // op sleutel: de lijst kan intussen veranderd zijn
@@ -348,6 +364,7 @@ function plStep(dir){
   if (e) { toast(e); plCoverBack(); return; }
   plHintSrc(m.src);
   plCoverIn(dir);
+  plQueueSig = '';
   setTimeout(plTick, 350); setTimeout(plTick, 900);
 }
 function plSkip(dir){

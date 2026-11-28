@@ -1189,6 +1189,28 @@ artikelen uit RSS-, Atom- en RDF-feeds.
   podcasts; tijdens casten weg, want op een Chromecast wordt niets bijgehouden). Kiest Rene `uit` terwijl er nog regels open
   staan, dan vraagt `slpZet` eerst (die tellen dan als gehoord). Test: `tests/ui/podcast-slaap.test.js`.
 
+## Podcasts: zacht beginnen, terug naar wat er speelde, starttijd
+Wensen van Rene (28-11-2026). Tests: `PodcastZachtTest`, `PodcastTerugTest`, `tests/ui/podcast-terug-zacht.test.js`.
+- **Zacht beginnen** (`PodcastZacht`, kaart `#ps-zk` op Instellingen van Podcasts, `46b-fijn-volume.js`; brug `podZacht`/`podZachtZet`):
+  begint een luisterbeurt (Afspelen of een aflevering kiezen terwijl er `PAUZE_MS` of langer niets speelde; `speeldeTot`) in
+  de avond (standaard 20:00–07:00, app-zone; of altijd, of uit), dan gaat het mediavolume eerst naar een zacht niveau
+  (`zachtPct`, standaard 7% = de onderste stap van Android). Alleen omlaag, of van stil naar dat niveau; daarna is het
+  volume van Rene, ook als de speler vanzelf doorgaat. Niet in de auto (`UI_MODE_TYPE_CAR`), niet bij een vast volume en,
+  als Rene dat kiest, alleen op de luidspreker van de telefoon. Het gaat via `FijnVolume.schuifNaar`. De interface meldt
+  het één keer (`melding` in de toestand → `pcMeldKort`).
+- **Terug naar wat er speelde** (`PodcastTerug`, zuiver; `Player.stap`): ⏮ gaat meteen naar wat hiervoor speelde (niet
+  eerst naar het begin: de plek in de aflevering van nu blijft bewaard) en elke keer een stap verder terug; ⏭ gaat
+  dezelfde weg weer vooruit, en loopt een aflevering af waar Rene naar terugging, dan gaat de speler eerst die weg
+  vooruit (`onEnded`). De rij staat in de instelling `terugRij` (niet in backups) en begint opnieuw zodra er iets speelt
+  wat niet via terug of vooruit kwam (`nav` in de opdracht PLAY). **Terugspoelen aan het begin** (hooguit `BEGIN_MS` ver,
+  niet bij snel achter elkaar drukken: `RUST_MS`) gaat door in het einde van de vorige (`Player.naarEindeVorige`, PLAY met
+  `at`; die beurt wordt er niets overgeslagen: `nietsOverslaan`); ook met de knop op een koptelefoon of de melding. In de
+  speler staat onder Hierna de lijst **Eerder afgespeeld** (`podEerder`, ook wat al beluisterd is; `plEerderPlay`).
+- **Starttijd**: bij elke start één logregel `start: bestand|stream, adres … ms, laden … ms, samen … ms` (soort PODCAST,
+  alleen tijden), zodat in het foutlogboek te zien is waar starten op wacht. Het opgezochte adres van een aflevering
+  blijft 3 uur bruikbaar (`PodcastUrl.KEEP_MS`; ondertekende adressen kort), en na Afspelen kijkt de interface een paar
+  keer snel of het al speelt (`pcSnelKijken`) in plaats van te wachten op de volgende seconde.
+
 ## Foto bewerken (één bewerker voor de hele app)
 Wens van Rene (26-11-2026): bijsnijden, draaien en meer, ook in andere tools (Stamgegevens, ID-kopie), met een voorstel dat
 de app zelf doet. **De bewerker** (`web/src/script/02-fotobewerken.js`, venster `#fbdlg` in `vensters.html`, in `TS_LAGEN`,

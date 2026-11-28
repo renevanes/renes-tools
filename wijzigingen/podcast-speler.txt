@@ -1,0 +1,5 @@
+Podcasts: zacht beginnen. Begin je in de avond of nacht met luisteren, dan staat het volume eerst zacht (nog net hoorbaar); tijden en hoe zacht stel je in bij Podcasts → Instellingen
+Podcasts: ⏮ gaat nu meteen naar wat hiervoor speelde en elke keer een stap verder terug; ⏭ brengt je weer terug waar je was
+Podcasts: terugspoelen aan het begin van een aflevering gaat door in het einde van de vorige
+Podcasts: in de speler staat onder Hierna de lijst Eerder afgespeeld
+Podcasts: na Afspelen zie je sneller dat het speelt, en een aflevering die je kort geleden luisterde start sneller opnieuw

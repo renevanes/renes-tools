@@ -111,6 +111,28 @@
       <p class="hint">Per podcast (⋯ → Overslaan) kies je of reclame overgeslagen wordt, en hoeveel van het begin en het einde.</p>
       <p class="hint" id="ps-ov-n" hidden></p>
     </div>
+    <div class="card" id="ps-zk" hidden>
+      <h2><span class="ui-icon" data-icon="moon" aria-hidden="true"></span>Zacht beginnen</h2>
+      <p class="hint">Begin je met luisteren, dan zet de speler het volume eerst zacht: zacht, maar nog net hoorbaar. Daarna zet je het zelf harder of zachter; zolang je luistert blijft het zoals jij het zet.</p>
+      <label class="f" for="ps-zacht">Wanneer</label>
+      <select class="sel" id="ps-zacht" onchange="psZacht()">
+        <option value="avond">In de avond en nacht</option>
+        <option value="altijd">Altijd</option>
+        <option value="uit">Uit</option>
+      </select>
+      <div id="ps-zacht-meer">
+        <div class="row" id="ps-zacht-tijd" style="margin:8px 0 4px;gap:12px;flex-wrap:wrap">
+          <label class="aetime">Van <input type="time" id="ps-zacht-van" onchange="psZacht()"></label>
+          <label class="aetime">tot <input type="time" id="ps-zacht-tot" onchange="psZacht()"></label>
+        </div>
+        <label class="f" for="ps-zacht-pct">Hoe zacht</label>
+        <input type="range" id="ps-zacht-pct" min="1" max="40" step="1" oninput="psZachtTxt()" onchange="psZacht()" style="width:100%">
+        <p class="hint" id="ps-zacht-pt" role="status"></p>
+        <button class="big ghost" id="ps-zacht-nu" onclick="psZachtNu()">Het volume van nu gebruiken</button>
+        <div class="sw"><span>Alleen op de luidspreker van de telefoon<small>Niet met een koptelefoon of via Bluetooth, zoals in de auto</small></span><button class="tg" id="ps-zacht-ls" role="switch" aria-checked="false" onclick="psZachtLs()" aria-label="Zacht beginnen alleen op de luidspreker van de telefoon"></button></div>
+      </div>
+      <p class="hint" id="ps-zacht-u" role="status"></p>
+    </div>
     <div class="card" id="ps-fvk">
       <h2><span class="ui-icon" data-icon="volume-high" aria-hidden="true"></span>Volumeknoppen</h2>
       <div class="sw"><span>Fijner volume<small>Kleinere stappen met de volumeknoppen van je telefoon, bij podcasts, radio en voorlezen</small></span><button class="tg" id="ps-fv" role="switch" aria-checked="false" onclick="fvZet('ps', 'aan')" aria-label="Fijner volume"></button></div>

@@ -84,13 +84,16 @@ function pcPoll(force){
     if (current === 'podcast') { pdRefreshRows(); pdResumeShow(); } // ▶/❚❚ en voortgang in de lijst bijwerken
   }
   if (typeof pkMeld === 'function') pkMeld(pcSt);
+  if (typeof pcMeldKort === 'function') pcMeldKort(pcSt);
   if (typeof plRender === 'function') plRender();
 }
+/* Net gestart: niet tot de volgende seconde wachten om te zien dat het speelt (de speler kijkt anders eens per seconde). */
+function pcSnelKijken(){ [150, 400, 800, 1500].forEach(ms => setTimeout(() => { if (pcSt.status === 'connecting' && !appPaused) pcPoll(false); }, ms)); }
 function pcActive(){ return pcSt.status === 'playing' || pcSt.status === 'connecting'; }
 function pcPlayPause(){
   if (pcActive()) Android.podPause(); else Android.podResume();
   pcSt.status = pcActive() ? 'paused' : 'connecting'; plHintSrc('podcast'); plRender();
-  setTimeout(() => pcPoll(true), 300);
+  setTimeout(() => pcPoll(true), 300); pcSnelKijken();
 }
 function pcSkip(s){ Android.podSkip(s); pcSt.pos = Math.max(0, (+pcSt.pos || 0) + s * 1000); plRender(); }
 function pcSpeedMenu(){
@@ -121,6 +124,7 @@ function pcPlayEp(ep, pod, fromStart){
   if (e) { toast(e); return; }
   pcSt = { status: 'connecting', ep: pcSlimEp(ep), pod: pcSlimPod(pod), pos: fromStart ? 0 : (+ep.pos || 0), dur: (+ep.dur || 0) * 1000, speed: pcSt.speed || 1 };
   pcLastSig = ''; plHintSrc('podcast'); plRender();
+  pcSnelKijken();
   if (current === 'podcast') { pdRefreshRows(); pdResumeShow(); } else { pcRenderCont(); pcRenderNew(); }
 }
 
