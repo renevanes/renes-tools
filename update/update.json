@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.278",
-  "versionCode": 279,
-  "nativeLevel": 238,
+  "versionName": "1.279",
+  "versionCode": 280,
+  "nativeLevel": 239,
   "web": "index.html",
-  "webSha256": "ace1c8d1285f39663c5de3602efb284c96ddddc40e99ba5c32212bb624e6c824",
+  "webSha256": "0eb6d5a45bcfb8952bb271c258758c06efb8fd6c76415b8e1894258f0df214d1",
   "start": "start.html",
   "startSha256": "748fb0c7f28361d3f7a8704abd3c3296b54abac85ba5d8de9a033a3338198be4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3caf572a4cb7e2f2664c16eb9c4daac10e3e5a5e5c2e31749b22f6880a632d5a",
+  "apkSha256": "35ca9ce4e385aaf7f384e485ba68f4733ad307a746cc685343d0f84bb4b96ecc",
   "changelog": [
+    {
+      "version": "1.279",
+      "date": "2026-11-28",
+      "changes": [
+        "Nieuws: onderaan de lijst staat Oudere berichten laden; Tools bewaart nu ook wat uit een feed verdwijnt, en bij AI Report haalt hij oudere artikelen van de site zelf"
+      ]
+    },
     {
       "version": "1.278",
       "date": "2026-11-28",
@@ -167,14 +174,7 @@
         "Stamgegevens: bij twee foto's zoekt de app eerst op beide naar de strook, zodat de tweede foto niet zonder tijd blijft.",
         "Nieuwe versies van de app worden voortaan vanzelf gedownload (standaard aan, alleen via wifi); installeren doe je zelf met één tik. Aan of uit bij Instellingen → Versie en updates."
       ]
-    },
-    {
-      "version": "1.259",
-      "date": "2026-11-25",
-      "changes": [
-        "Stamgegevens: de strook van een paspoort met een afwijkende (gelaserde) letter wordt nu ook herkend als de controlecijfers kloppen; nummer, geboortedatum en vervaldatum worden dan voorgesteld, naam en nationaliteit staan erbij om na te kijken."
-      ]
     }
   ],
-  "webSig2": "anR+ZYxXsZfmWnN0QsHXcWTylLDWxRr/BtJ11ZIa3PwjvMxDy+HkDPR74UakwVRZ06SDwuH1oRHCopM51cdyQSiDWeHWsAkDjwRtDt6GbDV1xR4W1X2858s+ZnQrlBiMazcu0MIw1J1vQuNF28ilRtUTX36UzXq63L360rKJ4tcM0qRf3bdvKDbAf9me2U4wJ/cwh6s+YbQxQyKEDtWJtU7EFRq1yNNPJaJcBTN/vyJwopibfwtd5qx4A5Bw8G0ZvdoMbSVNjbmCEhu40s+amLKhU4YGXdPxPXHyyg6zcCnomcrLL6/LpFscwGm/LAFOATUceYCv/GsdUHTTb7DpDlOZCRGTPb5yxW2tyLzJdsGsVEA4oTYudUgrS5M64Blfo6rG13Q7pHsU0GcopuFUqs/8Mhd9UX0HDuWLp1BcAK3Q+p8faEMAlivIfA4TGNGp+nA6w2rD7WmtzngTMXk+spyy2pkjTvypiEIja4mKF6Whwc1BE466OrlDFy8cwH1g"
+  "webSig2": "UkB918DjaVAIPAge/N4VWMxxFo1YzcJBNHFQGW1eYjILYubS1QmSgTgykDjYbr6MH72RrDPtUbjXndYss3/skiHWH3jCTupD9lF63GaxBM6S4Olt5/XyLh4MmwfR4O+fe6eG6XRvDHJ3GwP7gG7f/TpY2/nuEBzrT5i5Q5rXmN7ZxQlbtn6pQM2ksj8cnP8f064j4AMdScWCuqS5lqtkWOpJHEvvFvijIC5J+EZ/mfjobQOra1LCfkBkLZGKFp67Fp5GKwqPXaWM1Q5AiyMeKkiYj7/+MK8+BEAp4K35idZaKQ3oCAaaxAcbwCfZ/j8QISGe478XYR//2oU2ODJYxjzKX2V0K+tCBQLwu0H9hlQvluSZJvzcmgCNQ0t7FA0yEKIGGhCS8AA7t1P0raJlVgeDREq1CrZocJ8XswOHOJh486BI0veLFyUIfUtg6GCSNCvFRe4QnZMN6d37YxiRMXTjDMcgkjNSBzQHsrVk5OJShuQUp8W8PlGV4a/VN1lq"
 }

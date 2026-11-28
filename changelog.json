@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.279",
+    "date": "2026-11-28",
+    "changes": [
+      "Nieuws: onderaan de lijst staat Oudere berichten laden; Tools bewaart nu ook wat uit een feed verdwijnt, en bij AI Report haalt hij oudere artikelen van de site zelf"
+    ]
+  },
+  {
     "version": "1.278",
     "date": "2026-11-28",
     "changes": [
