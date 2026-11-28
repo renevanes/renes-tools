@@ -33,10 +33,12 @@ const path = require('path');
     ok(titels[eerst] === 'Oud bericht 1' && new Set(titels).size === titels.length, 'nieuwste eerst, niets dubbel');
 
     // het archief raakt op: de sitemap van AI Report verder terug
+    await page.evaluate(() => { Android._nw.wacht = 1500; }); // lang genoeg om het wachten te zien, ook op een trage machine
     await page.click('#nw-lijst .nw-ouder');
-    await page.waitForTimeout(50);
     ok((await calls()).includes('ouderHalen:') && await page.locator('#nw-lijst .nw-ouder-st.wacht').isVisible(), 'archief op: verder terug op de site, en dat is zichtbaar');
-    await page.waitForTimeout(400);
+    await page.evaluate(() => { Android._nw.wacht = 100; });
+    await page.waitForFunction(() => !nw.ouderBezig, null, { timeout: 10000 });
+    await page.waitForTimeout(100);
     ok(await rijen() === eerst + 70 + 20, 'wat de site gaf staat erbij (' + await rijen() + ')');
 
     // openen werkt ook voor een oud bericht, en terug houdt de lijst
